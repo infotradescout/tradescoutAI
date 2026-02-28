@@ -116,8 +116,8 @@ export default function FinancesExpensesPage() {
     <Page className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Expenses</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Expenses</h1>
+          <p className="text-sm text-white/60">
             Track money going out so you can see true job profitability.
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function FinancesExpensesPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 border-slate-600 text-[11px] text-slate-200"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => navigate("/finances")}
           >
             Back to dashboard
@@ -133,15 +133,15 @@ export default function FinancesExpensesPage() {
         </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-100">Record an expense</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
+            <CardTitle className="text-sm font-semibold text-white">Record an expense</CardTitle>
+            <CardDescription className="text-xs text-white/60">
               Log material, labor, and other costs tied to your jobs and business.
             </CardDescription>
           </div>
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px] text-white/60">
             {expenses.length.toLocaleString()} recorded expense{expenses.length === 1 ? "" : "s"}
           </div>
         </CardHeader>
@@ -152,32 +152,32 @@ export default function FinancesExpensesPage() {
                 placeholder="Project or job name"
                 value={expenseProjectTitle}
                 onChange={(e) => setExpenseProjectTitle(e.target.value)}
-                className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                className="bg-tsCard/95 border-white/10 text-white text-sm"
               />
               <Input
                 placeholder="Vendor (optional)"
                 value={expenseVendor}
                 onChange={(e) => setExpenseVendor(e.target.value)}
-                className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                className="bg-tsCard/95 border-white/10 text-white text-sm"
               />
               <Input
                 placeholder="Category (optional)"
                 value={expenseCategory}
                 onChange={(e) => setExpenseCategory(e.target.value)}
-                className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                className="bg-tsCard/95 border-white/10 text-white text-sm"
               />
               <Input
                 placeholder="Total amount"
                 value={expenseTotal}
                 onChange={(e) => setExpenseTotal(e.target.value)}
-                className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                className="bg-tsCard/95 border-white/10 text-white text-sm"
               />
             </div>
             <Input
               placeholder="Notes (what this expense was for)"
               value={expenseNotes}
               onChange={(e) => setExpenseNotes(e.target.value)}
-              className="bg-slate-900/60 border-slate-700 text-white text-sm"
+              className="bg-tsCard/95 border-white/10 text-white text-sm"
             />
             <div className="flex justify-end">
               <Button
@@ -191,21 +191,21 @@ export default function FinancesExpensesPage() {
           </div>
 
           {isLoading ? (
-            <p className="text-[11px] text-slate-400 py-4">Loading expenses...</p>
+            <p className="text-[11px] text-white/60 py-4">Loading expenses...</p>
           ) : expenses.length === 0 ? (
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-white/60">
               Once you start recording expenses, you'll see a simple ledger here alongside your invoices.
             </p>
           ) : (
             <div className="overflow-x-auto -mx-2">
               <Table className="min-w-full text-xs">
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="w-[20%] text-slate-400">Date</TableHead>
-                    <TableHead className="w-[28%] text-slate-400">Project</TableHead>
-                    <TableHead className="w-[22%] text-slate-400">Vendor</TableHead>
-                    <TableHead className="w-[15%] text-slate-400">Category</TableHead>
-                    <TableHead className="w-[15%] text-right text-slate-400">Amount</TableHead>
+                  <TableRow className="border-white/10">
+                    <TableHead className="w-[20%] text-white/60">Date</TableHead>
+                    <TableHead className="w-[28%] text-white/60">Project</TableHead>
+                    <TableHead className="w-[22%] text-white/60">Vendor</TableHead>
+                    <TableHead className="w-[15%] text-white/60">Category</TableHead>
+                    <TableHead className="w-[15%] text-right text-white/60">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -221,21 +221,21 @@ export default function FinancesExpensesPage() {
                     return (
                       <TableRow
                         key={exp.id}
-                        className="border-slate-800 hover:bg-slate-900/70"
+                        className="border-white/10 hover:bg-tsCard/95"
                       >
-                        <TableCell className="py-2 text-[11px] text-slate-200">
+                        <TableCell className="py-2 text-[11px] text-white/70">
                           {createdLabel}
                         </TableCell>
-                        <TableCell className="py-2 text-[11px] text-slate-100 truncate max-w-[220px]">
+                        <TableCell className="py-2 text-[11px] text-white truncate max-w-[220px]">
                           {title}
                         </TableCell>
-                        <TableCell className="py-2 text-[11px] text-slate-200 truncate max-w-[180px]">
+                        <TableCell className="py-2 text-[11px] text-white/70 truncate max-w-[180px]">
                           {vendor || "—"}
                         </TableCell>
-                        <TableCell className="py-2 text-[11px] text-slate-200 truncate max-w-[160px]">
+                        <TableCell className="py-2 text-[11px] text-white/70 truncate max-w-[160px]">
                           {category || "—"}
                         </TableCell>
-                        <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                        <TableCell className="py-2 text-right text-[11px] text-white">
                           {totalVal !== null
                             ? formatCurrency(totalVal)
                             : "—"}

@@ -109,7 +109,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
       case "under_review":
         return <Clock className="h-4 w-4 text-blue-600" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-600" />;
+        return <Clock className="h-4 w-4 text-white/60" />;
     }
   };
 
@@ -124,7 +124,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
       case "under_review":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       default:
-        return "bg-slate-900 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-tsCard text-white/70 dark:bg-tsCard dark:text-white/70";
     }
   };
 
@@ -135,7 +135,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
       case "normal":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       default:
-        return "bg-slate-900 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-tsCard text-white/70 dark:bg-tsCard dark:text-white/70";
     }
   };
 
@@ -148,21 +148,21 @@ const ApplicationTracker = memo(function ApplicationTracker() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <FileText className="h-8 w-8 text-orange-400" />
+            <FileText className="h-8 w-8 text-ts-orange" />
             <h1 className="text-2xl md:text-4xl font-bold text-white">Application Tracker</h1>
           </div>
-          <p className="text-gray-300 text-base md:text-lg">
+          <p className="text-white/70 text-base md:text-lg">
             Monitor and manage all platform applications and verifications
           </p>
         </div>
 
         {/* Status Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Pending Review</p>
+                  <p className="text-white/60 text-sm">Pending Review</p>
                   <p className="text-2xl font-bold text-yellow-400">12</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-400" />
@@ -170,11 +170,11 @@ const ApplicationTracker = memo(function ApplicationTracker() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Under Review</p>
+                  <p className="text-white/60 text-sm">Under Review</p>
                   <p className="text-2xl font-bold text-blue-400">8</p>
                 </div>
                 <Eye className="h-8 w-8 text-blue-400" />
@@ -182,11 +182,11 @@ const ApplicationTracker = memo(function ApplicationTracker() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Approved Today</p>
+                  <p className="text-white/60 text-sm">Approved Today</p>
                   <p className="text-2xl font-bold text-green-400">5</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-400" />
@@ -194,11 +194,11 @@ const ApplicationTracker = memo(function ApplicationTracker() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Need Revision</p>
+                  <p className="text-white/60 text-sm">Need Revision</p>
                   <p className="text-2xl font-bold text-red-400">3</p>
                 </div>
                 <AlertCircle className="h-8 w-8 text-red-400" />
@@ -209,23 +209,23 @@ const ApplicationTracker = memo(function ApplicationTracker() {
 
         {/* Filter Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="all" className="data-[state=active]:bg-orange-600">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-tsCard/50 backdrop-blur-sm">
+            <TabsTrigger value="all" className="data-[state=active]:bg-ts-orange-dark">
               All
             </TabsTrigger>
-            <TabsTrigger value="pending" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="pending" className="data-[state=active]:bg-ts-orange-dark">
               Pending
             </TabsTrigger>
-            <TabsTrigger value="under_review" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="under_review" className="data-[state=active]:bg-ts-orange-dark">
               Under Review
             </TabsTrigger>
-            <TabsTrigger value="approved" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="approved" className="data-[state=active]:bg-ts-orange-dark">
               Approved
             </TabsTrigger>
-            <TabsTrigger value="needs_revision" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="needs_revision" className="data-[state=active]:bg-ts-orange-dark">
               Needs Revision
             </TabsTrigger>
-            <TabsTrigger value="rejected" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="rejected" className="data-[state=active]:bg-ts-orange-dark">
               Rejected
             </TabsTrigger>
           </TabsList>
@@ -234,7 +234,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
         {/* Applications List */}
         <div className="space-y-6">
           {filteredApplications.map((application) => (
-            <Card key={application.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card key={application.id} className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
@@ -250,10 +250,10 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                         {application.priority} priority
                       </Badge>
                     </div>
-                    <p className="text-gray-400">Application ID: {application.id}</p>
+                    <p className="text-white/60">Application ID: {application.id}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-gray-400 text-sm">Last activity</p>
+                    <p className="text-white/60 text-sm">Last activity</p>
                     <p className="text-white text-sm">{application.lastActivity}</p>
                   </div>
                 </div>
@@ -266,25 +266,25 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                     <h4 className="text-white font-medium mb-3">Applicant Information</h4>
                     <div className="space-y-2 text-sm">
                       <div>
-                        <span className="text-gray-400">Name: </span>
+                        <span className="text-white/60">Name: </span>
                         <span className="text-white">{application.applicant}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Email: </span>
+                        <span className="text-white/60">Email: </span>
                         <span className="text-white">{application.email}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Submitted: </span>
+                        <span className="text-white/60">Submitted: </span>
                         <span className="text-white">
                           {new Date(application.submittedDate).toLocaleDateString()}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Reviewer: </span>
+                        <span className="text-white/60">Reviewer: </span>
                         <span className="text-white">{application.reviewer}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Est. Completion: </span>
+                        <span className="text-white/60">Est. Completion: </span>
                         <span className="text-white">
                           {new Date(application.estimatedCompletion).toLocaleDateString()}
                         </span>
@@ -297,7 +297,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                     <h4 className="text-white font-medium mb-3">Progress & Documents</h4>
                     <div className="mb-4">
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Overall Progress</span>
+                        <span className="text-white/60">Overall Progress</span>
                         <span className="text-white">{application.progress}%</span>
                       </div>
                       <Progress value={application.progress} className="h-2" />
@@ -306,7 +306,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                     <div className="space-y-2">
                       {application.documents.map((doc, index) => (
                         <div key={index} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-300">{doc.name}</span>
+                          <span className="text-white/70">{doc.name}</span>
                           <Badge
                             variant="outline"
                             className={
@@ -316,7 +316,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                                   ? "border-yellow-400 text-yellow-400"
                                   : doc.status === "under_review"
                                     ? "border-blue-400 text-blue-400"
-                                    : "border-gray-400 text-gray-400"
+                                    : "border-white/15 text-white/60"
                             }
                           >
                             {doc.status.replace("_", " ")}
@@ -330,13 +330,13 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                   <div>
                     <h4 className="text-white font-medium mb-3">Actions & Notes</h4>
                     <div className="space-y-3">
-                      <div className="bg-navy-700/50 rounded-lg p-3">
-                        <p className="text-gray-400 text-xs mb-1">Admin Notes:</p>
+                      <div className="bg-tsCard/50 rounded-lg p-3">
+                        <p className="text-white/60 text-xs mb-1">Admin Notes:</p>
                         <p className="text-white text-sm">{application.notes}</p>
                       </div>
 
                       <div className="space-y-2">
-                        <Button className="w-full bg-orange-600 hover:bg-orange-700 text-sm">
+                        <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark text-sm">
                           <Eye className="h-4 w-4 mr-2" />
                           Review Application
                         </Button>
@@ -344,7 +344,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                            className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                           >
                             <Download className="h-4 w-4 mr-1" />
                             Documents
@@ -352,7 +352,7 @@ const ApplicationTracker = memo(function ApplicationTracker() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                            className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                           >
                             <MessageSquare className="h-4 w-4 mr-1" />
                             Contact
@@ -369,11 +369,11 @@ const ApplicationTracker = memo(function ApplicationTracker() {
 
         {/* Empty State */}
         {filteredApplications.length === 0 && (
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-8 text-center">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <FileText className="h-12 w-12 text-white/60 mx-auto mb-4" />
               <h3 className="text-white text-lg font-medium mb-2">No applications found</h3>
-              <p className="text-gray-400">No applications match the selected filter criteria.</p>
+              <p className="text-white/60">No applications match the selected filter criteria.</p>
             </CardContent>
           </Card>
         )}

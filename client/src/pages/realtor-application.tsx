@@ -211,10 +211,10 @@ export default function RealtorApplication() {
       <div className=" flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-ts-orange mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-4">You need to be logged in to apply as a realtor.</p>
-            <Button asChild className="bg-orange-600 hover:bg-orange-700">
+            <p className="text-white/60 mb-4">You need to be logged in to apply as a realtor.</p>
+            <Button asChild className="bg-ts-orange-dark hover:bg-ts-orange-dark">
               <Link href="/pre-scout-setup?mode=signin">Log In</Link>
             </Button>
           </CardContent>
@@ -241,7 +241,7 @@ export default function RealtorApplication() {
             <Home className="h-8 w-8 text-blue-500" />
             Realtor Network Application
           </h1>
-          <p className="text-gray-400">
+          <p className="text-white/60">
             Join our verified realtor network and sell properties with a professional badge
           </p>
         </div>
@@ -258,28 +258,28 @@ export default function RealtorApplication() {
                 <Shield className="h-5 w-5 text-blue-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Verified Realtor Badge</h4>
-                  <p className="text-sm text-gray-300">Display your professional credentials</p>
+                  <p className="text-sm text-white/70">Display your professional credentials</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-green-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Geographic Specialization</h4>
-                  <p className="text-sm text-gray-300">Target your service areas</p>
+                  <p className="text-sm text-white/70">Target your service areas</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <DollarSign className="h-5 w-5 text-emerald-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Professional Listings</h4>
-                  <p className="text-sm text-gray-300">Higher conversion rates</p>
+                  <p className="text-sm text-white/70">Higher conversion rates</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Award className="h-5 w-5 text-purple-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Trust & Credibility</h4>
-                  <p className="text-sm text-gray-300">Build client confidence</p>
+                  <p className="text-sm text-white/70">Build client confidence</p>
                 </div>
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function RealtorApplication() {
         </Card>
 
         {/* Application Form */}
-        <Card className="bg-navy-800 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-blue-500" />
@@ -411,7 +411,7 @@ export default function RealtorApplication() {
                 {/* Specializations */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-400">Specializations</h3>
-                  <p className="text-sm text-gray-400">Select your areas of expertise</p>
+                  <p className="text-sm text-white/60">Select your areas of expertise</p>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {realEstateSpecializations.map((specialization) => (
@@ -435,7 +435,7 @@ export default function RealtorApplication() {
                 {/* Service Areas */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-400">Service Areas</h3>
-                  <p className="text-sm text-gray-400">Define your geographic coverage</p>
+                  <p className="text-sm text-white/60">Define your geographic coverage</p>
 
                   <FormField
                     control={form.control}

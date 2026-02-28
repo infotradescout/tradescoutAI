@@ -508,7 +508,7 @@ export default function Exchange() {
       like_new: "bg-blue-500",
       "like-new": "bg-blue-500",
       good: "bg-yellow-500",
-      fair: "bg-orange-500",
+      fair: "bg-ts-orange",
     };
     return colors[condition as keyof typeof colors] || "bg-tsBg/10";
   };
@@ -578,18 +578,18 @@ export default function Exchange() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-7 py-4 sm:py-6">
-      <div className="mb-4 rounded-xl border border-slate-800 bg-slate-950/65 p-3 sm:p-4">
+      <div className="mb-4 rounded-xl border border-white/10 bg-black/30 p-3 sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-slate-100">Exchange listings</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-white">Exchange listings</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="border-slate-700 text-slate-300">
+            <Badge variant="outline" className="border-white/10 text-white/70">
               Local results
             </Badge>
             <Badge
               variant="outline"
-              className="border-slate-700 text-slate-300"
+              className="border-white/10 text-white/70"
               title={
                 countyCommitted
                   ? "Using your committed county"
@@ -605,23 +605,23 @@ export default function Exchange() {
       <ScoutContinueBanner className="mb-4" />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-4 bg-tsCard border border-tsBorder rounded-xl overflow-hidden text-[10px] sm:text-[11px]">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-4 bg-tsCard border border-white/10 rounded-xl overflow-hidden text-[10px] sm:text-[11px]">
           <TabsTrigger
             value="browse"
-            className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             Browse
           </TabsTrigger>
           <TabsTrigger
             value="promotions"
-            className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             <Megaphone className="h-3 w-3 mr-1" />
             <span>Promos</span>
           </TabsTrigger>
           <TabsTrigger
             value="sales"
-            className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700 relative"
+            className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 relative"
           >
             <Tag className="h-3 w-3 mr-1" />
             <span>Sales</span>
@@ -631,39 +631,39 @@ export default function Exchange() {
           </TabsTrigger>
           <TabsTrigger
             value="categories"
-            className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             Categories
           </TabsTrigger>
           <TabsTrigger
             value="sell"
-            className="flex items-center justify-center px-2 py-1.5 text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             Sell
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="browse" className="space-y-4">
-          <Card className="bg-tsCard border-tsBorder">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader className="pb-2">
               <CardTitle className="text-white text-sm">Categories</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                 <Card
-                  className={`min-w-[180px] bg-slate-900/40 border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer ${
-                    !selectedCategory ? "border-orange-500/60" : ""
+                  className={`min-w-[180px] bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                    !selectedCategory ? "border-ts-orange/30" : ""
                   }`}
                   onClick={() => setSelectedCategory("")}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-orange-500/15 rounded-lg flex items-center justify-center">
-                        <Package className="h-5 w-5 text-orange-300" />
+                      <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
+                        <Package className="h-5 w-5 text-ts-orange" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-white truncate">All</div>
-                        <div className="text-[11px] text-slate-400 truncate">Browse everything</div>
+                        <div className="text-[11px] text-white/60 truncate">Browse everything</div>
                       </div>
                     </div>
                   </CardContent>
@@ -675,21 +675,21 @@ export default function Exchange() {
                   return (
                     <Card
                       key={category.id}
-                      className={`min-w-[180px] bg-slate-900/40 border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer ${
-                        active ? "border-orange-500/60" : ""
+                      className={`min-w-[180px] bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                        active ? "border-ts-orange/30" : ""
                       }`}
                       onClick={() => setSelectedCategory(category.id)}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-orange-500/15 rounded-lg flex items-center justify-center">
-                            <IconComponent className="h-5 w-5 text-orange-300" />
+                          <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
+                            <IconComponent className="h-5 w-5 text-ts-orange" />
                           </div>
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-white truncate">
                               {category.name}
                             </div>
-                            <div className="text-[11px] text-slate-400 truncate">
+                            <div className="text-[11px] text-white/60 truncate">
                               {category.description}
                             </div>
                           </div>
@@ -699,14 +699,14 @@ export default function Exchange() {
                   );
                 })}
               </div>
-              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400">
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-white/60">
                 <div className="min-w-0 truncate">
                   {activeCategoryMeta ? `Selected: ${activeCategoryMeta.name}` : "Selected: All"}
                 </div>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 border-slate-700 text-slate-200"
+                  className="h-7 border-white/10 text-white/70"
                   onClick={() => setActiveTab("sell")}
                 >
                   <Plus className="h-3 w-3 mr-1" />
@@ -717,29 +717,29 @@ export default function Exchange() {
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-[260px,1fr] gap-4">
-            <Card className="bg-tsCard border-tsBorder h-fit xl:sticky xl:top-20">
+            <Card className="bg-tsCard border-white/10 h-fit xl:sticky xl:top-20">
               <CardHeader className="pb-1">
                 <CardTitle className="text-white text-sm flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-orange-400" />
+                  <Filter className="h-4 w-4 text-ts-orange" />
                   Filters
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/60" />
                   <Input
                     placeholder="Search items"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-9 pl-10 bg-slate-800 border-slate-700 text-white text-sm"
+                    className="h-9 pl-10 bg-white/5 border-white/10 text-white text-sm"
                   />
                 </div>
 
                 <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
+                  <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
                     <SelectValue placeholder="Price Range" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="">Any Price</SelectItem>
                     <SelectItem value="0-1000">Under $1K</SelectItem>
                     <SelectItem value="1000-5000">$1K - $5K</SelectItem>
@@ -750,10 +750,10 @@ export default function Exchange() {
                 </Select>
 
                 <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                  <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
+                  <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
                     <SelectValue placeholder="Condition" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="any">Any Condition</SelectItem>
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="like_new">Like New</SelectItem>
@@ -763,10 +763,10 @@ export default function Exchange() {
                 </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-9 bg-slate-800 border-slate-700 text-white text-sm">
+                  <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="date_desc">Newest First</SelectItem>
                     <SelectItem value="price_asc">Price: Low to High</SelectItem>
                     <SelectItem value="price_desc">Price: High to Low</SelectItem>
@@ -776,7 +776,7 @@ export default function Exchange() {
                 <div className="flex gap-2 pt-1">
                   <Button
                     variant="outline"
-                    className="flex-1 h-9 border-slate-600 text-slate-200 text-sm"
+                    className="flex-1 h-9 border-white/15 text-white/70 text-sm"
                     onClick={() => {
                       setSearchQuery("");
                       setSelectedCategory("");
@@ -788,7 +788,7 @@ export default function Exchange() {
                     Reset
                   </Button>
                   <Button
-                    className="flex-1 h-9 bg-orange-500 hover:bg-orange-600 text-sm"
+                    className="flex-1 h-9 bg-ts-orange hover:bg-ts-orange-dark text-sm"
                     onClick={() => setActiveTab("sell")}
                   >
                     Sell
@@ -798,12 +798,12 @@ export default function Exchange() {
             </Card>
 
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-tsBorder bg-tsCard px-3 py-2">
-                <div className="text-sm text-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-tsCard px-3 py-2">
+                <div className="text-sm text-white/70">
                   <span className="font-semibold text-white">{filteredItems?.length ?? 0}</span>{" "}
                   results
                   {activeCategoryMeta ? (
-                    <span className="text-slate-400"> in {activeCategoryMeta.name}</span>
+                    <span className="text-white/60"> in {activeCategoryMeta.name}</span>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
@@ -812,27 +812,27 @@ export default function Exchange() {
                     variant={savedOnly ? "default" : "outline"}
                     className={
                       savedOnly
-                        ? "h-7 bg-orange-500 hover:bg-orange-600 text-white"
-                        : "h-7 border-slate-600 text-slate-200"
+                        ? "h-7 bg-ts-orange hover:bg-ts-orange-dark text-white"
+                        : "h-7 border-white/15 text-white/70"
                     }
                     onClick={() => setSavedOnly((prev) => !prev)}
                   >
                     <Heart className="h-3 w-3 mr-1" />
                     {savedOnly ? "Saved only" : "All listings"}
                   </Button>
-                  <div className="text-xs text-slate-400">Marketplace-style local board</div>
+                  <div className="text-xs text-white/60">Marketplace-style local board</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
-                    <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
-                      <div className="aspect-square bg-slate-700 rounded-t-lg"></div>
+                    <Card key={i} className="bg-tsCard border-white/10 animate-pulse">
+                      <div className="aspect-square bg-white/10 rounded-t-lg"></div>
                       <CardContent className="p-3">
-                        <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                        <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                        <div className="h-3 bg-slate-700 rounded w-2/3"></div>
+                        <div className="h-4 bg-white/10 rounded mb-2"></div>
+                        <div className="h-4 bg-white/10 rounded mb-2"></div>
+                        <div className="h-3 bg-white/10 rounded w-2/3"></div>
                       </CardContent>
                     </Card>
                   ))
@@ -842,11 +842,11 @@ export default function Exchange() {
                     return (
                       <Card
                         key={item.id}
-                        className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors overflow-hidden"
+                        className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors overflow-hidden"
                       >
                         <div className="relative">
                           {item.images && item.images.length > 0 ? (
-                            <div className="aspect-square bg-slate-900 overflow-hidden">
+                            <div className="aspect-square bg-tsCard overflow-hidden">
                               <img
                                 src={item.images[0]}
                                 alt={item.title}
@@ -854,12 +854,12 @@ export default function Exchange() {
                               />
                             </div>
                           ) : (
-                            <div className="aspect-square bg-slate-800 flex items-center justify-center">
-                              <IconComponent className="h-12 w-12 text-slate-500" />
+                            <div className="aspect-square bg-white/5 flex items-center justify-center">
+                              <IconComponent className="h-12 w-12 text-white/60" />
                             </div>
                           )}
                           {item.featured && (
-                            <Badge className="absolute top-2 right-2 bg-orange-500">Featured</Badge>
+                            <Badge className="absolute top-2 right-2 bg-ts-orange">Featured</Badge>
                           )}
                           <Badge
                             className={`absolute top-2 left-2 ${getConditionBadge(item.condition)}`}
@@ -871,10 +871,10 @@ export default function Exchange() {
                           <p className="text-lg sm:text-xl font-bold text-white mb-1">
                             {formatPrice(item.price)}
                           </p>
-                          <h3 className="font-semibold text-slate-100 mb-1 line-clamp-2 leading-tight text-sm">
+                          <h3 className="font-semibold text-white mb-1 line-clamp-2 leading-tight text-sm">
                             {item.title}
                           </h3>
-                          <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                          <div className="flex items-center justify-between text-xs text-white/60 mb-2">
                             <div className="flex items-center">
                               <MapPin className="h-3 w-3 mr-1" />
                               <span className="line-clamp-1">{item.location}</span>
@@ -884,16 +884,16 @@ export default function Exchange() {
 
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0 flex items-center">
-                              <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center mr-2">
+                              <div className="w-7 h-7 bg-white/10 rounded-full flex items-center justify-center mr-2">
                                 <span className="text-[11px] text-white">
                                   {item.seller.name[0]}
                                 </span>
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[11px] text-slate-200 truncate">
+                                <p className="text-[11px] text-white/70 truncate">
                                   {item.seller.name}
                                 </p>
-                                <div className="flex items-center text-[10px] text-slate-400">
+                                <div className="flex items-center text-[10px] text-white/60">
                                   <Star className="h-3 w-3 text-yellow-500 mr-1" />
                                   <span>{item.seller.rating}</span>
                                   {item.seller.verified ? (
@@ -909,7 +909,7 @@ export default function Exchange() {
                                 className={`h-8 w-8 p-0 ${
                                   favoriteListingIds.has(String(item.id))
                                     ? "text-rose-400 hover:text-rose-300"
-                                    : "text-slate-300 hover:text-white"
+                                    : "text-white/70 hover:text-white"
                                 }`}
                                 onClick={() => {
                                   if (!isAuthenticated) {
@@ -932,7 +932,7 @@ export default function Exchange() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-8 w-8 p-0 text-slate-300 hover:text-white"
+                                className="h-8 w-8 p-0 text-white/70 hover:text-white"
                                 onClick={() =>
                                   shareLink(
                                     `/exchange?item=${encodeURIComponent(item.id)}`,
@@ -945,7 +945,7 @@ export default function Exchange() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-8 px-2.5 bg-orange-500 hover:bg-orange-600 text-xs"
+                                className="h-8 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-xs"
                                 onClick={() => {
                                   if (!isAuthenticated) {
                                     navigate("/pre-scout-setup?mode=signin");
@@ -962,7 +962,7 @@ export default function Exchange() {
                             </div>
                           </div>
 
-                          <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-3">
+                          <div className="mt-2 text-[10px] text-white/60 flex items-center gap-3">
                             <span className="inline-flex items-center gap-1">
                               <Eye className="h-3 w-3" />
                               {item.views}
@@ -992,24 +992,24 @@ export default function Exchange() {
 
         <TabsContent value="promotions" className="space-y-6">
           {/* Promotions Search */}
-          <Card className="bg-tsCard border-tsBorder">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     placeholder="Search promotions..."
                     value={salesSearchQuery}
                     onChange={(e) => setSalesSearchQuery(e.target.value)}
-                    className="pl-10 bg-slate-700 border-slate-600 text-white"
+                    className="pl-10 bg-white/10 border-white/15 text-white"
                   />
                 </div>
 
                 <Select value={salesSortBy} onValueChange={setSalesSortBy}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="ending_soon">Ending Soon</SelectItem>
                   </SelectContent>
@@ -1022,11 +1022,11 @@ export default function Exchange() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-white flex items-center">
-                <Megaphone className="h-6 w-6 mr-2 text-orange-500" />
+                <Megaphone className="h-6 w-6 mr-2 text-ts-orange" />
                 Promotions
               </h2>
               <Button
-                className="bg-orange-500 hover:bg-orange-600"
+                className="bg-ts-orange hover:bg-ts-orange-dark"
                 onClick={() => navigate("/promotions")}
               >
                 Create Promotion
@@ -1036,12 +1036,12 @@ export default function Exchange() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {exchangePromotionsLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
+                  <Card key={i} className="bg-tsCard border-white/10 animate-pulse">
                     <CardContent className="p-6">
-                      <div className="h-4 bg-slate-600 rounded mb-4"></div>
-                      <div className="h-6 bg-slate-600 rounded mb-2"></div>
-                      <div className="h-4 bg-slate-600 rounded mb-4"></div>
-                      <div className="h-4 bg-slate-600 rounded w-3/4"></div>
+                      <div className="h-4 bg-white/10 rounded mb-4"></div>
+                      <div className="h-6 bg-white/10 rounded mb-2"></div>
+                      <div className="h-4 bg-white/10 rounded mb-4"></div>
+                      <div className="h-4 bg-white/10 rounded w-3/4"></div>
                     </CardContent>
                   </Card>
                 ))
@@ -1049,25 +1049,25 @@ export default function Exchange() {
                 exchangePromotions.map((promo) => (
                   <Card
                     key={promo.id}
-                    className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors"
+                    className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors"
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center">
-                          <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
+                          <div className="w-12 h-12 bg-ts-orange rounded-lg flex items-center justify-center mr-3">
                             <Megaphone className="h-6 w-6 text-white" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-white">{promo.businessName}</h3>
                             {promo.isFeatured ? (
-                              <Badge className="mt-1 bg-orange-500/20 text-orange-300 border-orange-500/50 text-xs">
+                              <Badge className="mt-1 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-xs">
                                 Featured
                               </Badge>
                             ) : null}
                           </div>
                         </div>
                         {promo.expiresAt && (
-                          <Badge variant="outline" className="border-orange-500/50 text-orange-400">
+                          <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                             <Clock className="h-3 w-3 mr-1" />
                             Expires {new Date(promo.expiresAt).toLocaleDateString()}
                           </Badge>
@@ -1075,20 +1075,20 @@ export default function Exchange() {
                       </div>
 
                       <h4 className="text-lg font-semibold text-white mb-2">{promo.title}</h4>
-                      <p className="text-gray-300 text-sm mb-3">{promo.description}</p>
+                      <p className="text-white/70 text-sm mb-3">{promo.description}</p>
 
-                      <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mb-4">
+                      <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-3 mb-4">
                         <div className="flex items-center mb-2">
-                          <Percent className="h-4 w-4 text-orange-400 mr-2" />
-                          <span className="text-orange-400 font-semibold">
+                          <Percent className="h-4 w-4 text-ts-orange mr-2" />
+                          <span className="text-ts-orange font-semibold">
                             {promo.offerDetails}
                           </span>
                         </div>
                         {promo.promoCode && (
-                          <div className="flex items-center justify-between bg-slate-700 rounded p-2">
-                            <span className="text-sm text-gray-300">Promo Code:</span>
+                          <div className="flex items-center justify-between bg-white/10 rounded p-2">
+                            <span className="text-sm text-white/70">Promo Code:</span>
                             <div className="flex items-center">
-                              <code className="bg-slate-600 px-2 py-1 rounded text-orange-400 font-mono text-sm mr-2">
+                              <code className="bg-white/10 px-2 py-1 rounded text-ts-orange font-mono text-sm mr-2">
                                 {promo.promoCode}
                               </code>
                               <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
@@ -1100,14 +1100,14 @@ export default function Exchange() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-400">
+                        <div className="text-sm text-white/60">
                           {promo.viewCount} views • {promo.leadCount} leads
                         </div>
                         <div className="flex space-x-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-gray-400 hover:text-white"
+                            className="text-white/60 hover:text-white"
                             onClick={() =>
                               shareLink(
                                 `/exchange?tab=promotions&promo=${encodeURIComponent(promo.slug || promo.id)}`,
@@ -1120,7 +1120,7 @@ export default function Exchange() {
                           </Button>
                           <Button
                             size="sm"
-                            className="bg-orange-500 hover:bg-orange-600"
+                            className="bg-ts-orange hover:bg-ts-orange-dark"
                             onClick={() => {
                               if (promo.ctaUrl) {
                                 window.open(promo.ctaUrl, "_blank", "noopener,noreferrer");
@@ -1138,9 +1138,9 @@ export default function Exchange() {
                 ))
               ) : (
                 <div className="col-span-3 text-center py-12">
-                  <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-4">No promotions found.</p>
-                  <Button className="bg-orange-500 hover:bg-orange-600">
+                  <Megaphone className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                  <p className="text-white/60 mb-4">No promotions found.</p>
+                  <Button className="bg-ts-orange hover:bg-ts-orange-dark">
                     Create the first promotion
                   </Button>
                 </div>
@@ -1151,24 +1151,24 @@ export default function Exchange() {
 
         <TabsContent value="sales" className="space-y-6">
           {/* Store Sales Search */}
-          <Card className="bg-tsCard border-tsBorder">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     placeholder="Search store sales and deals..."
                     value={salesSearchQuery}
                     onChange={(e) => setSalesSearchQuery(e.target.value)}
-                    className="pl-10 bg-slate-700 border-slate-600 text-white"
+                    className="pl-10 bg-white/10 border-white/15 text-white"
                   />
                 </div>
 
                 <Select value={salesCategory} onValueChange={setSalesCategory}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="tools">Tools & Hardware</SelectItem>
                     <SelectItem value="lumber">Lumber & Materials</SelectItem>
@@ -1180,10 +1180,10 @@ export default function Exchange() {
                 </Select>
 
                 <Select value={dealType} onValueChange={setDealType}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="Deal Type" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="all">All Deals</SelectItem>
                     <SelectItem value="percentage_off">Percentage Off</SelectItem>
                     <SelectItem value="dollar_off">Dollar Amount Off</SelectItem>
@@ -1194,10 +1194,10 @@ export default function Exchange() {
                 </Select>
 
                 <Select value={salesSortBy} onValueChange={setSalesSortBy}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-tsCard border-tsBorder">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="ending_soon">Ending Soon</SelectItem>
                     <SelectItem value="biggest_savings">Biggest Savings</SelectItem>
@@ -1226,12 +1226,12 @@ export default function Exchange() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {companyPromotionsLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="bg-tsCard border-tsBorder animate-pulse">
+                  <Card key={i} className="bg-tsCard border-white/10 animate-pulse">
                     <CardContent className="p-6">
-                      <div className="h-16 bg-slate-600 rounded mb-4"></div>
-                      <div className="h-6 bg-slate-600 rounded mb-2"></div>
-                      <div className="h-4 bg-slate-600 rounded mb-4"></div>
-                      <div className="h-4 bg-slate-600 rounded w-3/4"></div>
+                      <div className="h-16 bg-white/10 rounded mb-4"></div>
+                      <div className="h-6 bg-white/10 rounded mb-2"></div>
+                      <div className="h-4 bg-white/10 rounded mb-4"></div>
+                      <div className="h-4 bg-white/10 rounded w-3/4"></div>
                     </CardContent>
                   </Card>
                 ))
@@ -1239,7 +1239,7 @@ export default function Exchange() {
                 companyPromotions.map((promotion) => (
                   <Card
                     key={promotion.id}
-                    className="bg-tsCard border-tsBorder hover:border-blue-500/50 transition-colors"
+                    className="bg-tsCard border-white/10 hover:border-blue-500/50 transition-colors"
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
@@ -1252,7 +1252,7 @@ export default function Exchange() {
                                 className="w-12 h-12 object-contain"
                               />
                             ) : (
-                              <Building className="h-8 w-8 text-gray-600" />
+                              <Building className="h-8 w-8 text-white/60" />
                             )}
                           </div>
                           <div>
@@ -1269,7 +1269,7 @@ export default function Exchange() {
                       </div>
 
                       <h4 className="text-lg font-semibold text-white mb-2">{promotion.title}</h4>
-                      <p className="text-gray-300 text-sm mb-3">{promotion.description}</p>
+                      <p className="text-white/70 text-sm mb-3">{promotion.description}</p>
 
                       <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -1287,7 +1287,7 @@ export default function Exchange() {
                         </div>
                         {promotion.originalPrice && promotion.salePrice && (
                           <div className="flex items-center space-x-2">
-                            <span className="text-gray-400 line-through">
+                            <span className="text-white/60 line-through">
                               ${promotion.originalPrice}
                             </span>
                             <span className="text-green-400 font-bold text-lg">
@@ -1296,10 +1296,10 @@ export default function Exchange() {
                           </div>
                         )}
                         {promotion.promoCode && (
-                          <div className="flex items-center justify-between bg-slate-700 rounded p-2 mt-2">
-                            <span className="text-sm text-gray-300">Use Code:</span>
+                          <div className="flex items-center justify-between bg-white/10 rounded p-2 mt-2">
+                            <span className="text-sm text-white/70">Use Code:</span>
                             <div className="flex items-center">
-                              <code className="bg-slate-600 px-2 py-1 rounded text-blue-400 font-mono text-sm mr-2">
+                              <code className="bg-white/10 px-2 py-1 rounded text-blue-400 font-mono text-sm mr-2">
                                 {promotion.promoCode}
                               </code>
                               <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
@@ -1311,14 +1311,14 @@ export default function Exchange() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-400">
+                        <div className="text-sm text-white/60">
                           {promotion.viewCount} views • {promotion.redemptionCount} used
                         </div>
                         <div className="flex space-x-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-gray-400 hover:text-white"
+                            className="text-white/60 hover:text-white"
                             onClick={() =>
                               shareLink(
                                 `/exchange?tab=sales&companyPromo=${encodeURIComponent(promotion.slug || promotion.id)}`,
@@ -1340,8 +1340,8 @@ export default function Exchange() {
                 ))
               ) : (
                 <div className="col-span-3 text-center py-12">
-                  <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-4">No store promotions available.</p>
+                  <Building className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                  <p className="text-white/60 mb-4">No store promotions available.</p>
                   <Button
                     variant="outline"
                     className="border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white"
@@ -1361,7 +1361,7 @@ export default function Exchange() {
               return (
                 <Card
                   key={category.id}
-                  className="bg-tsCard border-tsBorder hover:border-orange-500/50 transition-colors cursor-pointer"
+                  className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer"
                   onClick={() => {
                     setSelectedCategory(category.id);
                     setActiveTab("browse");
@@ -1369,12 +1369,12 @@ export default function Exchange() {
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center mb-4">
-                      <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mr-4">
-                        <IconComponent className="h-6 w-6 text-orange-500" />
+                      <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center mr-4">
+                        <IconComponent className="h-6 w-6 text-ts-orange" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-white">{category.name}</h3>
-                        <p className="text-sm text-gray-400">{category.description}</p>
+                        <p className="text-sm text-white/60">{category.description}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -1385,10 +1385,10 @@ export default function Exchange() {
         </TabsContent>
 
         <TabsContent value="sell" className="space-y-6">
-          <Card className="bg-tsCard border-tsBorder">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">List Your Item</CardTitle>
-              <p className="text-gray-400">
+              <p className="text-white/60">
                 Create a clear, trustworthy listing for other TradeScout members
               </p>
             </CardHeader>
@@ -1415,7 +1415,7 @@ export default function Exchange() {
                     <Input
                       id="title"
                       placeholder="Example: 16ft enclosed trailer with ramp"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                       value={sellTitle}
                       onChange={(e) => setSellTitle(e.target.value)}
                     />
@@ -1426,10 +1426,10 @@ export default function Exchange() {
                       Category
                     </Label>
                     <Select value={sellCategoryId} onValueChange={setSellCategoryId}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-white/10 border-white/15 text-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="bg-tsCard border-tsBorder">
+                      <SelectContent className="bg-tsCard border-white/10">
                         {EXCHANGE_CATEGORIES.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -1447,7 +1447,7 @@ export default function Exchange() {
                       id="price"
                       type="number"
                       placeholder="Asking price (USD)"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                       value={sellPrice}
                       onChange={(e) => setSellPrice(e.target.value)}
                     />
@@ -1458,10 +1458,10 @@ export default function Exchange() {
                       Condition
                     </Label>
                     <Select value={sellCondition} onValueChange={setSellCondition}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-white/10 border-white/15 text-white">
                         <SelectValue placeholder="Select condition" />
                       </SelectTrigger>
-                      <SelectContent className="bg-tsCard border-tsBorder">
+                      <SelectContent className="bg-tsCard border-white/10">
                         <SelectItem value="new">New</SelectItem>
                         <SelectItem value="like_new">Like New</SelectItem>
                         <SelectItem value="good">Good</SelectItem>
@@ -1479,7 +1479,7 @@ export default function Exchange() {
                     <Textarea
                       id="description"
                       placeholder="Describe condition, age, and what's included..."
-                      className="bg-slate-700 border-slate-600 text-white min-h-32"
+                      className="bg-white/10 border-white/15 text-white min-h-32"
                       value={sellDescription}
                       onChange={(e) => setSellDescription(e.target.value)}
                     />
@@ -1492,12 +1492,12 @@ export default function Exchange() {
                     <Input
                       id="location"
                       placeholder="Where can buyers pick it up? (City, State)"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                       value={sellLocation}
                       onChange={(e) => setSellLocation(e.target.value)}
                     />
                     <div className="mt-3 space-y-1">
-                      <Label className="text-xs text-gray-300">Location privacy</Label>
+                      <Label className="text-xs text-white/70">Location privacy</Label>
                       <ToggleGroup
                         type="single"
                         value={sellLocationVisibility}
@@ -1506,22 +1506,22 @@ export default function Exchange() {
                             setSellLocationVisibility(value);
                           }
                         }}
-                        className="inline-flex rounded-lg border border-slate-700 bg-slate-800 text-xs"
+                        className="inline-flex rounded-lg border border-white/10 bg-white/5 text-xs"
                       >
                         <ToggleGroupItem
                           value="exact"
-                          className="px-3 py-1.5 data-[state=on]:bg-orange-500 data-[state=on]:text-white data-[state=on]:border-orange-500/80"
+                          className="px-3 py-1.5 data-[state=on]:bg-ts-orange data-[state=on]:text-white data-[state=on]:border-ts-orange/30"
                         >
                           Show exact area
                         </ToggleGroupItem>
                         <ToggleGroupItem
                           value="meetup_only"
-                          className="px-3 py-1.5 data-[state=on]:bg-slate-700 data-[state=on]:text-white"
+                          className="px-3 py-1.5 data-[state=on]:bg-white/10 data-[state=on]:text-white"
                         >
                           Meetup only
                         </ToggleGroupItem>
                       </ToggleGroup>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px] text-white/60">
                         Meetup only hides your exact spot and skips hyper-local alerts.
                       </p>
                     </div>
@@ -1529,14 +1529,14 @@ export default function Exchange() {
 
                   <div>
                     <Label className="text-white">Images</Label>
-                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 text-center space-y-4">
+                    <div className="border-2 border-dashed border-white/15 rounded-lg p-4 text-center space-y-4">
                       <div className="flex flex-col items-center justify-center gap-3">
-                        <Plus className="h-10 w-10 text-gray-400" />
-                        <p className="text-gray-400">Drop in clear, well-lit photos</p>
-                        <p className="text-sm text-gray-500">
+                        <Plus className="h-10 w-10 text-white/60" />
+                        <p className="text-white/60">Drop in clear, well-lit photos</p>
+                        <p className="text-sm text-white/60">
                           Add up to 8 photos that show real condition
                         </p>
-                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-600 text-sm text-slate-200 hover:bg-slate-700 cursor-pointer">
+                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-sm text-white/70 hover:bg-white/10 cursor-pointer">
                           <UploadIcon className="h-4 w-4" />
                           <span>Choose Files</span>
                           <input
@@ -1572,7 +1572,7 @@ export default function Exchange() {
                           {sellImages.map((url, idx) => (
                             <div
                               key={url + idx}
-                              className="relative group rounded-lg overflow-hidden border border-slate-700"
+                              className="relative group rounded-lg overflow-hidden border border-white/10"
                             >
                               <img src={url} alt="Listing" className="w-full h-24 object-cover" />
                               <button
@@ -1596,12 +1596,12 @@ export default function Exchange() {
               <div className="flex justify-end space-x-4">
                 <Button
                   variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  className="border-white/15 text-white/70 hover:bg-white/10"
                 >
                   Save Draft
                 </Button>
                 <Button
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-ts-orange hover:bg-ts-orange-dark"
                   disabled={createListingMutation.isPending}
                   onClick={() => {
                     if (!isAuthenticated) {
@@ -1703,14 +1703,14 @@ export default function Exchange() {
           }
         }}
       >
-        <DialogContent className="bg-tsCard border-tsBorder">
+        <DialogContent className="bg-tsCard border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">Request Quote</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2">
-              <p className="text-xs text-slate-400">Listing</p>
+            <div className="rounded-lg border border-white/10 bg-tsCard/95 px-3 py-2">
+              <p className="text-xs text-white/60">Listing</p>
               <p className="text-sm font-semibold text-white">{contactItem?.title || "Item"}</p>
             </div>
 
@@ -1719,7 +1719,7 @@ export default function Exchange() {
               <Textarea
                 value={inquiryMessage}
                 onChange={(e) => setInquiryMessage(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-white/5 border-white/10 text-white"
                 placeholder="Tell the seller what you need and ask for a quote..."
               />
             </div>
@@ -1731,7 +1731,7 @@ export default function Exchange() {
                 min="0"
                 value={inquiryOffer}
                 onChange={(e) => setInquiryOffer(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white"
+                className="bg-white/5 border-white/10 text-white"
                 placeholder="Example: 2200"
               />
             </div>
@@ -1739,7 +1739,7 @@ export default function Exchange() {
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                className="border-slate-600 text-slate-200"
+                className="border-white/15 text-white/70"
                 onClick={() => {
                   setContactItem(null);
                   setInquiryMessage("");
@@ -1749,7 +1749,7 @@ export default function Exchange() {
                 Cancel
               </Button>
               <Button
-                className="bg-orange-500 hover:bg-orange-600"
+                className="bg-ts-orange hover:bg-ts-orange-dark"
                 disabled={
                   inquiryMutation.isPending || !contactItem?.id || inquiryMessage.trim().length < 4
                 }

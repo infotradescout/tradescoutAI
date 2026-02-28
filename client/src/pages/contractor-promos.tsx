@@ -179,11 +179,11 @@ function PromoForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {fromScoutDraft && !promo && (
-          <div className="rounded-md border border-dashed border-orange-300 bg-tsCard px-3 py-2 text-sm text-gray-800 flex gap-2 items-start">
-            <span className="mt-0.5 h-2 w-2 rounded-full bg-orange-400" aria-hidden="true" />
+          <div className="rounded-md border border-dashed border-ts-orange/30 bg-tsCard px-3 py-2 text-sm text-white/70 flex gap-2 items-start">
+            <span className="mt-0.5 h-2 w-2 rounded-full bg-ts-orange" aria-hidden="true" />
             <div>
-              <p className="font-medium text-gray-900">Draft imported from Scout</p>
-              <p className="text-xs text-gray-600">
+              <p className="font-medium text-white">Draft imported from Scout</p>
+              <p className="text-xs text-white/60">
                 Scout prefilled this promotion based on your request. Review the details and make
                 any edits before publishing.
               </p>
@@ -469,8 +469,8 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
       <CardContent>
         <div className="space-y-4">
           <div className="text-sm">
-            <p className="font-medium text-orange-600 mb-1">Offer Details:</p>
-            <p className="text-gray-600">{promo.offerDetails}</p>
+            <p className="font-medium text-ts-orange mb-1">Offer Details:</p>
+            <p className="text-white/60">{promo.offerDetails}</p>
           </div>
 
           {promo.promoCode && (
@@ -486,21 +486,21 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
                 <Eye className="h-4 w-4 mr-1" />
               </div>
               <div className="text-2xl font-bold">{promo.viewCount}</div>
-              <div className="text-sm text-gray-500">Views</div>
+              <div className="text-sm text-white/60">Views</div>
             </div>
             <div>
               <div className="flex items-center justify-center text-green-600 mb-1">
                 <MousePointer className="h-4 w-4 mr-1" />
               </div>
               <div className="text-2xl font-bold">{promo.clickCount}</div>
-              <div className="text-sm text-gray-500">Clicks</div>
+              <div className="text-sm text-white/60">Clicks</div>
             </div>
             <div>
-              <div className="flex items-center justify-center text-orange-600 mb-1">
+              <div className="flex items-center justify-center text-ts-orange mb-1">
                 <TrendingUp className="h-4 w-4 mr-1" />
               </div>
               <div className="text-2xl font-bold">{promo.connectionCount}</div>
-              <div className="text-sm text-gray-500">Connections</div>
+              <div className="text-sm text-white/60">Connections</div>
             </div>
           </div>
 
@@ -508,9 +508,9 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
             <div className="text-sm">
               <p className="font-medium">Usage:</p>
               <div className="flex items-center space-x-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                <div className="flex-1 bg-white/10 rounded-full h-2">
                   <div
-                    className="bg-orange-600 h-2 rounded-full transition-all"
+                    className="bg-ts-orange-dark h-2 rounded-full transition-all"
                     style={{
                       width: `${Math.min((promo.currentUses / promo.maxUses) * 100, 100)}%`,
                     }}
@@ -632,8 +632,8 @@ export default function ContractorPromos() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Promotional Campaigns</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-white">My Promotional Campaigns</h1>
+            <p className="text-white/60 mt-2">
               Create and manage your promotional offers with shareable links for local marketing.
               You can also ask Scout to "Draft a promotion for my services" and well prefill this
               form for you.
@@ -707,14 +707,14 @@ export default function ContractorPromos() {
         {promos.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
-              <div className="text-gray-500 mb-4">
+              <div className="text-white/60 mb-4">
                 <MapPin className="h-12 w-12 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No promotional campaigns yet</h3>
                 <p className="text-sm">
                   Create your first promotional campaign to start attracting customers with special
                   offers
                 </p>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-white/60 mt-3">
                   Tip: From the Scout chat, try asking "Draft a promotion for my services" and well
                   bring you back here with a prefilled draft ready to review.
                 </p>

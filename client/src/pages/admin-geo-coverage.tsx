@@ -271,14 +271,14 @@ export default function AdminGeoCoverageConsole() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-lg font-semibold text-slate-100">County Coverage Console</h1>
-          <p className="text-xs text-slate-400 max-w-xl">
+          <h1 className="text-lg font-semibold text-white">County Coverage Console</h1>
+          <p className="text-xs text-white/60 max-w-xl">
             Operational view of TradeScout coverage across U.S. counties. "Verified Coverage Rate"
             reflects counties with both an active territory manager and an active affiliate or
             partner mapped in the geographic storage layer.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-white/60">
           <span>View:</span>
           <Tabs
             value={viewMode}
@@ -298,57 +298,57 @@ export default function AdminGeoCoverageConsole() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Card className="bg-slate-950/60 border-slate-800">
+        <Card className="bg-black/30 border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-300">Verified Coverage Rate</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">
+            <CardTitle className="text-xs text-white/70">Verified Coverage Rate</CardTitle>
+            <CardDescription className="text-[11px] text-white/60">
               Fully covered counties ÷ total counties
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-slate-50">{coverageRateLabel}</span>
-            <span className="text-[11px] text-slate-500">full coverage</span>
+            <span className="text-2xl font-semibold text-white">{coverageRateLabel}</span>
+            <span className="text-[11px] text-white/60">full coverage</span>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-950/60 border-slate-800">
+        <Card className="bg-black/30 border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-300">Unassigned counties</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">
+            <CardTitle className="text-xs text-white/70">Unassigned counties</CardTitle>
+            <CardDescription className="text-[11px] text-white/60">
               No TM, no affiliate
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-slate-50">
+            <div className="text-2xl font-semibold text-white">
               {data?.unassignedCounties ?? "-"}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-950/60 border-slate-800">
+        <Card className="bg-black/30 border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-300">Partially covered</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">
+            <CardTitle className="text-xs text-white/70">Partially covered</CardTitle>
+            <CardDescription className="text-[11px] text-white/60">
               Only TM or affiliate
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-slate-50">
+            <div className="text-2xl font-semibold text-white">
               {data?.partiallyCoveredCounties ?? "-"}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-950/60 border-slate-800">
+        <Card className="bg-black/30 border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-300">Fully covered</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">
+            <CardTitle className="text-xs text-white/70">Fully covered</CardTitle>
+            <CardDescription className="text-[11px] text-white/60">
               TM + affiliate present
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-semibold text-slate-50">
+              <div className="text-2xl font-semibold text-white">
                 {data?.fullyCoveredCounties ?? "-"}
               </div>
               <div className="text-[11px] text-emerald-400">
@@ -360,9 +360,9 @@ export default function AdminGeoCoverageConsole() {
       </div>
 
       {data && data.totalCounties < 3000 && (
-        <Card className="bg-slate-950/60 border-slate-800">
+        <Card className="bg-black/30 border-white/10">
           <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="text-xs text-slate-300">
+            <div className="text-xs text-white/70">
               County table looks incomplete (<span className="font-mono">{data.totalCounties}</span>
               ). Seed the full built-in county dataset so coverage tooling can represent every
               county.
@@ -379,17 +379,17 @@ export default function AdminGeoCoverageConsole() {
         </Card>
       )}
 
-      <Card className="bg-slate-950/60 border-slate-800">
+      <Card className="bg-black/30 border-white/10">
         <CardHeader className="pb-2 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>
-            <CardTitle className="text-sm text-slate-100">Coverage by county</CardTitle>
-            <CardDescription className="text-[11px] text-slate-500">
+            <CardTitle className="text-sm text-white">Coverage by county</CardTitle>
+            <CardDescription className="text-[11px] text-white/60">
               Filters apply to both list and map views.
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 items-center text-[11px]">
             <div className="flex items-center gap-1">
-              <span className="text-slate-400">State</span>
+              <span className="text-white/60">State</span>
               <Select value={stateFilter} onValueChange={(v) => setStateFilter(v as any)}>
                 <SelectTrigger className="h-7 w-[110px] text-[11px]">
                   <SelectValue placeholder="All" />
@@ -406,7 +406,7 @@ export default function AdminGeoCoverageConsole() {
             </div>
 
             <div className="flex items-center gap-1">
-              <span className="text-slate-400">Coverage</span>
+              <span className="text-white/60">Coverage</span>
               <Select
                 value={coverageFilter}
                 onValueChange={(v) => setCoverageFilter(v as CoverageFilter)}
@@ -424,7 +424,7 @@ export default function AdminGeoCoverageConsole() {
             </div>
 
             <div className="flex items-center gap-1">
-              <span className="text-slate-400">Notes</span>
+              <span className="text-white/60">Notes</span>
               <Select value={notesFilter} onValueChange={(v) => setNotesFilter(v as NotesFilter)}>
                 <SelectTrigger className="h-7 w-[120px] text-[11px]">
                   <SelectValue />
@@ -439,7 +439,7 @@ export default function AdminGeoCoverageConsole() {
             </div>
 
             <div className="flex items-center gap-1">
-              <span className="text-slate-400">TM assigned</span>
+              <span className="text-white/60">TM assigned</span>
               <Select
                 value={territoryFilter}
                 onValueChange={(v) => setTerritoryFilter(v as TerritoryFilter)}
@@ -467,9 +467,9 @@ export default function AdminGeoCoverageConsole() {
           )}
 
           {!isLoading && !error && viewMode === "list" && (
-            <ScrollArea className="h-[480px] border border-slate-900/80 rounded-md bg-slate-950/60">
+            <ScrollArea className="h-[480px] border border-white/10 rounded-md bg-black/30">
               <table className="w-full text-xs">
-                <thead className="bg-slate-900/80 text-slate-400">
+                <thead className="bg-tsCard/95 text-white/60">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">County</th>
                     <th className="px-3 py-2 text-left font-medium">Coverage</th>
@@ -484,23 +484,23 @@ export default function AdminGeoCoverageConsole() {
                   {filteredRows.map((row) => (
                     <tr
                       key={row.countyFips}
-                      className="border-t border-slate-900/80 hover:bg-slate-900/60"
+                      className="border-t border-white/10 hover:bg-tsCard/95"
                     >
                       <td className="px-3 py-2 align-top">
-                        <div className="font-medium text-slate-100">
+                        <div className="font-medium text-white">
                           {row.countyName}
-                          <span className="ml-1 text-[11px] text-slate-500">({row.stateCode})</span>
+                          <span className="ml-1 text-[11px] text-white/60">({row.stateCode})</span>
                         </div>
-                        <div className="text-[11px] text-slate-500">FIPS {row.countyFips}</div>
+                        <div className="text-[11px] text-white/60">FIPS {row.countyFips}</div>
                       </td>
                       <td className="px-3 py-2 align-top">
                         <CoverageBadge status={row.coverageStatus} />
                       </td>
                       <td className="px-3 py-2 align-top">
-                        <div className="text-slate-100">{row.territoryManagerCount}</div>
+                        <div className="text-white">{row.territoryManagerCount}</div>
                       </td>
                       <td className="px-3 py-2 align-top">
-                        <div className="text-slate-100">{row.affiliateCount}</div>
+                        <div className="text-white">{row.affiliateCount}</div>
                       </td>
                       <td className="px-3 py-2 align-top space-y-1">
                         {row.hasOpsNote && (
@@ -528,10 +528,10 @@ export default function AdminGeoCoverageConsole() {
                           </Badge>
                         )}
                         {!row.hasNotes && (
-                          <span className="text-[11px] text-slate-500">No notes</span>
+                          <span className="text-[11px] text-white/60">No notes</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 align-top text-[11px] text-slate-400">
+                      <td className="px-3 py-2 align-top text-[11px] text-white/60">
                         {row.lastEntityChangeAt
                           ? new Date(row.lastEntityChangeAt).toLocaleDateString()
                           : "—"}
@@ -567,7 +567,7 @@ export default function AdminGeoCoverageConsole() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-[11px] text-slate-300"
+                              className="h-6 px-2 text-[11px] text-white/70"
                             >
                               Open county detail
                             </Button>
@@ -578,7 +578,7 @@ export default function AdminGeoCoverageConsole() {
                   ))}
                   {filteredRows.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-6 text-center text-[11px] text-slate-500">
+                      <td colSpan={7} className="px-3 py-6 text-center text-[11px] text-white/60">
                         No counties match the current filters.
                       </td>
                     </tr>
@@ -589,7 +589,7 @@ export default function AdminGeoCoverageConsole() {
           )}
 
           {!isLoading && !error && viewMode === "map" && (
-            <div className="py-10 text-center text-xs text-slate-500">
+            <div className="py-10 text-center text-xs text-white/60">
               Map view will reuse the existing county map surface with a coverage lens. For now, use
               the list view to drive assignments.
             </div>
@@ -607,43 +607,43 @@ export default function AdminGeoCoverageConsole() {
           }
         }}
       >
-        <DialogContent className="bg-slate-950 border-slate-800 max-w-md text-slate-100">
+        <DialogContent className="bg-tsBg border-white/10 max-w-md text-white">
           <DialogHeader>
-            <DialogTitle className="text-sm text-slate-50">Assign Territory Manager</DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogTitle className="text-sm text-white">Assign Territory Manager</DialogTitle>
+            <DialogDescription className="text-xs text-white/60">
               Select a user with the Territory Manager role to map into the geographic storage layer
               for this county.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {assignCounty && (
-              <div className="text-xs text-slate-300">
+              <div className="text-xs text-white/70">
                 <div className="font-medium">
                   {assignCounty.countyName}{" "}
-                  <span className="text-slate-500">({assignCounty.stateCode})</span>
+                  <span className="text-white/60">({assignCounty.stateCode})</span>
                 </div>
-                <div className="text-slate-500">FIPS {assignCounty.countyFips}</div>
+                <div className="text-white/60">FIPS {assignCounty.countyFips}</div>
               </div>
             )}
 
             <div className="space-y-1">
-              <span className="text-[11px] text-slate-400">Search territory managers</span>
+              <span className="text-[11px] text-white/60">Search territory managers</span>
               <Input
                 value={tmSearch}
                 onChange={(e) => setTmSearch(e.target.value)}
                 placeholder="Search by name or email"
-                className="h-8 text-xs bg-slate-900/80 border-slate-700/80"
+                className="h-8 text-xs bg-tsCard/95 border-white/10"
               />
             </div>
 
             <div className="space-y-1">
-              <span className="text-[11px] text-slate-400">Select territory manager</span>
+              <span className="text-[11px] text-white/60">Select territory manager</span>
               <Select
                 value={selectedTmId}
                 onValueChange={(value) => setSelectedTmId(value)}
                 disabled={usersLoading || territoryManagers.length === 0}
               >
-                <SelectTrigger className="h-8 text-xs bg-slate-900/80 border-slate-700/80">
+                <SelectTrigger className="h-8 text-xs bg-tsCard/95 border-white/10">
                   <SelectValue
                     placeholder={usersLoading ? "Loading users…" : "Choose a territory manager"}
                   />
@@ -656,13 +656,13 @@ export default function AdminGeoCoverageConsole() {
                       <SelectItem key={user.id} value={user.id} className="text-xs">
                         <div className="flex flex-col">
                           <span>{name}</span>
-                          <span className="text-[10px] text-slate-500">{user.email}</span>
+                          <span className="text-[10px] text-white/60">{user.email}</span>
                         </div>
                       </SelectItem>
                     );
                   })}
                   {territoryManagers.length === 0 && !usersLoading && (
-                    <div className="px-3 py-2 text-[11px] text-slate-500">
+                    <div className="px-3 py-2 text-[11px] text-white/60">
                       No users with the Territory Manager role were found.
                     </div>
                   )}
@@ -711,32 +711,32 @@ export default function AdminGeoCoverageConsole() {
           }
         }}
       >
-        <DialogContent className="bg-slate-950 border-slate-800 max-w-md text-slate-100">
+        <DialogContent className="bg-tsBg border-white/10 max-w-md text-white">
           <DialogHeader>
-            <DialogTitle className="text-sm text-slate-50">Assign Affiliate / Partner</DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogTitle className="text-sm text-white">Assign Affiliate / Partner</DialogTitle>
+            <DialogDescription className="text-xs text-white/60">
               Select a user with the Affiliate role to map into the geographic storage layer for
               this county, as either an affiliate or a partner.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {assignAffiliateCounty && (
-              <div className="text-xs text-slate-300">
+              <div className="text-xs text-white/70">
                 <div className="font-medium">
                   {assignAffiliateCounty.countyName}{" "}
-                  <span className="text-slate-500">({assignAffiliateCounty.stateCode})</span>
+                  <span className="text-white/60">({assignAffiliateCounty.stateCode})</span>
                 </div>
-                <div className="text-slate-500">FIPS {assignAffiliateCounty.countyFips}</div>
+                <div className="text-white/60">FIPS {assignAffiliateCounty.countyFips}</div>
               </div>
             )}
 
             <div className="space-y-1">
-              <span className="text-[11px] text-slate-400">Entity type</span>
+              <span className="text-[11px] text-white/60">Entity type</span>
               <Select
                 value={affiliateEntityType}
                 onValueChange={(value) => setAffiliateEntityType(value as AffiliateEntityType)}
               >
-                <SelectTrigger className="h-8 text-xs bg-slate-900/80 border-slate-700/80">
+                <SelectTrigger className="h-8 text-xs bg-tsCard/95 border-white/10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -747,23 +747,23 @@ export default function AdminGeoCoverageConsole() {
             </div>
 
             <div className="space-y-1">
-              <span className="text-[11px] text-slate-400">Search affiliates</span>
+              <span className="text-[11px] text-white/60">Search affiliates</span>
               <Input
                 value={affiliateSearch}
                 onChange={(e) => setAffiliateSearch(e.target.value)}
                 placeholder="Search by name or email"
-                className="h-8 text-xs bg-slate-900/80 border-slate-700/80"
+                className="h-8 text-xs bg-tsCard/95 border-white/10"
               />
             </div>
 
             <div className="space-y-1">
-              <span className="text-[11px] text-slate-400">Select affiliate</span>
+              <span className="text-[11px] text-white/60">Select affiliate</span>
               <Select
                 value={selectedAffiliateUserId}
                 onValueChange={(value) => setSelectedAffiliateUserId(value)}
                 disabled={usersLoading || affiliateUsers.length === 0}
               >
-                <SelectTrigger className="h-8 text-xs bg-slate-900/80 border-slate-700/80">
+                <SelectTrigger className="h-8 text-xs bg-tsCard/95 border-white/10">
                   <SelectValue
                     placeholder={usersLoading ? "Loading users…" : "Choose an affiliate user"}
                   />
@@ -776,13 +776,13 @@ export default function AdminGeoCoverageConsole() {
                       <SelectItem key={user.id} value={user.id} className="text-xs">
                         <div className="flex flex-col">
                           <span>{name}</span>
-                          <span className="text-[10px] text-slate-500">{user.email}</span>
+                          <span className="text-[10px] text-white/60">{user.email}</span>
                         </div>
                       </SelectItem>
                     );
                   })}
                   {affiliateUsers.length === 0 && !usersLoading && (
-                    <div className="px-3 py-2 text-[11px] text-slate-500">
+                    <div className="px-3 py-2 text-[11px] text-white/60">
                       No users with the Affiliate role were found.
                     </div>
                   )}

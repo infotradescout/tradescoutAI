@@ -93,7 +93,7 @@ export default function Notifications() {
       case "listing":
         return <TrendingUp className="h-5 w-5 text-purple-500" />;
       case "new_project_request":
-        return <Briefcase className="h-5 w-5 text-orange-500" />;
+        return <Briefcase className="h-5 w-5 text-ts-orange" />;
       case "payment_received":
         return <ShoppingBag className="h-5 w-5 text-green-500" />;
       case "review_received":
@@ -110,9 +110,9 @@ export default function Notifications() {
       case "social_follow":
         return <Users className="h-5 w-5 text-indigo-500" />;
       case "system_update":
-        return <Bell className="h-5 w-5 text-gray-500" />;
+        return <Bell className="h-5 w-5 text-white/60" />;
       default:
-        return <Bell className="h-5 w-5 text-gray-500" />;
+        return <Bell className="h-5 w-5 text-white/60" />;
     }
   };
 
@@ -252,7 +252,7 @@ export default function Notifications() {
                                 className={
                                   request.fromVerified
                                     ? "bg-green-500/20 text-green-600 text-[10px]"
-                                    : "bg-slate-200 text-slate-700 text-[10px]"
+                                    : "bg-white/10 text-white/70 text-[10px]"
                                 }
                               >
                                 {request.fromVerified ? "Verified" : "Unverified"}

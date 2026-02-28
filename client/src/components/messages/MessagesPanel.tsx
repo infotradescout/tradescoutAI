@@ -309,11 +309,11 @@ export default function MessagesPanel() {
 
   return (
     <div className="flex h-full gap-4">
-      <Card className="w-[320px] flex flex-col bg-slate-950/80 border border-slate-800 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-        <div className="p-5 border-b border-slate-800 space-y-4">
+      <Card className="w-[320px] flex flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="p-5 border-b border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Direct Connect</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/60">Direct Connect</p>
               <h2 className="text-lg font-semibold text-white">Message Manager</h2>
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -326,8 +326,8 @@ export default function MessagesPanel() {
               variant={activeView === "threads" ? "default" : "outline"}
               className={
                 activeView === "threads"
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : "border-slate-700 text-slate-300"
+                  ? "bg-ts-orange hover:bg-ts-orange-dark"
+                  : "border-white/10 text-white/70"
               }
               onClick={() => setActiveView("threads")}
             >
@@ -338,8 +338,8 @@ export default function MessagesPanel() {
               variant={activeView === "requests" ? "default" : "outline"}
               className={
                 activeView === "requests"
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : "border-slate-700 text-slate-300"
+                  ? "bg-ts-orange hover:bg-ts-orange-dark"
+                  : "border-white/10 text-white/70"
               }
               onClick={() => setActiveView("requests")}
             >
@@ -352,15 +352,15 @@ export default function MessagesPanel() {
             </Button>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={activeView === "requests" ? "Search requests" : "Search messages"}
-              className="pl-9 bg-slate-900 border-slate-800 text-slate-200"
+              className="pl-9 bg-tsCard border-white/10 text-white/70"
             />
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
+          <div className="rounded-lg border border-white/10 bg-tsCard/95 px-3 py-2 text-xs text-white/60">
             First-contact previews are required for new connections. Approved requests unlock chat.
           </div>
         </div>
@@ -369,7 +369,7 @@ export default function MessagesPanel() {
           {activeView === "requests" ? (
             <div className="p-3 space-y-2">
               {filteredRequests.length === 0 ? (
-                <div className="text-center text-slate-400 py-10 space-y-2">
+                <div className="text-center text-white/60 py-10 space-y-2">
                   <Inbox className="h-8 w-8 mx-auto opacity-60" />
                   <p className="text-sm">
                     {incomingRequests.length === 0
@@ -385,8 +385,8 @@ export default function MessagesPanel() {
                     onClick={() => setActiveRequestId(request.id)}
                     className={`w-full text-left rounded-xl px-3 py-3 text-sm transition-colors ${
                       activeRequestId === request.id
-                        ? "bg-slate-900 border border-orange-500/60"
-                        : "bg-slate-950 border border-slate-800 hover:bg-slate-900"
+                        ? "bg-tsCard border border-ts-orange/30"
+                        : "bg-tsBg border border-white/10 hover:bg-tsCard"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -395,7 +395,7 @@ export default function MessagesPanel() {
                         className={
                           request.fromVerified
                             ? "bg-green-500/20 text-green-300 text-[10px]"
-                            : "bg-slate-700 text-slate-300 text-[10px]"
+                            : "bg-white/10 text-white/70 text-[10px]"
                         }
                         title={
                           request.fromVerified
@@ -406,12 +406,12 @@ export default function MessagesPanel() {
                         {request.fromVerified ? "Verified" : "Unverified"}
                       </Badge>
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">
+                    <div className="text-xs text-white/60 mt-1">
                       {request.contactType === "comment" ? "Comment request" : "Message request"} -{" "}
                       {request.intent}
                     </div>
                     {request.preview && (
-                      <div className="text-xs text-slate-500 mt-2 line-clamp-2">
+                      <div className="text-xs text-white/60 mt-2 line-clamp-2">
                         {request.preview}
                       </div>
                     )}
@@ -422,7 +422,7 @@ export default function MessagesPanel() {
           ) : (
             <div className="p-3 space-y-2">
               {filteredThreads.length === 0 ? (
-                <div className="text-center text-slate-400 py-10 space-y-2">
+                <div className="text-center text-white/60 py-10 space-y-2">
                   <MessageCircle className="h-8 w-8 mx-auto opacity-60" />
                   <p className="text-sm">No conversations yet.</p>
                 </div>
@@ -435,8 +435,8 @@ export default function MessagesPanel() {
                     onClick={() => setActiveThreadId(thread.id)}
                     className={`w-full text-left rounded-xl px-3 py-3 text-sm transition-colors ${
                       activeThreadId === thread.id
-                        ? "bg-slate-900 border border-orange-500/60"
-                        : "bg-slate-950 border border-slate-800 hover:bg-slate-900"
+                        ? "bg-tsCard border border-ts-orange/30"
+                        : "bg-tsBg border border-white/10 hover:bg-tsCard"
                     }`}
                   >
                     <div className="flex justify-between items-center mb-1">
@@ -449,10 +449,10 @@ export default function MessagesPanel() {
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 truncate">
+                    <div className="text-xs text-white/60 truncate">
                       {thread.lastMessageSnippet || "No messages yet"}
                     </div>
-                    <div className="mt-1 text-[10px] text-slate-500">
+                    <div className="mt-1 text-[10px] text-white/60">
                       {thread.lastMessageAt
                         ? formatDistanceToNow(new Date(thread.lastMessageAt), {
                             addSuffix: true,
@@ -467,10 +467,10 @@ export default function MessagesPanel() {
         </ScrollArea>
       </Card>
 
-      <Card className="flex-1 flex flex-col bg-slate-950/80 border border-slate-800 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+      <Card className="flex-1 flex flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/60">
               {activeView === "requests" ? "Contact Review" : "Conversation"}
             </p>
             <h2 className="text-lg font-semibold text-white">
@@ -480,7 +480,7 @@ export default function MessagesPanel() {
             </h2>
           </div>
           {activeView === "requests" && incomingRequests.length > 0 && (
-            <Badge className="bg-orange-500/20 text-orange-200 text-xs">
+            <Badge className="bg-ts-orange/20 text-ts-orange text-xs">
               {incomingRequests.length} waiting
             </Badge>
           )}
@@ -489,13 +489,13 @@ export default function MessagesPanel() {
         {activeView === "requests" ? (
           <div className="flex-1 p-6">
             {!activeRequest ? (
-              <div className="text-center text-slate-400 py-12">Select a request to review.</div>
+              <div className="text-center text-white/60 py-12">Select a request to review.</div>
             ) : (
               <div className="max-w-xl space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-white">{activeRequest.fromName}</h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-white/60">
                       {activeRequest.contactType === "comment"
                         ? "Comment request"
                         : "Message request"}{" "}
@@ -506,7 +506,7 @@ export default function MessagesPanel() {
                     className={
                       activeRequest.fromVerified
                         ? "bg-green-500/20 text-green-300 text-xs"
-                        : "bg-slate-700 text-slate-300 text-xs"
+                        : "bg-white/10 text-white/70 text-xs"
                     }
                     title={
                       activeRequest.fromVerified
@@ -518,17 +518,17 @@ export default function MessagesPanel() {
                   </Badge>
                 </div>
 
-                <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-200 whitespace-pre-wrap">
+                <div className="rounded-xl border border-white/10 bg-tsCard/95 p-4 text-sm text-white/70 whitespace-pre-wrap">
                   {activeRequest.preview || "No preview provided."}
                 </div>
 
-                <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-xs text-slate-400">
+                <div className="rounded-xl border border-white/10 bg-tsCard/95 px-4 py-3 text-xs text-white/60">
                   Accepting opens a new conversation. Declining blocks this first-contact attempt.
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Button
-                    className="bg-orange-500 hover:bg-orange-600"
+                    className="bg-ts-orange hover:bg-ts-orange-dark"
                     onClick={() =>
                       respondToRequestMutation.mutate({
                         requestId: activeRequest.id,
@@ -542,7 +542,7 @@ export default function MessagesPanel() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-slate-700 text-slate-300"
+                    className="border-white/10 text-white/70"
                     onClick={() =>
                       respondToRequestMutation.mutate({
                         requestId: activeRequest.id,
@@ -561,15 +561,15 @@ export default function MessagesPanel() {
         ) : (
           <>
             {activeThreadId && (
-              <div className="px-5 py-4 border-b border-slate-800 space-y-3">
+              <div className="px-5 py-4 border-b border-white/10 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-white">Home report</div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-white/60">
                       Share your Home Vault context into this already-approved thread.
                     </div>
                   </div>
-                  <Badge className="bg-slate-900 border border-slate-800 text-slate-300 text-[10px]">
+                  <Badge className="bg-tsCard border border-white/10 text-white/70 text-[10px]">
                     Private
                   </Badge>
                 </div>
@@ -591,12 +591,12 @@ export default function MessagesPanel() {
                       return (
                         <div
                           key={s.share.id}
-                          className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+                          className="rounded-xl border border-white/10 bg-tsCard/95 p-4"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <div className="text-sm font-medium text-white">{title}</div>
-                              <div className="mt-1 text-[11px] text-slate-500">
+                              <div className="mt-1 text-[11px] text-white/60">
                                 Shared{" "}
                                 {formatDistanceToNow(new Date(s.share.createdAt), {
                                   addSuffix: true,
@@ -604,11 +604,11 @@ export default function MessagesPanel() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1">
-                              <Badge className="bg-orange-500/15 text-orange-200 text-[10px]">
+                              <Badge className="bg-ts-orange/15 text-ts-orange text-[10px]">
                                 {s.share.includeAddress ? "Address shared" : "Address hidden"}
                               </Badge>
                               {s.share.includeDocuments && (
-                                <Badge className="bg-slate-800 text-slate-200 text-[10px]">
+                                <Badge className="bg-white/5 text-white/70 text-[10px]">
                                   Docs listed
                                 </Badge>
                               )}
@@ -618,13 +618,13 @@ export default function MessagesPanel() {
                             {counts.map((c) => (
                               <span
                                 key={c.label}
-                                className="text-[11px] text-slate-300 rounded-full border border-slate-800 bg-slate-950/40 px-2 py-0.5"
+                                className="text-[11px] text-white/70 rounded-full border border-white/10 bg-black/30 px-2 py-0.5"
                               >
                                 {c.value} {c.label}
                               </span>
                             ))}
                             {s.report?.homefax?.computedAt && (
-                              <span className="text-[11px] text-slate-300 rounded-full border border-slate-800 bg-slate-950/40 px-2 py-0.5">
+                              <span className="text-[11px] text-white/70 rounded-full border border-white/10 bg-black/30 px-2 py-0.5">
                                 Homefax updated{" "}
                                 {formatDistanceToNow(new Date(s.report.homefax.computedAt), {
                                   addSuffix: true,
@@ -637,18 +637,18 @@ export default function MessagesPanel() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-white/60">
                     Nothing shared yet. Share a home report below when you want the other party to
                     see context.
                   </div>
                 )}
 
-                <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+                <div className="rounded-xl border border-white/10 bg-tsCard/95 p-4 space-y-3">
                   <div className="flex flex-col md:flex-row md:items-center gap-2">
                     <select
                       value={selectedHomeId}
                       onChange={(e) => setSelectedHomeId(e.target.value)}
-                      className="w-full md:w-[360px] h-9 rounded-md bg-slate-900 border border-slate-800 text-slate-200 px-3 text-sm"
+                      className="w-full md:w-[360px] h-9 rounded-md bg-tsCard border border-white/10 text-white/70 px-3 text-sm"
                       disabled={homes.length === 0}
                     >
                       {homes.length === 0 ? (
@@ -664,7 +664,7 @@ export default function MessagesPanel() {
                       )}
                     </select>
                     <Button
-                      className="bg-orange-500 hover:bg-orange-600"
+                      className="bg-ts-orange hover:bg-ts-orange-dark"
                       onClick={handleShareHomeReport}
                       disabled={
                         !activeThreadId ||
@@ -677,7 +677,7 @@ export default function MessagesPanel() {
                     </Button>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-white/60">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -698,7 +698,7 @@ export default function MessagesPanel() {
                     </label>
                   </div>
 
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-white/60">
                     Address is hidden by default. Documents shared here are names/types only, not
                     downloads.
                   </div>
@@ -709,7 +709,7 @@ export default function MessagesPanel() {
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
                 {mappedMessages.length === 0 ? (
-                  <div className="text-center text-slate-400 py-12">No messages yet.</div>
+                  <div className="text-center text-white/60 py-12">No messages yet.</div>
                 ) : (
                   mappedMessages.map((m) => (
                     <div
@@ -720,8 +720,8 @@ export default function MessagesPanel() {
                       <div
                         className={`max-w-xs md:max-w-md px-3 py-2 rounded-xl text-sm ${
                           m.isMine
-                            ? "bg-orange-500 text-slate-950"
-                            : "bg-slate-900 text-slate-100 border border-slate-800"
+                            ? "bg-ts-orange text-black"
+                            : "bg-tsCard text-white border border-white/10"
                         }`}
                       >
                         <div className="text-[11px] opacity-70 mb-0.5">{m.authorName}</div>
@@ -738,26 +738,26 @@ export default function MessagesPanel() {
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t border-slate-800">
+            <div className="p-4 border-t border-white/10">
               <div className="flex items-end gap-3">
                 <Textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Write a message..."
-                  className="bg-slate-900 border-slate-800 text-slate-200 min-h-[44px]"
+                  className="bg-tsCard border-white/10 text-white/70 min-h-[44px]"
                   rows={2}
                   disabled={!activeThreadId || sendMutation.isPending}
                 />
                 <Button
                   onClick={handleSend}
                   disabled={!activeThreadId || !newMessage.trim() || sendMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-ts-orange hover:bg-ts-orange-dark"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Send
                 </Button>
               </div>
-              <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
+              <div className="mt-2 text-[11px] text-white/60 flex items-center gap-1">
                 <CornerDownLeft className="h-3 w-3" />
                 Press Enter to send once approved contact exists.
               </div>

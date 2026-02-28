@@ -45,7 +45,7 @@ export default function ContractorProfile() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center justify-center min-h-96">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
         </div>
       </div>
     );
@@ -58,7 +58,7 @@ export default function ContractorProfile() {
           <CardContent className="p-6 text-center">
             <p className="text-red-400">Contractor not found or failed to load.</p>
             <Link href="/contractors">
-              <Button className="mt-4 bg-orange-500 hover:bg-orange-600">
+              <Button className="mt-4 bg-ts-orange hover:bg-ts-orange-dark">
                 Back to Find Contractors
               </Button>
             </Link>
@@ -124,12 +124,12 @@ export default function ContractorProfile() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb Navigation */}
         <nav aria-label="Breadcrumb" className="mb-8">
-          <ol className="flex items-center space-x-2 text-sm text-gray-400">
+          <ol className="flex items-center space-x-2 text-sm text-white/60">
             {breadcrumbItems.map((item, index) => (
               <li key={item.url} className="flex items-center">
-                {index > 0 && <span className="mx-2 text-gray-500">/</span>}
+                {index > 0 && <span className="mx-2 text-white/60">/</span>}
                 {index === breadcrumbItems.length - 1 ? (
-                  <span className="text-orange-500 font-medium">{item.name}</span>
+                  <span className="text-ts-orange font-medium">{item.name}</span>
                 ) : (
                   <Link href={item.url}>
                     <span className="hover:text-white transition-colors cursor-pointer">
@@ -142,10 +142,10 @@ export default function ContractorProfile() {
           </ol>
         </nav>
         {/* Profile Header */}
-        <Card className="bg-navy-700 border-navy-600 mb-8">
+        <Card className="bg-tsCard border-white/10 mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-              <div className="w-24 h-24 bg-orange-500 rounded-xl flex items-center justify-center text-white text-3xl font-bold">
+              <div className="w-24 h-24 bg-ts-orange rounded-xl flex items-center justify-center text-white text-3xl font-bold">
                 {companyInitials}
               </div>
 
@@ -159,7 +159,7 @@ export default function ContractorProfile() {
                     <span className="text-green-400 font-semibold text-lg">
                       {contractor.positiveRecommendations || 0}
                     </span>
-                    <span className="text-gray-300 text-sm">recommends</span>
+                    <span className="text-white/70 text-sm">recommends</span>
                   </div>
 
                   {(contractor.negativeRecommendations || 0) > 0 && (
@@ -168,7 +168,7 @@ export default function ContractorProfile() {
                       <span className="text-red-400 font-semibold text-lg">
                         {contractor.negativeRecommendations}
                       </span>
-                      <span className="text-gray-300 text-sm">doesn't recommend</span>
+                      <span className="text-white/70 text-sm">doesn't recommend</span>
                     </div>
                   )}
 
@@ -178,7 +178,7 @@ export default function ContractorProfile() {
                       {(contractor.positiveRecommendations || 0) -
                         (contractor.negativeRecommendations || 0)}
                     </span>
-                    <span className="text-gray-300 text-sm">
+                    <span className="text-white/70 text-sm">
                       ({contractor.totalRecommendations || 0} total)
                     </span>
                   </div>
@@ -207,12 +207,12 @@ export default function ContractorProfile() {
               </div>
 
               <div className="flex flex-col space-y-3">
-                <div className="rounded-lg border border-navy-600 bg-navy-800/60 px-4 py-3 text-xs text-gray-300">
-                  <div className="flex items-center gap-2 text-gray-200">
-                    <ShieldCheck className="h-4 w-4 text-orange-400" />
+                <div className="rounded-lg border border-white/10 bg-tsCard/60 px-4 py-3 text-xs text-white/70">
+                  <div className="flex items-center gap-2 text-white/70">
+                    <ShieldCheck className="h-4 w-4 text-ts-orange" />
                     <span>Contact is protected to prevent spam.</span>
                   </div>
-                  <p className="mt-1 text-gray-400">
+                  <p className="mt-1 text-white/60">
                     Start Direct Connect to route requests through TradeScout's trust policy.
                   </p>
                 </div>
@@ -240,7 +240,7 @@ export default function ContractorProfile() {
                     >
                       <Button
                         variant="outline"
-                        className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6 py-3 w-full"
+                        className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-6 py-3 w-full"
                       >
                         Sign In
                       </Button>
@@ -257,24 +257,24 @@ export default function ContractorProfile() {
           <div className="lg:col-span-2 space-y-8">
             {/* About */}
             {contractor.about && (
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold text-white mb-4">About</h3>
-                  <p className="text-gray-300 leading-relaxed">{contractor.about}</p>
+                  <p className="text-white/70 leading-relaxed">{contractor.about}</p>
                 </CardContent>
               </Card>
             )}
 
             {/* Recent Recommendations */}
             {recommendations.length > 0 && (
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold text-white mb-6">Recent Recommendations</h3>
                   <div className="space-y-6">
                     {recommendations.slice(0, 5).map((recommendation: any, index: number) => (
                       <div
                         key={recommendation.id}
-                        className={`${index < recommendations.length - 1 ? "border-b border-navy-600 pb-6" : ""}`}
+                        className={`${index < recommendations.length - 1 ? "border-b border-white/10 pb-6" : ""}`}
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
@@ -290,20 +290,20 @@ export default function ContractorProfile() {
                               </div>
                             )}
                             {recommendation.projectType && (
-                              <Badge variant="outline" className="text-gray-300 border-gray-500">
+                              <Badge variant="outline" className="text-white/70 border-white/15">
                                 {recommendation.projectType}
                               </Badge>
                             )}
                           </div>
-                          <span className="text-gray-400 text-sm">
+                          <span className="text-white/60 text-sm">
                             {new Date(recommendation.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                         {recommendation.comment && (
-                          <p className="text-gray-300 mb-2">{recommendation.comment}</p>
+                          <p className="text-white/70 mb-2">{recommendation.comment}</p>
                         )}
                         {recommendation.customerName && (
-                          <p className="text-gray-400 text-sm">- {recommendation.customerName}</p>
+                          <p className="text-white/60 text-sm">- {recommendation.customerName}</p>
                         )}
                       </div>
                     ))}
@@ -322,20 +322,20 @@ export default function ContractorProfile() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Services */}
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-4">Services</h3>
                 <div className="space-y-2">
-                  <div className="flex items-center text-gray-300">
-                    <CheckCircle className="h-4 w-4 text-orange-500 mr-3" />
+                  <div className="flex items-center text-white/70">
+                    <CheckCircle className="h-4 w-4 text-ts-orange mr-3" />
                     Residential Services
                   </div>
-                  <div className="flex items-center text-gray-300">
-                    <CheckCircle className="h-4 w-4 text-orange-500 mr-3" />
+                  <div className="flex items-center text-white/70">
+                    <CheckCircle className="h-4 w-4 text-ts-orange mr-3" />
                     Commercial Services
                   </div>
-                  <div className="flex items-center text-gray-300">
-                    <CheckCircle className="h-4 w-4 text-orange-500 mr-3" />
+                  <div className="flex items-center text-white/70">
+                    <CheckCircle className="h-4 w-4 text-ts-orange mr-3" />
                     Emergency Repairs
                   </div>
                 </div>
@@ -343,34 +343,34 @@ export default function ContractorProfile() {
             </Card>
 
             {/* Business Info */}
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-4">Business Info</h3>
                 <div className="space-y-3">
                   {contractor.yearsInBusiness && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Years in Business</span>
+                      <span className="text-white/60">Years in Business</span>
                       <span className="text-white">{contractor.yearsInBusiness}</span>
                     </div>
                   )}
 
                   {contractor.responseTimeSla && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Response Time</span>
+                      <span className="text-white/60">Response Time</span>
                       <span className="text-white">{contractor.responseTimeSla} hours</span>
                     </div>
                   )}
 
                   {contractor.licenseNumber && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">License #</span>
+                      <span className="text-white/60">License #</span>
                       <span className="text-white">{contractor.licenseNumber}</span>
                     </div>
                   )}
 
                   {contractor.lastVerified && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Last Verified</span>
+                      <span className="text-white/60">Last Verified</span>
                       <span className="text-white">
                         {new Date(contractor.lastVerified).toLocaleDateString()}
                       </span>
@@ -382,13 +382,13 @@ export default function ContractorProfile() {
 
             {/* Website Link */}
             {contractor.website && (
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6">
                   <a
                     href={contractor.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between text-orange-500 hover:text-orange-400 transition-colors"
+                    className="flex items-center justify-between text-ts-orange hover:text-ts-orange transition-colors"
                   >
                     <span>Visit Website</span>
                     <ExternalLink className="h-4 w-4" />

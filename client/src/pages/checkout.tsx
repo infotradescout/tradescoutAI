@@ -226,13 +226,13 @@ const CheckoutForm = ({
 
           {/* TradeScout balance option (marketplace only) */}
           {paymentType === "marketplace" && walletData && !isOffPlatform && (
-            <div className="bg-slate-900/70 border border-slate-700 p-4 rounded-lg flex items-center justify-between">
+            <div className="bg-tsCard/95 border border-white/10 p-4 rounded-lg flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-emerald-400" />
                   TradeScout Balance
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-white/60 mt-1">
                   Available: ${parseFloat(walletData.balance || "0").toFixed(2)}
                 </p>
               </div>
@@ -256,7 +256,7 @@ const CheckoutForm = ({
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     processingMethod === "ach"
                       ? "border-primary bg-primary/5"
-                      : "border-slate-700 hover:bg-slate-900"
+                      : "border-white/10 hover:bg-tsCard"
                   }`}
                   onClick={() => onProcessingMethodChange?.("ach")}
                 >
@@ -270,7 +270,7 @@ const CheckoutForm = ({
                           </Badge>
                         ) : null}
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-white/60">
                         Lower processing costs on larger payments.
                       </p>
                     </div>
@@ -281,12 +281,12 @@ const CheckoutForm = ({
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     processingMethod === "card"
                       ? "border-primary bg-primary/5"
-                      : "border-slate-700 hover:bg-slate-900"
+                      : "border-white/10 hover:bg-tsCard"
                   }`}
                   onClick={() => onProcessingMethodChange?.("card")}
                 >
                   <div className="font-medium flex items-center gap-2">Card</div>
-                  <p className="text-sm text-gray-600">Fastest checkout experience</p>
+                  <p className="text-sm text-white/60">Fastest checkout experience</p>
                 </div>
               </div>
             </div>
@@ -300,7 +300,7 @@ const CheckoutForm = ({
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                       method.recommended
                         ? "border-primary bg-primary/5"
-                        : "border-slate-700 hover:bg-slate-900"
+                        : "border-white/10 hover:bg-tsCard"
                     }`}
                   >
                     <div className="flex justify-between items-start">
@@ -313,8 +313,8 @@ const CheckoutForm = ({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600">{method.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">{method.fees}</p>
+                        <p className="text-sm text-white/60">{method.description}</p>
+                        <p className="text-xs text-white/60 mt-1">{method.fees}</p>
                       </div>
                     </div>
                   </div>
@@ -348,7 +348,7 @@ const CheckoutForm = ({
             )}
 
             {/* Security Notice */}
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-white/60">
               <Shield className="w-4 h-4" />
               <span>Your payment information is secured with industry-standard encryption</span>
             </div>
@@ -485,7 +485,7 @@ export default function Checkout() {
           <CardContent className="pt-6">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Invalid Payment Link</h2>
-            <p className="text-gray-600">
+            <p className="text-white/60">
               The payment link appears to be invalid. Please contact support if this issue persists.
             </p>
           </CardContent>

@@ -13,7 +13,7 @@ const presets = [
 
 export function QuickActions() {
   return (
-    <div className="rounded-xl border border-slate-800 bg-navy-900/80 p-4">
+    <div className="rounded-xl border border-white/10 bg-tsBg/80 p-4">
       <h3 className="text-lg font-semibold mb-3 text-white">Popular requests</h3>
       <div className="flex flex-wrap gap-2">
         {presets.map((p) => (

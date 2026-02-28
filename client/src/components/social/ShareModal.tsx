@@ -222,7 +222,7 @@ export function ShareModal({ open, onOpenChange, post }: ShareModalProps) {
                 size="sm"
                 className="flex-1 flex items-center space-x-2"
               >
-                <Mail className="h-4 w-4 text-gray-600" />
+                <Mail className="h-4 w-4 text-white/60" />
                 <span>Email</span>
               </Button>
             </div>

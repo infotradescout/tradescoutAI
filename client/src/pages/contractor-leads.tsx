@@ -53,7 +53,7 @@ const getStatusColor = (status: string) => {
     case "matched":
       return "bg-blue-500/20 text-blue-400 border-blue-500/30";
     case "closed":
-      return "bg-slate-500/20 text-slate-300 border-slate-500/30";
+      return "bg-white/10 text-white/70 border-white/15";
     default:
       return "bg-blue-500/20 text-blue-400 border-blue-500/30";
   }
@@ -119,17 +119,17 @@ const ContractorLeads = memo(function ContractorLeads() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-orange-500 mb-1">
+                  <p className="text-3xl font-bold text-ts-orange mb-1">
                     {isLoading ? "—" : leads.length}
                   </p>
                   <p className="text-sm text-muted-foreground">Available Projects</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-green-500 mb-1">
@@ -139,7 +139,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-blue-500 mb-1">
@@ -149,7 +149,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardContent className="pt-6">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-yellow-500 mb-1">
@@ -174,9 +174,9 @@ const ContractorLeads = memo(function ContractorLeads() {
             {leads.map((lead) => (
               <Card
                 key={lead.id}
-                className="bg-tsCard border-tsBorder shadow-xl hover:border-orange-500/30 transition-all"
+                className="bg-tsCard border-white/10 shadow-xl hover:border-ts-orange/30 transition-all"
               >
-                <CardHeader className="border-b border-tsBorder pb-4">
+                <CardHeader className="border-b border-white/10 pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
@@ -194,7 +194,7 @@ const ContractorLeads = memo(function ContractorLeads() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground mb-1">Est. Value</p>
-                      <p className="text-2xl font-bold text-orange-500">
+                      <p className="text-2xl font-bold text-ts-orange">
                         {formatCurrency(lead.value)}
                       </p>
                     </div>
@@ -207,8 +207,8 @@ const ContractorLeads = memo(function ContractorLeads() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="h-4 w-4 text-orange-500" />
+                      <div className="h-8 w-8 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="h-4 w-4 text-ts-orange" />
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Budget</p>
@@ -216,8 +216,8 @@ const ContractorLeads = memo(function ContractorLeads() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Calendar className="h-4 w-4 text-orange-500" />
+                      <div className="h-8 w-8 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Calendar className="h-4 w-4 text-ts-orange" />
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Status</p>
@@ -225,8 +225,8 @@ const ContractorLeads = memo(function ContractorLeads() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Calendar className="h-4 w-4 text-orange-500" />
+                      <div className="h-8 w-8 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Calendar className="h-4 w-4 text-ts-orange" />
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Created</p>

@@ -287,10 +287,10 @@ export default function PropertyListing() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <Home className="h-8 w-8 text-orange-600" />
+          <Home className="h-8 w-8 text-ts-orange" />
           <div>
-            <h1 className="text-3xl font-bold text-orange-500">List Your Property</h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <h1 className="text-3xl font-bold text-ts-orange">List Your Property</h1>
+            <p className="text-white/60 dark:text-white/60">
               List any property location. Select the state and county where the property is located.
             </p>
           </div>
@@ -298,8 +298,8 @@ export default function PropertyListing() {
       </div>
 
       {prefilledFromVault && sourceHomeId ? (
-        <Alert className="mb-6 border-orange-500/20 bg-orange-500/10">
-          <AlertDescription className="text-orange-100">
+        <Alert className="mb-6 border-ts-orange/30 bg-ts-orange/10">
+          <AlertDescription className="text-ts-orange">
             Prefilled from your private Home Vault record. You can edit anything before submitting.
           </AlertDescription>
         </Alert>
@@ -318,7 +318,7 @@ export default function PropertyListing() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-orange-600" />
+            <Building className="h-5 w-5 text-ts-orange" />
             Property Details
           </CardTitle>
           <CardDescription>
@@ -360,7 +360,7 @@ export default function PropertyListing() {
               ) : null}
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500">Basic Information</h3>
+                <h3 className="text-lg font-semibold text-ts-orange">Basic Information</h3>
 
                 <FormField
                   control={form.control}
@@ -452,10 +452,10 @@ export default function PropertyListing() {
 
               {/* Optional inspection report */}
               <div className="space-y-4 pt-6 border-t border-border/60">
-                <h3 className="text-lg font-semibold text-orange-500">
+                <h3 className="text-lg font-semibold text-ts-orange">
                   Inspection Report (Optional)
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-white/60 dark:text-white/60">
                   If you have a recent home inspection report, you can attach it now. You can also
                   add it later from the listing page.
                 </p>
@@ -491,21 +491,21 @@ export default function PropertyListing() {
 
               {/* Prep suggestions */}
               <div className="space-y-4 pt-6 border-t border-border/60">
-                <h3 className="text-lg font-semibold text-orange-500">Prep Suggestions</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h3 className="text-lg font-semibold text-ts-orange">Prep Suggestions</h3>
+                <p className="text-sm text-white/60 dark:text-white/60">
                   Quick, practical steps that can increase appeal before photos and showings.
                 </p>
 
                 <div className="flex items-center gap-3 flex-col sm:flex-row">
                   <Button
                     type="button"
-                    className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
+                    className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full sm:w-auto"
                     onClick={() => presaleSuggestionsMutation.mutate()}
                     disabled={presaleSuggestionsMutation.isPending}
                   >
                     {presaleSuggestionsMutation.isPending ? "Generating..." : "Get suggestions"}
                   </Button>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 w-full">
+                  <div className="text-xs text-white/60 dark:text-white/60 w-full">
                     Uses your property details plus your selected county.
                   </div>
                 </div>
@@ -535,8 +535,8 @@ export default function PropertyListing() {
 
               {/* Location */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-orange-600" />
+                <h3 className="text-lg font-semibold text-ts-orange flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-ts-orange" />
                   Location
                 </h3>
 
@@ -614,7 +614,7 @@ export default function PropertyListing() {
 
               {/* Property Details */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500">Property Details</h3>
+                <h3 className="text-lg font-semibold text-ts-orange">Property Details</h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <FormField
@@ -691,8 +691,8 @@ export default function PropertyListing() {
 
               {/* Pricing */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-orange-600" />
+                <h3 className="text-lg font-semibold text-ts-orange flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-ts-orange" />
                   Pricing
                 </h3>
 
@@ -782,8 +782,8 @@ export default function PropertyListing() {
 
               {/* Property Features */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500">Property Features</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h3 className="text-lg font-semibold text-ts-orange">Property Features</h3>
+                <p className="text-sm text-white/60 dark:text-white/60">
                   Select features that make your property special
                 </p>
 
@@ -813,7 +813,7 @@ export default function PropertyListing() {
                 <Button
                   type="submit"
                   disabled={createListingMutation.isPending}
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                 >
                   {createListingMutation.isPending
                     ? "Creating HomeScout Listing..."

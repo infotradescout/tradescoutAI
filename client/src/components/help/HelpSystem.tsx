@@ -188,29 +188,29 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
         <Button
           variant="ghost"
           size="sm"
-          className="text-orange-400 hover:text-orange-300 hover:bg-navy-700"
+          className="text-ts-orange hover:text-ts-orange hover:bg-tsCard"
         >
           <HelpCircle className="h-4 w-4 mr-2" />
           Help
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[95vw] sm:max-w-4xl bg-navy-800 border-navy-600 text-white">
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl bg-tsCard border-white/10 text-white">
         <DialogHeader>
-          <DialogTitle className="flex items-center text-orange-400">
+          <DialogTitle className="flex items-center text-ts-orange">
             <Lightbulb className="h-5 w-5 mr-2" />
             TradeScout Help Center
           </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="topics" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-navy-700">
-            <TabsTrigger value="topics" className="data-[state=active]:bg-orange-500">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-tsCard">
+            <TabsTrigger value="topics" className="data-[state=active]:bg-ts-orange">
               All Topics
             </TabsTrigger>
-            <TabsTrigger value="quick-tips" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="quick-tips" className="data-[state=active]:bg-ts-orange">
               Quick Tips
             </TabsTrigger>
-            <TabsTrigger value="contact" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="contact" className="data-[state=active]:bg-ts-orange">
               Get Support
             </TabsTrigger>
           </TabsList>
@@ -220,32 +220,32 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
               {helpTopics.map((helpTopic) => (
                 <Card
                   key={helpTopic.id}
-                  className="bg-navy-700 border-navy-600 hover:border-orange-500 transition-colors cursor-pointer"
+                  className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer"
                   onClick={() => setSelectedTopic(helpTopic)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3">
-                        <div className="bg-orange-500/20 p-2 rounded">
+                        <div className="bg-ts-orange/20 p-2 rounded">
                           {helpTopic.illustration === "hardhat" && (
-                            <HardHat className="h-5 w-5 text-orange-400" />
+                            <HardHat className="h-5 w-5 text-ts-orange" />
                           )}
                           {helpTopic.illustration === "wrench" && (
-                            <Wrench className="h-5 w-5 text-orange-400" />
+                            <Wrench className="h-5 w-5 text-ts-orange" />
                           )}
                           {helpTopic.illustration === "hammer" && (
-                            <Hammer className="h-5 w-5 text-orange-400" />
+                            <Hammer className="h-5 w-5 text-ts-orange" />
                           )}
                         </div>
                         <div className="flex-1">
                           <h3 className="font-semibold text-white mb-1">{helpTopic.title}</h3>
-                          <p className="text-sm text-gray-300">{helpTopic.description}</p>
+                          <p className="text-sm text-white/70">{helpTopic.description}</p>
                           <Badge variant="outline" className="mt-2 text-xs">
                             {helpTopic.category.replace("-", " ")}
                           </Badge>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                      <ChevronRight className="h-4 w-4 text-white/60" />
                     </div>
                   </CardContent>
                 </Card>
@@ -255,9 +255,9 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
 
           <TabsContent value="quick-tips" className="space-y-4">
             <div className="grid gap-3">
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-orange-400 flex items-center">
+                  <CardTitle className="text-ts-orange flex items-center">
                     <Zap className="h-5 w-5 mr-2" />
                     Pro Tips for Success
                   </CardTitle>
@@ -267,7 +267,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                     <div className="bg-green-500/20 p-1 rounded">
                       <span className="text-green-400 text-sm">💡</span>
                     </div>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-white/70">
                       Respond to customer requests within 15 minutes - you'll win 80% more jobs than
                       slow responders.
                     </p>
@@ -276,7 +276,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                     <div className="bg-blue-500/20 p-1 rounded">
                       <span className="text-blue-400 text-sm">📸</span>
                     </div>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-white/70">
                       Upload 8-12 high-quality photos - profiles with more photos get viewed 5x
                       more.
                     </p>
@@ -285,7 +285,7 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                     <div className="bg-purple-500/20 p-1 rounded">
                       <span className="text-purple-400 text-sm">⭐</span>
                     </div>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-white/70">
                       Ask satisfied customers for RECOMMENDATIONS - 90% of homeowners read
                       RECOMMENDATIONS before hiring.
                     </p>
@@ -297,31 +297,31 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
 
           <TabsContent value="contact" className="space-y-4">
             <div className="grid gap-4">
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6 text-center">
-                  <MessageCircle className="h-12 w-12 text-orange-400 mx-auto mb-4" />
+                  <MessageCircle className="h-12 w-12 text-ts-orange mx-auto mb-4" />
                   <h3 className="font-semibold text-white mb-2">Need Personal Help?</h3>
-                  <p className="text-gray-300 mb-4">
+                  <p className="text-white/70 mb-4">
                     Our support team knows construction better than your local building inspector.
                   </p>
-                  <Button className="bg-orange-500 hover:bg-orange-600">Contact Support</Button>
+                  <Button className="bg-ts-orange hover:bg-ts-orange-dark">Contact Support</Button>
                 </CardContent>
               </Card>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Card className="bg-navy-700 border-navy-600">
+                <Card className="bg-tsCard border-white/10">
                   <CardContent className="p-4 text-center">
                     <BookOpen className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                     <h4 className="font-medium text-white">Documentation</h4>
-                    <p className="text-xs text-gray-400">Detailed guides</p>
+                    <p className="text-xs text-white/60">Detailed guides</p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-navy-700 border-navy-600">
+                <Card className="bg-tsCard border-white/10">
                   <CardContent className="p-4 text-center">
                     <Video className="h-8 w-8 text-green-400 mx-auto mb-2" />
                     <h4 className="font-medium text-white">Video Tutorials</h4>
-                    <p className="text-xs text-gray-400">Step-by-step videos</p>
+                    <p className="text-xs text-white/60">Step-by-step videos</p>
                   </CardContent>
                 </Card>
               </div>
@@ -332,9 +332,9 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
         {/* Topic Detail Modal */}
         {selectedTopic && (
           <Dialog open={!!selectedTopic} onOpenChange={() => setSelectedTopic(null)}>
-            <DialogContent className="max-w-[95vw] sm:max-w-3xl bg-navy-800 border-navy-600 text-white">
+            <DialogContent className="max-w-[95vw] sm:max-w-3xl bg-tsCard border-white/10 text-white">
               <DialogHeader>
-                <DialogTitle className="flex items-center text-orange-400">
+                <DialogTitle className="flex items-center text-ts-orange">
                   {selectedTopic.illustration === "hardhat" && <HardHat className="h-5 w-5 mr-2" />}
                   {selectedTopic.illustration === "wrench" && <Wrench className="h-5 w-5 mr-2" />}
                   {selectedTopic.illustration === "hammer" && <Hammer className="h-5 w-5 mr-2" />}
@@ -343,12 +343,12 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
               </DialogHeader>
 
               <div className="space-y-4">
-                <p className="text-gray-300">{selectedTopic.content.overview}</p>
+                <p className="text-white/70">{selectedTopic.content.overview}</p>
 
                 {selectedTopic.content.steps && (
                   <div>
-                    <h4 className="font-semibold text-orange-400 mb-2">Steps:</h4>
-                    <ol className="list-decimal list-inside space-y-1 text-gray-300">
+                    <h4 className="font-semibold text-ts-orange mb-2">Steps:</h4>
+                    <ol className="list-decimal list-inside space-y-1 text-white/70">
                       {selectedTopic.content.steps.map((step, index) => (
                         <li key={index} className="text-sm">
                           {step}
@@ -360,8 +360,8 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
 
                 {selectedTopic.content.tips && (
                   <div>
-                    <h4 className="font-semibold text-orange-400 mb-2">Pro Tips:</h4>
-                    <ul className="list-disc list-inside space-y-1 text-gray-300">
+                    <h4 className="font-semibold text-ts-orange mb-2">Pro Tips:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-white/70">
                       {selectedTopic.content.tips.map((tip, index) => (
                         <li key={index} className="text-sm">
                           {tip}
@@ -372,8 +372,8 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                 )}
 
                 {selectedTopic.content.wittyNote && (
-                  <div className="bg-orange-500/10 border border-orange-500/20 rounded p-3">
-                    <p className="text-sm text-orange-300 italic">
+                  <div className="bg-ts-orange/10 border border-ts-orange/30 rounded p-3">
+                    <p className="text-sm text-ts-orange italic">
                       💡 {selectedTopic.content.wittyNote}
                     </p>
                   </div>

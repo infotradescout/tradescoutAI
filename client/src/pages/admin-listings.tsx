@@ -101,10 +101,10 @@ export default function AdminListings() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-white/10 rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              <div key={i} className="h-32 bg-white/10 rounded"></div>
             ))}
           </div>
         </div>
@@ -115,10 +115,10 @@ export default function AdminListings() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-orange-500 mb-2">
+        <h1 className="text-3xl font-bold text-ts-orange mb-2">
           Pending Listings Approval
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-white/60 dark:text-white/60">
           Review and approve marketplace listings before they go live
         </p>
       </div>
@@ -127,10 +127,10 @@ export default function AdminListings() {
         <Card>
           <CardContent className="text-center py-12">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-orange-500 mb-2">
+            <h3 className="text-lg font-medium text-ts-orange mb-2">
               No Pending Listings
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-white/60 dark:text-white/60">
               All marketplace listings have been reviewed and approved.
             </p>
           </CardContent>
@@ -139,7 +139,7 @@ export default function AdminListings() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Listings List */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-orange-500">
+            <h2 className="text-xl font-semibold text-ts-orange">
               Pending Approval ({pendingListings.length})
             </h2>
             
@@ -155,7 +155,7 @@ export default function AdminListings() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-medium text-orange-500 line-clamp-2">
+                    <h3 className="font-medium text-ts-orange line-clamp-2">
                       {listing.title}
                     </h3>
                     <Badge variant="outline" className="ml-2">
@@ -164,7 +164,7 @@ export default function AdminListings() {
                     </Badge>
                   </div>
                   
-                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="space-y-2 text-sm text-white/60 dark:text-white/60">
                     <div className="flex items-center">
                       <DollarSign className="h-4 w-4 mr-2" />
                       ${parseFloat(listing.price).toLocaleString()}
@@ -199,10 +199,10 @@ export default function AdminListings() {
                 <CardContent className="space-y-6">
                   {/* Listing Details */}
                   <div>
-                    <h3 className="font-medium text-orange-500 mb-2">
+                    <h3 className="font-medium text-ts-orange mb-2">
                       {selectedListing.title}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                    <p className="text-sm text-white/60 dark:text-white/60 line-clamp-3">
                       {selectedListing.description}
                     </p>
                   </div>
@@ -210,25 +210,25 @@ export default function AdminListings() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="font-medium">Price:</span>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-white/60 dark:text-white/60">
                         ${parseFloat(selectedListing.price).toLocaleString()}
                       </p>
                     </div>
                     <div>
                       <span className="font-medium">Condition:</span>
-                      <p className="text-gray-600 dark:text-gray-400 capitalize">
+                      <p className="text-white/60 dark:text-white/60 capitalize">
                         {selectedListing.condition?.replace('_', ' ')}
                       </p>
                     </div>
                     <div>
                       <span className="font-medium">Location:</span>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-white/60 dark:text-white/60">
                         {selectedListing.city}, {selectedListing.state}
                       </p>
                     </div>
                     <div>
                       <span className="font-medium">Created:</span>
-                      <p className="text-gray-600 dark:text-gray-400">
+                      <p className="text-white/60 dark:text-white/60">
                         {new Date(selectedListing.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -286,11 +286,11 @@ export default function AdminListings() {
             ) : (
               <Card>
                 <CardContent className="text-center py-12">
-                  <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-orange-500 mb-2">
+                  <User className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-ts-orange mb-2">
                     Select a Listing
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-white/60 dark:text-white/60">
                     Choose a listing from the left to review and approve or reject it.
                   </p>
                 </CardContent>

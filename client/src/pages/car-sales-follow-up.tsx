@@ -81,17 +81,17 @@ export default function CarSalesFollowUp() {
       case "High": return "bg-red-600";
       case "Medium": return "bg-yellow-600";
       case "Low": return "bg-green-600";
-      default: return "bg-gray-600";
+      default: return "bg-white/10";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Overdue": return "bg-red-600";
-      case "Due Today": return "bg-orange-600";
+      case "Due Today": return "bg-ts-orange-dark";
       case "Scheduled": return "bg-blue-600";
       case "Completed": return "bg-green-600";
-      default: return "bg-gray-600";
+      default: return "bg-white/10";
     }
   };
 
@@ -295,9 +295,9 @@ export default function CarSalesFollowUp() {
                       <span>Follow-up within 24 hours improves closing rate</span>
                       <Badge className="bg-blue-600">+45% more likely</Badge>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-orange-500/10 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-ts-orange/10 rounded-lg">
                       <span>Average follow-up sequence length</span>
-                      <Badge className="bg-orange-600">3.2 touchpoints</Badge>
+                      <Badge className="bg-ts-orange-dark">3.2 touchpoints</Badge>
                     </div>
                   </div>
                 </CardContent>

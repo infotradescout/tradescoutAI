@@ -73,21 +73,21 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
   const showDevErrorDetails = import.meta.env.DEV && isError && error instanceof Error;
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className ?? ""}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className ?? ""}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
-              <Heart className="h-4 w-4 text-orange-500" />
+              <Heart className="h-4 w-4 text-ts-orange" />
               Local Impact
             </CardTitle>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{locationLabel}</p>
+            <p className="text-xs text-white/60 dark:text-white/60 mt-1">{locationLabel}</p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         {isLoading && (
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-white/60 dark:text-white/60">
             Loading your Local Impact snapshot...
           </p>
         )}
@@ -105,31 +105,31 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
           <>
             <div className="space-y-2">
               <div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+                <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
                   Local Vault
                 </div>
-                <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                <div className="text-lg font-semibold text-white/70 dark:text-white">
                   {formatCurrency(data.localVaultBalance)}
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                <div className="text-[11px] text-white/60 dark:text-white/60 mt-0.5">
                   Community-funded projects &amp; incentives
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+                  <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
                     Your Direct To Vaults
                   </div>
-                  <div className="text-base font-semibold text-slate-900 dark:text-white">
+                  <div className="text-base font-semibold text-white/70 dark:text-white">
                     {formatCurrency(data.userDirectContribution)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+                  <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
                     Your Network To Vaults
                   </div>
-                  <div className="text-base font-semibold text-slate-900 dark:text-white">
+                  <div className="text-base font-semibold text-white/70 dark:text-white">
                     {formatCurrency(data.userIndirectContribution)}
                   </div>
                 </div>
@@ -137,15 +137,15 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
 
               {Array.isArray(data.countyVaultAllocation) &&
                 data.countyVaultAllocation.length > 0 && (
-                  <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-3">
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                  <div className="mt-2 rounded-lg border border-white/10 dark:border-white/10 bg-white/5 dark:bg-tsCard/95 p-3">
+                    <div className="text-[11px] text-white/60 dark:text-white/60 mb-2">
                       County vault split (20% each)
                     </div>
                     <div className="grid grid-cols-1 gap-1">
                       {data.countyVaultAllocation.map((bucket) => (
                         <div
                           key={bucket.key}
-                          className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300"
+                          className="flex items-center justify-between text-[11px] text-white/60 dark:text-white/70"
                         >
                           <span>{bucket.label}</span>
                           <span>{formatCurrency(bucket.amount)}</span>
@@ -155,18 +155,18 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
                   </div>
                 )}
 
-              <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-3">
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+              <div className="mt-2 rounded-lg border border-white/10 dark:border-white/10 bg-white/5 dark:bg-tsCard/95 p-3">
+                <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
                   Total To Your County Vault
                 </div>
-                <div className="text-base font-semibold text-slate-900 dark:text-white">
+                <div className="text-base font-semibold text-white/70 dark:text-white">
                   {formatCurrency(data.userTotalContributionToCountyVault)}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+                  <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
                     Affiliate Earnings
                   </div>
                   <div className="text-base font-semibold text-emerald-600 dark:text-emerald-300">
@@ -174,10 +174,10 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+                  <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
                     Affiliates Onboarded
                   </div>
-                  <div className="text-base font-semibold text-slate-900 dark:text-white">
+                  <div className="text-base font-semibold text-white/70 dark:text-white">
                     {data.affiliatesOnboardedCount || 0}
                   </div>
                 </div>
@@ -185,10 +185,10 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
             </div>
 
             {data.countyId && (
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between mt-2">
-                <span className="text-slate-500 dark:text-slate-400">Transparency</span>
+              <div className="pt-2 border-t border-white/10 dark:border-white/10 text-xs flex items-center justify-between mt-2">
+                <span className="text-white/60 dark:text-white/60">Transparency</span>
                 <Link href={`/county/${data.countyId}/transparency`}>
-                  <span className="text-[11px] font-medium text-orange-600 dark:text-orange-400 hover:underline cursor-pointer">
+                  <span className="text-[11px] font-medium text-ts-orange dark:text-ts-orange hover:underline cursor-pointer">
                     View full local transparency
                   </span>
                 </Link>
@@ -199,11 +199,11 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
 
         {!isLoading && !isError && data === null && (
           <div className="space-y-2 text-sm">
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-white/60 dark:text-white/60">
               Add your county and state so we can show how your community vault is being funded.
             </p>
             <Link href="/profile">
-              <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white w-full">
+              <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white w-full">
                 Update location
               </Button>
             </Link>

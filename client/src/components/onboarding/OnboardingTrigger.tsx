@@ -34,7 +34,7 @@ export function OnboardingTrigger({
       <Badge
         variant="secondary"
         className={cn(
-          "cursor-pointer hover:bg-orange-100 text-orange-700 border-orange-200",
+          "cursor-pointer hover:bg-ts-orange/10 text-ts-orange border-ts-orange/30",
           "flex items-center gap-1",
           disabled && "opacity-50 cursor-not-allowed",
           className
@@ -59,7 +59,7 @@ export function OnboardingTrigger({
       disabled={disabled}
       className={cn(
         "flex items-center gap-2",
-        variant === "outline" && "border-orange-200 text-orange-700 hover:bg-orange-50",
+        variant === "outline" && "border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10",
         className
       )}
     >

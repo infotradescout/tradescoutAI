@@ -114,7 +114,7 @@ export default function AdminCreateAccount() {
       <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader className="pb-3">
           <CardTitle className="text-white flex items-center gap-2">
-            <Shield className="w-5 h-5 text-orange-300" />
+            <Shield className="w-5 h-5 text-ts-orange" />
             Create Admin Account
           </CardTitle>
         </CardHeader>
@@ -124,7 +124,7 @@ export default function AdminCreateAccount() {
             {/* Personal Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-slate-200 flex items-center gap-2">
+                <Label htmlFor="firstName" className="text-white/70 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   First Name
                 </Label>
@@ -132,7 +132,7 @@ export default function AdminCreateAccount() {
                   id="firstName"
                   type="text"
                   placeholder="Enter first name"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60"
                   {...form.register("firstName")}
                 />
                 {form.formState.errors.firstName && (
@@ -143,7 +143,7 @@ export default function AdminCreateAccount() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-slate-200 flex items-center gap-2">
+                <Label htmlFor="lastName" className="text-white/70 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Last Name
                 </Label>
@@ -151,7 +151,7 @@ export default function AdminCreateAccount() {
                   id="lastName"
                   type="text"
                   placeholder="Enter last name"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60"
                   {...form.register("lastName")}
                 />
                 {form.formState.errors.lastName && (
@@ -165,7 +165,7 @@ export default function AdminCreateAccount() {
             {/* Account Information */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200 flex items-center gap-2">
+                <Label htmlFor="email" className="text-white/70 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
                   Email Address
                 </Label>
@@ -173,7 +173,7 @@ export default function AdminCreateAccount() {
                   id="email"
                   type="email"
                   placeholder="admin@tradescout.com"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email && (
@@ -182,7 +182,7 @@ export default function AdminCreateAccount() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-slate-200 flex items-center gap-2">
+                <Label htmlFor="username" className="text-white/70 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Username
                 </Label>
@@ -190,7 +190,7 @@ export default function AdminCreateAccount() {
                   id="username"
                   type="text"
                   placeholder="admin_username"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60"
                   {...form.register("username")}
                 />
                 {form.formState.errors.username && (
@@ -201,14 +201,14 @@ export default function AdminCreateAccount() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-slate-200">
+                <Label htmlFor="address" className="text-white/70">
                   Address
                 </Label>
                 <Input
                   id="address"
                   type="text"
                   placeholder="123 Admin Street, City, State 12345"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60"
                   {...form.register("address")}
                 />
                 {form.formState.errors.address && (
@@ -221,7 +221,7 @@ export default function AdminCreateAccount() {
 
             {/* Role Selection */}
             <div className="space-y-2">
-              <Label className="text-slate-200 flex items-center gap-2">
+              <Label className="text-white/70 flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Admin Role
               </Label>
@@ -229,18 +229,18 @@ export default function AdminCreateAccount() {
                 onValueChange={(value) => form.setValue("role", value as any)}
                 defaultValue="moderator"
               >
-                <SelectTrigger className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100">
+                <SelectTrigger className="bg-black/30 border-[color:var(--border-subtle)] text-white">
                   <SelectValue placeholder="Select admin role" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-950 border-[color:var(--border-subtle)]">
-                  <SelectItem value="moderator" className="text-slate-100">
+                <SelectContent className="bg-tsBg border-[color:var(--border-subtle)]">
+                  <SelectItem value="moderator" className="text-white">
                     Moderator - Content moderation and user management
                   </SelectItem>
-                  <SelectItem value="ops_admin" className="text-slate-100">
+                  <SelectItem value="ops_admin" className="text-white">
                     Operations Admin - Platform operations and configuration
                   </SelectItem>
                   {user?.role === "super_admin" && (
-                    <SelectItem value="super_admin" className="text-slate-100">
+                    <SelectItem value="super_admin" className="text-white">
                       Super Admin - Full platform control
                     </SelectItem>
                   )}
@@ -254,7 +254,7 @@ export default function AdminCreateAccount() {
             {/* Password Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200 flex items-center gap-2">
+                <Label htmlFor="password" className="text-white/70 flex items-center gap-2">
                   <Lock className="w-4 h-4" />
                   Password
                 </Label>
@@ -263,13 +263,13 @@ export default function AdminCreateAccount() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter secure password"
-                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500 pr-10"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60 pr-10"
                     {...form.register("password")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white/70 transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -282,7 +282,7 @@ export default function AdminCreateAccount() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-slate-200 flex items-center gap-2">
+                <Label htmlFor="confirmPassword" className="text-white/70 flex items-center gap-2">
                   <Lock className="w-4 h-4" />
                   Confirm Password
                 </Label>
@@ -291,13 +291,13 @@ export default function AdminCreateAccount() {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm password"
-                    className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100 placeholder:text-slate-500 pr-10"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60 pr-10"
                     {...form.register("confirmPassword")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white/70 transition-colors"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -317,7 +317,7 @@ export default function AdminCreateAccount() {
             <Button
               type="submit"
               disabled={createAdminMutation.isPending}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-ts-orange hover:bg-ts-orange-dark"
             >
               {createAdminMutation.isPending ? (
                 <div className="flex items-center gap-2">

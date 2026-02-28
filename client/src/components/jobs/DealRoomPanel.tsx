@@ -64,7 +64,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 			? "bg-emerald-900/60 border-emerald-500/60 text-emerald-100"
 			: invoiceStatusRaw === "sent" || invoiceStatusRaw === "approved"
 				? "bg-amber-900/60 border-amber-500/60 text-amber-100"
-				: "bg-slate-800 border-slate-600 text-slate-100";
+				: "bg-white/5 border-white/15 text-white";
 	const invoiceNumberDisplay =
 		typeof latestInvoicePayload?.invoiceNumber === "string" &&
 		latestInvoicePayload.invoiceNumber.trim()
@@ -530,23 +530,23 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 							: "Receipt";
 
 	return (
-		<Card className="bg-slate-900/60 border-slate-700 h-full flex flex-col">
+		<Card className="bg-tsCard/95 border-white/10 h-full flex flex-col">
 			<CardHeader className="pb-3 space-y-1">
-				<p className="text-[11px] uppercase tracking-wide text-slate-400">{headerPrimary}</p>
-				<CardTitle className="text-sm text-gray-100">Deal Room</CardTitle>
-				<p className="text-[11px] text-gray-400">{headerSecondary}</p>
+				<p className="text-[11px] uppercase tracking-wide text-white/60">{headerPrimary}</p>
+				<CardTitle className="text-sm text-white">Deal Room</CardTitle>
+				<p className="text-[11px] text-white/60">{headerSecondary}</p>
 			</CardHeader>
 			<CardContent className="space-y-4 flex-1 flex flex-col">
 				{isLoading ? (
-					<div className="text-xs text-gray-400">Loading documents…</div>
+					<div className="text-xs text-white/60">Loading documents…</div>
 				) : error ? (
 					<div className="text-xs text-red-400">Could not load documents.</div>
 				) : (
 					<>
-						<div className="rounded-md border border-slate-700 bg-slate-900/60 p-3 mb-2">
-							<p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Current stage</p>
+						<div className="rounded-md border border-white/10 bg-tsCard/95 p-3 mb-2">
+							<p className="text-xs uppercase tracking-wide text-white/60 mb-1">Current stage</p>
 							<p className="text-sm font-semibold text-white mb-1">{stageLabel}</p>
-							<p className="text-xs text-gray-300 mb-2">{primaryAction.explanation}</p>
+							<p className="text-xs text-white/70 mb-2">{primaryAction.explanation}</p>
 							{primaryAction.kind === "simple" && primaryAction.action && primaryAction.label && (
 								<Button size="sm" className="w-full" onClick={primaryAction.action}>
 									{primaryAction.label}
@@ -554,7 +554,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 							)}
 							{primaryAction.kind === "invoiceFromContract" && state.canCreateInvoice && userRole === "contractor" && (
 								<div className="space-y-2">
-									<p className="text-[11px] text-gray-400">
+									<p className="text-[11px] text-white/60">
 										Set an invoice total, then generate the invoice.
 									</p>
 									<div className="flex items-center gap-2">
@@ -562,7 +562,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 											placeholder="Total"
 											value={invoiceTotalInput}
 											onChange={(e) => setInvoiceTotalInput(e.target.value)}
-											className="h-8 text-xs bg-slate-900/60 border-slate-700 text-white"
+											className="h-8 text-xs bg-tsCard/95 border-white/10 text-white"
 										/>
 										<Button size="sm" className="h-8" onClick={primaryAction.action}>
 											Generate invoice
@@ -574,20 +574,20 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 
 						{latestInvoice && (
 							<div
-								className={`mt-1 rounded-md border border-slate-800 bg-slate-950/70 p-3 space-y-3 ${
+								className={`mt-1 rounded-md border border-white/10 bg-black/30 p-3 space-y-3 ${
 									invoiceStatusRaw === "paid" ? "opacity-90" : ""
 								}`}
 							>
 								<div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
 									<div>
-										<p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Invoice</p>
+										<p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">Invoice</p>
 										<p className="text-sm font-semibold text-white">
 											{invoiceNumberDisplay}
 										</p>
-										<p className="text-[11px] text-gray-400">
+										<p className="text-[11px] text-white/60">
 											Created {new Date(latestInvoice.created_at).toLocaleDateString()}
 										</p>
-										<p className="text-[11px] text-gray-400 mt-1">{invoiceIssuedBy}</p>
+										<p className="text-[11px] text-white/60 mt-1">{invoiceIssuedBy}</p>
 									</div>
 									<div className="flex flex-col items-end gap-1 text-right">
 										<Badge className={`text-[10px] px-2 py-0.5 ${invoiceStatusClass}`}>
@@ -610,20 +610,20 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 									</p>
 								)}
 
-								<div className="rounded-md border border-slate-800 bg-slate-900/70">
+								<div className="rounded-md border border-white/10 bg-tsCard/95">
 									<Table className="text-[11px]">
 										<TableHeader>
-											<TableRow className="border-slate-800">
-												<TableHead className="text-slate-400">Description</TableHead>
-												<TableHead className="text-slate-400 w-16 text-right">Qty</TableHead>
-												<TableHead className="text-slate-400 w-24 text-right">Unit</TableHead>
-												<TableHead className="text-slate-400 w-24 text-right">Amount</TableHead>
+											<TableRow className="border-white/10">
+												<TableHead className="text-white/60">Description</TableHead>
+												<TableHead className="text-white/60 w-16 text-right">Qty</TableHead>
+												<TableHead className="text-white/60 w-24 text-right">Unit</TableHead>
+												<TableHead className="text-white/60 w-24 text-right">Amount</TableHead>
 											</TableRow>
 										</TableHeader>
 										<TableBody>
 											{invoiceLines.length === 0 ? (
-												<TableRow className="border-slate-800">
-													<TableCell colSpan={4} className="text-slate-500 text-center py-4">
+												<TableRow className="border-white/10">
+													<TableCell colSpan={4} className="text-white/60 text-center py-4">
 														No line items recorded on this invoice.
 													</TableCell>
 												</TableRow>
@@ -633,17 +633,17 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 													const unit = typeof line.unitPrice === "number" ? line.unitPrice : 0;
 													const amount = typeof line.amount === "number" ? line.amount : qty * unit;
 													return (
-														<TableRow key={idx} className="border-slate-800">
-															<TableCell className="text-slate-200">
+														<TableRow key={idx} className="border-white/10">
+															<TableCell className="text-white/70">
 																{line.description || "Line item"}
 															</TableCell>
-															<TableCell className="text-right text-slate-200">
+															<TableCell className="text-right text-white/70">
 																{qty}
 															</TableCell>
-															<TableCell className="text-right text-slate-200">
+															<TableCell className="text-right text-white/70">
 																{unit.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
 															</TableCell>
-															<TableCell className="text-right text-slate-200">
+															<TableCell className="text-right text-white/70">
 																{amount.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
 															</TableCell>
 														</TableRow>
@@ -654,10 +654,10 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 									</Table>
 								</div>
 
-								<div className="mt-3 flex flex-col items-end gap-1 text-[11px] text-slate-200">
+								<div className="mt-3 flex flex-col items-end gap-1 text-[11px] text-white/70">
 									{invoiceSubtotal !== null && (
 										<div className="flex justify-between gap-6 w-full max-w-xs">
-											<span className="text-slate-400">Subtotal</span>
+											<span className="text-white/60">Subtotal</span>
 											<span>
 												{invoiceSubtotal.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
 											</span>
@@ -665,7 +665,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 									)}
 									{invoiceTax !== null && (
 										<div className="flex justify-between gap-6 w-full max-w-xs">
-											<span className="text-slate-400">Tax</span>
+											<span className="text-white/60">Tax</span>
 											<span>
 												{invoiceTax.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
 											</span>
@@ -673,7 +673,7 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 									)}
 									{invoiceTotal !== null && (
 										<div className="flex justify-between gap-6 w-full max-w-xs font-semibold">
-											<span className="text-slate-200">Total</span>
+											<span className="text-white/70">Total</span>
 											<span>
 												{invoiceTotal.toLocaleString(undefined, { style: "currency", currency: invoiceCurrency })}
 											</span>
@@ -682,14 +682,14 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 								</div>
 
 								{invoicePayment && (
-									<div className="mt-3 border-t border-slate-800 pt-2 text-[11px] text-slate-300">
+									<div className="mt-3 border-t border-white/10 pt-2 text-[11px] text-white/70">
 										<p className="font-semibold mb-1">Payment</p>
 										<p>
-											Method: <span className="text-slate-100">{invoicePayment.method || "other"}</span>
+											Method: <span className="text-white">{invoicePayment.method || "other"}</span>
 										</p>
 										{invoicePayment.reference && (
 											<p>
-												Reference: <span className="text-slate-100">{invoicePayment.reference}</span>
+												Reference: <span className="text-white">{invoicePayment.reference}</span>
 											</p>
 										)}
 										{invoicePayment.receivedAt && (
@@ -702,9 +702,9 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 							</div>
 						)}
 
-						<div className="mt-2 rounded-md border border-slate-800 bg-slate-950/60 p-3">
-							<p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Timeline</p>
-							<div className="space-y-1 text-[11px] text-gray-300">
+						<div className="mt-2 rounded-md border border-white/10 bg-black/30 p-3">
+							<p className="text-[11px] uppercase tracking-wide text-white/60 mb-2">Timeline</p>
+							<div className="space-y-1 text-[11px] text-white/70">
 								<p>
 									<span className="font-semibold">Material list:</span>{" "}
 									{latestMaterial ? latestMaterial.status : "Not created yet"}
@@ -729,9 +729,9 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 						</div>
 
 						<div className="mt-3 space-y-2 flex-1 overflow-auto">
-							<p className="text-xs uppercase tracking-wide text-gray-500">All documents</p>
+							<p className="text-xs uppercase tracking-wide text-white/60">All documents</p>
 							{documents.length === 0 ? (
-								<p className="text-xs text-gray-400">
+								<p className="text-xs text-white/60">
 									No documents recorded yet. When you create or attach a document, it will show up here.
 								</p>
 							) : (
@@ -739,17 +739,17 @@ export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
 									{documents.map((doc) => (
 										<div
 											key={doc.id}
-											className="border border-slate-800 rounded-md p-2 bg-slate-950/60"
+											className="border border-white/10 rounded-md p-2 bg-black/30"
 										>
 											<div className="flex items-center justify-between mb-1">
 												<p className="text-xs font-semibold text-white">
 													{doc.type}
 												</p>
-												<Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
+												<Badge className="text-[10px] px-2 py-0.5 bg-white/5 border-white/15">
 													{doc.status}
 												</Badge>
 											</div>
-											<p className="text-[11px] text-gray-400 mb-1">
+											<p className="text-[11px] text-white/60 mb-1">
 												Updated {new Date(doc.updated_at).toLocaleString()}
 											</p>
 											<div className="flex items-center gap-2">

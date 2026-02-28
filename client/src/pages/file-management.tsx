@@ -102,7 +102,7 @@ const FileManagement = memo(function FileManagement() {
       case 'document':
         return <File className="h-8 w-8 text-green-400" />;
       default:
-        return <File className="h-8 w-8 text-gray-400" />;
+        return <File className="h-8 w-8 text-white/60" />;
     }
   };
 
@@ -115,7 +115,7 @@ const FileManagement = memo(function FileManagement() {
       case 'business':
         return 'bg-purple-600';
       default:
-        return 'bg-gray-600';
+        return 'bg-white/10';
     }
   };
 

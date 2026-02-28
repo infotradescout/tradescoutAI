@@ -41,7 +41,7 @@ export default function PaymentSuccess() {
           {/* Success Message */}
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-tsSuccess">Payment Successful!</h1>
-            <p className="text-tsTextSecondary">
+            <p className="text-white/70">
               Your payment has been processed successfully. You should receive a confirmation email
               shortly.
             </p>
@@ -51,7 +51,7 @@ export default function PaymentSuccess() {
           {paymentDetails && (
             <div className="bg-tsCard border-tsSuccess p-4 rounded-lg text-left">
               <h3 className="font-medium text-tsSuccess mb-2">Transaction Details</h3>
-              <div className="text-sm text-tsTextSecondary space-y-1">
+              <div className="text-sm text-white/70 space-y-1">
                 <div className="flex justify-between">
                   <span>Payment ID:</span>
                   <span className="font-mono text-xs">
@@ -84,7 +84,7 @@ export default function PaymentSuccess() {
           </div>
 
           {/* Auto-redirect Notice */}
-          <p className="text-xs text-tsTextMuted">
+          <p className="text-xs text-white/60">
             You'll be automatically redirected to the home page in 10 seconds.
           </p>
         </CardContent>

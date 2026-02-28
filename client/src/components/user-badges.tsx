@@ -101,7 +101,7 @@ function rarityClasses(rarity: BadgeRarity): string {
       return "bg-sky-900/40 text-sky-100 border-sky-400/80 ring-1 ring-sky-300/70 shadow-[0_0_10px_rgba(56,189,248,0.5)]";
     case "common":
     default:
-      return "bg-slate-900/60 text-slate-100 border-slate-500/70";
+      return "bg-tsCard/95 text-white border-white/15";
   }
 }
 

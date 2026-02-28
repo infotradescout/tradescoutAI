@@ -72,20 +72,20 @@ export default function CheckEmail() {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 py-10 text-tsTextMain">
-      <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
+    <div className="flex items-center justify-center px-4 py-10 text-white">
+      <Card className="w-full max-w-md bg-tsCard border border-white/10 shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-tsTextMain">Check your email</CardTitle>
-          <p className="text-sm text-tsTextMuted">Open the link, then return here.</p>
+          <CardTitle className="text-2xl font-bold text-white">Check your email</CardTitle>
+          <p className="text-sm text-white/60">Open the link, then return here.</p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
-            <label className="text-xs text-tsTextMuted">Email</label>
+            <label className="text-xs text-white/60">Email</label>
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="bg-tsBg border-tsBorder"
+              className="bg-tsBg border-white/10"
             />
           </div>
           <Button className="w-full" onClick={resend} disabled={isSending}>
@@ -94,11 +94,11 @@ export default function CheckEmail() {
           <Button variant="outline" className="w-full" onClick={continueAfterVerify}>
             I verified my email
           </Button>
-          <div className="text-center text-xs text-tsTextMuted">
+          <div className="text-center text-xs text-white/60">
             Different email?{" "}
             <button
               type="button"
-              className="text-tsAccent hover:underline"
+              className="text-ts-orange hover:underline"
               onClick={() => navigate("/pre-scout-setup?mode=create")}
             >
               Use another account

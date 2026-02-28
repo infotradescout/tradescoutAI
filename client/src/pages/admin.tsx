@@ -25,21 +25,21 @@ export default function AdminShell() {
 
   if (error || !data?.ok) {
     return (
-      <div className="bg-slate-950 flex items-center justify-center py-24 px-4">
-        <Card className="max-w-md w-full border-red-500/40 bg-slate-900">
+      <div className="bg-tsBg flex items-center justify-center py-24 px-4">
+        <Card className="max-w-md w-full border-red-500/40 bg-tsCard">
           <CardHeader>
             <CardTitle className="text-red-300">Admin access required</CardTitle>
-            <CardDescription className="text-slate-300">
+            <CardDescription className="text-white/70">
               This portal is restricted to platform administrators. Your current session does not
               have access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-white/60">
               If you believe this is an error, check your assigned role or contact the platform
               owner.
             </p>
-            <div className="flex justify-between items-center text-xs text-slate-500">
+            <div className="flex justify-between items-center text-xs text-white/60">
               <span>Requested: /admin</span>
               <span>Role: {(data as any)?.role || "unknown"}</span>
             </div>
@@ -93,10 +93,10 @@ function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAd
 
 function AdminAccessDenied() {
   return (
-    <Card className="bg-slate-950/60 border-slate-800">
+    <Card className="bg-black/30 border-white/10">
       <CardHeader>
-        <CardTitle className="text-sm text-slate-100">Insufficient role</CardTitle>
-        <CardDescription className="text-xs text-slate-400">
+        <CardTitle className="text-sm text-white">Insufficient role</CardTitle>
+        <CardDescription className="text-xs text-white/60">
           This admin tool is restricted to super admins.
         </CardDescription>
       </CardHeader>
@@ -115,14 +115,14 @@ function UnknownAdminRoute() {
   const [location] = useLocation();
 
   return (
-    <Card className="bg-slate-950/60 border-slate-800">
+    <Card className="bg-black/30 border-white/10">
       <CardHeader>
-        <CardTitle className="text-sm text-slate-100">Unknown admin tool</CardTitle>
-        <CardDescription className="text-xs text-slate-400">
+        <CardTitle className="text-sm text-white">Unknown admin tool</CardTitle>
+        <CardDescription className="text-xs text-white/60">
           This admin path is not wired into the Admin OS yet.
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0 flex justify-between items-center text-xs text-slate-500">
+      <CardContent className="pt-0 flex justify-between items-center text-xs text-white/60">
         <span>Requested: {location}</span>
         <Link href="/admin">
           <Button size="sm" variant="outline">

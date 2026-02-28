@@ -85,7 +85,7 @@ export function TradeScoutBrand({ className = "", size = 'lg', showText = true }
           <span className="text-xl font-bold text-white tracking-tight leading-tight">
             TradeScout
           </span>
-          <span className="text-xs text-slate-400 font-medium leading-tight">
+          <span className="text-xs text-white/60 font-medium leading-tight">
             Professional Network
           </span>
         </div>

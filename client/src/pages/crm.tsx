@@ -13,30 +13,30 @@ const CRM = memo(function CRM() {
           <h1 className="text-4xl font-bold mb-4 text-white">
             Customer Relationship Management
           </h1>
-          <p className="text-gray-300 text-lg">
+          <p className="text-white/70 text-lg">
             Manage your contacts, deals, and business relationships
           </p>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Contacts</p>
+                  <p className="text-white/60 text-sm">Total Contacts</p>
                   <p className="text-2xl font-bold text-white">1,247</p>
                 </div>
-                <Users className="h-8 w-8 text-orange-400" />
+                <Users className="h-8 w-8 text-ts-orange" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Active Deals</p>
+                  <p className="text-white/60 text-sm">Active Deals</p>
                   <p className="text-2xl font-bold text-white">89</p>
                 </div>
                 <Target className="h-8 w-8 text-green-400" />
@@ -44,11 +44,11 @@ const CRM = memo(function CRM() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Pipeline Value</p>
+                  <p className="text-white/60 text-sm">Pipeline Value</p>
                   <p className="text-2xl font-bold text-white">$285K</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-purple-400" />
@@ -56,11 +56,11 @@ const CRM = memo(function CRM() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Conversion Rate</p>
+                  <p className="text-white/60 text-sm">Conversion Rate</p>
                   <p className="text-2xl font-bold text-white">34%</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-blue-400" />
@@ -72,7 +72,7 @@ const CRM = memo(function CRM() {
         {/* Recent Contacts & Deals */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Recent Contacts */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -86,28 +86,28 @@ const CRM = memo(function CRM() {
                   { name: "Mike Construction Co.", type: "Contractor", status: "Active", phone: "(555) 987-6543" },
                   { name: "Jennifer Davis", type: "Realtor", status: "Follow Up", phone: "(555) 456-7890" },
                 ].map((contact, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-navy-700/50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-tsCard/50 rounded-lg">
                     <div>
                       <p className="font-semibold text-white">{contact.name}</p>
-                      <p className="text-sm text-gray-400">{contact.type}</p>
+                      <p className="text-sm text-white/60">{contact.type}</p>
                     </div>
                     <div className="text-right">
                       <Badge variant="secondary" className="mb-1">
                         {contact.status}
                       </Badge>
-                      <p className="text-sm text-gray-400">{contact.phone}</p>
+                      <p className="text-sm text-white/60">{contact.phone}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700">
+              <Button className="w-full mt-4 bg-ts-orange-dark hover:bg-ts-orange-dark">
                 View All Contacts
               </Button>
             </CardContent>
           </Card>
 
           {/* Active Deals */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Target className="h-5 w-5" />
@@ -121,10 +121,10 @@ const CRM = memo(function CRM() {
                   { title: "Bathroom Remodel", value: "$22,000", stage: "Negotiation", probability: "60%" },
                   { title: "Deck Construction", value: "$18,500", stage: "Qualified", probability: "40%" },
                 ].map((deal, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-navy-700/50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-tsCard/50 rounded-lg">
                     <div>
                       <p className="font-semibold text-white">{deal.title}</p>
-                      <p className="text-sm text-orange-400">{deal.value}</p>
+                      <p className="text-sm text-ts-orange">{deal.value}</p>
                     </div>
                     <div className="text-right">
                       <Badge variant="outline" className="mb-1">
@@ -135,7 +135,7 @@ const CRM = memo(function CRM() {
                   </div>
                 ))}
               </div>
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700">
+              <Button className="w-full mt-4 bg-ts-orange-dark hover:bg-ts-orange-dark">
                 View Pipeline
               </Button>
             </CardContent>
@@ -143,7 +143,7 @@ const CRM = memo(function CRM() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+        <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Activity className="h-5 w-5" />
@@ -164,7 +164,7 @@ const CRM = memo(function CRM() {
                 <Calendar className="h-6 w-6" />
                 Schedule Follow-up
               </Button>
-              <Button className="h-24 flex flex-col items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700">
+              <Button className="h-24 flex flex-col items-center justify-center gap-2 bg-ts-orange-dark hover:bg-ts-orange-dark">
                 <Phone className="h-6 w-6" />
                 Log Call
               </Button>

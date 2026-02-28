@@ -84,7 +84,7 @@ export function AICodeFixingDashboard() {
       case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'applied': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'rejected': return <XCircle className="h-4 w-4 text-gray-500" />;
+      case 'rejected': return <XCircle className="h-4 w-4 text-white/60" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
@@ -101,7 +101,7 @@ export function AICodeFixingDashboard() {
 
   if (isLoading) {
     return (
-      <Card className="bg-navy-800 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="flex items-center space-x-2">
             <Bot className="h-5 w-5 animate-spin text-blue-500" />
@@ -129,7 +129,7 @@ export function AICodeFixingDashboard() {
               <Button
                 onClick={() => autoFixMutation.mutate()}
                 disabled={autoFixMutation.isPending || highConfidencePending.length === 0}
-                className="bg-white text-blue-600 hover:bg-gray-100"
+                className="bg-white text-blue-600 hover:bg-white/5"
               >
                 <Zap className="h-4 w-4 mr-2" />
                 Auto-Fix ({highConfidencePending.length})
@@ -141,48 +141,48 @@ export function AICodeFixingDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-yellow-500" />
               <div>
-                <p className="text-gray-300 text-sm">Pending Fixes</p>
+                <p className="text-white/70 text-sm">Pending Fixes</p>
                 <p className="text-2xl font-bold text-white">{pendingFixes.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-gray-300 text-sm">Applied Fixes</p>
+                <p className="text-white/70 text-sm">Applied Fixes</p>
                 <p className="text-2xl font-bold text-white">{appliedFixes.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-blue-500" />
               <div>
-                <p className="text-gray-300 text-sm">High Confidence</p>
+                <p className="text-white/70 text-sm">High Confidence</p>
                 <p className="text-2xl font-bold text-white">{highConfidencePending.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <FileCode className="h-5 w-5 text-purple-500" />
               <div>
-                <p className="text-gray-300 text-sm">Total Fixes</p>
+                <p className="text-white/70 text-sm">Total Fixes</p>
                 <p className="text-2xl font-bold text-white">{fixes?.fixes?.length || 0}</p>
               </div>
             </div>
@@ -192,14 +192,14 @@ export function AICodeFixingDashboard() {
 
       {/* Fixes List */}
       <Tabs defaultValue="pending" className="space-y-4">
-        <TabsList className="bg-navy-700 border-navy-600">
-          <TabsTrigger value="pending" className="data-[state=active]:bg-navy-600">
+        <TabsList className="bg-tsCard border-white/10">
+          <TabsTrigger value="pending" className="data-[state=active]:bg-tsCard">
             Pending ({pendingFixes.length})
           </TabsTrigger>
-          <TabsTrigger value="applied" className="data-[state=active]:bg-navy-600">
+          <TabsTrigger value="applied" className="data-[state=active]:bg-tsCard">
             Applied ({appliedFixes.length})
           </TabsTrigger>
-          <TabsTrigger value="all" className="data-[state=active]:bg-navy-600">
+          <TabsTrigger value="all" className="data-[state=active]:bg-tsCard">
             All Fixes
           </TabsTrigger>
         </TabsList>
@@ -208,7 +208,7 @@ export function AICodeFixingDashboard() {
           <ScrollArea className="h-96">
             <div className="space-y-4">
               {pendingFixes.map((fix: CodeFix) => (
-                <Card key={fix.id} className="bg-navy-700 border-navy-600">
+                <Card key={fix.id} className="bg-tsCard border-white/10">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -219,8 +219,8 @@ export function AICodeFixingDashboard() {
                             {(fix.confidence * 100).toFixed(0)}% confidence
                           </Badge>
                         </div>
-                        <p className="text-gray-300 text-sm mb-2">{fix.filePath}</p>
-                        <p className="text-gray-400 text-xs">{fix.aiReasoning}</p>
+                        <p className="text-white/70 text-sm mb-2">{fix.filePath}</p>
+                        <p className="text-white/60 text-xs">{fix.aiReasoning}</p>
                       </div>
                       <Button
                         onClick={() => applyFixMutation.mutate(fix.id)}
@@ -235,10 +235,10 @@ export function AICodeFixingDashboard() {
                 </Card>
               ))}
               {pendingFixes.length === 0 && (
-                <Card className="bg-navy-700 border-navy-600">
+                <Card className="bg-tsCard border-white/10">
                   <CardContent className="p-8 text-center">
-                    <Bot className="h-12 w-12 mx-auto text-gray-500 mb-4" />
-                    <p className="text-gray-300">No pending fixes available</p>
+                    <Bot className="h-12 w-12 mx-auto text-white/60 mb-4" />
+                    <p className="text-white/70">No pending fixes available</p>
                   </CardContent>
                 </Card>
               )}
@@ -250,14 +250,14 @@ export function AICodeFixingDashboard() {
           <ScrollArea className="h-96">
             <div className="space-y-4">
               {appliedFixes.map((fix: CodeFix) => (
-                <Card key={fix.id} className="bg-navy-700 border-navy-600">
+                <Card key={fix.id} className="bg-tsCard border-white/10">
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-3">
                       {getStatusIcon(fix.status)}
                       <div className="flex-1">
                         <h4 className="text-white font-medium">{fix.description}</h4>
-                        <p className="text-gray-300 text-sm">{fix.filePath}</p>
-                        <p className="text-gray-400 text-xs">
+                        <p className="text-white/70 text-sm">{fix.filePath}</p>
+                        <p className="text-white/60 text-xs">
                           Applied {new Date(fix.timestamp).toLocaleString()}
                         </p>
                       </div>
@@ -274,15 +274,15 @@ export function AICodeFixingDashboard() {
           <ScrollArea className="h-96">
             <div className="space-y-4">
               {fixes?.fixes?.map((fix: CodeFix) => (
-                <Card key={fix.id} className="bg-navy-700 border-navy-600">
+                <Card key={fix.id} className="bg-tsCard border-white/10">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3 flex-1">
                         {getStatusIcon(fix.status)}
                         <div className="flex-1">
                           <h4 className="text-white font-medium">{fix.description}</h4>
-                          <p className="text-gray-300 text-sm">{fix.filePath}</p>
-                          <p className="text-gray-400 text-xs">
+                          <p className="text-white/70 text-sm">{fix.filePath}</p>
+                          <p className="text-white/60 text-xs">
                             {new Date(fix.timestamp).toLocaleString()}
                           </p>
                         </div>

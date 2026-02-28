@@ -118,7 +118,7 @@ export function SocialFeed({ className }: SocialFeedProps) {
   }
 
   return (
-    <div className={`bg-gray-50 dark:bg-gray-900 py-6 ${className}`}>
+    <div className={`bg-white/5 dark:bg-tsCard py-6 ${className}`}>
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar - Community Stats */}

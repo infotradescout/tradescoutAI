@@ -355,7 +355,7 @@ export function ConstructionEmblem({ className = "" }: ConstructionEmblemProps) 
 
       {/* Prize Dialog */}
       <Dialog open={showPrizeDialog} onOpenChange={setShowPrizeDialog}>
-        <DialogContent className="bg-slate-900 text-white max-w-md border-yellow-500">
+        <DialogContent className="bg-tsCard text-white max-w-md border-yellow-500">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-yellow-400">
               <Trophy className="w-6 h-6" />
@@ -372,21 +372,21 @@ export function ConstructionEmblem({ className = "" }: ConstructionEmblemProps) 
                 <h3 className="text-lg font-semibold text-yellow-100 mb-2">
                   {wonPrize.name}
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-white/70 text-sm mb-3">
                   {wonPrize.description}
                 </p>
-                <div className="bg-slate-800 p-3 rounded-lg mb-4">
+                <div className="bg-white/5 p-3 rounded-lg mb-4">
                   <div className="text-yellow-400 text-xl font-bold">
                     {wonPrize.value}
                   </div>
                   {wonPrize.vendor && (
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-white/60 text-sm">
                       from {wonPrize.vendor}
                     </div>
                   )}
                 </div>
                 {wonPrize.terms && (
-                  <p className="text-xs text-gray-400 mb-4">
+                  <p className="text-xs text-white/60 mb-4">
                     {wonPrize.terms}
                   </p>
                 )}

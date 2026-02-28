@@ -88,8 +88,8 @@ export default function InsuranceAgentDashboard() {
       case 'active': return 'bg-green-500';
       case 'pending': return 'bg-yellow-500';
       case 'expired': return 'bg-red-500';
-      case 'cancelled': return 'bg-slate-900/60';
-      default: return 'bg-slate-900/60';
+      case 'cancelled': return 'bg-tsCard/95';
+      default: return 'bg-tsCard/95';
     }
   };
 
@@ -98,7 +98,7 @@ export default function InsuranceAgentDashboard() {
       case 'low': return 'text-green-600 bg-green-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'high': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-slate-900';
+      default: return 'text-white/60 bg-tsCard';
     }
   };
 
@@ -110,16 +110,16 @@ export default function InsuranceAgentDashboard() {
           <Shield className="h-8 w-8 text-blue-500 mr-3" />
           Insurance Agent Dashboard
         </h1>
-        <p className="text-gray-400 mt-2">Manage policies, track renewals, and grow your client base</p>
+        <p className="text-white/60 mt-2">Manage policies, track renewals, and grow your client base</p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Total Clients</p>
+                <p className="text-sm font-medium text-white/60">Total Clients</p>
                 <p className="text-2xl font-bold text-white">{mockStats.totalClients}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
@@ -127,11 +127,11 @@ export default function InsuranceAgentDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Total Premiums</p>
+                <p className="text-sm font-medium text-white/60">Total Premiums</p>
                 <p className="text-2xl font-bold text-white">${mockStats.totalPremiums.toLocaleString()}</p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -139,23 +139,23 @@ export default function InsuranceAgentDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Commission Earned</p>
+                <p className="text-sm font-medium text-white/60">Commission Earned</p>
                 <p className="text-2xl font-bold text-white">${mockStats.commissionEarned.toLocaleString()}</p>
               </div>
-              <Target className="h-8 w-8 text-orange-500" />
+              <Target className="h-8 w-8 text-ts-orange" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Renewals This Month</p>
+                <p className="text-sm font-medium text-white/60">Renewals This Month</p>
                 <p className="text-2xl font-bold text-white">{mockStats.renewalsThisMonth}</p>
               </div>
               <Calendar className="h-8 w-8 text-purple-500" />
@@ -167,7 +167,7 @@ export default function InsuranceAgentDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Client Portfolio */}
         <div className="lg:col-span-2">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white flex items-center">
@@ -183,7 +183,7 @@ export default function InsuranceAgentDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {mockClients.map((client) => (
-                  <div key={client.id} className="p-4 bg-navy-600 rounded-lg border border-navy-500">
+                  <div key={client.id} className="p-4 bg-tsCard rounded-lg border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}></div>
@@ -192,28 +192,28 @@ export default function InsuranceAgentDashboard() {
                           {client.riskLevel} risk
                         </Badge>
                       </div>
-                      <span className="text-sm text-gray-400 capitalize">{client.status}</span>
+                      <span className="text-sm text-white/60 capitalize">{client.status}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-400">Policy Type</p>
+                        <p className="text-white/60">Policy Type</p>
                         <p className="text-white">{client.policyType}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Annual Premium</p>
+                        <p className="text-white/60">Annual Premium</p>
                         <p className="text-white">${client.premium.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Renewal Date</p>
+                        <p className="text-white/60">Renewal Date</p>
                         <p className="text-white">{new Date(client.renewalDate).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="flex space-x-2 mt-3">
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <Phone className="h-3 w-3 mr-1" />
                         Contact
                       </Button>
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <FileText className="h-3 w-3 mr-1" />
                         View Policy
                       </Button>
@@ -228,10 +228,10 @@ export default function InsuranceAgentDashboard() {
         {/* Action Items & Tools */}
         <div className="space-y-6">
           {/* Urgent Actions */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-orange-500" />
+                <AlertTriangle className="h-5 w-5 mr-2 text-ts-orange" />
                 Urgent Actions
               </CardTitle>
             </CardHeader>

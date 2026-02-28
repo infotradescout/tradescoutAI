@@ -24,10 +24,10 @@ const iconMap = {
 };
 
 const variantColors = {
-  info: 'border-orange-500 bg-orange-500/10',
+  info: 'border-ts-orange/30 bg-ts-orange/10',
   tip: 'border-amber-500 bg-amber-500/10',
   success: 'border-green-500 bg-green-500/10',
-  warning: 'border-orange-500 bg-orange-500/10',
+  warning: 'border-ts-orange/30 bg-ts-orange/10',
 };
 
 export function HelpBubble({
@@ -66,7 +66,7 @@ export function HelpBubble({
   return (
     <div className="relative inline-block">
       <button
-        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors"
+        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ts-orange/20 text-ts-orange hover:bg-ts-orange/30 transition-colors"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
@@ -98,7 +98,7 @@ export function HelpBubble({
                   </div>
                   <div className="min-w-0 flex-1">
                     <h4 className="font-medium text-white mb-1">{title}</h4>
-                    <p className="text-sm text-slate-300 leading-relaxed">{content}</p>
+                    <p className="text-sm text-white/70 leading-relaxed">{content}</p>
                   </div>
                 </div>
               </CardContent>
@@ -126,19 +126,19 @@ export function GuidedTour({ steps, isActive, onComplete, onSkip }: {
       <Card className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] max-w-md">
         <CardContent className="p-6 text-center">
           <h3 className="text-lg font-semibold text-white mb-2">Welcome Tour</h3>
-          <p className="text-slate-300 mb-4">
+          <p className="text-white/70 mb-4">
             Would you like a quick tour of the features on this page?
           </p>
           <div className="flex space-x-3">
             <button
               onClick={onComplete}
-              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded"
+              className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark text-white px-4 py-2 rounded"
             >
               Start Tour
             </button>
             <button
               onClick={onSkip}
-              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded"
+              className="flex-1 bg-white/10 hover:bg-white/10 text-white px-4 py-2 rounded"
             >
               Skip
             </button>

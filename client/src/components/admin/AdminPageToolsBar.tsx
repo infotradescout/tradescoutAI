@@ -128,15 +128,15 @@ export function AdminPageToolsBar() {
   return (
     <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
       {open && (
-        <Card className="mb-2 w-72 bg-slate-950/95 border-slate-800 shadow-xl shadow-orange-500/20">
-          <div className="px-4 pt-3 pb-2 border-b border-slate-800 flex items-center justify-between">
+        <Card className="mb-2 w-72 bg-black/30 border-white/10 shadow-xl shadow-orange-500/20">
+          <div className="px-4 pt-3 pb-2 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-orange-400" />
-              <span className="text-[0.7rem] uppercase tracking-[0.18em] text-slate-400">
+              <Shield className="h-4 w-4 text-ts-orange" />
+              <span className="text-[0.7rem] uppercase tracking-[0.18em] text-white/60">
                 Admin Tools
               </span>
             </div>
-            <span className="text-[0.7rem] text-slate-500">{path}</span>
+            <span className="text-[0.7rem] text-white/60">{path}</span>
           </div>
           <div className="max-h-80 overflow-y-auto px-2 py-2 space-y-1">
             {tools.map((tool) => (
@@ -146,16 +146,16 @@ export function AdminPageToolsBar() {
                 onClick={() => handleNavigate(tool.href)}
                 className={cn(
                   "w-full text-left px-3 py-2 rounded-lg text-xs",
-                  "bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80",
+                  "bg-tsCard/95 hover:bg-white/5 border border-white/10",
                   "flex flex-col gap-0.5"
                 )}
               >
-                <span className="font-medium text-slate-50 flex items-center gap-1.5">
-                  <FileText className="h-3 w-3 text-orange-400" />
+                <span className="font-medium text-white flex items-center gap-1.5">
+                  <FileText className="h-3 w-3 text-ts-orange" />
                   <span>{tool.label}</span>
                 </span>
                 {tool.description && (
-                  <span className="text-[0.7rem] text-slate-400 line-clamp-2">
+                  <span className="text-[0.7rem] text-white/60 line-clamp-2">
                     {tool.description}
                   </span>
                 )}
@@ -169,11 +169,11 @@ export function AdminPageToolsBar() {
         size="sm"
         variant="outline"
         onClick={() => setOpen((prev) => !prev)}
-        className="border-orange-500/70 bg-slate-950/90 text-xs text-orange-100 hover:bg-slate-900 flex items-center gap-2 shadow-lg shadow-orange-500/30"
+        className="border-ts-orange/30 bg-black/30 text-xs text-ts-orange hover:bg-tsCard flex items-center gap-2 shadow-lg shadow-orange-500/30"
       >
-        <Shield className="h-3 w-3 text-orange-400" />
+        <Shield className="h-3 w-3 text-ts-orange" />
         <span>Admin Tools</span>
-        <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[0.65rem] font-semibold text-slate-950">
+        <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-ts-orange text-[0.65rem] font-semibold text-black">
           {tools.length}
         </span>
       </Button>

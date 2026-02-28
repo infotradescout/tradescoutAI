@@ -107,7 +107,7 @@ export const SocialDiscovery = () => {
   const renderUserCard = (userProfile: UserProfile) => (
     <Card
       key={userProfile.id}
-      className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] hover:border-orange-500/50 transition-colors"
+      className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] hover:border-ts-orange/30 transition-colors"
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -138,7 +138,7 @@ export const SocialDiscovery = () => {
             className={
               userProfile.verified
                 ? "bg-green-500/20 text-green-300 text-xs"
-                : "bg-slate-700 text-slate-300 text-xs"
+                : "bg-white/10 text-white/70 text-xs"
             }
             title={
               userProfile.verified
@@ -152,7 +152,7 @@ export const SocialDiscovery = () => {
 
         <Button
           size="sm"
-          className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white"
+          className="w-full mt-3 bg-ts-orange hover:bg-ts-orange-dark text-white"
           onClick={() => handleExploreCollaboration(userProfile)}
           disabled={routeToScoutMutation.isPending}
         >
@@ -207,7 +207,7 @@ export const SocialDiscovery = () => {
         {/* Search Results */}
         {isSearching && (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-ts-orange" />
           </div>
         )}
 
@@ -219,7 +219,7 @@ export const SocialDiscovery = () => {
 
         {!isSearching && searchQuery && searchResults?.results.length === 0 && (
           <div className="text-center py-12">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <Users className="h-12 w-12 text-white/60 mx-auto mb-3" />
             <p className="text-[color:var(--text-secondary)]">
               No users found matching "{searchQuery}" in {scope}.
             </p>
@@ -228,7 +228,7 @@ export const SocialDiscovery = () => {
 
         {!searchQuery && (
           <div className="text-center py-12">
-            <Search className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <Search className="h-12 w-12 text-white/60 mx-auto mb-3" />
             <p className="text-[color:var(--text-secondary)]">
               Search to find people you could work with.
             </p>
@@ -287,7 +287,7 @@ export const SocialDiscovery = () => {
                     key={option.value}
                     onClick={() => handleIntentConfirm(option.value)}
                     disabled={routeToScoutMutation.isPending}
-                    className="w-full text-left p-3 rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] hover:border-orange-500/50 hover:bg-orange-500/5 transition-colors disabled:opacity-50"
+                    className="w-full text-left p-3 rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] hover:border-ts-orange/30 hover:bg-ts-orange/5 transition-colors disabled:opacity-50"
                   >
                     <div className="font-semibold text-white">{option.label}</div>
                     <div className="text-xs text-[color:var(--text-secondary)]">

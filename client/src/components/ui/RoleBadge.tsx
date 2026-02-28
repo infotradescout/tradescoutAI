@@ -40,11 +40,11 @@ function getRoleColor(role: UserRole): string {
   if (level >= 50) return "bg-blue-600 text-white"; // Moderator
   if (level >= 40) return "bg-green-600 text-white"; // Senior Staff
   if (level >= 30) return "bg-yellow-600 text-black"; // Staff
-  if (level >= 25) return "bg-orange-600 text-white"; // Community Leader
-  if (level >= 20) return "bg-gray-600 text-white"; // Community
+  if (level >= 25) return "bg-ts-orange-dark text-white"; // Community Leader
+  if (level >= 20) return "bg-white/10 text-white"; // Community
   if (level >= 15) return "bg-indigo-600 text-white"; // top tier
   if (level >= 10) return "bg-teal-600 text-white"; // Service Provider
-  return "bg-slate-600 text-white"; // Customer
+  return "bg-white/10 text-white"; // Customer
 }
 
 export function RoleBadge({ role, showIcon = true, variant, size = "md" }: RoleBadgeProps) {
@@ -98,8 +98,8 @@ export function RoleHierarchy({ role, showLevel = false }: RoleHierarchyProps) {
                     ? "bg-green-500"
                     : level >= 20
                       ? "bg-yellow-500"
-                      : "bg-gray-500"
-              : "bg-gray-300"
+                      : "bg-white/10"
+              : "bg-white/10"
           }`}
         />
       ))}

@@ -80,35 +80,35 @@ export default function AdminControl() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-slate-900 border-slate-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
+            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
               <Shield className="h-4 w-4 text-blue-400" />
               Authority Cards
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold text-white">{authorityMetrics?.totalShown ?? 0}</p>
-            <p className="text-xs text-slate-400 mt-1">Decision cards shown</p>
+            <p className="text-xs text-white/60 mt-1">Decision cards shown</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
+            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
               <ToggleLeft className="h-4 w-4 text-emerald-400" />
               Feature Flags
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold text-white">{enabledFlags}</p>
-            <p className="text-xs text-slate-400 mt-1">Flags enabled</p>
+            <p className="text-xs text-white/60 mt-1">Flags enabled</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
+            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
               <TestTube2 className="h-4 w-4 text-amber-400" />
               Testing State
             </CardTitle>
@@ -126,13 +126,13 @@ export default function AdminControl() {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-200 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-orange-400" />
+            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-ts-orange" />
               Email Status
             </CardTitle>
-            <CardDescription className="text-xs text-slate-400">
+            <CardDescription className="text-xs text-white/60">
               Confirms provider + mode on the backend.
             </CardDescription>
           </CardHeader>
@@ -143,7 +143,7 @@ export default function AdminControl() {
             <Badge variant="outline" className="ml-2">
               provider: {emailDiagnostics?.provider || "unknown"}
             </Badge>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-white/60">
               mode: {emailDiagnostics?.mode || "unknown"} · from:{" "}
               {emailDiagnostics?.defaultFrom || "unknown"}
             </div>
@@ -151,9 +151,9 @@ export default function AdminControl() {
         </Card>
       </div>
 
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-slate-100">Authority Governance</CardTitle>
+          <CardTitle className="text-white">Authority Governance</CardTitle>
           <CardDescription>Canonical authority controls and diagnostics.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -161,9 +161,9 @@ export default function AdminControl() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-slate-100">Testing Controls</CardTitle>
+          <CardTitle className="text-white">Testing Controls</CardTitle>
           <CardDescription>System diagnostics and test-mode controls.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -171,9 +171,9 @@ export default function AdminControl() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-slate-100">Feature Flags</CardTitle>
+          <CardTitle className="text-white">Feature Flags</CardTitle>
           <CardDescription>Platform capability toggles and rollout controls.</CardDescription>
         </CardHeader>
         <CardContent>

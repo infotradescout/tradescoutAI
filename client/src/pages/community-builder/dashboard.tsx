@@ -26,9 +26,9 @@ interface BuilderProfile {
 }
 
 const rankColors: Record<string, string> = {
-  prospect: "bg-gray-100 text-gray-800",
-  bronze: "bg-orange-100 text-orange-800",
-  silver: "bg-slate-100 text-slate-800",
+  prospect: "bg-white/5 text-white/70",
+  bronze: "bg-ts-orange/10 text-ts-orange",
+  silver: "bg-white/5 text-white/70",
   gold: "bg-yellow-100 text-yellow-800",
   platinum: "bg-cyan-100 text-cyan-800",
   diamond: "bg-purple-100 text-purple-800",
@@ -165,12 +165,12 @@ export default function CommunityBuilderDashboard() {
             </CardHeader>
             <CardContent className="text-center space-y-6">
               <div className="space-y-2">
-                <p className="text-gray-600">
+                <p className="text-white/60">
                   Community Builders contribute time, expertise, and resources to strengthen their
                   communities. Your badge sets you apart and lets you send and vote on which causes
                   get funded from the community vault.
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-white/60">
                   Want to support the broader Community Builder Fund directly?{" "}
                   <a
                     href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
@@ -204,16 +204,16 @@ export default function CommunityBuilderDashboard() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">
+              <h1 className="text-4xl font-bold text-white">
                 {profile.businessName || "Community Builder"}
               </h1>
-              <p className="text-gray-600 mt-1">Dashboard</p>
+              <p className="text-white/60 mt-1">Dashboard</p>
             </div>
             <Badge className={`${rankColors[profile.currentRank]} text-lg px-4 py-2`}>
               {profile.currentRank.toUpperCase()}
             </Badge>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-white/60 mt-2">
             Help seed projects across all counties by supporting the{" "}
             <a
               href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
@@ -275,53 +275,53 @@ export default function CommunityBuilderDashboard() {
         <div className="grid md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Value</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/60">Total Value</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
                 <DollarSign className="w-6 h-6 text-green-600" />
                 <span className="text-2xl font-bold">${profile.stats.totalValue}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Lifetime contribution</p>
+              <p className="text-xs text-white/60 mt-2">Lifetime contribution</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Hours Donated</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/60">Hours Donated</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
                 <Clock className="w-6 h-6 text-blue-600" />
                 <span className="text-2xl font-bold">{profile.stats.totalHours}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Service hours</p>
+              <p className="text-xs text-white/60 mt-2">Service hours</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Contributions</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/60">Contributions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-indigo-600" />
                 <span className="text-2xl font-bold">{profile.stats.completedCount}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Verified & complete</p>
+              <p className="text-xs text-white/60 mt-2">Verified & complete</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Rating</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/60">Rating</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
                 <Users className="w-6 h-6 text-yellow-600" />
                 <span className="text-2xl font-bold">{profile.ratingScore?.toFixed(1) || "-"}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Out of 5 stars</p>
+              <p className="text-xs text-white/60 mt-2">Out of 5 stars</p>
             </CardContent>
           </Card>
         </div>
@@ -391,20 +391,20 @@ export default function CommunityBuilderDashboard() {
         )}
 
         {!profile.isVerified ? (
-          <Card className="border-2 border-orange-200 bg-orange-50">
+          <Card className="border-2 border-ts-orange/30 bg-ts-orange/10">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-orange-900">
+              <CardTitle className="flex items-center gap-2 text-ts-orange">
                 <AlertCircle className="w-5 h-5" />
                 Verification Pending
               </CardTitle>
-              <CardDescription className="text-orange-800">
+              <CardDescription className="text-ts-orange">
                 Complete your verification to improve trust quality and ranking readiness.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button
                 onClick={() => navigate("/verification")}
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-ts-orange-dark hover:bg-ts-orange-dark"
               >
                 Complete Verification
               </Button>
@@ -442,7 +442,7 @@ export default function CommunityBuilderDashboard() {
           </CardHeader>
           <CardContent>
             {contributions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-white/60">
                 <p>No contributions yet. Start making an impact!</p>
               </div>
             ) : (
@@ -450,17 +450,17 @@ export default function CommunityBuilderDashboard() {
                 {contributions.slice(0, 5).map((contrib: any) => (
                   <div
                     key={contrib.id}
-                    className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    className="flex items-start justify-between p-4 border rounded-lg hover:bg-white/5 cursor-pointer"
                     onClick={() => navigate(`/community-builder/contributions/${contrib.id}`)}
                   >
                     <div className="flex-1">
                       <p className="font-semibold">{contrib.title}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-white/60">
                         {contrib.description.substring(0, 100)}...
                       </p>
                       <div className="flex items-center gap-3 mt-2">
                         <Badge variant="outline">{contrib.status}</Badge>
-                        <span className="text-sm text-gray-500">${contrib.estimatedValue}</span>
+                        <span className="text-sm text-white/60">${contrib.estimatedValue}</span>
                       </div>
                     </div>
                     <div className="text-right">

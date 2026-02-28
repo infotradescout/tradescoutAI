@@ -147,7 +147,7 @@ const APIIntegrations = memo(function APIIntegrations() {
       case "pending":
         return <Clock className="h-4 w-4 text-yellow-400" />;
       default:
-        return <AlertTriangle className="h-4 w-4 text-gray-400" />;
+        return <AlertTriangle className="h-4 w-4 text-white/60" />;
     }
   };
 
@@ -181,23 +181,23 @@ const APIIntegrations = memo(function APIIntegrations() {
             <Network className="h-8 w-8 text-primary" />
             <h1 className="text-2xl md:text-4xl font-bold text-foreground">API & Integrations</h1>
           </div>
-          <p className="text-gray-300 text-base md:text-lg">
+          <p className="text-white/70 text-base md:text-lg">
             Manage third-party integrations and API configurations
           </p>
         </div>
 
         <Tabs defaultValue="integrations" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-orange-600">
+          <TabsList className="grid w-full grid-cols-4 bg-tsCard/50 backdrop-blur-sm">
+            <TabsTrigger value="integrations" className="data-[state=active]:bg-ts-orange-dark">
               Integrations
             </TabsTrigger>
-            <TabsTrigger value="api-keys" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="api-keys" className="data-[state=active]:bg-ts-orange-dark">
               API Keys
             </TabsTrigger>
-            <TabsTrigger value="webhooks" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="webhooks" className="data-[state=active]:bg-ts-orange-dark">
               Webhooks
             </TabsTrigger>
-            <TabsTrigger value="docs" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="docs" className="data-[state=active]:bg-ts-orange-dark">
               Documentation
             </TabsTrigger>
           </TabsList>
@@ -207,7 +207,7 @@ const APIIntegrations = memo(function APIIntegrations() {
               {integrations.map((integration) => (
                 <Card
                   key={integration.id}
-                  className="bg-navy-800/50 border-navy-600 backdrop-blur-sm"
+                  className="bg-tsCard/50 border-white/10 backdrop-blur-sm"
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -219,7 +219,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                         />
                         <div>
                           <CardTitle className="text-white">{integration.name}</CardTitle>
-                          <p className="text-gray-400 text-sm">{integration.description}</p>
+                          <p className="text-white/60 text-sm">{integration.description}</p>
                         </div>
                       </div>
                       <Switch checked={integration.enabled} />
@@ -236,22 +236,22 @@ const APIIntegrations = memo(function APIIntegrations() {
                               integration.status.slice(1)}
                           </Badge>
                         </div>
-                        <span className="text-gray-400 text-sm">{integration.apiVersion}</span>
+                        <span className="text-white/60 text-sm">{integration.apiVersion}</span>
                       </div>
 
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Last sync:</span>
+                          <span className="text-white/60">Last sync:</span>
                           <span className="text-white">{integration.lastSync}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Requests:</span>
+                          <span className="text-white/60">Requests:</span>
                           <span className="text-white">
                             {integration.requests.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Errors:</span>
+                          <span className="text-white/60">Errors:</span>
                           <span
                             className={integration.errors > 0 ? "text-red-400" : "text-green-400"}
                           >
@@ -261,7 +261,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                       </div>
 
                       <div>
-                        <p className="text-gray-400 text-sm mb-2">Endpoints:</p>
+                        <p className="text-white/60 text-sm mb-2">Endpoints:</p>
                         <div className="flex flex-wrap gap-1">
                           {integration.endpoints.map((endpoint, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
@@ -273,7 +273,7 @@ const APIIntegrations = memo(function APIIntegrations() {
 
                       <div className="flex gap-2">
                         <Button
-                          className="flex-1 bg-orange-600 hover:bg-orange-700"
+                          className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark"
                           disabled={integration.status === "pending"}
                         >
                           {integration.status === "connected"
@@ -285,7 +285,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                          className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                         >
                           <Settings2 className="h-4 w-4" />
                         </Button>
@@ -299,7 +299,7 @@ const APIIntegrations = memo(function APIIntegrations() {
 
           <TabsContent value="api-keys" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Key className="h-5 w-5" />
@@ -315,7 +315,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                           type={showApiKey ? "text" : "password"}
                           value="ts_prod_1234567890abcdef"
                           readOnly
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                         <Button
                           size="sm"
@@ -336,7 +336,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-white/60 text-xs mt-1">
                         Created: March 1, 2024 • Last used: 5 minutes ago
                       </p>
                     </div>
@@ -348,7 +348,7 @@ const APIIntegrations = memo(function APIIntegrations() {
                           type="password"
                           value="ts_test_0987654321fedcba"
                           readOnly
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                         <Button size="sm" variant="outline">
                           <Eye className="h-4 w-4" />
@@ -361,18 +361,18 @@ const APIIntegrations = memo(function APIIntegrations() {
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-white/60 text-xs mt-1">
                         Created: March 1, 2024 • Last used: 2 hours ago
                       </p>
                     </div>
 
                     <div className="space-y-3">
-                      <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                      <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                         Generate New API Key
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                        className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                       >
                         Rotate Keys
                       </Button>
@@ -381,46 +381,46 @@ const APIIntegrations = memo(function APIIntegrations() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">API Usage Statistics</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-400 mb-2">47,823</div>
-                      <div className="text-gray-400">Total API Calls This Month</div>
+                      <div className="text-3xl font-bold text-ts-orange mb-2">47,823</div>
+                      <div className="text-white/60">Total API Calls This Month</div>
                       <div className="text-green-400 text-sm">+23% from last month</div>
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                      <div className="flex justify-between items-center p-3 bg-tsCard/50 rounded-lg">
                         <span className="text-white">Authentication</span>
-                        <span className="text-orange-400">18,456</span>
+                        <span className="text-ts-orange">18,456</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                      <div className="flex justify-between items-center p-3 bg-tsCard/50 rounded-lg">
                         <span className="text-white">User Management</span>
                         <span className="text-blue-400">12,234</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                      <div className="flex justify-between items-center p-3 bg-tsCard/50 rounded-lg">
                         <span className="text-white">Marketplace</span>
                         <span className="text-green-400">9,567</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                      <div className="flex justify-between items-center p-3 bg-tsCard/50 rounded-lg">
                         <span className="text-white">Notifications</span>
                         <span className="text-purple-400">7,566</span>
                       </div>
                     </div>
 
-                    <div className="bg-navy-700/50 rounded-lg p-4">
+                    <div className="bg-tsCard/50 rounded-lg p-4">
                       <h4 className="text-white font-medium mb-2">Rate Limits</h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Current usage:</span>
+                          <span className="text-white/60">Current usage:</span>
                           <span className="text-white">1,547 / 10,000 per hour</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Burst limit:</span>
+                          <span className="text-white/60">Burst limit:</span>
                           <span className="text-white">247 / 1,000 per minute</span>
                         </div>
                       </div>
@@ -433,21 +433,21 @@ const APIIntegrations = memo(function APIIntegrations() {
 
           <TabsContent value="webhooks" className="mt-6">
             <div className="space-y-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-white">Webhook Endpoints</CardTitle>
-                    <Button className="bg-orange-600 hover:bg-orange-700">Add Webhook</Button>
+                    <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Add Webhook</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {webhooks.map((webhook) => (
-                      <div key={webhook.id} className="p-4 bg-navy-700/50 rounded-lg">
+                      <div key={webhook.id} className="p-4 bg-tsCard/50 rounded-lg">
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="text-white font-medium">{webhook.name}</h4>
-                            <p className="text-gray-400 text-sm">{webhook.url}</p>
+                            <p className="text-white/60 text-sm">{webhook.url}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge
@@ -465,7 +465,7 @@ const APIIntegrations = memo(function APIIntegrations() {
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-400">Events:</span>
+                            <span className="text-white/60">Events:</span>
                             <div className="mt-1">
                               {webhook.events.map((event, index) => (
                                 <Badge key={index} variant="outline" className="text-xs mr-1">
@@ -475,15 +475,15 @@ const APIIntegrations = memo(function APIIntegrations() {
                             </div>
                           </div>
                           <div>
-                            <span className="text-gray-400">Last trigger:</span>
+                            <span className="text-white/60">Last trigger:</span>
                             <p className="text-white">{webhook.lastTrigger}</p>
                           </div>
                           <div>
-                            <span className="text-gray-400">Attempts:</span>
+                            <span className="text-white/60">Attempts:</span>
                             <p className="text-white">{webhook.attempts}</p>
                           </div>
                           <div>
-                            <span className="text-gray-400">Failures:</span>
+                            <span className="text-white/60">Failures:</span>
                             <p className={webhook.failures > 0 ? "text-red-400" : "text-green-400"}>
                               {webhook.failures}
                             </p>
@@ -494,14 +494,14 @@ const APIIntegrations = memo(function APIIntegrations() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                            className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                           >
                             Test
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                            className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                           >
                             Edit
                           </Button>
@@ -523,7 +523,7 @@ const APIIntegrations = memo(function APIIntegrations() {
 
           <TabsContent value="docs" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Network className="h-5 w-5" />
@@ -566,37 +566,37 @@ const APIIntegrations = memo(function APIIntegrations() {
                     ].map((doc, index) => (
                       <div
                         key={index}
-                        className="p-3 bg-navy-700/50 rounded-lg hover:bg-navy-600/50 transition-colors cursor-pointer"
+                        className="p-3 bg-tsCard/50 rounded-lg hover:bg-tsCard/50 transition-colors cursor-pointer"
                       >
                         <h4 className="text-white font-medium">{doc.title}</h4>
-                        <p className="text-gray-400 text-sm">{doc.description}</p>
+                        <p className="text-white/60 text-sm">{doc.description}</p>
                       </div>
                     ))}
                   </div>
 
-                  <Button className="w-full mt-6 bg-orange-600 hover:bg-orange-700">
+                  <Button className="w-full mt-6 bg-ts-orange-dark hover:bg-ts-orange-dark">
                     View Full Documentation
                   </Button>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Code Examples</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="bg-navy-900/50 rounded-lg p-4">
-                      <h4 className="text-orange-400 font-medium mb-2">Authentication</h4>
-                      <pre className="text-gray-300 text-sm overflow-x-auto">
+                    <div className="bg-tsBg/50 rounded-lg p-4">
+                      <h4 className="text-ts-orange font-medium mb-2">Authentication</h4>
+                      <pre className="text-white/70 text-sm overflow-x-auto">
                         {`curl -H "Authorization: Bearer YOUR_API_KEY" \\
   https://api.tradescout.com/v1/users/me`}
                       </pre>
                     </div>
 
-                    <div className="bg-navy-900/50 rounded-lg p-4">
-                      <h4 className="text-orange-400 font-medium mb-2">Create Listing</h4>
-                      <pre className="text-gray-300 text-sm overflow-x-auto">
+                    <div className="bg-tsBg/50 rounded-lg p-4">
+                      <h4 className="text-ts-orange font-medium mb-2">Create Listing</h4>
+                      <pre className="text-white/70 text-sm overflow-x-auto">
                         {`curl -X POST \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -605,9 +605,9 @@ const APIIntegrations = memo(function APIIntegrations() {
                       </pre>
                     </div>
 
-                    <div className="bg-navy-900/50 rounded-lg p-4">
-                      <h4 className="text-orange-400 font-medium mb-2">Webhook Verification</h4>
-                      <pre className="text-gray-300 text-sm overflow-x-auto">
+                    <div className="bg-tsBg/50 rounded-lg p-4">
+                      <h4 className="text-ts-orange font-medium mb-2">Webhook Verification</h4>
+                      <pre className="text-white/70 text-sm overflow-x-auto">
                         {`const signature = req.headers['x-tradescout-signature'];
 const payload = JSON.stringify(req.body);
 const expectedSignature = 

@@ -29,28 +29,28 @@ export const LoadingSpinner = memo(function LoadingSpinner({
       {showLogo && (
         <div className="relative">
           <div
-            className={`${sizeClasses[size]} border-2 border-orange-400 border-t-transparent rounded-full animate-spin`}
+            className={`${sizeClasses[size]} border-2 border-ts-orange/30 border-t-transparent rounded-full animate-spin`}
           ></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <Hammer className={`${iconSizeClasses[size]} text-orange-400 animate-pulse`} />
+            <Hammer className={`${iconSizeClasses[size]} text-ts-orange animate-pulse`} />
           </div>
         </div>
       )}
 
       {!showLogo && (
         <div
-          className={`${sizeClasses[size]} border-2 border-orange-400 border-t-transparent rounded-full animate-spin`}
+          className={`${sizeClasses[size]} border-2 border-ts-orange/30 border-t-transparent rounded-full animate-spin`}
         ></div>
       )}
 
       <div className="flex items-center space-x-2">
         <Wrench
-          className="w-4 h-4 text-orange-400 animate-bounce"
+          className="w-4 h-4 text-ts-orange animate-bounce"
           style={{ animationDelay: "0.1s" }}
         />
         <p className="text-white text-sm font-medium">{message}</p>
         <Wrench
-          className="w-4 h-4 text-orange-400 animate-bounce"
+          className="w-4 h-4 text-ts-orange animate-bounce"
           style={{ animationDelay: "0.2s" }}
         />
       </div>

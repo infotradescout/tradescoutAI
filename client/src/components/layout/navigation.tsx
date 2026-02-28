@@ -189,9 +189,9 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/">
             <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="relative flex items-center justify-center h-10 w-10 rounded-full bg-orange-500/15">
+              <div className="relative flex items-center justify-center h-10 w-10 rounded-full bg-ts-orange/15">
                 <ConstructionEmblem className="w-6 h-6 md:w-8 md:h-8 transition-transform duration-200 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-orange-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                <div className="absolute inset-0 bg-ts-orange/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </div>
               <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-orange-500 to-orange-400 bg-clip-text text-transparent group-hover:from-orange-400 group-hover:to-orange-300 transition-all duration-200">
                 TradeScout
@@ -209,17 +209,17 @@ export default function Navigation() {
                     <div
                       className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                         location === item.href
-                          ? "text-orange-500 bg-orange-500/15 shadow-lg shadow-orange-500/20"
-                          : "text-gray-300 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/10"
+                          ? "text-ts-orange bg-ts-orange/15 shadow-lg shadow-orange-500/20"
+                          : "text-white/70 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/10"
                       }`}
                     >
                       <IconComponent className="w-4 h-4" />
                       <span>{item.label}</span>
 
                       {/* Tooltip */}
-                      <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-tsCard text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                         {item.description}
-                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-tsCard rotate-45"></div>
                       </div>
                     </div>
                   </Link>
@@ -234,8 +234,8 @@ export default function Navigation() {
                       <div
                         className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer flex items-center gap-2 ${
                           location === item.href
-                            ? "text-orange-500 bg-orange-500/15 shadow-lg shadow-orange-500/20"
-                            : "text-gray-300 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/10"
+                            ? "text-ts-orange bg-ts-orange/15 shadow-lg shadow-orange-500/20"
+                            : "text-white/70 hover:text-white hover:bg-white/10 hover:shadow-lg hover:shadow-white/10"
                         }`}
                       >
                         <IconComponent className="w-4 h-4" />
@@ -248,9 +248,9 @@ export default function Navigation() {
                         )}
 
                         {/* Tooltip */}
-                        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-tsCard text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                           {item.description}
-                          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-tsCard rotate-45"></div>
                         </div>
                       </div>
                     </Link>
@@ -264,7 +264,7 @@ export default function Navigation() {
               <div className="flex items-center space-x-3">
                 {user?.firstName && (
                   <div className="text-right">
-                    <div className="text-sm text-gray-300">Welcome back,</div>
+                    <div className="text-sm text-white/70">Welcome back,</div>
                     <div className="text-sm font-medium text-white">{user.firstName}</div>
                   </div>
                 )}
@@ -291,7 +291,7 @@ export default function Navigation() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                      className="border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200"
                     >
                       <Bookmark className="h-4 w-4 mr-1" />
                       <span className="hidden xl:inline">Saved</span>
@@ -302,7 +302,7 @@ export default function Navigation() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                      className="border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200"
                     >
                       <MessageCircle className="h-4 w-4 mr-1" />
                       <span className="hidden xl:inline">Messages</span>
@@ -313,7 +313,7 @@ export default function Navigation() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+                      className="border-white/20 text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200"
                     >
                       <User className="h-4 w-4 mr-1" />
                       <span className="hidden xl:inline">Profile</span>
@@ -357,7 +357,7 @@ export default function Navigation() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-gray-300 hover:bg-white/10 hover:text-white"
+                  className="border-white/20 text-white/70 hover:bg-white/10 hover:text-white"
                 >
                   <Menu className="h-4 w-4 mr-1" />
                   Menu
@@ -373,9 +373,9 @@ export default function Navigation() {
               >
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
-                  <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
+                  <div className="flex items-center gap-3 px-3 pb-6 border-b border-white/10">
                     <ConstructionEmblem className="w-8 h-8" />
-                    <h2 className="text-xl font-bold text-orange-500">TradeScout</h2>
+                    <h2 className="text-xl font-bold text-ts-orange">TradeScout</h2>
                   </div>
 
                   {/* Navigation Items for Medium Screens */}
@@ -386,14 +386,14 @@ export default function Navigation() {
                         <div
                           className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium cursor-pointer transition-all duration-200 ${
                             location === item.href
-                              ? "text-orange-500 bg-orange-500/15 shadow-lg shadow-orange-500/20"
-                              : "text-gray-300 hover:text-white hover:bg-white/10"
+                              ? "text-ts-orange bg-ts-orange/15 shadow-lg shadow-orange-500/20"
+                              : "text-white/70 hover:text-white hover:bg-white/10"
                           }`}
                         >
                           <IconComponent className="w-5 h-5" />
                           <div className="flex-1">
                             <div className="font-medium">{item.label}</div>
-                            <div className="text-xs text-gray-400">{item.description}</div>
+                            <div className="text-xs text-white/60">{item.description}</div>
                           </div>
                         </div>
                       </Link>
@@ -401,7 +401,7 @@ export default function Navigation() {
                   })}
 
                   {isAuthenticated && (
-                    <div className="border-t border-navy-600 pt-2 mt-2">
+                    <div className="border-t border-white/10 pt-2 mt-2">
                       {authenticatedNavItems.map((item) => {
                         const IconComponent = item.icon;
                         return (
@@ -409,8 +409,8 @@ export default function Navigation() {
                             <div
                               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium cursor-pointer transition-all duration-200 ${
                                 location === item.href
-                                  ? "text-orange-500 bg-orange-500/15 shadow-lg shadow-orange-500/20"
-                                  : "text-gray-300 hover:text-white hover:bg-white/10"
+                                  ? "text-ts-orange bg-ts-orange/15 shadow-lg shadow-orange-500/20"
+                                  : "text-white/70 hover:text-white hover:bg-white/10"
                               }`}
                             >
                               <IconComponent className="w-5 h-5" />
@@ -426,7 +426,7 @@ export default function Navigation() {
                                     <Badge className="bg-blue-600 text-white text-xs">New</Badge>
                                   )}
                                 </div>
-                                <div className="text-xs text-gray-400">{item.description}</div>
+                                <div className="text-xs text-white/60">{item.description}</div>
                               </div>
                             </div>
                           </Link>
@@ -437,15 +437,15 @@ export default function Navigation() {
 
                   {/* Auth section in medium screen menu */}
                   {isAuthenticated && (
-                    <div className="border-t border-navy-600 pt-4 mt-4 space-y-2">
+                    <div className="border-t border-white/10 pt-4 mt-4 space-y-2">
                       <Link href="/saved-ads" onClick={closeMobileMenu}>
-                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200">
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200">
                           <Bookmark className="w-5 h-5" />
                           <span>Saved Ads</span>
                         </div>
                       </Link>
                       <Link href="/profile" onClick={closeMobileMenu}>
-                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200">
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200">
                           <User className="w-5 h-5" />
                           <span>Profile</span>
                         </div>
@@ -479,8 +479,8 @@ export default function Navigation() {
                 size="sm"
                 className={`text-[11px] px-2 py-1 rounded-md ${
                   location === "/contractors"
-                    ? "text-orange-500 bg-orange-500/15"
-                    : "text-gray-300 hover:text-white"
+                    ? "text-ts-orange bg-ts-orange/15"
+                    : "text-white/70 hover:text-white"
                 }`}
                 onClick={closeMobileMenu}
               >
@@ -496,8 +496,8 @@ export default function Navigation() {
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
                     location === "/contractor-apply"
-                      ? "text-orange-500 bg-orange-500/15"
-                      : "text-gray-300 hover:text-white"
+                      ? "text-ts-orange bg-ts-orange/15"
+                      : "text-white/70 hover:text-white"
                   }`}
                   onClick={closeMobileMenu}
                 >
@@ -514,8 +514,8 @@ export default function Navigation() {
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
                     location === "/scout"
-                      ? "text-orange-500 bg-orange-500/15"
-                      : "text-gray-300 hover:text-white"
+                      ? "text-ts-orange bg-ts-orange/15"
+                      : "text-white/70 hover:text-white"
                   }`}
                   onClick={closeMobileMenu}
                 >
@@ -527,7 +527,7 @@ export default function Navigation() {
             {/* Menu button */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                <Button variant="ghost" size="sm" className="text-white/60 hover:text-white">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -541,9 +541,9 @@ export default function Navigation() {
               >
                 <div className="flex flex-col space-y-2 mt-8">
                   {/* Mobile Brand */}
-                  <div className="flex items-center gap-3 px-3 pb-6 border-b border-navy-600">
+                  <div className="flex items-center gap-3 px-3 pb-6 border-b border-white/10">
                     <ConstructionEmblem className="w-8 h-8" />
-                    <h2 className="text-xl font-bold text-orange-500">TradeScout</h2>
+                    <h2 className="text-xl font-bold text-ts-orange">TradeScout</h2>
                   </div>
 
                   {/* Mobile Navigation Items */}
@@ -554,14 +554,14 @@ export default function Navigation() {
                         <div
                           className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium cursor-pointer transition-all duration-200 ${
                             location === item.href
-                              ? "text-orange-500 bg-orange-500/15 shadow-lg shadow-orange-500/20"
-                              : "text-gray-300 hover:text-white hover:bg-white/10"
+                              ? "text-ts-orange bg-ts-orange/15 shadow-lg shadow-orange-500/20"
+                              : "text-white/70 hover:text-white hover:bg-white/10"
                           }`}
                         >
                           <IconComponent className="w-5 h-5" />
                           <div className="flex-1">
                             <div className="font-medium">{item.label}</div>
-                            <div className="text-xs text-gray-400">{item.description}</div>
+                            <div className="text-xs text-white/60">{item.description}</div>
                           </div>
                         </div>
                       </Link>
@@ -569,7 +569,7 @@ export default function Navigation() {
                   })}
 
                   {isAuthenticated && (
-                    <div className="border-t border-navy-600 pt-2 mt-2">
+                    <div className="border-t border-white/10 pt-2 mt-2">
                       {authenticatedNavItems.map((item) => {
                         const IconComponent = item.icon;
                         return (
@@ -577,8 +577,8 @@ export default function Navigation() {
                             <div
                               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium cursor-pointer transition-all duration-200 ${
                                 location === item.href
-                                  ? "text-orange-500 bg-orange-500/15 shadow-lg shadow-orange-500/20"
-                                  : "text-gray-300 hover:text-white hover:bg-white/10"
+                                  ? "text-ts-orange bg-ts-orange/15 shadow-lg shadow-orange-500/20"
+                                  : "text-white/70 hover:text-white hover:bg-white/10"
                               }`}
                             >
                               <IconComponent className="w-5 h-5" />
@@ -594,7 +594,7 @@ export default function Navigation() {
                                     <Badge className="bg-blue-600 text-white text-xs">New</Badge>
                                   )}
                                 </div>
-                                <div className="text-xs text-gray-400">{item.description}</div>
+                                <div className="text-xs text-white/60">{item.description}</div>
                               </div>
                             </div>
                           </Link>
@@ -603,17 +603,17 @@ export default function Navigation() {
                     </div>
                   )}
 
-                  <div className="border-t border-navy-600 pt-4 mt-4">
+                  <div className="border-t border-white/10 pt-4 mt-4">
                     {isAuthenticated ? (
                       <div className="space-y-3">
                         {user?.firstName && (
-                          <p className="text-gray-300 px-3">Welcome, {user.firstName}</p>
+                          <p className="text-white/70 px-3">Welcome, {user.firstName}</p>
                         )}
 
                         <Link href="/saved-ads" onClick={closeMobileMenu}>
                           <Button
                             variant="outline"
-                            className="w-full justify-start border text-gray-200 hover:bg-navy-900/60 hover:text-white"
+                            className="w-full justify-start border text-white/70 hover:bg-tsBg/60 hover:text-white"
                             style={{ borderColor: "var(--surface-frame-border)" }}
                           >
                             <Bookmark className="h-4 w-4 mr-2" />
@@ -624,7 +624,7 @@ export default function Navigation() {
                         <Link href="/profile" onClick={closeMobileMenu}>
                           <Button
                             variant="outline"
-                            className="w-full justify-start border text-gray-200 hover:bg-navy-900/60 hover:text-white"
+                            className="w-full justify-start border text-white/70 hover:bg-tsBg/60 hover:text-white"
                             style={{ borderColor: "var(--surface-frame-border)" }}
                           >
                             <User className="h-4 w-4 mr-2" />
@@ -635,7 +635,7 @@ export default function Navigation() {
                         <Link href="/profile-settings" onClick={closeMobileMenu}>
                           <Button
                             variant="outline"
-                            className="w-full justify-start border text-gray-200 hover:bg-navy-900/60 hover:text-white"
+                            className="w-full justify-start border text-white/70 hover:bg-tsBg/60 hover:text-white"
                             style={{ borderColor: "var(--surface-frame-border)" }}
                           >
                             <Settings className="h-4 w-4 mr-2" />
@@ -662,7 +662,7 @@ export default function Navigation() {
                       </div>
                     ) : (
                       <Link href="/pre-scout-setup?mode=signin" onClick={closeMobileMenu}>
-                        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white glow-effect">
+                        <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white glow-effect">
                           Sign In
                         </Button>
                       </Link>

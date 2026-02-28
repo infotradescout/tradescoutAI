@@ -26,30 +26,30 @@ interface WidgetProps {
 
 export function ActivityStatsWidget({ className }: WidgetProps) {
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Activity className="h-4 w-4 text-orange-500" />
+          <Activity className="h-4 w-4 text-ts-orange" />
           Your Activity
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">12</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Posts</div>
+          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+            <div className="text-2xl font-bold text-white/70 dark:text-white">12</div>
+            <div className="text-xs text-white/60 dark:text-white/60">Posts</div>
           </div>
-          <div className="text-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">48</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Comments</div>
+          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+            <div className="text-2xl font-bold text-white/70 dark:text-white">48</div>
+            <div className="text-xs text-white/60 dark:text-white/60">Comments</div>
           </div>
-          <div className="text-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-            <div className="text-2xl font-bold text-orange-600">124</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Likes Received</div>
+          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+            <div className="text-2xl font-bold text-ts-orange">124</div>
+            <div className="text-xs text-white/60 dark:text-white/60">Likes Received</div>
           </div>
-          <div className="text-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">5</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Connections</div>
+            <div className="text-xs text-white/60 dark:text-white/60">Connections</div>
           </div>
         </div>
       </CardContent>
@@ -77,11 +77,11 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
   const projects = data?.myProjects ?? [];
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-orange-500" />
+            <Briefcase className="h-4 w-4 text-ts-orange" />
             My Projects
           </CardTitle>
           <Link href="/project-tracker">
@@ -93,24 +93,24 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? (
-          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-center py-6 text-sm text-white/60 dark:text-white/60">
             Loading projects...
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-center py-6 text-sm text-white/60 dark:text-white/60">
             No active projects yet
           </div>
         ) : (
           projects.map((project) => (
             <div
               key={project.id}
-              className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 dark:hover:bg-white/10 transition-colors"
             >
               <div className="flex-1">
-                <h4 className="font-medium text-sm text-slate-900 dark:text-white">
+                <h4 className="font-medium text-sm text-white/70 dark:text-white">
                   {project.title}
                 </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-white/60 dark:text-white/60 mt-0.5">
                   {project.contractorName
                     ? project.contractorName
                     : project.createdAt
@@ -153,11 +153,11 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
   const savedCount = data?.stats?.savedContractors ?? 0;
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Star className="h-4 w-4 text-orange-500" />
+            <Star className="h-4 w-4 text-ts-orange" />
             Saved Contractors
           </CardTitle>
           <Link href="/saved-contractors">
@@ -169,20 +169,20 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading ? (
-          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-center py-6 text-sm text-white/60 dark:text-white/60">
             Loading saved contractors...
           </div>
         ) : savedCount > 0 ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 dark:bg-white/10">
               <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-orange-500 text-white text-xs">
+                <AvatarFallback className="bg-ts-orange text-white text-xs">
                   <Star className="h-4 w-4" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h4 className="font-medium text-sm text-slate-900 dark:text-white">Saved pros</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
+                <h4 className="font-medium text-sm text-white/70 dark:text-white">Saved pros</h4>
+                <p className="text-xs text-white/60 dark:text-white/60">
                   You have <span className="font-semibold">{savedCount}</span> saved contractor
                   {savedCount === 1 ? "" : "s"}. Open your saved list to compare and contact them.
                 </p>
@@ -202,12 +202,12 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
             </div>
           </div>
         ) : (
-          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-center py-6 text-sm text-white/60 dark:text-white/60">
             <p className="mb-3">You haven't saved any providers yet.</p>
             <Link href="/direct-connect">
               <Button
                 size="sm"
-                className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                className="h-8 text-xs bg-ts-orange-dark hover:bg-ts-orange-dark text-white"
               >
                 Create a Direct Connect request
               </Button>
@@ -236,11 +236,11 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
   ];
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-orange-500" />
+            <MessageSquare className="h-4 w-4 text-ts-orange" />
             Recent Messages
           </CardTitle>
           <Link href="/messages">
@@ -252,20 +252,20 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {messages.length === 0 ? (
-          <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+          <div className="text-center py-6 text-sm text-white/60 dark:text-white/60">
             No messages yet
           </div>
         ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
-              className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+              className="p-3 rounded-lg hover:bg-white/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between mb-1">
-                <h4 className="font-medium text-sm text-slate-900 dark:text-white">{msg.from}</h4>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{msg.time}</span>
+                <h4 className="font-medium text-sm text-white/70 dark:text-white">{msg.from}</h4>
+                <span className="text-xs text-white/60 dark:text-white/60">{msg.time}</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
+              <p className="text-xs text-white/60 dark:text-white/60 line-clamp-1">
                 {msg.message}
               </p>
             </div>
@@ -279,12 +279,12 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
 export function QuickActionsWidget({ className }: WidgetProps) {
   const quickActions = [
     { icon: Briefcase, label: "Post a Project", href: "/request-quote", color: "text-blue-600" },
-    { icon: Wrench, label: "Find Contractor", href: "/contractors", color: "text-orange-600" },
+    { icon: Wrench, label: "Find Contractor", href: "/contractors", color: "text-ts-orange" },
     { icon: MessageSquare, label: "Messages", href: "/messages", color: "text-green-600" },
   ];
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Quick Actions</CardTitle>
       </CardHeader>
@@ -292,9 +292,9 @@ export function QuickActionsWidget({ className }: WidgetProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {quickActions.map((action, index) => (
             <Link key={index} href={action.href}>
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors w-full">
+              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-white/5 dark:bg-white/10 hover:bg-white/5 dark:hover:bg-white/10 transition-colors w-full">
                 <action.icon className={`h-5 w-5 ${action.color}`} />
-                <span className="text-xs font-medium text-slate-900 dark:text-white">
+                <span className="text-xs font-medium text-white/70 dark:text-white">
                   {action.label}
                 </span>
               </button>
@@ -314,11 +314,11 @@ export function NotificationsWidget({ className }: WidgetProps) {
   ];
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Bell className="h-4 w-4 text-orange-500" />
+            <Bell className="h-4 w-4 text-ts-orange" />
             Recent Notifications
           </CardTitle>
           <Link href="/notifications">
@@ -332,14 +332,14 @@ export function NotificationsWidget({ className }: WidgetProps) {
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5 dark:hover:bg-white/10 transition-colors"
           >
             <div
-              className={`h-2 w-2 rounded-full mt-2 ${notification.type === "message" ? "bg-blue-500" : "bg-orange-500"}`}
+              className={`h-2 w-2 rounded-full mt-2 ${notification.type === "message" ? "bg-blue-500" : "bg-ts-orange"}`}
             />
             <div className="flex-1">
-              <p className="text-sm text-slate-900 dark:text-white">{notification.message}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-sm text-white/70 dark:text-white">{notification.message}</p>
+              <p className="text-xs text-white/60 dark:text-white/60 mt-0.5">
                 {notification.time}
               </p>
             </div>
@@ -352,11 +352,11 @@ export function NotificationsWidget({ className }: WidgetProps) {
 
 export function CommunityFeedWidget({ className }: WidgetProps) {
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Users2 className="h-4 w-4 text-orange-500" />
+            <Users2 className="h-4 w-4 text-ts-orange" />
             Community Feed
           </CardTitle>
           <Link href="/home">
@@ -367,11 +367,11 @@ export function CommunityFeedWidget({ className }: WidgetProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+        <p className="text-sm text-white/60 dark:text-white/60 mb-3">
           See what your neighbors are talking about
         </p>
         <Link href="/home">
-          <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white" size="sm">
+          <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark text-white" size="sm">
             Go to Feed
           </Button>
         </Link>
@@ -382,7 +382,7 @@ export function CommunityFeedWidget({ className }: WidgetProps) {
 
 export function AffiliateStatsWidget({ className }: WidgetProps) {
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-green-500" />
@@ -393,15 +393,15 @@ export function AffiliateStatsWidget({ className }: WidgetProps) {
         <div className="space-y-4">
           <div>
             <div className="flex items-baseline justify-between mb-1">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Total Earned</span>
+              <span className="text-xs text-white/60 dark:text-white/60">Total Earned</span>
               <span className="text-2xl font-bold text-green-600">$0.00</span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Pending</span>
-              <span className="text-sm text-slate-600 dark:text-slate-400">$0.00</span>
+              <span className="text-xs text-white/60 dark:text-white/60">Pending</span>
+              <span className="text-sm text-white/60 dark:text-white/60">$0.00</span>
             </div>
           </div>
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+          <div className="pt-3 border-t border-white/10 dark:border-white/10">
             <Link href="/affiliate">
               <Button variant="outline" size="sm" className="w-full">
                 <LinkIcon className="h-3 w-3 mr-2" />
@@ -446,7 +446,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
   const hasImpact = !!stats && stats.totalContributions > 0;
 
   return (
-    <Card className={`bg-white dark:bg-slate-800 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
       <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Award className="h-4 w-4 text-emerald-500" />
@@ -462,18 +462,18 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
         )}
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        {isLoading && <p className="text-slate-500 dark:text-slate-400">Loading your impact</p>}
+        {isLoading && <p className="text-white/60 dark:text-white/60">Loading your impact</p>}
 
         {!isLoading && profile === null && !hasCommunityBuilderRole && (
           <>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-white/60 dark:text-white/60">
               Earn the Community Builder badge to send and vote on which local causes get funded
               from your community vault.
             </p>
             <Link href="/community-builder/dashboard">
               <Button
                 size="sm"
-                className="mt-2 bg-orange-600 hover:bg-orange-700 text-white w-full"
+                className="mt-2 bg-ts-orange-dark hover:bg-ts-orange-dark text-white w-full"
               >
                 Activate Community Builder badge
               </Button>
@@ -483,7 +483,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
 
         {!isLoading && (profile !== null || hasCommunityBuilderRole) && !hasImpact && !isError && (
           <>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-white/60 dark:text-white/60">
               Your Community Builder badge is ready. Propose a contribution or support a local cause
               to start building your impact history.
             </p>
@@ -504,28 +504,28 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
 
         {!isLoading && hasImpact && stats && (
           <>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-white/60 dark:text-white/60">
               Thanks to your Community Builder badge, you've helped unlock funding and hours for
               local causes.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
-              <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+              <div className="text-center p-2 rounded-lg bg-white/5 dark:bg-white/10">
+                <div className="text-xs text-white/60 dark:text-white/60 mb-1">
                   Verified contributions
                 </div>
-                <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                <div className="text-lg font-semibold text-white/70 dark:text-white">
                   {stats.completedCount}
                 </div>
               </div>
-              <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Funded value</div>
+              <div className="text-center p-2 rounded-lg bg-white/5 dark:bg-white/10">
+                <div className="text-xs text-white/60 dark:text-white/60 mb-1">Funded value</div>
                 <div className="text-lg font-semibold text-emerald-600 dark:text-emerald-300">
                   ${stats.totalValue}
                 </div>
               </div>
-              <div className="text-center p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Hours donated</div>
-                <div className="text-lg font-semibold text-slate-900 dark:text-white">
+              <div className="text-center p-2 rounded-lg bg-white/5 dark:bg-white/10">
+                <div className="text-xs text-white/60 dark:text-white/60 mb-1">Hours donated</div>
+                <div className="text-lg font-semibold text-white/70 dark:text-white">
                   {stats.totalHours}
                 </div>
               </div>

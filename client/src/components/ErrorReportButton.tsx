@@ -102,7 +102,7 @@ export function ErrorReportButton() {
 
       {/* Report Modal */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-navy-800 border-navy-600">
+        <DialogContent className="sm:max-w-[500px] bg-tsCard border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Bug className="h-5 w-5 text-red-500" />
@@ -112,14 +112,14 @@ export function ErrorReportButton() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="error-type" className="text-gray-300">
+              <Label htmlFor="error-type" className="text-white/70">
                 Issue Type
               </Label>
               <Select value={errorType} onValueChange={setErrorType}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                <SelectTrigger className="bg-tsCard border-white/10 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-navy-700 border-navy-600">
+                <SelectContent className="bg-tsCard border-white/10">
                   <SelectItem value="bug">Bug/Error</SelectItem>
                   <SelectItem value="ui_issue">UI/Design Issue</SelectItem>
                   <SelectItem value="performance">Performance Problem</SelectItem>
@@ -130,7 +130,7 @@ export function ErrorReportButton() {
             </div>
 
             <div>
-              <Label htmlFor="title" className="text-gray-300">
+              <Label htmlFor="title" className="text-white/70">
                 Quick Summary <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -138,13 +138,13 @@ export function ErrorReportButton() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Brief description of the issue..."
-                className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                className="bg-tsCard border-white/10 text-white placeholder-gray-400"
                 maxLength={200}
               />
             </div>
 
             <div>
-              <Label htmlFor="description" className="text-gray-300">
+              <Label htmlFor="description" className="text-white/70">
                 Detailed Description <span className="text-red-500">*</span>
               </Label>
               <Textarea
@@ -152,14 +152,14 @@ export function ErrorReportButton() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="What happened? What were you trying to do? What did you expect to happen?"
-                className="bg-navy-700 border-navy-600 text-white placeholder-gray-400 min-h-[100px]"
+                className="bg-tsCard border-white/10 text-white placeholder-gray-400 min-h-[100px]"
                 rows={4}
               />
             </div>
 
             {!isAuthenticated && (
               <div>
-                <Label htmlFor="email" className="text-gray-300">
+                <Label htmlFor="email" className="text-white/70">
                   Email (optional)
                 </Label>
                 <Input
@@ -168,7 +168,7 @@ export function ErrorReportButton() {
                   value={userEmail}
                   onChange={(e) => setUserEmail(e.target.value)}
                   placeholder="your@email.com (for follow-up)"
-                  className="bg-navy-700 border-navy-600 text-white placeholder-gray-400"
+                  className="bg-tsCard border-white/10 text-white placeholder-gray-400"
                 />
               </div>
             )}
@@ -178,7 +178,7 @@ export function ErrorReportButton() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsOpen(false)}
-                className="border-navy-600 text-gray-300"
+                className="border-white/10 text-white/70"
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancel

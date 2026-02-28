@@ -77,7 +77,7 @@ interface AIAnalysis {
 const severityColors = {
   low: 'bg-blue-500',
   medium: 'bg-yellow-500',
-  high: 'bg-orange-500',
+  high: 'bg-ts-orange',
   critical: 'bg-red-500'
 };
 
@@ -147,7 +147,7 @@ export function UIMonitoringDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30"></div>
       </div>
     );
   }
@@ -158,9 +158,9 @@ export function UIMonitoringDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white">AI Site Monitoring</h1>
-          <p className="text-gray-300">Real-time bug detection and UX analysis</p>
+          <p className="text-white/70">Real-time bug detection and UX analysis</p>
         </div>
-        <Button onClick={() => refetch()} className="bg-orange-500 hover:bg-orange-600">
+        <Button onClick={() => refetch()} className="bg-ts-orange hover:bg-ts-orange-dark">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -179,48 +179,48 @@ export function UIMonitoringDashboard() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center">
-              <Monitor className="h-8 w-8 text-orange-500" />
+              <Monitor className="h-8 w-8 text-ts-orange" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-300">Total Issues</p>
+                <p className="text-sm font-medium text-white/70">Total Issues</p>
                 <p className="text-2xl font-bold text-white">{issuesData?.stats.totalIssues || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center">
               <AlertTriangle className="h-8 w-8 text-red-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-300">Critical</p>
+                <p className="text-sm font-medium text-white/70">Critical</p>
                 <p className="text-2xl font-bold text-white">{issuesData?.stats.criticalIssues || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center">
               <CheckCircle className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-300">Resolved</p>
+                <p className="text-sm font-medium text-white/70">Resolved</p>
                 <p className="text-2xl font-bold text-white">{issuesData?.stats.resolvedIssues || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center">
               <TrendingUp className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-300">Resolution Rate</p>
+                <p className="text-sm font-medium text-white/70">Resolution Rate</p>
                 <p className="text-2xl font-bold text-white">{analysis?.summary.resolutionRate || '0'}%</p>
               </div>
             </div>
@@ -229,10 +229,10 @@ export function UIMonitoringDashboard() {
       </div>
 
       <Tabs value="issues" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-navy-700">
-          <TabsTrigger value="issues" className="data-[state=active]:bg-orange-500">Issues</TabsTrigger>
-          <TabsTrigger value="analysis" className="data-[state=active]:bg-orange-500">AI Analysis</TabsTrigger>
-          <TabsTrigger value="patterns" className="data-[state=active]:bg-orange-500">Patterns</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-tsCard">
+          <TabsTrigger value="issues" className="data-[state=active]:bg-ts-orange">Issues</TabsTrigger>
+          <TabsTrigger value="analysis" className="data-[state=active]:bg-ts-orange">AI Analysis</TabsTrigger>
+          <TabsTrigger value="patterns" className="data-[state=active]:bg-ts-orange">Patterns</TabsTrigger>
         </TabsList>
 
         <TabsContent value="issues" className="space-y-4">
@@ -241,7 +241,7 @@ export function UIMonitoringDashboard() {
             <Button
               variant={selectedFilter === 'all' ? 'default' : 'outline'}
               onClick={() => setSelectedFilter('all')}
-              className={selectedFilter === 'all' ? 'bg-orange-500 hover:bg-orange-600' : ''}
+              className={selectedFilter === 'all' ? 'bg-ts-orange hover:bg-ts-orange-dark' : ''}
             >
               All ({issuesData?.issues.length || 0})
             </Button>
@@ -277,31 +277,31 @@ export function UIMonitoringDashboard() {
               {filteredIssues.map((issue) => {
                 const TypeIcon = typeIcons[issue.type] || Bug;
                 return (
-                  <Card key={issue.id} className="bg-navy-700 border-navy-600">
+                  <Card key={issue.id} className="bg-tsCard border-white/10">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-3 flex-1">
-                          <TypeIcon className="h-5 w-5 text-orange-500 mt-1" />
+                          <TypeIcon className="h-5 w-5 text-ts-orange mt-1" />
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
                               <h3 className="font-semibold text-white">{issue.title}</h3>
                               <Badge className={`${severityColors[issue.severity]} text-white`}>
                                 {issue.severity}
                               </Badge>
-                              <Badge variant="outline" className="text-gray-300">
+                              <Badge variant="outline" className="text-white/70">
                                 {issue.type.replace('_', ' ')}
                               </Badge>
                             </div>
-                            <p className="text-gray-300 text-sm mb-2">{issue.description}</p>
-                            <div className="text-xs text-gray-400 space-y-1">
+                            <p className="text-white/70 text-sm mb-2">{issue.description}</p>
+                            <div className="text-xs text-white/60 space-y-1">
                               <p>Location: {issue.location}</p>
                               {issue.element && <p>Element: {issue.element}</p>}
                               <p>Time: {new Date(issue.timestamp).toLocaleString()}</p>
                             </div>
                             {issue.suggestions.length > 0 && (
                               <div className="mt-3">
-                                <p className="text-sm font-medium text-orange-500 mb-1">Suggestions:</p>
-                                <ul className="text-xs text-gray-300 space-y-1">
+                                <p className="text-sm font-medium text-ts-orange mb-1">Suggestions:</p>
+                                <ul className="text-xs text-white/70 space-y-1">
                                   {issue.suggestions.map((suggestion, idx) => (
                                     <li key={idx}>• {suggestion}</li>
                                   ))}
@@ -350,7 +350,7 @@ export function UIMonitoringDashboard() {
           {analysis && (
             <>
               {/* AI Priorities */}
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white">AI Priorities</CardTitle>
                 </CardHeader>
@@ -370,7 +370,7 @@ export function UIMonitoringDashboard() {
               </Card>
 
               {/* AI Recommendations */}
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white">AI Recommendations</CardTitle>
                 </CardHeader>
@@ -378,8 +378,8 @@ export function UIMonitoringDashboard() {
                   <ul className="space-y-2">
                     {analysis.recommendations.map((recommendation, idx) => (
                       <li key={idx} className="flex items-start space-x-2">
-                        <span className="text-orange-500 font-bold">•</span>
-                        <span className="text-gray-300">{recommendation}</span>
+                        <span className="text-ts-orange font-bold">•</span>
+                        <span className="text-white/70">{recommendation}</span>
                       </li>
                     ))}
                   </ul>
@@ -393,7 +393,7 @@ export function UIMonitoringDashboard() {
           {analysis && (
             <>
               {/* Problematic Pages */}
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white">Most Problematic Pages</CardTitle>
                 </CardHeader>
@@ -401,7 +401,7 @@ export function UIMonitoringDashboard() {
                   <div className="space-y-3">
                     {analysis.patterns.topProblematicPages.map((page, idx) => (
                       <div key={idx} className="flex items-center justify-between">
-                        <span className="text-gray-300">{page.page}</span>
+                        <span className="text-white/70">{page.page}</span>
                         <Badge variant="error">{page.issueCount} issues</Badge>
                       </div>
                     ))}
@@ -410,7 +410,7 @@ export function UIMonitoringDashboard() {
               </Card>
 
               {/* Common Elements */}
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white">Problematic Elements</CardTitle>
                 </CardHeader>
@@ -418,7 +418,7 @@ export function UIMonitoringDashboard() {
                   <div className="space-y-3">
                     {analysis.patterns.commonElements.map((element, idx) => (
                       <div key={idx} className="flex items-center justify-between">
-                        <span className="text-gray-300 font-mono text-sm">{element.element}</span>
+                        <span className="text-white/70 font-mono text-sm">{element.element}</span>
                         <Badge variant="outline">{element.issueCount} issues</Badge>
                       </div>
                     ))}

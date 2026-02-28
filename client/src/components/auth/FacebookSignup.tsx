@@ -26,7 +26,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
   };
 
   return (
-    <div className="bg-slate-900 flex items-center justify-center p-4 py-24">
+    <div className="bg-tsCard flex items-center justify-center p-4 py-24">
       <div className="w-full max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
@@ -34,17 +34,17 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
             <TradeScoutLogo size="2xl" variant="gradient" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">Join TradeScout</h1>
-          <p className="text-xl text-slate-300 mb-2">
+          <p className="text-xl text-white/70 mb-2">
             Connect with trusted residents, pros, and organizations in your community
           </p>
-          <p className="text-slate-400">The faster, easier way to get started</p>
+          <p className="text-white/60">The faster, easier way to get started</p>
         </div>
 
         {/* Main Signup Card */}
-        <Card className="bg-slate-800/50 border-slate-700 max-w-md mx-auto mb-8">
+        <Card className="bg-white/5 border-white/10 max-w-md mx-auto mb-8">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-2xl text-white">Get Started</CardTitle>
-            <p className="text-slate-400">
+            <p className="text-white/60">
               Join thousands of residents, pros, and community leaders
             </p>
           </CardHeader>
@@ -71,7 +71,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
               </Badge>
             </div>
 
-            <div className="text-center text-sm text-slate-400">
+            <div className="text-center text-sm text-white/60">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Shield className="w-4 h-4" />
                 <span>Secure OAuth Authentication</span>
@@ -82,10 +82,10 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
             {/* Alternative Options */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-600"></div>
+                <div className="w-full border-t border-white/15"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-800 text-slate-400">or</span>
+                <span className="px-2 bg-white/5 text-white/60">or</span>
               </div>
             </div>
 
@@ -94,7 +94,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
                 onClick={onSkipToRegular}
                 variant="outline"
                 size="lg"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="w-full border-white/15 text-white/70 hover:bg-white/10"
                 data-testid="button-regular-signup"
               >
                 Sign up with Email
@@ -105,37 +105,37 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
 
         {/* Benefits Grid */}
         <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <Card className="bg-slate-800/30 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Facebook className="w-6 h-6 text-blue-400" />
               </div>
               <h3 className="text-white font-semibold mb-2">Instant Setup</h3>
-              <p className="text-slate-400 text-sm">
+              <p className="text-white/60 text-sm">
                 Pre-fill your profile with Facebook info and start immediately
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/30 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-6 h-6 text-green-400" />
               </div>
               <h3 className="text-white font-semibold mb-2">Trusted Network</h3>
-              <p className="text-slate-400 text-sm">
+              <p className="text-white/60 text-sm">
                 Connect with verified contractors and real homeowners
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/30 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-6 h-6 text-orange-400" />
+              <div className="w-12 h-12 bg-ts-orange/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-6 h-6 text-ts-orange" />
               </div>
               <h3 className="text-white font-semibold mb-2">Local Community</h3>
-              <p className="text-slate-400 text-sm">
+              <p className="text-white/60 text-sm">
                 Find contractors and customers in your specific area
               </p>
             </CardContent>
@@ -144,26 +144,26 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
 
         {/* Success Stats */}
         <div className="mt-12 text-center">
-          <p className="text-slate-400 mb-6">Why contractors choose Facebook signup:</p>
+          <p className="text-white/60 mb-6">Why contractors choose Facebook signup:</p>
           <div className="flex justify-center gap-8 text-center">
             <div>
               <div className="text-2xl font-bold text-green-400">3x</div>
-              <div className="text-sm text-slate-400">Higher Conversion</div>
+              <div className="text-sm text-white/60">Higher Conversion</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-blue-400">60-80%</div>
-              <div className="text-sm text-slate-400">Completion Rate</div>
+              <div className="text-sm text-white/60">Completion Rate</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-orange-400">2 min</div>
-              <div className="text-sm text-slate-400">Average Setup</div>
+              <div className="text-2xl font-bold text-ts-orange">2 min</div>
+              <div className="text-sm text-white/60">Average Setup</div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-slate-500 text-sm">
+          <p className="text-white/60 text-sm">
             By signing up, you agree to our{" "}
             <a href="/terms" className="text-blue-400 hover:underline">
               Terms of Service

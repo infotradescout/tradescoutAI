@@ -60,15 +60,15 @@ export function FinanceLedgerPanel() {
 
   if (isLoading) {
     return (
-      <Card className="bg-slate-900 border-slate-800">
-        <CardContent className="py-8 text-center text-slate-300">Loading finance ledger…</CardContent>
+      <Card className="bg-tsCard border-white/10">
+        <CardContent className="py-8 text-center text-white/70">Loading finance ledger…</CardContent>
       </Card>
     );
   }
 
   if (isError || !data) {
     return (
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="py-8 text-center text-red-300">
           Unable to load finance ledger. Please try again.
         </CardContent>
@@ -80,19 +80,19 @@ export function FinanceLedgerPanel() {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-100">Ledger Summary (latest {summary.count} tx)</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
+            <CardTitle className="text-sm font-semibold text-white">Ledger Summary (latest {summary.count} tx)</CardTitle>
+            <CardDescription className="text-xs text-white/60">
               Totals across all wallet accounts. Positive balance delta indicates net credits into the system.
             </CardDescription>
           </div>
           <div className="flex flex-col items-end gap-2 text-xs">
             <div className="flex gap-2 items-center">
-              <span className="text-slate-400">Window:</span>
+              <span className="text-white/60">Window:</span>
               <select
-                className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-100"
+                className="bg-tsBg border border-white/10 rounded px-2 py-1 text-[11px] text-white"
                 value={range}
                 onChange={(e) => setRange(e.target.value as any)}
               >
@@ -101,10 +101,10 @@ export function FinanceLedgerPanel() {
                 <option value="90d">Last 90 days</option>
                 <option value="all">All time</option>
               </select>
-              <span className="text-slate-600 mx-1">|</span>
-              <span className="text-slate-400">Direction:</span>
+              <span className="text-white/60 mx-1">|</span>
+              <span className="text-white/60">Direction:</span>
               <select
-                className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-100"
+                className="bg-tsBg border border-white/10 rounded px-2 py-1 text-[11px] text-white"
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as any)}
               >
@@ -112,24 +112,24 @@ export function FinanceLedgerPanel() {
                 <option value="credit">Credits</option>
                 <option value="debit">Debits</option>
               </select>
-              <span className="text-slate-600 mx-1">|</span>
+              <span className="text-white/60 mx-1">|</span>
               <input
-                className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-100 min-w-[140px]"
+                className="bg-tsBg border border-white/10 rounded px-2 py-1 text-[11px] text-white min-w-[140px]"
                 placeholder="Filter by type (e.g. marketplace_sale)"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
-              <span className="text-slate-400">Credits:</span>
+              <span className="text-white/60">Credits:</span>
               <span className="text-emerald-300 font-semibold">${summary.totalCredits.toFixed(2)}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-slate-400">Debits:</span>
+              <span className="text-white/60">Debits:</span>
               <span className="text-rose-300 font-semibold">${summary.totalDebits.toFixed(2)}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-slate-400">Net change:</span>
+              <span className="text-white/60">Net change:</span>
               <span className={summary.balanceDelta >= 0 ? "text-emerald-300 font-semibold" : "text-rose-300 font-semibold"}>
                 {summary.balanceDelta >= 0 ? "+" : "-"}${Math.abs(summary.balanceDelta).toFixed(2)}
               </span>
@@ -138,10 +138,10 @@ export function FinanceLedgerPanel() {
         </CardHeader>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-800 overflow-hidden">
+      <Card className="bg-tsCard border-white/10 overflow-hidden">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold text-slate-100">Recent Transactions</CardTitle>
-          <CardDescription className="text-xs text-slate-400">
+          <CardTitle className="text-sm font-semibold text-white">Recent Transactions</CardTitle>
+          <CardDescription className="text-xs text-white/60">
             Most recent wallet transactions across all users. For detailed investigation, pivot by user ID and
             reference type.
           </CardDescription>
@@ -149,15 +149,15 @@ export function FinanceLedgerPanel() {
         <CardContent className="p-0">
           <div className="max-h-[420px] overflow-auto">
             <Table>
-              <TableHeader className="bg-slate-900/70 sticky top-0 z-10">
+              <TableHeader className="bg-tsCard/95 sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="text-xs text-slate-400">When</TableHead>
-                  <TableHead className="text-xs text-slate-400">User</TableHead>
-                  <TableHead className="text-xs text-slate-400">Direction</TableHead>
-                  <TableHead className="text-xs text-slate-400">Amount</TableHead>
-                  <TableHead className="text-xs text-slate-400">Type</TableHead>
-                  <TableHead className="text-xs text-slate-400">Reference</TableHead>
-                  <TableHead className="text-xs text-slate-400">Memo</TableHead>
+                  <TableHead className="text-xs text-white/60">When</TableHead>
+                  <TableHead className="text-xs text-white/60">User</TableHead>
+                  <TableHead className="text-xs text-white/60">Direction</TableHead>
+                  <TableHead className="text-xs text-white/60">Amount</TableHead>
+                  <TableHead className="text-xs text-white/60">Type</TableHead>
+                  <TableHead className="text-xs text-white/60">Reference</TableHead>
+                  <TableHead className="text-xs text-white/60">Memo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -166,13 +166,13 @@ export function FinanceLedgerPanel() {
                   const when = created ? created.toLocaleString() : "—";
                   const amountLabel = `${tx.direction === "credit" ? "+" : "-"}${tx.amount.toFixed(2)}`;
                   return (
-                    <TableRow key={tx.id} className="hover:bg-slate-800/60">
-                      <TableCell className="text-xs text-slate-200 whitespace-nowrap">{when}</TableCell>
-                      <TableCell className="text-xs text-slate-300">
+                    <TableRow key={tx.id} className="hover:bg-white/5">
+                      <TableCell className="text-xs text-white/70 whitespace-nowrap">{when}</TableCell>
+                      <TableCell className="text-xs text-white/70">
                         <div className="flex flex-col">
                           <span className="font-mono text-[11px]">{tx.userId}</span>
                           {tx.counterpartyUserId && (
-                            <span className="font-mono text-[10px] text-slate-400">
+                            <span className="font-mono text-[10px] text-white/60">
                               ↔ {tx.counterpartyUserId}
                             </span>
                           )}
@@ -183,21 +183,21 @@ export function FinanceLedgerPanel() {
                           {tx.direction === "credit" ? "Credit" : "Debit"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-xs font-mono text-slate-100">{amountLabel}</TableCell>
-                      <TableCell className="text-xs text-slate-300 whitespace-nowrap">
+                      <TableCell className="text-xs font-mono text-white">{amountLabel}</TableCell>
+                      <TableCell className="text-xs text-white/70 whitespace-nowrap">
                         {tx.transactionType || "—"}
                       </TableCell>
-                      <TableCell className="text-xs text-slate-300">
+                      <TableCell className="text-xs text-white/70">
                         <div className="flex flex-col">
                           {tx.referenceType && (
-                            <span className="text-[11px] text-slate-300">{tx.referenceType}</span>
+                            <span className="text-[11px] text-white/70">{tx.referenceType}</span>
                           )}
                           {tx.referenceId && (
-                            <span className="font-mono text-[10px] text-slate-400">{tx.referenceId}</span>
+                            <span className="font-mono text-[10px] text-white/60">{tx.referenceId}</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs text-slate-300 max-w-xs truncate">
+                      <TableCell className="text-xs text-white/70 max-w-xs truncate">
                         {tx.memo || "—"}
                       </TableCell>
                     </TableRow>

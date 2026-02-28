@@ -114,7 +114,7 @@ export default function CommunityProfile() {
           }}
         >
           <CardHeader className="flex flex-row items-start gap-4">
-            <Avatar className="h-14 w-14 ring-2 ring-orange-500/40">
+            <Avatar className="h-14 w-14 ring-2 ring-ts-orange/70">
               <AvatarImage src={author?.avatar || undefined} />
               <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
                 {author?.name?.[0] || "U"}
@@ -125,9 +125,9 @@ export default function CommunityProfile() {
                 {author?.name || "TradeScout community member"}
               </CardTitle>
               {author?.role && (
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{author.role}</p>
+                <p className="text-xs uppercase tracking-[0.16em] text-white/60">{author.role}</p>
               )}
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-white/70">
                 Local activity, questions, and recommendations shared in the community feed.
               </p>
             </div>
@@ -135,20 +135,20 @@ export default function CommunityProfile() {
               <Button
                 asChild
                 variant="outline"
-                className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10"
+                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
               >
                 <Link href={`/profile/${encodeURIComponent(userId)}`}>View public profile</Link>
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex justify-between text-xs text-slate-400">
+          <CardContent className="flex justify-between text-xs text-white/60">
             <span>
               {wallPosts.length > 0
                 ? `${wallPosts.length} community post${wallPosts.length === 1 ? "" : "s"}`
                 : "No posts yet"}
             </span>
             {user && user.id === userId && (
-              <span className="text-slate-500">
+              <span className="text-white/60">
                 This is your community-facing profile. Your professional site lives on your public
                 profile.
               </span>
@@ -165,13 +165,13 @@ export default function CommunityProfile() {
           }}
         >
           <CardHeader>
-            <CardTitle className="text-base text-slate-100">Community wall</CardTitle>
+            <CardTitle className="text-base text-white">Community wall</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="py-10 text-center text-slate-400">Loading posts…</div>
+              <div className="py-10 text-center text-white/60">Loading posts…</div>
             ) : wallPosts.length === 0 ? (
-              <div className="py-10 text-center text-slate-400">No posts from this member yet.</div>
+              <div className="py-10 text-center text-white/60">No posts from this member yet.</div>
             ) : (
               <div className="space-y-4">
                 {wallPosts.map((post) => (

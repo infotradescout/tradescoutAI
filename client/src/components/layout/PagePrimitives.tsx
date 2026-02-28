@@ -24,7 +24,7 @@ export function Section({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             {title && <h2 className="text-xl font-semibold text-white">{title}</h2>}
-            {subtitle && <p className="text-sm text-tsTextMuted mt-1">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-white/60 mt-1">{subtitle}</p>}
           </div>
           {actions}
         </div>
@@ -38,7 +38,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <div
       className={cn(
-        "rounded-2xl border border-navy-700 bg-navy-800/80 shadow-xl shadow-black/25",
+        "rounded-2xl border border-white/10 bg-tsCard/80 shadow-xl shadow-black/25",
         className
       )}
     >

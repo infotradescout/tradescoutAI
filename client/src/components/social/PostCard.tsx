@@ -147,7 +147,7 @@ export function PostCard({ post }: PostCardProps) {
       general: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
       projects: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
       recommendations: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-      questions: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+      questions: "bg-ts-orange/10 text-ts-orange dark:bg-ts-orange/10 dark:text-ts-orange",
       marketplace: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
       events: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
     };
@@ -186,7 +186,7 @@ export function PostCard({ post }: PostCardProps) {
                 <Badge
                   variant="secondary"
                   className={`text-xs px-1.5 py-0.5 ${
-                    post.author.isVerified ? "text-green-300" : "text-slate-300"
+                    post.author.isVerified ? "text-green-300" : "text-white/70"
                   }`}
                   title={
                     post.author.isVerified
@@ -248,7 +248,7 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Post Content */}
         <div className="prose prose-sm max-w-none">
-          <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{post.content}</p>
+          <p className="text-white dark:text-white whitespace-pre-wrap">{post.content}</p>
         </div>
 
         {/* Post Images */}
@@ -288,7 +288,7 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Engagement Bar */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between pt-2 border-t border-white/10 dark:border-white/10">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
@@ -348,7 +348,7 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Comments Section */}
         {showComments && (
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
+          <div className="border-t border-white/10 dark:border-white/10 pt-4">
             <CommentsSection postId={post.id} />
           </div>
         )}

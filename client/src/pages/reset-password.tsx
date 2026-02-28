@@ -125,7 +125,7 @@ export default function ResetPasswordPage() {
       <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <KeyRound className="h-5 w-5 text-orange-400" />
+            <KeyRound className="h-5 w-5 text-ts-orange" />
             Reset Your Password
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
@@ -136,18 +136,18 @@ export default function ResetPasswordPage() {
           {!effectiveToken ? (
             <>
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">Email</label>
+                <label className="text-xs text-white/60">Email</label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
                   placeholder="you@example.com"
                 />
               </div>
 
               <Button
-                className="bg-orange-500 hover:bg-orange-600 w-full"
+                className="bg-ts-orange hover:bg-ts-orange-dark w-full"
                 onClick={() => requestResetMutation.mutate()}
                 disabled={requestResetMutation.isPending}
               >
@@ -157,11 +157,11 @@ export default function ResetPasswordPage() {
               {codeStepVisible ? (
                 <>
                   <div className="space-y-2 pt-2">
-                    <label className="text-xs text-slate-400">Verification code</label>
+                    <label className="text-xs text-white/60">Verification code</label>
                     <Input
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                      className="bg-black/30 border-[color:var(--border-subtle)]"
                       placeholder="6-digit code"
                     />
                   </div>
@@ -179,27 +179,27 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">New password</label>
+                <label className="text-xs text-white/60">New password</label>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">Confirm password</label>
+                <label className="text-xs text-white/60">Confirm password</label>
                 <Input
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
                 />
               </div>
 
               <Button
-                className="bg-orange-500 hover:bg-orange-600 w-full"
+                className="bg-ts-orange hover:bg-ts-orange-dark w-full"
                 onClick={() => resetMutation.mutate()}
                 disabled={resetMutation.isPending}
               >

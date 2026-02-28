@@ -473,7 +473,7 @@ export default function HomesVault() {
                       className={[
                         "w-full text-left rounded-md border px-3 py-2 transition",
                         active
-                          ? "border-orange-500/60 bg-orange-500/10"
+                          ? "border-ts-orange/30 bg-ts-orange/10"
                           : "border-border hover:bg-muted",
                       ].join(" ")}
                       onClick={() => setSelectedHomeId(id)}

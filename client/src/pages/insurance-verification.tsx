@@ -47,19 +47,19 @@ const InsuranceVerification = memo(function InsuranceVerification() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Insurance Verification</h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-xl text-white/70">
             Upload your insurance certificates to complete professional verification
           </p>
         </div>
 
         {/* Requirements Overview */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Shield className="w-5 h-5 text-orange-500" />
+              <Shield className="w-5 h-5 text-ts-orange" />
               Insurance Requirements
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-white/60">
               Ensure your insurance meets our minimum requirements for contractor verification
             </CardDescription>
           </CardHeader>
@@ -81,7 +81,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="font-semibold text-white">{req.type}</h3>
-                        <p className="text-sm text-gray-400">{req.minimum} minimum</p>
+                        <p className="text-sm text-white/60">{req.minimum} minimum</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {req.required && (
@@ -93,7 +93,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-300 mb-4">{req.description}</p>
+                    <p className="text-sm text-white/70 mb-4">{req.description}</p>
 
                     {!isUploaded ? (
                       <Button
@@ -122,10 +122,10 @@ const InsuranceVerification = memo(function InsuranceVerification() {
         </Card>
 
         {/* Upload Form */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white">Insurance Certificate Upload</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-white/60">
               Upload clear, high-resolution images or PDFs of your insurance certificates
             </CardDescription>
           </CardHeader>
@@ -140,53 +140,53 @@ const InsuranceVerification = memo(function InsuranceVerification() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="gl-policy" className="text-gray-300">
+                    <Label htmlFor="gl-policy" className="text-white/70">
                       Policy Number
                     </Label>
                     <Input
                       id="gl-policy"
                       placeholder="Enter policy number"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gl-coverage" className="text-gray-300">
+                    <Label htmlFor="gl-coverage" className="text-white/70">
                       Coverage Amount
                     </Label>
                     <Input
                       id="gl-coverage"
                       placeholder="e.g., $1,000,000"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gl-carrier" className="text-gray-300">
+                    <Label htmlFor="gl-carrier" className="text-white/70">
                       Insurance Carrier
                     </Label>
                     <Input
                       id="gl-carrier"
                       placeholder="Enter carrier name"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="gl-expiry" className="text-gray-300">
+                    <Label htmlFor="gl-expiry" className="text-white/70">
                       Expiration Date
                     </Label>
                     <Input
                       id="gl-expiry"
                       type="date"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                     />
                   </div>
                 </div>
 
-                <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-300 mb-2">
+                <div className="border-2 border-dashed border-white/15 rounded-lg p-6 text-center">
+                  <Upload className="w-8 h-8 text-white/60 mx-auto mb-4" />
+                  <p className="text-white/70 mb-2">
                     Drop your certificate here or click to browse
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-white/60">
                     Supported formats: PDF, JPG, PNG (Max 10MB)
                   </p>
                   <Button variant="outline" className="mt-4">
@@ -195,13 +195,13 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                 </div>
               </div>
 
-              <div className="border-t border-slate-700 pt-6">
+              <div className="border-t border-white/10 pt-6">
                 <div className="bg-blue-600/10 border border-blue-600/20 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <FileText className="w-5 h-5 text-blue-400 mt-0.5" />
                     <div>
                       <h4 className="font-medium text-blue-400 mb-2">Certificate Requirements</h4>
-                      <ul className="space-y-1 text-sm text-gray-300">
+                      <ul className="space-y-1 text-sm text-white/70">
                         <li>• Certificate must be current and not expired</li>
                         <li>• Coverage amounts must meet minimum requirements</li>
                         <li>• Certificate must show your business name exactly as registered</li>
@@ -217,7 +217,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                   <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-yellow-400 mb-2">Important Notes</h4>
-                    <ul className="space-y-1 text-sm text-gray-300">
+                    <ul className="space-y-1 text-sm text-white/70">
                       <li>• Certificates are verified by our insurance partners</li>
                       <li>• Verification typically takes 1-2 business days</li>
                       <li>• You'll receive email notifications about verification status</li>
@@ -235,7 +235,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
           <Button variant="outline" className="flex-1">
             Save as Draft
           </Button>
-          <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+          <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
             Submit for Verification
           </Button>
         </div>

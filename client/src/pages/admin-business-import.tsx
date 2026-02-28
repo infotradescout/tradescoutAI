@@ -198,7 +198,7 @@ export default function AdminBusinessImport() {
       <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Building2 className="h-5 w-5 text-orange-400" />
+            <Building2 className="h-5 w-5 text-ts-orange" />
             Business Import (Admin)
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
@@ -210,18 +210,18 @@ export default function AdminBusinessImport() {
         <CardContent className="space-y-4">
           <div className="flex flex-col md:flex-row gap-3 md:items-end">
             <div className="flex-1">
-              <label className="text-xs text-slate-400">Upload file</label>
+              <label className="text-xs text-white/60">Upload file</label>
               <Input
                 type="file"
                 accept=".csv,.tsv,.txt,text/csv,text/plain"
                 onChange={(e) => onFileSelected(e.target.files?.[0] || null)}
-                className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                className="bg-black/30 border-[color:var(--border-subtle)]"
               />
             </div>
             <Button
               onClick={() => importMutation.mutate()}
               disabled={importMutation.isPending || !content.trim()}
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-ts-orange hover:bg-ts-orange-dark"
             >
               <Upload className="h-4 w-4 mr-2" />
               {importMutation.isPending ? "Importing..." : dryRun ? "Dry Run" : "Import"}
@@ -230,54 +230,54 @@ export default function AdminBusinessImport() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400">Source label</label>
+              <label className="text-xs text-white/60">Source label</label>
               <Input
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
                 placeholder="e.g., county_open_data"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                className="bg-black/30 border-[color:var(--border-subtle)]"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400">Default county FIPS (optional)</label>
+              <label className="text-xs text-white/60">Default county FIPS (optional)</label>
               <Input
                 value={defaultCountyFips}
                 onChange={(e) => setDefaultCountyFips(e.target.value)}
                 placeholder="e.g., 48201"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                className="bg-black/30 border-[color:var(--border-subtle)]"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400">Default state code (optional)</label>
+              <label className="text-xs text-white/60">Default state code (optional)</label>
               <Input
                 value={defaultStateCode}
                 onChange={(e) => setDefaultStateCode(e.target.value)}
                 placeholder="e.g., TX"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                className="bg-black/30 border-[color:var(--border-subtle)]"
               />
             </div>
           </div>
 
           <div className="flex flex-col md:flex-row gap-3 md:items-center">
-            <label className="flex items-center gap-2 text-sm text-slate-200">
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox checked={dryRun} onCheckedChange={(v) => setDryRun(v === true)} />
               Dry run (no writes)
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-200">
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={sendActivationEmails}
                 onCheckedChange={(v) => setSendActivationEmails(v === true)}
               />
               Send activation emails (requires email config)
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-200">
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={includeActivationLinks}
                 onCheckedChange={(v) => setIncludeActivationLinks(v === true)}
               />
               Include activation links in response (sensitive)
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-200">
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={createPublicProfiles}
                 onCheckedChange={(v) => setCreatePublicProfiles(v === true)}
@@ -287,7 +287,7 @@ export default function AdminBusinessImport() {
           </div>
 
           {includeActivationLinks && (
-            <div className="flex items-start gap-2 rounded border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-100">
+            <div className="flex items-start gap-2 rounded border border-ts-orange/30 bg-ts-orange/10 p-3 text-xs text-ts-orange">
               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <div>
                 Activation links contain one-time tokens. Only enable this if you need to manually
@@ -296,7 +296,7 @@ export default function AdminBusinessImport() {
             </div>
           )}
 
-          <div className="rounded-xl border border-[color:var(--border-subtle)] bg-slate-950/30 p-4 space-y-3">
+          <div className="rounded-xl border border-[color:var(--border-subtle)] bg-black/30 p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-white">County enrichment (routing)</div>
@@ -321,16 +321,16 @@ export default function AdminBusinessImport() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-slate-400">Limit</label>
+                <label className="text-xs text-white/60">Limit</label>
                 <Input
                   value={enrichLimit}
                   onChange={(e) => setEnrichLimit(e.target.value)}
                   placeholder="100"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)]"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
                 />
               </div>
               <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm text-slate-200">
+                <label className="flex items-center gap-2 text-sm text-white/70">
                   <Checkbox
                     checked={enrichDryRun}
                     onCheckedChange={(v) => setEnrichDryRun(v === true)}
@@ -342,13 +342,13 @@ export default function AdminBusinessImport() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-400">Paste CSV/TSV/text</label>
+            <label className="text-xs text-white/60">Paste CSV/TSV/text</label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={`Headers supported (recommended):\nemail,business_name,county_fips,state_code,phone,website,category,services,owner_first_name,owner_last_name\n\nServices can be separated by ';' or '|'.`}
               rows={10}
-              className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+              className="bg-black/30 border-[color:var(--border-subtle)] text-white"
             />
           </div>
         </CardContent>
@@ -364,11 +364,11 @@ export default function AdminBusinessImport() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400">Batch</label>
+              <label className="text-xs text-white/60">Batch</label>
               <select
                 value={selectedBatchId}
                 onChange={(e) => setSelectedBatchId(e.target.value)}
-                className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-slate-950/40 px-3 text-sm text-slate-100"
+                className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 text-sm text-white"
               >
                 <option value="">Latest batch</option>
                 {batches.map((batch) => (
@@ -379,11 +379,11 @@ export default function AdminBusinessImport() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-400">Status filter</label>
+              <label className="text-xs text-white/60">Status filter</label>
               <select
                 value={selectedBatchStatus}
                 onChange={(e) => setSelectedBatchStatus(e.target.value)}
-                className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-slate-950/40 px-3 text-sm text-slate-100"
+                className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 text-sm text-white"
               >
                 <option value="all">All</option>
                 <option value="pending">Pending</option>
@@ -395,7 +395,7 @@ export default function AdminBusinessImport() {
           </div>
 
           {batchesLoading ? (
-            <div className="text-xs text-slate-400">Loading batches...</div>
+            <div className="text-xs text-white/60">Loading batches...</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {batches.slice(0, 8).map((batch) => (
@@ -403,12 +403,12 @@ export default function AdminBusinessImport() {
                   type="button"
                   key={`${batch.batchId}-${batch.source}`}
                   onClick={() => setSelectedBatchId(batch.batchId)}
-                  className="text-left rounded border border-[color:var(--border-subtle)] bg-slate-950/30 p-2 text-xs text-slate-200 hover:border-orange-500/40"
+                  className="text-left rounded border border-[color:var(--border-subtle)] bg-black/30 p-2 text-xs text-white/70 hover:border-ts-orange/30"
                 >
-                  <div className="font-medium text-slate-100">
+                  <div className="font-medium text-white">
                     {batch.batchId} - {batch.source}
                   </div>
-                  <div className="mt-1 text-slate-300">
+                  <div className="mt-1 text-white/70">
                     Total {batch.totalRows}, Pending {batch.pendingRows}, Merged {batch.mergedRows},
                     Failed {batch.failedRows}
                   </div>
@@ -418,21 +418,21 @@ export default function AdminBusinessImport() {
           )}
 
           {batchRowsLoading ? (
-            <div className="text-xs text-slate-400">Loading staged rows...</div>
+            <div className="text-xs text-white/60">Loading staged rows...</div>
           ) : batchRows.length > 0 ? (
             <div className="space-y-2">
               {batchRows.slice(0, 40).map((row) => (
                 <div
                   key={row.id}
-                  className="rounded border border-[color:var(--border-subtle)] bg-slate-950/30 p-3 text-xs text-slate-200"
+                  className="rounded border border-[color:var(--border-subtle)] bg-black/30 p-3 text-xs text-white/70"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="truncate">
                       {row.name} {row.email ? `(${row.email})` : ""}
                     </div>
-                    <div className="text-slate-300">{row.status}</div>
+                    <div className="text-white/70">{row.status}</div>
                   </div>
-                  <div className="mt-1 text-slate-400">
+                  <div className="mt-1 text-white/60">
                     {row.stateCode || "--"} / {row.countyFips || "--"}{" "}
                     {row.phone ? `- ${row.phone}` : ""}
                   </div>
@@ -442,11 +442,11 @@ export default function AdminBusinessImport() {
                 </div>
               ))}
               {batchRows.length > 40 ? (
-                <div className="text-xs text-slate-400">Showing first 40 rows.</div>
+                <div className="text-xs text-white/60">Showing first 40 rows.</div>
               ) : null}
             </div>
           ) : (
-            <div className="text-xs text-slate-400">No staged rows found for this batch.</div>
+            <div className="text-xs text-white/60">No staged rows found for this batch.</div>
           )}
         </CardContent>
       </Card>
@@ -462,11 +462,11 @@ export default function AdminBusinessImport() {
           <CardContent className="space-y-3">
             {result.activationLinkExport?.requested &&
             result.activationLinkExport.allowed === false ? (
-              <div className="text-xs text-orange-200">
+              <div className="text-xs text-ts-orange">
                 {result.activationLinkExport.reason || "Activation link export not allowed."}
               </div>
             ) : null}
-            <div className="text-xs text-slate-200 bg-slate-950/40 rounded border border-[color:var(--border-subtle)] p-3">
+            <div className="text-xs text-white/70 bg-black/30 rounded border border-[color:var(--border-subtle)] p-3">
               <div>Rows: {result.totals.rows}</div>
               <div>Users created: {result.totals.createdUsers}</div>
               <div>Users updated: {result.totals.updatedUsers}</div>
@@ -489,7 +489,7 @@ export default function AdminBusinessImport() {
               {(result.results || []).slice(0, 50).map((r) => (
                 <div
                   key={`${r.row}-${r.email}`}
-                  className="rounded border border-[color:var(--border-subtle)] bg-slate-950/30 p-3 text-xs text-slate-200"
+                  className="rounded border border-[color:var(--border-subtle)] bg-black/30 p-3 text-xs text-white/70"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="truncate">
@@ -510,7 +510,7 @@ export default function AdminBusinessImport() {
                   {r.error ? <div className="text-red-300 mt-1">{r.error}</div> : null}
                   {r.profileSlug ? (
                     <div className="mt-1">
-                      Profile: <span className="text-orange-200">/business/{r.profileSlug}</span>
+                      Profile: <span className="text-ts-orange">/business/{r.profileSlug}</span>
                     </div>
                   ) : null}
                   {r.publicProfileSlug ? (
@@ -521,13 +521,13 @@ export default function AdminBusinessImport() {
                   ) : null}
                   {r.activationLink ? (
                     <div className="mt-1 break-all">
-                      Activation: <span className="text-orange-200">{r.activationLink}</span>
+                      Activation: <span className="text-ts-orange">{r.activationLink}</span>
                     </div>
                   ) : null}
                 </div>
               ))}
               {result.results.length > 50 ? (
-                <div className="text-xs text-slate-400">Showing first 50 rows.</div>
+                <div className="text-xs text-white/60">Showing first 50 rows.</div>
               ) : null}
             </div>
           </CardContent>

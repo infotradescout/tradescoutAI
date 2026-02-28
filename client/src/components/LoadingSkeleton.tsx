@@ -11,7 +11,7 @@ export function LoadingSkeleton({
   variant = 'default', 
   lines = 1 
 }: LoadingSkeletonProps) {
-  const baseClasses = "animate-pulse bg-gray-700 skeleton";
+  const baseClasses = "animate-pulse bg-white/10 skeleton";
   
   const variants = {
     default: "h-4 rounded",
@@ -46,7 +46,7 @@ export function LoadingSkeleton({
 
 export function ContractorCardSkeleton() {
   return (
-    <div className="bg-navy-700 border border-navy-600 rounded-lg p-6 space-y-4">
+    <div className="bg-tsCard border border-white/10 rounded-lg p-6 space-y-4">
       <div className="flex items-center space-x-4">
         <LoadingSkeleton variant="avatar" />
         <div className="space-y-2 flex-1">
@@ -65,7 +65,7 @@ export function ContractorCardSkeleton() {
 
 export function DashboardCardSkeleton() {
   return (
-    <div className="bg-navy-700 border border-navy-600 rounded-lg p-6">
+    <div className="bg-tsCard border border-white/10 rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
         <LoadingSkeleton className="h-6 w-32" />
         <LoadingSkeleton variant="avatar" className="h-8 w-8" />

@@ -9,14 +9,14 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
   return (
     <div className="h-full bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-3xl mx-auto bg-tsCard border-tsBorder">
+        <Card className="max-w-3xl mx-auto bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="text-3xl flex items-center gap-3">
-              <ShieldCheck className="h-7 w-7 text-tsAccent" />
+              <ShieldCheck className="h-7 w-7 text-ts-orange" />
               Connection Without Compromise
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-tsTextSecondary">
+          <CardContent className="space-y-4 text-white/70">
             <p>
               This flow is retired. TradeScout does not provide paid acceleration programs or paid
               connection advantages.
@@ -28,7 +28,7 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
               </Button>
               <Button
                 variant="outline"
-                className="border-tsBorder"
+                className="border-white/10"
                 onClick={() => navigate("/how-it-works")}
               >
                 Read How TradeScout Works

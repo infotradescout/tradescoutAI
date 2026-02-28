@@ -98,13 +98,13 @@ export default function StaffShareLinksPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="text-tsTextMain px-4 py-10">
+      <div className="text-white px-4 py-10">
         <div className="max-w-5xl mx-auto">
-          <Card className="bg-tsCard border-tsBorder">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle>Staff/Admin access required</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-tsTextMuted">
+            <CardContent className="text-sm text-white/60">
               Sign in with a staff or admin account to access the shareable links library.
             </CardContent>
           </Card>
@@ -114,15 +114,15 @@ export default function StaffShareLinksPage() {
   }
 
   return (
-    <div className="text-tsTextMain px-4 py-10">
+    <div className="text-white px-4 py-10">
       <div className="max-w-6xl mx-auto space-y-6">
-        <Card className="bg-tsCard border-tsBorder">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="space-y-3">
             <CardTitle className="text-2xl flex items-center gap-2">
               <Link2 className="h-6 w-6 text-tsOrange" />
               Shareable Site Link Library
             </CardTitle>
-            <p className="text-sm text-tsTextMuted max-w-3xl">
+            <p className="text-sm text-white/60 max-w-3xl">
               Staff and admin can copy strategic page links without hunting through the app. Every
               affiliate URL below already includes your referral credit.
             </p>
@@ -131,7 +131,7 @@ export default function StaffShareLinksPage() {
                 Referral code: {data?.referralCode || "loading..."}
               </Badge>
               {data?.generatedAt ? (
-                <span className="text-tsTextMuted">
+                <span className="text-white/60">
                   Generated: {new Date(data.generatedAt).toLocaleString()}
                 </span>
               ) : null}
@@ -139,20 +139,20 @@ export default function StaffShareLinksPage() {
           </CardHeader>
           <CardContent>
             <div className="relative max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-tsTextMuted" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/60" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Filter by page, use-case, funnel stage..."
-                className="pl-9 bg-tsBg border-tsBorder text-tsTextMain"
+                className="pl-9 bg-tsBg border-white/10 text-white"
               />
             </div>
           </CardContent>
         </Card>
 
         {isLoading ? (
-          <Card className="bg-tsCard border-tsBorder">
-            <CardContent className="py-8 text-sm text-tsTextMuted">
+          <Card className="bg-tsCard border-white/10">
+            <CardContent className="py-8 text-sm text-white/60">
               Loading share links...
             </CardContent>
           </Card>
@@ -172,11 +172,11 @@ export default function StaffShareLinksPage() {
               const affiliateKey = `${link.id}:aff`;
               const cleanKey = `${link.id}:clean`;
               return (
-                <Card key={link.id} className="bg-tsCard border-tsBorder">
+                <Card key={link.id} className="bg-tsCard border-white/10">
                   <CardContent className="pt-5">
                     <div className="flex flex-col gap-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-lg font-semibold text-tsTextMain">{link.title}</h3>
+                        <h3 className="text-lg font-semibold text-white">{link.title}</h3>
                         <Badge
                           variant="outline"
                           className={`border ${stageBadgeClass(link.funnelStage)}`}
@@ -197,37 +197,37 @@ export default function StaffShareLinksPage() {
                         )}
                       </div>
 
-                      <p className="text-sm text-tsTextMuted">{link.description}</p>
+                      <p className="text-sm text-white/60">{link.description}</p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-md border border-tsBorder bg-tsBg/60 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-tsTextMuted mb-1">
+                        <div className="rounded-md border border-white/10 bg-tsBg/60 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                             Recommended For
                           </p>
-                          <p className="text-tsTextMain">{link.recommendedFor}</p>
+                          <p className="text-white">{link.recommendedFor}</p>
                         </div>
-                        <div className="rounded-md border border-tsBorder bg-tsBg/60 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-tsTextMuted mb-1">
+                        <div className="rounded-md border border-white/10 bg-tsBg/60 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                             Use Case
                           </p>
-                          <p className="text-tsTextMain">{link.useCase}</p>
+                          <p className="text-white">{link.useCase}</p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <div className="rounded-md border border-tsBorder bg-tsBg/70 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-tsTextMuted mb-1">
+                        <div className="rounded-md border border-white/10 bg-tsBg/70 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                             Affiliate URL
                           </p>
-                          <p className="font-mono text-xs text-tsTextMain break-all">
+                          <p className="font-mono text-xs text-white break-all">
                             {link.affiliateUrl}
                           </p>
                         </div>
-                        <div className="rounded-md border border-tsBorder bg-tsBg/60 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-tsTextMuted mb-1">
+                        <div className="rounded-md border border-white/10 bg-tsBg/60 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                             Clean URL
                           </p>
-                          <p className="font-mono text-xs text-tsTextMuted break-all">
+                          <p className="font-mono text-xs text-white/60 break-all">
                             {link.cleanUrl}
                           </p>
                         </div>
@@ -251,7 +251,7 @@ export default function StaffShareLinksPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="border-tsBorder text-tsTextMain"
+                          className="border-white/10 text-white"
                           onClick={() => copyText(link.cleanUrl, cleanKey, "Clean URL")}
                         >
                           {lastCopied === cleanKey ? (
@@ -265,7 +265,7 @@ export default function StaffShareLinksPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="border-tsBorder text-tsTextMain"
+                          className="border-white/10 text-white"
                           onClick={() =>
                             window.open(link.affiliateUrl, "_blank", "noopener,noreferrer")
                           }
@@ -281,8 +281,8 @@ export default function StaffShareLinksPage() {
             })}
 
             {filteredLinks.length === 0 ? (
-              <Card className="bg-tsCard border-tsBorder">
-                <CardContent className="py-8 text-sm text-tsTextMuted">
+              <Card className="bg-tsCard border-white/10">
+                <CardContent className="py-8 text-sm text-white/60">
                   No links matched that filter.
                 </CardContent>
               </Card>
@@ -290,28 +290,28 @@ export default function StaffShareLinksPage() {
           </div>
         ) : null}
 
-        <Card className="bg-tsCard border-tsBorder">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="text-lg">Your Custom Short-Link Log</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {customLinks.length === 0 ? (
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 No custom short links yet. Create them in your affiliate dashboard if needed.
               </p>
             ) : (
               customLinks.map((link) => (
                 <div
                   key={link.id}
-                  className="rounded-md border border-tsBorder bg-tsBg/60 p-3 flex flex-col gap-2"
+                  className="rounded-md border border-white/10 bg-tsBg/60 p-3 flex flex-col gap-2"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-tsTextMain">{link.description}</p>
-                    <span className="text-xs text-tsTextMuted">
+                    <p className="text-sm font-medium text-white">{link.description}</p>
+                    <span className="text-xs text-white/60">
                       {new Date(link.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="font-mono text-xs text-tsTextMuted break-all">
+                  <p className="font-mono text-xs text-white/60 break-all">
                     {link.shortUrl || link.destinationUrl}
                   </p>
                   <div className="flex gap-2">
@@ -319,7 +319,7 @@ export default function StaffShareLinksPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="border-tsBorder text-tsTextMain"
+                      className="border-white/10 text-white"
                       onClick={() =>
                         copyText(
                           link.shortUrl || link.destinationUrl,
@@ -335,7 +335,7 @@ export default function StaffShareLinksPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="border-tsBorder text-tsTextMain"
+                      className="border-white/10 text-white"
                       onClick={() =>
                         window.open(
                           link.shortUrl || link.destinationUrl,

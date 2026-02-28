@@ -31,16 +31,16 @@ export default function BusinessOwnerDashboard() {
           <Store className="h-8 w-8 text-purple-500 mr-3" />
           Business Owner Dashboard
         </h1>
-        <p className="text-gray-400 mt-2">Manage your business operations and growth initiatives</p>
+        <p className="text-white/60 mt-2">Manage your business operations and growth initiatives</p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Monthly Revenue</p>
+                <p className="text-sm font-medium text-white/60">Monthly Revenue</p>
                 <p className="text-2xl font-bold text-white">$45,250</p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -48,11 +48,11 @@ export default function BusinessOwnerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Active Projects</p>
+                <p className="text-sm font-medium text-white/60">Active Projects</p>
                 <p className="text-2xl font-bold text-white">12</p>
               </div>
               <Briefcase className="h-8 w-8 text-blue-500" />
@@ -60,11 +60,11 @@ export default function BusinessOwnerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Team Members</p>
+                <p className="text-sm font-medium text-white/60">Team Members</p>
                 <p className="text-2xl font-bold text-white">28</p>
               </div>
               <Users className="h-8 w-8 text-purple-500" />
@@ -72,11 +72,11 @@ export default function BusinessOwnerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Growth Rate</p>
+                <p className="text-sm font-medium text-white/60">Growth Rate</p>
                 <p className="text-2xl font-bold text-white">+15.3%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-emerald-500" />
@@ -88,7 +88,7 @@ export default function BusinessOwnerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2" />
@@ -106,7 +106,7 @@ export default function BusinessOwnerDashboard() {
                     </Button>
                     <Button
                       variant="outline"
-                      className="border-navy-400 text-gray-300 justify-start"
+                      className="border-white/15 text-white/70 justify-start"
                     >
                       <Users className="h-4 w-4 mr-2" />
                       Business Services
@@ -119,14 +119,14 @@ export default function BusinessOwnerDashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button
                       variant="outline"
-                      className="border-navy-400 text-gray-300 justify-start"
+                      className="border-white/15 text-white/70 justify-start"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Project Calculator
                     </Button>
                     <Button
                       variant="outline"
-                      className="border-navy-400 text-gray-300 justify-start"
+                      className="border-white/15 text-white/70 justify-start"
                     >
                       <Calendar className="h-4 w-4 mr-2" />
                       Schedule Management
@@ -140,7 +140,7 @@ export default function BusinessOwnerDashboard() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Quick Actions</CardTitle>
             </CardHeader>
@@ -152,14 +152,14 @@ export default function BusinessOwnerDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Hire Services
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   View Analytics

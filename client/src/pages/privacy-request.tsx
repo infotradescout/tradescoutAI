@@ -49,7 +49,7 @@ export default function PrivacyRequest() {
   if (isLoading) {
     return (
       <div className="gradient-bg flex items-center justify-center py-24">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -57,10 +57,10 @@ export default function PrivacyRequest() {
   if (!isAuthenticated) {
     return (
       <div className="gradient-bg flex items-center justify-center px-4 py-24">
-        <Card className="bg-navy-700 border-navy-600 w-full max-w-lg">
+        <Card className="bg-tsCard border-white/10 w-full max-w-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-white text-xl">Privacy Requests</CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-white/70">
               Sign in to download your data or request account deletion.
             </CardDescription>
           </CardHeader>
@@ -77,10 +77,10 @@ export default function PrivacyRequest() {
   return (
     <div className="gradient-bg px-4 py-10">
       <div className="max-w-2xl mx-auto">
-        <Card className="bg-navy-800 border-navy-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="text-white text-2xl">Privacy Request Form</CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-white/70">
               Download a copy of your personal data, or request deletion of your account and data.
             </CardDescription>
           </CardHeader>
@@ -89,10 +89,10 @@ export default function PrivacyRequest() {
             {/* Download */}
             <section className="space-y-3">
               <div className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-orange-400" />
+                <Download className="h-5 w-5 text-ts-orange" />
                 <h2 className="text-white font-semibold">Download my data</h2>
               </div>
-              <p className="text-sm text-gray-300">
+              <p className="text-sm text-white/70">
                 This downloads a ZIP containing your profile, messages, conversations, leads, and
                 privacy settings.
               </p>
@@ -102,12 +102,12 @@ export default function PrivacyRequest() {
                   Download My Data (ZIP)
                 </a>
               </Button>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-white/60">
                 Your download may take a few seconds to generate.
               </p>
             </section>
 
-            <Separator className="bg-navy-700" />
+            <Separator className="bg-tsCard" />
 
             {/* Delete */}
             <section className="space-y-4">
@@ -116,18 +116,18 @@ export default function PrivacyRequest() {
                 <h2 className="text-white font-semibold">Request account deletion</h2>
               </div>
 
-              <p className="text-sm text-gray-300">
+              <p className="text-sm text-white/70">
                 This submits a deletion request for review. Once approved, we will delete your
                 account and associated data.
               </p>
 
               <div className="space-y-2">
-                <label className="text-sm text-gray-200">Reason (optional)</label>
+                <label className="text-sm text-white/70">Reason (optional)</label>
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Tell us why you're requesting deletion (optional)"
-                  className="bg-navy-900 border-navy-700 text-gray-100 placeholder:text-gray-500"
+                  className="bg-tsBg border-white/10 text-white placeholder:text-white/60"
                 />
               </div>
 
@@ -135,9 +135,9 @@ export default function PrivacyRequest() {
                 <Checkbox
                   checked={confirmDelete}
                   onCheckedChange={(v) => setConfirmDelete(v === true)}
-                  className="border-navy-600"
+                  className="border-white/10"
                 />
-                <div className="text-sm text-gray-300">
+                <div className="text-sm text-white/70">
                   I understand this will start the account deletion process and may not be
                   reversible once approved.
                 </div>

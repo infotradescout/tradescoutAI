@@ -89,7 +89,7 @@ export default function AdminAddressVerifications() {
       case 'rejected':
         return <XCircle className="w-4 h-4 text-red-600" />;
       case 'expired':
-        return <XCircle className="w-4 h-4 text-orange-600" />;
+        return <XCircle className="w-4 h-4 text-ts-orange" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-600" />;
     }
@@ -109,7 +109,7 @@ export default function AdminAddressVerifications() {
       submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
       approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-      expired: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+      expired: "bg-ts-orange/10 text-ts-orange dark:bg-ts-orange/10 dark:text-ts-orange",
     };
 
     return (
@@ -162,7 +162,7 @@ export default function AdminAddressVerifications() {
       <div className="p-6">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading address verifications...</p>
+          <p className="text-white/60 dark:text-white/60">Loading address verifications...</p>
         </div>
       </div>
     );
@@ -172,8 +172,8 @@ export default function AdminAddressVerifications() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-orange-500">Address Verifications</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <h1 className="text-3xl font-bold text-ts-orange">Address Verifications</h1>
+        <p className="text-white/60 dark:text-white/60 mt-2">
           Manage user address verification requests and monitor platform compliance.
         </p>
       </div>
@@ -187,7 +187,7 @@ export default function AdminAddressVerifications() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">{status}</p>
+                    <p className="text-sm text-white/60 dark:text-white/60 capitalize">{status}</p>
                     <p className="text-2xl font-bold">{count}</p>
                   </div>
                   {getStatusIcon(status)}
@@ -254,17 +254,17 @@ export default function AdminAddressVerifications() {
                     <TableRow key={verification.id}>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <UserCheck className="w-4 h-4 text-gray-400" />
+                          <UserCheck className="w-4 h-4 text-white/60" />
                           <div>
                             <p className="font-medium">{user.firstName} {user.lastName}</p>
-                            <p className="text-sm text-gray-500">{user.email}</p>
+                            <p className="text-sm text-white/60">{user.email}</p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs">
                           <p className="font-medium">{verification.fullAddress}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-white/60">
                             {verification.city}, {verification.state} {verification.zipCode}
                           </p>
                         </div>
@@ -282,10 +282,10 @@ export default function AdminAddressVerifications() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <Calendar className="w-4 h-4 text-white/60" />
                           <div>
                             <p className="text-sm">{formatDate(verification.deadline)}</p>
-                            <p className={`text-xs ${isOverdue ? 'text-red-600' : daysRemaining <= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
+                            <p className={`text-xs ${isOverdue ? 'text-red-600' : daysRemaining <= 3 ? 'text-ts-orange' : 'text-white/60'}`}>
                               {isOverdue ? `${Math.abs(daysRemaining)} days overdue` : `${daysRemaining} days left`}
                             </p>
                           </div>
@@ -326,7 +326,7 @@ export default function AdminAddressVerifications() {
                                     <p className="text-sm">
                                       {selectedVerification.user.firstName} {selectedVerification.user.lastName}
                                     </p>
-                                    <p className="text-sm text-gray-500">{selectedVerification.user.email}</p>
+                                    <p className="text-sm text-white/60">{selectedVerification.user.email}</p>
                                   </div>
                                   <div>
                                     <Label className="text-sm font-medium">Current Status</Label>
@@ -344,7 +344,7 @@ export default function AdminAddressVerifications() {
                                     style={{ backgroundColor: "var(--surface-card)" }}
                                   >
                                     <p>{selectedVerification.verification.fullAddress}</p>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-white/60">
                                       {selectedVerification.verification.city}, {selectedVerification.verification.state} {selectedVerification.verification.zipCode}
                                     </p>
                                   </div>
@@ -412,7 +412,7 @@ export default function AdminAddressVerifications() {
             
             {(!verifications || verifications.length === 0) && (
               <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">No address verifications found.</p>
+                <p className="text-white/60 dark:text-white/60">No address verifications found.</p>
               </div>
             )}
           </div>

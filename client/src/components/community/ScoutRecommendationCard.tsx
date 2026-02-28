@@ -119,7 +119,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
     // blocked
     return {
-      color: "bg-slate-100 text-slate-600 border-slate-300",
+      color: "bg-white/5 text-white/60 border-white/10",
       icon: <XCircle className="w-4 h-4" />,
       label: "Blocked by policy",
     };
@@ -134,21 +134,21 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
   return (
     <>
-      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+      <div className="bg-white border border-white/10 rounded-lg p-4 space-y-4 shadow-sm hover:shadow-md transition-shadow">
         {/* Header: governance framing */}
-        <div className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingUp className="w-4 h-4" />
           <span className="font-medium">Human recommendation, Scout-governed</span>
         </div>
 
         {/* Target User */}
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
-            <User className="w-6 h-6 text-slate-500" />
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+            <User className="w-6 h-6 text-white/60" />
           </div>
           <div className="flex-1 space-y-1">
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-slate-900">{recommendation.targetUserName}</p>
+              <p className="font-semibold text-white/70">{recommendation.targetUserName}</p>
               <span
                 className={`text-xs px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.color}`}
               >
@@ -156,12 +156,12 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
                 {badge.label}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-sm text-slate-600">
+            <div className="flex items-center gap-1 text-sm text-white/60">
               <Briefcase className="w-3.5 h-3.5" />
               <span>{recommendation.targetRole}</span>
             </div>
             {recommendation.targetLocation && (
-              <div className="flex items-center gap-1 text-sm text-slate-500">
+              <div className="flex items-center gap-1 text-sm text-white/60">
                 <MapPin className="w-3.5 h-3.5" />
                 <span>{recommendation.targetLocation}</span>
               </div>
@@ -171,36 +171,36 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
         {/* Reasoning */}
         <div className="space-y-1">
-          <p className="text-sm font-medium text-slate-900">Why this contact makes sense:</p>
-          <p className="text-sm text-slate-600">{recommendation.reasoning}</p>
+          <p className="text-sm font-medium text-white/70">Why this contact makes sense:</p>
+          <p className="text-sm text-white/60">{recommendation.reasoning}</p>
           {recommendation.decisionScope && (
-            <p className="text-sm text-slate-500 italic">{recommendation.decisionScope}</p>
+            <p className="text-sm text-white/60 italic">{recommendation.decisionScope}</p>
           )}
         </div>
 
         {/* Confidence Components (for transparency) */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-slate-600">Skills match:</span>
-            <span className="font-medium text-slate-900">
+            <span className="text-white/60">Skills match:</span>
+            <span className="font-medium text-white/70">
               {Math.round(recommendation.confidenceComponents.expertise_match * 100)}%
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-600">Location:</span>
-            <span className="font-medium text-slate-900">
+            <span className="text-white/60">Location:</span>
+            <span className="font-medium text-white/70">
               {Math.round(recommendation.confidenceComponents.location_match * 100)}%
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-600">Trust signals:</span>
-            <span className="font-medium text-slate-900">
+            <span className="text-white/60">Trust signals:</span>
+            <span className="font-medium text-white/70">
               {Math.round(recommendation.confidenceComponents.trust_signal * 100)}%
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-600">Past success:</span>
-            <span className="font-medium text-slate-900">
+            <span className="text-white/60">Past success:</span>
+            <span className="font-medium text-white/70">
               {Math.round(recommendation.confidenceComponents.past_success * 100)}%
             </span>
           </div>
@@ -219,11 +219,11 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         )}
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2 border-t border-slate-100">
+        <div className="flex gap-2 pt-2 border-t border-white/10">
           {recommendation.confidenceTier === "auto_allow" && (
             <Button
               onClick={handleAccept}
-              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white"
+              className="flex-1 bg-tsCard hover:bg-white/5 text-white"
               disabled={actionMutation.isPending}
             >
               Proceed with contact
@@ -234,7 +234,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             <Button
               onClick={handleAccept}
               variant="outline"
-              className="flex-1 border-slate-900 text-slate-900 hover:bg-slate-50"
+              className="flex-1 border-white/10 text-white/70 hover:bg-white/5"
               disabled={actionMutation.isPending}
             >
               Review & confirm
@@ -255,7 +255,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
           <Button
       onClick={handleDismiss}
       variant="ghost"
-      className="text-slate-600 hover:bg-slate-50"
+      className="text-white/60 hover:bg-white/5"
       disabled={actionMutation.isPending}
     >
       Dismiss

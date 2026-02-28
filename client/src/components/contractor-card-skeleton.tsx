@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function ContractorCardSkeleton() {
   return (
-    <Card className="bg-navy-700 border-navy-600 card-enhanced">
+    <Card className="bg-tsCard border-white/10 card-enhanced">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           {/* Avatar skeleton */}

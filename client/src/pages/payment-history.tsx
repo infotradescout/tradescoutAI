@@ -55,7 +55,7 @@ const getStatusIcon = (status: string) => {
     case "completed":
       return <CheckCircle className="w-4 h-4 text-tsSuccess" />;
     case "failed":
-      return <XCircle className="w-4 h-4 text-tsError" />;
+      return <XCircle className="w-4 h-4 text-red-500" />;
     case "processing":
       return <RefreshCw className="w-4 h-4 text-tsWarning animate-spin" />;
     default:
@@ -68,7 +68,7 @@ const getStatusColor = (status: string) => {
     case "completed":
       return "bg-tsSuccess text-tsSuccess";
     case "failed":
-      return "bg-tsError text-tsError";
+      return "bg-red-500 text-red-500";
     case "processing":
       return "bg-tsWarning text-tsWarning";
     default:
@@ -89,10 +89,10 @@ export default function PaymentHistory() {
     return (
       <div className="container mx-auto p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-8 bg-white/10 rounded w-1/4"></div>
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+              <div key={i} className="h-24 bg-white/10 rounded"></div>
             ))}
           </div>
         </div>
@@ -114,10 +114,10 @@ export default function PaymentHistory() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-tsText">Payment History</h1>
-          <p className="text-tsTextSecondary">Track all your payments and transactions</p>
+          <p className="text-white/70">Track all your payments and transactions</p>
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-48 bg-tsCard border-tsBorder text-tsText">
+          <SelectTrigger className="w-48 bg-tsCard border-white/10 text-tsText">
             <SelectValue placeholder="Filter payments" />
           </SelectTrigger>
           <SelectContent>
@@ -128,7 +128,7 @@ export default function PaymentHistory() {
         </Select>
       </div>
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-tsCard border-tsBorder">
+        <TabsList className="grid w-full grid-cols-4 bg-tsCard border-white/10">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contractor">Contractor Payments</TabsTrigger>
           <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
@@ -137,10 +137,10 @@ export default function PaymentHistory() {
         <TabsContent value="overview" className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-tsText">Total Payments</CardTitle>
-                <DollarSign className="h-4 w-4 text-tsTextMuted" />
+                <DollarSign className="h-4 w-4 text-white/60" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-tsText">
@@ -154,41 +154,41 @@ export default function PaymentHistory() {
                       .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0)
                   ).toFixed(2)}
                 </div>
-                <p className="text-xs text-tsTextMuted">Completed transactions</p>
+                <p className="text-xs text-white/60">Completed transactions</p>
               </CardContent>
             </Card>
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-tsText">
                   Contractor Services
                 </CardTitle>
-                <Building2 className="h-4 w-4 text-tsTextMuted" />
+                <Building2 className="h-4 w-4 text-white/60" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-tsText">
                   {[...contractorPayments.asHomeowner, ...contractorPayments.asContractor].length}
                 </div>
-                <p className="text-xs text-tsTextMuted">Service payments</p>
+                <p className="text-xs text-white/60">Service payments</p>
               </CardContent>
             </Card>
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-tsText">Marketplace</CardTitle>
-                <CreditCard className="h-4 w-4 text-tsTextMuted" />
+                <CreditCard className="h-4 w-4 text-white/60" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-tsText">
                   {[...marketplaceTransactions.asBuyer, ...marketplaceTransactions.asSeller].length}
                 </div>
-                <p className="text-xs text-tsTextMuted">Item transactions</p>
+                <p className="text-xs text-white/60">Item transactions</p>
               </CardContent>
             </Card>
           </div>
           {/* Recent Activity */}
-          <Card className="bg-tsCard border-tsBorder">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-tsText">Recent Activity</CardTitle>
-              <CardDescription className="text-tsTextMuted">
+              <CardDescription className="text-white/60">
                 Your latest payment transactions
               </CardDescription>
             </CardHeader>
@@ -230,25 +230,25 @@ export default function PaymentHistory() {
                   .map((transaction, index) => (
                     <div
                       key={`${transaction.type}-${transaction.id}-${index}`}
-                      className="flex items-center space-x-4 p-4 border-tsBorder border rounded-lg hover:bg-tsCardMuted transition-colors"
+                      className="flex items-center space-x-4 p-4 border-white/10 border rounded-lg hover:bg-white/5 transition-colors"
                     >
                       <div className="flex-shrink-0">
                         {transaction.role === "homeowner" || transaction.role === "buyer" ? (
-                          <ArrowUpRight className="w-5 h-5 text-tsError" />
+                          <ArrowUpRight className="w-5 h-5 text-red-500" />
                         ) : (
                           <ArrowDownLeft className="w-5 h-5 text-tsSuccess" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-tsText">{transaction.title}</p>
-                        <p className="text-sm text-tsTextMuted">{transaction.subtitle}</p>
+                        <p className="text-sm text-white/60">{transaction.subtitle}</p>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="text-right">
                           <p className="text-sm font-medium text-tsText">
                             ${Number(transaction.totalAmount || 0).toFixed(2)}
                           </p>
-                          <p className="text-xs text-tsTextMuted">
+                          <p className="text-xs text-white/60">
                             {formatDistance(new Date(transaction.createdAt), new Date(), {
                               addSuffix: true,
                             })}
@@ -269,11 +269,11 @@ export default function PaymentHistory() {
                   ...marketplaceTransactions.asSeller,
                 ].length === 0 && (
                   <div className="text-center py-8">
-                    <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-orange-500 mb-2">
+                    <CreditCard className="w-12 h-12 text-white/60 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-ts-orange mb-2">
                       {isCommunityFirst ? "No payments on record" : "No payments yet"}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm max-w-md mx-auto">
+                    <p className="text-white/60 dark:text-white/70 text-sm max-w-md mx-auto">
                       {isCommunityFirst
                         ? "You don’t need to force a transaction just to fill this page. When money actually moves through TradeScout, it will show up here automatically."
                         : "Your payment history will appear here once you make your first transaction."}
@@ -311,7 +311,7 @@ export default function PaymentHistory() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-medium">Service Payment</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           {formatDistance(new Date(payment.createdAt), new Date(), {
                             addSuffix: true,
                           })}
@@ -324,19 +324,19 @@ export default function PaymentHistory() {
                       <span className="text-lg font-bold">
                         ${Number(payment.totalAmount || 0).toFixed(2)}
                       </span>
-                      <div className="text-right text-xs text-gray-500">
+                      <div className="text-right text-xs text-white/60">
                         {payment.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
 
                     {payment.description && (
-                      <p className="text-sm text-gray-600 mt-2">{payment.description}</p>
+                      <p className="text-sm text-white/60 mt-2">{payment.description}</p>
                     )}
                   </div>
                 ))}
 
                 {contractorPayments.asHomeowner?.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-white/60">
                     No payments made to contractors yet
                   </div>
                 )}
@@ -358,7 +358,7 @@ export default function PaymentHistory() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-medium">Service Payment</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           {formatDistance(new Date(payment.createdAt), new Date(), {
                             addSuffix: true,
                           })}
@@ -371,19 +371,19 @@ export default function PaymentHistory() {
                       <span className="text-lg font-bold text-green-600">
                         +${Number(payment.totalAmount || 0).toFixed(2)}
                       </span>
-                      <div className="text-right text-xs text-gray-500">
+                      <div className="text-right text-xs text-white/60">
                         {payment.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
 
                     {payment.description && (
-                      <p className="text-sm text-gray-600 mt-2">{payment.description}</p>
+                      <p className="text-sm text-white/60 mt-2">{payment.description}</p>
                     )}
                   </div>
                 ))}
 
                 {contractorPayments.asContractor?.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-white/60">
                     No payments received from homeowners yet
                   </div>
                 )}
@@ -409,7 +409,7 @@ export default function PaymentHistory() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-medium">Marketplace Purchase</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           {formatDistance(new Date(transaction.createdAt), new Date(), {
                             addSuffix: true,
                           })}
@@ -424,7 +424,7 @@ export default function PaymentHistory() {
                       <span className="text-lg font-bold">
                         ${Number(transaction.totalAmount || 0).toFixed(2)}
                       </span>
-                      <div className="text-right text-xs text-gray-500">
+                      <div className="text-right text-xs text-white/60">
                         {transaction.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
@@ -432,7 +432,7 @@ export default function PaymentHistory() {
                 ))}
 
                 {marketplaceTransactions.asBuyer?.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">No marketplace purchases yet</div>
+                  <div className="text-center py-8 text-white/60">No marketplace purchases yet</div>
                 )}
               </CardContent>
             </Card>
@@ -452,7 +452,7 @@ export default function PaymentHistory() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-medium">Marketplace Sale</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           {formatDistance(new Date(transaction.createdAt), new Date(), {
                             addSuffix: true,
                           })}
@@ -467,7 +467,7 @@ export default function PaymentHistory() {
                       <span className="text-lg font-bold text-green-600">
                         +${Number(transaction.totalAmount || 0).toFixed(2)}
                       </span>
-                      <div className="text-right text-xs text-gray-500">
+                      <div className="text-right text-xs text-white/60">
                         {transaction.isOffPlatform ? "Off-platform" : "Platform payment"}
                       </div>
                     </div>
@@ -475,7 +475,7 @@ export default function PaymentHistory() {
                 ))}
 
                 {marketplaceTransactions.asSeller?.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">No marketplace sales yet</div>
+                  <div className="text-center py-8 text-white/60">No marketplace sales yet</div>
                 )}
               </CardContent>
             </Card>
@@ -492,9 +492,9 @@ export default function PaymentHistory() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-orange-500 mb-2">Receipt Generation</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <Calendar className="w-12 h-12 text-white/60 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-ts-orange mb-2">Receipt Generation</h3>
+                <p className="text-white/60 dark:text-white/70 mb-4">
                   Select a date range to generate and download receipts for your transactions.
                 </p>
                 <Button disabled>Receipt export not enabled yet</Button>

@@ -66,7 +66,7 @@ interface User {
 
 const AVAILABLE_ROLES = [
   { value: "homeowner", label: "Homeowner", icon: Home, color: "bg-blue-500" },
-  { value: "contractor_user", label: "Contractor", icon: Wrench, color: "bg-orange-500" },
+  { value: "contractor_user", label: "Contractor", icon: Wrench, color: "bg-ts-orange" },
   { value: "realtor", label: "Realtor", icon: Building, color: "bg-green-500" },
   { value: "car_salesman", label: "Car Salesman", icon: Car, color: "bg-purple-500" },
   { value: "business_owner", label: "Business Owner", icon: Building, color: "bg-amber-500" },
@@ -74,9 +74,9 @@ const AVAILABLE_ROLES = [
     value: "restaurant_owner",
     label: "Restaurant Owner",
     icon: UtensilsCrossed,
-    color: "bg-orange-500",
+    color: "bg-ts-orange",
   },
-  { value: "food_truck_owner", label: "Food Truck Owner", icon: Truck, color: "bg-orange-500" },
+  { value: "food_truck_owner", label: "Food Truck Owner", icon: Truck, color: "bg-ts-orange" },
   { value: "bar_owner", label: "Bar / Lounge Owner", icon: Wine, color: "bg-purple-600" },
   { value: "helper", label: "Helper", icon: Users, color: "bg-cyan-500" },
   { value: "moderator", label: "Moderator", icon: Shield, color: "bg-yellow-500" },
@@ -250,7 +250,7 @@ export default function UserManagement() {
         value: roleName,
         label: roleName,
         icon: User,
-        color: "bg-gray-500",
+        color: "bg-white/10",
       }
     );
   };
@@ -329,7 +329,7 @@ export default function UserManagement() {
         <CardContent>
           <div className="flex gap-4 mb-6 items-center">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-white/60" />
               <Input
                 placeholder="Search users by email, name, or role..."
                 value={searchTerm}
@@ -466,8 +466,8 @@ export default function UserManagement() {
                               className="w-8 h-8 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                              <User className="w-4 h-4 text-gray-500" />
+                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                              <User className="w-4 h-4 text-white/60" />
                             </div>
                           )}
                           <div>
@@ -566,8 +566,8 @@ export default function UserManagement() {
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                    <User className="w-6 h-6 text-gray-500" />
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                    <User className="w-6 h-6 text-white/60" />
                   </div>
                 )}
                 <div>

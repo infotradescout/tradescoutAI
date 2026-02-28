@@ -118,17 +118,17 @@ export function RecommendationForm({
 
   if (!isAuthenticated) {
     return (
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="text-center">
-            <MessageSquare className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <MessageSquare className="h-12 w-12 text-ts-orange mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">Share Your Experience</h3>
-            <p className="text-gray-300 mb-4">
+            <p className="text-white/70 mb-4">
               Help other homeowners by sharing your experience with {contractorName}
             </p>
             <Link href="/pre-scout-setup?mode=signin">
               <Button
-                className="bg-orange-500 hover:bg-orange-600"
+                className="bg-ts-orange hover:bg-ts-orange-dark"
                 data-testid="button-login-to-recommend"
               >
                 Sign In to Leave Recommendation
@@ -142,17 +142,17 @@ export function RecommendationForm({
 
   if (!showForm) {
     return (
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="text-center">
-            <MessageSquare className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <MessageSquare className="h-12 w-12 text-ts-orange mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">Share Your Experience</h3>
-            <p className="text-gray-300 mb-4">
+            <p className="text-white/70 mb-4">
               Help other homeowners by sharing your experience with {contractorName}
             </p>
             <Button
               onClick={() => setShowForm(true)}
-              className="bg-orange-500 hover:bg-orange-600"
+              className="bg-ts-orange hover:bg-ts-orange-dark"
               data-testid="button-write-recommendation"
             >
               Write a Recommendation
@@ -164,10 +164,10 @@ export function RecommendationForm({
   }
 
   return (
-    <Card className="bg-navy-700 border-navy-600">
+    <Card className="bg-tsCard border-white/10">
       <CardHeader>
         <CardTitle className="text-white flex items-center">
-          <MessageSquare className="h-5 w-5 mr-2 text-orange-500" />
+          <MessageSquare className="h-5 w-5 mr-2 text-ts-orange" />
           Recommend {contractorName}
         </CardTitle>
       </CardHeader>
@@ -229,7 +229,7 @@ export function RecommendationForm({
                     <FormControl>
                       <Input
                         {...field}
-                        className="bg-navy-800 border-navy-600 text-white"
+                        className="bg-tsCard border-white/10 text-white"
                         data-testid="input-customer-name"
                       />
                     </FormControl>
@@ -248,7 +248,7 @@ export function RecommendationForm({
                       <Input
                         {...field}
                         type="email"
-                        className="bg-navy-800 border-navy-600 text-white"
+                        className="bg-tsCard border-white/10 text-white"
                         data-testid="input-customer-email"
                       />
                     </FormControl>
@@ -270,7 +270,7 @@ export function RecommendationForm({
                       <Input
                         {...field}
                         placeholder="e.g., Kitchen Remodel, Roof Repair"
-                        className="bg-navy-800 border-navy-600 text-white"
+                        className="bg-tsCard border-white/10 text-white"
                         data-testid="input-project-type"
                       />
                     </FormControl>
@@ -288,7 +288,7 @@ export function RecommendationForm({
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger
-                          className="bg-navy-800 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                           data-testid="select-project-value"
                         >
                           <SelectValue placeholder="Select range" />
@@ -319,7 +319,7 @@ export function RecommendationForm({
                     <Textarea
                       {...field}
                       placeholder="Share details about your experience with this contractor..."
-                      className="bg-navy-800 border-navy-600 text-white min-h-24"
+                      className="bg-tsCard border-white/10 text-white min-h-24"
                       data-testid="textarea-comment"
                     />
                   </FormControl>
@@ -346,7 +346,7 @@ export function RecommendationForm({
                             defaultValue={field.value?.toString()}
                           >
                             <SelectTrigger
-                              className="bg-navy-800 border-navy-600 text-white"
+                              className="bg-tsCard border-white/10 text-white"
                               data-testid="select-work-quality"
                             >
                               <SelectValue />
@@ -376,7 +376,7 @@ export function RecommendationForm({
                             defaultValue={field.value?.toString()}
                           >
                             <SelectTrigger
-                              className="bg-navy-800 border-navy-600 text-white"
+                              className="bg-tsCard border-white/10 text-white"
                               data-testid="select-timeliness"
                             >
                               <SelectValue />
@@ -406,7 +406,7 @@ export function RecommendationForm({
                             defaultValue={field.value?.toString()}
                           >
                             <SelectTrigger
-                              className="bg-navy-800 border-navy-600 text-white"
+                              className="bg-tsCard border-white/10 text-white"
                               data-testid="select-communication"
                             >
                               <SelectValue />
@@ -432,7 +432,7 @@ export function RecommendationForm({
               <Button
                 type="submit"
                 disabled={submitRecommendation.isPending}
-                className="bg-orange-500 hover:bg-orange-600 flex-1"
+                className="bg-ts-orange hover:bg-ts-orange-dark flex-1"
                 data-testid="button-submit-recommendation"
               >
                 {submitRecommendation.isPending ? "Submitting..." : "Submit Recommendation"}
@@ -441,7 +441,7 @@ export function RecommendationForm({
                 type="button"
                 variant="outline"
                 onClick={() => setShowForm(false)}
-                className="border-navy-600 text-white hover:bg-navy-600"
+                className="border-white/10 text-white hover:bg-tsCard"
                 data-testid="button-cancel-recommendation"
               >
                 Cancel

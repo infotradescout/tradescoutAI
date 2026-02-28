@@ -97,8 +97,8 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+      <div className="flex items-center justify-center bg-white/5 dark:bg-tsCard py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-ts-orange" />
       </div>
     );
   }
@@ -156,12 +156,12 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
       )}
 
       {showFirstSessionBanner && (
-        <div className="fixed bottom-20 right-4 z-40 max-w-sm rounded-2xl border border-orange-400/60 bg-slate-950/95 px-4 py-3 text-xs text-slate-100 shadow-lg shadow-orange-500/20">
+        <div className="fixed bottom-20 right-4 z-40 max-w-sm rounded-2xl border border-ts-orange/30 bg-black/30 px-4 py-3 text-xs text-white shadow-lg shadow-orange-500/20">
           <div className="flex items-start gap-2">
-            <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.35)]" />
+            <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-ts-orange shadow-[0_0_0_3px_rgba(249,115,22,0.35)]" />
             <div className="space-y-0.5">
-              <p className="font-semibold text-orange-200">Your profile is flexible</p>
-              <p className="text-slate-200">
+              <p className="font-semibold text-ts-orange">Your profile is flexible</p>
+              <p className="text-white/70">
                 You can add roles, sections, and layout anytime in Profile Settings.
               </p>
             </div>
@@ -191,7 +191,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
                   route: "/dashboard",
                 });
               }}
-              className="ml-2 text-slate-400 hover:text-white"
+              className="ml-2 text-white/60 hover:text-white"
             >
               ×
             </button>
@@ -201,8 +201,8 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
 
       <Suspense
         fallback={
-          <div className="flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-24">
-            <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
+          <div className="flex items-center justify-center bg-white/5 dark:bg-tsCard py-24">
+            <Loader2 className="w-8 h-8 animate-spin text-ts-orange" />
           </div>
         }
       >

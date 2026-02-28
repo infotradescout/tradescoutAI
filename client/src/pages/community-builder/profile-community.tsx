@@ -240,11 +240,11 @@ export default function ProfileCommunityPage() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold">Community Vault (Beta)</h1>
-            <p className="text-gray-600">
+            <p className="text-white/60">
               Real money in, fully transparent ledger out. No withdrawals/payouts during beta.
             </p>
             {vaultData?.profile && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-white/60">
                 Community: <span className="font-semibold">{vaultData.profile.displayName}</span> (
                 {vaultData.profile.slug})
               </p>
@@ -276,7 +276,7 @@ export default function ProfileCommunityPage() {
                   <div className="text-3xl font-bold">
                     {formatMoney(vaultData.vault?.currentBalance ?? 0)}
                   </div>
-                  <div className="text-sm text-gray-500 mt-2">
+                  <div className="text-sm text-white/60 mt-2">
                     Lifetime inflow: {formatMoney(vaultData.vault?.lifetimeInflow ?? 0)}
                   </div>
                 </CardContent>
@@ -289,7 +289,7 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{vaultData.ledger?.length ?? 0}</div>
-                  <div className="text-sm text-gray-500 mt-2">
+                  <div className="text-sm text-white/60 mt-2">
                     Lifetime outflow: {formatMoney(vaultData.vault?.lifetimeOutflow ?? 0)}
                   </div>
                 </CardContent>
@@ -302,7 +302,7 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{supportLedger.length}</div>
-                  <div className="text-sm text-gray-500 mt-2">
+                  <div className="text-sm text-white/60 mt-2">
                     Two rows per split payment (platform + community)
                   </div>
                 </CardContent>
@@ -319,10 +319,10 @@ export default function ProfileCommunityPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Current score</p>
+                    <p className="text-sm text-white/60">Current score</p>
                     <p className="text-3xl font-bold">{communityEvaluation.totalScore}/100</p>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-white/60">
                     Current balance: {formatMoney(communityEvaluation.balance)}
                   </p>
                 </div>
@@ -334,11 +334,11 @@ export default function ProfileCommunityPage() {
                   { label: "Support signal", value: communityEvaluation.supportSignal },
                 ].map((metric) => (
                   <div key={metric.label} className="space-y-1">
-                    <div className="flex justify-between text-xs text-gray-600">
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>{metric.label}</span>
                       <span>{Math.round(metric.value)}%</span>
                     </div>
-                    <div className="h-2 rounded bg-slate-100 overflow-hidden">
+                    <div className="h-2 rounded bg-white/5 overflow-hidden">
                       <div
                         className="h-full bg-indigo-500"
                         style={{ width: `${Math.round(metric.value)}%` }}
@@ -369,7 +369,7 @@ export default function ProfileCommunityPage() {
                       Donate
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">You’ll be redirected to Stripe Checkout.</p>
+                  <p className="text-xs text-white/60">You’ll be redirected to Stripe Checkout.</p>
                 </CardContent>
               </Card>
 
@@ -404,7 +404,7 @@ export default function ProfileCommunityPage() {
                       Monthly
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-white/60">
                     Monthly support is recorded on Stripe invoice payment.
                   </p>
                 </CardContent>
@@ -420,14 +420,14 @@ export default function ProfileCommunityPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-white/60">
                   Representation shares are normalized to 100.00% after rounding for transparent
                   allocation.
                 </p>
                 <div className="space-y-2">
                   <div className="text-sm font-semibold">Active causes</div>
                   {causes.length === 0 ? (
-                    <p className="text-sm text-gray-500">No causes available.</p>
+                    <p className="text-sm text-white/60">No causes available.</p>
                   ) : (
                     <div className="space-y-2">
                       {causes.slice(0, 10).map((c) => (
@@ -438,13 +438,13 @@ export default function ProfileCommunityPage() {
                           <div className="space-y-1">
                             <div className="font-semibold">{c.title}</div>
                             {c.description && (
-                              <div className="text-sm text-gray-600">{c.description}</div>
+                              <div className="text-sm text-white/60">{c.description}</div>
                             )}
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-white/60">
                               Votes: {c.voteCount} • Weighted total:{" "}
                               {Number(c.weightedVoteTotal || 0).toFixed(2)}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-white/60">
                               Representation share: {Number(c.allocationShare || 0).toFixed(2)}% •
                               Status: {c.status}
                             </div>
@@ -473,7 +473,7 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent>
                   {vaultData.ledger.length === 0 ? (
-                    <p className="text-sm text-gray-500">No ledger entries yet.</p>
+                    <p className="text-sm text-white/60">No ledger entries yet.</p>
                   ) : (
                     <div className="space-y-2">
                       {vaultData.ledger.slice(0, 12).map((e) => (
@@ -483,7 +483,7 @@ export default function ProfileCommunityPage() {
                         >
                           <div>
                             <div className="font-semibold">{moneyFormatter.format(e.amount)}</div>
-                            <div className="text-xs text-gray-500">{e.memo || e.sourceType}</div>
+                            <div className="text-xs text-white/60">{e.memo || e.sourceType}</div>
                           </div>
                           <Badge variant="outline">{e.sourceType}</Badge>
                         </div>
@@ -500,7 +500,7 @@ export default function ProfileCommunityPage() {
                 </CardHeader>
                 <CardContent>
                   {supportLedger.length === 0 ? (
-                    <p className="text-sm text-gray-500">No platform support entries yet.</p>
+                    <p className="text-sm text-white/60">No platform support entries yet.</p>
                   ) : (
                     <div className="space-y-2">
                       {supportLedger.slice(0, 12).map((e) => (
@@ -511,9 +511,9 @@ export default function ProfileCommunityPage() {
                           <div>
                             <div className="font-semibold">
                               {moneyFormatter.format(e.amount)}
-                              <span className="text-xs text-gray-500"> • {e.mode}</span>
+                              <span className="text-xs text-white/60"> • {e.mode}</span>
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-white/60">
                               {e.memo || "Platform Support"}
                             </div>
                           </div>

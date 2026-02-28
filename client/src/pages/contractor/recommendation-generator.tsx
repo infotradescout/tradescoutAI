@@ -13,11 +13,11 @@ export default function RecommendationGeneratorPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-white/10 rounded w-1/3"></div>
+          <div className="h-32 bg-white/10 rounded"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-40 bg-gray-200 rounded"></div>
+              <div key={i} className="h-40 bg-white/10 rounded"></div>
             ))}
           </div>
         </div>
@@ -30,9 +30,9 @@ export default function RecommendationGeneratorPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="text-center py-12">
-            <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
-            <p className="text-gray-600 mb-6">
+            <AlertCircle className="mx-auto h-12 w-12 text-white/60 mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">Authentication Required</h2>
+            <p className="text-white/60 mb-6">
               Please log in to access the Smart Recommendation Generator.
             </p>
             <Button asChild>
@@ -49,9 +49,9 @@ export default function RecommendationGeneratorPage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="text-center py-12">
-            <AlertCircle className="mx-auto h-12 w-12 text-orange-400 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Contractor Access Only</h2>
-            <p className="text-gray-600 mb-6">
+            <AlertCircle className="mx-auto h-12 w-12 text-ts-orange mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">Contractor Access Only</h2>
+            <p className="text-white/60 mb-6">
               The Smart Recommendation Generator is exclusively available to contractors. This
               powerful tool helps contractors analyze their performance, set goals, and create
               automated campaigns to increase customer recommendations.
@@ -92,12 +92,12 @@ export default function RecommendationGeneratorPage() {
                 Back to Dashboard
               </Link>
             </Button>
-            <div className="h-6 w-px bg-gray-300" />
+            <div className="h-6 w-px bg-white/10" />
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">
+              <h1 className="text-lg font-semibold text-white">
                 Smart Recommendation Generator
               </h1>
-              <p className="text-sm text-gray-600">Grow your business with data-driven insights</p>
+              <p className="text-sm text-white/60">Grow your business with data-driven insights</p>
             </div>
           </div>
         </div>

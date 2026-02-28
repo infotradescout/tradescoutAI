@@ -353,13 +353,13 @@ export default function PublicProfileView() {
   const verificationTone = (() => {
     if (verificationStatus === "approved") return "bg-emerald-600 text-white";
     if (verificationStatus === "under_review" || verificationStatus === "pending") {
-      return "bg-amber-500 text-slate-950";
+      return "bg-amber-500 text-black";
     }
     if (verificationStatus === "rejected" || verificationStatus === "expired") {
       return "bg-red-600 text-white";
     }
-    if (verificationStatus === "suspended") return "bg-slate-700 text-white";
-    return "bg-slate-700 text-white";
+    if (verificationStatus === "suspended") return "bg-white/10 text-white";
+    return "bg-white/10 text-white";
   })();
   const verificationLabel = (() => {
     if (verificationStatus === "approved") return "Professional Verified";
@@ -450,12 +450,12 @@ export default function PublicProfileView() {
                 <img
                   src={profile.profileImageUrl}
                   alt={displayName}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-tsAccent"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-ts-orange"
                   style={{ borderColor: "var(--user-primary, #f97316)" }}
                 />
               ) : (
                 <div
-                  className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-tsAccent"
+                  className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-ts-orange"
                   style={{
                     backgroundColor: "var(--user-primary, #f97316)",
                     borderColor: "var(--user-secondary, #fb923c)",
@@ -541,7 +541,7 @@ export default function PublicProfileView() {
                             maxVisible={64}
                             showLabels
                           />
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-white/60">
                             Badges are awarded for real activity in the community and job tools.
                           </p>
                         </div>

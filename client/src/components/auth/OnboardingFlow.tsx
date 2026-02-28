@@ -147,7 +147,7 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="address" className="text-slate-200">Street Address</Label>
+                  <Label htmlFor="address" className="text-white/70">Street Address</Label>
                   <Input
                     id="address"
                     onChange={(e) => updateFormData({ address: e.target.value })}

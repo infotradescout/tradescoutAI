@@ -159,7 +159,7 @@ export function BugReportTool() {
               onChange={(e) => setEmail(e.target.value)}
               data-testid="bug-email-input"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-white/60">
               Leave blank to submit anonymously
             </p>
           </div>

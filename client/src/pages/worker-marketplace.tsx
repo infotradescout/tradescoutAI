@@ -68,7 +68,7 @@ export default function WorkerMarketplace() {
 
   const [applyTask, setApplyTask] = useState<Task | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
-  const fieldClass = "border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted";
+  const fieldClass = "border-white/10 bg-black/30 text-white placeholder:text-white/60";
 
   // Fetch workers
   const { data: workers, isLoading: workersLoading } = useQuery<Worker[]>({
@@ -204,13 +204,13 @@ export default function WorkerMarketplace() {
       {/* Header - Helpers tab under Direct Connect */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-4">Helpers - Direct Connect Responders</h1>
-        <p className="max-w-3xl text-base text-tsTextMuted md:text-lg">
+        <p className="max-w-3xl text-base text-white/60 md:text-lg">
           Match local helpers to short-term work and crew support. Homeowner project requests still
           start in Direct Connect.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/direct-connect">
-            <Button className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90">
+            <Button className="bg-ts-orange text-text-black hover:bg-ts-orange/90">
               Go to Direct Connect
             </Button>
           </Link>
@@ -219,17 +219,17 @@ export default function WorkerMarketplace() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-        <TabsList className="grid w-full grid-cols-2 border border-tsBorder bg-black/35 p-1">
+        <TabsList className="grid w-full grid-cols-2 border border-white/10 bg-black/35 p-1">
           <TabsTrigger
             value="find-workers"
-            className="text-tsTextMuted data-[state=active]:bg-tsAccent/20 data-[state=active]:text-tsTextMain"
+            className="text-white/60 data-[state=active]:bg-ts-orange/20 data-[state=active]:text-white"
           >
             <Users className="h-4 w-4 mr-2" />
             Find providers
           </TabsTrigger>
           <TabsTrigger
             value="find-tasks"
-            className="text-tsTextMuted data-[state=active]:bg-tsAccent/20 data-[state=active]:text-tsTextMain"
+            className="text-white/60 data-[state=active]:bg-ts-orange/20 data-[state=active]:text-white"
           >
             <Briefcase className="h-4 w-4 mr-2" />
             Find work
@@ -237,10 +237,10 @@ export default function WorkerMarketplace() {
         </TabsList>
 
         {/* Search and Filters */}
-        <div className="mb-6 mt-6 rounded-2xl border border-tsBorder bg-black/20 p-3">
+        <div className="mb-6 mt-6 rounded-2xl border border-white/10 bg-black/20 p-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tsTextMuted" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
               <Input
                 placeholder={
                   activeTab === "find-workers" ? "Search providers..." : "Search work..."
@@ -297,7 +297,7 @@ export default function WorkerMarketplace() {
           {workersLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="border-tsBorder bg-tsCard/90 animate-pulse">
+                <Card key={i} className="border-white/10 bg-tsCard/90 animate-pulse">
                   <CardContent className="p-6">
                     <div className="mb-4 h-4 rounded bg-black/30"></div>
                     <div className="mb-4 h-16 rounded bg-black/30"></div>
@@ -320,11 +320,11 @@ export default function WorkerMarketplace() {
               ))}
               {filteredWorkers.length === 0 && (
                 <div className="col-span-full">
-                  <Card className="border-tsBorder bg-tsCard/90">
+                  <Card className="border-white/10 bg-tsCard/90">
                     <CardContent className="p-8 text-center">
-                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <Users className="h-12 w-12 text-white/60 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-white mb-2">No helpers found</h3>
-                      <p className="text-tsTextMuted">Try another search or filter.</p>
+                      <p className="text-white/60">Try another search or filter.</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -338,7 +338,7 @@ export default function WorkerMarketplace() {
           {tasksLoading ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[...Array(4)].map((_, i) => (
-                <Card key={i} className="border-tsBorder bg-tsCard/90 animate-pulse">
+                <Card key={i} className="border-white/10 bg-tsCard/90 animate-pulse">
                   <CardContent className="p-6">
                     <div className="mb-4 h-4 rounded bg-black/30"></div>
                     <div className="mb-4 h-20 rounded bg-black/30"></div>
@@ -361,11 +361,11 @@ export default function WorkerMarketplace() {
               ))}
               {filteredTasks.length === 0 && (
                 <div className="col-span-full">
-                  <Card className="border-tsBorder bg-tsCard/90">
+                  <Card className="border-white/10 bg-tsCard/90">
                     <CardContent className="p-8 text-center">
-                      <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <Briefcase className="h-12 w-12 text-white/60 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-white mb-2">No tasks found</h3>
-                      <p className="text-tsTextMuted">Try another search or filter.</p>
+                      <p className="text-white/60">Try another search or filter.</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -378,17 +378,17 @@ export default function WorkerMarketplace() {
       {/* Call to Action */}
       {isAuthenticated && (
         <div className="mt-12">
-          <Card className="border-tsBorder bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
+          <Card className="border-white/10 bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
             <CardContent className="p-8 text-center">
               <h3 className="text-2xl font-bold text-white mb-4">Ready to get started?</h3>
-              <p className="mx-auto mb-6 max-w-2xl text-tsTextMuted">
+              <p className="mx-auto mb-6 max-w-2xl text-white/60">
                 {activeTab === "find-workers"
                   ? "Need a helper? Post a scoped request."
                   : "Apply to jobs that match your skills."}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
-                  className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   onClick={() => setIsPostTaskOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -396,7 +396,7 @@ export default function WorkerMarketplace() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-tsBorder text-tsTextMain hover:bg-black/30"
+                  className="border-white/10 text-white hover:bg-black/30"
                   onClick={() => {
                     // Route helpers into Direct Connect flows instead of a separate Helpers hub
                     window.location.href = "/direct-connect";
@@ -412,7 +412,7 @@ export default function WorkerMarketplace() {
 
       {/* Helper Profile Modal */}
       <Dialog open={isPostTaskOpen} onOpenChange={setIsPostTaskOpen}>
-        <DialogContent className="border-tsBorder bg-tsCard/95 text-tsTextMain">
+        <DialogContent className="border-white/10 bg-tsCard/95 text-white">
           <DialogHeader>
             <DialogTitle>Create Direct Connect request</DialogTitle>
           </DialogHeader>
@@ -546,14 +546,14 @@ export default function WorkerMarketplace() {
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                className="border-tsBorder text-tsTextMain hover:bg-black/30"
+                className="border-white/10 text-white hover:bg-black/30"
                 onClick={() => setIsPostTaskOpen(false)}
                 disabled={createTaskMutation.isPending}
               >
                 Cancel
               </Button>
               <Button
-                className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
                 onClick={() => createTaskMutation.mutate()}
                 disabled={createTaskMutation.isPending}
               >
@@ -565,14 +565,14 @@ export default function WorkerMarketplace() {
       </Dialog>
 
       <Dialog open={Boolean(applyTask)} onOpenChange={(open) => !open && setApplyTask(null)}>
-        <DialogContent className="border-tsBorder bg-tsCard/95 text-tsTextMain">
+        <DialogContent className="border-white/10 bg-tsCard/95 text-white">
           <DialogHeader>
             <DialogTitle>Apply to task</DialogTitle>
           </DialogHeader>
 
           {applyTask && (
             <div className="grid gap-4">
-              <div className="text-sm text-tsTextMuted">
+              <div className="text-sm text-white/60">
                 <div className="font-semibold text-white">{applyTask.title}</div>
                 <div className="mt-1">{applyTask.description}</div>
               </div>
@@ -590,14 +590,14 @@ export default function WorkerMarketplace() {
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
-                  className="border-tsBorder text-tsTextMain hover:bg-black/30"
+                  className="border-white/10 text-white hover:bg-black/30"
                   onClick={() => setApplyTask(null)}
                   disabled={applyToTaskMutation.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
-                  className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   onClick={() =>
                     applyToTaskMutation.mutate({
                       taskId: applyTask.id,
@@ -650,27 +650,27 @@ export default function WorkerMarketplace() {
 function HelperCard({ worker, onViewProfile }: HelperCardProps) {
   return (
     <Card
-      className="cursor-pointer border-tsBorder bg-tsCard/90 transition-colors hover:border-tsAccent/45"
+      className="cursor-pointer border-white/10 bg-tsCard/90 transition-colors hover:border-ts-orange/45"
       onClick={onViewProfile}
     >
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mr-3">
-              <Users className="h-6 w-6 text-gray-300" />
+            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mr-3">
+              <Users className="h-6 w-6 text-white/70" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">
                 {worker.firstName} {worker.lastName}
               </h3>
-              <div className="flex items-center text-sm text-tsTextMuted">
+              <div className="flex items-center text-sm text-white/60">
                 {worker.averageRating && (
                   <>
                     <Star className="h-4 w-4 text-yellow-500 mr-1" />
                     <span className="mr-2">{parseFloat(worker.averageRating).toFixed(1)}</span>
                   </>
                 )}
-                <span className="text-gray-400">|</span>
+                <span className="text-white/60">|</span>
                 <span className="ml-2">{worker.totalJobsCompleted} jobs completed</span>
               </div>
             </div>
@@ -685,7 +685,7 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
           </div>
         </div>
 
-        <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+        <p className="text-white/70 text-sm mb-4 line-clamp-2">
           {worker.bio || "No bio available"}
         </p>
 
@@ -694,7 +694,7 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
             <Badge
               key={skill}
               variant="secondary"
-              className="text-xs border-tsBorder bg-black/25 text-tsTextMuted"
+              className="text-xs border-white/10 bg-black/25 text-white/60"
             >
               {skill.replace("-", " ")}
             </Badge>
@@ -702,7 +702,7 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
           {worker.skills && worker.skills.length > 3 && (
             <Badge
               variant="secondary"
-              className="text-xs border-tsBorder bg-black/25 text-tsTextMuted"
+              className="text-xs border-white/10 bg-black/25 text-white/60"
             >
               +{worker.skills.length - 3} more
             </Badge>
@@ -710,13 +710,13 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center text-sm text-tsTextMuted">
+          <div className="flex items-center text-sm text-white/60">
             <DollarSign className="h-4 w-4 mr-1" />
             <span>${worker.hourlyRate}/hr</span>
           </div>
           <Button
             size="sm"
-            className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+            className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
             onClick={(e) => {
               e.stopPropagation();
               // Handle contact action separately
@@ -736,7 +736,7 @@ export function TaskCard({ task, onApply }: { task: Task; onApply: () => void })
       ? "bg-green-500/20 text-green-400 border-green-500/50"
       : task.status === "assigned"
         ? "bg-blue-500/20 text-blue-400 border-blue-500/50"
-        : "bg-slate-900/20 text-gray-400 border-gray-500/50";
+        : "bg-tsCard/95 text-white/60 border-white/15";
 
   const getPayDisplay = () => {
     if (task.payType === "fixed") {
@@ -749,12 +749,12 @@ export function TaskCard({ task, onApply }: { task: Task; onApply: () => void })
   };
 
   return (
-    <Card className="border-tsBorder bg-tsCard/90 transition-colors hover:border-tsAccent/45">
+    <Card className="border-white/10 bg-tsCard/90 transition-colors hover:border-ts-orange/45">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-white mb-2">{task.title}</h3>
-            <p className="mb-3 line-clamp-2 text-sm text-tsTextMuted">{task.description}</p>
+            <p className="mb-3 line-clamp-2 text-sm text-white/60">{task.description}</p>
           </div>
           <Badge className={`ml-2 ${statusClass}`}>
             {task.status?.replace("_", " ") || "Unknown"}
@@ -766,7 +766,7 @@ export function TaskCard({ task, onApply }: { task: Task; onApply: () => void })
             <Badge
               key={skill}
               variant="secondary"
-              className="text-xs border-tsBorder bg-black/25 text-tsTextMuted"
+              className="text-xs border-white/10 bg-black/25 text-white/60"
             >
               {skill.replace("-", " ")}
             </Badge>
@@ -774,14 +774,14 @@ export function TaskCard({ task, onApply }: { task: Task; onApply: () => void })
           {task.requiredSkills && task.requiredSkills.length > 3 && (
             <Badge
               variant="secondary"
-              className="text-xs border-tsBorder bg-black/25 text-tsTextMuted"
+              className="text-xs border-white/10 bg-black/25 text-white/60"
             >
               +{task.requiredSkills.length - 3} more
             </Badge>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-tsTextMuted">
+        <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-white/60">
           <div className="flex items-center">
             <DollarSign className="h-4 w-4 mr-1" />
             <span>{getPayDisplay()}</span>
@@ -801,12 +801,12 @@ export function TaskCard({ task, onApply }: { task: Task; onApply: () => void })
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-white/60">
             Posted {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "Unknown"}
           </span>
           <Button
             size="sm"
-            className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+            className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
             disabled={task.status !== "open"}
             onClick={onApply}
           >

@@ -51,12 +51,12 @@ export default function CarSalesNewListing() {
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-orange-500/20 rounded-xl">
-              <Car className="h-8 w-8 text-orange-400" />
+            <div className="p-3 bg-ts-orange/20 rounded-xl">
+              <Car className="h-8 w-8 text-ts-orange" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Create New Vehicle Listing</h1>
-              <p className="text-gray-400">
+              <p className="text-white/60">
                 List your vehicle for sale on the TradeScout marketplace
               </p>
             </div>
@@ -64,10 +64,10 @@ export default function CarSalesNewListing() {
 
           <div className="space-y-6">
             {/* Basic Information */}
-            <Card className="bg-navy-800/50 border-navy-600">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Car className="h-5 w-5 text-orange-400" />
+                  <Car className="h-5 w-5 text-ts-orange" />
                   Vehicle Information
                 </CardTitle>
               </CardHeader>
@@ -80,7 +80,7 @@ export default function CarSalesNewListing() {
                       value={formData.make}
                       onChange={(e) => handleInputChange("make", e.target.value)}
                       placeholder="e.g., Toyota"
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-tsCard/50 border-white/10"
                     />
                   </div>
                   <div>
@@ -90,7 +90,7 @@ export default function CarSalesNewListing() {
                       value={formData.model}
                       onChange={(e) => handleInputChange("model", e.target.value)}
                       placeholder="e.g., Camry"
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-tsCard/50 border-white/10"
                     />
                   </div>
                   <div>
@@ -101,7 +101,7 @@ export default function CarSalesNewListing() {
                       value={formData.year}
                       onChange={(e) => handleInputChange("year", e.target.value)}
                       placeholder="e.g., 2020"
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-tsCard/50 border-white/10"
                     />
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export default function CarSalesNewListing() {
                       value={formData.price}
                       onChange={(e) => handleInputChange("price", e.target.value)}
                       placeholder="25000"
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-tsCard/50 border-white/10"
                     />
                   </div>
                   <div>
@@ -126,7 +126,7 @@ export default function CarSalesNewListing() {
                       value={formData.mileage}
                       onChange={(e) => handleInputChange("mileage", e.target.value)}
                       placeholder="50000"
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-tsCard/50 border-white/10"
                     />
                   </div>
                 </div>
@@ -134,10 +134,10 @@ export default function CarSalesNewListing() {
             </Card>
 
             {/* Vehicle Details */}
-            <Card className="bg-navy-800/50 border-navy-600">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-orange-400" />
+                  <Settings className="h-5 w-5 text-ts-orange" />
                   Vehicle Details
                 </CardTitle>
               </CardHeader>
@@ -146,7 +146,7 @@ export default function CarSalesNewListing() {
                   <div>
                     <Label htmlFor="condition">Condition</Label>
                     <Select onValueChange={(value) => handleInputChange("condition", value)}>
-                      <SelectTrigger className="bg-navy-700/50 border-navy-600">
+                      <SelectTrigger className="bg-tsCard/50 border-white/10">
                         <SelectValue placeholder="Select condition" />
                       </SelectTrigger>
                       <SelectContent>
@@ -160,7 +160,7 @@ export default function CarSalesNewListing() {
                   <div>
                     <Label htmlFor="transmission">Transmission</Label>
                     <Select onValueChange={(value) => handleInputChange("transmission", value)}>
-                      <SelectTrigger className="bg-navy-700/50 border-navy-600">
+                      <SelectTrigger className="bg-tsCard/50 border-white/10">
                         <SelectValue placeholder="Select transmission" />
                       </SelectTrigger>
                       <SelectContent>
@@ -176,7 +176,7 @@ export default function CarSalesNewListing() {
                   <div>
                     <Label htmlFor="fuelType">Fuel Type</Label>
                     <Select onValueChange={(value) => handleInputChange("fuelType", value)}>
-                      <SelectTrigger className="bg-navy-700/50 border-navy-600">
+                      <SelectTrigger className="bg-tsCard/50 border-white/10">
                         <SelectValue placeholder="Select fuel type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -194,7 +194,7 @@ export default function CarSalesNewListing() {
                       value={formData.exteriorColor}
                       onChange={(e) => handleInputChange("exteriorColor", e.target.value)}
                       placeholder="e.g., Silver"
-                      className="bg-navy-700/50 border-navy-600"
+                      className="bg-tsCard/50 border-white/10"
                     />
                   </div>
                 </div>
@@ -202,10 +202,10 @@ export default function CarSalesNewListing() {
             </Card>
 
             {/* Description */}
-            <Card className="bg-navy-800/50 border-navy-600">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-orange-400" />
+                  <FileText className="h-5 w-5 text-ts-orange" />
                   Description
                 </CardTitle>
               </CardHeader>
@@ -216,26 +216,26 @@ export default function CarSalesNewListing() {
                   value={formData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   placeholder="Provide detailed information about your vehicle..."
-                  className="bg-navy-700/50 border-navy-600 min-h-[120px]"
+                  className="bg-tsCard/50 border-white/10 min-h-[120px]"
                 />
               </CardContent>
             </Card>
 
             {/* Images */}
-            <Card className="bg-navy-800/50 border-navy-600">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Camera className="h-5 w-5 text-orange-400" />
+                  <Camera className="h-5 w-5 text-ts-orange" />
                   Photos
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-navy-600 rounded-lg p-8 text-center">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400 mb-2">
+                <div className="border-2 border-dashed border-white/10 rounded-lg p-8 text-center">
+                  <Upload className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                  <p className="text-white/60 mb-2">
                     Drop your vehicle photos here, or click to browse
                   </p>
-                  <p className="text-sm text-gray-500">Upload up to 20 high-quality images</p>
+                  <p className="text-sm text-white/60">Upload up to 20 high-quality images</p>
                   <Button variant="outline" className="mt-4">
                     <Upload className="h-4 w-4 mr-2" />
                     Choose Files
@@ -248,7 +248,7 @@ export default function CarSalesNewListing() {
             <div className="flex gap-4 pt-6">
               <Button
                 size="lg"
-                className="bg-orange-600 hover:bg-orange-700 flex-1"
+                className="bg-ts-orange-dark hover:bg-ts-orange-dark flex-1"
                 data-testid="button-publish-listing"
               >
                 <Car className="h-5 w-5 mr-2" />

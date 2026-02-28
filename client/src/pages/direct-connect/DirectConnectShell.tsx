@@ -127,9 +127,9 @@ function statusTone(status: string) {
     return "bg-rose-500/15 text-rose-200 border-rose-400/40";
   }
   if (value === "routed" || value === "suggested" || value === "invited") {
-    return "bg-tsAccent/15 text-tsTextMain border-tsAccent/40";
+    return "bg-ts-orange/15 text-white border-ts-orange/40";
   }
-  return "bg-slate-500/15 text-slate-200 border-slate-400/40";
+  return "bg-white/10 text-white/70 border-white/15";
 }
 
 type DirectConnectInboxItem = {
@@ -633,7 +633,7 @@ function DirectConnectInbox() {
               </Button>
               <Button
                 size="sm"
-                className="bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
                 onClick={() => {
                   const title = currentAcceptedForInvoice?.request?.title || "Direct Connect job";
                   const clientName =
@@ -1081,7 +1081,7 @@ function MyDirectConnectRequests() {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1 h-9 px-2 text-xs bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90"
+                    className="flex-1 h-9 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
                     disabled={!canSend || routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
@@ -1151,7 +1151,7 @@ function MyDirectConnectRequests() {
                 {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
                 <Button
                   size="sm"
-                  className="hidden h-8 px-2 text-xs bg-tsAccent text-tsOnAccent hover:bg-tsAccent/90 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90 sm:inline-flex"
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
@@ -1160,7 +1160,7 @@ function MyDirectConnectRequests() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden h-8 px-2 text-xs border-tsBorder text-tsTextMain hover:bg-black/25 sm:inline-flex"
+                  className="hidden h-8 px-2 text-xs border-white/10 text-white hover:bg-black/25 sm:inline-flex"
                   disabled={status !== "routed" || expandMutation.isPending}
                   onClick={() => expandMutation.mutate(r.id)}
                 >

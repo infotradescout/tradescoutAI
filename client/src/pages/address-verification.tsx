@@ -164,7 +164,7 @@ export default function AddressVerification() {
       <div className="py-24 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading verification status...</p>
+          <p className="text-white/60 dark:text-white/60">Loading verification status...</p>
         </div>
       </div>
     );
@@ -205,8 +205,8 @@ export default function AddressVerification() {
           <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">Address Verification Required</h1>
-          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold text-ts-orange mb-2">Address Verification Required</h1>
+          <p className="text-white/60 dark:text-white/60 max-w-2xl mx-auto">
             To maintain trust and security in our community, all users must verify their address
             within 14 days of account creation.
           </p>
@@ -214,19 +214,19 @@ export default function AddressVerification() {
 
         {/* Status Alert */}
         <Alert
-          className={`mb-6 ${isExpired ? "border-red-200 bg-red-50 dark:bg-red-950" : "border-orange-200 bg-orange-50 dark:bg-orange-950"}`}
+          className={`mb-6 ${isExpired ? "border-red-200 bg-red-50 dark:bg-red-950" : "border-ts-orange/30 bg-ts-orange/10 dark:bg-ts-orange/10"}`}
         >
-          <Clock className={`h-4 w-4 ${isExpired ? "text-red-600" : "text-orange-600"}`} />
+          <Clock className={`h-4 w-4 ${isExpired ? "text-red-600" : "text-ts-orange"}`} />
           <AlertTitle
             className={
-              isExpired ? "text-red-800 dark:text-red-200" : "text-orange-800 dark:text-orange-200"
+              isExpired ? "text-red-800 dark:text-red-200" : "text-ts-orange dark:text-ts-orange"
             }
           >
             {isExpired ? "Verification Overdue" : `${daysRemaining} Days Remaining`}
           </AlertTitle>
           <AlertDescription
             className={
-              isExpired ? "text-red-700 dark:text-red-300" : "text-orange-700 dark:text-orange-300"
+              isExpired ? "text-red-700 dark:text-red-300" : "text-ts-orange dark:text-ts-orange"
             }
           >
             {isExpired
@@ -377,12 +377,12 @@ export default function AddressVerification() {
                     className="flex items-start space-x-3 p-3 rounded-lg"
                     style={{ backgroundColor: "var(--surface-card)" }}
                   >
-                    <Upload className="w-5 h-5 text-gray-600 mt-1" />
+                    <Upload className="w-5 h-5 text-white/60 mt-1" />
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                      <h4 className="font-medium text-white dark:text-white">
                         Document Upload
                       </h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <p className="text-sm text-white/70 dark:text-white/70">
                         Upload a document that shows your name and address (utility bill, bank
                         statement, etc.).
                       </p>
@@ -438,7 +438,7 @@ export default function AddressVerification() {
               <Separator className="my-6" />
 
               <div className="text-center space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-white/60 dark:text-white/60">
                   Didn't receive the postcard? It typically arrives within 5-7 business days.
                 </p>
                 <Button

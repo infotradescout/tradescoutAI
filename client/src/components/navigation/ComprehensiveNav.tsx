@@ -468,13 +468,13 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
         className="cursor-pointer"
       >
         <Icon className="h-4 w-4 mr-2" />
-        <span className={isActive ? "font-semibold text-orange-600" : ""}>{item.label}</span>
+        <span className={isActive ? "font-semibold text-ts-orange" : ""}>{item.label}</span>
       </DropdownMenuItem>
     );
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+    <div className="bg-white dark:bg-white/5 border-b border-white/10 dark:border-white/10 shadow-sm">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
@@ -516,7 +516,7 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
                   <Button
                     variant={location === item.href ? "default" : "ghost"}
                     size="sm"
-                    className={location === item.href ? "bg-orange-600 hover:bg-orange-700" : ""}
+                    className={location === item.href ? "bg-ts-orange-dark hover:bg-ts-orange-dark" : ""}
                   >
                     <item.icon className="h-4 w-4 mr-2" />
                     {item.label}
@@ -558,13 +558,13 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 py-4 max-h-[70vh] overflow-y-auto">
+          <div className="lg:hidden border-t border-white/10 dark:border-white/10 py-4 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2">
               {visibleItems.map((item) => {
                 if (item.children && item.children.length > 0) {
                   return (
                     <div key={item.label} className="space-y-1">
-                      <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 dark:text-white/70">
                         <item.icon className="h-4 w-4" />
                         {item.label}
                       </div>
@@ -572,9 +572,9 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
                         {item.children.map((child) => (
                           <Link key={child.href} href={child.href}>
                             <div
-                              className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors ${
+                              className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors ${
                                 location === child.href
-                                  ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 font-medium"
+                                  ? "bg-ts-orange/10 dark:bg-ts-orange/10 text-ts-orange font-medium"
                                   : ""
                               }`}
                               onClick={() => setMobileMenuOpen(false)}
@@ -592,9 +592,9 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
                 return (
                   <Link key={item.href} href={item.href}>
                     <div
-                      className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors ${
+                      className={`flex items-center gap-2 px-4 py-2 text-sm hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors ${
                         location === item.href
-                          ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 font-medium"
+                          ? "bg-ts-orange/10 dark:bg-ts-orange/10 text-ts-orange font-medium"
                           : ""
                       }`}
                       onClick={() => setMobileMenuOpen(false)}

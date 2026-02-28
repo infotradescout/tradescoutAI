@@ -3,9 +3,9 @@ import { ShieldCheck } from "lucide-react";
 
 function DoctrineNotice({ text }: { text: string }) {
   return (
-    <Card className="bg-tsCard border-tsBorder">
-      <CardContent className="p-4 text-sm text-tsTextSecondary flex items-start gap-2">
-        <ShieldCheck className="h-4 w-4 mt-0.5 text-tsAccent" />
+    <Card className="bg-tsCard border-white/10">
+      <CardContent className="p-4 text-sm text-white/70 flex items-start gap-2">
+        <ShieldCheck className="h-4 w-4 mt-0.5 text-ts-orange" />
         <span>{text}</span>
       </CardContent>
     </Card>

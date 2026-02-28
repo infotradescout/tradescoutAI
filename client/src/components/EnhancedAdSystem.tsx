@@ -186,13 +186,13 @@ function BannerAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () =>
 
 function CardAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () => void; onClick: () => void }) {
   return (
-    <Card className="bg-navy-700 border-navy-600 hover:border-orange-500 transition-all cursor-pointer mb-4" onClick={onClick}>
+    <Card className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-all cursor-pointer mb-4" onClick={onClick}>
       <CardContent className="p-4 relative">
         {onDismiss && (
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-2 right-2 text-gray-400 hover:text-white"
+            className="absolute top-2 right-2 text-white/60 hover:text-white"
             onClick={(e) => {
               e.stopPropagation();
               onDismiss();
@@ -204,28 +204,28 @@ function CardAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () => v
         
         <div className="flex items-start gap-3">
           {ad.imageUrl && (
-            <div className="w-16 h-16 bg-gray-300 rounded-lg flex-shrink-0 overflow-hidden">
+            <div className="w-16 h-16 bg-white/10 rounded-lg flex-shrink-0 overflow-hidden">
               <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
             </div>
           )}
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">
+              <Badge variant="outline" className="text-xs border-ts-orange/30 text-ts-orange">
                 {ad.isSponsored ? 'Sponsored' : 'Partner'}
               </Badge>
-              <span className="text-gray-400 text-sm">{ad.advertiser}</span>
+              <span className="text-white/60 text-sm">{ad.advertiser}</span>
             </div>
             
             <h4 className="text-white font-medium mb-2">{ad.title}</h4>
-            <p className="text-gray-300 text-sm mb-3 line-clamp-2">{ad.description}</p>
+            <p className="text-white/70 text-sm mb-3 line-clamp-2">{ad.description}</p>
             
             <div className="flex items-center justify-between">
-              <Button variant="outline" size="sm" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white">
+              <Button variant="outline" size="sm" className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white">
                 {ad.ctaText}
               </Button>
               {ad.location && (
-                <div className="flex items-center text-gray-400 text-xs">
+                <div className="flex items-center text-white/60 text-xs">
                   <MapPin className="h-3 w-3 mr-1" />
                   {ad.location.county}, {ad.location.state}
                 </div>
@@ -240,12 +240,12 @@ function CardAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () => v
 
 function NativeAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () => void; onClick: () => void }) {
   return (
-    <div className="bg-navy-600 rounded-lg p-4 mb-4 hover:bg-navy-500 transition-colors cursor-pointer relative" onClick={onClick}>
+    <div className="bg-tsCard rounded-lg p-4 mb-4 hover:bg-white/10 transition-colors cursor-pointer relative" onClick={onClick}>
       {onDismiss && (
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-2 right-2 text-gray-400 hover:text-white"
+          className="absolute top-2 right-2 text-white/60 hover:text-white"
           onClick={(e) => {
             e.stopPropagation();
             onDismiss();
@@ -256,7 +256,7 @@ function NativeAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () =>
       )}
       
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+        <div className="w-12 h-12 bg-ts-orange rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
           {ad.advertiser.charAt(0)}
         </div>
         
@@ -266,13 +266,13 @@ function NativeAd({ ad, onDismiss, onClick }: { ad: AdContent; onDismiss?: () =>
             <Badge variant="secondary" className="text-xs">Ad</Badge>
           </div>
           
-          <p className="text-gray-300 text-sm mb-2">{ad.description}</p>
+          <p className="text-white/70 text-sm mb-2">{ad.description}</p>
           
           <div className="flex items-center gap-4">
-            <Button variant="link" className="text-orange-500 hover:text-orange-400 p-0">
+            <Button variant="link" className="text-ts-orange hover:text-ts-orange p-0">
               {ad.ctaText}
             </Button>
-            <div className="flex items-center text-gray-400 text-xs gap-3">
+            <div className="flex items-center text-white/60 text-xs gap-3">
               <div className="flex items-center">
                 <Star className="h-3 w-3 mr-1 fill-current text-yellow-400" />
                 4.8

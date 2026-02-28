@@ -280,28 +280,28 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
           <div className="space-y-2">
             <NavLink
               href="/privacy"
-              icon={<Settings className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Settings className="h-3.5 w-3.5 text-ts-orange" />}
               label="Privacy & data"
               description="Privacy policy, data handling, and cookie use."
               onNavigate={handleNavigate}
             />
             <NavLink
               href="/terms"
-              icon={<ClipboardList className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<ClipboardList className="h-3.5 w-3.5 text-ts-orange" />}
               label="Terms of service"
               description="Usage rules, responsibilities, and limits."
               onNavigate={handleNavigate}
             />
             <NavLink
               href="/compliance"
-              icon={<Building className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Building className="h-3.5 w-3.5 text-ts-orange" />}
               label="Compliance dashboard"
               description="Marketplace, INFORM Act, and safety disclosures."
               onNavigate={handleNavigate}
             />
             <NavLink
               href="/privacy"
-              icon={<Bookmark className="h-3.5 w-3.5 text-orange-400" />}
+              icon={<Bookmark className="h-3.5 w-3.5 text-ts-orange" />}
               label="Cookie controls"
               description="Cookie policy and preference controls."
               onNavigate={handleNavigate}

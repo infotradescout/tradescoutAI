@@ -230,18 +230,18 @@ export function TestingErrorReportButton({
   if (variant === 'banner') {
     return (
       <>
-        <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4 mb-6">
+        <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <TestTube className="h-5 w-5 text-orange-400" />
+              <TestTube className="h-5 w-5 text-ts-orange" />
               <div>
-                <h3 className="text-orange-400 font-semibold">Testing Mode: Bug Reporting System</h3>
-                <p className="text-orange-300 text-sm">Try out the error reporting system - all reports are visible in the admin panel.</p>
+                <h3 className="text-ts-orange font-semibold">Testing Mode: Bug Reporting System</h3>
+                <p className="text-ts-orange text-sm">Try out the error reporting system - all reports are visible in the admin panel.</p>
               </div>
             </div>
             <Button
               onClick={() => setIsOpen(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-ts-orange hover:bg-ts-orange-dark text-white"
             >
               <Bug className="h-4 w-4 mr-2" />
               Test Report Bug
@@ -250,25 +250,25 @@ export function TestingErrorReportButton({
         </div>
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-navy-800 border-navy-600">
+          <DialogContent className="sm:max-w-[600px] bg-tsCard border-white/10">
             <DialogHeader>
               <DialogTitle className="text-white flex items-center gap-2">
-                <Bug className="h-5 w-5 text-orange-400" />
+                <Bug className="h-5 w-5 text-ts-orange" />
                 {showTestingLabel ? "Test Bug Report" : "Report an Issue"}
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Quick Test Buttons */}
-              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
-                <Label className="text-orange-400 text-sm font-semibold">Quick Test Reports:</Label>
+              <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-3">
+                <Label className="text-ts-orange text-sm font-semibold">Quick Test Reports:</Label>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <Button 
                     type="button"
                     onClick={() => generateTestReport('bug')}
                     size="sm"
                     variant="outline"
-                    className="border-orange-500/50 text-orange-300 hover:bg-orange-500/20"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test Bug
                   </Button>
@@ -277,7 +277,7 @@ export function TestingErrorReportButton({
                     onClick={() => generateTestReport('ui_issue')}
                     size="sm"
                     variant="outline"
-                    className="border-orange-500/50 text-orange-300 hover:bg-orange-500/20"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test UI Issue
                   </Button>
@@ -286,7 +286,7 @@ export function TestingErrorReportButton({
                     onClick={() => generateTestReport('performance')}
                     size="sm"
                     variant="outline"
-                    className="border-orange-500/50 text-orange-300 hover:bg-orange-500/20"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test Performance
                   </Button>
@@ -295,7 +295,7 @@ export function TestingErrorReportButton({
                     onClick={() => generateTestReport('feature_request')}
                     size="sm"
                     variant="outline"
-                    className="border-orange-500/50 text-orange-300 hover:bg-orange-500/20"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test Feature Request
                   </Button>
@@ -303,12 +303,12 @@ export function TestingErrorReportButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="issue-type" className="text-gray-300">Issue Type</Label>
+                <Label htmlFor="issue-type" className="text-white/70">Issue Type</Label>
                 <Select value={errorType} onValueChange={setErrorType}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Select issue type" />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-700 border-navy-600">
+                  <SelectContent className="bg-tsCard border-white/10">
                     <SelectItem value="bug">🐛 Bug/Error</SelectItem>
                     <SelectItem value="ui_issue">🎨 UI Issue</SelectItem>
                     <SelectItem value="performance">⚡ Performance</SelectItem>
@@ -319,48 +319,48 @@ export function TestingErrorReportButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title" className="text-gray-300">Issue Summary</Label>
+                <Label htmlFor="title" className="text-white/70">Issue Summary</Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Brief description of the issue"
-                  className="bg-navy-700 border-navy-600 text-white placeholder:text-gray-400"
+                  className="bg-tsCard border-white/10 text-white placeholder:text-white/60"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-gray-300">Detailed Description</Label>
+                <Label htmlFor="description" className="text-white/70">Detailed Description</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe what happened, what you expected, and steps to reproduce the issue..."
-                  className="bg-navy-700 border-navy-600 text-white placeholder:text-gray-400 min-h-[100px]"
+                  className="bg-tsCard border-white/10 text-white placeholder:text-white/60 min-h-[100px]"
                   required
                 />
               </div>
 
               {!isAuthenticated && (
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-300">Email (optional)</Label>
+                  <Label htmlFor="email" className="text-white/70">Email (optional)</Label>
                   <Input
                     id="email"
                     type="email"
                     value={userEmail}
                     onChange={(e) => setUserEmail(e.target.value)}
                     placeholder="your.email@example.com"
-                    className="bg-navy-700 border-navy-600 text-white placeholder:text-gray-400"
+                    className="bg-tsCard border-white/10 text-white placeholder:text-white/60"
                   />
                 </div>
               )}
 
               {/* Screenshot and File Upload Section */}
               <div className="space-y-4">
-                <div className="border-t border-navy-600 pt-4">
-                  <Label className="text-gray-300 text-sm font-semibold">Attachments</Label>
-                  <p className="text-gray-400 text-xs mb-3">Screenshots and files help us understand the issue better</p>
+                <div className="border-t border-white/10 pt-4">
+                  <Label className="text-white/70 text-sm font-semibold">Attachments</Label>
+                  <p className="text-white/60 text-xs mb-3">Screenshots and files help us understand the issue better</p>
                   
                   <div className="flex gap-2 mb-3">
                     <Button
@@ -369,7 +369,7 @@ export function TestingErrorReportButton({
                       size="sm"
                       onClick={captureScreenshot}
                       disabled={isCapturingScreenshot}
-                      className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                      className="border-white/10 text-white/70 hover:bg-tsCard"
                     >
                       {isCapturingScreenshot ? (
                         <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -384,7 +384,7 @@ export function TestingErrorReportButton({
                       variant="outline"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                      className="border-white/10 text-white/70 hover:bg-tsCard"
                     >
                       <Upload className="h-4 w-4 mr-1" />
                       Upload Files
@@ -402,7 +402,7 @@ export function TestingErrorReportButton({
 
                   {/* Screenshots Preview */}
                   {screenshot && (
-                    <div className="bg-navy-700 rounded-lg p-3 mb-3">
+                    <div className="bg-tsCard rounded-lg p-3 mb-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Image className="h-4 w-4 text-green-400" />
@@ -413,7 +413,7 @@ export function TestingErrorReportButton({
                           variant="ghost"
                           size="sm"
                           onClick={() => setScreenshot(null)}
-                          className="text-gray-400 hover:text-white"
+                          className="text-white/60 hover:text-white"
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -421,7 +421,7 @@ export function TestingErrorReportButton({
                       <img
                         src={screenshot}
                         alt="Screenshot preview"
-                        className="max-w-full h-32 object-cover rounded border border-navy-600"
+                        className="max-w-full h-32 object-cover rounded border border-white/10"
                       />
                     </div>
                   )}
@@ -430,11 +430,11 @@ export function TestingErrorReportButton({
                   {uploadedFiles.length > 0 && (
                     <div className="space-y-2">
                       {uploadedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-navy-700 rounded-lg p-2">
+                        <div key={index} className="flex items-center justify-between bg-tsCard rounded-lg p-2">
                           <div className="flex items-center gap-2">
                             <Upload className="h-4 w-4 text-blue-400" />
                             <span className="text-white text-sm truncate">{file.name}</span>
-                            <span className="text-gray-400 text-xs">
+                            <span className="text-white/60 text-xs">
                               ({(file.size / 1024).toFixed(1)} KB)
                             </span>
                           </div>
@@ -443,7 +443,7 @@ export function TestingErrorReportButton({
                             variant="ghost"
                             size="sm"
                             onClick={() => removeFile(index)}
-                            className="text-gray-400 hover:text-white"
+                            className="text-white/60 hover:text-white"
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -459,14 +459,14 @@ export function TestingErrorReportButton({
                   type="button"
                   variant="outline"
                   onClick={() => setIsOpen(false)}
-                  className="border-navy-500 text-gray-300"
+                  className="border-white/10 text-white/70"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={reportMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  className="bg-ts-orange hover:bg-ts-orange-dark text-white"
                 >
                   {reportMutation.isPending ? (
                     "Submitting..."
@@ -490,7 +490,7 @@ export function TestingErrorReportButton({
       <>
         <Button
           onClick={() => setIsOpen(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
+          className="bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg"
           size="lg"
         >
           <Bug className="h-5 w-5 mr-2" />
@@ -498,10 +498,10 @@ export function TestingErrorReportButton({
         </Button>
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-navy-800 border-navy-600">
+          <DialogContent className="sm:max-w-[600px] bg-tsCard border-white/10">
             <DialogHeader>
               <DialogTitle className="text-white flex items-center gap-2">
-                <Bug className="h-5 w-5 text-orange-400" />
+                <Bug className="h-5 w-5 text-ts-orange" />
                 {showTestingLabel ? "Test Bug Report" : "Report an Issue"}
               </DialogTitle>
             </DialogHeader>
@@ -520,7 +520,7 @@ export function TestingErrorReportButton({
     <>
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-orange-500 hover:bg-orange-600 text-white shadow-lg rounded-full p-4 
+        className="fixed bottom-6 right-6 z-50 bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg rounded-full p-4 
                    md:bottom-6 md:right-6 
                    max-md:bottom-20 max-md:right-4 max-md:p-3 
                    transition-all duration-300 hover:scale-105"
@@ -530,10 +530,10 @@ export function TestingErrorReportButton({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-navy-800 border-navy-600">
+        <DialogContent className="sm:max-w-[600px] bg-tsCard border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Bug className="h-5 w-5 text-orange-400" />
+              <Bug className="h-5 w-5 text-ts-orange" />
               {showTestingLabel ? "Test Bug Report" : "Report an Issue"}
             </DialogTitle>
           </DialogHeader>

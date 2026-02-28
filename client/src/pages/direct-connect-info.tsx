@@ -65,12 +65,12 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
         structuredData={createFAQStructuredData(faqs)}
       />
 
-      <div className=" text-tsTextMain">
+      <div className=" text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Header */}
           <header className="mb-12">
             <h1 className="text-4xl font-bold mb-4">Direct Connect</h1>
-            <p className="text-xl text-tsTextSecondary">
+            <p className="text-xl text-white/70">
               Trust-first contractor matching with intent-gated contact.
             </p>
           </header>
@@ -78,23 +78,23 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           {/* Core Mechanism */}
           <section className="mb-16">
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-              <Zap className="h-6 w-6 text-tsAccent" />
+              <Zap className="h-6 w-6 text-ts-orange" />
               How Direct Connect Works
             </h2>
 
             <div className="space-y-8">
               {/* Step 1 */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <div className="flex items-start gap-4">
-                  <div className="bg-tsAccent text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
+                  <div className="bg-ts-orange text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
                     1
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-2">You Ask Scout</h3>
-                    <p className="text-tsTextSecondary">
+                    <p className="text-white/70">
                       "I need a licensed roofer in Austin. Emergency leak repair. Budget ~$2,000."
                     </p>
-                    <p className="text-tsTextSecondary mt-2">
+                    <p className="text-white/70 mt-2">
                       Scout extracts: <strong>job type</strong> (roof repair),{" "}
                       <strong>location</strong> (Austin), <strong>urgency</strong> (emergency),{" "}
                       <strong>budget</strong> (~$2k).
@@ -104,15 +104,15 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
               </div>
 
               {/* Step 2 */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <div className="flex items-start gap-4">
-                  <div className="bg-tsAccent text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
+                  <div className="bg-ts-orange text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
                     2
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-2">Scout Finds Matches</h3>
-                    <p className="text-tsTextSecondary mb-2">Scout filters contractors by:</p>
-                    <ul className="list-disc list-inside space-y-1 text-tsTextSecondary ml-4">
+                    <p className="text-white/70 mb-2">Scout filters contractors by:</p>
+                    <ul className="list-disc list-inside space-y-1 text-white/70 ml-4">
                       <li>
                         <strong>Trust</strong>: CVS &gt;= 60 (verified, licensed, insured)
                       </li>
@@ -134,21 +134,21 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
               </div>
 
               {/* Step 3 */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <div className="flex items-start gap-4">
-                  <div className="bg-tsAccent text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
+                  <div className="bg-ts-orange text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
                     3
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-2">Scout Routes Your Request</h3>
-                    <p className="text-tsTextSecondary">
+                    <p className="text-white/70">
                       Scout sends your request to <strong>1-3 qualified contractors</strong> (not
                       20+).
                     </p>
-                    <p className="text-tsTextSecondary mt-2">
+                    <p className="text-white/70 mt-2">
                       Request includes: job details, urgency, budget range, your contact preference.
                     </p>
-                    <p className="text-tsTextSecondary mt-2">
+                    <p className="text-white/70 mt-2">
                       Contractors can <strong>accept or decline</strong> before contacting you.
                     </p>
                   </div>
@@ -156,17 +156,17 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
               </div>
 
               {/* Step 4 */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <div className="flex items-start gap-4">
-                  <div className="bg-tsAccent text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
+                  <div className="bg-ts-orange text-white rounded-full w-8 h-8 flex items-center justify-center font-bold shrink-0">
                     4
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-2">You Connect</h3>
-                    <p className="text-tsTextSecondary">
+                    <p className="text-white/70">
                       Contractors who accept your request contact you directly (call/message).
                     </p>
-                    <p className="text-tsTextSecondary mt-2">
+                    <p className="text-white/70 mt-2">
                       You choose who to hire. No pressure, no bidding war.
                     </p>
                   </div>
@@ -178,38 +178,38 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           {/* What's Different */}
           <section className="mb-16">
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-              <Target className="h-6 w-6 text-tsAccent" />
+              <Target className="h-6 w-6 text-ts-orange" />
               What's Different
             </h2>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* No Lead Spam */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-tsAccent" />
+                  <Shield className="h-5 w-5 text-ts-orange" />
                   No Lead Spam
                 </h3>
-                <p className="text-tsTextSecondary">
+                <p className="text-white/70">
                   Traditional platforms sell your request to 10-20+ contractors. You get bombarded
                   with calls.
                 </p>
-                <p className="text-tsTextSecondary mt-2">
+                <p className="text-white/70 mt-2">
                   <strong>Direct Connect sends your request to 1-3 pre-matched pros.</strong> No
                   spam.
                 </p>
               </div>
 
               {/* No Bidding Wars */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <Users className="h-5 w-5 text-tsAccent" />
+                  <Users className="h-5 w-5 text-ts-orange" />
                   No Bidding Wars
                 </h3>
-                <p className="text-tsTextSecondary">
+                <p className="text-white/70">
                   On lead-buying platforms, contractors compete on price alone. You get lowball
                   quotes that don't reflect reality.
                 </p>
-                <p className="text-tsTextSecondary mt-2">
+                <p className="text-white/70 mt-2">
                   <strong>
                     Direct Connect matches on trust + relevance, not price competition.
                   </strong>
@@ -217,25 +217,25 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
               </div>
 
               {/* Trust-Verified */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <h3 className="text-lg font-semibold mb-2">Trust-Verified Access</h3>
-                <p className="text-tsTextSecondary">
+                <p className="text-white/70">
                   Only contractors with CVS at least 60 (verified, licensed, insured) can receive
                   Connect requests.
                 </p>
-                <p className="text-tsTextSecondary mt-2">
+                <p className="text-white/70 mt-2">
                   <strong>Low-trust contractors cannot buy their way in.</strong>
                 </p>
               </div>
 
               {/* Context-Aware */}
-              <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+              <div className="bg-tsCard p-6 rounded-lg border border-white/10">
                 <h3 className="text-lg font-semibold mb-2">Context-Aware</h3>
-                <p className="text-tsTextSecondary">
+                <p className="text-white/70">
                   Scout includes job details, urgency, and budget signals so contractors can accept
                   or decline upfront.
                 </p>
-                <p className="text-tsTextSecondary mt-2">
+                <p className="text-white/70 mt-2">
                   <strong>No wasted time on mismatched leads.</strong>
                 </p>
               </div>
@@ -246,45 +246,45 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <section className="mb-16">
             <h2 className="text-2xl font-semibold mb-6">How Contractors Benefit</h2>
 
-            <div className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
-              <ul className="space-y-3 text-tsTextSecondary">
+            <div className="bg-tsCard p-6 rounded-lg border border-white/10">
+              <ul className="space-y-3 text-white/70">
                 <li className="flex items-start gap-2">
-                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
                     <strong>$0 access</strong>: No fee for TradeScout features, connections, or
                     information in Direct Connect routing
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
                     <strong>Qualified requests only</strong>: Scout filters out mismatches before
                     routing
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
                     <strong>Full context upfront</strong>: Job details, budget, urgency - no
                     surprises
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
                     <strong>Accept/decline before contact</strong>: No obligation to chase bad-fit
                     leads
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
                     <strong>Trust determines visibility</strong>: High CVS = more matches,
                     regardless of ad spend
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <ArrowRight className="h-5 w-5 text-tsAccent shrink-0 mt-0.5" />
+                  <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
                     <strong>Scam safety</strong>: Any unlabeled money request in TradeScout's name
                     is a scam
@@ -299,28 +299,28 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
             <h2 className="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
             <div className="space-y-6">
               {faqs.map((faq, i) => (
-                <div key={i} className="bg-tsSurface p-6 rounded-lg border border-tsBorder">
+                <div key={i} className="bg-tsCard p-6 rounded-lg border border-white/10">
                   <h3 className="text-lg font-semibold mb-2">{faq.question}</h3>
-                  <p className="text-tsTextSecondary">{faq.answer}</p>
+                  <p className="text-white/70">{faq.answer}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* CTA */}
-          <section className="bg-tsSurface p-8 rounded-lg border border-tsBorder text-center">
+          <section className="bg-tsCard p-8 rounded-lg border border-white/10 text-center">
             <h2 className="text-2xl font-semibold mb-4">Try Direct Connect</h2>
-            <p className="text-tsTextSecondary mb-6">
+            <p className="text-white/70 mb-6">
               Ask Scout to find you a contractor. See trust-first matching in action.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/scout">
-                <a className="bg-tsAccent text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
+                <a className="bg-ts-orange text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
                   Talk to Scout
                 </a>
               </Link>
               <Link href="/direct-connect">
-                <a className="bg-tsSurface border border-tsBorder text-tsTextMain px-6 py-3 rounded-lg font-semibold hover:bg-tsBg transition">
+                <a className="bg-tsCard border border-white/10 text-white px-6 py-3 rounded-lg font-semibold hover:bg-tsBg transition">
                   Browse Contractors
                 </a>
               </Link>
@@ -328,17 +328,17 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           </section>
 
           {/* Internal Links */}
-          <nav className="mt-12 pt-8 border-t border-tsBorder">
+          <nav className="mt-12 pt-8 border-t border-white/10">
             <h3 className="text-lg font-semibold mb-4">Learn More</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <Link href="/how-it-works">
-                <a className="text-tsAccent hover:underline">How TradeScout Works -&gt;</a>
+                <a className="text-ts-orange hover:underline">How TradeScout Works -&gt;</a>
               </Link>
               <Link href="/trust-model">
-                <a className="text-tsAccent hover:underline">Trust Model -&gt;</a>
+                <a className="text-ts-orange hover:underline">Trust Model -&gt;</a>
               </Link>
               <Link href="/compare/angi">
-                <a className="text-tsAccent hover:underline">Compare: Angi -&gt;</a>
+                <a className="text-ts-orange hover:underline">Compare: Angi -&gt;</a>
               </Link>
             </div>
           </nav>

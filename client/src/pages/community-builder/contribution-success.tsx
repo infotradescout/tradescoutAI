@@ -45,27 +45,27 @@ export default function ContributionSuccessPage() {
               <>
                 <div>
                   <p className="text-lg font-semibold">{contribution.title}</p>
-                  <p className="text-sm text-gray-600 mt-1">{contribution.description}</p>
+                  <p className="text-sm text-white/60 mt-1">{contribution.description}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Status</p>
+                    <p className="text-sm text-white/60">Status</p>
                     <p className="font-semibold capitalize">{contribution.status}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Value</p>
+                    <p className="text-sm text-white/60">Value</p>
                     <p className="font-semibold">
                       ${contribution.actualValue || contribution.estimatedValue}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Verification</p>
+                    <p className="text-sm text-white/60">Verification</p>
                     <p className="font-semibold">
                       {contribution.verifiedAt ? "Verified" : "Pending audit"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Vault Impact</p>
+                    <p className="text-sm text-white/60">Vault Impact</p>
                     <p className="font-semibold">
                       ${contribution.actualValue || contribution.estimatedValue} added
                     </p>
@@ -73,7 +73,7 @@ export default function ContributionSuccessPage() {
                 </div>
               </>
             ) : (
-              <p className="text-gray-600">Loading contribution details...</p>
+              <p className="text-white/60">Loading contribution details...</p>
             )}
             <div className="flex flex-wrap gap-3 pt-4">
               <Button onClick={() => navigate("/community-builder/dashboard")}>

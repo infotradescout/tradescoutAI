@@ -34,25 +34,25 @@ export function AddressVerificationBanner() {
 
     const getAlertClasses = () => {
       if (isExpired) return "border-red-200 bg-red-50 dark:bg-red-950";
-      if (needsUrgentAction) return "border-orange-200 bg-orange-50 dark:bg-orange-950";
+      if (needsUrgentAction) return "border-ts-orange/30 bg-ts-orange/10 dark:bg-ts-orange/10";
       return "border-blue-200 bg-blue-50 dark:bg-blue-950";
     };
 
     const getIconColor = () => {
       if (isExpired) return "text-red-600 dark:text-red-400";
-      if (needsUrgentAction) return "text-orange-600 dark:text-orange-400";
+      if (needsUrgentAction) return "text-ts-orange dark:text-ts-orange";
       return "text-blue-600 dark:text-blue-400";
     };
 
     const getTitleColor = () => {
       if (isExpired) return "text-red-800 dark:text-red-200";
-      if (needsUrgentAction) return "text-orange-800 dark:text-orange-200";
+      if (needsUrgentAction) return "text-ts-orange dark:text-ts-orange";
       return "text-blue-800 dark:text-blue-200";
     };
 
     const getDescriptionColor = () => {
       if (isExpired) return "text-red-700 dark:text-red-300";
-      if (needsUrgentAction) return "text-orange-700 dark:text-orange-300";
+      if (needsUrgentAction) return "text-ts-orange dark:text-ts-orange";
       return "text-blue-700 dark:text-blue-300";
     };
 

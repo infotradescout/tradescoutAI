@@ -106,10 +106,10 @@ export default function SavedAds() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-navy-600 rounded w-48"></div>
+          <div className="h-8 bg-tsCard rounded w-48"></div>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-navy-600 rounded"></div>
+              <div key={i} className="h-32 bg-tsCard rounded"></div>
             ))}
           </div>
         </div>
@@ -125,8 +125,8 @@ export default function SavedAds() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading your saved ads...</p>
+          <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-white/70">Loading your saved ads...</p>
         </div>
       </div>
     );
@@ -138,7 +138,7 @@ export default function SavedAds() {
         <Card className="bg-red-900/20 border-red-500/50">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Saved Ads</h2>
-            <p className="text-gray-300">
+            <p className="text-white/70">
               There was an error loading your saved advertisements. Please try again later.
             </p>
           </CardContent>
@@ -151,22 +151,22 @@ export default function SavedAds() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
-          <Bookmark className="h-8 w-8 mr-3 text-orange-500" />
+          <Bookmark className="h-8 w-8 mr-3 text-ts-orange" />
           Saved Ads
         </h1>
-        <p className="text-gray-300">Your collection of saved sponsor messages and TradeDeals</p>
+        <p className="text-white/70">Your collection of saved sponsor messages and TradeDeals</p>
       </div>
 
       {!savedAds || savedAds.length === 0 ? (
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-12 text-center">
-            <Bookmark className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <Bookmark className="h-16 w-16 text-white/60 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-white mb-2">No Saved Ads Yet</h2>
-            <p className="text-gray-300 mb-6">
+            <p className="text-white/70 mb-6">
               When you see an interesting ad, click "Save for Later" to add it here.
             </p>
             <Link href="/">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                 Browse TradeScout
               </Button>
             </Link>
@@ -175,12 +175,12 @@ export default function SavedAds() {
       ) : (
         <div className="space-y-6">
           {savedAds.map((ad) => (
-            <Card key={ad.id} className="bg-navy-700 border-navy-600">
+            <Card key={ad.id} className="bg-tsCard border-white/10">
               <CardContent className="p-6 relative">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute top-4 right-4 h-8 w-8 p-0 text-gray-400 hover:text-red-400"
+                  className="absolute top-4 right-4 h-8 w-8 p-0 text-white/60 hover:text-red-400"
                   onClick={() => handleRemove(ad.id)}
                   disabled={removeMutation.isPending}
                 >
@@ -207,10 +207,10 @@ export default function SavedAds() {
                     )}
                   </div>
 
-                  <p className="text-gray-300 mb-4">{ad.content}</p>
+                  <p className="text-white/70 mb-4">{ad.content}</p>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-gray-400">
+                    <div className="flex items-center text-sm text-white/60">
                       <Calendar className="h-4 w-4 mr-1" />
                       Saved {new Date(ad.createdAt).toLocaleDateString()}
                     </div>
@@ -219,7 +219,7 @@ export default function SavedAds() {
                       {ad.linkUrl && (
                         <Button
                           onClick={() => handleAdClick(ad)}
-                          className="bg-orange-500 hover:bg-orange-600 text-white"
+                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
                           size="sm"
                         >
                           <ExternalLink className="h-4 w-4 mr-2" />
@@ -227,7 +227,7 @@ export default function SavedAds() {
                         </Button>
                       )}
 
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-1 text-xs text-white/60">
                         <span className="mr-1">Rate</span>
                         <Button
                           variant="ghost"
@@ -265,7 +265,7 @@ export default function SavedAds() {
           ))}
 
           <div className="text-center pt-6">
-            <p className="text-gray-400 text-sm">
+            <p className="text-white/60 text-sm">
               {savedAds.length} saved ad{savedAds.length !== 1 ? "s" : ""} total
             </p>
           </div>

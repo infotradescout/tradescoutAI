@@ -95,11 +95,11 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
   };
 
   return (
-    <Card className={`bg-navy-800 border-navy-600 ${className}`}>
+    <Card className={`bg-tsCard border-white/10 ${className}`}>
       <CardHeader>
         <CardTitle className="text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-orange-400" />
+            <Search className="h-5 w-5 text-ts-orange" />
             Find Your Perfect Contractor
           </div>
           <SearchTooltip>
@@ -121,8 +121,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-300 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-orange-400" />
+                  <FormLabel className="text-white/70 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-ts-orange" />
                     Location
                     <ContextualTooltip
                       content="Enter your city, zip code, or neighborhood - contractors work within specific service areas"
@@ -134,7 +134,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                   <FormControl>
                     <Input 
                       {...field} 
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                       placeholder="Enter your city or zip code"
                     />
                   </FormControl>
@@ -150,8 +150,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                 name="service"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-orange-400" />
+                    <FormLabel className="text-white/70 flex items-center gap-2">
+                      <Wrench className="h-4 w-4 text-ts-orange" />
                       Service Type
                       <FilterTooltip>
                         <ContextualTooltip
@@ -165,13 +165,13 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                        <SelectTrigger className="bg-tsCard border-white/10 text-white">
                           <SelectValue placeholder="What do you need?" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-navy-700 border-navy-600">
+                      <SelectContent className="bg-tsCard border-white/10">
                         {services.map((service) => (
-                          <SelectItem key={service} value={service} className="text-white hover:bg-navy-600">
+                          <SelectItem key={service} value={service} className="text-white hover:bg-tsCard">
                             {service}
                           </SelectItem>
                         ))}
@@ -187,8 +187,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                 name="budget"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-orange-400" />
+                    <FormLabel className="text-white/70 flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-ts-orange" />
                       Budget Range
                       <ContextualTooltip
                         content="Honest budget ranges help contractors provide accurate quotes - like giving measurements before cutting lumber"
@@ -199,13 +199,13 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                        <SelectTrigger className="bg-tsCard border-white/10 text-white">
                           <SelectValue placeholder="Budget range" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-navy-700 border-navy-600">
+                      <SelectContent className="bg-tsCard border-white/10">
                         {budgetRanges.map((range) => (
-                          <SelectItem key={range} value={range} className="text-white hover:bg-navy-600">
+                          <SelectItem key={range} value={range} className="text-white hover:bg-tsCard">
                             {range}
                           </SelectItem>
                         ))}
@@ -221,8 +221,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                 name="timeline"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-orange-400" />
+                    <FormLabel className="text-white/70 flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-ts-orange" />
                       Timeline
                       <ContextualTooltip
                         content="Realistic timelines get better responses - contractors appreciate honest scheduling expectations"
@@ -233,13 +233,13 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                        <SelectTrigger className="bg-tsCard border-white/10 text-white">
                           <SelectValue placeholder="When needed" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-navy-700 border-navy-600">
+                      <SelectContent className="bg-tsCard border-white/10">
                         {timelineOptions.map((option) => (
-                          <SelectItem key={option} value={option} className="text-white hover:bg-navy-600">
+                          <SelectItem key={option} value={option} className="text-white hover:bg-tsCard">
                             {option}
                           </SelectItem>
                         ))}
@@ -255,8 +255,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                 name="rating"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 flex items-center gap-2">
-                      <Star className="h-4 w-4 text-orange-400" />
+                    <FormLabel className="text-white/70 flex items-center gap-2">
+                      <Star className="h-4 w-4 text-ts-orange" />
                       Min Rating
                       <ContextualTooltip
                         content="Higher ratings mean happier customers - though sometimes the best contractors are too busy for RECOMMENDATIONS!"
@@ -267,15 +267,15 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                        <SelectTrigger className="bg-tsCard border-white/10 text-white">
                           <SelectValue placeholder="Any rating" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="bg-navy-700 border-navy-600">
-                        <SelectItem value="3" className="text-white hover:bg-navy-600">3+ Stars</SelectItem>
-                        <SelectItem value="4" className="text-white hover:bg-navy-600">4+ Stars</SelectItem>
-                        <SelectItem value="4.5" className="text-white hover:bg-navy-600">4.5+ Stars</SelectItem>
-                        <SelectItem value="5" className="text-white hover:bg-navy-600">5 Stars Only</SelectItem>
+                      <SelectContent className="bg-tsCard border-white/10">
+                        <SelectItem value="3" className="text-white hover:bg-tsCard">3+ Stars</SelectItem>
+                        <SelectItem value="4" className="text-white hover:bg-tsCard">4+ Stars</SelectItem>
+                        <SelectItem value="4.5" className="text-white hover:bg-tsCard">4.5+ Stars</SelectItem>
+                        <SelectItem value="5" className="text-white hover:bg-tsCard">5 Stars Only</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -289,7 +289,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
               <Button 
                 type="submit" 
                 disabled={isSearching}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg flex items-center gap-2"
+                className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 py-3 text-lg flex items-center gap-2"
               >
                 {isSearching ? (
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
@@ -304,17 +304,17 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
 
         {/* Active Filters */}
         {activeFilters.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-navy-600">
+          <div className="mt-6 pt-6 border-t border-white/10">
             <div className="flex items-center gap-2 mb-3">
-              <Filter className="h-4 w-4 text-orange-400" />
-              <span className="text-sm text-gray-300">Active Filters:</span>
+              <Filter className="h-4 w-4 text-ts-orange" />
+              <span className="text-sm text-white/70">Active Filters:</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {activeFilters.map((filter, index) => (
                 <Badge 
                   key={index} 
                   variant="secondary" 
-                  className="bg-orange-500/20 text-orange-300 border-orange-500/30"
+                  className="bg-ts-orange/20 text-ts-orange border-ts-orange/30"
                 >
                   {filter}
                 </Badge>
@@ -324,8 +324,8 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
         )}
 
         {/* Pro Tips */}
-        <div className="mt-6 p-4 bg-navy-700/50 rounded-lg border border-navy-600">
-          <h4 className="text-orange-400 font-semibold mb-2 flex items-center gap-2">
+        <div className="mt-6 p-4 bg-tsCard/50 rounded-lg border border-white/10">
+          <h4 className="text-ts-orange font-semibold mb-2 flex items-center gap-2">
             <ContextualTooltip
               content="These tips come from successful homeowner-contractor matches"
               illustration="hardhat"
@@ -334,7 +334,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
             />
             💡 Search Tips That Actually Work
           </h4>
-          <ul className="text-sm text-gray-300 space-y-1">
+          <ul className="text-sm text-white/70 space-y-1">
             <li>• Include your city or zip code for accurate local results</li>
             <li>• Be specific about your project type and scope</li>
             <li>• Honest budget ranges help contractors provide better quotes</li>

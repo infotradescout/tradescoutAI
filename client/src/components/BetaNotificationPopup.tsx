@@ -41,7 +41,7 @@ export function BetaNotificationPopup() {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-orange-600">
+          <DialogTitle className="flex items-center gap-2 text-ts-orange">
             <Bell className="h-5 w-5" />
             Beta Version Notice
           </DialogTitle>
@@ -66,27 +66,27 @@ export function BetaNotificationPopup() {
             </div>
           </div>
 
-          <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+          <div className="bg-ts-orange/10 dark:bg-ts-orange/10 p-4 rounded-lg border border-ts-orange/30 dark:border-ts-orange/30">
             <div className="space-y-3">
               <div className="flex items-start gap-2">
-                <Rocket className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                <Rocket className="h-4 w-4 text-ts-orange mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  <p className="text-sm font-medium text-white/70 dark:text-white/70">
                     Early Access
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-white/60 dark:text-white/60">
                     Be among the first to experience new features and provide feedback.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-2">
-                <Users className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                <Users className="h-4 w-4 text-ts-orange mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  <p className="text-sm font-medium text-white/70 dark:text-white/70">
                     Community Feedback
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-white/60 dark:text-white/60">
                     Your input is valuable! If you hit an error, please take a screenshot and email it with a brief note to{" "}
                     <a
                       href="mailto:info.tradescout@gmail.com"
@@ -101,13 +101,13 @@ export function BetaNotificationPopup() {
             </div>
           </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <p className="text-xs text-white/60 dark:text-white/60 text-center">
             This notice will only appear once per session.
           </p>
         </div>
 
         <div className="flex justify-end pt-4">
-          <Button onClick={handleClose} className="bg-orange-600 hover:bg-orange-700">
+          <Button onClick={handleClose} className="bg-ts-orange-dark hover:bg-ts-orange-dark">
             Got it, thanks!
           </Button>
         </div>

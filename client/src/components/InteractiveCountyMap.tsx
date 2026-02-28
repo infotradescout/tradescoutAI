@@ -134,10 +134,10 @@ export function InteractiveCountyMap({
   const getIntensityColor = (interactions: number, maxInteractions: number) => {
     const intensity = maxInteractions > 0 ? interactions / maxInteractions : 0;
     if (intensity > 0.8) return "bg-red-500 hover:bg-red-400";
-    if (intensity > 0.6) return "bg-orange-500 hover:bg-orange-400";
+    if (intensity > 0.6) return "bg-ts-orange hover:bg-ts-orange";
     if (intensity > 0.4) return "bg-yellow-500 hover:bg-yellow-400";
     if (intensity > 0.2) return "bg-blue-500 hover:bg-blue-400";
-    return "bg-slate-600 hover:bg-slate-500";
+    return "bg-white/10 hover:bg-white/10";
   };
 
   const generateFacebookGroupUrl = (state: string, county: string) => {
@@ -154,8 +154,8 @@ export function InteractiveCountyMap({
     return (
       <div className={`space-y-4 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-8 bg-slate-700 rounded w-1/3 mb-4"></div>
-          <div className="h-96 bg-slate-700 rounded"></div>
+          <div className="h-8 bg-white/10 rounded w-1/3 mb-4"></div>
+          <div className="h-96 bg-white/10 rounded"></div>
         </div>
       </div>
     );
@@ -167,10 +167,10 @@ export function InteractiveCountyMap({
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Map className="w-6 h-6 text-orange-500" />
+              <Map className="w-6 h-6 text-ts-orange" />
               Interactive County Explorer
             </h2>
-            <p className="text-gray-400 mt-1">
+            <p className="text-white/60 mt-1">
               {variant === "homeowner" && "Find contractors and join local homeowner communities"}
               {variant === "contractor" && "Explore business opportunities and contractor networks"}
               {variant === "general" && "Discover active communities across the United States"}
@@ -178,10 +178,10 @@ export function InteractiveCountyMap({
           </div>
 
           <Select value={timeframe} onValueChange={setTimeframe}>
-            <SelectTrigger className="w-32 bg-slate-800 border-slate-700 text-white">
+            <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-white/5 border-white/10">
               <SelectItem value="7d">7 days</SelectItem>
               <SelectItem value="30d">30 days</SelectItem>
               <SelectItem value="90d">90 days</SelectItem>
@@ -193,10 +193,10 @@ export function InteractiveCountyMap({
       {/* State Filter */}
       <div className="flex gap-4 items-center">
         <Select value={selectedState} onValueChange={setSelectedState}>
-          <SelectTrigger className="w-48 bg-slate-800 border-slate-700 text-white">
+          <SelectTrigger className="w-48 bg-white/5 border-white/10 text-white">
             <SelectValue placeholder="Filter by state" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700 max-h-64">
+          <SelectContent className="bg-white/5 border-white/10 max-h-64">
             <SelectItem value="">All States</SelectItem>
             {topStates.map(({ state }) => (
               <SelectItem key={state} value={state}>
@@ -210,7 +210,7 @@ export function InteractiveCountyMap({
             variant="outline"
             size="sm"
             onClick={() => setSelectedState("")}
-            className="border-slate-600 text-slate-300"
+            className="border-white/15 text-white/70"
           >
             Clear Filter
           </Button>
@@ -218,7 +218,7 @@ export function InteractiveCountyMap({
       </div>
 
       {/* Interactive Map Grid */}
-      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700">
+      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -238,29 +238,29 @@ export function InteractiveCountyMap({
                 <Dialog key={`${county.state}-${county.county}`}>
                   <DialogTrigger asChild>
                     <button
-                      className={`p-4 rounded-lg border border-slate-600/50 transition-all duration-200 text-left hover:border-orange-500/50 hover:shadow-lg ${getIntensityColor(county.interactions, maxInteractions)}`}
+                      className={`p-4 rounded-lg border border-white/15 transition-all duration-200 text-left hover:border-ts-orange/30 hover:shadow-lg ${getIntensityColor(county.interactions, maxInteractions)}`}
                       onClick={() => setSelectedCounty(county)}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h4 className="font-semibold text-white text-sm">{county.county}</h4>
-                          <p className="text-xs text-gray-200 opacity-90">{county.state}</p>
+                          <p className="text-xs text-white/70 opacity-90">{county.state}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-white">{county.interactions}</p>
-                          <p className="text-xs text-gray-200 opacity-90">interactions</p>
+                          <p className="text-xs text-white/70 opacity-90">interactions</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <Badge
                           variant="outline"
-                          className="text-xs bg-black/20 border-gray-300 text-gray-200"
+                          className="text-xs bg-black/20 border-white/10 text-white/70"
                         >
                           👷 {county.contractors}
                         </Badge>
                         <Badge
                           variant="outline"
-                          className="text-xs bg-black/20 border-gray-300 text-gray-200"
+                          className="text-xs bg-black/20 border-white/10 text-white/70"
                         >
                           🏠 {county.homeowners}
                         </Badge>
@@ -268,10 +268,10 @@ export function InteractiveCountyMap({
                     </button>
                   </DialogTrigger>
 
-                  <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-[95vw] sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="bg-tsCard border-white/10 text-white max-w-[95vw] sm:max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-orange-500" />
+                        <MapPin className="w-5 h-5 text-ts-orange" />
                         {county.county}, {county.state}
                       </DialogTitle>
                     </DialogHeader>
@@ -279,22 +279,22 @@ export function InteractiveCountyMap({
                     <div className="space-y-6">
                       {/* County Stats */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-slate-800 p-4 rounded-lg">
-                          <p className="text-sm text-gray-400">Total Activity</p>
-                          <p className="text-2xl font-bold text-orange-400">
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <p className="text-sm text-white/60">Total Activity</p>
+                          <p className="text-2xl font-bold text-ts-orange">
                             {county.interactions}
                           </p>
                         </div>
-                        <div className="bg-slate-800 p-4 rounded-lg">
-                          <p className="text-sm text-gray-400">Contractors</p>
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <p className="text-sm text-white/60">Contractors</p>
                           <p className="text-2xl font-bold text-blue-400">{county.contractors}</p>
                         </div>
-                        <div className="bg-slate-800 p-4 rounded-lg">
-                          <p className="text-sm text-gray-400">Homeowners</p>
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <p className="text-sm text-white/60">Homeowners</p>
                           <p className="text-2xl font-bold text-green-400">{county.homeowners}</p>
                         </div>
-                        <div className="bg-slate-800 p-4 rounded-lg">
-                          <p className="text-sm text-gray-400">Total Users</p>
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <p className="text-sm text-white/60">Total Users</p>
                           <p className="text-2xl font-bold text-purple-400">{county.users}</p>
                         </div>
                       </div>
@@ -338,7 +338,7 @@ export function InteractiveCountyMap({
                       {variant !== "contractor" && (
                         <div>
                           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <Award className="w-5 h-5 text-orange-500" />
+                            <Award className="w-5 h-5 text-ts-orange" />
                             Top Contractors in {county.county}
                           </h3>
 
@@ -347,7 +347,7 @@ export function InteractiveCountyMap({
                               {[1, 2, 3].map((i) => (
                                 <div
                                   key={i}
-                                  className="h-20 bg-slate-700 rounded animate-pulse"
+                                  className="h-20 bg-white/10 rounded animate-pulse"
                                 ></div>
                               ))}
                             </div>
@@ -359,7 +359,7 @@ export function InteractiveCountyMap({
                                   .map((contractor: CountyContractor) => (
                                     <Card
                                       key={contractor.id}
-                                      className="bg-slate-800 border-slate-600"
+                                      className="bg-white/5 border-white/15"
                                     >
                                       <CardContent className="p-4">
                                         <div className="flex justify-between items-start mb-3">
@@ -381,13 +381,13 @@ export function InteractiveCountyMap({
                                                   />
                                                 ))}
                                               </div>
-                                              <span className="text-gray-400 text-sm">
+                                              <span className="text-white/60 text-sm">
                                                 ({contractor.recommendationCount} RECOMMENDATIONS)
                                               </span>
                                             </div>
                                           </div>
                                           <div className="text-right">
-                                            <div className="flex items-center text-gray-400 text-sm">
+                                            <div className="flex items-center text-white/60 text-sm">
                                               <Clock className="w-4 h-4 mr-1" />
                                               {contractor.yearsInBusiness}+ years
                                             </div>
@@ -399,7 +399,7 @@ export function InteractiveCountyMap({
                                             <Badge
                                               key={specialty}
                                               variant="outline"
-                                              className="text-xs border-orange-500/30 text-orange-300"
+                                              className="text-xs border-ts-orange/30 text-ts-orange"
                                             >
                                               {specialty}
                                             </Badge>
@@ -410,7 +410,7 @@ export function InteractiveCountyMap({
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            className="border-slate-600 text-slate-300"
+                                            className="border-white/15 text-white/70"
                                             onClick={() => {
                                               window.location.href = `/direct-connect?intent=hire&contractorId=${encodeURIComponent(
                                                 contractor.id
@@ -426,7 +426,7 @@ export function InteractiveCountyMap({
                                   ))}
                             </div>
                           ) : (
-                            <div className="text-center py-8 text-gray-400">
+                            <div className="text-center py-8 text-white/60">
                               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                               <p>No contractor data available for this county yet.</p>
                               <p className="text-sm mt-2">
@@ -481,7 +481,7 @@ export function InteractiveCountyMap({
           </div>
 
           {(!Array.isArray(heatmapData) || heatmapData.length === 0) && (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-white/60">
               <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg mb-2">No activity data available</p>
               <p className="text-sm">

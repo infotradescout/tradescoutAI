@@ -67,11 +67,11 @@ export default function RealtorClients() {
       case "Market Ready":
         return "bg-green-600";
       case "Under Contract":
-        return "bg-orange-600";
+        return "bg-ts-orange-dark";
       case "Closed":
-        return "bg-gray-600";
+        return "bg-white/10";
       default:
-        return "bg-gray-600";
+        return "bg-white/10";
     }
   };
 
@@ -90,7 +90,7 @@ export default function RealtorClients() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold">Client Management</h1>
-                <p className="text-gray-400">Manage your buyers, sellers, and prospects</p>
+                <p className="text-white/60">Manage your buyers, sellers, and prospects</p>
               </div>
             </div>
 
@@ -103,18 +103,18 @@ export default function RealtorClients() {
           {/* Search and Filter */}
           <div className="flex gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
               <Input
                 placeholder="Search clients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-navy-800/50 border-navy-600"
+                className="pl-10 bg-tsCard/50 border-white/10"
                 data-testid="input-search-clients"
               />
             </div>
             <Button
               variant="outline"
-              className="border-navy-600"
+              className="border-white/10"
               data-testid="button-filter-clients"
             >
               Filter
@@ -122,7 +122,7 @@ export default function RealtorClients() {
           </div>
 
           <Tabs defaultValue="active" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
+            <TabsList className="bg-tsCard/50 border border-white/10">
               <TabsTrigger value="active">Active Clients</TabsTrigger>
               <TabsTrigger value="prospects">Prospects</TabsTrigger>
               <TabsTrigger value="closed">Closed Deals</TabsTrigger>
@@ -130,7 +130,7 @@ export default function RealtorClients() {
 
             <TabsContent value="active" className="space-y-4">
               {activeClients.map((client) => (
-                <Card key={client.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={client.id} className="bg-tsCard/50 border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -146,19 +146,19 @@ export default function RealtorClients() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-white/60">
                               <Mail className="h-4 w-4" />
                               {client.email}
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-white/60">
                               <Phone className="h-4 w-4" />
                               {client.phone}
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-white/60">
                               <MapPin className="h-4 w-4" />
                               {client.location}
                             </div>
-                            <div className="flex items-center gap-2 text-gray-400">
+                            <div className="flex items-center gap-2 text-white/60">
                               <Calendar className="h-4 w-4" />
                               Last contact: {client.lastContact}
                             </div>
@@ -166,7 +166,7 @@ export default function RealtorClients() {
 
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <p className="text-sm text-gray-400">
+                              <p className="text-sm text-white/60">
                                 {client.type === "Buyer" ? "Budget Range" : "Listing Price"}
                               </p>
                               <p className="font-semibold text-green-400">
@@ -174,7 +174,7 @@ export default function RealtorClients() {
                               </p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-400">Properties Viewed/Listed</p>
+                              <p className="text-sm text-white/60">Properties Viewed/Listed</p>
                               <p className="font-semibold">{client.properties} properties</p>
                             </div>
                           </div>
@@ -215,11 +215,11 @@ export default function RealtorClients() {
             </TabsContent>
 
             <TabsContent value="prospects">
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-tsCard/50 border-white/10">
                 <CardContent className="p-8 text-center">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <Users className="h-12 w-12 text-white/60 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Prospects Yet</h3>
-                  <p className="text-gray-400 mb-6">Potential clients will appear here</p>
+                  <p className="text-white/60 mb-6">Potential clients will appear here</p>
                   <Button
                     className="bg-green-600 hover:bg-green-700"
                     data-testid="button-add-prospect"
@@ -232,11 +232,11 @@ export default function RealtorClients() {
             </TabsContent>
 
             <TabsContent value="closed">
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-tsCard/50 border-white/10">
                 <CardContent className="p-8 text-center">
-                  <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <Home className="h-12 w-12 text-white/60 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Closed Deals</h3>
-                  <p className="text-gray-400">Completed transactions will appear here</p>
+                  <p className="text-white/60">Completed transactions will appear here</p>
                 </CardContent>
               </Card>
             </TabsContent>

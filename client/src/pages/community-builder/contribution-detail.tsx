@@ -48,7 +48,7 @@ const statusColors: Record<string, string> = {
   completed: "bg-teal-100 text-teal-800",
   verified: "bg-emerald-100 text-emerald-800",
   disputed: "bg-red-100 text-red-800",
-  cancelled: "bg-gray-100 text-gray-800",
+  cancelled: "bg-white/5 text-white/70",
 };
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -204,7 +204,7 @@ export default function ContributionDetail() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-3xl font-bold">{contribution.title}</h1>
-              <p className="text-gray-600 mt-2">{contribution.description}</p>
+              <p className="text-white/60 mt-2">{contribution.description}</p>
             </div>
             <Badge className={statusColors[contribution.status]}>
               <span className="flex items-center gap-1">
@@ -296,7 +296,7 @@ export default function ContributionDetail() {
             <CardContent>
               <p className="text-2xl font-bold">${contribution.estimatedValue}</p>
               {contribution.actualValue && (
-                <p className="text-sm text-gray-600 mt-1">Verified: ${contribution.actualValue}</p>
+                <p className="text-sm text-white/60 mt-1">Verified: ${contribution.actualValue}</p>
               )}
             </CardContent>
           </Card>
@@ -309,7 +309,7 @@ export default function ContributionDetail() {
               <CardContent>
                 <p className="text-2xl font-bold">{contribution.estimatedHours}h</p>
                 {contribution.actualHours && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-white/60 mt-1">
                     Verified: {contribution.actualHours}h
                   </p>
                 )}
@@ -345,7 +345,7 @@ export default function ContributionDetail() {
                 <CheckCircle className="w-5 h-5 text-green-600 mt-1" />
                 <div>
                   <p className="font-semibold">Approved</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-white/60">
                     {new Date(contribution.approvedAt).toLocaleString()}
                   </p>
                 </div>
@@ -356,7 +356,7 @@ export default function ContributionDetail() {
                 <CheckCircle className="w-5 h-5 text-emerald-600 mt-1" />
                 <div>
                   <p className="font-semibold">Verified</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-white/60">
                     {new Date(contribution.verifiedAt).toLocaleString()}
                   </p>
                 </div>
@@ -367,7 +367,7 @@ export default function ContributionDetail() {
                 <Clock className="w-5 h-5 text-yellow-600 mt-1" />
                 <div>
                   <p className="font-semibold">Pending Review</p>
-                  <p className="text-sm text-gray-600">Awaiting admin approval</p>
+                  <p className="text-sm text-white/60">Awaiting admin approval</p>
                 </div>
               </div>
             )}
@@ -445,20 +445,20 @@ export default function ContributionDetail() {
                     href={file.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50"
+                    className="flex items-center gap-2 p-3 border rounded-lg hover:bg-white/5"
                   >
                     <Upload className="w-4 h-4" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{file.type}</p>
                       {file.description && (
-                        <p className="text-sm text-gray-600">{file.description}</p>
+                        <p className="text-sm text-white/60">{file.description}</p>
                       )}
                     </div>
                   </a>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">No evidence attached yet</p>
+              <p className="text-white/60">No evidence attached yet</p>
             )}
           </CardContent>
         </Card>
@@ -473,8 +473,8 @@ export default function ContributionDetail() {
               {contribution.auditLogs.map((log) => (
                 <div key={log.id} className="p-3 border rounded-lg">
                   <p className="font-semibold">{log.action.replace("_", " ").toUpperCase()}</p>
-                  {log.notes && <p className="text-sm text-gray-600 mt-1">{log.notes}</p>}
-                  <p className="text-xs text-gray-500 mt-2">
+                  {log.notes && <p className="text-sm text-white/60 mt-1">{log.notes}</p>}
+                  <p className="text-xs text-white/60 mt-2">
                     {new Date(log.createdAt).toLocaleString()}
                   </p>
                 </div>

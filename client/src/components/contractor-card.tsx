@@ -83,7 +83,7 @@ export default function ContractorCard({
               </div>
             )}
             <span
-              className={`text-gray-300 ${compact ? "text-xs" : "text-sm"}`}
+              className={`text-white/70 ${compact ? "text-xs" : "text-sm"}`}
               data-testid="recommendation-count"
             >
               ({contractor.totalRecommendations || 0} total)
@@ -143,7 +143,7 @@ export default function ContractorCard({
         </div>
 
         {/* Service Areas */}
-        <p className={`text-gray-300 mb-4 flex items-center ${compact ? "text-xs" : "text-sm"}`}>
+        <p className={`text-white/70 mb-4 flex items-center ${compact ? "text-xs" : "text-sm"}`}>
           <MapPin
             className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
             style={{ color: "var(--theme-accent-primary)" }}
@@ -157,7 +157,7 @@ export default function ContractorCard({
 
         {/* Business Info */}
         <div
-          className={`flex items-center justify-between text-gray-300 mb-4 ${
+          className={`flex items-center justify-between text-white/70 mb-4 ${
             compact ? "text-xs" : "text-sm"
           }`}
         >
@@ -192,7 +192,7 @@ export default function ContractorCard({
         <div className="flex items-center space-x-2 mb-4">
           <Badge
             variant="outline"
-            className="text-xs text-tsTextMain border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+            className="text-xs text-white border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
           >
             {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Pending"}
           </Badge>
@@ -232,7 +232,7 @@ export default function ContractorCard({
               <Link href={`/contractors/${contractor.slug}`} className="flex-1">
                 <Button
                   variant="outline"
-                  className="w-full border-navy-500 text-white hover:bg-navy-500"
+                  className="w-full border-white/10 text-white hover:bg-white/10"
                 >
                   <ExternalLink className="h-4 w-4 mr-1" />
                   View Profile
@@ -244,7 +244,7 @@ export default function ContractorCard({
           <Link href={`/contractors/${contractor.slug}`}>
             <Button
               variant="outline"
-              className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+              className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
             >
               View Full Profile
               <ExternalLink className="h-4 w-4 ml-2" />

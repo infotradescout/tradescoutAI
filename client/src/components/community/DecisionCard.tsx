@@ -78,7 +78,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
       case "caution":
         return <AlertCircle className="w-5 h-5 text-amber-600" />;
       case "blocked":
-        return <XCircle className="w-5 h-5 text-slate-600" />;
+        return <XCircle className="w-5 h-5 text-white/60" />;
     }
   };
 
@@ -94,27 +94,27 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5">
+    <div className="bg-white border border-white/10 rounded-lg p-6 shadow-sm space-y-5">
       {/* 1. Context */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-slate-900">
+        <h3 className="text-sm font-medium text-white/70">
           Who am I about to {action === "message" ? "message" : "connect with"}?
         </h3>
-        <div className="space-y-1 text-sm text-slate-700">
+        <div className="space-y-1 text-sm text-white/70">
           <p className="font-medium">{context.targetName}</p>
-          <p className="text-slate-600">{context.targetRole}</p>
-          <p className="text-slate-500">{context.communitySignal}</p>
-          {context.absenceNote && <p className="text-slate-400 italic">{context.absenceNote}</p>}
+          <p className="text-white/60">{context.targetRole}</p>
+          <p className="text-white/60">{context.communitySignal}</p>
+          {context.absenceNote && <p className="text-white/60 italic">{context.absenceNote}</p>}
         </div>
       </div>
 
       {/* 2. Risk Framing */}
       {riskFraming.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-900">What could go wrong here?</h3>
+          <h3 className="text-sm font-medium text-white/70">What could go wrong here?</h3>
           <div className="space-y-1">
             {riskFraming.slice(0, 2).map((risk, i) => (
-              <p key={i} className="text-sm text-slate-600">
+              <p key={i} className="text-sm text-white/60">
                 {risk}
               </p>
             ))}
@@ -124,21 +124,21 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
 
       {/* 3. Scout Guidance */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-slate-900">
+        <h3 className="text-sm font-medium text-white/70">
           How Scout governs this decision right now
         </h3>
         <div className="flex items-start gap-3">
           {getGuidanceIcon()}
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-slate-900">{getGuidanceText()}</p>
-            <p className="text-sm text-slate-600">{guidance}</p>
+            <p className="text-sm font-medium text-white/70">{getGuidanceText()}</p>
+            <p className="text-sm text-white/60">{guidance}</p>
           </div>
         </div>
       </div>
 
       {/* 4. Action Choice */}
-      <div className="space-y-2 pt-2 border-t border-slate-100">
-        <h3 className="text-sm font-medium text-slate-900">What do you want to do?</h3>
+      <div className="space-y-2 pt-2 border-t border-white/10">
+        <h3 className="text-sm font-medium text-white/70">What do you want to do?</h3>
         <div className="flex flex-wrap gap-2">
           {/* Show "Contact now" only if COMPLY */}
           {scoutAction === "COMPLY" && (
@@ -156,7 +156,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                 // D1: If contact_person outcome, show modal; otherwise proceed directly
                 openContactModal();
               }}
-              className="bg-slate-900 hover:bg-slate-800 text-white"
+              className="bg-tsCard hover:bg-white/5 text-white"
             >
               {actionLabel} now
             </Button>
@@ -178,7 +178,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                 onAskScout();
               }}
               variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+              className="border-white/10 text-white/70 hover:bg-white/5"
             >
               Ask Scout first
             </Button>
@@ -200,7 +200,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                 openContactModal();
               }}
               variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+              className="border-white/10 text-white/70 hover:bg-white/5"
             >
               Proceed anyway
             </Button>
@@ -226,7 +226,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
                 }
               }}
               variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+              className="border-white/10 text-white/70 hover:bg-white/5"
             >
               I understand the risk
             </Button>
@@ -247,7 +247,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
               onCancel();
             }}
             variant="ghost"
-            className="text-slate-600 hover:bg-slate-50"
+            className="text-white/60 hover:bg-white/5"
           >
             Cancel
           </Button>

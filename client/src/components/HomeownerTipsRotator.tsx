@@ -271,14 +271,14 @@ export function HomeownerTipsRotator({ className = "" }: HomeownerTipsRotatorPro
 
   return (
     <div
-      className={`p-4 bg-gradient-to-r ${currentTip.gradient} border border-orange-500/20 rounded-lg ${className}`}
+      className={`p-4 bg-gradient-to-r ${currentTip.gradient} border border-ts-orange/30 rounded-lg ${className}`}
     >
       <div className="flex items-start justify-between mb-2">
         <h4 className="text-white font-semibold flex items-center gap-2">
-          <IconComponent className="h-5 w-5 text-orange-500" />
+          <IconComponent className="h-5 w-5 text-ts-orange" />
           {currentTip.title}
         </h4>
-        <div className="flex items-center gap-1 text-xs text-gray-400">
+        <div className="flex items-center gap-1 text-xs text-white/60">
           {currentTip.category === "seasonal" && <Calendar className="h-3 w-3" />}
           {currentTip.category === "monthly" && <Calendar className="h-3 w-3" />}
           {currentTip.category === "weekly" && <Calendar className="h-3 w-3" />}
@@ -286,10 +286,10 @@ export function HomeownerTipsRotator({ className = "" }: HomeownerTipsRotatorPro
           <span className="capitalize">{currentTip.category}</span>
         </div>
       </div>
-      <p className="text-gray-300 text-sm mb-3">{currentTip.description}</p>
+      <p className="text-white/70 text-sm mb-3">{currentTip.description}</p>
       <Button
         size="sm"
-        className="bg-orange-500 hover:bg-orange-600 text-white"
+        className="bg-ts-orange hover:bg-ts-orange-dark text-white"
         onClick={() => (window.location.href = currentTip.actionUrl)}
       >
         {currentTip.actionText}

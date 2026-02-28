@@ -129,7 +129,7 @@ export default function CompliancePage() {
       case "Pending":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-[var(--surface-frame)] text-gray-800 dark:bg-[var(--surface-frame-alt)] dark:text-gray-200";
+        return "bg-[var(--surface-frame)] text-white/70 dark:bg-[var(--surface-frame-alt)] dark:text-white/70";
     }
   };
 
@@ -149,8 +149,8 @@ export default function CompliancePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-orange-500 mb-4">Legal Compliance Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <h1 className="text-3xl font-bold text-ts-orange mb-4">Legal Compliance Dashboard</h1>
+          <p className="text-white/60 dark:text-white/70">
             Comprehensive compliance management for federal, state, and local regulations
           </p>
         </div>
@@ -161,10 +161,10 @@ export default function CompliancePage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-white/60 dark:text-white/60">
                     Total Compliance Areas
                   </p>
-                  <p className="text-2xl font-bold text-orange-500">{complianceAreas.length}</p>
+                  <p className="text-2xl font-bold text-ts-orange">{complianceAreas.length}</p>
                 </div>
                 <Scale className="h-8 w-8 text-blue-600" />
               </div>
@@ -175,7 +175,7 @@ export default function CompliancePage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-white/60 dark:text-white/60">
                     Fully Compliant
                   </p>
                   <p className="text-2xl font-bold text-green-600">
@@ -191,7 +191,7 @@ export default function CompliancePage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-white/60 dark:text-white/60">
                     In Progress
                   </p>
                   <p className="text-2xl font-bold text-yellow-600">
@@ -229,10 +229,10 @@ export default function CompliancePage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">{area.description}</p>
+                    <p className="text-white/60 dark:text-white/70 mb-4">{area.description}</p>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-orange-500">Key Requirements:</p>
-                      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                      <p className="text-sm font-medium text-ts-orange">Key Requirements:</p>
+                      <ul className="text-sm text-white/60 dark:text-white/70 space-y-1">
                         {area.requirements.slice(0, 3).map((req, index) => (
                           <li key={index} className="flex items-start">
                             <CheckCircle className="h-3 w-3 text-green-500 mt-1 mr-2 flex-shrink-0" />
@@ -268,10 +268,10 @@ export default function CompliancePage() {
                       </span>
                     </Badge>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300">{area.description}</p>
+                  <p className="text-white/60 dark:text-white/70">{area.description}</p>
                 </CardHeader>
                 <CardContent>
-                  <h4 className="font-medium text-orange-500 mb-3">Implementation Requirements:</h4>
+                  <h4 className="font-medium text-ts-orange mb-3">Implementation Requirements:</h4>
                   <div className="space-y-3">
                     {area.requirements.map((req, index) => (
                       <div
@@ -279,7 +279,7 @@ export default function CompliancePage() {
                         className="flex items-start space-x-3 p-3 bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] rounded-lg"
                       >
                         <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{req}</span>
+                        <span className="text-sm text-white/70 dark:text-white/70">{req}</span>
                       </div>
                     ))}
                   </div>

@@ -250,7 +250,7 @@ const Dashboard = memo(function Dashboard() {
             <h1 className="text-lg font-semibold text-primary">
               Welcome back, {user?.firstName || 'Friend'}!
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-white/60 dark:text-white/60">
               Here's what's happening in your community
             </p>
           </div>
@@ -266,26 +266,26 @@ const Dashboard = memo(function Dashboard() {
         <LocalImpactCard className="mb-0" />
 
         {/* HOA Leadership / Membership (if applicable) */}
-        <HoaLeadershipBadge className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm" />
+        <HoaLeadershipBadge className="bg-tsBg dark:bg-white/5 border-0 shadow-sm" />
 
         {/* Snapshot Grid + Live Activity Feed */}
         <div className="space-y-6">
           {/* Live Activity Feed */}
           <div className="space-y-4">
             {/* New Post Composer */}
-            <Card className="bg-tsCard dark:bg-slate-800 border border-slate-800 shadow-sm rounded-xl">
+            <Card className="bg-tsCard dark:bg-white/5 border border-white/10 shadow-sm rounded-xl">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={user?.profileImageUrl} />
-                    <AvatarFallback className="bg-orange-500 text-white">
+                    <AvatarFallback className="bg-ts-orange text-white">
                       {user?.firstName?.[0] || user?.email?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   {!showNewPostForm ? (
                     <button
                       onClick={() => setShowNewPostForm(true)}
-                      className="flex-1 text-left px-4 py-2.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
+                      className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/5 dark:bg-white/10 text-white/60 dark:text-white/60 hover:bg-white/10 dark:hover:bg-white/10 transition-colors text-sm"
                       data-testid="button-create-post"
                     >
                       What's on your mind?
@@ -296,7 +296,7 @@ const Dashboard = memo(function Dashboard() {
                         placeholder="Share an update, ask for trusted local signals, or post a project..."
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
-                        className="min-h-[100px] border-slate-200 dark:border-slate-600 resize-none"
+                        className="min-h-[100px] border-white/10 dark:border-white/15 resize-none"
                         data-testid="input-post-content"
                       />
                       {newPostImages.length > 0 && (
@@ -304,7 +304,7 @@ const Dashboard = memo(function Dashboard() {
                           {newPostImages.map((url, index) => (
                             <div
                               key={url + index}
-                              className="relative w-full overflow-hidden rounded-md border border-slate-200 dark:border-slate-600 bg-black/40"
+                              className="relative w-full overflow-hidden rounded-md border border-white/10 dark:border-white/15 bg-black/40"
                               style={{ paddingBottom: '70%' }}
                             >
                               <img
@@ -326,7 +326,7 @@ const Dashboard = memo(function Dashboard() {
                         </div>
                       )}
                       <div className="flex items-center justify-between mt-3">
-                        <label className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200">
+                        <label className="inline-flex items-center gap-2 text-xs text-white/60 dark:text-white/60 cursor-pointer hover:text-white/70 dark:hover:text-white/70">
                           <ImageIcon className="h-4 w-4" />
                           <span>Add photos</span>
                           <input
@@ -353,7 +353,7 @@ const Dashboard = memo(function Dashboard() {
                             onClick={handleCreatePost}
                             disabled={!newPostContent.trim() || createPostMutation.isPending}
                             size="sm"
-                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                            className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white"
                             data-testid="button-submit-post"
                           >
                             {createPostMutation.isPending ? 'Posting...' : 'Post'}
@@ -368,22 +368,22 @@ const Dashboard = memo(function Dashboard() {
 
             {/* Community Posts Feed */}
             {postsLoading ? (
-              <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm">
                 <CardContent className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-                  <p className="text-slate-500 dark:text-slate-400 mt-4 text-sm">Loading feed...</p>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30 mx-auto"></div>
+                  <p className="text-white/60 dark:text-white/60 mt-4 text-sm">Loading feed...</p>
                 </CardContent>
               </Card>
             ) : (!Array.isArray(posts) || posts.length === 0) ? (
-              <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm">
+              <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm">
                 <CardContent className="p-12 text-center">
-                  <h3 className="text-lg font-semibold mb-2 text-orange-500">Welcome to your neighborhood!</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Be the first to share something with your community.</p>
+                  <h3 className="text-lg font-semibold mb-2 text-ts-orange">Welcome to your neighborhood!</h3>
+                  <p className="text-sm text-white/60 dark:text-white/60">Be the first to share something with your community.</p>
                 </CardContent>
               </Card>
             ) : (
               Array.isArray(posts) && posts.map((post: Post) => (
-                <Card key={post.id} className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card key={post.id} className="bg-tsBg dark:bg-white/5 border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <Avatar className="h-10 w-10">
@@ -393,25 +393,25 @@ const Dashboard = memo(function Dashboard() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm text-orange-500">
+                          <h4 className="font-semibold text-sm text-ts-orange">
                             Neighbor
                           </h4>
                           {post.postType === 'promotion' && (
-                            <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 text-xs">
+                            <Badge className="bg-ts-orange/10 text-ts-orange dark:bg-ts-orange/10 dark:text-ts-orange text-xs">
                               Contractor
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-white/60 dark:text-white/60">
                           {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                         </p>
                       </div>
                     </div>
 
                     {post.title && (
-                      <h3 className="text-base font-semibold mb-2 text-orange-500">{post.title}</h3>
+                      <h3 className="text-base font-semibold mb-2 text-ts-orange">{post.title}</h3>
                     )}
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-sm text-white/70 dark:text-white/70 mb-2 whitespace-pre-wrap">{post.content}</p>
 
                     {(() => {
                       const images =
@@ -425,7 +425,7 @@ const Dashboard = memo(function Dashboard() {
                           {images.slice(0, 4).map((url, index) => (
                             <div
                               key={url + index}
-                              className="relative w-full overflow-hidden rounded-md border border-slate-200 dark:border-slate-700 bg-black/40"
+                              className="relative w-full overflow-hidden rounded-md border border-white/10 dark:border-white/10 bg-black/40"
                               style={{ paddingBottom: '70%' }}
                             >
                               <img
@@ -440,7 +440,7 @@ const Dashboard = memo(function Dashboard() {
                     })()}
 
                     {(post.likeCount > 0 || post.commentCount > 0) && (
-                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-4 text-xs text-white/60 dark:text-white/60 mb-2 pb-2 border-b border-white/10 dark:border-white/10">
                         {post.likeCount > 0 && <span>{post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}</span>}
                         {post.commentCount > 0 && <span>{post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}</span>}
                       </div>
@@ -449,17 +449,17 @@ const Dashboard = memo(function Dashboard() {
                     <div className="flex items-center justify-around gap-1">
                       <button
                         onClick={() => handleLikePost(post.id)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors"
                         data-testid={`button-like-${post.id}`}
                       >
                         <Heart className="h-4 w-4" />
                         <span className="text-sm font-medium">Like</span>
                       </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors">
                         <MessageSquare className="h-4 w-4" />
                         <span className="text-sm font-medium">Comment</span>
                       </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors">
                         <Share2 className="h-4 w-4" />
                         <span className="text-sm font-medium">Share</span>
                       </button>
@@ -478,13 +478,13 @@ const Dashboard = memo(function Dashboard() {
               })}
 
               {(!Array.isArray(orderedEnabledWidgets) || orderedEnabledWidgets.length === 0) && (
-                <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm lg:col-span-3">
+                <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm lg:col-span-3">
                   <CardContent className="p-6 text-center">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    <p className="text-sm text-white/60 dark:text-white/60 mb-4">
                       No widgets enabled. Customize your snapshot grid to add cards.
                     </p>
                     <Link href="/dashboard-settings">
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                      <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                         Add Snapshot Cards
                       </Button>
                     </Link>

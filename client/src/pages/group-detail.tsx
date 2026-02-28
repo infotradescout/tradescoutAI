@@ -94,8 +94,8 @@ export default function GroupDetail() {
       <div className="gradient-bg p-6 py-24">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-2 text-slate-400">Loading group...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30 mx-auto"></div>
+            <p className="mt-2 text-white/60">Loading group...</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function GroupDetail() {
         </div>
 
         {/* Group Info */}
-        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -145,7 +145,7 @@ export default function GroupDetail() {
                   <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
                     {group.type.replace("_", " ")}
                   </Badge>
-                  <span className="text-slate-400 flex items-center">
+                  <span className="text-white/60 flex items-center">
                     <Users className="w-4 h-4 mr-1" />
                     {group.memberCount} members
                   </span>
@@ -154,11 +154,11 @@ export default function GroupDetail() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-300 mb-4">{group.description}</p>
+            <p className="text-white/70 mb-4">{group.description}</p>
             {group.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {group.tags.map((tag: string, index: number) => (
-                  <Badge key={index} variant="outline" className="border-slate-600 text-slate-400">
+                  <Badge key={index} variant="outline" className="border-white/15 text-white/60">
                     #{tag}
                   </Badge>
                 ))}
@@ -168,7 +168,7 @@ export default function GroupDetail() {
         </Card>
 
         {/* Create Post */}
-        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardContent className="p-4">
             {!showCreatePost ? (
               <Button
@@ -185,7 +185,7 @@ export default function GroupDetail() {
                   placeholder="What's on your mind? Share your project updates, ask questions, or offer advice..."
                   value={newPost}
                   onChange={(e) => setNewPost(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white min-h-24"
+                  className="bg-white/10 border-white/15 text-white min-h-24"
                   data-testid="post-content-input"
                 />
                 <div className="flex justify-between items-center">
@@ -221,11 +221,11 @@ export default function GroupDetail() {
         {/* Posts Feed */}
         <div className="space-y-6">
           {posts.length === 0 ? (
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardContent className="p-12 text-center">
-                <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                <MessageSquare className="w-16 h-16 text-white/60 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">No posts yet</h3>
-                <p className="text-slate-400 mb-6">
+                <p className="text-white/60 mb-6">
                   Be the first to share something with the group!
                 </p>
                 <Button
@@ -240,7 +240,7 @@ export default function GroupDetail() {
             posts.map((post: GroupPost) => (
               <Card
                 key={post.id}
-                className="border-slate-700"
+                className="border-white/10"
                 style={{ backgroundColor: "var(--surface-card)" }}
                 data-testid={`post-${post.id}`}
               >
@@ -257,7 +257,7 @@ export default function GroupDetail() {
                       </div>
                       <div>
                         <div className="font-semibold text-white">{post.authorName}</div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-sm text-white/60">
                           {post.authorRole} • {new Date(post.createdAt).toLocaleDateString()}
                         </div>
                       </div>
@@ -270,7 +270,7 @@ export default function GroupDetail() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-slate-300 leading-relaxed">{post.content}</p>
+                  <p className="text-white/70 leading-relaxed">{post.content}</p>
 
                   {post.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
@@ -278,7 +278,7 @@ export default function GroupDetail() {
                         <Badge
                           key={index}
                           variant="outline"
-                          className="text-xs border-slate-600 text-slate-400"
+                          className="text-xs border-white/15 text-white/60"
                         >
                           #{tag}
                         </Badge>
@@ -286,12 +286,12 @@ export default function GroupDetail() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
                     <div className="flex items-center space-x-4">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-slate-400 hover:text-pink-400"
+                        className="text-white/60 hover:text-pink-400"
                       >
                         <Heart className="w-4 h-4 mr-1" />
                         {post.likes}
@@ -299,7 +299,7 @@ export default function GroupDetail() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-slate-400 hover:text-blue-400"
+                        className="text-white/60 hover:text-blue-400"
                       >
                         <MessageCircle className="w-4 h-4 mr-1" />
                         {post.comments}
@@ -308,7 +308,7 @@ export default function GroupDetail() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-slate-400 hover:text-green-400"
+                      className="text-white/60 hover:text-green-400"
                     >
                       <Share2 className="w-4 h-4 mr-1" />
                       Share

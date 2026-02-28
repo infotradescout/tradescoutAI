@@ -239,28 +239,28 @@ export default function ContractorSignup() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout</h1>
-          <p className="text-xl text-gray-300 mb-6">
+          <p className="text-xl text-white/70 mb-6">
             Get verified and start receiving qualified homeowner requests in your area
           </p>
 
           {/* Benefits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-navy-700 rounded-lg p-4">
-              <Star className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+            <div className="bg-tsCard rounded-lg p-4">
+              <Star className="h-8 w-8 text-ts-orange mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-white">Qualified Requests</h3>
-              <p className="text-gray-300 text-sm">
+              <p className="text-white/70 text-sm">
                 Connect with homeowners actively seeking your services
               </p>
             </div>
-            <div className="bg-navy-700 rounded-lg p-4">
-              <Shield className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+            <div className="bg-tsCard rounded-lg p-4">
+              <Shield className="h-8 w-8 text-ts-orange mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-white">Verified Badge</h3>
-              <p className="text-gray-300 text-sm">Stand out with our verification badge</p>
+              <p className="text-white/70 text-sm">Stand out with our verification badge</p>
             </div>
-            <div className="bg-navy-700 rounded-lg p-4">
-              <Building className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+            <div className="bg-tsCard rounded-lg p-4">
+              <Building className="h-8 w-8 text-ts-orange mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-white">Free Listing</h3>
-              <p className="text-gray-300 text-sm">
+              <p className="text-white/70 text-sm">
                 Access to features, connections, and information is $0. If you ever see a checkout
                 (for example, a booking payment you choose to send or accept), it will be clearly
                 labeled in-app. Unlabeled payment requests in TradeScout's name are scams.
@@ -276,16 +276,16 @@ export default function ContractorSignup() {
               <div
                 key={step}
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  step <= currentStep ? "bg-orange-500 text-white" : "bg-navy-600 text-gray-400"
+                  step <= currentStep ? "bg-ts-orange text-white" : "bg-tsCard text-white/60"
                 }`}
               >
                 {step}
               </div>
             ))}
           </div>
-          <div className="w-full bg-navy-600 rounded-full h-2">
+          <div className="w-full bg-tsCard rounded-full h-2">
             <div
-              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+              className="bg-ts-orange h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             />
           </div>
@@ -293,7 +293,7 @@ export default function ContractorSignup() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">
                   {currentStep === 1 && "Company Information"}
@@ -311,9 +311,9 @@ export default function ContractorSignup() {
                       name="companyName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">Company Name *</FormLabel>
+                          <FormLabel className="text-white/70">Company Name *</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-navy-800 border-navy-600 text-white" />
+                            <Input {...field} className="bg-tsCard border-white/10 text-white" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -326,12 +326,12 @@ export default function ContractorSignup() {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Business Email *</FormLabel>
+                            <FormLabel className="text-white/70">Business Email *</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="email"
-                                className="bg-navy-800 border-navy-600 text-white"
+                                className="bg-tsCard border-white/10 text-white"
                               />
                             </FormControl>
                             <FormMessage />
@@ -344,12 +344,12 @@ export default function ContractorSignup() {
                         name="phone"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Business Phone *</FormLabel>
+                            <FormLabel className="text-white/70">Business Phone *</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="tel"
-                                className="bg-navy-800 border-navy-600 text-white"
+                                className="bg-tsCard border-white/10 text-white"
                               />
                             </FormControl>
                             <FormMessage />
@@ -363,12 +363,12 @@ export default function ContractorSignup() {
                       name="website"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">Website (Optional)</FormLabel>
+                          <FormLabel className="text-white/70">Website (Optional)</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="url"
-                              className="bg-navy-800 border-navy-600 text-white"
+                              className="bg-tsCard border-white/10 text-white"
                               placeholder="https://yourcompany.com"
                             />
                           </FormControl>
@@ -388,7 +388,7 @@ export default function ContractorSignup() {
                         name="primaryState"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Primary State *</FormLabel>
+                            <FormLabel className="text-white/70">Primary State *</FormLabel>
                             <Select
                               onValueChange={(value) => {
                                 field.onChange(value);
@@ -397,16 +397,16 @@ export default function ContractorSignup() {
                               defaultValue={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
+                                <SelectTrigger className="bg-tsCard border-white/10 text-white">
                                   <SelectValue placeholder="Select state" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="bg-navy-700 border-navy-600">
+                              <SelectContent className="bg-tsCard border-white/10">
                                 {US_STATES.map((state) => (
                                   <SelectItem
                                     key={state.code}
                                     value={state.code}
-                                    className="text-white hover:bg-navy-600"
+                                    className="text-white hover:bg-tsCard"
                                   >
                                     {state.name}
                                   </SelectItem>
@@ -423,7 +423,7 @@ export default function ContractorSignup() {
                         name="primaryCounty"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">
+                            <FormLabel className="text-white/70">
                               {(() => {
                                 const state = US_STATES.find((s) => s.code === selectedState);
                                 const subdivision = state?.subdivisionType || "county";
@@ -437,7 +437,7 @@ export default function ContractorSignup() {
                               disabled={!selectedState}
                             >
                               <FormControl>
-                                <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
+                                <SelectTrigger className="bg-tsCard border-white/10 text-white">
                                   <SelectValue
                                     placeholder={
                                       selectedState
@@ -453,12 +453,12 @@ export default function ContractorSignup() {
                                   />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="bg-navy-700 border-navy-600">
+                              <SelectContent className="bg-tsCard border-white/10">
                                 {counties?.map((county) => (
                                   <SelectItem
                                     key={county.fips}
                                     value={county.fips}
-                                    className="text-white hover:bg-navy-600"
+                                    className="text-white hover:bg-tsCard"
                                   >
                                     {county.name}
                                   </SelectItem>
@@ -476,29 +476,29 @@ export default function ContractorSignup() {
                       name="serviceRadius"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">Service Radius *</FormLabel>
+                          <FormLabel className="text-white/70">Service Radius *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
+                              <SelectTrigger className="bg-tsCard border-white/10 text-white">
                                 <SelectValue placeholder="Select service radius" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="bg-navy-700 border-navy-600">
-                              <SelectItem value="10" className="text-white hover:bg-navy-600">
+                            <SelectContent className="bg-tsCard border-white/10">
+                              <SelectItem value="10" className="text-white hover:bg-tsCard">
                                 Within 10 miles
                               </SelectItem>
-                              <SelectItem value="25" className="text-white hover:bg-navy-600">
+                              <SelectItem value="25" className="text-white hover:bg-tsCard">
                                 Within 25 miles
                               </SelectItem>
-                              <SelectItem value="50" className="text-white hover:bg-navy-600">
+                              <SelectItem value="50" className="text-white hover:bg-tsCard">
                                 Within 50 miles
                               </SelectItem>
-                              <SelectItem value="100" className="text-white hover:bg-navy-600">
+                              <SelectItem value="100" className="text-white hover:bg-tsCard">
                                 Within 100 miles
                               </SelectItem>
                               <SelectItem
                                 value="statewide"
-                                className="text-white hover:bg-navy-600"
+                                className="text-white hover:bg-tsCard"
                               >
                                 Statewide
                               </SelectItem>
@@ -520,13 +520,13 @@ export default function ContractorSignup() {
                         name="yearsInBusiness"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Years in Business *</FormLabel>
+                            <FormLabel className="text-white/70">Years in Business *</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="number"
                                 min="0"
-                                className="bg-navy-800 border-navy-600 text-white"
+                                className="bg-tsCard border-white/10 text-white"
                               />
                             </FormControl>
                             <FormMessage />
@@ -539,19 +539,19 @@ export default function ContractorSignup() {
                         name="primaryTrade"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Primary Trade *</FormLabel>
+                            <FormLabel className="text-white/70">Primary Trade *</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
+                                <SelectTrigger className="bg-tsCard border-white/10 text-white">
                                   <SelectValue placeholder="Select your primary trade" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="bg-navy-700 border-navy-600">
+                              <SelectContent className="bg-tsCard border-white/10">
                                 {trades.map((trade) => (
                                   <SelectItem
                                     key={trade}
                                     value={trade.toLowerCase().replace(/\s+/g, "-")}
-                                    className="text-white hover:bg-navy-600"
+                                    className="text-white hover:bg-tsCard"
                                   >
                                     {trade}
                                   </SelectItem>
@@ -570,11 +570,11 @@ export default function ContractorSignup() {
                         name="licenseNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">License Number *</FormLabel>
+                            <FormLabel className="text-white/70">License Number *</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
-                                className="bg-navy-800 border-navy-600 text-white"
+                                className="bg-tsCard border-white/10 text-white"
                               />
                             </FormControl>
                             <FormMessage />
@@ -587,11 +587,11 @@ export default function ContractorSignup() {
                         name="insuranceProvider"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-gray-300">Insurance Provider *</FormLabel>
+                            <FormLabel className="text-white/70">Insurance Provider *</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
-                                className="bg-navy-800 border-navy-600 text-white"
+                                className="bg-tsCard border-white/10 text-white"
                               />
                             </FormControl>
                             <FormMessage />
@@ -601,15 +601,15 @@ export default function ContractorSignup() {
                     </div>
 
                     <div>
-                      <FormLabel className="text-gray-300 mb-3 block">Specialties *</FormLabel>
+                      <FormLabel className="text-white/70 mb-3 block">Specialties *</FormLabel>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {specialties.map((specialty) => (
                           <div
                             key={specialty}
                             className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                               selectedSpecialties.includes(specialty)
-                                ? "bg-orange-500/20 border-orange-500 text-orange-300"
-                                : "bg-navy-800 border-navy-600 text-gray-300 hover:border-orange-500/50"
+                                ? "bg-ts-orange/20 border-ts-orange/30 text-ts-orange"
+                                : "bg-tsCard border-white/10 text-white/70 hover:border-ts-orange/30"
                             }`}
                             onClick={() => toggleSpecialty(specialty)}
                           >
@@ -634,11 +634,11 @@ export default function ContractorSignup() {
                       name="about"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">About Your Business *</FormLabel>
+                          <FormLabel className="text-white/70">About Your Business *</FormLabel>
                           <FormControl>
                             <Textarea
                               {...field}
-                              className="bg-navy-800 border-navy-600 text-white min-h-[100px]"
+                              className="bg-tsCard border-white/10 text-white min-h-[100px]"
                               placeholder="Tell homeowners about your company, experience, and what makes you stand out..."
                             />
                           </FormControl>
@@ -652,23 +652,23 @@ export default function ContractorSignup() {
                       name="preferredContact"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-gray-300">
+                          <FormLabel className="text-white/70">
                             Preferred Contact Method *
                           </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger className="bg-navy-800 border-navy-600 text-white">
+                              <SelectTrigger className="bg-tsCard border-white/10 text-white">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="bg-navy-700 border-navy-600">
-                              <SelectItem value="phone" className="text-white hover:bg-navy-600">
+                            <SelectContent className="bg-tsCard border-white/10">
+                              <SelectItem value="phone" className="text-white hover:bg-tsCard">
                                 Phone
                               </SelectItem>
-                              <SelectItem value="email" className="text-white hover:bg-navy-600">
+                              <SelectItem value="email" className="text-white hover:bg-tsCard">
                                 Email
                               </SelectItem>
-                              <SelectItem value="both" className="text-white hover:bg-navy-600">
+                              <SelectItem value="both" className="text-white hover:bg-tsCard">
                                 Both
                               </SelectItem>
                             </SelectContent>
@@ -688,11 +688,11 @@ export default function ContractorSignup() {
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                className="border-navy-600 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                                className="border-white/10 data-[state=checked]:bg-ts-orange data-[state=checked]:border-ts-orange/30"
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-gray-300">
+                              <FormLabel className="text-white/70">
                                 I agree to the Terms of Service and Privacy Policy *
                               </FormLabel>
                             </div>
@@ -710,11 +710,11 @@ export default function ContractorSignup() {
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                className="border-navy-600 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                                className="border-white/10 data-[state=checked]:bg-ts-orange data-[state=checked]:border-ts-orange/30"
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-gray-300">
+                              <FormLabel className="text-white/70">
                                 I agree to license and insurance verification *
                               </FormLabel>
                             </div>
@@ -733,7 +733,7 @@ export default function ContractorSignup() {
                     variant="outline"
                     onClick={prevStep}
                     disabled={currentStep === 1}
-                    className="border-navy-600 text-gray-300 hover:bg-navy-600"
+                    className="border-white/10 text-white/70 hover:bg-tsCard"
                   >
                     Previous
                   </Button>
@@ -742,7 +742,7 @@ export default function ContractorSignup() {
                     <Button
                       type="button"
                       onClick={nextStep}
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white"
                     >
                       Next
                     </Button>
@@ -750,7 +750,7 @@ export default function ContractorSignup() {
                     <Button
                       type="submit"
                       disabled={signupMutation.isPending}
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white"
                     >
                       {signupMutation.isPending ? "Submitting..." : "Submit Application"}
                     </Button>

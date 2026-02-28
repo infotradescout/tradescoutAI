@@ -61,7 +61,7 @@ export function FloatingHelpButton() {
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className="absolute bottom-16 right-0 w-80"
           >
-            <Card className="ts-surface border-slate-600 bg-slate-800/95">
+            <Card className="ts-surface border-white/15 bg-white/5">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-white">TradeScout Help</h3>
@@ -77,7 +77,7 @@ export function FloatingHelpButton() {
 
                 {/* Tour Options */}
                 <div className="space-y-2 mb-4">
-                  <h4 className="text-sm font-medium text-slate-300">Interactive Tours</h4>
+                  <h4 className="text-sm font-medium text-white/70">Interactive Tours</h4>
                   {helpOptions.map((option) => (
                     <button
                       key={option.id}
@@ -85,7 +85,7 @@ export function FloatingHelpButton() {
                         safeStartTour(option.id);
                         setIsOpen(false);
                       }}
-                      className="w-full text-left p-2 rounded hover:bg-slate-700 transition-colors group"
+                      className="w-full text-left p-2 rounded hover:bg-white/10 transition-colors group"
                       disabled={!option.available}
                     >
                       <div className="flex items-start space-x-2">
@@ -94,7 +94,7 @@ export function FloatingHelpButton() {
                           <div className="text-sm font-medium text-white group-hover:text-blue-400">
                             {option.title}
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-white/60">
                             {option.description}
                           </div>
                         </div>
@@ -104,26 +104,26 @@ export function FloatingHelpButton() {
                 </div>
 
                 {/* Settings */}
-                <div className="pt-2 border-t border-slate-700">
-                  <h4 className="text-sm font-medium text-slate-300 mb-2">Help Settings</h4>
+                <div className="pt-2 border-t border-white/10">
+                  <h4 className="text-sm font-medium text-white/70 mb-2">Help Settings</h4>
                   <div className="space-y-2 text-sm">
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={config.enableTooltips}
                         onChange={(e) => safeUpdateConfig({ enableTooltips: e.target.checked })}
-                        className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                        className="rounded border-white/15 bg-white/10 text-blue-500 focus:ring-blue-500"
                       />
-                      <span className="text-slate-300">Enable tooltips</span>
+                      <span className="text-white/70">Enable tooltips</span>
                     </label>
                     <label className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={config.contextualHints}
                         onChange={(e) => safeUpdateConfig({ contextualHints: e.target.checked })}
-                        className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                        className="rounded border-white/15 bg-white/10 text-blue-500 focus:ring-blue-500"
                       />
-                      <span className="text-slate-300">Show contextual hints</span>
+                      <span className="text-white/70">Show contextual hints</span>
                     </label>
                   </div>
                 </div>

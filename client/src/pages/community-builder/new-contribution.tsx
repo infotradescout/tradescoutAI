@@ -105,7 +105,7 @@ export default function NewContribution() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Propose a Contribution</h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-white/60 mt-2">
             Share how you want to contribute to your local community
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function NewContribution() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-white/60 mt-1">
                   Keep it clear and descriptive (50-100 characters)
                 </p>
               </div>
@@ -174,7 +174,7 @@ export default function NewContribution() {
                     onChange={(e) => setFormData({ ...formData, estimatedValue: e.target.value })}
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-white/60 mt-1">
                     Total dollar value of this contribution
                   </p>
                 </div>
@@ -189,7 +189,7 @@ export default function NewContribution() {
                     value={formData.estimatedHours}
                     onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
                   />
-                  <p className="text-xs text-gray-500 mt-1">If applicable (service hours)</p>
+                  <p className="text-xs text-white/60 mt-1">If applicable (service hours)</p>
                 </div>
               </div>
 

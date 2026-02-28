@@ -261,7 +261,7 @@ export default function WalletPage() {
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <ArrowUpRight className="w-4 h-4 text-orange-600" />
+                <ArrowUpRight className="w-4 h-4 text-ts-orange" />
                 Send Funds
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
@@ -386,7 +386,7 @@ export default function WalletPage() {
                           {isCredit ? (
                             <ArrowDownLeft className="w-4 h-4 text-green-600" />
                           ) : (
-                            <ArrowUpRight className="w-4 h-4 text-orange-600" />
+                            <ArrowUpRight className="w-4 h-4 text-ts-orange" />
                           )}
                         </div>
                         <div className="min-w-0">
@@ -407,7 +407,7 @@ export default function WalletPage() {
                         </div>
                       </div>
                       <div className="text-right text-xs font-semibold">
-                        <div className={isCredit ? "text-green-600" : "text-orange-600"}>
+                        <div className={isCredit ? "text-green-600" : "text-ts-orange"}>
                           {isCredit ? "+" : "-"}${amount.toFixed(2)}
                         </div>
                       </div>

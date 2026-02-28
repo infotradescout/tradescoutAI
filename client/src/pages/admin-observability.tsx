@@ -181,7 +181,7 @@ export default function ObservabilityDashboard() {
       case "INFO":
         return "text-blue-600 bg-blue-50 border-blue-200";
       default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
+        return "text-white/60 bg-white/5 border-white/10";
     }
   };
 
@@ -207,7 +207,7 @@ export default function ObservabilityDashboard() {
       case "INFO":
         return "bg-blue-600 text-white";
       default:
-        return "bg-gray-600 text-white";
+        return "bg-white/10 text-white";
     }
   };
 
@@ -501,7 +501,7 @@ export default function ObservabilityDashboard() {
           </div>
           <div className="text-center">
             <div
-              className={`text-3xl font-bold ${metrics.dbPool.current.waiting > 0 ? "text-yellow-600" : "text-gray-600"}`}
+              className={`text-3xl font-bold ${metrics.dbPool.current.waiting > 0 ? "text-yellow-600" : "text-white/60"}`}
             >
               {metrics.dbPool.current.waiting}
             </div>
@@ -588,7 +588,7 @@ export default function ObservabilityDashboard() {
           </div>
           <div className="text-center">
             <div
-              className={`text-3xl font-bold ${metrics.http.statusClasses["5xx"] > 0 ? "text-red-600" : "text-gray-600"}`}
+              className={`text-3xl font-bold ${metrics.http.statusClasses["5xx"] > 0 ? "text-red-600" : "text-white/60"}`}
             >
               {metrics.http.statusClasses["5xx"]}
             </div>
@@ -627,7 +627,7 @@ export default function ObservabilityDashboard() {
           </div>
           <div className="space-y-2">
             {alerts.history.slice(0, 10).map((alert) => (
-              <div key={alert.id} className="p-3 rounded border bg-gray-50 text-sm">
+              <div key={alert.id} className="p-3 rounded border bg-white/5 text-sm">
                 <div className="flex justify-between items-start">
                   <div>
                     <span

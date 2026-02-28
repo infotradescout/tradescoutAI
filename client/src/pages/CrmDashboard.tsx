@@ -828,7 +828,7 @@ export default function CrmDashboard() {
                           <Calendar className="h-4 w-4 text-purple-600" />
                         )}
                         {!["email", "internal_message", "call"].includes(activity.type) && (
-                          <Calendar className="h-4 w-4 text-gray-600" />
+                          <Calendar className="h-4 w-4 text-white/60" />
                         )}
                       </div>
                       <div className="flex-1">

@@ -77,7 +77,7 @@ export default function FinancesInvoicesPage() {
   if (!isAuthenticated) {
     return (
       <Page className="py-16">
-        <div className="text-center text-sm text-tsTextMuted">Sign in to view and manage invoices.</div>
+        <div className="text-center text-sm text-white/60">Sign in to view and manage invoices.</div>
       </Page>
     );
   }
@@ -362,7 +362,7 @@ export default function FinancesInvoicesPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-tsText mb-1">Invoices</h1>
-          <p className="text-sm text-tsTextMuted">
+          <p className="text-sm text-white/60">
             Create, send, and get paid for work you track in your Finances workspace.
           </p>
         </div>
@@ -378,7 +378,7 @@ export default function FinancesInvoicesPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 border-tsBorder text-[11px] text-tsText"
+            className="h-8 px-3 border-white/10 text-[11px] text-tsText"
             onClick={() => navigate("/finances")}
           >
             Back to dashboard
@@ -387,9 +387,9 @@ export default function FinancesInvoicesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-tsCard border-tsBorder">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-medium text-tsTextSecondary uppercase tracking-wide">
+            <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
               Total billed
             </CardTitle>
             <CardDescription>Lifetime revenue from invoices you track here.</CardDescription>
@@ -398,15 +398,15 @@ export default function FinancesInvoicesPage() {
             <div className="text-2xl font-semibold text-tsText">
               {formatCurrency(summary?.lifetime.totalAmount)}
             </div>
-            <p className="mt-1 text-[11px] text-tsTextMuted">
+            <p className="mt-1 text-[11px] text-white/60">
               {(summary?.lifetime.invoiceCount ?? totalCount).toLocaleString()} documents
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border-tsBorder">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-medium text-tsTextSecondary uppercase tracking-wide">
+            <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
               Collected
             </CardTitle>
             <CardDescription>Invoices you've marked as paid.</CardDescription>
@@ -415,15 +415,15 @@ export default function FinancesInvoicesPage() {
             <div className="text-2xl font-semibold text-tsSuccess">
               {formatCurrency(summary?.lifetime.paidAmount)}
             </div>
-            <p className="mt-1 text-[11px] text-tsTextMuted">
+            <p className="mt-1 text-[11px] text-white/60">
               {(summary?.lifetime.paidCount ?? 0).toLocaleString()} paid invoices
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border-tsBorder">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-medium text-tsTextSecondary uppercase tracking-wide">
+            <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
               Outstanding
             </CardTitle>
             <CardDescription>Work you've billed but not collected yet.</CardDescription>
@@ -432,28 +432,28 @@ export default function FinancesInvoicesPage() {
             <div className="text-2xl font-semibold text-tsWarning">
               {formatCurrency(summary?.lifetime.unpaidAmount)}
             </div>
-            <p className="mt-1 text-[11px] text-tsTextMuted">
+            <p className="mt-1 text-[11px] text-white/60">
               {(summary?.lifetime.unpaidCount ?? 0).toLocaleString()} open invoices
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border-tsBorder">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-medium text-tsTextSecondary uppercase tracking-wide">
+            <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
               Recent activity
             </CardTitle>
             <CardDescription>Newest invoice records in this workspace.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Badge className="text-[10px] px-2 py-0.5 bg-tsCard border-tsBorder">
+            <Badge className="text-[10px] px-2 py-0.5 bg-tsCard border-white/10">
               {recentInvoices.length} shown
             </Badge>
           </CardContent>
         </Card>
       </div>
 
-      <Card ref={newInvoiceRef} className="bg-tsCard border-tsBorder mb-4">
+      <Card ref={newInvoiceRef} className="bg-tsCard border-white/10 mb-4">
         <CardHeader>
           <CardTitle className="text-tsText mb-1">New invoice / job record</CardTitle>
           <CardDescription>
@@ -466,26 +466,26 @@ export default function FinancesInvoicesPage() {
               placeholder="Project or job name"
               value={projectTitle}
               onChange={(e) => setProjectTitle(e.target.value)}
-              className="bg-tsCard border-tsBorder text-tsText text-sm"
+              className="bg-tsCard border-white/10 text-tsText text-sm"
             />
             <Input
               placeholder="Client name (optional)"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              className="bg-tsCard border-tsBorder text-tsText text-sm"
+              className="bg-tsCard border-white/10 text-tsText text-sm"
             />
             <Input
               placeholder="Total amount"
               value={total}
               onChange={(e) => setTotal(e.target.value)}
-              className="bg-tsCard border-tsBorder text-tsText text-sm"
+              className="bg-tsCard border-white/10 text-tsText text-sm"
             />
           </div>
           <Input
             placeholder="Notes (what this work was for)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="bg-tsCard border-tsBorder text-tsText text-sm"
+            className="bg-tsCard border-white/10 text-tsText text-sm"
           />
           <div className="flex justify-end">
             <Button size="sm" onClick={() => createInvoice.mutate()} disabled={createInvoice.isPending}>
@@ -495,23 +495,23 @@ export default function FinancesInvoicesPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-tsCard border-tsBorder">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3">
           <div>
             <CardTitle className="text-sm font-semibold text-tsText">All invoices</CardTitle>
-            <CardDescription className="text-xs text-tsTextMuted">
+            <CardDescription className="text-xs text-white/60">
               Manage every standalone invoice you track here: send, record payment, or export.
             </CardDescription>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1.5 text-[10px] text-tsTextMuted">
+            <div className="flex items-center gap-1.5 text-[10px] text-white/60">
               <button
                 type="button"
                 onClick={() => setInvoiceStatusFilter("all")}
                 className={`px-2 py-0.5 rounded-full border transition-colors ${
                   invoiceStatusFilter === "all"
-                    ? "border-tsAccent bg-tsAccent/10 text-tsText"
-                    : "border-tsBorder bg-tsCard text-tsTextSecondary hover:border-tsAccent"
+                    ? "border-ts-orange bg-ts-orange/10 text-tsText"
+                    : "border-white/10 bg-tsCard text-white/70 hover:border-ts-orange"
                 }`}
               >
                 All
@@ -522,7 +522,7 @@ export default function FinancesInvoicesPage() {
                 className={`px-2 py-0.5 rounded-full border transition-colors ${
                   invoiceStatusFilter === "open"
                     ? "border-tsWarning bg-tsWarning/10 text-tsText"
-                    : "border-tsBorder bg-tsCard text-tsTextSecondary hover:border-tsWarning"
+                    : "border-white/10 bg-tsCard text-white/70 hover:border-tsWarning"
                 }`}
               >
                 Open
@@ -533,20 +533,20 @@ export default function FinancesInvoicesPage() {
                 className={`px-2 py-0.5 rounded-full border transition-colors ${
                   invoiceStatusFilter === "paid"
                     ? "border-tsSuccess bg-tsSuccess/10 text-tsText"
-                    : "border-tsBorder bg-tsCard text-tsTextSecondary hover:border-tsSuccess"
+                    : "border-white/10 bg-tsCard text-white/70 hover:border-tsSuccess"
                 }`}
               >
                 Paid
               </button>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-tsTextMuted">
+            <div className="flex items-center gap-1.5 text-[10px] text-white/60">
               <button
                 type="button"
                 onClick={() => setInvoiceRangeFilter("all")}
                 className={`px-2 py-0.5 rounded-full border transition-colors ${
                   invoiceRangeFilter === "all"
-                    ? "border-tsAccent bg-tsCardMuted text-tsText"
-                    : "border-tsBorder bg-tsCard text-tsTextSecondary hover:border-tsAccent"
+                    ? "border-ts-orange bg-white/5 text-tsText"
+                    : "border-white/10 bg-tsCard text-white/70 hover:border-ts-orange"
                 }`}
               >
                 All time
@@ -556,8 +556,8 @@ export default function FinancesInvoicesPage() {
                 onClick={() => setInvoiceRangeFilter("90d")}
                 className={`px-2 py-0.5 rounded-full border transition-colors ${
                   invoiceRangeFilter === "90d"
-                    ? "border-tsAccent bg-tsCardMuted text-tsText"
-                    : "border-tsBorder bg-tsCard text-tsTextSecondary hover:border-tsAccent"
+                    ? "border-ts-orange bg-white/5 text-tsText"
+                    : "border-white/10 bg-tsCard text-white/70 hover:border-ts-orange"
                 }`}
               >
                 Last 90 days
@@ -567,21 +567,21 @@ export default function FinancesInvoicesPage() {
                 onClick={() => setInvoiceRangeFilter("365d")}
                 className={`px-2 py-0.5 rounded-full border transition-colors ${
                   invoiceRangeFilter === "365d"
-                    ? "border-tsAccent bg-tsCardMuted text-tsText"
-                    : "border-tsBorder bg-tsCard text-tsTextSecondary hover:border-tsAccent"
+                    ? "border-ts-orange bg-white/5 text-tsText"
+                    : "border-white/10 bg-tsCard text-white/70 hover:border-ts-orange"
                 }`}
               >
                 Last year
               </button>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className="text-[10px] px-2 py-0.5 bg-tsCard border-tsBorder">
+              <Badge className="text-[10px] px-2 py-0.5 bg-tsCard border-white/10">
                 {filteredInvoicesForTable.length} shown of {invoices.length}
               </Badge>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-3 border-tsBorder text-[11px] text-tsText"
+                className="h-7 px-3 border-white/10 text-[11px] text-tsText"
                 onClick={handleExportInvoicesCsv}
                 disabled={!invoices.length}
               >
@@ -592,9 +592,9 @@ export default function FinancesInvoicesPage() {
         </CardHeader>
         <CardContent className="pt-1">
           {isLoading ? (
-            <p className="text-xs text-tsTextMuted py-4">Loading invoice records...</p>
+            <p className="text-xs text-white/60 py-4">Loading invoice records...</p>
           ) : invoices.length === 0 ? (
-            <div className="text-xs text-tsTextMuted space-y-2">
+            <div className="text-xs text-white/60 space-y-2">
               <p>
                 {isCommunityFirst
                   ? "You only need invoices when you want a record. Create one when it’s useful; until then, everything else in TradeScout still works."
@@ -622,18 +622,18 @@ export default function FinancesInvoicesPage() {
             <div className="overflow-x-auto -mx-2">
               <Table className="min-w-full text-xs">
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="w-[18%] text-slate-400">Date</TableHead>
-                    <TableHead className="w-[26%] text-slate-400">Job / project</TableHead>
-                    <TableHead className="w-[20%] text-slate-400">Client</TableHead>
-                    <TableHead className="w-[16%] text-right text-slate-400">Amount</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Status / Actions</TableHead>
+                  <TableRow className="border-white/10">
+                    <TableHead className="w-[18%] text-white/60">Date</TableHead>
+                    <TableHead className="w-[26%] text-white/60">Job / project</TableHead>
+                    <TableHead className="w-[20%] text-white/60">Client</TableHead>
+                    <TableHead className="w-[16%] text-right text-white/60">Amount</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Status / Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredInvoicesForTable.length === 0 ? (
-                    <TableRow className="border-tsBorder">
-                      <TableCell colSpan={5} className="py-4 text-center text-[11px] text-tsTextMuted">
+                    <TableRow className="border-white/10">
+                      <TableCell colSpan={5} className="py-4 text-center text-[11px] text-white/60">
                         No invoices match these filters.
                       </TableCell>
                     </TableRow>
@@ -650,14 +650,14 @@ export default function FinancesInvoicesPage() {
                       const isSent = status === "sent";
 
                       return (
-                        <TableRow key={inv.id} className="border-tsBorder hover:bg-tsCardMuted">
-                          <TableCell className="py-2 text-tsTextSecondary text-[11px]">
+                        <TableRow key={inv.id} className="border-white/10 hover:bg-white/5">
+                          <TableCell className="py-2 text-white/70 text-[11px]">
                             {createdLabel}
                           </TableCell>
                           <TableCell className="py-2 text-tsText text-[11px] truncate max-w-[220px]">
                             {title}
                           </TableCell>
-                          <TableCell className="py-2 text-tsTextSecondary text-[11px] truncate max-w-[180px]">
+                          <TableCell className="py-2 text-white/70 text-[11px] truncate max-w-[180px]">
                             {client || "—"}
                           </TableCell>
                           <TableCell className="py-2 text-right text-[11px] text-tsText">
@@ -675,12 +675,12 @@ export default function FinancesInvoicesPage() {
                                   isPaid
                                     ? "bg-tsSuccess text-tsSuccess border-tsSuccess"
                                     : isSent
-                                    ? "bg-tsAccent text-tsAccent border-tsAccent"
+                                    ? "bg-ts-orange text-ts-orange border-ts-orange"
                                     : status === "overdue"
                                     ? "bg-tsWarning text-tsWarning border-tsWarning"
                                     : status === "draft"
-                                    ? "bg-tsCard text-tsTextMuted border-tsBorder"
-                                    : "bg-tsCard text-tsTextSecondary border-tsBorder"
+                                    ? "bg-tsCard text-white/60 border-white/10"
+                                    : "bg-tsCard text-white/70 border-white/10"
                                 }`}
                               >
                                 {inv.status || "draft"}
@@ -690,7 +690,7 @@ export default function FinancesInvoicesPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-6 px-2 border-tsBorder text-[10px]"
+                                    className="h-6 px-2 border-white/10 text-[10px]"
                                     disabled={sendInvoice.isPending || markInvoicePaid.isPending}
                                     onClick={() => sendInvoice.mutate(inv.id)}
                                   >
@@ -701,7 +701,7 @@ export default function FinancesInvoicesPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-6 px-2 border-tsBorder text-[10px]"
+                                    className="h-6 px-2 border-white/10 text-[10px]"
                                     disabled={markInvoicePaid.isPending || sendInvoice.isPending}
                                     onClick={() => markInvoicePaid.mutate(inv.id)}
                                   >
@@ -723,7 +723,7 @@ export default function FinancesInvoicesPage() {
       </Card>
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-between text-[11px] text-tsTextMuted">
+        <div className="flex items-center justify-between text-[11px] text-white/60">
           <span>
             Page {page} of {pageCount}
           </span>
@@ -731,7 +731,7 @@ export default function FinancesInvoicesPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 px-2 border-tsBorder"
+              className="h-7 px-2 border-white/10"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
@@ -740,7 +740,7 @@ export default function FinancesInvoicesPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-7 px-2 border-tsBorder"
+              className="h-7 px-2 border-white/10"
               disabled={page >= pageCount}
               onClick={() => setPage((p) => (p < pageCount ? p + 1 : p))}
             >

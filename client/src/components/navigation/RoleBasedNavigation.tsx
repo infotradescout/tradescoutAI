@@ -399,59 +399,59 @@ export function UserMenu() {
               <Settings className="h-4 w-4" />
               Check email status
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-700" />
+            <DropdownMenuSeparator className="bg-white/10" />
           </>
         )}
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/profile")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
           data-profile-link
           data-tutorial="profile-access"
         >
           <Users className="h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuSeparator className="bg-white/10" />
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/notifications")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
           <Bell className="h-4 w-4" />
           Notifications
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/chat")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
           <MessageSquare className="h-4 w-4" />
           Messages
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/conversations")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
           <MessageSquare className="h-4 w-4" />
           Conversations
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/saved-ads")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
           <Star className="h-4 w-4" />
           Saved Ads
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuSeparator className="bg-white/10" />
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/payment-history")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
           <CreditCard className="h-4 w-4" />
           Payment History
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuSeparator className="bg-white/10" />
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/settings")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
           data-tutorial="settings-access"
         >
           <Settings className="h-4 w-4" />
@@ -459,12 +459,12 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/help")}
-          className="flex items-center gap-3 cursor-pointer text-slate-200 hover:text-white px-3 py-2 hover:bg-slate-700/60"
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
           <HelpCircle className="h-4 w-4" />
           Help Center
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-slate-700" />
+        <DropdownMenuSeparator className="bg-white/10" />
         <DropdownMenuItem
           onClick={handleLogout}
           className="flex items-center gap-3 cursor-pointer text-red-400 hover:text-red-300 px-3 py-2 hover:bg-red-500/10"

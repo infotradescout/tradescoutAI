@@ -267,7 +267,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               </Button>
 
               <div className="w-full min-w-0 md:min-w-[220px]">
-                <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                   Trade
                 </Label>
                 <Select
@@ -289,7 +289,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               </div>
 
               <div className="w-full min-w-0 md:min-w-[220px]">
-                <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                   Search
                 </Label>
                 <div className="flex items-center gap-2">

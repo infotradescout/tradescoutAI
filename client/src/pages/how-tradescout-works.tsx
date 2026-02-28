@@ -16,7 +16,7 @@ export default function HowTradeScoutWorks() {
 
           <header className="mb-8 md:mb-10">
             <h1 className="text-3xl md:text-4xl font-semibold mb-3">How TradeScout Works</h1>
-            <p className="text-sm md:text-base text-slate-300 max-w-2xl">
+            <p className="text-sm md:text-base text-white/70 max-w-2xl">
               Core platform rules at a glance.
             </p>
           </header>
@@ -26,7 +26,7 @@ export default function HowTradeScoutWorks() {
               <CardHeader>
                 <CardTitle>Connection Without Compromise</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+              <CardContent className="space-y-3 text-sm md:text-base text-white/70">
                 <p>Discovery is broad. Active job communication is locked to involved parties.</p>
               </CardContent>
             </Card>
@@ -35,7 +35,7 @@ export default function HowTradeScoutWorks() {
               <CardHeader>
                 <CardTitle>Direct Connect Workflow</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+              <CardContent className="space-y-3 text-sm md:text-base text-white/70">
                 <p>Requests move from created to routed to accepted in a single job flow.</p>
               </CardContent>
             </Card>
@@ -44,7 +44,7 @@ export default function HowTradeScoutWorks() {
               <CardHeader>
                 <CardTitle>Finances &amp; Invoicing</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+              <CardContent className="space-y-3 text-sm md:text-base text-white/70">
                 <p>Invoices and payments are managed in Finances.</p>
               </CardContent>
             </Card>
@@ -53,7 +53,7 @@ export default function HowTradeScoutWorks() {
               <CardHeader>
                 <CardTitle>Messaging Rules</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+              <CardContent className="space-y-3 text-sm md:text-base text-white/70">
                 <p>Message permissions follow job and request status.</p>
               </CardContent>
             </Card>
@@ -62,7 +62,7 @@ export default function HowTradeScoutWorks() {
               <CardHeader>
                 <CardTitle>Cancel &amp; Reopen</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+              <CardContent className="space-y-3 text-sm md:text-base text-white/70">
                 <p>Cancel stops the current flow. Reopen restarts routing.</p>
               </CardContent>
             </Card>
@@ -71,7 +71,7 @@ export default function HowTradeScoutWorks() {
               <CardHeader>
                 <CardTitle>Sharing &amp; Attribution</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+              <CardContent className="space-y-3 text-sm md:text-base text-white/70">
                 <p>Sharing and attribution are tracked with privacy controls.</p>
               </CardContent>
             </Card>

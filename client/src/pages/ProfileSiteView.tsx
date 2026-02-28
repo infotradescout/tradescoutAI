@@ -122,16 +122,16 @@ export default function ProfileSiteView() {
   if (notFound || !data) {
     return (
       <div className=" flex items-center justify-center px-4">
-        <Card className="bg-navy-800 border-navy-700 w-full max-w-xl">
+        <Card className="bg-tsCard border-white/10 w-full max-w-xl">
           <CardHeader>
             <CardTitle className="text-white">Profile not found</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-gray-300">
+            <p className="text-white/70">
               This profile may be private, unpublished, or unavailable.
             </p>
             <Link href="/">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                 Back to Scout
               </Button>
             </Link>
@@ -195,16 +195,16 @@ export default function ProfileSiteView() {
         structuredData={structuredData}
       />
       <div className="container mx-auto px-4 max-w-5xl">
-        <Card className="bg-navy-800 border-navy-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="space-y-2">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <CardTitle className="text-white text-3xl">{displayName}</CardTitle>
                 {profile.headline && profileSections.about !== false ? (
-                  <p className="text-gray-300">{profile.headline}</p>
+                  <p className="text-white/70">{profile.headline}</p>
                 ) : null}
                 {profileSections.about !== false ? (
-                  <p className="text-gray-400 text-xs uppercase tracking-[0.18em]">
+                  <p className="text-white/60 text-xs uppercase tracking-[0.18em]">
                     {profile.roleContext}
                   </p>
                 ) : null}
@@ -217,16 +217,16 @@ export default function ProfileSiteView() {
             {business ? (
               <section className="space-y-2">
                 <h2 className="text-white font-semibold">Business</h2>
-                <div className="text-gray-300 text-sm space-y-1">
+                <div className="text-white/70 text-sm space-y-1">
                   <div>
-                    <span className="text-gray-400">Name:</span> {business.name}
+                    <span className="text-white/60">Name:</span> {business.name}
                   </div>
                   <div>
-                    <span className="text-gray-400">Categories:</span>{" "}
+                    <span className="text-white/60">Categories:</span>{" "}
                     {business.categories.length ? business.categories.join(", ") : "None"}
                   </div>
                   <div>
-                    <span className="text-gray-400">Service areas:</span>{" "}
+                    <span className="text-white/60">Service areas:</span>{" "}
                     {business.serviceAreas.length
                       ? `${business.serviceAreas.length} area(s)`
                       : "None"}
@@ -236,17 +236,17 @@ export default function ProfileSiteView() {
             ) : null}
 
             {bookingEnabled ? (
-              <section className="space-y-3 pt-2 border-t border-navy-700">
+              <section className="space-y-3 pt-2 border-t border-white/10">
                 <h2 className="text-white font-semibold flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-orange-400" />
+                  <Calendar className="h-4 w-4 text-ts-orange" />
                   Bookings
                 </h2>
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-white/70">
                   Booking requests route through TradeScout Direct Connect for protected contact.
                 </p>
                 {calendarVisibility === "public" && slots.length > 0 ? (
-                  <div className="space-y-1 text-sm text-gray-300">
-                    <div className="text-xs text-gray-400 flex items-center gap-1 uppercase tracking-wider">
+                  <div className="space-y-1 text-sm text-white/70">
+                    <div className="text-xs text-white/60 flex items-center gap-1 uppercase tracking-wider">
                       <Clock3 className="h-3.5 w-3.5" />
                       Availability ({timezone})
                     </div>
@@ -262,8 +262,8 @@ export default function ProfileSiteView() {
                   </div>
                 ) : null}
                 {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
-                  <div className="space-y-1 text-sm text-gray-300">
-                    <div className="text-xs text-gray-400 uppercase tracking-wider">
+                  <div className="space-y-1 text-sm text-white/70">
+                    <div className="text-xs text-white/60 uppercase tracking-wider">
                       Pricing table
                     </div>
                     {pricingRows.slice(0, 10).map((row) => (
@@ -278,7 +278,7 @@ export default function ProfileSiteView() {
                   <Link
                     href={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
                   >
-                    <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                    <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                       Request Booking
                     </Button>
                   </Link>
@@ -286,7 +286,7 @@ export default function ProfileSiteView() {
                     <Link
                       href={`/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${encodeURIComponent(`Booking deposit for ${displayName}`)}`}
                     >
-                      <Button variant="outline" className="border-navy-500 text-gray-200">
+                      <Button variant="outline" className="border-white/10 text-white/70">
                         <DollarSign className="h-4 w-4 mr-1" />
                         Pay deposit (${bookingPriceUsd.toFixed(2)})
                       </Button>
@@ -297,12 +297,12 @@ export default function ProfileSiteView() {
             ) : null}
 
             {showContactCard && (
-              <section className="space-y-3 pt-2 border-t border-navy-700">
+              <section className="space-y-3 pt-2 border-t border-white/10">
                 <h2 className="text-white font-semibold">Contact</h2>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="space-y-2 text-sm text-gray-300">
-                    <div className="flex items-center gap-2 text-gray-200">
-                      <ShieldCheck className="h-4 w-4 text-orange-400" />
+                  <div className="space-y-2 text-sm text-white/70">
+                    <div className="flex items-center gap-2 text-white/70">
+                      <ShieldCheck className="h-4 w-4 text-ts-orange" />
                       <span>
                         Contact is protected to prevent spam
                         {profile.contactPolicy?.reason
@@ -310,7 +310,7 @@ export default function ProfileSiteView() {
                           : "."}
                       </span>
                     </div>
-                    <p className="text-gray-400">
+                    <p className="text-white/60">
                       Create a free TradeScout account to contact this profile through Direct
                       Connect.
                     </p>
@@ -319,7 +319,7 @@ export default function ProfileSiteView() {
                     <Link
                       href={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
                     >
-                      <Button className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2">
+                      <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
                         <span>Start Direct Connect</span>
                       </Button>
@@ -327,7 +327,7 @@ export default function ProfileSiteView() {
                     <Link
                       href={`/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
                     >
-                      <Button variant="outline" className="border-navy-500 text-gray-200">
+                      <Button variant="outline" className="border-white/10 text-white/70">
                         Sign in
                       </Button>
                     </Link>

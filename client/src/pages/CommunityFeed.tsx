@@ -144,9 +144,9 @@ export default function CommunityFeed() {
       case "safety":
         return "bg-red-100 text-red-800";
       case "general":
-        return "bg-gray-100 text-gray-800";
+        return "bg-white/5 text-white/70";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-white/5 text-white/70";
     }
   };
 
@@ -163,8 +163,8 @@ export default function CommunityFeed() {
       <div className="max-w-4xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">Community Feed</h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <h1 className="text-3xl font-bold text-ts-orange mb-2">Community Feed</h1>
+          <p className="text-white/60 dark:text-white/70">
             Connect with your neighbors and stay informed about local happenings
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function CommunityFeed() {
         {/* Search and Filter Bar */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
             <Input
               placeholder="Search community posts..."
               value={searchQuery}
@@ -285,7 +285,7 @@ export default function CommunityFeed() {
                       <div className="font-semibold text-sm">
                         {post.author.firstName} {post.author.lastName}
                       </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-2">
+                      <div className="text-xs text-white/60 flex items-center gap-2">
                         <span>@{post.author.username}</span>
                         <Clock className="h-3 w-3" />
                         <span>{formatDistanceToNow(new Date(post.createdAt))} ago</span>
@@ -322,7 +322,7 @@ export default function CommunityFeed() {
                   <div className="flex items-center justify-between">
                     <ModerationButtons targetType="post" targetId={post.id} />
 
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-4 text-sm text-white/60">
                       <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
                         <MessageSquare className="h-4 w-4" />
                         <span>{post._count.comments}</span>
@@ -346,7 +346,7 @@ export default function CommunityFeed() {
         {filteredPosts.length === 0 && (
           <Card>
             <CardContent className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-white/60 dark:text-white/60 mb-4">
                 {searchQuery || filter !== "all"
                   ? "No posts match your current filters."
                   : "No community posts yet."}

@@ -145,18 +145,18 @@ const FindContractors = memo(function FindContractors({
   return (
     <div className="max-w-6xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 space-y-10">
       <header className="space-y-3">
-        <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1.5 text-sm text-orange-200">
+        <div className="inline-flex items-center gap-2 rounded-full bg-ts-orange/10 px-3 py-1.5 text-sm text-ts-orange">
           <Zap className="h-4 w-4" />
           <span>Scout drives the workflow end-to-end</span>
         </div>
         <h1 className="text-4xl font-bold text-white">{title}</h1>
-        <p className="text-gray-300 max-w-3xl">
+        <p className="text-white/70 max-w-3xl">
           Pick your location and trade to see the most recommended pros in your area.
         </p>
       </header>
 
       <div className="ts-section space-y-4">
-        <div className="flex items-center gap-2 text-orange-300">
+        <div className="flex items-center gap-2 text-ts-orange">
           <Search className="h-5 w-5" />
           <span className="font-semibold">Search contractors</span>
         </div>
@@ -171,7 +171,7 @@ const FindContractors = memo(function FindContractors({
 
         <div className="grid md:grid-cols-3 gap-4">
           <Select value={tradeSlug} onValueChange={setTradeSlug}>
-            <SelectTrigger className="bg-navy-700 text-white border border-navy-600">
+            <SelectTrigger className="bg-tsCard text-white border border-white/10">
               <SelectValue placeholder="Select trade/occupation" />
             </SelectTrigger>
             <SelectContent className="max-h-72">
@@ -187,7 +187,7 @@ const FindContractors = memo(function FindContractors({
             type="button"
             disabled={!countyCommitted || !tradeSlug}
             onClick={() => refetchTopContractors()}
-            className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-orange-400/30 focus-visible:ring-2 focus-visible:ring-orange-400"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 text-sm rounded-xl flex items-center gap-2 font-semibold transition-all border border-ts-orange/30 focus-visible:ring-2 focus-visible:ring-ts-orange/70"
           >
             {topFetching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -200,12 +200,12 @@ const FindContractors = memo(function FindContractors({
       </div>
 
       <div className="ts-tile p-5 space-y-3">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-300">
-          <Sparkles className="h-4 w-4 text-orange-300" />
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/70">
+          <Sparkles className="h-4 w-4 text-ts-orange" />
           <span>Helper</span>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-gray-300">
-          <Badge variant="outline" className="border-orange-400/40 text-orange-200">
+        <div className="flex flex-wrap gap-2 text-xs text-white/70">
+          <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
             Pick your state + county
           </Badge>
           <Badge variant="outline" className="border-blue-400/40 text-blue-200">
@@ -221,26 +221,26 @@ const FindContractors = memo(function FindContractors({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-white">Top contractors in your area</h2>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-white/70">
               Ranked by local presence, community credibility, and service area.
             </p>
           </div>
-          <Badge className="bg-orange-600 text-white">
+          <Badge className="bg-ts-orange-dark text-white">
             {countyFips && tradeSlug ? `${ranked.length} results` : "Select location + trade"}
           </Badge>
         </div>
 
         {!countyFips || !tradeSlug ? (
-          <div className="ts-tile p-6 text-sm text-gray-400">
+          <div className="ts-tile p-6 text-sm text-white/60">
             Choose your location and trade to see the top recommended contractors near you.
           </div>
         ) : topLoading ? (
-          <div className="flex items-center gap-3 text-gray-300">
+          <div className="flex items-center gap-3 text-white/70">
             <Loader2 className="h-4 w-4 animate-spin" />
             Fetching ranked contractors…
           </div>
         ) : ranked.length === 0 ? (
-          <div className="ts-tile p-6 text-sm text-gray-300">
+          <div className="ts-tile p-6 text-sm text-white/70">
             No contractors found for that trade in your area yet.
           </div>
         ) : (
@@ -251,28 +251,28 @@ const FindContractors = memo(function FindContractors({
                 className="ts-card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
               >
                 <div className="flex items-center gap-3">
-                  <Badge className="bg-orange-600 text-white text-sm px-3 py-1">#{idx + 1}</Badge>
+                  <Badge className="bg-ts-orange-dark text-white text-sm px-3 py-1">#{idx + 1}</Badge>
                   <div>
                     <div className="text-lg font-semibold text-white">
                       {contractor.businessName || contractor.name || "Contractor"}
                     </div>
-                    <div className="text-sm text-gray-400 flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-orange-300" />
+                    <div className="text-sm text-white/60 flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-ts-orange" />
                       {(contractor.trades && contractor.trades.join(", ")) || "Trade not listed"}
                     </div>
-                    <div className="text-sm text-gray-400 flex items-center gap-2">
+                    <div className="text-sm text-white/60 flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-teal-300" />
                       {sanitizeAreaLabel(
                         contractor.location || contractor.county || "County selected"
                       )}
                     </div>
                     {contractor.presenceLabel && (
-                      <div className="text-xs text-gray-300 mt-1">
+                      <div className="text-xs text-white/70 mt-1">
                         {contractor.presenceLabel}
                         {contractor.localStats &&
                           (contractor.localStats.jobsCompleted > 0 ||
                             contractor.localStats.peopleHelped > 0) && (
-                            <span className="text-gray-400">
+                            <span className="text-white/60">
                               {" "}
                               · {contractor.localStats.jobsCompleted} jobs completed,{" "}
                               {contractor.localStats.peopleHelped} people helped
@@ -283,7 +283,7 @@ const FindContractors = memo(function FindContractors({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-gray-200">
+                <div className="flex items-center gap-4 text-sm text-white/70">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-yellow-400" />
                     <span>{contractor.rating ?? "N/A"}</span>
@@ -312,7 +312,7 @@ const FindContractors = memo(function FindContractors({
             <Sparkles className="h-5 w-5" />
             <span className="font-semibold">Search snapshot</span>
           </div>
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-white/70">
             {countyFips && tradeSlug
               ? "Summary for your current location + trade selection."
               : "Select a location and trade to see summary stats."}
@@ -320,34 +320,34 @@ const FindContractors = memo(function FindContractors({
         </div>
 
         <div className="ts-section space-y-4">
-          <div className="flex items-center gap-2 text-orange-300">
+          <div className="flex items-center gap-2 text-ts-orange">
             <Star className="h-5 w-5" />
             <span className="font-semibold">At a glance</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-400">Results</div>
-              <div className="text-2xl font-semibold text-orange-200">
+              <div className="text-xs uppercase tracking-wide text-white/60">Results</div>
+              <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug ? snapshot.results : "—"}
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-400">Avg. Rating</div>
-              <div className="text-2xl font-semibold text-orange-200">
+              <div className="text-xs uppercase tracking-wide text-white/60">Avg. Rating</div>
+              <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug && snapshot.avgRating !== null
                   ? snapshot.avgRating.toFixed(1)
                   : "—"}
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-400">Total Recs</div>
-              <div className="text-2xl font-semibold text-orange-200">
+              <div className="text-xs uppercase tracking-wide text-white/60">Total Recs</div>
+              <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug ? snapshot.totalRecs : "—"}
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-400">Top Rating</div>
-              <div className="text-2xl font-semibold text-orange-200">
+              <div className="text-xs uppercase tracking-wide text-white/60">Top Rating</div>
+              <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug && snapshot.topRating !== null
                   ? snapshot.topRating.toFixed(1)
                   : "—"}
@@ -360,13 +360,13 @@ const FindContractors = memo(function FindContractors({
       <section className="ts-section">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-semibold">Quick actions</h2>
-          <span className="text-sm text-gray-400">For pros and homeowners</span>
+          <span className="text-sm text-white/60">For pros and homeowners</span>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           {quickActions.map((action) => (
             <div key={action.title} className="ts-card p-4">
-              <h3 className="text-lg font-semibold text-orange-200">{action.title}</h3>
-              <p className="text-gray-300 text-sm mt-2">{action.desc}</p>
+              <h3 className="text-lg font-semibold text-ts-orange">{action.title}</h3>
+              <p className="text-white/70 text-sm mt-2">{action.desc}</p>
             </div>
           ))}
         </div>
@@ -375,14 +375,14 @@ const FindContractors = memo(function FindContractors({
       <section className="ts-section">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-semibold">Top trust matches</h2>
-          <span className="text-sm text-gray-400">Verified and community-backed</span>
+          <span className="text-sm text-white/60">Verified and community-backed</span>
         </div>
         {!countyFips || !tradeSlug ? (
-          <div className="ts-tile p-6 text-sm text-gray-400">
+          <div className="ts-tile p-6 text-sm text-white/60">
             Select a location and trade to see trust-ranked contractors.
           </div>
         ) : featured.length === 0 ? (
-          <div className="ts-tile p-6 text-sm text-gray-300">
+          <div className="ts-tile p-6 text-sm text-white/70">
             No trust-ranked contractors available for this selection yet.
           </div>
         ) : (
@@ -392,7 +392,7 @@ const FindContractors = memo(function FindContractors({
                 <h3 className="text-xl font-semibold mb-2 ts-accent-text-muted">
                   {contractor.businessName || contractor.name || "Contractor"}
                 </h3>
-                <p className="text-gray-300 mb-4">
+                <p className="text-white/70 mb-4">
                   {(contractor.trades && contractor.trades.join(", ")) || "Trade not listed"}
                 </p>
                 <div className="flex justify-between items-center text-sm">
@@ -415,7 +415,7 @@ const FindContractors = memo(function FindContractors({
       <section className="ts-card accent-soft p-6 text-center space-y-3">
         <h3 className="text-xl font-semibold ts-accent-text-muted">Not sure where to start?</h3>
         <p
-          className="text-gray-100 max-w-3xl mx-auto"
+          className="text-white max-w-3xl mx-auto"
           style={{ color: "var(--theme-text-secondary)" }}
         >
           Ask Scout to draft bids, verify licenses, or queue tasks on your board. Or jump in with

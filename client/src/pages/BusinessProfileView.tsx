@@ -203,13 +203,13 @@ export default function BusinessProfileView() {
   const verificationTone = (() => {
     if (verificationStatus === "approved") return "bg-emerald-600 text-white";
     if (verificationStatus === "under_review" || verificationStatus === "pending") {
-      return "bg-amber-500 text-slate-950";
+      return "bg-amber-500 text-black";
     }
     if (verificationStatus === "rejected" || verificationStatus === "expired") {
       return "bg-red-600 text-white";
     }
-    if (verificationStatus === "suspended") return "bg-slate-700 text-white";
-    return "bg-slate-700 text-white";
+    if (verificationStatus === "suspended") return "bg-white/10 text-white";
+    return "bg-white/10 text-white";
   })();
   const verificationLabel = (() => {
     if (verificationStatus === "approved") return "Professional Verified";

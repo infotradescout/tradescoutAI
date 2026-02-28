@@ -174,7 +174,7 @@ export default function AffiliatePage() {
   if (isLoading) {
     return (
       <div className="py-24 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -183,19 +183,19 @@ export default function AffiliatePage() {
     return (
       <div className="px-4 py-10">
         <div className="container mx-auto max-w-4xl">
-          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2 max-w-xl">
               <h1 className="text-2xl sm:text-3xl font-bold text-white">
                 Share TradeScout, fund your community.
               </h1>
-              <p className="text-sm sm:text-base text-gray-300">
+              <p className="text-sm sm:text-base text-white/70">
                 Create an account or sign in to see your affiliate dashboard, get your personal
                 link, and route a slice of Exchange activity back into the county vaults you care
                 about.
               </p>
             </div>
-            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-gray-300">
-              <span className="text-xs text-slate-400">
+            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-white/70">
+              <span className="text-xs text-white/60">
                 Use the Create account or Log in buttons in the header to get started.
               </span>
             </div>
@@ -209,12 +209,12 @@ export default function AffiliatePage() {
     return (
       <div className="px-4 py-10">
         <div className="container mx-auto max-w-4xl">
-          <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3">
             <div className="space-y-2 max-w-xl">
               <h1 className="text-2xl sm:text-3xl font-bold text-white">
                 Affiliate dashboard not available yet
               </h1>
-              <p className="text-sm sm:text-base text-gray-300">
+              <p className="text-sm sm:text-base text-white/70">
                 We couldn&apos;t load your affiliate dashboard data right now. Please try again
                 later or contact support if the issue persists.
               </p>
@@ -253,14 +253,14 @@ export default function AffiliatePage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-orange-500/20 rounded-lg">
-              <Share2 className="w-8 h-8 text-orange-500" />
+            <div className="p-3 bg-ts-orange/20 rounded-lg">
+              <Share2 className="w-8 h-8 text-ts-orange" />
             </div>
             <div>
               <h1 className="text-2xl md:text-4xl font-bold text-white">
                 Your Affiliate Dashboard
               </h1>
-              <p className="text-sm md:text-base text-gray-400">
+              <p className="text-sm md:text-base text-white/60">
                 Every link you share automatically powers a 5/5/5 impact model
               </p>
             </div>
@@ -286,14 +286,14 @@ export default function AffiliatePage() {
         </div>
 
         {/* Personal invite link & quick share actions */}
-        <Card className="bg-slate-800/70 border-slate-700 mb-8">
+        <Card className="bg-white/5 border-white/10 mb-8">
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle className="text-white flex items-center gap-2">
-                <Share2 className="w-5 h-5 text-orange-400" />
+                <Share2 className="w-5 h-5 text-ts-orange" />
                 Your invite link
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-white/70">
                 Share this link anywhere. Anyone who joins through it is permanently attributed to
                 you.
               </CardDescription>
@@ -304,11 +304,11 @@ export default function AffiliatePage() {
               <Input
                 readOnly
                 value={affiliateLink}
-                className="bg-slate-900/70 border-slate-700 text-sm text-gray-100 font-mono flex-1"
+                className="bg-tsCard/95 border-white/10 text-sm text-white font-mono flex-1"
               />
               <Button
                 type="button"
-                className="bg-orange-500 hover:bg-orange-600 whitespace-nowrap"
+                className="bg-ts-orange hover:bg-ts-orange-dark whitespace-nowrap"
                 onClick={() => copyToClipboard(affiliateLink, "Invite link")}
               >
                 <Copy className="w-4 h-4 mr-2" />
@@ -316,12 +316,12 @@ export default function AffiliatePage() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+            <div className="flex flex-wrap gap-2 text-xs text-white/60">
               <span>Quick share:</span>
               <Button
                 type="button"
                 variant="outline"
-                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                className="border-white/15 text-white/70 hover:bg-white/5"
                 onClick={() => shareWithRef("/", "Share TradeScout")}
               >
                 Share TradeScout
@@ -329,7 +329,7 @@ export default function AffiliatePage() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                className="border-white/15 text-white/70 hover:bg-white/5"
                 onClick={() => shareWithRef("/contractors", "Share contractors")}
               >
                 Share contractors
@@ -337,7 +337,7 @@ export default function AffiliatePage() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                className="border-white/15 text-white/70 hover:bg-white/5"
                 onClick={() => shareWithRef("/community", "Share community")}
               >
                 Share community
@@ -345,7 +345,7 @@ export default function AffiliatePage() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-slate-600 text-slate-200 hover:bg-slate-800/70"
+                className="border-white/15 text-white/70 hover:bg-white/5"
                 onClick={() => shareWithRef("/exchange", "Share Exchange")}
               >
                 Share Exchange
@@ -356,24 +356,24 @@ export default function AffiliatePage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Total Referrals
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-white">{stats?.totalReferrals || 0}</div>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-white/60 mt-1">
                 {stats?.convertedReferrals || 0} converted ({stats?.conversionRate || 0}%)
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Total Earned
               </CardTitle>
@@ -382,13 +382,13 @@ export default function AffiliatePage() {
               <div className="text-3xl font-bold text-emerald-400">
                 ${stats?.totalCommissionEarned || "0.00"}
               </div>
-              <p className="text-sm text-gray-400 mt-1">Lifetime commissions</p>
+              <p className="text-sm text-white/60 mt-1">Lifetime commissions</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 Paid Out
               </CardTitle>
@@ -397,20 +397,20 @@ export default function AffiliatePage() {
               <div className="text-3xl font-bold text-blue-400">
                 ${stats?.totalCommissionPaid || "0.00"}
               </div>
-              <p className="text-sm text-gray-400 mt-1">Total payments received</p>
+              <p className="text-sm text-white/60 mt-1">Total payments received</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Commission Rate
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-orange-400">5%</div>
-              <p className="text-sm text-gray-400 mt-1">
+              <div className="text-3xl font-bold text-ts-orange">5%</div>
+              <p className="text-sm text-white/60 mt-1">
                 Directly to you on platform revenue from your referrals
               </p>
             </CardContent>
@@ -418,44 +418,44 @@ export default function AffiliatePage() {
         </div>
 
         {/* Automatic Affiliate Tracking */}
-        <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/30 mb-8">
+        <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-ts-orange/30 mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Share2 className="w-5 h-5" />
               Automatic Affiliate Tracking
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-white/70">
               ANY link you share from TradeScout automatically includes your tracking code - no
               special link needed
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+            <div className="bg-white/5 p-6 rounded-lg border border-white/10">
               <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-orange-400" />
+                <Zap className="w-5 h-5 text-ts-orange" />
                 How It Works
               </h4>
-              <p className="text-gray-300 mb-4">
+              <p className="text-white/70 mb-4">
                 Share any page from TradeScout - the homepage, an Exchange listing, a contractor
                 profile, or a county page. Your unique tracking code is automatically attached to
                 every URL you share.
               </p>
-              <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
-                <p className="text-gray-400 text-sm mb-2">Examples of links you can share:</p>
-                <ul className="text-gray-300 text-sm space-y-1 font-mono">
+              <div className="bg-tsCard/95 p-4 rounded border border-white/10">
+                <p className="text-white/60 text-sm mb-2">Examples of links you can share:</p>
+                <ul className="text-white/70 text-sm space-y-1 font-mono">
                   <li>
-                     tradescout.com <span className="text-orange-400">?ref=your_code</span>
+                     tradescout.com <span className="text-ts-orange">?ref=your_code</span>
                   </li>
                   <li>
-                     tradescout.com/exchange <span className="text-orange-400">?ref=your_code</span>
+                     tradescout.com/exchange <span className="text-ts-orange">?ref=your_code</span>
                   </li>
                   <li>
                      tradescout.com/county/cook-il{" "}
-                    <span className="text-orange-400">?ref=your_code</span>
+                    <span className="text-ts-orange">?ref=your_code</span>
                   </li>
                   <li>
                      tradescout.com/contractors{" "}
-                    <span className="text-orange-400">?ref=your_code</span>
+                    <span className="text-ts-orange">?ref=your_code</span>
                   </li>
                 </ul>
                 <p className="text-emerald-400 text-xs mt-3">
@@ -465,22 +465,22 @@ export default function AffiliatePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-slate-800/50 p-4 rounded-lg">
+              <div className="bg-white/5 p-4 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">5% To You</h4>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-white/60">
                   Direct affiliate earnings from Exchange activity and platform revenue
                 </p>
               </div>
-              <div className="bg-slate-800/50 p-4 rounded-lg">
+              <div className="bg-white/5 p-4 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">5% To Community Vaults</h4>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-white/60">
                   Automatically routes a matching share back into the community vaults you care
                   about
                 </p>
               </div>
-              <div className="bg-slate-800/50 p-4 rounded-lg">
+              <div className="bg-white/5 p-4 rounded-lg">
                 <h4 className="text-white font-semibold mb-2">5% To Trade Schools</h4>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-white/60">
                   Funds scholarships and training for the next generation of tradespeople
                 </p>
               </div>
@@ -490,7 +490,7 @@ export default function AffiliatePage() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -498,7 +498,7 @@ export default function AffiliatePage() {
           </TabsList>
 
           <TabsContent value="overview">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">How It Works</CardTitle>
                 <CardDescription>Your automatic affiliate program explained</CardDescription>
@@ -506,11 +506,11 @@ export default function AffiliatePage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <Share2 className="w-6 h-6 text-orange-400" />
+                    <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-3">
+                      <Share2 className="w-6 h-6 text-ts-orange" />
                     </div>
                     <h3 className="text-white font-semibold mb-2">1. Share ANY Link</h3>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       Share any page from TradeScout on social media, email, or anywhere online.
                       Your tracking code is automatically added to every URL.
                     </p>
@@ -520,7 +520,7 @@ export default function AffiliatePage() {
                       <Users className="w-6 h-6 text-blue-400" />
                     </div>
                     <h3 className="text-white font-semibold mb-2">2. People Sign Up</h3>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       When someone joins TradeScout through your link, they're automatically tracked
                       as your referral forever.
                     </p>
@@ -530,16 +530,16 @@ export default function AffiliatePage() {
                       <DollarSign className="w-6 h-6 text-emerald-400" />
                     </div>
                     <h3 className="text-white font-semibold mb-2">3. 5/5/5 Forever</h3>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       You earn 5% of platform revenue from your referrals, while another 5% goes to
                       community vaults and 5% to trade + culinary scholarships.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-slate-700/30 p-6 rounded-lg">
+                <div className="bg-white/10 p-6 rounded-lg">
                   <h4 className="text-white font-semibold mb-3">Why 5/5/5 is Powerful</h4>
-                  <ul className="space-y-2 text-gray-300 text-sm">
+                  <ul className="space-y-2 text-white/70 text-sm">
                     <li className="flex items-start gap-2">
                       <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                       <span>
@@ -576,19 +576,19 @@ export default function AffiliatePage() {
           </TabsContent>
 
           <TabsContent value="referrals">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Your Referrals</CardTitle>
                 <CardDescription>Track everyone who joined through your link</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="mb-6 rounded-lg border border-slate-700 bg-slate-900/40 p-4 space-y-3">
+                <div className="mb-6 rounded-lg border border-white/10 bg-tsCard/95 p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-white font-semibold">Custom referral links</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-white/60">
                         Create clean, memorable links like{" "}
-                        <span className="font-mono text-orange-300">/r/your-slug</span> that
+                        <span className="font-mono text-ts-orange">/r/your-slug</span> that
                         redirect to any page with your referral attribution baked in.
                       </p>
                     </div>
@@ -596,40 +596,40 @@ export default function AffiliatePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                         Destination
                       </p>
                       <Input
                         value={newLinkDestination}
                         onChange={(e) => setNewLinkDestination(e.target.value)}
                         placeholder="/exchange"
-                        className="bg-slate-950/40 border-slate-700 text-slate-100"
+                        className="bg-black/30 border-white/10 text-white"
                       />
-                      <p className="text-[11px] text-gray-500 mt-1">
+                      <p className="text-[11px] text-white/60 mt-1">
                         Use a site path starting with "/".
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                         Slug (optional)
                       </p>
                       <Input
                         value={newLinkSlug}
                         onChange={(e) => setNewLinkSlug(e.target.value)}
                         placeholder="my-town"
-                        className="bg-slate-950/40 border-slate-700 text-slate-100"
+                        className="bg-black/30 border-white/10 text-white"
                       />
-                      <p className="text-[11px] text-gray-500 mt-1">Letters, numbers, dash.</p>
+                      <p className="text-[11px] text-white/60 mt-1">Letters, numbers, dash.</p>
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                      <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
                         Description (optional)
                       </p>
                       <Input
                         value={newLinkDescription}
                         onChange={(e) => setNewLinkDescription(e.target.value)}
                         placeholder="Exchange landing"
-                        className="bg-slate-950/40 border-slate-700 text-slate-100"
+                        className="bg-black/30 border-white/10 text-white"
                       />
                     </div>
                   </div>
@@ -643,7 +643,7 @@ export default function AffiliatePage() {
                         setNewLinkSlug("");
                         setNewLinkDescription("");
                       }}
-                      className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                      className="border-white/10 text-white/70 hover:bg-white/5"
                     >
                       Reset
                     </Button>
@@ -660,24 +660,24 @@ export default function AffiliatePage() {
                         createShareLinkMutation.isPending ||
                         !newLinkDestination.trim().startsWith("/")
                       }
-                      className="bg-orange-500 hover:bg-orange-600"
+                      className="bg-ts-orange hover:bg-ts-orange-dark"
                     >
                       {createShareLinkMutation.isPending ? "Creating..." : "Create link"}
                     </Button>
                   </div>
 
                   {(shareLinksData?.links || []).length > 0 ? (
-                    <div className="pt-3 border-t border-slate-800 space-y-2">
+                    <div className="pt-3 border-t border-white/10 space-y-2">
                       {(shareLinksData?.links || []).slice(0, 8).map((l: any) => (
                         <div
                           key={l.id}
-                          className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-md border border-slate-800 bg-slate-950/30 px-3 py-2"
+                          className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2"
                         >
                           <div className="min-w-0">
-                            <div className="text-sm text-slate-100 font-mono truncate">
+                            <div className="text-sm text-white font-mono truncate">
                               {l.shortUrl || `/r/${l.slug}`}
                             </div>
-                            <div className="text-[11px] text-slate-400 truncate">
+                            <div className="text-[11px] text-white/60 truncate">
                               {l.description || "Custom link"} • {l.destinationUrl}
                             </div>
                           </div>
@@ -689,7 +689,7 @@ export default function AffiliatePage() {
                               onClick={() =>
                                 copyToClipboard(String(l.shortUrl || ""), "Referral link")
                               }
-                              className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                              className="border-white/10 text-white/70 hover:bg-white/5"
                               disabled={!l.shortUrl}
                             >
                               <Copy className="w-4 h-4 mr-2" />
@@ -703,7 +703,7 @@ export default function AffiliatePage() {
                                 onClick={() =>
                                   window.open(String(l.shortUrl), "_blank", "noopener,noreferrer")
                                 }
-                                className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                                className="border-white/10 text-white/70 hover:bg-white/5"
                               >
                                 <ExternalLink className="w-4 h-4 mr-2" />
                                 Open
@@ -721,19 +721,19 @@ export default function AffiliatePage() {
                     {referrals.map((referral) => (
                       <div
                         key={referral.id}
-                        className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
                       >
                         <div>
                           <p className="text-white font-medium">
                             Referral #{referral.id.slice(0, 8)}
                           </p>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-white/60">
                             {format(new Date(referral.createdAt), "MMM d, yyyy")}
                           </p>
                         </div>
                         <Badge
                           className={
-                            referral.status === "converted" ? "bg-emerald-500" : "bg-gray-600"
+                            referral.status === "converted" ? "bg-emerald-500" : "bg-white/10"
                           }
                         >
                           {referral.status}
@@ -743,14 +743,14 @@ export default function AffiliatePage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <Users className="w-16 h-16 text-white/60 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No referrals yet</h3>
-                    <p className="text-gray-400 mb-6">
+                    <p className="text-white/60 mb-6">
                       Start sharing your link to earn commissions!
                     </p>
                     <Button
                       onClick={() => shareWithRef("/", "Invite link")}
-                      className="bg-orange-500 hover:bg-orange-600"
+                      className="bg-ts-orange hover:bg-ts-orange-dark"
                     >
                       <Copy className="w-4 h-4 mr-2" />
                       Copy Your Link
@@ -762,7 +762,7 @@ export default function AffiliatePage() {
           </TabsContent>
 
           <TabsContent value="commissions">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Commission History</CardTitle>
                 <CardDescription>View all commissions earned</CardDescription>
@@ -773,11 +773,11 @@ export default function AffiliatePage() {
                     {commissions.map((commission) => (
                       <div
                         key={commission.id}
-                        className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
                       >
                         <div className="flex-1">
                           <p className="text-white font-medium">{commission.description}</p>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-white/60">
                             {format(new Date(commission.createdAt), "MMM d, yyyy h:mm a")}
                           </p>
                         </div>
@@ -798,9 +798,9 @@ export default function AffiliatePage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <DollarSign className="w-16 h-16 text-white/60 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No commissions yet</h3>
-                    <p className="text-gray-400">Your commission earnings will appear here</p>
+                    <p className="text-white/60">Your commission earnings will appear here</p>
                   </div>
                 )}
               </CardContent>
@@ -808,7 +808,7 @@ export default function AffiliatePage() {
           </TabsContent>
 
           <TabsContent value="payouts">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Payout History</CardTitle>
                 <CardDescription>
@@ -821,11 +821,11 @@ export default function AffiliatePage() {
                     {payouts.map((payout) => (
                       <div
                         key={payout.id}
-                        className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
                       >
                         <div>
                           <p className="text-white font-medium">${payout.totalAmount}</p>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-white/60">
                             {payout.payoutMethod} •{" "}
                             {format(new Date(payout.createdAt), "MMM d, yyyy")}
                           </p>
@@ -842,9 +842,9 @@ export default function AffiliatePage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <Calendar className="w-16 h-16 text-white/60 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No payouts yet</h3>
-                    <p className="text-gray-400">
+                    <p className="text-white/60">
                       Payouts are processed monthly once you reach $50
                     </p>
                   </div>

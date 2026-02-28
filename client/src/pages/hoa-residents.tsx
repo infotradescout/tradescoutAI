@@ -234,9 +234,9 @@ const HOAResidents = memo(function HOAResidents() {
           canonical="https://www.thetradescout.com/hoa/residents"
           noIndex
         />
-        <Card className="bg-navy-800/60 border-navy-600">
+        <Card className="bg-tsCard/60 border-white/10">
           <CardContent className="p-6">
-            <p className="text-gray-300">County context required to view HOA residents.</p>
+            <p className="text-white/70">County context required to view HOA residents.</p>
           </CardContent>
         </Card>
       </HOAManagementShell>
@@ -252,9 +252,9 @@ const HOAResidents = memo(function HOAResidents() {
           canonical="https://www.thetradescout.com/hoa/residents"
           noIndex
         />
-        <Card className="bg-navy-800/60 border-navy-600">
+        <Card className="bg-tsCard/60 border-white/10">
           <CardContent className="p-6">
-            <p className="text-gray-300">You are not currently a member of an HOA.</p>
+            <p className="text-white/70">You are not currently a member of an HOA.</p>
           </CardContent>
         </Card>
       </HOAManagementShell>
@@ -273,10 +273,10 @@ const HOAResidents = memo(function HOAResidents() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <Users className="h-8 w-8 text-orange-400" />
+              <Users className="h-8 w-8 text-ts-orange" />
               HOA Residents
             </h1>
-            <p className="text-gray-300 mt-2">{memberships[0]?.hoaName || "Your HOA"}</p>
+            <p className="text-white/70 mt-2">{memberships[0]?.hoaName || "Your HOA"}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -375,7 +375,7 @@ const HOAResidents = memo(function HOAResidents() {
             {canAddMembers && (
               <Button
                 onClick={() => setAddMemberOpen(!addMemberOpen)}
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-ts-orange-dark hover:bg-ts-orange-dark"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Member
@@ -385,13 +385,13 @@ const HOAResidents = memo(function HOAResidents() {
         </div>
 
         {addMemberOpen && canAddMembers && (
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Add New Member</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="email" className="text-gray-200">
+                <Label htmlFor="email" className="text-white/70">
                   Email Address
                 </Label>
                 <Input
@@ -400,11 +400,11 @@ const HOAResidents = memo(function HOAResidents() {
                   placeholder="member@example.com"
                   value={newMemberEmail}
                   onChange={(e) => setNewMemberEmail(e.target.value)}
-                  className="bg-navy-700 text-white border-navy-600"
+                  className="bg-tsCard text-white border-white/10"
                 />
               </div>
               <div>
-                <Label htmlFor="unit" className="text-gray-200">
+                <Label htmlFor="unit" className="text-white/70">
                   Unit Number (optional)
                 </Label>
                 <Input
@@ -412,7 +412,7 @@ const HOAResidents = memo(function HOAResidents() {
                   placeholder="e.g., 101"
                   value={newMemberUnit}
                   onChange={(e) => setNewMemberUnit(e.target.value)}
-                  className="bg-navy-700 text-white border-navy-600"
+                  className="bg-tsCard text-white border-white/10"
                 />
               </div>
               <div className="flex gap-2">
@@ -426,7 +426,7 @@ const HOAResidents = memo(function HOAResidents() {
                     setNewMemberUnit("");
                   }}
                   variant="outline"
-                  className="border-navy-600 text-gray-200"
+                  className="border-white/10 text-white/70"
                 >
                   Cancel
                 </Button>
@@ -436,21 +436,21 @@ const HOAResidents = memo(function HOAResidents() {
         )}
 
         {isLoading ? (
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardContent className="p-6">
-              <p className="text-gray-300">Loading residents...</p>
+              <p className="text-white/70">Loading residents...</p>
             </CardContent>
           </Card>
         ) : members.length === 0 ? (
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardContent className="p-6">
-              <p className="text-gray-300">No members found.</p>
+              <p className="text-white/70">No members found.</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
             {members.map((member) => (
-              <Card key={member.id} className="bg-navy-800/60 border-navy-600">
+              <Card key={member.id} className="bg-tsCard/60 border-white/10">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -461,7 +461,7 @@ const HOAResidents = memo(function HOAResidents() {
                             {member.userName || member.userEmail || "Member"}
                           </span>
                           {member.unitNumber && (
-                            <Badge variant="outline" className="border-gray-600 text-gray-300">
+                            <Badge variant="outline" className="border-white/15 text-white/70">
                               Unit {member.unitNumber}
                             </Badge>
                           )}
@@ -484,8 +484,8 @@ const HOAResidents = memo(function HOAResidents() {
                           member.canManageVendors ||
                           member.canCreateVotes) && (
                           <div className="flex items-center gap-2 mt-2">
-                            <Shield className="h-4 w-4 text-orange-400" />
-                            <span className="text-xs text-gray-400">
+                            <Shield className="h-4 w-4 text-ts-orange" />
+                            <span className="text-xs text-white/60">
                               Permissions:{" "}
                               {[
                                 member.canViewFinances && "Finances",
@@ -501,7 +501,7 @@ const HOAResidents = memo(function HOAResidents() {
                       </div>
                     </div>
                     {canAddMembers && (
-                      <Button size="sm" variant="outline" className="border-navy-600 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/10 text-white/70">
                         <Edit className="h-4 w-4" />
                       </Button>
                     )}

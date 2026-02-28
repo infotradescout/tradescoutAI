@@ -150,10 +150,10 @@ export default function InvitePage() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-orange-500 mb-2">
+        <h1 className="text-3xl font-bold text-ts-orange mb-2">
           Invite Friends to TradeScout
         </h1>
-        <p className="text-gray-600 dark:text-gray-300">
+        <p className="text-white/60 dark:text-white/70">
           Help grow our community by inviting contractors and homeowners you know
         </p>
       </div>
@@ -274,7 +274,7 @@ export default function InvitePage() {
                     <div className="text-2xl font-bold text-blue-600">
                       {stats.totalInvitationsSent}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-white/60 dark:text-white/60">
                       Invitations Sent
                     </div>
                   </div>
@@ -282,15 +282,15 @@ export default function InvitePage() {
                     <div className="text-2xl font-bold text-green-600">
                       {stats.totalInvitationsAccepted}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-white/60 dark:text-white/60">
                       Accepted
                     </div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-ts-orange">
                       {stats.contractorReferrals}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-white/60 dark:text-white/60">
                       Contractors
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export default function InvitePage() {
                     <div className="text-2xl font-bold text-purple-600">
                       {stats.homeownerReferrals}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-white/60 dark:text-white/60">
                       Homeowners
                     </div>
                   </div>
@@ -321,7 +321,7 @@ export default function InvitePage() {
           {invitationsLoading ? (
             <div className="text-center py-8">Loading invitations...</div>
           ) : !invitations || invitations.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-white/60">
               No invitations sent yet. Start by sending your first invitation above!
             </div>
           ) : (
@@ -333,11 +333,11 @@ export default function InvitePage() {
                 >
                   <div className="flex-1">
                     <div className="font-medium">{invitation.email}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className="text-sm text-white/60 dark:text-white/60">
                       Role: {invitation.targetRole} • Code: {invitation.code}
                     </div>
                     {invitation.personalMessage && (
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-white/60 mt-1">
                         "{invitation.personalMessage}"
                       </div>
                     )}
@@ -346,7 +346,7 @@ export default function InvitePage() {
                     <Badge variant={getStatusBadgeVariant(invitation.status)}>
                       {invitation.status}
                     </Badge>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-white/60">
                       {new Date(invitation.createdAt).toLocaleDateString()}
                     </div>
                   </div>

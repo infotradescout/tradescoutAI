@@ -34,7 +34,7 @@ export function HoldIntroTutorial() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[480px] bg-navy-800 border-navy-600">
+      <DialogContent className="sm:max-w-[480px] bg-tsCard border-white/10">
         <DialogHeader>
           <DialogTitle className="text-white">You don't need tutorials here.</DialogTitle>
           <DialogDescription className="text-navy-200 text-base mt-2">
@@ -42,7 +42,7 @@ export function HoldIntroTutorial() {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4">
-          <Button className="w-full bg-navy-700 text-white hover:bg-navy-600" onClick={handleAcknowledge}>
+          <Button className="w-full bg-tsCard text-white hover:bg-tsCard" onClick={handleAcknowledge}>
             Got it
           </Button>
         </DialogFooter>

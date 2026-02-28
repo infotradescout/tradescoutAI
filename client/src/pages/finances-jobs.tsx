@@ -196,8 +196,8 @@ export default function FinancesJobsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Jobs</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Jobs</h1>
+          <p className="text-sm text-white/60">
             Job pipeline and deal rooms, anchored on the invoices you've issued.
           </p>
         </div>
@@ -205,7 +205,7 @@ export default function FinancesJobsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 border-slate-600 text-[11px] text-slate-200"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => navigate("/finances/invoices")}
           >
             View invoices
@@ -213,11 +213,11 @@ export default function FinancesJobsPage() {
         </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-100">Jobs linked to invoices</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
+            <CardTitle className="text-sm font-semibold text-white">Jobs linked to invoices</CardTitle>
+            <CardDescription className="text-xs text-white/60">
               This is a simple job list based on your invoice and expense records. Open a deal room to manage
               materials, estimates, contracts, and payments.
             </CardDescription>
@@ -227,15 +227,15 @@ export default function FinancesJobsPage() {
               placeholder="Search jobs by name, client, or ID"
               value={jobQuery}
               onChange={(e) => setJobQuery(e.target.value)}
-              className="bg-slate-900/60 border-slate-700 text-xs text-slate-100 h-8 min-w-[220px]"
+              className="bg-tsCard/95 border-white/10 text-xs text-white h-8 min-w-[220px]"
             />
           </div>
         </CardHeader>
         <CardContent>
           {isInvoicesLoading || isExpensesLoading ? (
-            <p className="text-[11px] text-slate-400 py-4">Loading jobs…</p>
+            <p className="text-[11px] text-white/60 py-4">Loading jobs…</p>
           ) : filteredJobs.length === 0 ? (
-            <div className="text-[11px] text-slate-400 py-4 space-y-2">
+            <div className="text-[11px] text-white/60 py-4 space-y-2">
               <p>
                 {isCommunityFirst
                   ? "You don’t need to set up jobs in advance. When you create invoices or expenses and tie them to work, jobs will appear here automatically."
@@ -246,7 +246,7 @@ export default function FinancesJobsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 px-3 border-slate-700 text-slate-200"
+                    className="h-7 px-3 border-white/10 text-white/70"
                     onClick={() => navigate("/finances/invoices")}
                   >
                     Create an invoice when you’re ready
@@ -272,30 +272,30 @@ export default function FinancesJobsPage() {
                 return (
                   <Card
                     key={job.id}
-                    className="bg-slate-900/60 border-slate-700 hover:border-orange-500/60 transition-colors cursor-pointer"
+                    className="bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer"
                     onClick={() => navigate(`/deal-room/${encodeURIComponent(job.jobId)}`)}
                   >
                     <CardContent className="p-4 flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-semibold text-white truncate max-w-xs">{job.title}</h3>
-                          <Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
+                          <Badge className="text-[10px] px-2 py-0.5 bg-white/5 border-white/15">
                             {statusLabel}
                           </Badge>
                         </div>
                         {job.client && (
-                          <p className="text-[11px] text-slate-300">Client: {job.client}</p>
+                          <p className="text-[11px] text-white/70">Client: {job.client}</p>
                         )}
-                        <p className="text-[11px] text-slate-400 mt-1">
+                        <p className="text-[11px] text-white/60 mt-1">
                           Invoiced: {formatCurrency(job.totalInvoiced)} · Paid: {formatCurrency(job.paidAmount)} ·
                           Open: {formatCurrency(job.unpaidAmount)}
                         </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-white/60 mt-0.5">
                           Expenses: {formatCurrency(job.expensesTotal)} · Simple net: {formatCurrency(
                             job.totalInvoiced - job.expensesTotal,
                           )}
                         </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
+                        <p className="text-[11px] text-white/60 mt-0.5">
                           Created {new Date(job.createdAt).toLocaleDateString()}
                         </p>
                       </div>

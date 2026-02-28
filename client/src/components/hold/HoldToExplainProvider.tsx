@@ -134,9 +134,9 @@ export function HoldToExplainProvider() {
       className="fixed z-[9999] pointer-events-none"
       style={{ left: overlay.x + 12, top: overlay.y + 12 }}
     >
-      <div className="rounded-lg bg-slate-900 text-slate-50 shadow-lg border border-slate-700 px-4 py-3 max-w-xs">
+      <div className="rounded-lg bg-tsCard text-white shadow-lg border border-white/10 px-4 py-3 max-w-xs">
         <p className="text-sm font-semibold">{overlay.whatItDoes}</p>
-        <p className="text-xs text-slate-300 mt-1">Then: {overlay.then}</p>
+        <p className="text-xs text-white/70 mt-1">Then: {overlay.then}</p>
         <p className="sr-only">Hold shows what an action does. Release to close.</p>
       </div>
     </div>,

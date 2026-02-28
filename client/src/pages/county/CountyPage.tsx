@@ -173,7 +173,7 @@ const CountyPage = memo(function CountyPage() {
                 : "Invalid county or state."}
             </p>
             <Link href="/county-directory">
-              <a className="inline-block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+              <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
                 Browse All Counties
               </a>
             </Link>
@@ -220,7 +220,7 @@ const CountyPage = memo(function CountyPage() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-8">
+        <nav className="flex items-center gap-2 text-sm text-white/60 mb-8">
           {breadcrumbs.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2">
               {idx > 0 && <ChevronRight className="w-4 h-4" />}
@@ -229,7 +229,7 @@ const CountyPage = memo(function CountyPage() {
                   <a className="text-blue-600 hover:underline">{item.name}</a>
                 </Link>
               ) : (
-                <span className="font-semibold text-gray-900">{item.name}</span>
+                <span className="font-semibold text-white">{item.name}</span>
               )}
             </div>
           ))}
@@ -237,10 +237,10 @@ const CountyPage = memo(function CountyPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-gray-900">
+          <h1 className="text-4xl font-bold mb-2 text-white">
             {county.name}, {state.code}
           </h1>
-          <p className="text-lg text-gray-600 flex items-center gap-2">
+          <p className="text-lg text-white/60 flex items-center gap-2">
             <MapPin className="w-5 h-5" />
             {state.name}
           </p>
@@ -248,10 +248,10 @@ const CountyPage = memo(function CountyPage() {
 
         {/* Coverage Status Banner */}
         {coverageLoading ? (
-          <Card className="bg-gray-50 border-gray-200 mb-8">
+          <Card className="bg-white/5 border-white/10 mb-8">
             <CardContent className="p-6">
               <div className="flex items-center gap-2">
-                <div className="animate-spin w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full" />
+                <div className="animate-spin w-5 h-5 border-2 border-ts-orange/30 border-t-transparent rounded-full" />
                 <span>Loading coverage information...</span>
               </div>
             </CardContent>
@@ -263,7 +263,7 @@ const CountyPage = memo(function CountyPage() {
                 ? "bg-green-50 border-green-200"
                 : coverage.coverageStatus === "partial"
                   ? "bg-blue-50 border-blue-200"
-                  : "bg-gray-50 border-gray-200"
+                  : "bg-white/5 border-white/10"
             }`}
           >
             <CardContent className="p-6">
@@ -304,14 +304,14 @@ const CountyPage = memo(function CountyPage() {
               )}
               {coverage.coverageStatus === "unassigned" && (
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-gray-600 mt-1" />
+                  <AlertCircle className="w-5 h-5 text-white/60 mt-1" />
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Not Yet Covered</h3>
-                    <p className="text-gray-700 mb-3">{county.name} is on our expansion roadmap.</p>
+                    <h3 className="font-semibold text-white mb-1">Not Yet Covered</h3>
+                    <p className="text-white/70 mb-3">{county.name} is on our expansion roadmap.</p>
                     <Link
                       href={`/scout?intent=county-coverage-request&county=${encodeURIComponent(county.name)}&countyFips=${encodeURIComponent(county.fipsCode)}`}
                     >
-                      <a className="inline-block px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                      <a className="inline-block px-4 py-2 bg-white/10 text-white rounded hover:bg-white/10">
                         Request Coverage →
                       </a>
                     </Link>
@@ -326,11 +326,11 @@ const CountyPage = memo(function CountyPage() {
         <Card className="mb-8">
           <CardContent className="p-6">
             <h2 className="text-2xl font-bold mb-4">Find Contractors in {county.name}</h2>
-            <p className="text-gray-700 mb-6">
+            <p className="text-white/70 mb-6">
               Search verified contractors by trade. Match on trust and relevance, not price wars.
             </p>
             <Link href={`/direct-connect?county=${county.fipsCode}`}>
-              <a className="inline-block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+              <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
                 Open Direct Connect →
               </a>
             </Link>
@@ -344,7 +344,7 @@ const CountyPage = memo(function CountyPage() {
               <Users className="w-6 h-6" />
               Community in {county.name}
             </h2>
-            <p className="text-gray-700 mb-6">
+            <p className="text-white/70 mb-6">
               Join neighbors, contractors, and professionals. Share trusted local signals, post
               projects, and discover what's happening locally.
             </p>
@@ -363,8 +363,8 @@ const CountyPage = memo(function CountyPage() {
             <div className="space-y-6">
               {faqs.map((faq, idx) => (
                 <div key={idx} className="pb-6 border-b last:pb-0 last:border-b-0">
-                  <h3 className="font-semibold text-gray-900 mb-2">{faq.question}</h3>
-                  <p className="text-gray-700">{faq.answer}</p>
+                  <h3 className="font-semibold text-white mb-2">{faq.question}</h3>
+                  <p className="text-white/70">{faq.answer}</p>
                 </div>
               ))}
             </div>

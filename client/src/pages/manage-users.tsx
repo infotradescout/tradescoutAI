@@ -131,7 +131,7 @@ const ManageUsers = memo(function ManageUsers() {
       case "super_admin":
         return <Crown className="h-4 w-4 text-red-400" />;
       default:
-        return <User className="h-4 w-4 text-gray-400" />;
+        return <User className="h-4 w-4 text-white/60" />;
     }
   };
 
@@ -144,11 +144,11 @@ const ManageUsers = memo(function ManageUsers() {
       case "realtor":
         return "bg-purple-600";
       case "moderator":
-        return "bg-orange-600";
+        return "bg-ts-orange-dark";
       case "super_admin":
         return "bg-red-600";
       default:
-        return "bg-gray-600";
+        return "bg-white/10";
     }
   };
 
@@ -161,7 +161,7 @@ const ManageUsers = memo(function ManageUsers() {
       case "suspended":
         return "text-red-400";
       default:
-        return "text-gray-400";
+        return "text-white/60";
     }
   };
 
@@ -185,7 +185,7 @@ const ManageUsers = memo(function ManageUsers() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Users2 className="h-8 w-8 text-orange-400" />
+            <Users2 className="h-8 w-8 text-ts-orange" />
             <h1 className="text-4xl font-bold text-foreground">User Management</h1>
           </div>
           <p className="text-muted-foreground text-lg">
@@ -290,7 +290,7 @@ const ManageUsers = memo(function ManageUsers() {
 
           <TabsContent value={activeTab} className="space-y-4">
             {filteredUsers.map((user) => (
-              <Card key={user.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card key={user.id} className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -305,7 +305,7 @@ const ManageUsers = memo(function ManageUsers() {
                           {user.verified && <CheckCircle2 className="h-4 w-4 text-green-400" />}
                           {getRoleIcon(user.role)}
                         </div>
-                        <p className="text-gray-400 text-sm">{user.email}</p>
+                        <p className="text-white/60 text-sm">{user.email}</p>
                         <div className="flex items-center gap-4 mt-2">
                           <Badge className={getRoleBadgeColor(user.role)}>
                             {user.role.replace("_", " ").toUpperCase()}
@@ -313,7 +313,7 @@ const ManageUsers = memo(function ManageUsers() {
                           <span className={`text-sm ${getStatusColor(user.status)}`}>
                             {user.status.toUpperCase()}
                           </span>
-                          <span className="text-gray-400 text-sm">{user.location}</span>
+                          <span className="text-white/60 text-sm">{user.location}</span>
                         </div>
                       </div>
                     </div>
@@ -325,9 +325,9 @@ const ManageUsers = memo(function ManageUsers() {
                           {user.role === "contractor_user" ? "Projects" : "Requests"}
                         </div>
                         {user.rating && (
-                          <div className="text-gray-400 text-sm">★ {user.rating} rating</div>
+                          <div className="text-white/60 text-sm">★ {user.rating} rating</div>
                         )}
-                        <div className="text-gray-400 text-sm">
+                        <div className="text-white/60 text-sm">
                           Joined {new Date(user.joinDate).toLocaleDateString()}
                         </div>
                       </div>
@@ -337,7 +337,7 @@ const ManageUsers = memo(function ManageUsers() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                            className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>

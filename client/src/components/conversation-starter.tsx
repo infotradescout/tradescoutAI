@@ -100,7 +100,7 @@ export function ConversationStarter({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className={`bg-orange-600 hover:bg-orange-700 text-white ${className}`} size="lg">
+        <Button className={`bg-ts-orange-dark hover:bg-ts-orange-dark text-white ${className}`} size="lg">
           <MessageCircle className="h-4 w-4 mr-2" />
           Request Quote
         </Button>
@@ -115,16 +115,16 @@ export function ConversationStarter({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-1">{listing.title}</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="p-3 bg-white/5 dark:bg-white/5 rounded-lg">
+            <h4 className="font-medium text-white dark:text-white mb-1">{listing.title}</h4>
+            <p className="text-sm text-white/60 dark:text-white/60">
               ${listing.price.toLocaleString()}
             </p>
           </div>
 
           <form onSubmit={handleStartConversation} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-white/70 dark:text-white/70 mb-2">
                 Request details
               </label>
               <Textarea
@@ -150,7 +150,7 @@ export function ConversationStarter({
               <Button
                 type="submit"
                 disabled={!message.trim() || startConversationMutation.isPending}
-                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark"
               >
                 {startConversationMutation.isPending ? (
                   "Sending..."
@@ -164,7 +164,7 @@ export function ConversationStarter({
             </div>
           </form>
 
-          <div className="text-xs text-gray-500 space-y-1">
+          <div className="text-xs text-white/60 space-y-1">
             <p>- Awareness does not unlock direct contact.</p>
             <p>- First contact always requires seller approval.</p>
             <p>- TradeScout opens chat only after approval.</p>

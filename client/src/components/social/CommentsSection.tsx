@@ -147,7 +147,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const shouldIndent = level < maxNestingLevel;
 
   return (
-    <div className={`space-y-3 ${shouldIndent ? "ml-4 pl-4 border-l-2 border-tsBorder" : ""}`}>
+    <div className={`space-y-3 ${shouldIndent ? "ml-4 pl-4 border-l-2 border-white/10" : ""}`}>
       {/* Comment */}
       <div className="flex items-start space-x-3">
         <Avatar className="h-8 w-8">
@@ -169,7 +169,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
                 <Badge
                   variant="secondary"
                   className={`text-xs px-1.5 py-0.5 ${
-                    comment.author.isVerified ? "text-green-300" : "text-slate-300"
+                    comment.author.isVerified ? "text-green-300" : "text-white/70"
                   }`}
                   title={
                     comment.author.isVerified

@@ -87,10 +87,10 @@ export function AffiliateIntegration({
 
   return (
     <div className={containerClass}>
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-4">
           <CardTitle className="text-white flex items-center gap-2 text-lg">
-            <ShoppingCart className="h-5 w-5 text-orange-500" />
+            <ShoppingCart className="h-5 w-5 text-ts-orange" />
             Recommended Products
             <Badge variant="secondary" className="ml-auto text-xs">
               Partner Deals
@@ -101,11 +101,11 @@ export function AffiliateIntegration({
           {affiliateProducts.map((product) => (
             <div
               key={product.id}
-              className="bg-navy-600 rounded-lg p-4 hover:bg-navy-500 transition-colors cursor-pointer"
+              className="bg-tsCard rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer"
               onClick={() => handleAffiliateClick(product)}
             >
               <div className="flex gap-3">
-                <div className="w-16 h-16 bg-gray-300 rounded-lg flex-shrink-0 overflow-hidden">
+                <div className="w-16 h-16 bg-white/10 rounded-lg flex-shrink-0 overflow-hidden">
                   <img 
                     src={product.imageUrl} 
                     alt={product.name}
@@ -122,7 +122,7 @@ export function AffiliateIntegration({
                       {product.name}
                     </h4>
                     {product.isSponsored && (
-                      <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">
+                      <Badge variant="outline" className="text-xs border-ts-orange/30 text-ts-orange">
                         Ad
                       </Badge>
                     )}
@@ -137,16 +137,16 @@ export function AffiliateIntegration({
                         />
                       ))}
                     </div>
-                    <span className="text-gray-400 text-xs">({product.recommendationCount})</span>
+                    <span className="text-white/60 text-xs">({product.recommendationCount})</span>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-orange-500 font-semibold">
+                      <span className="text-ts-orange font-semibold">
                         ${product.price.toFixed(2)}
                       </span>
                       {product.originalPrice && (
-                        <span className="text-gray-400 text-sm line-through">
+                        <span className="text-white/60 text-sm line-through">
                           ${product.originalPrice.toFixed(2)}
                         </span>
                       )}
@@ -156,10 +156,10 @@ export function AffiliateIntegration({
                         </Badge>
                       )}
                     </div>
-                    <ExternalLink className="h-4 w-4 text-gray-400" />
+                    <ExternalLink className="h-4 w-4 text-white/60" />
                   </div>
                   
-                  <p className="text-gray-300 text-xs mt-1 line-clamp-2">
+                  <p className="text-white/70 text-xs mt-1 line-clamp-2">
                     {product.description}
                   </p>
                 </div>
@@ -169,7 +169,7 @@ export function AffiliateIntegration({
           
           <Button 
             variant="outline" 
-            className="w-full border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+            className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
             onClick={() => window.open('/affiliate-store', '_blank')}
           >
             <Truck className="h-4 w-4 mr-2" />
@@ -282,14 +282,14 @@ export function AffiliateStoreBanner() {
             <h3 className="text-xl font-bold mb-2">TradeScout Store</h3>
             <p className="opacity-90">Professional tools and materials at contractor prices</p>
             <div className="flex items-center gap-4 mt-3">
-              <Badge className="bg-white text-orange-600">Free Shipping</Badge>
-              <Badge className="bg-white text-orange-600">Price Match</Badge>
-              <Badge className="bg-white text-orange-600">Pro Discounts</Badge>
+              <Badge className="bg-white text-ts-orange">Free Shipping</Badge>
+              <Badge className="bg-white text-ts-orange">Price Match</Badge>
+              <Badge className="bg-white text-ts-orange">Pro Discounts</Badge>
             </div>
           </div>
           <Button 
             size="lg"
-            className="bg-white text-orange-600 hover:bg-gray-100"
+            className="bg-white text-ts-orange hover:bg-white/5"
             onClick={() => window.open('/affiliate-store', '_blank')}
           >
             <ShoppingCart className="h-5 w-5 mr-2" />

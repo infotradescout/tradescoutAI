@@ -251,12 +251,12 @@ export default function MarketplaceListing() {
       <div className=" flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-ts-orange mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-white/60 mb-4">
               You need to be logged in to create Exchange listings.
             </p>
-            <Button asChild className="bg-orange-600 hover:bg-orange-700">
+            <Button asChild className="bg-ts-orange-dark hover:bg-ts-orange-dark">
               <Link href="/pre-scout-setup?mode=signin">Log In</Link>
             </Button>
           </CardContent>
@@ -280,10 +280,10 @@ export default function MarketplaceListing() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <Package className="h-8 w-8 text-orange-500" />
+            <Package className="h-8 w-8 text-ts-orange" />
             Create Exchange Listing
           </h1>
-          <p className="text-gray-400">
+          <p className="text-white/60">
             List your quality items for the TradeScout community to discover
           </p>
         </div>
@@ -299,9 +299,9 @@ export default function MarketplaceListing() {
         </Alert>
 
         {vehicleId ? (
-          <Alert className="mb-6 border-orange-500/20 bg-orange-500/10">
-            <Info className="h-4 w-4 text-orange-300" />
-            <AlertDescription className="text-orange-100">
+          <Alert className="mb-6 border-ts-orange/30 bg-ts-orange/10">
+            <Info className="h-4 w-4 text-ts-orange" />
+            <AlertDescription className="text-ts-orange">
               Prefilled from your Vehicle Vault. Add photos and a fair price, then submit for
               review.
             </AlertDescription>
@@ -309,7 +309,7 @@ export default function MarketplaceListing() {
         ) : null}
 
         {/* Form */}
-        <Card className="bg-navy-800 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-500" />
@@ -339,7 +339,7 @@ export default function MarketplaceListing() {
                     {/* Image Upload Section */}
                     <div className="space-y-3">
                       <FormLabel className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4 text-orange-500" />
+                        <ImageIcon className="h-4 w-4 text-ts-orange" />
                         Photos (up to 8)
                       </FormLabel>
 
@@ -349,7 +349,7 @@ export default function MarketplaceListing() {
                             <img
                               src={url}
                               alt={`Upload ${index + 1}`}
-                              className="w-full h-full object-cover rounded-lg border-2 border-navy-600"
+                              className="w-full h-full object-cover rounded-lg border-2 border-white/10"
                             />
                             <button
                               type="button"
@@ -366,17 +366,17 @@ export default function MarketplaceListing() {
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploadingImage}
-                            className="aspect-square border-2 border-dashed border-navy-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
+                            className="aspect-square border-2 border-dashed border-white/10 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-ts-orange/30 hover:bg-ts-orange/5 transition-colors"
                           >
                             {uploadingImage ? (
                               <>
-                                <div className="h-8 w-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                                <span className="text-xs text-gray-400">Uploading...</span>
+                                <div className="h-8 w-8 border-2 border-ts-orange/30 border-t-transparent rounded-full animate-spin" />
+                                <span className="text-xs text-white/60">Uploading...</span>
                               </>
                             ) : (
                               <>
-                                <Upload className="h-8 w-8 text-gray-400" />
-                                <span className="text-xs text-gray-400">Add Photo</span>
+                                <Upload className="h-8 w-8 text-white/60" />
+                                <span className="text-xs text-white/60">Add Photo</span>
                               </>
                             )}
                           </button>
@@ -392,7 +392,7 @@ export default function MarketplaceListing() {
                         onChange={handleImagesSelected}
                       />
 
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-white/60">
                         Upload clear, well-lit photos of your item from multiple angles. Maximum 8
                         images.
                       </p>
@@ -573,22 +573,22 @@ export default function MarketplaceListing() {
                             field.onChange(value);
                           }
                         }}
-                        className="inline-flex rounded-lg border border-slate-700 bg-slate-900 text-xs"
+                        className="inline-flex rounded-lg border border-white/10 bg-tsCard text-xs"
                       >
                         <ToggleGroupItem
                           value="exact"
-                          className="px-3 py-1.5 data-[state=on]:bg-orange-500 data-[state=on]:text-white data-[state=on]:border-orange-500/80"
+                          className="px-3 py-1.5 data-[state=on]:bg-ts-orange data-[state=on]:text-white data-[state=on]:border-ts-orange/30"
                         >
                           Show exact area
                         </ToggleGroupItem>
                         <ToggleGroupItem
                           value="meetup_only"
-                          className="px-3 py-1.5 data-[state=on]:bg-slate-800 data-[state=on]:text-white"
+                          className="px-3 py-1.5 data-[state=on]:bg-white/5 data-[state=on]:text-white"
                         >
                           Meetup only
                         </ToggleGroupItem>
                       </ToggleGroup>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-white/60">
                         Meetup only hides your exact spot and skips hyper-local alerts.
                       </p>
                       <FormMessage />
@@ -600,13 +600,13 @@ export default function MarketplaceListing() {
                 <div className="mt-8 p-6 bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      <Shield className="h-6 w-6 text-orange-600" />
+                      <Shield className="h-6 w-6 text-ts-orange" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                      <h4 className="font-semibold text-ts-orange dark:text-ts-orange mb-2">
                         Smart Listing Tips
                       </h4>
-                      <ul className="text-orange-800 dark:text-orange-200 text-sm space-y-1">
+                      <ul className="text-ts-orange dark:text-ts-orange text-sm space-y-1">
                         <li>• Include detailed photos showing actual condition</li>
                         <li>• Mention any warranties, original packaging, or documentation</li>
                         <li>• Highlight unique features or modifications that add value</li>
@@ -622,7 +622,7 @@ export default function MarketplaceListing() {
                   <Button
                     type="submit"
                     disabled={createListingMutation.isPending}
-                    className="bg-orange-600 hover:bg-orange-700 flex-1"
+                    className="bg-ts-orange-dark hover:bg-ts-orange-dark flex-1"
                   >
                     {createListingMutation.isPending ? (
                       <>
@@ -652,7 +652,7 @@ export default function MarketplaceListing() {
         </Card>
 
         {/* Post-Submission Information */}
-        <Card className="mt-8 border-slate-600" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="mt-8 border-white/15" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
@@ -660,7 +660,7 @@ export default function MarketplaceListing() {
               </div>
               <div className="flex-1">
                 <h4 className="font-semibold text-white mb-2">What Happens Next?</h4>
-                <div className="text-gray-300 text-sm space-y-2">
+                <div className="text-white/70 text-sm space-y-2">
                   <p>
                     <strong>Review Process:</strong> Our team reviews all submissions to ensure
                     quality and accuracy.

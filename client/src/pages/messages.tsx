@@ -21,7 +21,7 @@ export default function MessagesPage() {
     return (
       <div className="">
         <div className="flex h-[60vh] items-center justify-center">
-          <p className="text-gray-300">Please log in to access messages</p>
+          <p className="text-white/70">Please log in to access messages</p>
         </div>
       </div>
     );

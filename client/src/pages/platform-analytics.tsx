@@ -192,12 +192,12 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     return (
       <div className="h-full bg-background text-foreground">
         <div className="container mx-auto px-4 py-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white">Admin Access Required</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-300">This page is restricted to admin roles.</p>
+              <p className="text-sm text-white/70">This page is restricted to admin roles.</p>
             </CardContent>
           </Card>
         </div>
@@ -248,7 +248,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
       change: "All-time",
       trend: "up",
       icon: Target,
-      color: "text-orange-400",
+      color: "text-ts-orange",
     },
   ];
 
@@ -436,11 +436,11 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               {overviewStats.map((stat, index) => {
                 const IconComponent = stat.icon;
                 return (
-                  <Card key={index} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                  <Card key={index} className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-gray-400 text-sm">{stat.label}</p>
+                          <p className="text-white/60 text-sm">{stat.label}</p>
                           <p className="text-2xl font-bold text-white">{stat.value}</p>
                           <p
                             className={`text-sm ${stat.trend === "up" ? "text-green-400" : "text-red-400"}`}
@@ -458,15 +458,15 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
             {/* Scout Draft Funnel */}
             {scoutDraftSummary && (
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-orange-400" />
+                    <Zap className="h-5 w-5 text-ts-orange" />
                     Scout Draft Conversion (last 72h)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-white/70">
                     {(["promo", "community"] as const).map((kind) => {
                       const art = scoutArtifacts[kind];
                       const label = kind === "promo" ? "Promotions" : "Community Posts";
@@ -477,12 +477,12 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                               <span className="font-semibold">{label}</span>
                               <Badge
                                 variant="outline"
-                                className="text-xs border-gray-500 text-gray-300"
+                                className="text-xs border-white/15 text-white/70"
                               >
                                 No data yet
                               </Badge>
                             </div>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-white/60">
                               Waiting for Scout-driven drafts to accumulate.
                             </p>
                           </div>
@@ -501,7 +501,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                             <span className="font-semibold">{label}</span>
                             <Badge
                               variant="outline"
-                              className="text-xs border-orange-500/40 text-orange-300"
+                              className="text-xs border-ts-orange/30 text-ts-orange"
                             >
                               {publishRate.toFixed(1)}% publish rate
                             </Badge>
@@ -526,10 +526,10 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                           </div>
                           {art.topCountiesByPublishRate.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-[11px] text-gray-400 mb-1">
+                              <p className="text-[11px] text-white/60 mb-1">
                                 Top counties by publish rate
                               </p>
-                              <ul className="space-y-0.5 text-[11px] text-gray-300">
+                              <ul className="space-y-0.5 text-[11px] text-white/70">
                                 {art.topCountiesByPublishRate.map((c) => (
                                   <li
                                     key={`${c.stateCode}-${c.countyFips}`}
@@ -551,8 +551,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                       );
                     })}
                   </div>
-                  <div className="mt-4 text-xs text-gray-400">
-                    <span className="font-semibold text-gray-200">Verdict: </span>
+                  <div className="mt-4 text-xs text-white/60">
+                    <span className="font-semibold text-white/70">Verdict: </span>
                     {winnerLabel}
                   </div>
                 </CardContent>
@@ -561,15 +561,15 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
             {/* Outcome Confirmation Summary */}
             {outcomeSummary && (
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-orange-400" />
+                    <Clock className="h-5 w-5 text-ts-orange" />
                     Outcome Confirmation (last 72h)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-white/70">
                     {(
                       [
                         { key: "community_notice", label: "Community Notices" },
@@ -585,12 +585,12 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                               <span className="font-semibold">{label}</span>
                               <Badge
                                 variant="outline"
-                                className="text-xs border-gray-500 text-gray-300"
+                                className="text-xs border-white/15 text-white/70"
                               >
                                 No data yet
                               </Badge>
                             </div>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-white/60">
                               Waiting for outcome confirmations to accumulate.
                             </p>
                           </div>
@@ -646,10 +646,10 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                           </div>
                           {topCountiesByConfirmationRate.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-[11px] text-gray-400 mb-1">
+                              <p className="text-[11px] text-white/60 mb-1">
                                 Top counties by confirmation rate
                               </p>
-                              <ul className="space-y-0.5 text-[11px] text-gray-300">
+                              <ul className="space-y-0.5 text-[11px] text-white/70">
                                 {topCountiesByConfirmationRate.map((c) => (
                                   <li
                                     key={`${c.stateCode}-${c.countyFips}`}
@@ -677,7 +677,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
             )}
 
             {/* Growth Chart */}
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
@@ -689,7 +689,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                   {userGrowth.map((month, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 bg-navy-700 rounded-lg"
+                      className="flex items-center justify-between p-4 bg-tsCard rounded-lg"
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-white font-medium w-12">{month.month}</span>
@@ -713,7 +713,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
           </TabsContent>
 
           <TabsContent value="money" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
@@ -724,8 +724,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 {moneyMovements ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <p className="text-sm text-gray-300">Wallet Flows (today)</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm text-white/70">Wallet Flows (today)</p>
+                      <p className="text-xs text-white/60">
                         Credits, debits, and net change across all user wallets.
                       </p>
                       <div className="mt-2 space-y-1 text-sm">
@@ -733,11 +733,11 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                           <span>Total Credits</span>
                           <span>${moneyMovements.wallet.totalCredits.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-orange-300">
+                        <div className="flex justify-between text-ts-orange">
                           <span>Total Debits</span>
                           <span>${moneyMovements.wallet.totalDebits.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-gray-100 font-semibold border-t border-navy-600 pt-1 mt-1">
+                        <div className="flex justify-between text-white font-semibold border-t border-white/10 pt-1 mt-1">
                           <span>Net Change</span>
                           <span>${moneyMovements.wallet.netChange.toFixed(2)}</span>
                         </div>
@@ -745,8 +745,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-sm text-gray-300">Marketplace Volume (today)</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm text-white/70">Marketplace Volume (today)</p>
+                      <p className="text-xs text-white/60">
                         Completed transactions by payment rail.
                       </p>
                       <div className="mt-2 space-y-1 text-sm">
@@ -763,21 +763,21 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-sm text-gray-300">
+                    <div className="space-y-2 text-sm text-white/70">
                       <p className="font-semibold">How to read this</p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-white/60 text-xs">
                         Wallet credits should line up with affiliate commissions, admin adjustments,
                         and incoming payments. Debits should align with marketplace purchases, P2P
                         sends, and any withdrawals. Stripe vs off-platform totals give a quick sense
                         of how much volume is staying fully on-rails.
                       </p>
-                      <p className="text-gray-400 text-xs mt-2">
+                      <p className="text-white/60 text-xs mt-2">
                         Date: <span className="font-mono">{moneyMovements.date}</span>
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-white/60">
                     No money movement data available for today yet.
                   </p>
                 )}
@@ -787,7 +787,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
           <TabsContent value="users" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Users2 className="h-5 w-5" />
@@ -796,7 +796,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Homeowners</span>
                       <div className="flex items-center gap-2">
                         <span className="text-white font-bold">
@@ -809,7 +809,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Contractors</span>
                       <div className="flex items-center gap-2">
                         <span className="text-white font-bold">
@@ -826,7 +826,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Clock className="h-5 w-5" />
@@ -835,19 +835,19 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Daily New Users</span>
                       <span className="text-white font-bold">
                         {userGrowth[userGrowth.length - 1]?.total?.toLocaleString() || "0"}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Leads (last 7d)</span>
                       <span className="text-white font-bold">
                         {(adminStats?.newLeads || 0).toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Current User Base</span>
                       <span className="text-white font-bold">{totalUsers.toLocaleString()}</span>
                     </div>
@@ -859,7 +859,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
           <TabsContent value="revenue" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
@@ -873,14 +873,14 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                         <span className="text-white">{item.source}</span>
                         <span className="text-white font-bold">{formatCurrency(item.amount)}</span>
                       </div>
-                      <div className="w-full bg-navy-700 rounded-full h-2">
+                      <div className="w-full bg-tsCard rounded-full h-2">
                         <div
-                          className="bg-orange-600 h-2 rounded-full"
+                          className="bg-ts-orange-dark h-2 rounded-full"
                           style={{ width: `${item.percentage}%` }}
                         ></div>
                       </div>
                       <div className="text-right">
-                        <Badge variant="outline" className="border-orange-600 text-orange-400">
+                        <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                           {item.percentage}%
                         </Badge>
                       </div>
@@ -889,7 +889,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -898,19 +898,19 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Wallet Net Change (Today)</span>
                       <span className="text-white font-bold">
                         {formatCurrency(moneyMovements?.wallet.netChange || 0)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Marketplace Volume / User (Today)</span>
                       <span className="text-white font-bold">
                         {formatCurrency(totalUsers > 0 ? marketplaceVolumeToday / totalUsers : 0)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-navy-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
                       <span className="text-white">Total Recommendations</span>
                       <span className="text-white font-bold">
                         {(adminStats?.totalRecommendations || 0).toLocaleString()}
@@ -923,7 +923,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
           </TabsContent>
 
           <TabsContent value="geography" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
@@ -933,28 +933,28 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
               <CardContent>
                 <div className="space-y-4">
                   {topCounties.map((county, index) => (
-                    <div key={index} className="p-4 bg-navy-700 rounded-lg">
+                    <div key={index} className="p-4 bg-tsCard rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-white font-medium">{county.name}</h3>
-                        <Badge className="bg-orange-600 text-white">#{index + 1}</Badge>
+                        <Badge className="bg-ts-orange-dark text-white">#{index + 1}</Badge>
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div className="text-center">
-                          <p className="text-gray-400">Coverage Entities</p>
+                          <p className="text-white/60">Coverage Entities</p>
                           <p className="text-white font-bold">
                             {county.coverageEntities.toLocaleString()}
                           </p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">Territory Managers</p>
+                          <p className="text-white/60">Territory Managers</p>
                           <p className="text-white font-bold">{county.territoryManagers}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">Affiliates/Partners</p>
+                          <p className="text-white/60">Affiliates/Partners</p>
                           <p className="text-white font-bold">{county.affiliates}</p>
                         </div>
                       </div>
-                      <div className="mt-2 text-xs text-gray-400 text-center">
+                      <div className="mt-2 text-xs text-white/60 text-center">
                         Status: {county.status}
                       </div>
                     </div>
@@ -966,33 +966,33 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
           <TabsContent value="performance" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardContent className="p-6 text-center">
                   <Zap className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
                   <div className="text-2xl font-bold text-white mb-1">
                     {successRate.toFixed(1)}%
                   </div>
-                  <div className="text-gray-400 text-sm">HTTP 2xx Success Rate</div>
+                  <div className="text-white/60 text-sm">HTTP 2xx Success Rate</div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardContent className="p-6 text-center">
                   <Clock className="h-8 w-8 text-blue-400 mx-auto mb-3" />
                   <div className="text-2xl font-bold text-white mb-1">
                     {observabilitySummary?.dbPool?.current?.waiting ?? 0}
                   </div>
-                  <div className="text-gray-400 text-sm">DB Pool Waiting</div>
+                  <div className="text-white/60 text-sm">DB Pool Waiting</div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardContent className="p-6 text-center">
                   <Target className="h-8 w-8 text-green-400 mx-auto mb-3" />
                   <div className="text-2xl font-bold text-white mb-1">
                     {coverageSummary?.verifiedCoverageRatePercent?.toFixed(1) || "0.0"}%
                   </div>
-                  <div className="text-gray-400 text-sm">Verified County Coverage</div>
+                  <div className="text-white/60 text-sm">Verified County Coverage</div>
                 </CardContent>
               </Card>
             </div>

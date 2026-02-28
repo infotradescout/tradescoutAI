@@ -150,11 +150,11 @@ export default function AdminAuthorityDiagnostics() {
             <div className="text-sm text-red-600 dark:text-red-500">Override → Failure</div>
             <div className="text-xs text-muted-foreground mt-1">Scout was correct</div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
-            <div className="text-2xl font-bold text-gray-700 dark:text-gray-400">
+          <div className="bg-white/5 dark:bg-tsCard p-4 rounded-lg border border-white/10 dark:border-white/10">
+            <div className="text-2xl font-bold text-white/70 dark:text-white/60">
               {sequenceAnalysis.noData}
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-500">No Follow-up Data</div>
+            <div className="text-sm text-white/60 dark:text-white/60">No Follow-up Data</div>
             <div className="text-xs text-muted-foreground mt-1">Outcome unknown</div>
           </div>
         </div>

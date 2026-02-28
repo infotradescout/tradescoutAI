@@ -168,10 +168,10 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-200">
+      <div className="flex items-center justify-center py-24 text-white/70">
         <div className="max-w-md text-center space-y-3 px-4">
-          <h1 className="text-xl font-semibold text-orange-500">My TradeScout</h1>
-          <p className="text-sm text-slate-300">
+          <h1 className="text-xl font-semibold text-ts-orange">My TradeScout</h1>
+          <p className="text-sm text-white/70">
             Sign in to see what TradeScout already knows about your projects and community.
           </p>
           <Link href="/pre-scout-setup?mode=signin">
@@ -202,8 +202,8 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
         {/* Header */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-lg sm:text-xl font-semibold text-orange-500">My TradeScout</h1>
-            <p className="text-sm text-slate-300 max-w-xl">
+            <h1 className="text-lg sm:text-xl font-semibold text-ts-orange">My TradeScout</h1>
+            <p className="text-sm text-white/70 max-w-xl">
               A simple, honest view of where you are right now and the next few things TradeScout
               can help you do.
             </p>
@@ -213,16 +213,16 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
           {/* Left: context + threads + recommended actions */}
           <div className="space-y-4">
-            <Card className="bg-tsCard border-tsBorder">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="flex flex-row items-center justify-between gap-2">
-                <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
-                  <Compass className="h-4 w-4 text-orange-400" />
+                <CardTitle className="flex items-center gap-2 text-sm text-white">
+                  <Compass className="h-4 w-4 text-ts-orange" />
                   Your current context
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-slate-200 space-y-2">
+              <CardContent className="text-sm text-white/70 space-y-2">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-orange-400" />
+                  <MapPin className="h-4 w-4 text-ts-orange" />
                   <span>
                     {model.context.countyLabel
                       ? model.context.countyLabel
@@ -231,12 +231,12 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                 </div>
                 {model.context.roleLabel && (
                   <div className="flex items-center gap-2">
-                    <ListChecks className="h-4 w-4 text-orange-400" />
+                    <ListChecks className="h-4 w-4 text-ts-orange" />
                     <span>Roles: {model.context.roleLabel}</span>
                   </div>
                 )}
                 {!model.context.roleLabel && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-white/60">
                     You can tell TradeScout more about how you use the platform in Profile Settings.
                   </p>
                 )}
@@ -249,7 +249,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                   <Link href="/scout">
                     <Button
                       size="sm"
-                      className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white thumb-primary-action"
+                      className="h-8 text-xs bg-ts-orange-dark hover:bg-ts-orange-dark text-white thumb-primary-action"
                     >
                       Ask Scout about my next step
                     </Button>
@@ -259,24 +259,24 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
             </Card>
 
             {!hasPrimaryContent && (
-              <Card className="bg-tsCard border-tsBorder">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
-                    <Compass className="h-4 w-4 text-orange-400" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-white">
+                    <Compass className="h-4 w-4 text-ts-orange" />
                     Local activity context
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-slate-300">
+                <CardContent className="text-sm text-white/70">
                   <p>{myTradeScoutContextLine}</p>
                 </CardContent>
               </Card>
             )}
 
             {hasThreads && (
-              <Card className="bg-tsCard border-tsBorder">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
-                    <ListChecks className="h-4 w-4 text-orange-400" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-white">
+                    <ListChecks className="h-4 w-4 text-ts-orange" />
                     In progress
                   </CardTitle>
                 </CardHeader>
@@ -287,8 +287,8 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                       className="flex items-center justify-between rounded-lg bg-tsCard/80 px-3 py-2"
                     >
                       <div className="flex-1 mr-3">
-                        <p className="font-medium text-slate-100 line-clamp-1">{thread.summary}</p>
-                        <p className="text-xs text-slate-400">Tracked as a {thread.type}</p>
+                        <p className="font-medium text-white line-clamp-1">{thread.summary}</p>
+                        <p className="text-xs text-white/60">Tracked as a {thread.type}</p>
                       </div>
                       <Link href={thread.primaryAction.path}>
                         <Button size="sm" variant="outline" className="h-7 text-xs">
@@ -302,10 +302,10 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
             )}
 
             {hasRecommendations && (
-              <Card className="bg-tsCard border-tsBorder">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
-                    <Compass className="h-4 w-4 text-orange-400" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-white">
+                    <Compass className="h-4 w-4 text-ts-orange" />
                     Next best actions
                   </CardTitle>
                 </CardHeader>
@@ -315,11 +315,11 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                       key={item.id}
                       className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                     >
-                      <p className="text-slate-200 max-w-xl">{item.reason}</p>
+                      <p className="text-white/70 max-w-xl">{item.reason}</p>
                       <Link href={item.action.path}>
                         <Button
                           size="sm"
-                          className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                          className="h-8 text-xs bg-ts-orange-dark hover:bg-ts-orange-dark text-white"
                         >
                           {item.action.label}
                         </Button>
@@ -331,10 +331,10 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
             )}
 
             {hasOpportunities && (
-              <Card className="bg-tsCard border-tsBorder">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
-                    <Compass className="h-4 w-4 text-orange-400" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-white">
+                    <Compass className="h-4 w-4 text-ts-orange" />
                     Other opportunities you can open now
                   </CardTitle>
                 </CardHeader>
@@ -344,7 +344,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 text-xs border-orange-500/40 text-slate-100 hover:bg-orange-500/10"
+                        className="h-8 text-xs border-ts-orange/30 text-white hover:bg-ts-orange/10"
                       >
                         {opp.label}
                       </Button>

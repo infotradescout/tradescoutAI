@@ -113,17 +113,17 @@ export default function DashboardSettings() {
   };
 
   return (
-    <div className=" dark:bg-slate-900">
+    <div className=" dark:bg-tsCard">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-              <Settings className="h-6 w-6 text-orange-600 dark:text-orange-500" />
+            <div className="p-2 bg-ts-orange/10 dark:bg-ts-orange/10 rounded-lg">
+              <Settings className="h-6 w-6 text-ts-orange dark:text-ts-orange" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-orange-500">Dashboard Settings</h1>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
+              <h1 className="text-3xl font-bold text-ts-orange">Dashboard Settings</h1>
+              <p className="text-white/60 dark:text-white/60 text-sm">
                 Customize what you see on your homepage
               </p>
             </div>
@@ -131,17 +131,17 @@ export default function DashboardSettings() {
         </div>
 
         {/* Widgets Configuration */}
-        <Card className="bg-tsBg dark:bg-slate-800 border-0 shadow-sm">
+        <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-orange-500" />
+              <LayoutGrid className="h-5 w-5 text-ts-orange" />
               Dashboard Widgets
             </CardTitle>
             <CardDescription>Choose which widgets to display on your homepage</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoading ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-white/60 dark:text-white/60">
                 Loading your dashboard preferences...
               </p>
             ) : (
@@ -159,9 +159,9 @@ export default function DashboardSettings() {
                               <div
                                 ref={draggableProvided.innerRef}
                                 {...draggableProvided.draggableProps}
-                                className={`flex items-center justify-between p-4 rounded-lg bg-tsBg dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border ${
+                                className={`flex items-center justify-between p-4 rounded-lg bg-tsBg dark:bg-white/10 hover:bg-white/5 dark:hover:bg-white/10 transition-colors border ${
                                   snapshot.isDragging
-                                    ? "border-orange-500 shadow-md"
+                                    ? "border-ts-orange/30 shadow-md"
                                     : "border-transparent"
                                 }`}
                               >
@@ -170,19 +170,19 @@ export default function DashboardSettings() {
                                     type="button"
                                     aria-label="Reorder widget"
                                     {...draggableProvided.dragHandleProps}
-                                    className="text-slate-500 hover:text-orange-500 cursor-grab active:cursor-grabbing"
+                                    className="text-white/60 hover:text-ts-orange cursor-grab active:cursor-grabbing"
                                   >
                                     <GripVertical className="h-4 w-4" />
                                   </button>
                                   <div className="flex-1">
                                     <Label
                                       htmlFor={widget.id}
-                                      className="font-medium text-orange-500 cursor-pointer"
+                                      className="font-medium text-ts-orange cursor-pointer"
                                     >
                                       {widget.name}
                                     </Label>
                                     {widget.defaultEnabled && (
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                      <p className="text-xs text-white/60 dark:text-white/60 mt-1">
                                         Recommended widget
                                       </p>
                                     )}
@@ -213,7 +213,7 @@ export default function DashboardSettings() {
           <Button
             onClick={handleSave}
             disabled={savePreferencesMutation.isPending}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white"
             data-testid="button-save-dashboard-settings"
           >
             <Save className="h-4 w-4 mr-2" />

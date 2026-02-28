@@ -245,7 +245,7 @@ export default function Chat() {
       <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-4`}>
         <div
           className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-            isOwn ? "bg-orange-500 text-white" : "bg-navy-700 text-white border border-navy-600"
+            isOwn ? "bg-ts-orange text-white" : "bg-tsCard text-white border border-white/10"
           }`}
         >
           <div className="text-sm opacity-75 mb-1">{senderName}</div>
@@ -259,11 +259,11 @@ export default function Chat() {
   if (!isAuthenticated) {
     return (
       <div className="py-24 flex items-center justify-center">
-        <Card className="bg-navy-700 border-navy-600 max-w-md mx-auto">
+        <Card className="bg-tsCard border-white/10 max-w-md mx-auto">
           <CardContent className="p-8 text-center">
-            <MessageCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <MessageCircle className="h-12 w-12 text-ts-orange mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">Sign In Required</h3>
-            <p className="text-gray-300 mb-6">
+            <p className="text-white/70 mb-6">
               Please sign in to access your conversations and chat with contractors.
             </p>
             <Link href="/pre-scout-setup?mode=signin">
@@ -281,7 +281,7 @@ export default function Chat() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(var(--app-height)-8rem)]">
           {/* Conversations Sidebar */}
           <div className="lg:col-span-1">
-            <Card className="bg-navy-700 border-navy-600 h-full">
+            <Card className="bg-tsCard border-white/10 h-full">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MessageCircle className="h-5 w-5" />
@@ -292,8 +292,8 @@ export default function Chat() {
                 <ScrollArea className="h-[calc(var(--app-height)-12rem)]">
                   {conversations.length === 0 ? (
                     <div className="p-4 text-center">
-                      <p className="text-gray-400 text-sm">No conversations yet</p>
-                      <p className="text-gray-500 text-xs mt-1">
+                      <p className="text-white/60 text-sm">No conversations yet</p>
+                      <p className="text-white/60 text-xs mt-1">
                         Start through Scout or Direct Connect to keep contact intent-based.
                       </p>
                       <div className="mt-3 flex flex-wrap justify-center gap-2">
@@ -315,19 +315,19 @@ export default function Chat() {
                     conversations.map((conversation: Conversation) => (
                       <Link key={conversation.id} href={`/chat/${conversation.id}`}>
                         <div
-                          className={`p-4 border-b border-navy-600 hover:bg-navy-600 cursor-pointer transition-colors ${
-                            conversationId === conversation.id ? "bg-navy-600" : ""
+                          className={`p-4 border-b border-white/10 hover:bg-tsCard cursor-pointer transition-colors ${
+                            conversationId === conversation.id ? "bg-tsCard" : ""
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                            <div className="w-10 h-10 bg-ts-orange rounded-full flex items-center justify-center">
                               <Building2 className="h-5 w-5 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-white text-sm font-medium truncate">
                                 Contractor Conversation
                               </p>
-                              <p className="text-gray-400 text-xs">
+                              <p className="text-white/60 text-xs">
                                 {format(new Date(conversation.lastMessageAt), "MMM d, h:mm a")}
                               </p>
                             </div>
@@ -352,16 +352,16 @@ export default function Chat() {
             {conversationId ? (
               <div className="h-full flex flex-col">
                 {/* Chat Header */}
-                <Card className="bg-navy-700 border-navy-600 mb-4">
+                <Card className="bg-tsCard border-white/10 mb-4">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-ts-orange rounded-full flex items-center justify-center">
                           <Building2 className="h-5 w-5 text-white" />
                         </div>
                         <div>
                           <h3 className="text-white font-semibold">Contractor Chat</h3>
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-white/60 text-sm">
                             Status: {(currentConversation as Conversation)?.status || "Active"}
                           </p>
                         </div>
@@ -371,7 +371,7 @@ export default function Chat() {
                           variant="outline"
                           size="sm"
                           onClick={() => setShowRatingDialog(true)}
-                          className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                          className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                         >
                           <Star className="h-4 w-4 mr-1" />
                           Rate
@@ -413,15 +413,15 @@ export default function Chat() {
                 </div>
 
                 {/* Messages Area */}
-                <Card className="bg-navy-700 border-navy-600 flex-1 flex flex-col">
+                <Card className="bg-tsCard border-white/10 flex-1 flex flex-col">
                   <CardContent className="p-4 flex-1 flex flex-col">
                     <ScrollArea className="flex-1 pr-4">
                       <div className="space-y-4">
                         {messages.length === 0 ? (
                           <div className="text-center py-8">
-                            <MessageCircle className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                            <p className="text-gray-400">No messages yet</p>
-                            <p className="text-gray-500 text-sm">Start the conversation!</p>
+                            <MessageCircle className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                            <p className="text-white/60">No messages yet</p>
+                            <p className="text-white/60 text-sm">Start the conversation!</p>
                           </div>
                         ) : (
                           messages.map(renderMessage)
@@ -457,11 +457,11 @@ export default function Chat() {
               </div>
             ) : (
               // No conversation selected
-              <Card className="bg-navy-700 border-navy-600 h-full flex items-center justify-center">
+              <Card className="bg-tsCard border-white/10 h-full flex items-center justify-center">
                 <CardContent className="text-center">
-                  <MessageCircle className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                  <MessageCircle className="h-16 w-16 text-white/60 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-white mb-2">Select a Conversation</h3>
-                  <p className="text-gray-400">
+                  <p className="text-white/60">
                     Choose a conversation from the sidebar to start chatting
                   </p>
                 </CardContent>
@@ -473,13 +473,13 @@ export default function Chat() {
 
       {/* Rating Dialog */}
       <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
-        <DialogContent className="bg-navy-700 border-navy-600">
+        <DialogContent className="bg-tsCard border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">Rate This Conversation</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-white/70 mb-2">
                 Rating (1-5 stars)
               </label>
               <div className="flex gap-1">
@@ -487,7 +487,7 @@ export default function Chat() {
                   <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`p-1 ${star <= rating ? "text-yellow-400" : "text-gray-600"}`}
+                    className={`p-1 ${star <= rating ? "text-yellow-400" : "text-white/60"}`}
                   >
                     <Star className="h-6 w-6 fill-current" />
                   </button>
@@ -495,7 +495,7 @@ export default function Chat() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-white/70 mb-2">
                 Feedback (optional)
               </label>
               <Textarea
@@ -510,7 +510,7 @@ export default function Chat() {
               <Button
                 variant="outline"
                 onClick={() => setShowRatingDialog(false)}
-                className="border-gray-600 text-gray-300"
+                className="border-white/15 text-white/70"
               >
                 Cancel
               </Button>
@@ -528,7 +528,7 @@ export default function Chat() {
 
       {/* Materials Dialog */}
       <Dialog open={showMaterialsDialog} onOpenChange={setShowMaterialsDialog}>
-        <DialogContent className="bg-navy-700 border-navy-600 max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-tsCard border-white/10 max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">
               Material Lists & Collaborative Shopping
@@ -542,7 +542,7 @@ export default function Chat() {
                 <h3 className="text-lg font-semibold text-white mb-4">Existing Material Lists</h3>
                 <div className="space-y-4">
                   {materialLists.map((materialList: any) => (
-                    <Card key={materialList.id} className="bg-navy-600 border-navy-500">
+                    <Card key={materialList.id} className="bg-tsCard border-white/10">
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-white">{materialList.title}</CardTitle>
@@ -551,7 +551,7 @@ export default function Chat() {
                           </Badge>
                         </div>
                         {materialList.description && (
-                          <p className="text-gray-400 text-sm">{materialList.description}</p>
+                          <p className="text-white/60 text-sm">{materialList.description}</p>
                         )}
                       </CardHeader>
                       <CardContent>
@@ -560,7 +560,7 @@ export default function Chat() {
                             ? materialList.items.map((item: any, index: number) => (
                                 <div
                                   key={index}
-                                  className="flex items-center justify-between p-3 bg-navy-700 rounded-lg border border-navy-500"
+                                  className="flex items-center justify-between p-3 bg-tsCard rounded-lg border border-white/10"
                                 >
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
@@ -581,7 +581,7 @@ export default function Chat() {
                                         {item.status === "denied" && "Denied"}
                                       </Badge>
                                     </div>
-                                    <div className="text-sm text-gray-400">
+                                    <div className="text-sm text-white/60">
                                       Qty: {item.quantity} | ${item.estimatedCost} each
                                       {item.vendor && ` | ${item.vendor}`}
                                     </div>
@@ -592,7 +592,7 @@ export default function Chat() {
                                     )}
                                   </div>
                                   <div className="text-right">
-                                    <div className="text-sm font-medium text-orange-400">
+                                    <div className="text-sm font-medium text-ts-orange">
                                       ${(item.quantity * item.estimatedCost).toFixed(2)}
                                     </div>
                                   </div>
@@ -602,10 +602,10 @@ export default function Chat() {
                         </div>
 
                         {materialList.totalEstimatedCost && (
-                          <div className="mt-4 pt-4 border-t border-navy-500">
+                          <div className="mt-4 pt-4 border-t border-white/10">
                             <div className="flex justify-between items-center">
                               <span className="text-lg font-semibold text-white">Total:</span>
-                              <span className="text-xl font-bold text-orange-400">
+                              <span className="text-xl font-bold text-ts-orange">
                                 ${Number(materialList.totalEstimatedCost).toFixed(2)}
                               </span>
                             </div>

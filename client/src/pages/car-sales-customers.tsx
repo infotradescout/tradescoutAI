@@ -92,7 +92,7 @@ export default function CarSalesCustomers() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold">Customer Management</h1>
-                <p className="text-gray-400">Track leads, customers, and sales opportunities</p>
+                <p className="text-white/60">Track leads, customers, and sales opportunities</p>
               </div>
             </div>
 
@@ -105,22 +105,22 @@ export default function CarSalesCustomers() {
           {/* Search and Filter */}
           <div className="flex gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" />
               <Input
                 placeholder="Search customers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-navy-800/50 border-navy-600"
+                className="pl-10 bg-tsCard/50 border-white/10"
               />
             </div>
-            <Button variant="outline" className="border-navy-600">
+            <Button variant="outline" className="border-white/10">
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
           </div>
 
           <Tabs defaultValue="customers" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
+            <TabsList className="bg-tsCard/50 border border-white/10">
               <TabsTrigger value="customers">Active Customers</TabsTrigger>
               <TabsTrigger value="prospects">New Prospects</TabsTrigger>
               <TabsTrigger value="archived">Archived</TabsTrigger>
@@ -128,7 +128,7 @@ export default function CarSalesCustomers() {
 
             <TabsContent value="customers" className="space-y-4">
               {customers.map((customer) => (
-                <Card key={customer.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={customer.id} className="bg-tsCard/50 border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -138,7 +138,7 @@ export default function CarSalesCustomers() {
 
                         <div>
                           <h3 className="font-semibold text-lg">{customer.name}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                          <div className="flex items-center gap-4 text-sm text-white/60 mt-1">
                             <div className="flex items-center gap-1">
                               <Mail className="h-4 w-4" />
                               {customer.email}
@@ -165,17 +165,17 @@ export default function CarSalesCustomers() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-navy-700">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/10">
                       <div>
-                        <p className="text-sm text-gray-400">Interested In</p>
+                        <p className="text-sm text-white/60">Interested In</p>
                         <p className="font-medium flex items-center gap-2">
-                          <Car className="h-4 w-4 text-orange-400" />
+                          <Car className="h-4 w-4 text-ts-orange" />
                           {customer.interest}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Budget Range</p>
+                        <p className="text-sm text-white/60">Budget Range</p>
                         <p className="font-medium flex items-center gap-2">
                           <DollarSign className="h-4 w-4 text-green-400" />
                           {customer.budget}
@@ -183,7 +183,7 @@ export default function CarSalesCustomers() {
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Last Contact</p>
+                        <p className="text-sm text-white/60">Last Contact</p>
                         <p className="font-medium flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-blue-400" />
                           {customer.lastContact}
@@ -192,8 +192,8 @@ export default function CarSalesCustomers() {
                     </div>
 
                     {customer.notes && (
-                      <div className="mt-4 p-3 bg-navy-700/30 rounded-lg">
-                        <p className="text-sm text-gray-300">{customer.notes}</p>
+                      <div className="mt-4 p-3 bg-tsCard/30 rounded-lg">
+                        <p className="text-sm text-white/70">{customer.notes}</p>
                       </div>
                     )}
 
@@ -231,17 +231,17 @@ export default function CarSalesCustomers() {
 
             <TabsContent value="prospects" className="space-y-4">
               {prospects.map((prospect) => (
-                <Card key={prospect.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={prospect.id} className="bg-tsCard/50 border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
-                          <Users className="h-6 w-6 text-orange-400" />
+                        <div className="w-12 h-12 bg-ts-orange/20 rounded-full flex items-center justify-center">
+                          <Users className="h-6 w-6 text-ts-orange" />
                         </div>
 
                         <div>
                           <h3 className="font-semibold text-lg">{prospect.name}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                          <div className="flex items-center gap-4 text-sm text-white/60 mt-1">
                             <div className="flex items-center gap-1">
                               <Mail className="h-4 w-4" />
                               {prospect.email}
@@ -257,19 +257,19 @@ export default function CarSalesCustomers() {
                       <Badge variant="secondary">New Prospect</Badge>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-navy-700">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/10">
                       <div>
-                        <p className="text-sm text-gray-400">Source</p>
+                        <p className="text-sm text-white/60">Source</p>
                         <p className="font-medium">{prospect.source}</p>
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Interest</p>
+                        <p className="text-sm text-white/60">Interest</p>
                         <p className="font-medium">{prospect.interest}</p>
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Received</p>
+                        <p className="text-sm text-white/60">Received</p>
                         <p className="font-medium">{prospect.date}</p>
                       </div>
                     </div>
@@ -277,7 +277,7 @@ export default function CarSalesCustomers() {
                     <div className="flex gap-2 mt-4">
                       <Button
                         size="sm"
-                        className="bg-orange-600 hover:bg-orange-700"
+                        className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                         data-testid="button-start-direct-connect-prospect"
                         onClick={() => {
                           window.location.href = `/direct-connect?intent=introduction&source=car_sales_prospects&target=${encodeURIComponent(
@@ -298,11 +298,11 @@ export default function CarSalesCustomers() {
             </TabsContent>
 
             <TabsContent value="archived">
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-tsCard/50 border-white/10">
                 <CardContent className="p-8 text-center">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <Users className="h-12 w-12 text-white/60 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Archived Customers</h3>
-                  <p className="text-gray-400">Archived customers will appear here</p>
+                  <p className="text-white/60">Archived customers will appear here</p>
                 </CardContent>
               </Card>
             </TabsContent>

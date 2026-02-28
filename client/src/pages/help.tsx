@@ -57,10 +57,10 @@ export default function Help() {
 
         <div className="mb-8 md:mb-10">
           <h1 className="text-2xl md:text-3xl font-semibold text-white mb-2 flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-orange-400" />
+            <HelpCircle className="w-6 h-6 text-ts-orange" />
             TradeScout Help Home
           </h1>
-          <p className="text-sm md:text-base text-slate-200 max-w-2xl">
+          <p className="text-sm md:text-base text-white/70 max-w-2xl">
             TradeScout is built around Connection Without Compromise. Start here to understand how
             jobs, messaging, money, community, and Scout work together.
           </p>
@@ -68,21 +68,21 @@ export default function Help() {
 
         <div className="space-y-6">
           {/* Start Here */}
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-lg md:text-xl">
-                <BookOpen className="w-5 h-5 text-orange-400" />
+                <BookOpen className="w-5 h-5 text-ts-orange" />
                 Start Here: How TradeScout Works
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+            <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <p>
                 TradeScout is built around Connection Without Compromise. Start here to understand
                 how jobs, messaging, and money work together.
               </p>
               <Button
                 size="sm"
-                className="bg-orange-500 hover:bg-orange-600 text-slate-950"
+                className="bg-ts-orange hover:bg-ts-orange-dark text-black"
                 onClick={() => navigate("/help/how-tradescout-works#connection-without-compromise")}
               >
                 Open: How TradeScout Works
@@ -91,19 +91,19 @@ export default function Help() {
           </Card>
 
           {/* Getting Work Done (Direct Connect) */}
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-lg md:text-xl">
-                <Target className="w-5 h-5 text-orange-400" />
+                <Target className="w-5 h-5 text-ts-orange" />
                 Getting Work Done (Direct Connect)
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+            <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#direct-connect-workflow")}
                 >
                   How jobs work
@@ -111,7 +111,7 @@ export default function Help() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#messaging-rules")}
                 >
                   Why messaging is locked
@@ -119,7 +119,7 @@ export default function Help() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#cancel-reopen")}
                 >
                   Cancel &amp; reopen
@@ -129,19 +129,19 @@ export default function Help() {
           </Card>
 
           {/* Money & Records */}
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-lg md:text-xl">
-                <DollarSign className="w-5 h-5 text-orange-400" />
+                <DollarSign className="w-5 h-5 text-ts-orange" />
                 Money &amp; Records
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+            <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#finances-invoicing")}
                 >
                   Invoicing &amp; payments
@@ -151,19 +151,19 @@ export default function Help() {
           </Card>
 
           {/* Community & Sharing */}
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-lg md:text-xl">
-                <Users className="w-5 h-5 text-orange-400" />
+                <Users className="w-5 h-5 text-ts-orange" />
                 Community &amp; Sharing
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+            <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/community-feed")}
                 >
                   Community feed basics
@@ -171,7 +171,7 @@ export default function Help() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#sharing-attribution")}
                 >
                   Sharing &amp; attribution
@@ -181,21 +181,21 @@ export default function Help() {
           </Card>
 
           {/* Scout (Your Control Center) */}
-          <Card className="bg-navy-800/60 border-navy-600">
+          <Card className="bg-tsCard/60 border-white/10">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-lg md:text-xl">
-                <Badge className="bg-orange-500 text-slate-950 text-xs uppercase tracking-wide">
+                <Badge className="bg-ts-orange text-black text-xs uppercase tracking-wide">
                   Scout
                 </Badge>
                 <span>Scout (Your Control Center)</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm md:text-base text-slate-200">
+            <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/scout")}
                 >
                   How Scout works
@@ -203,7 +203,7 @@ export default function Help() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() =>
                     navigate("/help/how-tradescout-works#connection-without-compromise")
                   }
@@ -213,7 +213,7 @@ export default function Help() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/70 text-orange-300 hover:bg-orange-500/10"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#direct-connect-workflow")}
                 >
                   Why Scout suggests certain actions

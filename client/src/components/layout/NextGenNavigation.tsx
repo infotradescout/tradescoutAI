@@ -240,20 +240,20 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-xl shadow-xl ${className}`}
+      className={`sticky top-0 z-50 w-full border-b border-white/10 bg-tsCard/95 backdrop-blur-xl shadow-xl ${className}`}
     >
       <div className="w-full flex items-center justify-between px-4 py-3 lg:px-6 lg:py-4">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center space-x-2 lg:space-x-3 group transition-all duration-300">
-            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-slate-800 rounded-lg border border-slate-600 flex items-center justify-center group-hover:border-orange-500/50 transition-colors duration-300 overflow-hidden">
+            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-white/5 rounded-lg border border-white/15 flex items-center justify-center group-hover:border-ts-orange/30 transition-colors duration-300 overflow-hidden">
               <TradeScoutLogo
                 size="sm"
                 variant="gradient"
-                className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300"
+                className="text-ts-orange group-hover:text-ts-orange transition-colors duration-300"
               />
             </div>
-            <span className="text-lg lg:text-xl font-bold text-white group-hover:text-orange-400 transition-colors duration-300">
+            <span className="text-lg lg:text-xl font-bold text-white group-hover:text-ts-orange transition-colors duration-300">
               TradeScout
             </span>
           </div>
@@ -266,7 +266,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           data-navigation
           data-tutorial="navigation-tour"
         >
-          <div className="flex items-center space-x-1 bg-slate-800/60 rounded-xl p-1.5 border border-slate-700/50 shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out">
+          <div className="flex items-center space-x-1 bg-white/5 rounded-xl p-1.5 border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out">
             {/* Priority-based visible items with smooth transitions */}
             {visibleItems.map((item) => {
               const Icon = item.icon;
@@ -278,8 +278,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <div
                     className={`rounded-lg text-sm font-medium transition-all duration-300 ease-in-out whitespace-nowrap border flex items-center transform hover:scale-105 ${
                       active
-                        ? "bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/25"
-                        : "text-slate-300 hover:text-white hover:bg-slate-700/60 border-transparent hover:border-slate-600"
+                        ? "bg-ts-orange text-white border-ts-orange/30 shadow-lg shadow-orange-500/25"
+                        : "text-white/70 hover:text-white hover:bg-white/10 border-transparent hover:border-white/15"
                     } ${showTextLabel ? "px-3 py-2 gap-2" : "px-2.5 py-2"}`}
                     title={!showTextLabel ? item.label : undefined}
                     data-nav-item={item.label.toLowerCase().replace(/\s+/g, "-")}
@@ -289,7 +289,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   >
                     <Icon
                       className={`w-4 h-4 flex-shrink-0 transition-colors duration-300 ${
-                        active ? "text-white" : "text-orange-400"
+                        active ? "text-white" : "text-ts-orange"
                       }`}
                     />
                     <span
@@ -311,7 +311,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="px-2.5 py-2 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-300 ease-in-out border border-transparent hover:border-slate-600 rounded-lg flex items-center transform hover:scale-105"
+                    className="px-2.5 py-2 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300 ease-in-out border border-transparent hover:border-white/15 rounded-lg flex items-center transform hover:scale-105"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                     <span
@@ -326,7 +326,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="bg-slate-800/95 border-slate-700 shadow-2xl backdrop-blur-xl min-w-48"
+                  className="bg-white/5 border-white/10 shadow-2xl backdrop-blur-xl min-w-48"
                   align="end"
                   sideOffset={8}
                 >
@@ -338,13 +338,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         key={item.href}
                         className={`cursor-pointer transition-colors duration-150 ${
                           active
-                            ? "bg-orange-500/20 text-orange-400"
-                            : "text-slate-200 hover:bg-slate-700/80 hover:text-white focus:bg-slate-700/80 focus:text-white"
+                            ? "bg-ts-orange/20 text-ts-orange"
+                            : "text-white/70 hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
                         }`}
                         asChild
                       >
                         <Link href={item.href} className="flex items-center">
-                          <Icon className="w-4 h-4 mr-3 text-orange-400" />
+                          <Icon className="w-4 h-4 mr-3 text-ts-orange" />
                           {item.label}
                         </Link>
                       </DropdownMenuItem>
@@ -361,14 +361,14 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           {!isAuthenticated && (
             <div className="hidden md:flex items-center gap-2">
               <Link href="/pre-scout-setup?mode=create">
-                <Button className="h-8 rounded-full bg-orange-500 px-3 text-xs font-semibold text-slate-950 hover:bg-orange-400">
+                <Button className="h-8 rounded-full bg-ts-orange px-3 text-xs font-semibold text-black hover:bg-ts-orange">
                   Create free account
                 </Button>
               </Link>
               <Link href="/pre-scout-setup?mode=signin">
                 <Button
                   variant="outline"
-                  className="h-8 rounded-full border-slate-600 px-3 text-xs text-slate-200"
+                  className="h-8 rounded-full border-white/15 px-3 text-xs text-white/70"
                 >
                   Sign in
                 </Button>
@@ -383,7 +383,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200"
+                  className="text-white/70 hover:text-white hover:bg-white/10 transition-colors duration-200"
                 >
                   <Menu className="w-4 h-4 mr-2" />
                   All Pages
@@ -391,7 +391,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-56 bg-slate-800/95 border-slate-700 shadow-2xl backdrop-blur-xl max-h-96 overflow-y-auto"
+                className="w-56 bg-white/5 border-white/10 shadow-2xl backdrop-blur-xl max-h-96 overflow-y-auto"
                 align="end"
                 sideOffset={8}
               >
@@ -403,13 +403,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                       key={item.href}
                       className={`cursor-pointer transition-colors duration-150 ${
                         active
-                          ? "bg-orange-500/20 text-orange-400"
-                          : "text-slate-200 hover:bg-slate-700/80 hover:text-white focus:bg-slate-700/80 focus:text-white"
+                          ? "bg-ts-orange/20 text-ts-orange"
+                          : "text-white/70 hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
                       }`}
                       asChild
                     >
                       <Link href={item.href} className="flex items-center">
-                        <Icon className="w-4 h-4 mr-3 text-orange-400" />
+                        <Icon className="w-4 h-4 mr-3 text-ts-orange" />
                         {item.label}
                       </Link>
                     </DropdownMenuItem>
@@ -428,12 +428,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
           {/* User account button with profile picture */}
           {isAuthenticated && (
             <Link href="/profile">
-              <div className="flex items-center space-x-2 bg-slate-800/60 rounded-lg px-3 py-2 border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 cursor-pointer backdrop-blur-sm">
+              <div className="flex items-center space-x-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10 hover:border-ts-orange/30 transition-all duration-300 cursor-pointer backdrop-blur-sm">
                 {user?.profileImageUrl ? (
                   <img
                     src={user.profileImageUrl}
                     alt="Profile"
-                    className="w-7 h-7 rounded-full object-cover border border-slate-600"
+                    className="w-7 h-7 rounded-full object-cover border border-white/15"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = "none";
@@ -442,11 +442,11 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                   />
                 ) : null}
                 <div
-                  className={`w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center ${user?.profileImageUrl ? "hidden" : ""}`}
+                  className={`w-7 h-7 bg-white/10 rounded-full flex items-center justify-center ${user?.profileImageUrl ? "hidden" : ""}`}
                 >
-                  <Users className="w-3.5 h-3.5 text-orange-400" />
+                  <Users className="w-3.5 h-3.5 text-ts-orange" />
                 </div>
-                <span className="text-sm text-slate-300 hover:text-white transition-colors duration-200 hidden lg:inline">
+                <span className="text-sm text-white/70 hover:text-white transition-colors duration-200 hidden lg:inline">
                   {isSuperAdminLike(user?.role) ? "Admin" : "Profile"}
                 </span>
               </div>
@@ -459,14 +459,14 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-slate-300 hover:text-white hover:bg-slate-700/50 p-2 transition-colors duration-200"
+                className="text-white/70 hover:text-white hover:bg-white/10 p-2 transition-colors duration-200"
               >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent
               side="right"
-              className="w-80 bg-slate-900/98 border-slate-700 backdrop-blur-xl"
+              className="w-80 bg-tsCard/95 border-white/10 backdrop-blur-xl"
             >
               <div className="flex flex-col space-y-6 pt-6">
                 <div className="flex items-center justify-between">
@@ -475,7 +475,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-slate-400 hover:text-white"
+                    className="text-white/60 hover:text-white"
                   >
                     <X className="h-5 w-5" />
                   </Button>
@@ -490,12 +490,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         <div
                           className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                             active
-                              ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                              : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                              ? "bg-ts-orange/20 text-ts-orange border border-ts-orange/30"
+                              : "text-white/70 hover:bg-white/5 hover:text-white"
                           }`}
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
-                          <Icon className="w-5 h-5 text-orange-400 flex-shrink-0" />
+                          <Icon className="w-5 h-5 text-ts-orange flex-shrink-0" />
                           <span className="font-medium">{item.label}</span>
                         </div>
                       </Link>
@@ -504,16 +504,16 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                 </div>
 
                 {isAuthenticated && (
-                  <div className="border-t border-slate-700 pt-6">
+                  <div className="border-t border-white/10 pt-6">
                     <UserMenu />
                   </div>
                 )}
 
                 {!isAuthenticated && (
-                  <div className="border-t border-slate-700 pt-6 space-y-2">
+                  <div className="border-t border-white/10 pt-6 space-y-2">
                     <Link href="/pre-scout-setup?mode=create">
                       <Button
-                        className="w-full bg-orange-500 text-slate-950 hover:bg-orange-400"
+                        className="w-full bg-ts-orange text-black hover:bg-ts-orange"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Create free account
@@ -522,13 +522,13 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     <Link href="/pre-scout-setup?mode=signin">
                       <Button
                         variant="outline"
-                        className="w-full border-slate-600 text-slate-200"
+                        className="w-full border-white/15 text-white/70"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Sign in
                       </Button>
                     </Link>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-white/60">
                       Contact requires an account to prevent spam.
                     </p>
                   </div>

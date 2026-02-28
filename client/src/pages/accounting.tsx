@@ -652,7 +652,7 @@ export default function AccountingWorkspace() {
   return (
     <Page className="flex flex-col lg:flex-row gap-6">
       <aside className="w-full lg:w-64 xl:w-72 flex-shrink-0">
-        <Card className="bg-slate-900 border-slate-800 mb-4 sticky top-0">
+        <Card className="bg-tsCard border-white/10 mb-4 sticky top-0">
           <CardHeader className="pb-3 flex items-center justify-between gap-2">
             <div>
               <CardTitle className="text-sm font-semibold text-white">Finances</CardTitle>
@@ -661,7 +661,7 @@ export default function AccountingWorkspace() {
             <button
               type="button"
               onClick={() => setNavCollapsed((prev) => !prev)}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-tsCard text-white/70 hover:border-white/15 hover:bg-white/5"
               aria-label={
                 navCollapsed ? "Expand finances navigation" : "Collapse finances navigation"
               }
@@ -685,18 +685,18 @@ export default function AccountingWorkspace() {
                     onClick={() => handleNavClick(item.key, item.targetId)}
                     className={`w-full flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
                       isActive
-                        ? "border-orange-500 bg-orange-500/10 text-white"
-                        : "border-slate-800 bg-slate-950/40 text-slate-300 hover:border-orange-500/60 hover:bg-slate-900"
+                        ? "border-ts-orange/30 bg-ts-orange/10 text-white"
+                        : "border-white/10 bg-black/30 text-white/70 hover:border-ts-orange/30 hover:bg-tsCard"
                     }`}
                   >
-                    <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 border border-slate-700">
-                      <Icon className="h-3.5 w-3.5 text-orange-400" />
+                    <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-tsCard border border-white/10">
+                      <Icon className="h-3.5 w-3.5 text-ts-orange" />
                     </span>
                     <span className="flex-1">
                       <span className="block text-[0.75rem] font-semibold leading-snug">
                         {item.label}
                       </span>
-                      <span className="block text-[0.7rem] text-slate-400 leading-snug">
+                      <span className="block text-[0.7rem] text-white/60 leading-snug">
                         {item.description}
                       </span>
                     </span>
@@ -712,8 +712,8 @@ export default function AccountingWorkspace() {
         <section id="finances-dashboard" className="space-y-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Dashboard</h1>
-              <p className="text-sm text-slate-400">Overview</p>
+              <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Dashboard</h1>
+              <p className="text-sm text-white/60">Overview</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -728,9 +728,9 @@ export default function AccountingWorkspace() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
                   Total Billed
                 </CardTitle>
                 <CardDescription>Lifetime</CardDescription>
@@ -739,7 +739,7 @@ export default function AccountingWorkspace() {
                 <div className="text-2xl font-semibold text-white">
                   {formatCurrency(lifetime?.totalAmount)}
                 </div>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px] text-white/60">
                   {lifetime
                     ? `${lifetime.invoiceCount.toLocaleString()} documents`
                     : `${totalCount.toLocaleString()} documents`}
@@ -747,9 +747,9 @@ export default function AccountingWorkspace() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
                   Outstanding Invoices
                 </CardTitle>
                 <CardDescription>Work that has been billed but not yet paid.</CardDescription>
@@ -758,7 +758,7 @@ export default function AccountingWorkspace() {
                 <div className="text-2xl font-semibold text-amber-300">
                   {formatCurrency(lifetime?.unpaidAmount)}
                 </div>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px] text-white/60">
                   {lifetime
                     ? `${lifetime.unpaidCount.toLocaleString()} open invoice${
                         lifetime.unpaidCount === 1 ? "" : "s"
@@ -768,9 +768,9 @@ export default function AccountingWorkspace() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
                   Total Expenses
                 </CardTitle>
                 <CardDescription>Tracked costs</CardDescription>
@@ -779,15 +779,15 @@ export default function AccountingWorkspace() {
                 <div className="text-2xl font-semibold text-emerald-300">
                   {formatCurrency(lifetime?.totalExpenses ?? 0)}
                 </div>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px] text-white/60">
                   {expenses.length.toLocaleString()} recorded
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-medium text-slate-300 uppercase tracking-wide">
+                <CardTitle className="text-xs font-medium text-white/70 uppercase tracking-wide">
                   Net Profit
                 </CardTitle>
                 <CardDescription>Revenue minus recorded expenses.</CardDescription>
@@ -796,7 +796,7 @@ export default function AccountingWorkspace() {
                 <div className="text-2xl font-semibold text-sky-300">
                   {formatCurrency(lifetime ? lifetime.netProfit : 0)}
                 </div>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px] text-white/60">
                   Based on invoices and expenses you track here.
                 </p>
               </CardContent>
@@ -804,7 +804,7 @@ export default function AccountingWorkspace() {
           </div>
 
           {chartData.length > 0 && (
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-2">
                 <CardTitle className="text-white">Revenue Overview</CardTitle>
                 <CardDescription>
@@ -860,23 +860,23 @@ export default function AccountingWorkspace() {
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)] gap-4">
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
                 <div>
-                  <CardTitle className="text-sm font-semibold text-slate-100">
+                  <CardTitle className="text-sm font-semibold text-white">
                     Recent invoices
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-400">
+                  <CardDescription className="text-xs text-white/60">
                     Latest job records you track here.
                   </CardDescription>
                 </div>
-                <Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
+                <Badge className="text-[10px] px-2 py-0.5 bg-white/5 border-white/15">
                   {recentInvoices.length} shown
                 </Badge>
               </CardHeader>
               <CardContent className="pt-0">
                 {recentInvoices.length === 0 ? (
-                  <div className="py-6 text-xs text-slate-400">
+                  <div className="py-6 text-xs text-white/60">
                     No invoice history yet. As you create records, they'll appear here for quick
                     reference.
                   </div>
@@ -884,13 +884,13 @@ export default function AccountingWorkspace() {
                   <div className="overflow-x-auto -mx-2">
                     <Table className="min-w-full text-xs">
                       <TableHeader>
-                        <TableRow className="border-slate-800">
-                          <TableHead className="w-[22%] text-slate-400">Invoice</TableHead>
-                          <TableHead className="w-[30%] text-slate-400">Customer</TableHead>
-                          <TableHead className="w-[22%] text-right text-slate-400">
+                        <TableRow className="border-white/10">
+                          <TableHead className="w-[22%] text-white/60">Invoice</TableHead>
+                          <TableHead className="w-[30%] text-white/60">Customer</TableHead>
+                          <TableHead className="w-[22%] text-right text-white/60">
                             Amount
                           </TableHead>
-                          <TableHead className="w-[26%] text-right text-slate-400">
+                          <TableHead className="w-[26%] text-right text-white/60">
                             Status
                           </TableHead>
                         </TableRow>
@@ -912,23 +912,23 @@ export default function AccountingWorkspace() {
                           return (
                             <TableRow
                               key={inv.id}
-                              className="border-slate-800 hover:bg-slate-900/80"
+                              className="border-white/10 hover:bg-tsCard/95"
                             >
                               <TableCell className="align-top py-2">
                                 <div className="flex flex-col">
-                                  <span className="text-[11px] font-semibold text-slate-100 truncate max-w-[150px]">
+                                  <span className="text-[11px] font-semibold text-white truncate max-w-[150px]">
                                     {title}
                                   </span>
-                                  <span className="text-[10px] text-slate-500">{createdLabel}</span>
+                                  <span className="text-[10px] text-white/60">{createdLabel}</span>
                                 </div>
                               </TableCell>
                               <TableCell className="align-top py-2">
-                                <span className="text-[11px] text-slate-200 truncate max-w-[160px]">
+                                <span className="text-[11px] text-white/70 truncate max-w-[160px]">
                                   {client || "—"}
                                 </span>
                               </TableCell>
                               <TableCell className="align-top py-2 text-right">
-                                <span className="text-[11px] font-medium text-slate-100">
+                                <span className="text-[11px] font-medium text-white">
                                   {totalVal !== null
                                     ? totalVal.toLocaleString(undefined, {
                                         style: "currency",
@@ -960,16 +960,16 @@ export default function AccountingWorkspace() {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900 border-slate-700">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-slate-100">
+                <CardTitle className="text-sm font-semibold text-white">
                   Recent money activity
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">Cash timeline</CardDescription>
+                <CardDescription className="text-xs text-white/60">Cash timeline</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {recentInvoices.length === 0 ? (
-                  <div className="py-4 text-xs text-slate-400">
+                  <div className="py-4 text-xs text-white/60">
                     Once you start marking invoices as paid, you'll see a quick money timeline here.
                   </div>
                 ) : (
@@ -986,13 +986,13 @@ export default function AccountingWorkspace() {
                       return (
                         <li
                           key={inv.id}
-                          className="flex items-center justify-between gap-3 border-b border-slate-800 last:border-0 pb-2 last:pb-0"
+                          className="flex items-center justify-between gap-3 border-b border-white/10 last:border-0 pb-2 last:pb-0"
                         >
                           <div className="flex flex-col">
-                            <span className="text-[11px] text-slate-100">
+                            <span className="text-[11px] text-white">
                               {isPaid ? "Payment recorded" : "Invoice created"}
                             </span>
-                            <span className="text-[10px] text-slate-500">
+                            <span className="text-[10px] text-white/60">
                               {`${dateLabel} • ${payload.projectTitle || `Invoice ${inv.id.slice(0, 8)}`}`}
                             </span>
                           </div>
@@ -1010,7 +1010,7 @@ export default function AccountingWorkspace() {
                                   })
                                 : "—"}
                             </div>
-                            <div className="text-[10px] text-slate-500 capitalize">
+                            <div className="text-[10px] text-white/60 capitalize">
                               {inv.status || "open"}
                             </div>
                           </div>
@@ -1025,25 +1025,25 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-clients">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-slate-100">Clients</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Billed clients</CardDescription>
+              <CardTitle className="text-sm font-semibold text-white">Clients</CardTitle>
+              <CardDescription className="text-xs text-white/60">Billed clients</CardDescription>
             </CardHeader>
             <CardContent className="pt-1">
               {invoices.length === 0 ? (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-white/60">
                   As you create invoices, you'll see clients summarized here.
                 </p>
               ) : (
                 <div className="overflow-x-auto -mx-2">
                   <Table className="min-w-full text-xs">
                     <TableHeader>
-                      <TableRow className="border-slate-800">
-                        <TableHead className="w-[40%] text-slate-400">Client</TableHead>
-                        <TableHead className="w-[20%] text-right text-slate-400">Jobs</TableHead>
-                        <TableHead className="w-[20%] text-right text-slate-400">Billed</TableHead>
-                        <TableHead className="w-[20%] text-right text-slate-400">
+                      <TableRow className="border-white/10">
+                        <TableHead className="w-[40%] text-white/60">Client</TableHead>
+                        <TableHead className="w-[20%] text-right text-white/60">Jobs</TableHead>
+                        <TableHead className="w-[20%] text-right text-white/60">Billed</TableHead>
+                        <TableHead className="w-[20%] text-right text-white/60">
                           Outstanding
                         </TableHead>
                       </TableRow>
@@ -1068,20 +1068,20 @@ export default function AccountingWorkspace() {
                           return acc;
                         }, {})
                       ).map(([name, stats]) => (
-                        <TableRow key={name} className="border-slate-800 hover:bg-slate-900/80">
-                          <TableCell className="py-2 text-slate-100 truncate max-w-[200px]">
+                        <TableRow key={name} className="border-white/10 hover:bg-tsCard/95">
+                          <TableCell className="py-2 text-white truncate max-w-[200px]">
                             {name}
                           </TableCell>
-                          <TableCell className="py-2 text-right text-slate-200">
+                          <TableCell className="py-2 text-right text-white/70">
                             {stats.jobs}
                           </TableCell>
-                          <TableCell className="py-2 text-right text-slate-200">
+                          <TableCell className="py-2 text-right text-white/70">
                             {stats.billed.toLocaleString(undefined, {
                               style: "currency",
                               currency: "USD",
                             })}
                           </TableCell>
-                          <TableCell className="py-2 text-right text-slate-200">
+                          <TableCell className="py-2 text-right text-white/70">
                             {stats.outstanding.toLocaleString(undefined, {
                               style: "currency",
                               currency: "USD",
@@ -1098,7 +1098,7 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-materials">
-          <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <Card className="bg-white/5 border-white/10 mb-6">
             <CardHeader>
               <CardTitle className="text-white mb-1">Materials</CardTitle>
               <CardDescription>
@@ -1106,7 +1106,7 @@ export default function AccountingWorkspace() {
                 use the material list actions there to kick off the cycle.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-between items-center text-xs text-slate-300">
+            <CardContent className="flex justify-between items-center text-xs text-white/70">
               <p className="max-w-xl">
                 Material lists live at the job level so they stay tied to estimates, contracts, and
                 invoices. Use the Money Workspace under Jobs to start a material list for a specific
@@ -1115,7 +1115,7 @@ export default function AccountingWorkspace() {
               <Button
                 size="sm"
                 variant="outline"
-                className="border-slate-600 text-[11px]"
+                className="border-white/15 text-[11px]"
                 onClick={() => handleNavClick("jobs", "finances-jobs")}
               >
                 Go to Jobs workspace
@@ -1125,21 +1125,21 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-estimates">
-          <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <Card className="bg-white/5 border-white/10 mb-6">
             <CardHeader>
               <CardTitle className="text-white mb-1">Estimates</CardTitle>
               <CardDescription>
                 Create, send, and approve estimates as part of each job's deal room. Once approved,
                 they automatically roll into contracts and invoices.
-                <span className="block mt-1 text-xs text-orange-400">
+                <span className="block mt-1 text-xs text-ts-orange">
                   Need to double-check an estimate?{" "}
-                  <a href="/tools/estimate-calculator" className="underline hover:text-orange-300">
+                  <a href="/tools/estimate-calculator" className="underline hover:text-ts-orange">
                     Estimate Calculator
                   </a>
                 </span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-between items-center text-xs text-slate-300">
+            <CardContent className="flex justify-between items-center text-xs text-white/70">
               <p className="max-w-xl">
                 Open a job under Jobs to see its current estimate, send it for approval, or approve
                 it to generate a contract draft.
@@ -1147,7 +1147,7 @@ export default function AccountingWorkspace() {
               <Button
                 size="sm"
                 variant="outline"
-                className="border-slate-600 text-[11px]"
+                className="border-white/15 text-[11px]"
                 onClick={() => handleNavClick("jobs", "finances-jobs")}
               >
                 Open job deal room
@@ -1157,15 +1157,15 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-invoices">
-          <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <Card className="bg-white/5 border-white/10 mb-6">
             <CardHeader>
               <CardTitle className="text-white mb-1">New Invoice / Job Record</CardTitle>
               <CardDescription>
                 Create a clean invoice record for work that ran off-platform so it still shows up in
                 your ledger.
-                <span className="block mt-1 text-xs text-orange-400">
+                <span className="block mt-1 text-xs text-ts-orange">
                   Need to check payment math?{" "}
-                  <a href="/tools/invoice-calculator" className="underline hover:text-orange-300">
+                  <a href="/tools/invoice-calculator" className="underline hover:text-ts-orange">
                     Open Invoice Calculator
                   </a>
                 </span>
@@ -1177,26 +1177,26 @@ export default function AccountingWorkspace() {
                   placeholder="Project or job name"
                   value={projectTitle}
                   onChange={(e) => setProjectTitle(e.target.value)}
-                  className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  className="bg-tsCard/95 border-white/10 text-white text-sm"
                 />
                 <Input
                   placeholder="Client name (optional)"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  className="bg-tsCard/95 border-white/10 text-white text-sm"
                 />
                 <Input
                   placeholder="Total amount"
                   value={total}
                   onChange={(e) => setTotal(e.target.value)}
-                  className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  className="bg-tsCard/95 border-white/10 text-white text-sm"
                 />
               </div>
               <Input
                 placeholder="Notes (what this work was for)"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                className="bg-tsCard/95 border-white/10 text-white text-sm"
               />
               <div className="flex justify-end">
                 <Button
@@ -1210,24 +1210,24 @@ export default function AccountingWorkspace() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-semibold text-slate-100">All invoices</CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardTitle className="text-sm font-semibold text-white">All invoices</CardTitle>
+                <CardDescription className="text-xs text-white/60">
                   Manage every standalone invoice you track here: send, record payment, or open in
                   the Money Workspace.
                 </CardDescription>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                <div className="flex items-center gap-1.5 text-[10px] text-white/60">
                   <button
                     type="button"
                     onClick={() => setInvoiceStatusFilter("all")}
                     className={`px-2 py-0.5 rounded-full border transition-colors ${
                       invoiceStatusFilter === "all"
-                        ? "border-orange-500 bg-orange-500/10 text-slate-50"
-                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                        ? "border-ts-orange/30 bg-ts-orange/10 text-white"
+                        : "border-white/10 bg-tsCard text-white/70 hover:border-white/15"
                     }`}
                   >
                     All
@@ -1237,8 +1237,8 @@ export default function AccountingWorkspace() {
                     onClick={() => setInvoiceStatusFilter("open")}
                     className={`px-2 py-0.5 rounded-full border transition-colors ${
                       invoiceStatusFilter === "open"
-                        ? "border-orange-500 bg-orange-500/10 text-slate-50"
-                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                        ? "border-ts-orange/30 bg-ts-orange/10 text-white"
+                        : "border-white/10 bg-tsCard text-white/70 hover:border-white/15"
                     }`}
                   >
                     Open
@@ -1248,21 +1248,21 @@ export default function AccountingWorkspace() {
                     onClick={() => setInvoiceStatusFilter("paid")}
                     className={`px-2 py-0.5 rounded-full border transition-colors ${
                       invoiceStatusFilter === "paid"
-                        ? "border-orange-500 bg-orange-500/10 text-slate-50"
-                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                        ? "border-ts-orange/30 bg-ts-orange/10 text-white"
+                        : "border-white/10 bg-tsCard text-white/70 hover:border-white/15"
                     }`}
                   >
                     Paid
                   </button>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                <div className="flex items-center gap-1.5 text-[10px] text-white/60">
                   <button
                     type="button"
                     onClick={() => setInvoiceRangeFilter("all")}
                     className={`px-2 py-0.5 rounded-full border transition-colors ${
                       invoiceRangeFilter === "all"
-                        ? "border-slate-500 bg-slate-800 text-slate-50"
-                        : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
+                        ? "border-white/15 bg-white/5 text-white"
+                        : "border-white/10 bg-tsBg text-white/70 hover:border-white/15"
                     }`}
                   >
                     All time
@@ -1272,8 +1272,8 @@ export default function AccountingWorkspace() {
                     onClick={() => setInvoiceRangeFilter("90d")}
                     className={`px-2 py-0.5 rounded-full border transition-colors ${
                       invoiceRangeFilter === "90d"
-                        ? "border-slate-500 bg-slate-800 text-slate-50"
-                        : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
+                        ? "border-white/15 bg-white/5 text-white"
+                        : "border-white/10 bg-tsBg text-white/70 hover:border-white/15"
                     }`}
                   >
                     Last 90 days
@@ -1283,21 +1283,21 @@ export default function AccountingWorkspace() {
                     onClick={() => setInvoiceRangeFilter("365d")}
                     className={`px-2 py-0.5 rounded-full border transition-colors ${
                       invoiceRangeFilter === "365d"
-                        ? "border-slate-500 bg-slate-800 text-slate-50"
-                        : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
+                        ? "border-white/15 bg-white/5 text-white"
+                        : "border-white/10 bg-tsBg text-white/70 hover:border-white/15"
                     }`}
                   >
                     Last year
                   </button>
                 </div>
-                <Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
+                <Badge className="text-[10px] px-2 py-0.5 bg-white/5 border-white/15">
                   {filteredInvoicesForTable.length} shown of {invoices.length}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-1">
               {invoices.length === 0 ? (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-white/60">
                   Once you start creating invoice records, you'll see them listed here with quick
                   actions.
                 </p>
@@ -1305,22 +1305,22 @@ export default function AccountingWorkspace() {
                 <div className="overflow-x-auto -mx-2">
                   <Table className="min-w-full text-xs">
                     <TableHeader>
-                      <TableRow className="border-slate-800">
-                        <TableHead className="w-[18%] text-slate-400">Date</TableHead>
-                        <TableHead className="w-[26%] text-slate-400">Job / project</TableHead>
-                        <TableHead className="w-[20%] text-slate-400">Client</TableHead>
-                        <TableHead className="w-[16%] text-right text-slate-400">Amount</TableHead>
-                        <TableHead className="w-[20%] text-right text-slate-400">
+                      <TableRow className="border-white/10">
+                        <TableHead className="w-[18%] text-white/60">Date</TableHead>
+                        <TableHead className="w-[26%] text-white/60">Job / project</TableHead>
+                        <TableHead className="w-[20%] text-white/60">Client</TableHead>
+                        <TableHead className="w-[16%] text-right text-white/60">Amount</TableHead>
+                        <TableHead className="w-[20%] text-right text-white/60">
                           Status / Actions
                         </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredInvoicesForTable.length === 0 ? (
-                        <TableRow className="border-slate-800">
+                        <TableRow className="border-white/10">
                           <TableCell
                             colSpan={5}
-                            className="py-4 text-center text-[11px] text-slate-500"
+                            className="py-4 text-center text-[11px] text-white/60"
                           >
                             No invoices match these filters.
                           </TableCell>
@@ -1345,18 +1345,18 @@ export default function AccountingWorkspace() {
                           return (
                             <TableRow
                               key={inv.id}
-                              className="border-slate-800 hover:bg-slate-900/70"
+                              className="border-white/10 hover:bg-tsCard/95"
                             >
-                              <TableCell className="py-2 text-slate-200 text-[11px]">
+                              <TableCell className="py-2 text-white/70 text-[11px]">
                                 {createdLabel}
                               </TableCell>
-                              <TableCell className="py-2 text-slate-100 text-[11px] truncate max-w-[220px]">
+                              <TableCell className="py-2 text-white text-[11px] truncate max-w-[220px]">
                                 {title}
                               </TableCell>
-                              <TableCell className="py-2 text-slate-200 text-[11px] truncate max-w-[180px]">
+                              <TableCell className="py-2 text-white/70 text-[11px] truncate max-w-[180px]">
                                 {client || "—"}
                               </TableCell>
-                              <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                              <TableCell className="py-2 text-right text-[11px] text-white">
                                 {totalVal !== null
                                   ? totalVal.toLocaleString(undefined, {
                                       style: "currency",
@@ -1372,7 +1372,7 @@ export default function AccountingWorkspace() {
                                         ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40"
                                         : isSent
                                           ? "bg-sky-500/10 text-sky-300 border-sky-500/40"
-                                          : "bg-slate-600/10 text-slate-200 border-slate-500/60"
+                                          : "bg-white/10 text-white/70 border-white/15"
                                     }`}
                                   >
                                     {inv.status || "draft"}
@@ -1381,7 +1381,7 @@ export default function AccountingWorkspace() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="h-6 px-2 border-slate-600 text-[10px]"
+                                      className="h-6 px-2 border-white/15 text-[10px]"
                                       onClick={() => {
                                         setSelectedJobId(inv.job_id);
                                         handleNavClick("jobs", "finances-jobs");
@@ -1393,7 +1393,7 @@ export default function AccountingWorkspace() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-6 px-2 border-slate-600 text-[10px]"
+                                        className="h-6 px-2 border-white/15 text-[10px]"
                                         disabled={
                                           sendInvoice.isPending || markInvoicePaid.isPending
                                         }
@@ -1406,7 +1406,7 @@ export default function AccountingWorkspace() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-6 px-2 border-slate-600 text-[10px]"
+                                        className="h-6 px-2 border-white/15 text-[10px]"
                                         disabled={
                                           markInvoicePaid.isPending || sendInvoice.isPending
                                         }
@@ -1419,7 +1419,7 @@ export default function AccountingWorkspace() {
                                     )}
                                   </div>
                                   {isPaid && (
-                                    <div className="text-[10px] text-slate-400 mt-0.5 text-right">
+                                    <div className="text-[10px] text-white/60 mt-0.5 text-right">
                                       Paid {paidDateLabel}
                                       {payment?.method
                                         ? ` via ${String(payment.method).toLowerCase()}`
@@ -1442,7 +1442,7 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-jobs">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -1456,14 +1456,14 @@ export default function AccountingWorkspace() {
                     placeholder="Search jobs by name, client, or ID"
                     value={jobQuery}
                     onChange={(e) => setJobQuery(e.target.value)}
-                    className="bg-slate-900/60 border-slate-700 text-xs text-slate-100 h-8 min-w-[220px]"
+                    className="bg-tsCard/95 border-white/10 text-xs text-white h-8 min-w-[220px]"
                   />
                   {pageCount > 1 && (
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                    <div className="flex items-center gap-2 text-[11px] text-white/60">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2 border-slate-600"
+                        className="h-7 px-2 border-white/15"
                         disabled={page <= 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                       >
@@ -1475,7 +1475,7 @@ export default function AccountingWorkspace() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2 border-slate-600"
+                        className="h-7 px-2 border-white/15"
                         disabled={page >= pageCount}
                         onClick={() => setPage((p) => (p < pageCount ? p + 1 : p))}
                       >
@@ -1488,7 +1488,7 @@ export default function AccountingWorkspace() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 px-3 border-slate-600 text-[11px] text-slate-200 mt-1"
+                        className="h-7 px-3 border-white/15 text-[11px] text-white/70 mt-1"
                         onClick={() =>
                           navigate(`/deal-room/${encodeURIComponent(effectiveJobId || "")}`)
                         }
@@ -1502,11 +1502,11 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="py-6 text-center text-sm text-gray-400">
+                <div className="py-6 text-center text-sm text-white/60">
                   Loading invoice records...
                 </div>
               ) : invoices.length === 0 ? (
-                <div className="py-6 text-center text-sm text-gray-400">
+                <div className="py-6 text-center text-sm text-white/60">
                   No invoice records yet. Use the form above to create your first invoice for a job,
                   even if it ran off TradeScout.
                 </div>
@@ -1514,7 +1514,7 @@ export default function AccountingWorkspace() {
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.6fr)] gap-6">
                   <div className="space-y-2">
                     {filteredJobInvoices.length === 0 ? (
-                      <div className="py-4 text-center text-xs text-slate-500">
+                      <div className="py-4 text-center text-xs text-white/60">
                         No jobs match this search. Try a different name, client, or ID.
                       </div>
                     ) : (
@@ -1532,8 +1532,8 @@ export default function AccountingWorkspace() {
                         return (
                           <Card
                             key={inv.id}
-                            className={`bg-slate-900/60 border-slate-700 hover:border-orange-500/60 transition-colors cursor-pointer ${
-                              isSelected ? "ring-1 ring-orange-500/60" : ""
+                            className={`bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                              isSelected ? "ring-1 ring-ts-orange/70" : ""
                             }`}
                             onClick={() => setSelectedJobId(inv.job_id)}
                           >
@@ -1544,14 +1544,14 @@ export default function AccountingWorkspace() {
                                     <h3 className="text-sm font-semibold text-white truncate max-w-xs">
                                       {title}
                                     </h3>
-                                    <Badge className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-600">
+                                    <Badge className="text-[10px] px-2 py-0.5 bg-white/5 border-white/15">
                                       {inv.status}
                                     </Badge>
                                   </div>
                                   {client && (
-                                    <p className="text-[11px] text-slate-300">Client: {client}</p>
+                                    <p className="text-[11px] text-white/70">Client: {client}</p>
                                   )}
-                                  <p className="text-[11px] text-slate-400 mt-1">
+                                  <p className="text-[11px] text-white/60 mt-1">
                                     Created {createdLabel}
                                   </p>
                                 </div>
@@ -1575,7 +1575,7 @@ export default function AccountingWorkspace() {
                     {effectiveJobId ? (
                       <DealRoomPanel jobId={effectiveJobId} userRole={role} />
                     ) : (
-                      <div className="h-full flex items-center justify-center text-xs text-gray-500 border border-dashed border-slate-700 rounded-md bg-slate-900/40 p-4">
+                      <div className="h-full flex items-center justify-center text-xs text-white/60 border border-dashed border-white/10 rounded-md bg-tsCard/95 p-4">
                         Select an invoice on the left to open it in the deal room.
                       </div>
                     )}
@@ -1587,13 +1587,13 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-employees">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-slate-100">Employees</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Team snapshot</CardDescription>
+              <CardTitle className="text-sm font-semibold text-white">Employees</CardTitle>
+              <CardDescription className="text-xs text-white/60">Team snapshot</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-white/60">
                 Manage hiring and crew from contractor tools.
               </p>
             </CardContent>
@@ -1601,35 +1601,35 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-payroll">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-slate-100">Payroll</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Payout summary</CardDescription>
+              <CardTitle className="text-sm font-semibold text-white">Payroll</CardTitle>
+              <CardDescription className="text-xs text-white/60">Payout summary</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-[11px] text-slate-400">
+            <CardContent className="space-y-2 text-[11px] text-white/60">
               <p>Use Wallet statements and payroll exports for reconciliation.</p>
             </CardContent>
           </Card>
         </section>
 
         <section id="finances-expenses">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader className="pb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <CardTitle className="text-sm font-semibold text-slate-100">Expenses</CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardTitle className="text-sm font-semibold text-white">Expenses</CardTitle>
+                <CardDescription className="text-xs text-white/60">
                   Track money going out so you can see true job profitability.
                   {expenseHelperLink && (
-                    <span className="block mt-1 text-xs text-orange-400">
+                    <span className="block mt-1 text-xs text-ts-orange">
                       Need help splitting or categorizing?{" "}
-                      <a href="/tools/expense-helper" className="underline hover:text-orange-300">
+                      <a href="/tools/expense-helper" className="underline hover:text-ts-orange">
                         Expense Helper
                       </a>
                     </span>
                   )}
                 </CardDescription>
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-white/60">
                 {expenses.length.toLocaleString()} recorded expense
                 {expenses.length === 1 ? "" : "s"}
               </div>
@@ -1641,32 +1641,32 @@ export default function AccountingWorkspace() {
                     placeholder="Project or job name"
                     value={expenseProjectTitle}
                     onChange={(e) => setExpenseProjectTitle(e.target.value)}
-                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                    className="bg-tsCard/95 border-white/10 text-white text-sm"
                   />
                   <Input
                     placeholder="Vendor (optional)"
                     value={expenseVendor}
                     onChange={(e) => setExpenseVendor(e.target.value)}
-                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                    className="bg-tsCard/95 border-white/10 text-white text-sm"
                   />
                   <Input
                     placeholder="Category (optional)"
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                    className="bg-tsCard/95 border-white/10 text-white text-sm"
                   />
                   <Input
                     placeholder="Total amount"
                     value={expenseTotal}
                     onChange={(e) => setExpenseTotal(e.target.value)}
-                    className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                    className="bg-tsCard/95 border-white/10 text-white text-sm"
                   />
                 </div>
                 <Input
                   placeholder="Notes (what this expense was for)"
                   value={expenseNotes}
                   onChange={(e) => setExpenseNotes(e.target.value)}
-                  className="bg-slate-900/60 border-slate-700 text-white text-sm"
+                  className="bg-tsCard/95 border-white/10 text-white text-sm"
                 />
                 <div className="flex justify-end">
                   <Button
@@ -1680,7 +1680,7 @@ export default function AccountingWorkspace() {
               </div>
 
               {expenses.length === 0 ? (
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-white/60">
                   Once you start recording expenses, you'll see a simple ledger here alongside your
                   invoices.
                 </p>
@@ -1688,12 +1688,12 @@ export default function AccountingWorkspace() {
                 <div className="overflow-x-auto -mx-2">
                   <Table className="min-w-full text-xs">
                     <TableHeader>
-                      <TableRow className="border-slate-800">
-                        <TableHead className="w-[20%] text-slate-400">Date</TableHead>
-                        <TableHead className="w-[28%] text-slate-400">Project</TableHead>
-                        <TableHead className="w-[22%] text-slate-400">Vendor</TableHead>
-                        <TableHead className="w-[15%] text-slate-400">Category</TableHead>
-                        <TableHead className="w-[15%] text-right text-slate-400">Amount</TableHead>
+                      <TableRow className="border-white/10">
+                        <TableHead className="w-[20%] text-white/60">Date</TableHead>
+                        <TableHead className="w-[28%] text-white/60">Project</TableHead>
+                        <TableHead className="w-[22%] text-white/60">Vendor</TableHead>
+                        <TableHead className="w-[15%] text-white/60">Category</TableHead>
+                        <TableHead className="w-[15%] text-right text-white/60">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1708,20 +1708,20 @@ export default function AccountingWorkspace() {
                         const createdLabel = new Date(exp.created_at).toLocaleDateString();
 
                         return (
-                          <TableRow key={exp.id} className="border-slate-800 hover:bg-slate-900/70">
-                            <TableCell className="py-2 text-[11px] text-slate-200">
+                          <TableRow key={exp.id} className="border-white/10 hover:bg-tsCard/95">
+                            <TableCell className="py-2 text-[11px] text-white/70">
                               {createdLabel}
                             </TableCell>
-                            <TableCell className="py-2 text-[11px] text-slate-100 truncate max-w-[220px]">
+                            <TableCell className="py-2 text-[11px] text-white truncate max-w-[220px]">
                               {title}
                             </TableCell>
-                            <TableCell className="py-2 text-[11px] text-slate-200 truncate max-w-[180px]">
+                            <TableCell className="py-2 text-[11px] text-white/70 truncate max-w-[180px]">
                               {vendor || "—"}
                             </TableCell>
-                            <TableCell className="py-2 text-[11px] text-slate-200 truncate max-w-[160px]">
+                            <TableCell className="py-2 text-[11px] text-white/70 truncate max-w-[160px]">
                               {category || "—"}
                             </TableCell>
-                            <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                            <TableCell className="py-2 text-right text-[11px] text-white">
                               {totalVal !== null
                                 ? totalVal.toLocaleString(undefined, {
                                     style: "currency",
@@ -1741,13 +1741,13 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-vendors">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-slate-100">Vendors</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Supplier records</CardDescription>
+              <CardTitle className="text-sm font-semibold text-white">Vendors</CardTitle>
+              <CardDescription className="text-xs text-white/60">Supplier records</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-white/60">
                 Vendor tooling available in upcoming updates.
               </p>
             </CardContent>
@@ -1755,27 +1755,27 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-bank-accounts">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-semibold text-slate-100">
+                <CardTitle className="text-sm font-semibold text-white">
                   Bank accounts
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-white/60">
                   Connection status
                 </CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-3 border-slate-600 text-[11px] text-slate-200"
+                className="h-7 px-3 border-white/15 text-[11px] text-white/70"
                 disabled
               >
                 Banking integration not enabled
               </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-white/60">
                 Bank sync is not enabled for this workspace.
               </p>
             </CardContent>
@@ -1783,16 +1783,16 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-reports">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader className="flex flex-row items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-semibold text-slate-100">Reports</CardTitle>
-                <CardDescription className="text-xs text-slate-400">Performance</CardDescription>
+                <CardTitle className="text-sm font-semibold text-white">Reports</CardTitle>
+                <CardDescription className="text-xs text-white/60">Performance</CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 px-3 border-slate-600 text-[11px] text-slate-200"
+                className="h-7 px-3 border-white/15 text-[11px] text-white/70"
                 onClick={handleExportInvoicesCsv}
                 disabled={!invoices.length}
               >
@@ -1801,34 +1801,34 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent className="space-y-4">
               {!summary ? (
-                <p className="text-[11px] text-slate-400">No report data yet.</p>
+                <p className="text-[11px] text-white/60">No report data yet.</p>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
-                    <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2">
-                      <div className="text-slate-400 mb-1">Lifetime billed</div>
-                      <div className="text-slate-50 font-semibold text-sm">
+                    <div className="rounded-md border border-white/10 bg-tsCard px-3 py-2">
+                      <div className="text-white/60 mb-1">Lifetime billed</div>
+                      <div className="text-white font-semibold text-sm">
                         {formatCurrency(summary.lifetime.totalAmount)}
                       </div>
-                      <div className="text-slate-500 mt-0.5">
+                      <div className="text-white/60 mt-0.5">
                         {summary.lifetime.invoiceCount.toLocaleString()} documents
                       </div>
                     </div>
-                    <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2">
-                      <div className="text-slate-400 mb-1">Collected</div>
+                    <div className="rounded-md border border-white/10 bg-tsCard px-3 py-2">
+                      <div className="text-white/60 mb-1">Collected</div>
                       <div className="text-emerald-300 font-semibold text-sm">
                         {formatCurrency(summary.lifetime.paidAmount)}
                       </div>
-                      <div className="text-slate-500 mt-0.5">
+                      <div className="text-white/60 mt-0.5">
                         {summary.lifetime.paidCount.toLocaleString()} paid invoices
                       </div>
                     </div>
-                    <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2">
-                      <div className="text-slate-400 mb-1">Outstanding</div>
+                    <div className="rounded-md border border-white/10 bg-tsCard px-3 py-2">
+                      <div className="text-white/60 mb-1">Outstanding</div>
                       <div className="text-amber-300 font-semibold text-sm">
                         {formatCurrency(summary.lifetime.unpaidAmount)}
                       </div>
-                      <div className="text-slate-500 mt-0.5">
+                      <div className="text-white/60 mt-0.5">
                         {summary.lifetime.unpaidCount.toLocaleString()} open invoices
                       </div>
                     </div>
@@ -1837,30 +1837,30 @@ export default function AccountingWorkspace() {
                   {monthly.length > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-xs font-semibold text-slate-200">Monthly breakdown</h3>
-                        <p className="text-[10px] text-slate-500">Month to month</p>
+                        <h3 className="text-xs font-semibold text-white/70">Monthly breakdown</h3>
+                        <p className="text-[10px] text-white/60">Month to month</p>
                       </div>
                       <div className="overflow-x-auto -mx-2">
                         <Table className="min-w-full text-[11px]">
                           <TableHeader>
-                            <TableRow className="border-slate-800">
-                              <TableHead className="w-[30%] text-slate-400">Month</TableHead>
-                              <TableHead className="w-[35%] text-right text-slate-400">
+                            <TableRow className="border-white/10">
+                              <TableHead className="w-[30%] text-white/60">Month</TableHead>
+                              <TableHead className="w-[35%] text-right text-white/60">
                                 Billed
                               </TableHead>
-                              <TableHead className="w-[35%] text-right text-slate-400">
+                              <TableHead className="w-[35%] text-right text-white/60">
                                 Collected
                               </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {monthly.map((row) => (
-                              <TableRow key={row.month} className="border-slate-800">
-                                <TableCell className="py-2 text-slate-100">{row.month}</TableCell>
-                                <TableCell className="py-2 text-right text-slate-200">
+                              <TableRow key={row.month} className="border-white/10">
+                                <TableCell className="py-2 text-white">{row.month}</TableCell>
+                                <TableCell className="py-2 text-right text-white/70">
                                   {formatCurrency(row.totalAmount)}
                                 </TableCell>
-                                <TableCell className="py-2 text-right text-slate-200">
+                                <TableCell className="py-2 text-right text-white/70">
                                   {formatCurrency(row.paidAmount)}
                                 </TableCell>
                               </TableRow>
@@ -1877,15 +1877,15 @@ export default function AccountingWorkspace() {
         </section>
 
         <section id="finances-settings">
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-slate-100">
+              <CardTitle className="text-sm font-semibold text-white">
                 Financial settings
               </CardTitle>
-              <CardDescription className="text-xs text-slate-400">Preferences</CardDescription>
+              <CardDescription className="text-xs text-white/60">Preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-[11px] text-slate-400">Configure defaults and export settings.</p>
+              <p className="text-[11px] text-white/60">Configure defaults and export settings.</p>
             </CardContent>
           </Card>
         </section>

@@ -175,7 +175,7 @@ export default function Navigation() {
                   <div className="px-3 py-2 text-sm text-white/60">
                     Welcome, {user.firstName || user.email}
                     {isContractor && (
-                      <Badge className="ml-2 bg-orange-500/20 text-orange-400 text-xs">
+                      <Badge className="ml-2 bg-ts-orange/20 text-ts-orange text-xs">
                         Contractor
                       </Badge>
                     )}

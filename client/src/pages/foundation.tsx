@@ -280,7 +280,7 @@ export default function Foundation() {
       case "high":
         return <Badge className="bg-red-500">Urgent</Badge>;
       case "medium":
-        return <Badge className="bg-orange-500">Important</Badge>;
+        return <Badge className="bg-ts-orange">Important</Badge>;
       case "low":
         return <Badge className="bg-blue-500">Ongoing</Badge>;
       default:
@@ -291,36 +291,36 @@ export default function Foundation() {
   return (
     <div className="max-w-6xl mx-auto ts-surface px-4 py-6 sm:px-6 lg:px-8 space-y-8">
       <div className="mb-6">
-        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-6 sm:px-7 sm:py-7">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-6 sm:px-7 sm:py-7">
           <div className="absolute inset-0 pointer-events-none opacity-40">
-            <div className="absolute -top-16 -right-8 h-40 w-40 rounded-full bg-orange-500/20 blur-3xl" />
+            <div className="absolute -top-16 -right-8 h-40 w-40 rounded-full bg-ts-orange/20 blur-3xl" />
             <div className="absolute -bottom-20 left-0 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
           </div>
           <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/40 bg-black/30 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase text-orange-300">
+              <div className="inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-black/30 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase text-ts-orange">
                 <Heart className="h-3.5 w-3.5" />
                 <span>Community Builders OS</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white">
                 Route Exchange givebacks into real local causes.
               </h1>
-              <p className="text-sm sm:text-base text-gray-300">
+              <p className="text-sm sm:text-base text-white/70">
                 Every contractor promotion, TradeDeal, roundup, and community vault contribution
                 rolls up into county-level funds that support verified projects across all 50
                 states.
               </p>
             </div>
-            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-gray-300">
-              <div className="inline-flex items-center gap-2 rounded-xl bg-black/30 px-3 py-2 border border-slate-700/80">
-                <MapPin className="h-4 w-4 text-orange-400" />
+            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-white/70">
+              <div className="inline-flex items-center gap-2 rounded-xl bg-black/30 px-3 py-2 border border-white/10">
+                <MapPin className="h-4 w-4 text-ts-orange" />
                 <span>
                   {user?.county && user?.state
                     ? `${sanitizeAreaLabel(user.county)}, ${user.state}`
                     : "Browse causes nationwide or filter by state"}
                 </span>
               </div>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-white/60">
                 Powered by county vaults and Community Builder votes.
               </span>
             </div>
@@ -330,11 +330,11 @@ export default function Foundation() {
 
       {isAuthenticated && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Your Community Vault</p>
+                  <p className="text-sm text-white/60">Your Community Vault</p>
                   <h3 className="text-xl font-semibold text-white">
                     {vaultSnapshot?.county
                       ? `${sanitizeAreaLabel(vaultSnapshot.county.name)}, ${vaultSnapshot.county.stateCode}`
@@ -348,8 +348,8 @@ export default function Foundation() {
                   ? "Loading…"
                   : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
               </p>
-              <p className="text-sm text-gray-400">Funds earmarked for your community</p>
-              <div className="mt-4 flex items-center space-x-3 text-sm text-gray-300">
+              <p className="text-sm text-white/60">Funds earmarked for your community</p>
+              <div className="mt-4 flex items-center space-x-3 text-sm text-white/70">
                 <TrendingUp className="h-4 w-4 text-green-400" />
                 <span>Last 30d inflow: {formatCurrency(vaultSnapshot?.last30dInflow ?? 0)}</span>
               </div>
@@ -360,49 +360,49 @@ export default function Foundation() {
                     <Badge
                       key={source}
                       variant="outline"
-                      className="border-slate-600 text-slate-200"
+                      className="border-white/15 text-white/70"
                     >
                       {source.replace(/_/g, " ")} · {formatCurrency(amount as number)}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-sm text-gray-400">No contributions recorded yet</span>
+                  <span className="text-sm text-white/60">No contributions recorded yet</span>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Community Builder badge</p>
+                  <p className="text-sm text-white/60">Community Builder badge</p>
                   <h3 className="text-xl font-semibold text-white">Decide where the vault goes</h3>
                 </div>
-                <Badge variant="outline" className="border-orange-500 text-orange-300">
+                <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                   Give back
                 </Badge>
               </div>
-              <p className="text-gray-300 text-sm mb-3">
+              <p className="text-white/70 text-sm mb-3">
                 Donations, Exchange givebacks, and contractor programs all ladder into your
                 community vault. With the Community Builder badge, you can send and vote on which
                 local causes get funded.
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <Button asChild className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
+                <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark w-full sm:w-auto">
                   <Link href="/community-builder/dashboard">Activate Community Builder badge</Link>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
-                  className="border-slate-600 text-white hover:border-orange-500 w-full sm:w-auto"
+                  className="border-white/15 text-white hover:border-ts-orange/30 w-full sm:w-auto"
                 >
                   <Link href="/foundation?tab=impact">View impact</Link>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
-                  className="border-orange-500 text-orange-300 hover:bg-orange-500/10 w-full sm:w-auto"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10 w-full sm:w-auto"
                 >
                   <a
                     href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
@@ -419,28 +419,28 @@ export default function Foundation() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-slate-800 border-slate-700">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-white/5 border-white/10">
           <TabsTrigger
             value="causes"
-            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             Local Causes
           </TabsTrigger>
           <TabsTrigger
             value="impact"
-            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             Our Impact
           </TabsTrigger>
           <TabsTrigger
             value="my-donations"
-            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             My Donations
           </TabsTrigger>
           <TabsTrigger
             value="corporate"
-            className="text-slate-300 data-[state=active]:text-white data-[state=active]:bg-slate-700"
+            className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
           >
             Corporate Program
           </TabsTrigger>
@@ -448,14 +448,14 @@ export default function Foundation() {
 
         <TabsContent value="causes" className="space-y-6">
           {/* Filters */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white/5 border-white/10">
                     <SelectItem value="all">All Categories</SelectItem>
                     {CAUSE_CATEGORIES.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
@@ -466,10 +466,10 @@ export default function Foundation() {
                 </Select>
 
                 <Select value={selectedState || "all"} onValueChange={setSelectedState}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="State" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white/5 border-white/10">
                     <SelectItem value="all">All States</SelectItem>
                     {stateOptions.map((state) => (
                       <SelectItem key={state.code} value={state.code}>
@@ -480,10 +480,10 @@ export default function Foundation() {
                 </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
                     <SelectValue placeholder="Sort By" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white/5 border-white/10">
                     <SelectItem value="trending">Trending</SelectItem>
                     <SelectItem value="urgent">Most Urgent</SelectItem>
                     <SelectItem value="progress">Nearly Funded</SelectItem>
@@ -491,7 +491,7 @@ export default function Foundation() {
                   </SelectContent>
                 </Select>
 
-                <Button className="bg-orange-500 hover:bg-orange-600">
+                <Button className="bg-ts-orange hover:bg-ts-orange-dark">
                   <Gift className="h-4 w-4 mr-2" />
                   Suggest Cause
                 </Button>
@@ -505,13 +505,13 @@ export default function Foundation() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {causesLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="bg-slate-800 border-slate-700 animate-pulse">
-                    <div className="h-48 bg-slate-700 rounded-t-lg"></div>
+                  <Card key={i} className="bg-white/5 border-white/10 animate-pulse">
+                    <div className="h-48 bg-white/10 rounded-t-lg"></div>
                     <CardContent className="p-6">
-                      <div className="h-4 bg-slate-700 rounded mb-2"></div>
-                      <div className="h-6 bg-slate-700 rounded mb-4"></div>
-                      <div className="h-2 bg-slate-700 rounded mb-2"></div>
-                      <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+                      <div className="h-4 bg-white/10 rounded mb-2"></div>
+                      <div className="h-6 bg-white/10 rounded mb-4"></div>
+                      <div className="h-2 bg-white/10 rounded mb-2"></div>
+                      <div className="h-4 bg-white/10 rounded w-1/2"></div>
                     </CardContent>
                   </Card>
                 ))
@@ -526,14 +526,14 @@ export default function Foundation() {
                   return (
                     <Card
                       key={cause.id}
-                      className="bg-slate-800 border-slate-700 hover:border-orange-500/50 transition-colors"
+                      className="bg-white/5 border-white/10 hover:border-ts-orange/30 transition-colors"
                     >
                       <div className="relative">
-                        <div className="h-48 bg-slate-700 rounded-t-lg flex items-center justify-center">
-                          <IconComponent className="h-16 w-16 text-slate-500" />
+                        <div className="h-48 bg-white/10 rounded-t-lg flex items-center justify-center">
+                          <IconComponent className="h-16 w-16 text-white/60" />
                         </div>
                         {cause.featured && (
-                          <Badge className="absolute top-2 right-2 bg-orange-500">Featured</Badge>
+                          <Badge className="absolute top-2 right-2 bg-ts-orange">Featured</Badge>
                         )}
                         <div className="absolute top-2 left-2">
                           {getUrgencyBadge(cause.urgency)}
@@ -542,7 +542,7 @@ export default function Foundation() {
 
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline" className="border-slate-600 text-slate-400">
+                          <Badge variant="outline" className="border-white/15 text-white/60">
                             {CAUSE_CATEGORIES.find((c) => c.id === cause.category)?.name}
                           </Badge>
                           {cause.organizationVerified && (
@@ -556,36 +556,36 @@ export default function Foundation() {
                         <h3 className="font-semibold text-white mb-2 line-clamp-2">
                           {cause.title}
                         </h3>
-                        <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                        <p className="text-white/70 text-sm mb-4 line-clamp-3">
                           {cause.description}
                         </p>
 
                         <div className="space-y-3 mb-4">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-400">Progress</span>
+                            <span className="text-white/60">Progress</span>
                             <span className="text-white font-medium">
                               {formatCurrency(cause.currentAmount)} of{" "}
                               {formatCurrency(cause.targetAmount)}
                             </span>
                           </div>
                           <Progress value={progressPercentage} className="h-2" />
-                          <div className="flex items-center justify-between text-xs text-gray-400">
+                          <div className="flex items-center justify-between text-xs text-white/60">
                             <span>{Math.round(progressPercentage)}% funded</span>
                             <span>{cause.donorCount} donors</span>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center text-sm text-gray-400">
+                          <div className="flex items-center text-sm text-white/60">
                             <MapPin className="h-4 w-4 mr-1" />
                             {cause.location}
                           </div>
-                          <div className="text-sm text-gray-400">by {cause.organizationName}</div>
+                          <div className="text-sm text-white/60">by {cause.organizationName}</div>
                         </div>
 
                         <Button
                           onClick={() => handleDonate(cause)}
-                          className="w-full bg-orange-500 hover:bg-orange-600"
+                          className="w-full bg-ts-orange hover:bg-ts-orange-dark"
                         >
                           <Heart className="h-4 w-4 mr-2" />
                           Donate Now
@@ -596,8 +596,8 @@ export default function Foundation() {
                 })
               ) : (
                 <div className="col-span-3 text-center py-12">
-                  <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">No causes found matching your criteria.</p>
+                  <Heart className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                  <p className="text-white/60">No causes found matching your criteria.</p>
                 </div>
               )}
             </div>
@@ -606,45 +606,45 @@ export default function Foundation() {
 
         <TabsContent value="impact" className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-6 text-center">
                 <DollarSign className="h-8 w-8 text-green-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
                   {impactStats ? formatCurrency(impactStats.totalRaised) : "0"}
                 </div>
-                <div className="text-sm text-gray-400">Total Raised</div>
+                <div className="text-sm text-white/60">Total Raised</div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-6 text-center">
                 <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
                   {impactStats ? impactStats.totalDonors.toLocaleString() : "0"}
                 </div>
-                <div className="text-sm text-gray-400">Active Donors</div>
+                <div className="text-sm text-white/60">Active Donors</div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-6 text-center">
-                <Target className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+                <Target className="h-8 w-8 text-ts-orange mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
                   {impactStats ? impactStats.countiesSupported.toLocaleString() : "0"}
                 </div>
-                <div className="text-sm text-gray-400">Counties Served</div>
+                <div className="text-sm text-white/60">Counties Served</div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-6 text-center">
                 <Award className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white">
                   {impactStats ? impactStats.activeCauses.toLocaleString() : "0"}
                 </div>
-                <div className="text-sm text-gray-400">Causes Funded</div>
+                <div className="text-sm text-white/60">Causes Funded</div>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Impact by Category</CardTitle>
             </CardHeader>
@@ -654,10 +654,10 @@ export default function Foundation() {
                   const IconComponent = category.icon;
                   return (
                     <div key={category.id} className="flex items-start gap-3">
-                      <IconComponent className="h-5 w-5 text-orange-500 mt-1" />
+                      <IconComponent className="h-5 w-5 text-ts-orange mt-1" />
                       <div>
                         <div className="text-white font-medium">{category.name}</div>
-                        <p className="text-sm text-gray-400">{category.description}</p>
+                        <p className="text-sm text-white/60">{category.description}</p>
                       </div>
                     </div>
                   );
@@ -669,17 +669,17 @@ export default function Foundation() {
 
         <TabsContent value="my-donations" className="space-y-6">
           {!isAuthenticated ? (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-12 text-center">
-                <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400 mb-4">Sign in to view your donation history</p>
-                <Button className="bg-orange-500 hover:bg-orange-600">Sign In</Button>
+                <Heart className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                <p className="text-white/60 mb-4">Sign in to view your donation history</p>
+                <Button className="bg-ts-orange hover:bg-ts-orange-dark">Sign In</Button>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-white">Your Donations</h2>
-              <p className="text-center text-gray-400 py-8">
+              <p className="text-center text-white/60 py-8">
                 Your donation history will appear here once you make your first contribution.
               </p>
             </div>
@@ -687,21 +687,21 @@ export default function Foundation() {
         </TabsContent>
 
         <TabsContent value="corporate" className="space-y-6">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Corporate Matching Program</CardTitle>
-              <p className="text-gray-400">
+              <p className="text-white/60">
                 Amplify your business impact through charitable giving
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-orange-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <Building className="h-8 w-8 text-orange-500" />
+                  <div className="w-16 h-16 bg-ts-orange/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Building className="h-8 w-8 text-ts-orange" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">Employee Matching</h3>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-white/60 text-sm">
                     Match employee donations to increase impact
                   </p>
                 </div>
@@ -710,19 +710,19 @@ export default function Foundation() {
                     <TrendingUp className="h-8 w-8 text-green-500" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">Tax Benefits</h3>
-                  <p className="text-gray-400 text-sm">Maximize tax advantages for your business</p>
+                  <p className="text-white/60 text-sm">Maximize tax advantages for your business</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <Award className="h-8 w-8 text-blue-500" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">Brand Recognition</h3>
-                  <p className="text-gray-400 text-sm">Showcase your community commitment</p>
+                  <p className="text-white/60 text-sm">Showcase your community commitment</p>
                 </div>
               </div>
 
               <div className="text-center">
-                <Button className="bg-orange-500 hover:bg-orange-600">
+                <Button className="bg-ts-orange hover:bg-ts-orange-dark">
                   Learn More About Corporate Program
                 </Button>
               </div>
@@ -734,10 +734,10 @@ export default function Foundation() {
       {/* Donation Modal */}
       {selectedCause && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-slate-800 border-slate-700 w-full max-w-md">
+          <Card className="bg-white/5 border-white/10 w-full max-w-md">
             <CardHeader>
               <CardTitle className="text-white">Donate to {selectedCause.title}</CardTitle>
-              <p className="text-gray-400">Support this cause in {selectedCause.location}</p>
+              <p className="text-white/60">Support this cause in {selectedCause.location}</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -747,7 +747,7 @@ export default function Foundation() {
                   placeholder="Enter amount"
                   value={donationAmount}
                   onChange={(e) => setDonationAmount(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
 
@@ -755,7 +755,7 @@ export default function Foundation() {
                 <Button
                   onClick={() => submitDonation(false)}
                   disabled={donateMutation.isPending}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  className="flex-1 bg-ts-orange hover:bg-ts-orange-dark"
                 >
                   Donate Publicly
                 </Button>
@@ -763,7 +763,7 @@ export default function Foundation() {
                   onClick={() => submitDonation(true)}
                   disabled={donateMutation.isPending}
                   variant="outline"
-                  className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
+                  className="flex-1 border-white/15 text-white/70 hover:bg-white/10"
                 >
                   Donate Anonymously
                 </Button>
@@ -772,7 +772,7 @@ export default function Foundation() {
               <Button
                 onClick={() => setSelectedCause(null)}
                 variant="ghost"
-                className="w-full text-gray-400 hover:text-white"
+                className="w-full text-white/60 hover:text-white"
               >
                 Cancel
               </Button>

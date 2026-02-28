@@ -115,7 +115,7 @@ export function FloatingBugReport() {
     >
       <div className="relative group">
         {/* Drag handle indicator */}
-        <div className={`absolute -top-1 -left-1 bg-gray-700 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${isDragging ? 'opacity-100' : ''}`}>
+        <div className={`absolute -top-1 -left-1 bg-white/10 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${isDragging ? 'opacity-100' : ''}`}>
           <Move size={12} className="text-white" />
         </div>
         
@@ -126,7 +126,7 @@ export function FloatingBugReport() {
         
         {/* Visual feedback when dragging */}
         {isDragging && (
-          <div className="absolute inset-0 bg-orange-500/20 rounded-full animate-pulse pointer-events-none" />
+          <div className="absolute inset-0 bg-ts-orange/20 rounded-full animate-pulse pointer-events-none" />
         )}
       </div>
     </div>

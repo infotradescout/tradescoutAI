@@ -435,14 +435,14 @@ export default function HomeScoutListingPage() {
   if (isError || !listing) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <Card className="bg-slate-950/70 border-slate-800">
+        <Card className="bg-black/30 border-white/10">
           <CardHeader>
-            <CardTitle className="text-slate-100 flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-orange-400" />
+            <CardTitle className="text-white flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-ts-orange" />
               Listing unavailable
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-300">
+          <CardContent className="space-y-3 text-sm text-white/70">
             <p>{error instanceof Error ? error.message : "This listing could not be loaded."}</p>
             <div className="flex gap-2">
               <Link href="/real-estate-marketplace">
@@ -483,19 +483,19 @@ export default function HomeScoutListingPage() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-orange-500" />
-            <h1 className="text-xl md:text-3xl font-bold text-slate-100">{listing.title}</h1>
+            <Home className="h-5 w-5 text-ts-orange" />
+            <h1 className="text-xl md:text-3xl font-bold text-white">{listing.title}</h1>
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-300">
-            <MapPin className="h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2 text-sm text-white/70">
+            <MapPin className="h-4 w-4 text-white/60" />
             <span>{locationLabel || `${listing.countyFips}, ${listing.stateCode}`}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-slate-700 text-slate-200">
+          <Badge variant="outline" className="border-white/10 text-white/70">
             {statusLabel}
           </Badge>
-          <div className="text-lg md:text-xl font-semibold text-slate-100">
+          <div className="text-lg md:text-xl font-semibold text-white">
             {formatCurrency(listing.price)}
           </div>
         </div>
@@ -503,7 +503,7 @@ export default function HomeScoutListingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
         <div className="lg:col-span-3 space-y-4">
-          <Card className="bg-slate-950/60 border-slate-800 overflow-hidden">
+          <Card className="bg-black/30 border-white/10 overflow-hidden">
             {primaryPhoto ? (
               <img
                 src={primaryPhoto}
@@ -513,40 +513,40 @@ export default function HomeScoutListingPage() {
               />
             ) : (
               <div className="w-full h-56 sm:h-64 md:h-96 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-                <div className="text-slate-400 text-sm">No photos yet</div>
+                <div className="text-white/60 text-sm">No photos yet</div>
               </div>
             )}
           </Card>
 
           {listing.description && (
-            <Card className="bg-slate-950/60 border-slate-800">
+            <Card className="bg-black/30 border-white/10">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base text-slate-100">About this home</CardTitle>
+                <CardTitle className="text-base text-white">About this home</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-slate-300 whitespace-pre-wrap">
+              <CardContent className="text-sm text-white/70 whitespace-pre-wrap">
                 {listing.description}
               </CardContent>
             </Card>
           )}
 
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">Price history</CardTitle>
+              <CardTitle className="text-base text-white">Price history</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-300">
+            <CardContent className="space-y-2 text-sm text-white/70">
               {priceEvents.length === 0 ? (
-                <div className="text-xs text-slate-400">No recorded price changes yet.</div>
+                <div className="text-xs text-white/60">No recorded price changes yet.</div>
               ) : (
                 priceEvents.map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-3">
-                    <div className="text-slate-200">
+                    <div className="text-white/70">
                       {formatCurrency((e.payload as any)?.from ?? 0)}
                       {" -> "}
                       <span className="font-semibold">
                         {formatCurrency((e.payload as any)?.to ?? 0)}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 whitespace-nowrap">
+                    <div className="text-xs text-white/60 whitespace-nowrap">
                       {new Date(e.observedAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -555,20 +555,20 @@ export default function HomeScoutListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">
+              <CardTitle className="text-base text-white">
                 Inspections and repair follow-up
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm text-slate-300">
-              <div className="text-xs text-slate-400">
+            <CardContent className="space-y-4 text-sm text-white/70">
+              <div className="text-xs text-white/60">
                 Sellers can post current inspections. Buyers can request inspections, upload
                 independent reports, and open repair/service requests from findings.
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-white/60">
                   Scout can summarize repeated findings across published reports.
                 </div>
                 <Button
@@ -592,13 +592,13 @@ export default function HomeScoutListingPage() {
               </div>
 
               {showInspectionInsights && inspectionInsights ? (
-                <div className="rounded-md border border-slate-800 p-3 bg-slate-950/40 space-y-2">
-                  <div className="text-slate-100 font-semibold text-sm">Takeaways</div>
+                <div className="rounded-md border border-white/10 p-3 bg-black/30 space-y-2">
+                  <div className="text-white font-semibold text-sm">Takeaways</div>
                   {Array.isArray(inspectionInsights?.buyerRecommendations) &&
                   inspectionInsights.buyerRecommendations.length > 0 ? (
                     <div className="space-y-1">
-                      <div className="text-xs text-slate-400">For buyers</div>
-                      <ul className="list-disc pl-5 text-sm text-slate-300 space-y-1">
+                      <div className="text-xs text-white/60">For buyers</div>
+                      <ul className="list-disc pl-5 text-sm text-white/70 space-y-1">
                         {inspectionInsights.buyerRecommendations
                           .slice(0, 6)
                           .map((x: string, idx: number) => (
@@ -610,8 +610,8 @@ export default function HomeScoutListingPage() {
                   {Array.isArray(inspectionInsights?.sellerRecommendations) &&
                   inspectionInsights.sellerRecommendations.length > 0 ? (
                     <div className="space-y-1">
-                      <div className="text-xs text-slate-400">For sellers</div>
-                      <ul className="list-disc pl-5 text-sm text-slate-300 space-y-1">
+                      <div className="text-xs text-white/60">For sellers</div>
+                      <ul className="list-disc pl-5 text-sm text-white/70 space-y-1">
                         {inspectionInsights.sellerRecommendations
                           .slice(0, 6)
                           .map((x: string, idx: number) => (
@@ -624,25 +624,25 @@ export default function HomeScoutListingPage() {
               ) : null}
 
               <div className="space-y-2">
-                <div className="text-slate-100 font-semibold text-sm">
+                <div className="text-white font-semibold text-sm">
                   Open inspection requests ({openInspectionRequests.length})
                 </div>
                 {openInspectionRequests.length === 0 ? (
-                  <div className="text-xs text-slate-500">No open requests yet.</div>
+                  <div className="text-xs text-white/60">No open requests yet.</div>
                 ) : (
                   <div className="space-y-2">
                     {openInspectionRequests.slice(0, 6).map((r) => (
                       <div
                         key={r.id}
-                        className="rounded-md border border-slate-800 p-3 bg-slate-950/40"
+                        className="rounded-md border border-white/10 p-3 bg-black/30"
                       >
-                        <div className="text-slate-200">{r.requestMessage}</div>
+                        <div className="text-white/70">{r.requestMessage}</div>
                         {r.preferredWindow ? (
-                          <div className="text-xs text-slate-400 mt-1">
+                          <div className="text-xs text-white/60 mt-1">
                             Window: {r.preferredWindow}
                           </div>
                         ) : null}
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-white/60 mt-1">
                           {new Date(r.createdAt).toLocaleDateString()}
                         </div>
                       </div>
@@ -654,33 +654,33 @@ export default function HomeScoutListingPage() {
               {isAuthenticated ? (
                 <>
                   <div className="space-y-2">
-                    <div className="text-slate-100 font-semibold text-sm">
+                    <div className="text-white font-semibold text-sm">
                       Pending inspection reports ({pendingInspectionReports.length})
                     </div>
                     {pendingInspectionReports.length === 0 ? (
-                      <div className="text-xs text-slate-500">No pending reports.</div>
+                      <div className="text-xs text-white/60">No pending reports.</div>
                     ) : (
                       <div className="space-y-3">
                         {pendingInspectionReports.map((r) => (
                           <div
                             key={r.id}
-                            className="rounded-md border border-slate-800 p-3 bg-slate-950/40 space-y-2"
+                            className="rounded-md border border-white/10 p-3 bg-black/30 space-y-2"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <div className="text-slate-100 font-medium">
+                              <div className="text-white font-medium">
                                 {String(r.reportType || "other").replace(/_/g, " ")}{" "}
-                                <span className="text-xs text-slate-400">(pending review)</span>
+                                <span className="text-xs text-white/60">(pending review)</span>
                               </div>
                               <a
                                 href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
                                 rel="noreferrer"
-                                className="text-orange-300 hover:text-orange-200 text-xs"
+                                className="text-ts-orange hover:text-ts-orange text-xs"
                               >
                                 Download report
                               </a>
                             </div>
                             {r.summary ? (
-                              <div className="text-sm text-slate-300">{r.summary}</div>
+                              <div className="text-sm text-white/70">{r.summary}</div>
                             ) : null}
                             <div className="flex items-center gap-2">
                               <Button
@@ -706,11 +706,11 @@ export default function HomeScoutListingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-slate-100 font-semibold text-sm">
+                    <div className="text-white font-semibold text-sm">
                       Your uploads ({myInspectionReports.length})
                     </div>
                     {myInspectionReports.length === 0 ? (
-                      <div className="text-xs text-slate-500">No uploads yet.</div>
+                      <div className="text-xs text-white/60">No uploads yet.</div>
                     ) : (
                       <div className="space-y-2">
                         {myInspectionReports
@@ -719,13 +719,13 @@ export default function HomeScoutListingPage() {
                           .map((r) => (
                             <div
                               key={r.id}
-                              className="rounded-md border border-slate-800 p-3 bg-slate-950/40"
+                              className="rounded-md border border-white/10 p-3 bg-black/30"
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <div className="text-slate-100 font-medium">
+                                <div className="text-white font-medium">
                                   {String(r.reportType || "other").replace(/_/g, " ")}
                                   {r.status ? (
-                                    <span className="text-xs text-slate-400">
+                                    <span className="text-xs text-white/60">
                                       {" "}
                                       ({String(r.status).replace(/_/g, " ")})
                                     </span>
@@ -734,13 +734,13 @@ export default function HomeScoutListingPage() {
                                 <a
                                   href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
                                   rel="noreferrer"
-                                  className="text-orange-300 hover:text-orange-200 text-xs"
+                                  className="text-ts-orange hover:text-ts-orange text-xs"
                                 >
                                   Download
                                 </a>
                               </div>
                               {r.summary ? (
-                                <div className="text-xs text-slate-400 mt-1">{r.summary}</div>
+                                <div className="text-xs text-white/60 mt-1">{r.summary}</div>
                               ) : null}
                             </div>
                           ))}
@@ -751,46 +751,46 @@ export default function HomeScoutListingPage() {
               ) : null}
 
               <div className="space-y-2">
-                <div className="text-slate-100 font-semibold text-sm">
+                <div className="text-white font-semibold text-sm">
                   Published inspection reports ({inspectionReports.length})
                 </div>
                 {inspectionReports.length === 0 ? (
-                  <div className="text-xs text-slate-500">No reports uploaded yet.</div>
+                  <div className="text-xs text-white/60">No reports uploaded yet.</div>
                 ) : (
                   <div className="space-y-3">
                     {inspectionReports.map((r) => (
                       <div
                         key={r.id}
-                        className="rounded-md border border-slate-800 p-3 bg-slate-950/40 space-y-2"
+                        className="rounded-md border border-white/10 p-3 bg-black/30 space-y-2"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="text-slate-100 font-medium">
+                          <div className="text-white font-medium">
                             {String(r.reportType || "other").replace(/_/g, " ")}
                           </div>
                           <a
                             href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
                             rel="noreferrer"
-                            className="text-orange-300 hover:text-orange-200 text-xs"
+                            className="text-ts-orange hover:text-ts-orange text-xs"
                           >
                             Download report
                           </a>
                         </div>
                         {r.inspectionDate ? (
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-white/60">
                             Inspection date: {new Date(r.inspectionDate).toLocaleDateString()}
                           </div>
                         ) : null}
                         {(r.inspectorName || r.inspectorCompany) && (
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-white/60">
                             Inspector:{" "}
                             {[r.inspectorName, r.inspectorCompany].filter(Boolean).join(" - ")}
                           </div>
                         )}
                         {r.summary ? (
-                          <div className="text-sm text-slate-300">{r.summary}</div>
+                          <div className="text-sm text-white/70">{r.summary}</div>
                         ) : null}
                         {Array.isArray(r.highlights) && r.highlights.length > 0 ? (
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs text-white/60">
                             Highlights: {r.highlights.slice(0, 5).join("; ")}
                           </div>
                         ) : null}
@@ -828,8 +828,8 @@ export default function HomeScoutListingPage() {
 
               {isAuthenticated ? (
                 <div className="space-y-2">
-                  <div className="text-slate-100 font-semibold text-sm">Find a local inspector</div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-white font-semibold text-sm">Find a local inspector</div>
+                  <div className="text-xs text-white/60">
                     Scout can recommend inspectors in this county and help route you through the
                     intent and decision flow.
                   </div>
@@ -863,13 +863,13 @@ export default function HomeScoutListingPage() {
                           key={String(
                             p?.countyEntityId || p?.userId || p?.displayName || Math.random()
                           )}
-                          className="rounded-md border border-slate-800 p-3 bg-slate-950/40 flex items-center justify-between gap-3"
+                          className="rounded-md border border-white/10 p-3 bg-black/30 flex items-center justify-between gap-3"
                         >
                           <div className="min-w-0">
-                            <div className="text-sm text-slate-100 font-medium truncate">
+                            <div className="text-sm text-white font-medium truncate">
                               {String(p?.displayName || "Inspector")}
                             </div>
-                            <div className="text-xs text-slate-400 truncate">
+                            <div className="text-xs text-white/60 truncate">
                               {p?.company ? String(p.company) : "Local inspector"}
                             </div>
                           </div>
@@ -884,7 +884,7 @@ export default function HomeScoutListingPage() {
                           >
                             <Button
                               size="sm"
-                              className="bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                              className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
                             >
                               Ask Scout
                             </Button>
@@ -897,20 +897,20 @@ export default function HomeScoutListingPage() {
               ) : null}
 
               {isAuthenticated ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/10">
                   <div className="space-y-2">
-                    <div className="text-slate-100 font-semibold text-sm">Request inspection</div>
+                    <div className="text-white font-semibold text-sm">Request inspection</div>
                     <textarea
                       value={inspectionRequestMessage}
                       onChange={(e) => setInspectionRequestMessage(e.target.value)}
                       placeholder="Request an inspection for this property..."
-                      className="w-full min-h-[92px] rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full min-h-[92px] rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <input
                       value={inspectionPreferredWindow}
                       onChange={(e) => setInspectionPreferredWindow(e.target.value)}
                       placeholder="Preferred window (optional)"
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <Button
                       size="sm"
@@ -922,13 +922,13 @@ export default function HomeScoutListingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-slate-100 font-semibold text-sm">
+                    <div className="text-white font-semibold text-sm">
                       Upload inspection report
                     </div>
                     <select
                       value={uploadReportType}
                       onChange={(e) => setUploadReportType(e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     >
                       <option value="buyer_independent">Buyer independent</option>
                       <option value="seller_pre_listing">Seller pre-listing</option>
@@ -939,43 +939,43 @@ export default function HomeScoutListingPage() {
                       type="date"
                       value={uploadInspectionDate}
                       onChange={(e) => setUploadInspectionDate(e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <input
                       value={uploadInspectorName}
                       onChange={(e) => setUploadInspectorName(e.target.value)}
                       placeholder="Inspector name (optional)"
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <input
                       value={uploadInspectorCompany}
                       onChange={(e) => setUploadInspectorCompany(e.target.value)}
                       placeholder="Inspector company (optional)"
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <textarea
                       value={uploadSummary}
                       onChange={(e) => setUploadSummary(e.target.value)}
                       placeholder="Summary of findings (optional)"
-                      className="w-full min-h-[72px] rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full min-h-[72px] rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <textarea
                       value={uploadHighlights}
                       onChange={(e) => setUploadHighlights(e.target.value)}
                       placeholder="Highlights, one per line (optional)"
-                      className="w-full min-h-[72px] rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full min-h-[72px] rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <input
                       value={uploadSourceRequestId}
                       onChange={(e) => setUploadSourceRequestId(e.target.value)}
                       placeholder="Source request id (optional, if you requested an inspection here)"
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     />
                     <input
                       type="file"
                       accept=".pdf,.png,.jpg,.jpeg,.webp"
                       onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs text-slate-200"
+                      className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/70"
                     />
                     <Button
                       size="sm"
@@ -987,7 +987,7 @@ export default function HomeScoutListingPage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-white/60">
                   Sign in to request inspections, upload reports, and request repair services.
                 </div>
               )}
@@ -996,19 +996,19 @@ export default function HomeScoutListingPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">
+              <CardTitle className="text-base text-white">
                 {String((listing as any)?.listingAuthorType || "owner") === "agent"
                   ? "Listed by agent"
                   : "Listed by owner"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-300">
+            <CardContent className="space-y-2 text-sm text-white/70">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-semibold truncate">{String(targetName)}</div>
-                  <div className="text-xs text-slate-400 truncate">
+                  <div className="text-xs text-white/60 truncate">
                     {realtorProfile?.brokerageName
                       ? `Brokerage: ${String(realtorProfile.brokerageName)}`
                       : String(targetRole)}
@@ -1025,118 +1025,118 @@ export default function HomeScoutListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100 flex items-center justify-between gap-3">
+              <CardTitle className="text-base text-white flex items-center justify-between gap-3">
                 <span>Facts</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-white/60">
                   {String((listing as any)?.listingAuthorType || "owner") === "agent"
                     ? "Posted by agent"
                     : "Posted by owner"}
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-300">
+            <CardContent className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Type</span>
-                <span className="font-medium text-slate-100">{listing.propertyType || "Home"}</span>
+                <span className="text-white/60">Type</span>
+                <span className="font-medium text-white">{listing.propertyType || "Home"}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 pt-2">
-                <div className="rounded-md border border-slate-800 bg-slate-950/40 p-3">
-                  <div className="flex items-center gap-2 text-slate-200">
-                    <BedDouble className="h-4 w-4 text-slate-400" />
+                <div className="rounded-md border border-white/10 bg-black/30 p-3">
+                  <div className="flex items-center gap-2 text-white/70">
+                    <BedDouble className="h-4 w-4 text-white/60" />
                     <span className="font-semibold">{listing.beds ?? "?"}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1">Beds</div>
+                  <div className="text-[11px] text-white/60 mt-1">Beds</div>
                 </div>
-                <div className="rounded-md border border-slate-800 bg-slate-950/40 p-3">
-                  <div className="flex items-center gap-2 text-slate-200">
-                    <Bath className="h-4 w-4 text-slate-400" />
+                <div className="rounded-md border border-white/10 bg-black/30 p-3">
+                  <div className="flex items-center gap-2 text-white/70">
+                    <Bath className="h-4 w-4 text-white/60" />
                     <span className="font-semibold">{listing.baths ?? "?"}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1">Baths</div>
+                  <div className="text-[11px] text-white/60 mt-1">Baths</div>
                 </div>
-                <div className="rounded-md border border-slate-800 bg-slate-950/40 p-3">
-                  <div className="flex items-center gap-2 text-slate-200">
-                    <Square className="h-4 w-4 text-slate-400" />
+                <div className="rounded-md border border-white/10 bg-black/30 p-3">
+                  <div className="flex items-center gap-2 text-white/70">
+                    <Square className="h-4 w-4 text-white/60" />
                     <span className="font-semibold">{listing.sqft ?? "?"}</span>
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1">Sqft</div>
+                  <div className="text-[11px] text-white/60 mt-1">Sqft</div>
                 </div>
               </div>
               {listing.yearBuilt != null && (
                 <div className="flex items-center justify-between pt-2">
-                  <span className="text-slate-400">Year built</span>
-                  <span className="font-medium text-slate-100">{listing.yearBuilt}</span>
+                  <span className="text-white/60">Year built</span>
+                  <span className="font-medium text-white">{listing.yearBuilt}</span>
                 </div>
               )}
               {listing.lotSqft != null && (
                 <div className="flex items-center justify-between pt-2">
-                  <span className="text-slate-400">Lot</span>
-                  <span className="font-medium text-slate-100">{listing.lotSqft} sqft</span>
+                  <span className="text-white/60">Lot</span>
+                  <span className="font-medium text-white">{listing.lotSqft} sqft</span>
                 </div>
               )}
               {coordsLabel ? (
                 <div className="flex items-center justify-between pt-2">
-                  <span className="text-slate-400">Coords</span>
-                  <span className="font-medium text-slate-100">{coordsLabel}</span>
+                  <span className="text-white/60">Coords</span>
+                  <span className="font-medium text-white">{coordsLabel}</span>
                 </div>
               ) : null}
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">County context</CardTitle>
+              <CardTitle className="text-base text-white">County context</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-300">
+            <CardContent className="space-y-3 text-sm text-white/70">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Active listings</span>
-                <span className="font-medium text-slate-100">
+                <span className="text-white/60">Active listings</span>
+                <span className="font-medium text-white">
                   {String(metricMap.get("homescout_active_listings") ?? "—")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Median price</span>
-                <span className="font-medium text-slate-100">
+                <span className="text-white/60">Median price</span>
+                <span className="font-medium text-white">
                   {metricMap.has("homescout_median_price")
                     ? formatCurrency(metricMap.get("homescout_median_price") as any)
                     : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Median DOM</span>
-                <span className="font-medium text-slate-100">
+                <span className="text-white/60">Median DOM</span>
+                <span className="font-medium text-white">
                   {String(metricMap.get("homescout_median_dom_days") ?? "—")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Price drops (7d)</span>
-                <span className="font-medium text-slate-100">
+                <span className="text-white/60">Price drops (7d)</span>
+                <span className="font-medium text-white">
                   {String(metricMap.get("homescout_price_drops_7d") ?? "—")}
                 </span>
               </div>
 
               {marketBucket ? (
-                <div className="pt-3 border-t border-slate-800 space-y-2">
-                  <div className="text-xs text-slate-400">Similar homes snapshot</div>
+                <div className="pt-3 border-t border-white/10 space-y-2">
+                  <div className="text-xs text-white/60">Similar homes snapshot</div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Count</span>
-                    <span className="font-medium text-slate-100">
+                    <span className="text-white/60">Count</span>
+                    <span className="font-medium text-white">
                       {marketBucket.activeCount ?? 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Median price</span>
-                    <span className="font-medium text-slate-100">
+                    <span className="text-white/60">Median price</span>
+                    <span className="font-medium text-white">
                       {marketBucket.medianPrice != null
                         ? formatCurrency(marketBucket.medianPrice as any)
                         : "—"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Median $/sqft</span>
-                    <span className="font-medium text-slate-100">
+                    <span className="text-white/60">Median $/sqft</span>
+                    <span className="font-medium text-white">
                       {marketBucket.medianPricePerSqft != null
                         ? `$${Math.round(Number(marketBucket.medianPricePerSqft))}`
                         : "—"}
@@ -1147,24 +1147,24 @@ export default function HomeScoutListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">Status timeline</CardTitle>
+              <CardTitle className="text-base text-white">Status timeline</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-300">
+            <CardContent className="space-y-2 text-sm text-white/70">
               {statusEvents.length === 0 ? (
-                <div className="text-xs text-slate-400">No recorded status timeline yet.</div>
+                <div className="text-xs text-white/60">No recorded status timeline yet.</div>
               ) : (
                 statusEvents.map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-3">
-                    <div className="text-slate-200">
+                    <div className="text-white/70">
                       {String((e.payload as any)?.from ?? "").trim()
                         ? `${String((e.payload as any)?.from).replace(/_/g, " ")} → ${String(
                             (e.payload as any)?.to ?? ""
                           ).replace(/_/g, " ")}`
                         : String((e.payload as any)?.status ?? listing.status).replace(/_/g, " ")}
                     </div>
-                    <div className="text-xs text-slate-500 whitespace-nowrap">
+                    <div className="text-xs text-white/60 whitespace-nowrap">
                       {new Date(e.observedAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -1173,22 +1173,22 @@ export default function HomeScoutListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-950/60 border-slate-800">
+          <Card className="bg-black/30 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-slate-100">Contact</CardTitle>
+              <CardTitle className="text-base text-white">Contact</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-300">
+            <CardContent className="space-y-3 text-sm text-white/70">
               <div className="space-y-1">
-                <div className="text-slate-100 font-semibold">{targetName}</div>
-                <div className="text-xs text-slate-400">
+                <div className="text-white font-semibold">{targetName}</div>
+                <div className="text-xs text-white/60">
                   {String(targetRole).replace(/_/g, " ")}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-white/60">
                   HomeScout never exposes direct contact without intent gating.
                 </div>
               </div>
               <Button
-                className="w-full bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                className="w-full bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
                 disabled={!canContact}
                 onClick={() => {
                   if (!contactUserId) return;

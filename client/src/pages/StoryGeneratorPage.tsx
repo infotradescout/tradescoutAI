@@ -122,7 +122,7 @@ export default function StoryGeneratorPage() {
       <div className="bg-gradient-to-br from-navy-900 to-navy-800 flex items-center justify-center py-24">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
-            <p className="text-center text-gray-600">
+            <p className="text-center text-white/60">
               Please log in to access the story generator.
             </p>
           </CardContent>
@@ -141,7 +141,7 @@ export default function StoryGeneratorPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="border-white/15 text-white/70 hover:bg-white/10"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
@@ -150,7 +150,7 @@ export default function StoryGeneratorPage() {
           </div>
           <div className="text-center">
             <h1 className="text-4xl font-bold text-white mb-4">Professional Story Generator</h1>
-            <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+            <p className="text-white/70 text-lg max-w-2xl mx-auto">
               Create compelling professional narratives to enhance your profile and connect with
               potential clients. Choose from different story templates and let AI help craft your
               unique story.
@@ -161,7 +161,7 @@ export default function StoryGeneratorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Story Generator */}
           <div className="lg:col-span-2">
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -176,7 +176,7 @@ export default function StoryGeneratorPage() {
 
           {/* Saved Stories */}
           <div>
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Your Stories</CardTitle>
               </CardHeader>
@@ -185,16 +185,16 @@ export default function StoryGeneratorPage() {
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-gray-600 rounded mb-2"></div>
-                        <div className="h-3 bg-gray-700 rounded w-3/4"></div>
+                        <div className="h-4 bg-white/10 rounded mb-2"></div>
+                        <div className="h-3 bg-white/10 rounded w-3/4"></div>
                       </div>
                     ))}
                   </div>
                 ) : (savedStories as GeneratedStory[]).length === 0 ? (
                   <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400 mb-4">No stories yet</p>
-                    <p className="text-gray-500 text-sm">
+                    <FileText className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                    <p className="text-white/60 mb-4">No stories yet</p>
+                    <p className="text-white/60 text-sm">
                       Generate your first professional story using the form
                     </p>
                   </div>
@@ -206,14 +206,14 @@ export default function StoryGeneratorPage() {
                         className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                           selectedStory?.id === story.id
                             ? "border-blue-500 bg-blue-900/20"
-                            : "border-gray-600 hover:border-gray-500"
+                            : "border-white/15 hover:border-white/15"
                         }`}
                         onClick={() => setSelectedStory(story)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="text-white font-medium text-sm mb-1">{story.title}</h4>
-                            <p className="text-gray-400 text-xs mb-2">
+                            <p className="text-white/60 text-xs mb-2">
                               {formatDate(story.createdAt)}
                             </p>
                             <div className="flex items-center gap-2 text-xs">
@@ -246,17 +246,17 @@ export default function StoryGeneratorPage() {
 
             {/* Story Actions */}
             {selectedStory && (
-              <Card className="bg-navy-700 border-navy-600 mt-4">
+              <Card className="bg-tsCard border-white/10 mt-4">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">{selectedStory.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="text-gray-300 text-sm leading-relaxed">
+                    <div className="text-white/70 text-sm leading-relaxed">
                       {selectedStory.content}
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-white/60">
                       <Eye className="h-3 w-3" />
                       {selectedStory.viewCount} views
                       <Share2 className="h-3 w-3 ml-2" />
@@ -267,7 +267,7 @@ export default function StoryGeneratorPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        className="border-white/15 text-white/70 hover:bg-white/10"
                         onClick={() => handleCopyStory(selectedStory.content)}
                       >
                         <Copy className="h-3 w-3 mr-1" />

@@ -187,9 +187,9 @@ const HOAMaintenance = memo(function HOAMaintenance() {
           canonical="https://www.thetradescout.com/hoa/maintenance"
           noIndex
         />
-        <Card className="bg-navy-800/60 border-navy-600">
+        <Card className="bg-tsCard/60 border-white/10">
           <CardContent className="p-6">
-            <p className="text-gray-300">County context required to view HOA maintenance.</p>
+            <p className="text-white/70">County context required to view HOA maintenance.</p>
           </CardContent>
         </Card>
       </HOAManagementShell>
@@ -205,9 +205,9 @@ const HOAMaintenance = memo(function HOAMaintenance() {
           canonical="https://www.thetradescout.com/hoa/maintenance"
           noIndex
         />
-        <Card className="bg-navy-800/60 border-navy-600">
+        <Card className="bg-tsCard/60 border-white/10">
           <CardContent className="p-6">
-            <p className="text-gray-300">You are not currently a member of an HOA.</p>
+            <p className="text-white/70">You are not currently a member of an HOA.</p>
           </CardContent>
         </Card>
       </HOAManagementShell>
@@ -227,10 +227,10 @@ const HOAMaintenance = memo(function HOAMaintenance() {
       <div className={`space-y-6 ${simpleView ? "text-base" : ""}`}>
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Wrench className="h-8 w-8 text-orange-400" />
+            <Wrench className="h-8 w-8 text-ts-orange" />
             HOA Maintenance & Vendors
           </h1>
-          <p className="text-gray-300 mt-2">{memberships[0]?.hoaName || "Your HOA"}</p>
+          <p className="text-white/70 mt-2">{memberships[0]?.hoaName || "Your HOA"}</p>
         </div>
 
         <HOANextStepsCard
@@ -246,17 +246,17 @@ const HOAMaintenance = memo(function HOAMaintenance() {
         />
 
         {/* Service Request Form */}
-        <Card className="bg-navy-800/60 border-navy-600">
+        <Card className="bg-tsCard/60 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Request Maintenance Service</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="vendor" className="text-gray-200">
+              <Label htmlFor="vendor" className="text-white/70">
                 Select Vendor
               </Label>
               <Select value={selectedVendor || ""} onValueChange={setSelectedVendor}>
-                <SelectTrigger className="bg-navy-700 text-white border-navy-600">
+                <SelectTrigger className="bg-tsCard text-white border-white/10">
                   <SelectValue placeholder="Choose a vendor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,11 +271,11 @@ const HOAMaintenance = memo(function HOAMaintenance() {
 
             {selectedVendorData && (
               <div>
-                <Label htmlFor="serviceType" className="text-gray-200">
+                <Label htmlFor="serviceType" className="text-white/70">
                   Service Type
                 </Label>
                 <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="bg-navy-700 text-white border-navy-600">
+                  <SelectTrigger className="bg-tsCard text-white border-white/10">
                     <SelectValue placeholder="Select service" />
                   </SelectTrigger>
                   <SelectContent>
@@ -291,11 +291,11 @@ const HOAMaintenance = memo(function HOAMaintenance() {
             )}
 
             <div>
-              <Label htmlFor="urgency" className="text-gray-200">
+              <Label htmlFor="urgency" className="text-white/70">
                 Urgency
               </Label>
               <Select value={urgency} onValueChange={setUrgency}>
-                <SelectTrigger className="bg-navy-700 text-white border-navy-600">
+                <SelectTrigger className="bg-tsCard text-white border-white/10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -308,7 +308,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
             </div>
 
             <div>
-              <Label htmlFor="description" className="text-gray-200">
+              <Label htmlFor="description" className="text-white/70">
                 Description
               </Label>
               <Textarea
@@ -316,7 +316,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
                 placeholder="Describe the maintenance issue or service needed..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="bg-navy-700 text-white border-navy-600"
+                className="bg-tsCard text-white border-white/10"
                 rows={4}
               />
             </div>
@@ -324,7 +324,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
             <Button
               onClick={handleRequestService}
               disabled={!selectedVendor || !serviceType || !description}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
             >
               Submit Request
             </Button>
@@ -335,21 +335,21 @@ const HOAMaintenance = memo(function HOAMaintenance() {
         <div>
           <h2 className="text-2xl font-semibold text-white mb-4">Approved Vendors</h2>
           {isLoading ? (
-            <Card className="bg-navy-800/60 border-navy-600">
+            <Card className="bg-tsCard/60 border-white/10">
               <CardContent className="p-6">
-                <p className="text-gray-300">Loading vendors...</p>
+                <p className="text-white/70">Loading vendors...</p>
               </CardContent>
             </Card>
           ) : vendors.length === 0 ? (
-            <Card className="bg-navy-800/60 border-navy-600">
+            <Card className="bg-tsCard/60 border-white/10">
               <CardContent className="p-6">
-                <p className="text-gray-300">No vendors configured yet.</p>
+                <p className="text-white/70">No vendors configured yet.</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4">
               {vendors.map((vendor) => (
-                <Card key={vendor.id} className="bg-navy-800/60 border-navy-600">
+                <Card key={vendor.id} className="bg-tsCard/60 border-white/10">
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -363,22 +363,22 @@ const HOAMaintenance = memo(function HOAMaintenance() {
                           </div>
                         </div>
 
-                        <div className="space-y-1 text-sm text-gray-300 mt-3">
+                        <div className="space-y-1 text-sm text-white/70 mt-3">
                           {vendor.contactPerson && (
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">Contact:</span>
+                              <span className="text-white/60">Contact:</span>
                               <span>{vendor.contactPerson}</span>
                             </div>
                           )}
                           {vendor.phone && (
                             <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-gray-400" />
+                              <Phone className="h-4 w-4 text-white/60" />
                               <span>{vendor.phone}</span>
                             </div>
                           )}
                           {vendor.email && (
                             <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-gray-400" />
+                              <Mail className="h-4 w-4 text-white/60" />
                               <span>{vendor.email}</span>
                             </div>
                           )}
@@ -396,7 +396,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
                               <Badge
                                 key={service}
                                 variant="outline"
-                                className="border-gray-600 text-gray-300"
+                                className="border-white/15 text-white/70"
                               >
                                 {service}
                               </Badge>
@@ -409,7 +409,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
                         {vendor.status === "active" ? (
                           <CheckCircle className="h-6 w-6 text-emerald-400" />
                         ) : (
-                          <XCircle className="h-6 w-6 text-gray-500" />
+                          <XCircle className="h-6 w-6 text-white/60" />
                         )}
                       </div>
                     </div>

@@ -74,7 +74,7 @@ export default function RoleSwitcher() {
     return {
       label: roleConfig.label || currentRole,
       icon: roleConfig.icon || User,
-      color: roleConfig.color || "bg-gray-500",
+      color: roleConfig.color || "bg-white/10",
     };
   };
 
@@ -129,7 +129,7 @@ export default function RoleSwitcher() {
                   onClick={() => !isActive && setSelectedRole(role)}
                 >
                   <div
-                    className={`w-8 h-8 rounded ${roleConfig.color || "bg-gray-500"} flex items-center justify-center`}
+                    className={`w-8 h-8 rounded ${roleConfig.color || "bg-white/10"} flex items-center justify-center`}
                   >
                     <Icon className="w-4 h-4 text-white" />
                   </div>

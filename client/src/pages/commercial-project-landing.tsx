@@ -57,7 +57,7 @@ export default function CommercialProjectLandingPage() {
         <h1 className="text-3xl md:text-4xl font-semibold mt-3 leading-tight">
           {data.project.campaignHeadline || data.project.title}
         </h1>
-        <p className="text-sm text-slate-300 mt-3 max-w-3xl">
+        <p className="text-sm text-white/70 mt-3 max-w-3xl">
           {data.project.campaignBody || data.project.summary}
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -73,21 +73,21 @@ export default function CommercialProjectLandingPage() {
         </div>
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
           <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-            <div className="text-slate-400 text-xs">County / State</div>
+            <div className="text-white/60 text-xs">County / State</div>
             <div>
               {data.project.countyFips} / {data.project.stateCode}
             </div>
           </div>
           <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-            <div className="text-slate-400 text-xs">Budget Band</div>
+            <div className="text-white/60 text-xs">Budget Band</div>
             <div>{budget}</div>
           </div>
           <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-            <div className="text-slate-400 text-xs">Bid Count</div>
+            <div className="text-white/60 text-xs">Bid Count</div>
             <div>{data.bidsCount}</div>
           </div>
           <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-            <div className="text-slate-400 text-xs">Bid Due</div>
+            <div className="text-white/60 text-xs">Bid Due</div>
             <div className="inline-flex items-center gap-1">
               <CalendarClock className="h-3.5 w-3.5 text-cyan-200" />
               {data.project.bidDueAt ? new Date(data.project.bidDueAt).toLocaleString() : "TBD"}
@@ -116,26 +116,26 @@ export default function CommercialProjectLandingPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <Card className="border-white/10 bg-black/30 backdrop-blur">
           <CardHeader>
             <CardTitle>Scope of Work</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-slate-200">{data.project.scopeOfWork}</p>
+            <p className="whitespace-pre-wrap text-white/70">{data.project.scopeOfWork}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <Card className="border-white/10 bg-black/30 backdrop-blur">
           <CardHeader>
             <CardTitle>Requirements and Compliance</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-slate-200">{data.project.requirements}</p>
+            <p className="whitespace-pre-wrap text-white/70">{data.project.requirements}</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+      <Card className="border-white/10 bg-black/30 backdrop-blur">
         <CardHeader>
           <CardTitle>Submission Process</CardTitle>
         </CardHeader>
@@ -154,7 +154,7 @@ export default function CommercialProjectLandingPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+      <Card className="border-white/10 bg-black/30 backdrop-blur">
         <CardHeader>
           <CardTitle>Procurement Positioning</CardTitle>
         </CardHeader>
@@ -186,7 +186,7 @@ export default function CommercialProjectLandingPage() {
       </Card>
 
       {!!data.documents.length && (
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <Card className="border-white/10 bg-black/30 backdrop-blur">
           <CardHeader>
             <CardTitle>Procurement Documents</CardTitle>
           </CardHeader>
@@ -198,10 +198,10 @@ export default function CommercialProjectLandingPage() {
                   href={doc.fileUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded border border-slate-700 p-3 hover:border-cyan-400 transition"
+                  className="rounded border border-white/10 p-3 hover:border-cyan-400 transition"
                 >
                   <div className="font-medium">{doc.fileName}</div>
-                  <div className="text-xs text-slate-400 mt-1">{doc.mimeType || "document"}</div>
+                  <div className="text-xs text-white/60 mt-1">{doc.mimeType || "document"}</div>
                 </a>
               ))}
             </div>

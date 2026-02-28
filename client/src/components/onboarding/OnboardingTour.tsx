@@ -234,7 +234,7 @@ export function OnboardingTour({
       <Card
         ref={tooltipRef}
         className={cn(
-          "fixed z-[10000] w-80 bg-white border-orange-200 shadow-2xl",
+          "fixed z-[10000] w-80 bg-white border-ts-orange/30 shadow-2xl",
           className
         )}
         style={{
@@ -246,8 +246,8 @@ export function OnboardingTour({
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-orange-500" />
-              <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+              <Lightbulb className="h-5 w-5 text-ts-orange" />
+              <Badge variant="secondary" className="bg-ts-orange/10 text-ts-orange">
                 Step {currentStep + 1} of {availableSteps.length}
               </Badge>
             </div>
@@ -255,16 +255,16 @@ export function OnboardingTour({
               variant="ghost"
               size="sm"
               onClick={stopTour}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
+              className="h-6 w-6 p-0 hover:bg-white/5"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Progress bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          <div className="w-full bg-white/10 rounded-full h-2 mb-4">
             <div 
-              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+              className="bg-ts-orange h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -272,8 +272,8 @@ export function OnboardingTour({
           {/* Content */}
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">{step.title}</h3>
-              <p className="text-sm text-gray-600">{step.description}</p>
+              <h3 className="font-semibold text-white mb-2">{step.title}</h3>
+              <p className="text-sm text-white/60">{step.description}</p>
             </div>
 
             {/* Navigation */}
@@ -282,7 +282,7 @@ export function OnboardingTour({
                 variant="outline"
                 size="sm"
                 onClick={skipTour}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-white/60 hover:text-white/70"
               >
                 Skip Tour
               </Button>
@@ -302,7 +302,7 @@ export function OnboardingTour({
                 <Button
                   size="sm"
                   onClick={nextStep}
-                  className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600"
+                  className="flex items-center gap-1 bg-ts-orange hover:bg-ts-orange-dark"
                 >
                   {currentStep === availableSteps.length - 1 ? (
                     <>

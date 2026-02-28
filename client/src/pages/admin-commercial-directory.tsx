@@ -120,8 +120,8 @@ function projectStatusPill(status: string): string {
   if (status === "open") return "text-emerald-200 bg-emerald-500/15 border-emerald-500/40";
   if (status === "awarded") return "text-blue-200 bg-blue-500/15 border-blue-500/40";
   if (status === "closed") return "text-amber-200 bg-amber-500/15 border-amber-500/40";
-  if (status === "archived") return "text-slate-300 bg-slate-500/10 border-slate-500/30";
-  return "text-slate-200 bg-slate-500/10 border-slate-500/30";
+  if (status === "archived") return "text-white/70 bg-white/10 border-white/15";
+  return "text-white/70 bg-white/10 border-white/15";
 }
 
 export default function AdminCommercialDirectoryPage() {
@@ -456,7 +456,7 @@ export default function AdminCommercialDirectoryPage() {
           Commercial Procurement Command
         </p>
         <h1 className="text-3xl font-semibold mt-2">Admin Commercial Job Request and Bid Portal</h1>
-        <p className="text-sm text-slate-300 mt-2 max-w-3xl">
+        <p className="text-sm text-white/70 mt-2 max-w-3xl">
           Publish official commercial project packages, control campaign exposure, issue addenda,
           and award verified contractor bids.
         </p>
@@ -469,28 +469,28 @@ export default function AdminCommercialDirectoryPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Projects</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Projects</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <BriefcaseBusiness className="h-4 w-4 text-emerald-200" />
             {dashboardStats.totalProjects}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Open</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Open</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-cyan-200" />
             {dashboardStats.openProjects}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Bids</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Bids</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <Gavel className="h-4 w-4 text-blue-200" />
             {dashboardStats.totalBids}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Documents</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Documents</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <FileStack className="h-4 w-4 text-amber-200" />
             {dashboardStats.totalDocs}
@@ -498,7 +498,7 @@ export default function AdminCommercialDirectoryPage() {
         </div>
       </div>
 
-      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+      <Card className="border-white/10 bg-black/30 backdrop-blur">
         <CardHeader>
           <CardTitle>Verification Review Queue</CardTitle>
           <CardDescription>
@@ -507,9 +507,9 @@ export default function AdminCommercialDirectoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="text-[11px] text-slate-400">
-            Shortcuts: <kbd className="px-1 rounded border border-slate-600">A</kbd> approve,{" "}
-            <kbd className="px-1 rounded border border-slate-600">R</kbd> reject
+          <div className="text-[11px] text-white/60">
+            Shortcuts: <kbd className="px-1 rounded border border-white/15">A</kbd> approve,{" "}
+            <kbd className="px-1 rounded border border-white/15">R</kbd> reject
           </div>
           {pendingVerificationLoading && <p>Loading pending verification docs...</p>}
           {!pendingVerificationLoading && !pendingVerificationDocs?.length && (
@@ -518,10 +518,10 @@ export default function AdminCommercialDirectoryPage() {
           {(pendingVerificationDocs || []).map((row) => (
             <div
               key={row.document.id}
-              className={`rounded border bg-slate-900/60 p-3 ${
+              className={`rounded border bg-tsCard/95 p-3 ${
                 selectedVerificationDocId === row.document.id
                   ? "border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]"
-                  : "border-slate-700"
+                  : "border-white/10"
               }`}
               onClick={() => setSelectedVerificationDocId(row.document.id)}
             >
@@ -530,7 +530,7 @@ export default function AdminCommercialDirectoryPage() {
                   <div className="font-medium">
                     {row.contractor?.companyName || "Unknown contractor"} - {row.document.type}
                   </div>
-                  <div className="text-xs text-slate-400">{row.document.fileName}</div>
+                  <div className="text-xs text-white/60">{row.document.fileName}</div>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -576,7 +576,7 @@ export default function AdminCommercialDirectoryPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <Card className="border-white/10 bg-black/30 backdrop-blur">
           <CardHeader>
             <CardTitle>Project Registry</CardTitle>
             <CardDescription>
@@ -603,7 +603,7 @@ export default function AdminCommercialDirectoryPage() {
                   className={`w-full text-left rounded-xl border transition ${
                     selectedProjectId === row.project.id
                       ? "border-emerald-500 bg-emerald-500/10"
-                      : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
+                      : "border-white/10 bg-tsCard/95 hover:border-white/15"
                   } ${compactMode ? "p-2" : "p-3"}`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -621,12 +621,12 @@ export default function AdminCommercialDirectoryPage() {
                     </span>
                   </div>
                   <div
-                    className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-slate-400 mt-1`}
+                    className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-white/60 mt-1`}
                   >
                     {row.project.stateCode}-{row.project.countyFips}
                   </div>
                   <div
-                    className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-slate-400 mt-2`}
+                    className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-white/60 mt-2`}
                   >
                     bids: {row.bidsCount} | docs: {row.docsCount}
                   </div>
@@ -637,7 +637,7 @@ export default function AdminCommercialDirectoryPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+          <Card className="border-white/10 bg-black/30 backdrop-blur">
             <CardHeader>
               <CardTitle>Selected Project Control</CardTitle>
               <CardDescription>
@@ -652,7 +652,7 @@ export default function AdminCommercialDirectoryPage() {
 
               {details?.project && (
                 <>
-                  <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+                  <div className="rounded-lg border border-white/10 bg-tsCard/95 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h2 className="text-xl font-semibold">{details.project.title}</h2>
                       <a
@@ -662,41 +662,41 @@ export default function AdminCommercialDirectoryPage() {
                         Open landing page
                       </a>
                     </div>
-                    <p className="text-sm text-slate-300 mt-2">{details.project.summary}</p>
+                    <p className="text-sm text-white/70 mt-2">{details.project.summary}</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm">
                       <div>
-                        <div className="text-xs text-slate-400">County / State</div>
+                        <div className="text-xs text-white/60">County / State</div>
                         <div>
                           {details.project.countyFips} / {details.project.stateCode}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-400">Budget</div>
+                        <div className="text-xs text-white/60">Budget</div>
                         <div>
                           {renderBudget(details.project.budgetMin, details.project.budgetMax)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-400">Current Bid Count</div>
+                        <div className="text-xs text-white/60">Current Bid Count</div>
                         <div>{details.bidsCount}</div>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-lg border border-slate-700 p-3 bg-slate-900/60">
-                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                    <div className="rounded-lg border border-white/10 p-3 bg-tsCard/95">
+                      <h3 className="text-sm uppercase tracking-wide text-white/70">
                         Scope of Work
                       </h3>
-                      <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
+                      <p className="text-sm text-white/70 mt-2 whitespace-pre-wrap">
                         {details.project.scopeOfWork}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-slate-700 p-3 bg-slate-900/60">
-                      <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                    <div className="rounded-lg border border-white/10 p-3 bg-tsCard/95">
+                      <h3 className="text-sm uppercase tracking-wide text-white/70">
                         Requirements
                       </h3>
-                      <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
+                      <p className="text-sm text-white/70 mt-2 whitespace-pre-wrap">
                         {details.project.requirements}
                       </p>
                     </div>
@@ -708,7 +708,7 @@ export default function AdminCommercialDirectoryPage() {
                       <select
                         value={statusControl}
                         onChange={(e) => setStatusControl(e.target.value)}
-                        className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                        className="mt-1 w-full rounded-md border border-white/10 bg-tsCard px-3 py-2 text-sm"
                       >
                         <option value="draft">draft</option>
                         <option value="open">open</option>
@@ -737,15 +737,15 @@ export default function AdminCommercialDirectoryPage() {
                       {updateProjectMutation.isPending ? "Saving..." : "Save Project Controls"}
                     </Button>
                     {selectedRow && (
-                      <span className="text-xs text-slate-400 self-center">
+                      <span className="text-xs text-white/60 self-center">
                         Registry snapshot: {selectedRow.bidsCount} bids / {selectedRow.docsCount}{" "}
                         docs
                       </span>
                     )}
                   </div>
 
-                  <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3 space-y-3">
-                    <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                  <div className="rounded-lg border border-white/10 bg-tsCard/95 p-3 space-y-3">
+                    <h3 className="text-sm uppercase tracking-wide text-white/70">
                       Addenda and Supplemental Documents
                     </h3>
                     <Input
@@ -754,7 +754,7 @@ export default function AdminCommercialDirectoryPage() {
                       onChange={(e) => setAddendaFiles(Array.from(e.target.files || []))}
                     />
                     {!!addendaFiles.length && (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-white/60">
                         {addendaFiles.length} file(s) staged for upload
                       </p>
                     )}
@@ -787,7 +787,7 @@ export default function AdminCommercialDirectoryPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+          <Card className="border-white/10 bg-black/30 backdrop-blur">
             <CardHeader>
               <CardTitle>Create New Solicitation Package</CardTitle>
               <CardDescription>
@@ -933,7 +933,7 @@ export default function AdminCommercialDirectoryPage() {
           </Card>
 
           {selectedProjectId && (
-            <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+            <Card className="border-white/10 bg-black/30 backdrop-blur">
               <CardHeader>
                 <CardTitle>Bid Adjudication Board</CardTitle>
                 <CardDescription>
@@ -946,7 +946,7 @@ export default function AdminCommercialDirectoryPage() {
                   <select
                     value={bidStatusFilter}
                     onChange={(e) => setBidStatusFilter(e.target.value)}
-                    className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
+                    className="rounded-md border border-white/10 bg-tsCard px-2 py-1 text-sm"
                   >
                     <option value="all">all</option>
                     <option value="submitted">submitted</option>
@@ -960,7 +960,7 @@ export default function AdminCommercialDirectoryPage() {
                 {filteredProjectBids.map((row) => (
                   <div
                     key={row.bid.id}
-                    className={`border border-slate-700 rounded space-y-2 bg-slate-900/60 ${
+                    className={`border border-white/10 rounded space-y-2 bg-tsCard/95 ${
                       compactMode ? "p-2" : "p-3"
                     }`}
                   >
@@ -982,7 +982,7 @@ export default function AdminCommercialDirectoryPage() {
                               ? "text-cyan-200 bg-cyan-500/15 border-cyan-500/40"
                               : row.bid.status === "rejected"
                                 ? "text-rose-200 bg-rose-500/15 border-rose-500/40"
-                                : "text-slate-300 bg-slate-500/10 border-slate-500/30"
+                                : "text-white/70 bg-white/10 border-white/15"
                         }`}
                       >
                         {row.bid.status}

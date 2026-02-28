@@ -120,7 +120,7 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
                     {observabilityAlerts?.total ?? 0}
                   </p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-orange-500" />
+                <AlertTriangle className="h-8 w-8 text-ts-orange" />
               </div>
             </CardContent>
           </Card>

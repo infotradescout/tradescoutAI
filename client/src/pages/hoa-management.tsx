@@ -529,8 +529,8 @@ export default function HOAManagement() {
     return (
       <HOAManagementShell locationOverride={location}>
         <div className="text-center py-10">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-2 text-slate-400">Loading HOA information...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30 mx-auto"></div>
+          <p className="mt-2 text-white/60">Loading HOA information...</p>
         </div>
       </HOAManagementShell>
     );
@@ -541,18 +541,18 @@ export default function HOAManagement() {
     return (
       <HOAManagementShell locationOverride={location}>
         <Card
-          className="bg-slate-800/50 border-slate-700 text-center p-12"
+          className="bg-white/5 border-white/10 text-center p-12"
           data-testid="hoa-not-member"
         >
-          <Building className="w-16 h-16 text-orange-400 mx-auto mb-4" />
+          <Building className="w-16 h-16 text-ts-orange mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
-          <p className="text-slate-400 mb-6">
+          <p className="text-white/60 mb-6">
             You're not currently linked to an HOA in TradeScout.
           </p>
           <Button
             data-testid="button-back-home"
             onClick={() => navigate("/")}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-ts-orange hover:bg-ts-orange-dark"
           >
             Return Home
           </Button>
@@ -573,15 +573,15 @@ export default function HOAManagement() {
         </div>
         {hoa && (
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-semibold text-orange-400">{hoa.name}</h2>
-            <p className="text-slate-300">{hoa.address}</p>
+            <h2 className="text-2xl font-semibold text-ts-orange">{hoa.name}</h2>
+            <p className="text-white/70">{hoa.address}</p>
             {memberData && (
               <div className="flex items-center justify-center gap-2 mt-2">
                 <Badge className="bg-teal-600 text-white" data-testid="badge-member-role">
                   {getRoleDisplayName(memberData.role)}
                 </Badge>
                 {memberData.unitNumber && (
-                  <Badge variant="outline" className="border-slate-600 text-slate-300">
+                  <Badge variant="outline" className="border-white/15 text-white/70">
                     Unit {memberData.unitNumber}
                   </Badge>
                 )}
@@ -615,18 +615,18 @@ export default function HOAManagement() {
           </div>
 
           {showTransferForm && (
-            <Card className="bg-slate-800/60 border-slate-700 max-w-3xl mx-auto">
+            <Card className="bg-white/5 border-white/10 max-w-3xl mx-auto">
               <CardHeader>
                 <CardTitle className="text-white">Start Transfer Vote</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="transfer-role" className="text-slate-200">
+                  <Label htmlFor="transfer-role" className="text-white/70">
                     Target role
                   </Label>
                   <select
                     id="transfer-role"
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                    className="w-full rounded-lg border border-white/10 bg-tsCard px-3 py-2 text-sm text-white"
                     value={targetRole}
                     onChange={(e) =>
                       setTargetRole(
@@ -639,7 +639,7 @@ export default function HOAManagement() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="nominee-email" className="text-slate-200">
+                  <Label htmlFor="nominee-email" className="text-white/70">
                     Nominee email
                   </Label>
                   <Input
@@ -650,7 +650,7 @@ export default function HOAManagement() {
                   />
                 </div>
                 <div className="space-y-1 md:col-span-2">
-                  <Label htmlFor="transfer-reason" className="text-slate-200">
+                  <Label htmlFor="transfer-reason" className="text-white/70">
                     Reason (minimum 5 characters)
                   </Label>
                   <Input
@@ -661,7 +661,7 @@ export default function HOAManagement() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="duration-hours" className="text-slate-200">
+                  <Label htmlFor="duration-hours" className="text-white/70">
                     Vote duration (hours)
                   </Label>
                   <Input
@@ -687,13 +687,13 @@ export default function HOAManagement() {
           )}
 
           {showLeaveForm && (
-            <Card className="bg-slate-800/60 border-slate-700 max-w-2xl mx-auto">
+            <Card className="bg-white/5 border-white/10 max-w-2xl mx-auto">
               <CardHeader>
                 <CardTitle className="text-white">Leave HOA Membership</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1">
-                  <Label htmlFor="leave-reason" className="text-slate-200">
+                  <Label htmlFor="leave-reason" className="text-white/70">
                     Reason (minimum 5 characters)
                   </Label>
                   <Input
@@ -719,10 +719,10 @@ export default function HOAManagement() {
         </div>
       )}
 
-      <Card className="bg-slate-800/60 border-slate-700">
-        <CardContent className="p-4 text-sm text-slate-300">
-          <p className="font-medium text-slate-100">Work with Scout from this HOA surface</p>
-          <p className="mt-1 text-xs text-slate-400">
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="p-4 text-sm text-white/70">
+          <p className="font-medium text-white">Work with Scout from this HOA surface</p>
+          <p className="mt-1 text-xs text-white/60">
             Try asking Scout to "Post HOA notice", "Review dues and payments", or "Find vendors for
             our common areas" and youll land back here with the right tab or tools ready.
           </p>
@@ -732,25 +732,25 @@ export default function HOAManagement() {
       {/* Quick Stats */}
       {hoa && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Building className="w-6 h-6 text-blue-400" />
               </div>
               <div className="text-2xl font-bold text-white">{hoa.totalUnits}</div>
-              <p className="text-slate-400">Total Units</p>
+              <p className="text-white/60">Total Units</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                 <DollarSign className="w-6 h-6 text-green-400" />
               </div>
               <div className="text-2xl font-bold text-white">${hoa.monthlyFees}</div>
-              <p className="text-slate-400">Monthly Fees</p>
+              <p className="text-white/60">Monthly Fees</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
               <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
                 <TrendingUp className="w-6 h-6 text-purple-400" />
@@ -758,18 +758,18 @@ export default function HOAManagement() {
               <div className="text-2xl font-bold text-white">
                 ${parseInt(hoa.reserves).toLocaleString()}
               </div>
-              <p className="text-slate-400">Reserves</p>
+              <p className="text-white/60">Reserves</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Calendar className="w-6 h-6 text-orange-400" />
+              <div className="w-12 h-12 bg-ts-orange/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Calendar className="w-6 h-6 text-ts-orange" />
               </div>
               <div className="text-sm font-bold text-white">
                 {new Date(hoa.nextMeeting).toLocaleDateString()}
               </div>
-              <p className="text-slate-400">Next Meeting</p>
+              <p className="text-white/60">Next Meeting</p>
             </CardContent>
           </Card>
         </div>
@@ -785,30 +785,30 @@ export default function HOAManagement() {
                 : memberData?.canViewFinances || hoa?.governance?.votingEnabled !== false
                   ? "grid-cols-4"
                   : "grid-cols-3"
-          } bg-slate-800/50`}
+          } bg-white/5`}
         >
-          <TabsTrigger value="overview" className="data-[state=active]:bg-orange-500">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-ts-orange">
             Overview
           </TabsTrigger>
           {!simpleView && memberData?.canViewFinances && (
             <TabsTrigger
               value="finances"
-              className="data-[state=active]:bg-orange-500"
+              className="data-[state=active]:bg-ts-orange"
               data-testid="tab-finances"
             >
               Finances
             </TabsTrigger>
           )}
           {hoa?.governance?.votingEnabled !== false && (
-            <TabsTrigger value="voting" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="voting" className="data-[state=active]:bg-ts-orange">
               Voting
             </TabsTrigger>
           )}
-          <TabsTrigger value="vendors" className="data-[state=active]:bg-orange-500">
+          <TabsTrigger value="vendors" className="data-[state=active]:bg-ts-orange">
             Vendors
           </TabsTrigger>
           {!simpleView && (
-            <TabsTrigger value="documents" className="data-[state=active]:bg-orange-500">
+            <TabsTrigger value="documents" className="data-[state=active]:bg-ts-orange">
               Documents
             </TabsTrigger>
           )}
@@ -817,7 +817,7 @@ export default function HOAManagement() {
         <TabsContent value="overview" className="space-y-6">
           {hoa && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
                     <Users className="w-5 h-5 text-blue-400" />
@@ -828,13 +828,13 @@ export default function HOAManagement() {
                   {(hoa.boardMembers || []).map((member: any, index: number) => (
                     <div
                       key={index}
-                      className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg"
+                      className="flex justify-between items-center p-3 bg-white/10 rounded-lg"
                     >
                       <div>
                         <div className="font-semibold text-white">{member.name}</div>
-                        <div className="text-sm text-slate-400">{member.position}</div>
+                        <div className="text-sm text-white/60">{member.position}</div>
                       </div>
-                      <Badge variant="outline" className="border-slate-600 text-slate-300">
+                      <Badge variant="outline" className="border-white/15 text-white/70">
                         {member.term}
                       </Badge>
                     </div>
@@ -842,7 +842,7 @@ export default function HOAManagement() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
                     <Star className="w-5 h-5 text-yellow-400" />
@@ -855,7 +855,7 @@ export default function HOAManagement() {
                       <Badge
                         key={index}
                         variant="secondary"
-                        className="bg-orange-500/20 text-orange-400 justify-center"
+                        className="bg-ts-orange/20 text-ts-orange justify-center"
                       >
                         {amenity}
                       </Badge>
@@ -871,7 +871,7 @@ export default function HOAManagement() {
           <TabsContent value="finances" className="space-y-6">
             {finances && !financesLoading && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/5 border-white/10">
                   <CardHeader>
                     <CardTitle className="text-white">Financial Summary</CardTitle>
                     {["treasurer", "president", "vice_president"].includes(memberData.role) && (
@@ -880,26 +880,26 @@ export default function HOAManagement() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Revenue</span>
+                      <span className="text-white/60">Total Revenue</span>
                       <span className="text-green-400 font-semibold">
                         ${parseInt(finances.totalRevenue).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Expenses</span>
+                      <span className="text-white/60">Total Expenses</span>
                       <span className="text-red-400 font-semibold">
                         ${parseInt(finances.totalExpenses).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Reserves</span>
+                      <span className="text-white/60">Reserves</span>
                       <span className="text-blue-400 font-semibold">
                         ${parseInt(finances.reserves).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Outstanding Fees</span>
-                      <span className="text-orange-400 font-semibold">
+                      <span className="text-white/60">Outstanding Fees</span>
+                      <span className="text-ts-orange font-semibold">
                         ${parseInt(finances.outstandingFees).toLocaleString()}
                       </span>
                     </div>
@@ -919,7 +919,7 @@ export default function HOAManagement() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-white/5 border-white/10">
                   <CardHeader>
                     <CardTitle className="text-white">Expense Breakdown</CardTitle>
                   </CardHeader>
@@ -927,7 +927,7 @@ export default function HOAManagement() {
                     {(finances.expenseCategories || []).map((category: any, index: number) => (
                       <div key={index} className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-300">{category.category}</span>
+                          <span className="text-white/70">{category.category}</span>
                           <span className="text-white">{category.percentage}%</span>
                         </div>
                         <Progress value={category.percentage} className="h-2" />
@@ -966,7 +966,7 @@ export default function HOAManagement() {
               {(votes || []).map((vote: Vote) => (
                 <Card
                   key={vote.id}
-                  className="bg-slate-800/50 border-slate-700"
+                  className="bg-white/5 border-white/10"
                   data-testid={`vote-${vote.id}`}
                 >
                   <CardHeader>
@@ -981,25 +981,25 @@ export default function HOAManagement() {
                         </Badge>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-orange-400">
+                        <div className="text-2xl font-bold text-ts-orange">
                           ${parseInt(vote.estimatedCost).toLocaleString()}
                         </div>
-                        <p className="text-sm text-slate-400">Estimated Cost</p>
+                        <p className="text-sm text-white/60">Estimated Cost</p>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <p className="text-slate-300 leading-relaxed">{vote.description}</p>
+                    <p className="text-white/70 leading-relaxed">{vote.description}</p>
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">
+                        <span className="text-white/60">
                           Participation ({vote.currentVotes} / {vote.requiredQuorum} required)
                         </span>
                         <span className="text-white">{Math.round(getVoteProgress(vote))}%</span>
                       </div>
                       <Progress value={getVoteProgress(vote)} className="h-3" />
-                      <p className="text-sm text-slate-400">{getTimeRemaining(vote.endDate)}</p>
+                      <p className="text-sm text-white/60">{getTimeRemaining(vote.endDate)}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -1053,7 +1053,7 @@ export default function HOAManagement() {
             {(vendors || []).map((vendor: Vendor) => (
               <Card
                 key={vendor.id}
-                className="bg-slate-800/50 border-slate-700"
+                className="bg-white/5 border-white/10"
                 data-testid={`vendor-${vendor.id}`}
               >
                 <CardHeader>
@@ -1073,12 +1073,12 @@ export default function HOAManagement() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-300">{vendor.phone}</span>
+                      <Phone className="w-4 h-4 text-white/60" />
+                      <span className="text-white/70">{vendor.phone}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-300">{vendor.email}</span>
+                      <Mail className="w-4 h-4 text-white/60" />
+                      <span className="text-white/70">{vendor.email}</span>
                     </div>
                   </div>
 
@@ -1096,7 +1096,7 @@ export default function HOAManagement() {
                         <Badge
                           key={index}
                           variant="outline"
-                          className="text-xs border-slate-600 text-slate-400"
+                          className="text-xs border-white/15 text-white/60"
                         >
                           {service}
                         </Badge>
@@ -1107,11 +1107,11 @@ export default function HOAManagement() {
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <label className="mb-1 block text-[11px] text-slate-400">
+                          <label className="mb-1 block text-[11px] text-white/60">
                             Service type
                           </label>
                           <select
-                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+                            className="w-full rounded-lg border border-white/10 bg-tsCard px-2 py-1 text-xs text-white"
                             value={serviceTypeByVendor[vendor.id] || ""}
                             onChange={(e) =>
                               setServiceTypeByVendor((prev) => ({
@@ -1131,9 +1131,9 @@ export default function HOAManagement() {
                           </select>
                         </div>
                         <div className="w-32">
-                          <label className="mb-1 block text-[11px] text-slate-400">Urgency</label>
+                          <label className="mb-1 block text-[11px] text-white/60">Urgency</label>
                           <select
-                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100"
+                            className="w-full rounded-lg border border-white/10 bg-tsCard px-2 py-1 text-xs text-white"
                             value={urgencyByVendor[vendor.id] || "normal"}
                             onChange={(e) =>
                               setUrgencyByVendor((prev) => ({
@@ -1167,15 +1167,15 @@ export default function HOAManagement() {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">HOA Documents</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-12">
-                <Calendar className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                <Calendar className="w-16 h-16 text-white/60 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">Document Library</h3>
-                <p className="text-slate-400">
+                <p className="text-white/60">
                   Access to CC&Rs, budgets, meeting minutes, and other important documents.
                 </p>
               </div>

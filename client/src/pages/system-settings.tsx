@@ -241,7 +241,7 @@ const SystemSettings = memo(function SystemSettings() {
                       onChange={(e) =>
                         setGeneralSettings((prev) => ({ ...prev, siteName: e.target.value }))
                       }
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
 
@@ -255,16 +255,16 @@ const SystemSettings = memo(function SystemSettings() {
                       onChange={(e) =>
                         setGeneralSettings((prev) => ({ ...prev, siteDescription: e.target.value }))
                       }
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Maintenance Mode</Label>
-                      <p className="text-gray-400 text-sm">Temporarily disable public access</p>
+                      <p className="text-white/60 text-sm">Temporarily disable public access</p>
                     </div>
                     <Switch
                       checked={generalSettings.maintenanceMode}
@@ -274,10 +274,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">User Registration</Label>
-                      <p className="text-gray-400 text-sm">Allow new user signups</p>
+                      <p className="text-white/60 text-sm">Allow new user signups</p>
                     </div>
                     <Switch
                       checked={generalSettings.registrationEnabled}
@@ -287,10 +287,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Email Verification Required</Label>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         Require email verification for new accounts
                       </p>
                     </div>
@@ -305,10 +305,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Address Verification Required</Label>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         Require address verification within 14 days
                       </p>
                     </div>
@@ -325,7 +325,7 @@ const SystemSettings = memo(function SystemSettings() {
                 </div>
 
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                   onClick={() => handleSaveSettings("General")}
                   disabled={!generalSettingsLoaded || generalSettingsSaving}
                 >
@@ -337,7 +337,7 @@ const SystemSettings = memo(function SystemSettings() {
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Shield className="h-5 w-5" />
@@ -360,7 +360,7 @@ const SystemSettings = memo(function SystemSettings() {
                           passwordMinLength: parseInt(e.target.value),
                         }))
                       }
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
 
@@ -378,7 +378,7 @@ const SystemSettings = memo(function SystemSettings() {
                           sessionTimeout: parseInt(e.target.value),
                         }))
                       }
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
 
@@ -396,16 +396,16 @@ const SystemSettings = memo(function SystemSettings() {
                           maxLoginAttempts: parseInt(e.target.value),
                         }))
                       }
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Two-Factor Authentication</Label>
-                      <p className="text-gray-400 text-sm">Require 2FA for admin accounts</p>
+                      <p className="text-white/60 text-sm">Require 2FA for admin accounts</p>
                     </div>
                     <Switch
                       checked={securitySettings.requireTwoFactor}
@@ -415,10 +415,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Rate Limiting</Label>
-                      <p className="text-gray-400 text-sm">Enable API rate limiting</p>
+                      <p className="text-white/60 text-sm">Enable API rate limiting</p>
                     </div>
                     <Switch
                       checked={securitySettings.rateLimitEnabled}
@@ -428,10 +428,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">IP Whitelist</Label>
-                      <p className="text-gray-400 text-sm">Restrict admin access to specific IPs</p>
+                      <p className="text-white/60 text-sm">Restrict admin access to specific IPs</p>
                     </div>
                     <Switch
                       checked={securitySettings.ipWhitelistEnabled}
@@ -443,7 +443,7 @@ const SystemSettings = memo(function SystemSettings() {
                 </div>
 
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                   onClick={() => handleSaveSettings("Security")}
                 >
                   <Lock className="h-4 w-4 mr-2" />
@@ -454,7 +454,7 @@ const SystemSettings = memo(function SystemSettings() {
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Bell className="h-5 w-5" />
@@ -463,10 +463,10 @@ const SystemSettings = memo(function SystemSettings() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Email Notifications</Label>
-                      <p className="text-gray-400 text-sm">Send email notifications to users</p>
+                      <p className="text-white/60 text-sm">Send email notifications to users</p>
                     </div>
                     <Switch
                       checked={notificationSettings.emailNotifications}
@@ -479,10 +479,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">SMS Notifications</Label>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         Send SMS notifications for urgent updates
                       </p>
                     </div>
@@ -494,10 +494,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Push Notifications</Label>
-                      <p className="text-gray-400 text-sm">Send browser push notifications</p>
+                      <p className="text-white/60 text-sm">Send browser push notifications</p>
                     </div>
                     <Switch
                       checked={notificationSettings.pushNotifications}
@@ -507,10 +507,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">Admin Alerts</Label>
-                      <p className="text-gray-400 text-sm">Send alerts to administrators</p>
+                      <p className="text-white/60 text-sm">Send alerts to administrators</p>
                     </div>
                     <Switch
                       checked={notificationSettings.adminAlerts}
@@ -520,10 +520,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">System Alerts</Label>
-                      <p className="text-gray-400 text-sm">System status and error notifications</p>
+                      <p className="text-white/60 text-sm">System status and error notifications</p>
                     </div>
                     <Switch
                       checked={notificationSettings.systemAlerts}
@@ -533,10 +533,10 @@ const SystemSettings = memo(function SystemSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-navy-700 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                     <div>
                       <Label className="text-white">User Reports</Label>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         Notifications for user reports and issues
                       </p>
                     </div>
@@ -550,7 +550,7 @@ const SystemSettings = memo(function SystemSettings() {
                 </div>
 
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                   onClick={() => handleSaveSettings("Notification")}
                 >
                   <Bell className="h-4 w-4 mr-2" />
@@ -561,7 +561,7 @@ const SystemSettings = memo(function SystemSettings() {
           </TabsContent>
 
           <TabsContent value="database" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Database className="h-5 w-5" />
@@ -570,27 +570,27 @@ const SystemSettings = memo(function SystemSettings() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="bg-navy-700 border-navy-600">
+                  <Card className="bg-tsCard border-white/10">
                     <CardContent className="p-6 text-center">
                       <Database className="h-8 w-8 text-blue-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-white mb-1">847,293</div>
-                      <div className="text-gray-400 text-sm">Total Records</div>
+                      <div className="text-white/60 text-sm">Total Records</div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-navy-700 border-navy-600">
+                  <Card className="bg-tsCard border-white/10">
                     <CardContent className="p-6 text-center">
                       <Users2 className="h-8 w-8 text-green-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-white mb-1">12,847</div>
-                      <div className="text-gray-400 text-sm">Active Users</div>
+                      <div className="text-white/60 text-sm">Active Users</div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-navy-700 border-navy-600">
+                  <Card className="bg-tsCard border-white/10">
                     <CardContent className="p-6 text-center">
                       <Server className="h-8 w-8 text-purple-400 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-white mb-1">2.3 GB</div>
-                      <div className="text-gray-400 text-sm">Database Size</div>
+                      <div className="text-white/60 text-sm">Database Size</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -603,7 +603,7 @@ const SystemSettings = memo(function SystemSettings() {
 
                   <Button
                     variant="outline"
-                    className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                    className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                   >
                     <Server className="h-4 w-4 mr-2" />
                     Optimize Database
@@ -611,7 +611,7 @@ const SystemSettings = memo(function SystemSettings() {
 
                   <Button
                     variant="outline"
-                    className="w-full border-gray-600 text-gray-400 hover:bg-gray-600/20"
+                    className="w-full border-white/15 text-white/60 hover:bg-white/10"
                   >
                     <Database className="h-4 w-4 mr-2" />
                     View Database Logs
@@ -622,7 +622,7 @@ const SystemSettings = memo(function SystemSettings() {
           </TabsContent>
 
           <TabsContent value="integrations" className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Server className="h-5 w-5" />
@@ -631,13 +631,13 @@ const SystemSettings = memo(function SystemSettings() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <div className="p-4 bg-navy-700 rounded-lg">
+                  <div className="p-4 bg-tsCard rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <Label className="text-white">Email Service Provider</Label>
                       <span className="text-green-400">Connected</span>
                     </div>
                     <Select defaultValue="sendgrid">
-                      <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                      <SelectTrigger className="bg-tsCard border-white/10 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -648,13 +648,13 @@ const SystemSettings = memo(function SystemSettings() {
                     </Select>
                   </div>
 
-                  <div className="p-4 bg-navy-700 rounded-lg">
+                  <div className="p-4 bg-tsCard rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <Label className="text-white">SMS Provider</Label>
                       <span className="text-yellow-400">Disconnected</span>
                     </div>
                     <Select defaultValue="twilio">
-                      <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                      <SelectTrigger className="bg-tsCard border-white/10 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -665,13 +665,13 @@ const SystemSettings = memo(function SystemSettings() {
                     </Select>
                   </div>
 
-                  <div className="p-4 bg-navy-700 rounded-lg">
+                  <div className="p-4 bg-tsCard rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <Label className="text-white">Payment Processor</Label>
                       <span className="text-green-400">Connected</span>
                     </div>
                     <Select defaultValue="stripe">
-                      <SelectTrigger className="bg-navy-600 border-navy-500 text-white">
+                      <SelectTrigger className="bg-tsCard border-white/10 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -684,7 +684,7 @@ const SystemSettings = memo(function SystemSettings() {
                 </div>
 
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                   onClick={() => handleSaveSettings("Integration")}
                 >
                   <Server className="h-4 w-4 mr-2" />

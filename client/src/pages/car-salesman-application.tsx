@@ -265,12 +265,12 @@ export default function CarSalesmanApplication() {
       <div className=" flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-ts-orange mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Login Required</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-white/60 mb-4">
               You need to be logged in to apply as a car salesman.
             </p>
-            <Button asChild className="bg-orange-600 hover:bg-orange-700">
+            <Button asChild className="bg-ts-orange-dark hover:bg-ts-orange-dark">
               <Link href="/pre-scout-setup?mode=signin">Log In</Link>
             </Button>
           </CardContent>
@@ -297,7 +297,7 @@ export default function CarSalesmanApplication() {
             <Car className="h-8 w-8 text-red-500" />
             Licensed Car Salesman Network
           </h1>
-          <p className="text-gray-400">
+          <p className="text-white/60">
             Join our verified automotive sales network and sell vehicles with a professional badge
           </p>
         </div>
@@ -314,28 +314,28 @@ export default function CarSalesmanApplication() {
                 <Shield className="h-5 w-5 text-red-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Licensed Professional Badge</h4>
-                  <p className="text-sm text-gray-300">Display your dealership credentials</p>
+                  <p className="text-sm text-white/70">Display your dealership credentials</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Wrench className="h-5 w-5 text-orange-400 mt-1" />
+                <Wrench className="h-5 w-5 text-ts-orange mt-1" />
                 <div>
                   <h4 className="font-medium">Brand Specialization</h4>
-                  <p className="text-sm text-gray-300">Showcase your automotive expertise</p>
+                  <p className="text-sm text-white/70">Showcase your automotive expertise</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <DollarSign className="h-5 w-5 text-emerald-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Higher Conversion Rates</h4>
-                  <p className="text-sm text-gray-300">Licensed status builds trust</p>
+                  <p className="text-sm text-white/70">Licensed status builds trust</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Award className="h-5 w-5 text-purple-400 mt-1" />
                 <div>
                   <h4 className="font-medium">Professional Credibility</h4>
-                  <p className="text-sm text-gray-300">Stand out from private sellers</p>
+                  <p className="text-sm text-white/70">Stand out from private sellers</p>
                 </div>
               </div>
             </div>
@@ -343,7 +343,7 @@ export default function CarSalesmanApplication() {
         </Card>
 
         {/* Application Form */}
-        <Card className="bg-navy-800 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-red-500" />
@@ -467,7 +467,7 @@ export default function CarSalesmanApplication() {
                 {/* Specializations */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Vehicle Specializations</h3>
-                  <p className="text-sm text-gray-400">Select your areas of expertise</p>
+                  <p className="text-sm text-white/60">Select your areas of expertise</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {vehicleSpecializations.map((specialization) => (
@@ -491,7 +491,7 @@ export default function CarSalesmanApplication() {
                 {/* Brand Specialties */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Brand Specialties</h3>
-                  <p className="text-sm text-gray-400">Select brands you specialize in selling</p>
+                  <p className="text-sm text-white/60">Select brands you specialize in selling</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {carBrands.map((brand) => (
@@ -515,7 +515,7 @@ export default function CarSalesmanApplication() {
                 {/* Service Areas */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-red-400">Service Areas</h3>
-                  <p className="text-sm text-gray-400">Define your geographic coverage</p>
+                  <p className="text-sm text-white/60">Define your geographic coverage</p>
 
                   <FormField
                     control={form.control}

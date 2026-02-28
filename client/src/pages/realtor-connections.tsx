@@ -111,11 +111,11 @@ export default function RealtorConnections() {
       case "Partner":
         return "bg-blue-600 hover:bg-blue-700";
       case "New Partner":
-        return "bg-orange-600 hover:bg-orange-700";
+        return "bg-ts-orange-dark hover:bg-ts-orange-dark";
       case "Trusted Partner":
         return "bg-purple-600 hover:bg-purple-700";
       default:
-        return "bg-gray-600 hover:bg-gray-700";
+        return "bg-white/10 hover:bg-white/10";
     }
   };
 

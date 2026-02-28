@@ -168,7 +168,7 @@ export default function AdminVaultContributionsPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-white/70">
             <input
               type="checkbox"
               checked={applyToCountyVault}
@@ -199,17 +199,17 @@ export default function AdminVaultContributionsPage() {
         </CardHeader>
         <CardContent>
           {!normalizedUserId ? (
-            <p className="text-sm text-slate-400">No user selected.</p>
+            <p className="text-sm text-white/60">No user selected.</p>
           ) : isLoading ? (
-            <p className="text-sm text-slate-400">Loading…</p>
+            <p className="text-sm text-white/60">Loading…</p>
           ) : adjustments.length === 0 ? (
-            <p className="text-sm text-slate-400">No adjustments yet.</p>
+            <p className="text-sm text-white/60">No adjustments yet.</p>
           ) : (
             <div className="space-y-2">
               {adjustments.map((row) => (
                 <div
                   key={row.id}
-                  className="flex items-center justify-between rounded border border-slate-800 px-3 py-2"
+                  className="flex items-center justify-between rounded border border-white/10 px-3 py-2"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -221,9 +221,9 @@ export default function AdminVaultContributionsPage() {
                       </Badge>
                       <Badge variant="secondary">{row.source}</Badge>
                     </div>
-                    <p className="text-xs text-slate-400">{row.note || "No note"}</p>
+                    <p className="text-xs text-white/60">{row.note || "No note"}</p>
                   </div>
-                  <div className="text-right text-xs text-slate-400">
+                  <div className="text-right text-xs text-white/60">
                     <div>{new Date(row.createdAt).toLocaleString()}</div>
                     <div>{row.countyId || "No county"}</div>
                   </div>

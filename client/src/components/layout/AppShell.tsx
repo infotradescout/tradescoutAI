@@ -214,7 +214,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <button
               type="button"
               onClick={() => navigate("/pre-scout-setup?mode=create")}
-              className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.85rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40"
+              className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.85rem] font-semibold text-black shadow-sm shadow-orange-500/40"
             >
               Create free account
             </button>
@@ -434,7 +434,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => navigate("/pre-scout-setup?mode=create")}
-                  className="inline-flex items-center justify-center rounded-full border border-orange-500/70 bg-orange-500 px-3 py-1 text-[0.7rem] font-semibold text-slate-950 shadow-sm shadow-orange-500/40 focus:outline-none"
+                  className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.7rem] font-semibold text-black shadow-sm shadow-orange-500/40 focus:outline-none"
                 >
                   Create free account
                 </button>

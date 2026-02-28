@@ -301,7 +301,7 @@ export default function CommercialDirectoryPage() {
         </div>
       </div>
 
-      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+      <Card className="border-white/10 bg-black/30 backdrop-blur">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 text-cyan-200" />
@@ -315,14 +315,14 @@ export default function CommercialDirectoryPage() {
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 md:p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Readiness</div>
-                <div className="text-sm text-slate-200 mt-1">
+                <div className="text-xs uppercase tracking-[0.16em] text-white/60">Readiness</div>
+                <div className="text-sm text-white/70 mt-1">
                   {readiness.doneCount}/{readiness.rows.length} ready
                 </div>
               </div>
               <div className="text-lg md:text-xl font-semibold">{readiness.pct}%</div>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div className="mt-3 h-2 rounded-full bg-white/5 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400"
                 style={{ width: `${readiness.pct}%` }}
@@ -339,7 +339,7 @@ export default function CommercialDirectoryPage() {
                   ) : (
                     <Clock3 className="h-3.5 w-3.5 text-amber-300" />
                   )}
-                  <span className="text-slate-200">{step.label}</span>
+                  <span className="text-white/70">{step.label}</span>
                 </div>
               ))}
             </div>
@@ -366,7 +366,7 @@ export default function CommercialDirectoryPage() {
 
           {!!verificationDocs.length && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 md:p-4 space-y-2">
-              <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
+              <div className="text-xs uppercase tracking-[0.16em] text-white/60">
                 Verification Documents
               </div>
               {verificationDocs.map((doc) => (
@@ -375,10 +375,10 @@ export default function CommercialDirectoryPage() {
                   className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5 flex flex-wrap items-center justify-between gap-2"
                 >
                   <div>
-                    <div className="text-sm text-slate-200">
+                    <div className="text-sm text-white/70">
                       {doc.type} - {doc.fileName}
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[11px] text-white/60">
                       Uploaded{" "}
                       {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "n/a"}
                     </div>
@@ -471,7 +471,7 @@ export default function CommercialDirectoryPage() {
 
       {canAccessBoard && (
         <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 md:gap-6">
-          <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+          <Card className="border-white/10 bg-black/30 backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-cyan-200" />
@@ -516,23 +516,23 @@ export default function CommercialDirectoryPage() {
                     className={`w-full text-left rounded-xl border p-3 transition ${
                       selectedProjectId === row.project.id
                         ? "border-cyan-300 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.22)]"
-                        : "border-white/10 bg-slate-900/40 hover:border-cyan-500/40"
+                        : "border-white/10 bg-tsCard/95 hover:border-cyan-500/40"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="font-semibold text-sm leading-snug">{row.project.title}</div>
-                      <div className="text-[10px] uppercase tracking-wide text-slate-300">
+                      <div className="text-[10px] uppercase tracking-wide text-white/70">
                         {row.project.stateCode}-{row.project.countyFips}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                    <p className="text-xs text-white/60 mt-1 line-clamp-2">
                       {row.project.summary}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                      <span className="rounded-full border border-white/15 bg-white/[0.03] px-2 py-1 text-slate-300">
+                      <span className="rounded-full border border-white/15 bg-white/[0.03] px-2 py-1 text-white/70">
                         bids {row.bidsCount}
                       </span>
-                      <span className="rounded-full border border-white/15 bg-white/[0.03] px-2 py-1 text-slate-300">
+                      <span className="rounded-full border border-white/15 bg-white/[0.03] px-2 py-1 text-white/70">
                         docs {row.docsCount}
                       </span>
                       {row.project.bidDueAt && (
@@ -550,15 +550,15 @@ export default function CommercialDirectoryPage() {
           <div className="space-y-4 md:space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-400">Bid Count</div>
+                <div className="text-xs uppercase tracking-wide text-white/60">Bid Count</div>
                 <div className="text-lg font-semibold">{details?.bidsCount ?? 0}</div>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-400">Budget</div>
+                <div className="text-xs uppercase tracking-wide text-white/60">Budget</div>
                 <div className="text-sm font-medium">{budgetLabel}</div>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="text-xs uppercase tracking-wide text-slate-400">Bid Due</div>
+                <div className="text-xs uppercase tracking-wide text-white/60">Bid Due</div>
                 <div className="text-sm font-medium flex items-center gap-2">
                   <CalendarClock className="h-4 w-4 text-cyan-200" />
                   {details?.project?.bidDueAt
@@ -568,7 +568,7 @@ export default function CommercialDirectoryPage() {
               </div>
             </div>
 
-            <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+            <Card className="border-white/10 bg-black/30 backdrop-blur">
               <CardHeader>
                 <CardTitle>Project Package</CardTitle>
                 <CardDescription>
@@ -587,14 +587,14 @@ export default function CommercialDirectoryPage() {
                           {details.project.status}
                         </div>
                       </div>
-                      <p className="text-sm text-slate-300 mt-2">{details.project.summary}</p>
+                      <p className="text-sm text-white/70 mt-2">{details.project.summary}</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm">
                         <div>
-                          <div className="text-slate-400 text-xs">Budget</div>
+                          <div className="text-white/60 text-xs">Budget</div>
                           <div>{budgetLabel}</div>
                         </div>
                         <div>
-                          <div className="text-slate-400 text-xs">Bid Due</div>
+                          <div className="text-white/60 text-xs">Bid Due</div>
                           <div>
                             {details.project.bidDueAt
                               ? new Date(details.project.bidDueAt).toLocaleString()
@@ -602,7 +602,7 @@ export default function CommercialDirectoryPage() {
                           </div>
                         </div>
                         <div>
-                          <div className="text-slate-400 text-xs">Submitted Bids</div>
+                          <div className="text-white/60 text-xs">Submitted Bids</div>
                           <div>{details.bidsCount}</div>
                         </div>
                       </div>
@@ -610,18 +610,18 @@ export default function CommercialDirectoryPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                       <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                        <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                        <h3 className="text-sm uppercase tracking-wide text-white/70">
                           Scope of Work
                         </h3>
-                        <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
+                        <p className="text-sm text-white/70 mt-2 whitespace-pre-wrap">
                           {details.project.scopeOfWork}
                         </p>
                       </div>
                       <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                        <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                        <h3 className="text-sm uppercase tracking-wide text-white/70">
                           Requirements
                         </h3>
-                        <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">
+                        <p className="text-sm text-white/70 mt-2 whitespace-pre-wrap">
                           {details.project.requirements}
                         </p>
                       </div>
@@ -629,7 +629,7 @@ export default function CommercialDirectoryPage() {
 
                     {!!details.documents.length && (
                       <div className="rounded-xl border border-white/10 p-3 bg-white/[0.03]">
-                        <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                        <h3 className="text-sm uppercase tracking-wide text-white/70">
                           Bid Package Documents
                         </h3>
                         <ul className="mt-2 space-y-1">
@@ -653,7 +653,7 @@ export default function CommercialDirectoryPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+            <Card className="border-white/10 bg-black/30 backdrop-blur">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-cyan-200" />

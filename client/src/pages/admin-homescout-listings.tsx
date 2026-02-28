@@ -88,13 +88,13 @@ export default function AdminHomeScoutListings() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-950/60 border-slate-800">
+      <Card className="bg-black/30 border-white/10">
         <CardHeader>
-          <CardTitle className="text-slate-100 flex items-center gap-2">
-            <Home className="h-5 w-5 text-orange-400" />
+          <CardTitle className="text-white flex items-center gap-2">
+            <Home className="h-5 w-5 text-ts-orange" />
             HomeScout Listings
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-white/60">
             Approve listings to publish them to county-first HomeScout search.
           </CardDescription>
         </CardHeader>
@@ -122,40 +122,40 @@ export default function AdminHomeScoutListings() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-950/60 border-slate-800">
+      <Card className="bg-black/30 border-white/10">
         <CardHeader>
-          <CardTitle className="text-slate-100 text-base">
+          <CardTitle className="text-white text-base">
             {status === "pending_review" ? "Pending review" : "Active listings"} ({listings.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {isLoading && <div className="text-sm text-slate-400">Loading...</div>}
+          {isLoading && <div className="text-sm text-white/60">Loading...</div>}
           {!isLoading && isError && (
             <div className="text-sm text-red-300">Failed to load listings.</div>
           )}
           {!isLoading && !isError && listings.length === 0 && (
-            <div className="text-sm text-slate-400">No listings.</div>
+            <div className="text-sm text-white/60">No listings.</div>
           )}
           {listings.map((l) => {
             const locationLabel = [l.city, l.stateCode].filter(Boolean).join(", ");
             return (
               <div
                 key={l.id}
-                className="rounded-lg border border-slate-800 bg-slate-950/30 p-4 flex flex-col gap-3"
+                className="rounded-lg border border-white/10 bg-black/30 p-4 flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <div className="text-slate-100 font-semibold">{l.title}</div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-white font-semibold">{l.title}</div>
+                    <div className="text-xs text-white/60">
                       {locationLabel || `${l.countyFips}, ${l.stateCode}`} •{" "}
                       {String(l.propertyType || "home")}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="border-slate-700 text-slate-200">
+                    <Badge variant="outline" className="border-white/10 text-white/70">
                       {String(l.status || "").replace(/_/g, " ")}
                     </Badge>
-                    <div className="text-slate-100 font-semibold">{formatCurrency(l.price)}</div>
+                    <div className="text-white font-semibold">{formatCurrency(l.price)}</div>
                   </div>
                 </div>
 
@@ -163,7 +163,7 @@ export default function AdminHomeScoutListings() {
                   {status === "pending_review" && (
                     <Button
                       size="sm"
-                      className="bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
                       onClick={() => approveMutation.mutate(l.id)}
                       disabled={approveMutation.isPending}
                     >

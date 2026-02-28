@@ -182,7 +182,7 @@ export default function Community() {
         action: (
           <button
             type="button"
-            className="ml-auto inline-flex h-8 items-center justify-center rounded-md border border-orange-500 px-3 text-xs font-medium text-orange-100 hover:bg-orange-500/10"
+            className="ml-auto inline-flex h-8 items-center justify-center rounded-md border border-ts-orange/30 px-3 text-xs font-medium text-ts-orange hover:bg-ts-orange/10"
             onClick={() => {
               try {
                 if (typeof window !== "undefined") {
@@ -383,19 +383,19 @@ export default function Community() {
         <div className="pb-16 lg:pb-0">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-lg font-semibold text-orange-500 mb-1">Community</h1>
-            <p className="text-sm text-slate-300">Local feed</p>
+            <h1 className="text-lg font-semibold text-ts-orange mb-1">Community</h1>
+            <p className="text-sm text-white/70">Local feed</p>
           </div>
 
           {/* Navigation Tabs */}
           <div className="mb-4">
-            <div className="flex gap-1.5 bg-tsCard rounded-xl p-1 shadow-sm border border-tsBorder text-[11px] sm:text-xs">
+            <div className="flex gap-1.5 bg-tsCard rounded-xl p-1 shadow-sm border border-white/10 text-[11px] sm:text-xs">
               <button
                 onClick={() => setActiveTab("for-you")}
                 className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                   activeTab === "for-you"
-                    ? "bg-orange-500 text-white shadow-sm"
-                    : "text-slate-300 hover:bg-tsBg hover:text-white"
+                    ? "bg-ts-orange text-white shadow-sm"
+                    : "text-white/70 hover:bg-tsBg hover:text-white"
                 }`}
                 data-testid="tab-for-you"
               >
@@ -405,8 +405,8 @@ export default function Community() {
                 onClick={() => setActiveTab("projects")}
                 className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                   activeTab === "projects"
-                    ? "bg-orange-500 text-white shadow-sm"
-                    : "text-slate-300 hover:bg-tsBg hover:text-white"
+                    ? "bg-ts-orange text-white shadow-sm"
+                    : "text-white/70 hover:bg-tsBg hover:text-white"
                 }`}
                 data-testid="tab-projects"
               >
@@ -416,8 +416,8 @@ export default function Community() {
                 onClick={() => setActiveTab("questions")}
                 className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                   activeTab === "questions"
-                    ? "bg-orange-500 text-white shadow-sm"
-                    : "text-slate-300 hover:bg-tsBg hover:text-white"
+                    ? "bg-ts-orange text-white shadow-sm"
+                    : "text-white/70 hover:bg-tsBg hover:text-white"
                 }`}
                 data-testid="tab-questions"
               >
@@ -427,8 +427,8 @@ export default function Community() {
                 onClick={() => setActiveTab("pros")}
                 className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
                   activeTab === "pros"
-                    ? "bg-orange-500 text-white shadow-sm"
-                    : "text-slate-300 hover:bg-tsBg hover:text-white"
+                    ? "bg-ts-orange text-white shadow-sm"
+                    : "text-white/70 hover:bg-tsBg hover:text-white"
                 }`}
                 data-testid="tab-pros"
               >
@@ -441,19 +441,19 @@ export default function Community() {
           <div className="space-y-4">
             <div className="space-y-4">
               {/* Post Composer */}
-              <Card className="bg-tsCard shadow-xl border-2 border-tsBorder hover:border-orange-500/30 transition-all">
+              <Card className="bg-tsCard shadow-xl border-2 border-white/10 hover:border-ts-orange/30 transition-all">
                 <CardContent className="p-5">
                   {fromScoutDraft && newPostContent.trim().length > 0 && (
-                    <div className="mb-3 rounded-md border border-dashed border-orange-300 bg-tsBg px-3 py-2 text-xs text-gray-200 flex gap-2 items-start">
+                    <div className="mb-3 rounded-md border border-dashed border-ts-orange/30 bg-tsBg px-3 py-2 text-xs text-white/70 flex gap-2 items-start">
                       <span
-                        className="mt-0.5 h-2 w-2 rounded-full bg-orange-400"
+                        className="mt-0.5 h-2 w-2 rounded-full bg-ts-orange"
                         aria-hidden="true"
                       />
                       <div>
-                        <p className="font-medium text-sm text-slate-50">
+                        <p className="font-medium text-sm text-white">
                           Draft imported from Scout
                         </p>
-                        <p className="text-[11px] text-slate-300">Review and publish.</p>
+                        <p className="text-[11px] text-white/70">Review and publish.</p>
                       </div>
                     </div>
                   )}
@@ -487,7 +487,7 @@ export default function Community() {
               </Card>
 
               {/* Category Filters */}
-              <Card className="bg-tsCard shadow-lg border-2 border-tsBorder">
+              <Card className="bg-tsCard shadow-lg border-2 border-white/10">
                 <CardContent className="p-4">
                   <div className="flex gap-1.5 overflow-x-auto pb-1">
                     {POST_CATEGORIES.map((category) => {
@@ -495,7 +495,7 @@ export default function Community() {
                       return (
                         <button
                           key={category.id}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-tsBg border border-tsBorder hover:border-orange-500 hover:bg-orange-500/10 text-[11px] sm:text-xs font-medium text-slate-200 hover:text-orange-400 whitespace-nowrap transition-all shadow-sm"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-tsBg border border-white/10 hover:border-ts-orange/30 hover:bg-ts-orange/10 text-[11px] sm:text-xs font-medium text-white/70 hover:text-ts-orange whitespace-nowrap transition-all shadow-sm"
                           data-testid={`filter-${category.id}`}
                         >
                           <Icon className="w-3.5 h-3.5" />
@@ -510,8 +510,8 @@ export default function Community() {
               {/* Posts Feed */}
               {postsLoading ? (
                 <div className="text-center py-12">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-orange-500 border-r-transparent"></div>
-                  <p className="mt-2 text-slate-600 dark:text-slate-400">Loading posts...</p>
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-ts-orange/30 border-r-transparent"></div>
+                  <p className="mt-2 text-white/60 dark:text-white/60">Loading posts...</p>
                 </div>
               ) : visiblePosts.length === 0 ? (
                 <CommunityEmptyState onCreateFirstPost={() => setShowPostComposer(true)} />

@@ -51,7 +51,7 @@ export function WhyThisJobModal({ open, onOpenChange, snapshot }: WhyThisJobModa
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-3 space-y-2 text-sm text-gray-200">
+        <div className="mt-3 space-y-2 text-sm text-white/70">
           {rawReasons.length === 0 ? (
             <p>We matched you based on your profile and service area.</p>
           ) : (
@@ -63,14 +63,14 @@ export function WhyThisJobModal({ open, onOpenChange, snapshot }: WhyThisJobModa
           )}
 
           {typeof snapshot?.recommendationCount === "number" && snapshot.recommendationCount > 0 && (
-            <p className="pt-2 text-xs text-gray-400">
+            <p className="pt-2 text-xs text-white/60">
               Neighbors who worked with you in the past helped this match.
             </p>
           )}
 
           {typeof snapshot?.score === "number" && (
-            <p className="pt-1 text-xs text-gray-400 flex items-center gap-2">
-              <Badge variant="outline" className="border-navy-500 text-gray-200">
+            <p className="pt-1 text-xs text-white/60 flex items-center gap-2">
+              <Badge variant="outline" className="border-white/10 text-white/70">
                 Match score: {Math.round(snapshot.score)}
               </Badge>
               <span>Higher scores mean a stronger fit for this request.</span>

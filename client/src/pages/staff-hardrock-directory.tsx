@@ -107,12 +107,12 @@ export default function StaffHardrockDirectory() {
   }
 
   return (
-    <div className="text-tsTextMain px-4 py-10">
+    <div className="text-white px-4 py-10">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Hardrock contractor directory</h1>
-            <p className="text-sm text-tsTextMuted">
+            <p className="text-sm text-white/60">
               Commercial tradesmen submissions from `/hardrock`.
             </p>
           </div>
@@ -138,7 +138,7 @@ export default function StaffHardrockDirectory() {
           </div>
         </div>
 
-        {isLoading && <div className="text-sm text-tsTextMuted">Loading…</div>}
+        {isLoading && <div className="text-sm text-white/60">Loading…</div>}
         {error && (
           <div className="text-sm text-destructive">
             {error instanceof Error ? error.message : "Failed to load"}
@@ -149,18 +149,18 @@ export default function StaffHardrockDirectory() {
           {(data || []).map((app) => {
             const uploads = extractUploadLinks(app.reviewNotes);
             return (
-              <Card key={app.id} className="bg-tsCard border border-tsBorder">
+              <Card key={app.id} className="bg-tsCard border border-white/10">
                 <CardHeader className="flex flex-col gap-1">
                   <CardTitle className="text-lg flex flex-wrap items-center gap-2">
                     <span>{app.companyName}</span>
-                    <span className="text-xs text-tsTextMuted font-normal">
+                    <span className="text-xs text-white/60 font-normal">
                       ({app.primaryTrade})
                     </span>
-                    <span className="ml-auto text-xs text-tsTextMuted font-normal">
+                    <span className="ml-auto text-xs text-white/60 font-normal">
                       {app.submittedAt ? new Date(app.submittedAt).toLocaleString() : ""}
                     </span>
                   </CardTitle>
-                  <div className="text-xs text-tsTextMuted">
+                  <div className="text-xs text-white/60">
                     {app.primaryCounty}, {app.primaryState} • {app.phone} • {app.email}
                     {app.website ? ` • ${app.website}` : ""}
                   </div>
@@ -190,7 +190,7 @@ export default function StaffHardrockDirectory() {
                     </div>
                     <div className="md:col-span-2">
                       <Label>Specialties</Label>
-                      <div className="text-sm text-tsTextMain">
+                      <div className="text-sm text-white">
                         {(app.specialties || []).join(", ")}
                       </div>
                     </div>
@@ -198,7 +198,7 @@ export default function StaffHardrockDirectory() {
 
                   <div>
                     <Label>About</Label>
-                    <div className="text-sm text-tsTextMain whitespace-pre-wrap">{app.about}</div>
+                    <div className="text-sm text-white whitespace-pre-wrap">{app.about}</div>
                   </div>
 
                   {uploads.length > 0 && (
@@ -211,7 +211,7 @@ export default function StaffHardrockDirectory() {
                             href={u}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs rounded-full border border-tsBorder px-3 py-1 hover:bg-white/5"
+                            className="text-xs rounded-full border border-white/10 px-3 py-1 hover:bg-white/5"
                           >
                             {u.split("/").slice(-1)[0]}
                           </a>
@@ -233,7 +233,7 @@ export default function StaffHardrockDirectory() {
                         }}
                         disabled={updateMutation.isPending}
                       />
-                      <p className="text-xs text-tsTextMuted mt-1">Press Enter to save.</p>
+                      <p className="text-xs text-white/60 mt-1">Press Enter to save.</p>
                     </div>
                     <div className="flex items-end">
                       <Button
@@ -256,7 +256,7 @@ export default function StaffHardrockDirectory() {
         </div>
 
         {!isLoading && (data || []).length === 0 && (
-          <div className="text-sm text-tsTextMuted">No applications found.</div>
+          <div className="text-sm text-white/60">No applications found.</div>
         )}
       </div>
     </div>

@@ -26,7 +26,7 @@ export function SubtleHints() {
           id: 'contractor-welcome',
           title: "Welcome, Contractor!",
           description: "Complete your profile to showcase your business to homeowners",
-          icon: <Users className="w-5 h-5 text-orange-500" />,
+          icon: <Users className="w-5 h-5 text-ts-orange" />,
           action: "Complete Profile",
           actionUrl: "/profile",
           delay: 2
@@ -61,7 +61,7 @@ export function SubtleHints() {
           id: 'homeowner-welcome',
           title: "Welcome to TradeScout!",
           description: "Use Scout and Direct Connect to route jobs to trusted providers",
-          icon: <Users className="w-5 h-5 text-orange-500" />,
+          icon: <Users className="w-5 h-5 text-ts-orange" />,
           delay: 2
         },
         {
@@ -155,13 +155,13 @@ export function SubtleHints() {
 
   return (
     <div className="fixed top-20 right-4 z-40 max-w-sm">
-      <Card className="bg-white dark:bg-navy-800 border border-orange-200 dark:border-orange-500/30 shadow-lg animate-in slide-in-from-right-2 duration-500">
+      <Card className="bg-white dark:bg-tsCard border border-ts-orange/30 dark:border-ts-orange/30 shadow-lg animate-in slide-in-from-right-2 duration-500">
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               {activeHint.icon}
               <div>
-                <h4 className="font-medium text-sm text-gray-900 dark:text-white">
+                <h4 className="font-medium text-sm text-white dark:text-white">
                   {activeHint.title}
                 </h4>
               </div>
@@ -170,13 +170,13 @@ export function SubtleHints() {
               variant="ghost"
               size="sm"
               onClick={handleDismiss}
-              className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-navy-700 opacity-60 hover:opacity-100"
+              className="h-6 w-6 p-0 hover:bg-white/5 dark:hover:bg-tsCard opacity-60 hover:opacity-100"
             >
               <X className="w-3 h-3" />
             </Button>
           </div>
 
-          <p className="text-xs text-gray-600 dark:text-gray-300 mb-3 leading-relaxed">
+          <p className="text-xs text-white/60 dark:text-white/70 mb-3 leading-relaxed">
             {activeHint.description}
           </p>
 
@@ -185,7 +185,7 @@ export function SubtleHints() {
               <Button
                 size="sm"
                 onClick={() => handleAction(activeHint.actionUrl)}
-                className="bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1.5 h-7 font-medium"
+                className="bg-ts-orange hover:bg-ts-orange-dark text-white text-xs px-3 py-1.5 h-7 font-medium"
               >
                 {activeHint.action}
               </Button>
@@ -193,7 +193,7 @@ export function SubtleHints() {
                 variant="ghost"
                 size="sm"
                 onClick={handleDismiss}
-                className="text-xs px-3 py-1.5 h-7 hover:bg-gray-100 dark:hover:bg-navy-700"
+                className="text-xs px-3 py-1.5 h-7 hover:bg-white/5 dark:hover:bg-tsCard"
               >
                 Later
               </Button>

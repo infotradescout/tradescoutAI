@@ -85,19 +85,19 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Background Check Verification</h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-xl text-white/70">
             Complete a professional background check to achieve elite verification status
           </p>
         </div>
 
         {/* Benefits Overview */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Shield className="w-5 h-5 text-orange-500" />
+              <Shield className="w-5 h-5 text-ts-orange" />
               Elite Verification Benefits
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-white/60">
               Why contractors choose background verification
             </CardDescription>
           </CardHeader>
@@ -107,11 +107,11 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                 const Icon = benefit.icon;
                 return (
                   <div key={index} className="text-center p-4">
-                    <div className="w-12 h-12 bg-orange-600/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-                      <Icon className="w-6 h-6 text-orange-400" />
+                    <div className="w-12 h-12 bg-ts-orange-dark/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <Icon className="w-6 h-6 text-ts-orange" />
                     </div>
                     <h3 className="font-semibold text-white mb-2">{benefit.title}</h3>
-                    <p className="text-sm text-gray-400">{benefit.description}</p>
+                    <p className="text-sm text-white/60">{benefit.description}</p>
                   </div>
                 );
               })}
@@ -120,10 +120,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Package Selection */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white">Choose Your Background Check Package</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-white/60">
               Select the level of verification that's right for your business
             </CardDescription>
           </CardHeader>
@@ -134,26 +134,26 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                   key={pkg.id}
                   className={`relative p-6 rounded-lg border-2 cursor-pointer transition-all ${
                     selectedPackage === pkg.id
-                      ? "border-orange-500 bg-orange-500/10"
-                      : "border-slate-600 bg-slate-700/30 hover:border-slate-500"
+                      ? "border-ts-orange/30 bg-ts-orange/10"
+                      : "border-white/15 bg-white/10 hover:border-white/15"
                   }`}
                   onClick={() => setSelectedPackage(pkg.id)}
                 >
                   {pkg.recommended && (
-                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-600 hover:bg-orange-700">
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-ts-orange-dark hover:bg-ts-orange-dark">
                       Recommended
                     </Badge>
                   )}
 
                   <div className="text-center mb-4">
                     <h3 className="text-xl font-bold text-white mb-2">{pkg.name}</h3>
-                    <div className="text-3xl font-bold text-orange-400 mb-1">{pkg.price}</div>
-                    <p className="text-sm text-gray-400">{pkg.duration}</p>
+                    <div className="text-3xl font-bold text-ts-orange mb-1">{pkg.price}</div>
+                    <p className="text-sm text-white/60">{pkg.duration}</p>
                   </div>
 
                   <ul className="space-y-2 mb-6">
                     {pkg.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-gray-300">
+                      <li key={index} className="flex items-center gap-2 text-white/70">
                         <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                         <span className="text-sm">{feature}</span>
                       </li>
@@ -164,8 +164,8 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                     <div
                       className={`w-4 h-4 rounded-full border-2 ${
                         selectedPackage === pkg.id
-                          ? "border-orange-500 bg-orange-500"
-                          : "border-gray-400"
+                          ? "border-ts-orange/30 bg-ts-orange"
+                          : "border-white/15"
                       }`}
                     >
                       {selectedPackage === pkg.id && (
@@ -183,73 +183,73 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Personal Information Form */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white">Personal Information</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-white/60">
               Provide accurate information for background verification
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="first-name" className="text-gray-300">
+                <Label htmlFor="first-name" className="text-white/70">
                   First Name
                 </Label>
                 <Input
                   id="first-name"
                   placeholder="Enter first name"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
               <div>
-                <Label htmlFor="last-name" className="text-gray-300">
+                <Label htmlFor="last-name" className="text-white/70">
                   Last Name
                 </Label>
                 <Input
                   id="last-name"
                   placeholder="Enter last name"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
               <div>
-                <Label htmlFor="date-of-birth" className="text-gray-300">
+                <Label htmlFor="date-of-birth" className="text-white/70">
                   Date of Birth
                 </Label>
                 <Input
                   id="date-of-birth"
                   type="date"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
               <div>
-                <Label htmlFor="ssn" className="text-gray-300">
+                <Label htmlFor="ssn" className="text-white/70">
                   Social Security Number
                 </Label>
                 <Input
                   id="ssn"
                   placeholder="123-45-6789"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
               <div>
-                <Label htmlFor="address" className="text-gray-300">
+                <Label htmlFor="address" className="text-white/70">
                   Current Address
                 </Label>
                 <Input
                   id="address"
                   placeholder="Enter full address"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
               <div>
-                <Label htmlFor="phone" className="text-gray-300">
+                <Label htmlFor="phone" className="text-white/70">
                   Phone Number
                 </Label>
                 <Input
                   id="phone"
                   placeholder="(555) 123-4567"
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-white/10 border-white/15 text-white"
                 />
               </div>
             </div>
@@ -257,10 +257,10 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Process Timeline */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-white">Verification Process</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-white/60">
               What to expect during your background check
             </CardDescription>
           </CardHeader>
@@ -272,7 +272,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Submit Application</h3>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-white/60 text-sm">
                     Complete the form and payment to initiate your background check
                   </p>
                 </div>
@@ -284,7 +284,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Processing</h3>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-white/60 text-sm">
                     Our verified partner conducts comprehensive background screening
                   </p>
                 </div>
@@ -296,7 +296,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Verification Complete</h3>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-white/60 text-sm">
                     Receive your elite verification badge and enhanced profile features
                   </p>
                 </div>
@@ -306,7 +306,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
         </Card>
 
         {/* Terms and Submit */}
-        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardContent className="pt-6">
             <div className="space-y-6">
               <div className="bg-yellow-600/10 border border-yellow-600/20 rounded-lg p-4">
@@ -314,7 +314,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                   <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-yellow-400 mb-2">Important Information</h4>
-                    <ul className="space-y-1 text-sm text-gray-300">
+                    <ul className="space-y-1 text-sm text-white/70">
                       <li>• All information is encrypted and securely processed</li>
                       <li>• Background checks are conducted by certified third-party vendors</li>
                       <li>• Results are confidential and only used for verification purposes</li>
@@ -330,7 +330,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                   checked={agreedToTerms}
                   onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
                 />
-                <Label htmlFor="terms" className="text-gray-300 text-sm leading-relaxed">
+                <Label htmlFor="terms" className="text-white/70 text-sm leading-relaxed">
                   I agree to the background check terms and conditions, privacy policy, and
                   authorize the release of information for verification purposes. I understand that
                   providing false information may result in account termination.
@@ -342,7 +342,7 @@ const BackgroundCheck = memo(function BackgroundCheck() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark"
                   disabled={!agreedToTerms}
                 >
                   Proceed to Payment - {packages.find((p) => p.id === selectedPackage)?.price}

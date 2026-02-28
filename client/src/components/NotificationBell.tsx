@@ -80,7 +80,7 @@ export function NotificationBell() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "saved_ad_reminder":
-        return <Bookmark className="h-4 w-4 text-orange-500" />;
+        return <Bookmark className="h-4 w-4 text-ts-orange" />;
       default:
         return <Bell className="h-4 w-4 text-blue-500" />;
     }
@@ -104,12 +104,12 @@ export function NotificationBell() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0 hover:bg-navy-600">
-          <Bell className="h-4 w-4 text-gray-300" />
+        <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0 hover:bg-tsCard">
+          <Bell className="h-4 w-4 text-white/70" />
           {unreadCount > 0 && (
             <Badge
               variant="error"
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-orange-500 hover:bg-orange-500 border-none"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-ts-orange hover:bg-ts-orange border-none"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
@@ -117,7 +117,7 @@ export function NotificationBell() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-80 p-0 bg-navy-700 border-navy-600" align="end">
+      <PopoverContent className="w-80 p-0 bg-tsCard border-white/10" align="end">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium text-white">Notifications</CardTitle>
@@ -125,7 +125,7 @@ export function NotificationBell() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-auto p-1 text-xs text-gray-400 hover:text-white"
+                className="h-auto p-1 text-xs text-white/60 hover:text-white"
                 onClick={() => markAllAsReadMutation.mutate()}
                 disabled={markAllAsReadMutation.isPending}
               >
@@ -139,13 +139,13 @@ export function NotificationBell() {
         <CardContent className="p-0 max-h-80 overflow-y-auto">
           {isLoading ? (
             <div className="p-4 text-center">
-              <div className="animate-spin w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p className="text-sm text-gray-400">Loading notifications...</p>
+              <div className="animate-spin w-5 h-5 border-2 border-ts-orange/30 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p className="text-sm text-white/60">Loading notifications...</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center">
-              <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No notifications yet</p>
+              <Bell className="h-8 w-8 text-white/60 mx-auto mb-2" />
+              <p className="text-sm text-white/60">No notifications yet</p>
             </div>
           ) : (
             <div className="space-y-0">
@@ -153,8 +153,8 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={cn(
-                    "p-3 border-b border-navy-600 cursor-pointer hover:bg-navy-600/50 transition-colors",
-                    !notification.isRead && "bg-navy-600/30"
+                    "p-3 border-b border-white/10 cursor-pointer hover:bg-tsCard/50 transition-colors",
+                    !notification.isRead && "bg-tsCard/30"
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -167,19 +167,19 @@ export function NotificationBell() {
                         <p
                           className={cn(
                             "text-sm font-medium truncate",
-                            notification.isRead ? "text-gray-300" : "text-white"
+                            notification.isRead ? "text-white/70" : "text-white"
                           )}
                         >
                           {notification.title}
                         </p>
                         {!notification.isRead && (
-                          <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 ml-2"></div>
+                          <div className="w-2 h-2 bg-ts-orange rounded-full flex-shrink-0 ml-2"></div>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2 mb-1">
+                      <p className="text-xs text-white/60 line-clamp-2 mb-1">
                         {notification.content}
                       </p>
-                      <div className="flex items-center text-xs text-gray-500">
+                      <div className="flex items-center text-xs text-white/60">
                         <Clock className="h-3 w-3 mr-1" />
                         {formatTimeAgo(notification.createdAt)}
                       </div>

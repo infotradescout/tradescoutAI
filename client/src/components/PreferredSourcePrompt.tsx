@@ -61,7 +61,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
     <>
       {/* Main Prompt */}
       <Dialog open={isVisible && !showInstructions} onOpenChange={handleDismiss}>
-        <DialogContent className="sm:max-w-[500px] bg-navy-800 border-navy-600">
+        <DialogContent className="sm:max-w-[500px] bg-tsCard border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2 text-xl">
               <CheckCircle className="h-6 w-6 text-green-500" />
@@ -83,7 +83,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
             <Button
               onClick={handleDismiss}
               variant="ghost"
-              className="w-full text-navy-300 hover:text-white hover:bg-navy-700"
+              className="w-full text-navy-300 hover:text-white hover:bg-tsCard"
             >
               Not now
             </Button>
@@ -93,7 +93,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
 
       {/* Instructions Modal */}
       <Dialog open={showInstructions} onOpenChange={handleInstructionsClose}>
-        <DialogContent className="sm:max-w-[600px] bg-navy-800 border-navy-600 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] bg-tsCard border-white/10 max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white text-xl">
               Set TradeScout as your preferred source
@@ -104,7 +104,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
           </DialogHeader>
 
           <div className="mt-4 space-y-4 text-navy-100">
-            <div className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+            <div className="bg-tsCard p-4 rounded-lg border border-white/10">
               <h3 className="font-semibold text-white mb-2">Desktop (Chrome / Edge / Firefox)</h3>
               <ol className="list-decimal list-inside space-y-2 ml-2 text-sm">
                 <li>Search for a contractor on Google</li>
@@ -114,7 +114,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
               </ol>
             </div>
 
-            <div className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+            <div className="bg-tsCard p-4 rounded-lg border border-white/10">
               <h3 className="font-semibold text-white mb-2">Mobile (iOS / Android)</h3>
               <ol className="list-decimal list-inside space-y-2 ml-2 text-sm">
                 <li>Search for a contractor on Google</li>
@@ -124,7 +124,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
               </ol>
             </div>
 
-            <div className="bg-navy-900 border border-navy-600 p-4 rounded-lg text-sm text-navy-300 leading-relaxed">
+            <div className="bg-tsBg border border-white/10 p-4 rounded-lg text-sm text-navy-300 leading-relaxed">
               <strong className="text-navy-100">What this does:</strong> Google remembers TradeScout as your trusted source, so it surfaces us higher when you search for local work.
             </div>
           </div>
@@ -132,7 +132,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
           <div className="mt-6">
             <Button
               onClick={handleInstructionsClose}
-              className="w-full bg-navy-700 hover:bg-navy-600 text-white"
+              className="w-full bg-tsCard hover:bg-tsCard text-white"
             >
               Got it
             </Button>

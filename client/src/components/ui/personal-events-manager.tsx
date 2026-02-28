@@ -230,7 +230,7 @@ export function PersonalEventsManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Personal Events</h2>
-          <p className="text-gray-400">
+          <p className="text-white/60">
             Manage your birthdays, anniversaries, and other important dates.
           </p>
         </div>
@@ -239,19 +239,19 @@ export function PersonalEventsManager() {
           <DialogTrigger asChild>
             <Button 
               onClick={() => handleOpenDialog()}
-              className="bg-orange-500 text-white hover:bg-orange-600"
+              className="bg-ts-orange text-white hover:bg-ts-orange-dark"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Event
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="sm:max-w-[500px] bg-navy-800 border-navy-600">
+          <DialogContent className="sm:max-w-[500px] bg-tsCard border-white/10">
             <DialogHeader>
               <DialogTitle className="text-white">
                 {editingEvent ? 'Edit Event' : 'Add Personal Event'}
               </DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-white/60">
                 Add important dates you'd like to be reminded about.
               </DialogDescription>
             </DialogHeader>
@@ -266,11 +266,11 @@ export function PersonalEventsManager() {
                       <FormLabel className="text-white">Event Type</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                          <SelectTrigger className="bg-tsCard border-white/10 text-white">
                             <SelectValue placeholder="Select event type" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="bg-navy-800 border-navy-600">
+                        <SelectContent className="bg-tsCard border-white/10">
                           {eventTypes.map((type) => (
                             <SelectItem key={type.value} value={type.value}>
                               <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ export function PersonalEventsManager() {
                           <Input
                             {...field}
                             placeholder="Enter custom event name"
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className="bg-tsCard border-white/10 text-white"
                           />
                         </FormControl>
                         <FormMessage />
@@ -318,10 +318,10 @@ export function PersonalEventsManager() {
                             {...field}
                             placeholder="12-25"
                             pattern="\d{2}-\d{2}"
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className="bg-tsCard border-white/10 text-white"
                           />
                         </FormControl>
-                        <FormDescription className="text-gray-400 text-xs">
+                        <FormDescription className="text-white/60 text-xs">
                           Format: MM-DD (e.g., 12-25 for Dec 25)
                         </FormDescription>
                         <FormMessage />
@@ -341,10 +341,10 @@ export function PersonalEventsManager() {
                             type="number"
                             placeholder="2023"
                             onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className="bg-tsCard border-white/10 text-white"
                           />
                         </FormControl>
-                        <FormDescription className="text-gray-400 text-xs">
+                        <FormDescription className="text-white/60 text-xs">
                           For calculating age/years
                         </FormDescription>
                         <FormMessage />
@@ -357,10 +357,10 @@ export function PersonalEventsManager() {
                   control={form.control}
                   name="enableNotifications"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white">Enable Notifications</FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Receive reminders for this event
                         </FormDescription>
                       </div>
@@ -393,8 +393,8 @@ export function PersonalEventsManager() {
                                 }}
                                 className={`px-3 py-1 rounded-full text-xs transition-colors ${
                                   isSelected
-                                    ? 'bg-orange-400 text-navy-900'
-                                    : 'bg-navy-700 text-gray-300 border border-navy-600'
+                                    ? 'bg-ts-orange text-black'
+                                    : 'bg-tsCard text-white/70 border border-white/10'
                                 }`}
                               >
                                 {option.label}
@@ -402,7 +402,7 @@ export function PersonalEventsManager() {
                             );
                           })}
                         </div>
-                        <FormDescription className="text-gray-400 text-xs">
+                        <FormDescription className="text-white/60 text-xs">
                           Select when you want to be reminded
                         </FormDescription>
                         <FormMessage />
@@ -421,10 +421,10 @@ export function PersonalEventsManager() {
                         <Textarea
                           {...field}
                           placeholder="Enter a custom notification message"
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                       </FormControl>
-                      <FormDescription className="text-gray-400 text-xs">
+                      <FormDescription className="text-white/60 text-xs">
                         Override the default notification message
                       </FormDescription>
                       <FormMessage />
@@ -437,14 +437,14 @@ export function PersonalEventsManager() {
                     type="button"
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
-                    className="border-navy-600 text-white hover:bg-navy-700"
+                    className="border-white/10 text-white hover:bg-tsCard"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     disabled={createEventMutation.isPending || updateEventMutation.isPending}
-                    className="bg-orange-500 text-white hover:bg-orange-600"
+                    className="bg-ts-orange text-white hover:bg-ts-orange-dark"
                   >
                     {editingEvent ? 'Update Event' : 'Add Event'}
                   </Button>
@@ -459,16 +459,16 @@ export function PersonalEventsManager() {
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-8">
-            <Calendar className="h-12 w-12 mx-auto text-gray-500 mb-4" />
-            <p className="text-gray-400">Loading your events...</p>
+            <Calendar className="h-12 w-12 mx-auto text-white/60 mb-4" />
+            <p className="text-white/60">Loading your events...</p>
           </div>
         ) : events.length === 0 ? (
           <div className="text-center py-8">
-            <Calendar className="h-12 w-12 mx-auto text-gray-500 mb-4" />
-            <p className="text-gray-400 mb-4">No personal events added yet.</p>
+            <Calendar className="h-12 w-12 mx-auto text-white/60 mb-4" />
+            <p className="text-white/60 mb-4">No personal events added yet.</p>
             <Button
               onClick={() => handleOpenDialog()}
-              className="bg-orange-500 text-white hover:bg-orange-600"
+              className="bg-ts-orange text-white hover:bg-ts-orange-dark"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Event
@@ -483,7 +483,7 @@ export function PersonalEventsManager() {
             return (
               <div
                 key={event.id}
-                className="bg-navy-700/50 rounded-lg border border-navy-600 p-4"
+                className="bg-tsCard/50 rounded-lg border border-white/10 p-4"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -492,7 +492,7 @@ export function PersonalEventsManager() {
                       <h3 className="text-white font-medium">
                         {event.eventName || typeInfo.label}
                       </h3>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         {formatEventDate(event.eventDate, event.eventYear)}
                       </p>
                       
@@ -503,7 +503,7 @@ export function PersonalEventsManager() {
                             Notifications On
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-gray-400 border-gray-400">
+                          <Badge variant="outline" className="text-white/60 border-white/15">
                             <BellOff className="h-3 w-3 mr-1" />
                             No Notifications
                           </Badge>
@@ -517,7 +517,7 @@ export function PersonalEventsManager() {
                       </div>
                       
                       {event.customMessage && (
-                        <p className="text-sm text-gray-300 mt-2 italic">
+                        <p className="text-sm text-white/70 mt-2 italic">
                           "{event.customMessage}"
                         </p>
                       )}
@@ -529,7 +529,7 @@ export function PersonalEventsManager() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleOpenDialog(event)}
-                      className="h-8 w-8 text-gray-400 hover:text-white hover:bg-navy-600"
+                      className="h-8 w-8 text-white/60 hover:text-white hover:bg-tsCard"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

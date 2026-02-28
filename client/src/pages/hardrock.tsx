@@ -123,17 +123,17 @@ export default function HardrockLanding() {
   };
 
   return (
-    <div className="text-tsTextMain px-4 py-10">
+    <div className="text-white px-4 py-10">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-bold tracking-tight">Hardrock commercial jobs</h1>
-          <p className="text-sm text-tsTextMuted max-w-2xl">
+          <p className="text-sm text-white/60 max-w-2xl">
             No account required. Send us your info and we’ll contact you about upcoming commercial
             work. You can create a TradeScout account anytime to manage opportunities faster.
           </p>
           <div className="flex flex-wrap gap-2">
             <Link href="/pre-scout-setup?mode=create">
-              <Button className="bg-tsAccent hover:bg-tsAccent/90 text-black font-semibold">
+              <Button className="bg-ts-orange hover:bg-ts-orange/90 text-black font-semibold">
                 Create a TradeScout account
               </Button>
             </Link>
@@ -141,17 +141,17 @@ export default function HardrockLanding() {
               <Button variant="outline">Sign in</Button>
             </Link>
           </div>
-          <p className="text-xs text-tsTextMuted">
-            Contact: <span className="font-medium text-tsTextMain">info.tradescout@gmail.com</span>
+          <p className="text-xs text-white/60">
+            Contact: <span className="font-medium text-white">info.tradescout@gmail.com</span>
           </p>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder">
+        <Card className="bg-tsCard border border-white/10">
           <CardHeader>
             <CardTitle className="text-lg">Hard Rock: Pensacola News Journal</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="overflow-hidden rounded-xl border border-tsBorder bg-black/20">
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-black/20">
               {/* Place the screenshot at client/public/hardrock-pnj.png */}
               <img
                 src="/hardrock-pnj.png"
@@ -160,37 +160,37 @@ export default function HardrockLanding() {
                 loading="lazy"
               />
             </div>
-            <p className="text-xs text-tsTextMuted">
+            <p className="text-xs text-white/60">
               Screenshot: Pensacola News Journal coverage about the Hard Rock project seeking local
               contractors (Jan. 31, 2026).
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border border-tsBorder">
+        <Card className="bg-tsCard border border-white/10">
           <CardHeader>
             <CardTitle className="text-lg">
               Pensacola: Hard Rock project — last call for local contractors
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <p className="text-tsTextMuted">
+            <p className="text-white/60">
               If you’re a subcontractor/supplier in{" "}
-              <span className="text-tsTextMain">Escambia</span> or{" "}
-              <span className="text-tsTextMain">Santa Rosa</span> County, the last in-person
+              <span className="text-white">Escambia</span> or{" "}
+              <span className="text-white">Santa Rosa</span> County, the last in-person
               information session is{" "}
-              <span className="text-tsTextMain font-medium">
+              <span className="text-white font-medium">
                 today (Feb. 2, 2026) 8:00–10:00 a.m.
               </span>
               .
             </p>
-            <p className="text-tsTextMuted">
-              Location: <span className="text-tsTextMain">Maritime Place</span>, first floor,{" "}
-              <span className="text-tsTextMain">350 W. Cedar St., Pensacola</span>.
+            <p className="text-white/60">
+              Location: <span className="text-white">Maritime Place</span>, first floor,{" "}
+              <span className="text-white">350 W. Cedar St., Pensacola</span>.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
-                className="bg-tsAccent hover:bg-tsAccent/90 text-black font-semibold"
+                className="bg-ts-orange hover:bg-ts-orange/90 text-black font-semibold"
                 onClick={() => {
                   const el = document.getElementById("apply-form");
                   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -205,7 +205,7 @@ export default function HardrockLanding() {
           </CardContent>
         </Card>
 
-        <Card className="bg-tsCard border border-tsBorder">
+        <Card className="bg-tsCard border border-white/10">
           <CardHeader id="apply-form">
             <CardTitle className="text-xl">Commercial tradesman sign-up</CardTitle>
           </CardHeader>
@@ -360,7 +360,7 @@ export default function HardrockLanding() {
                   <Label htmlFor="preferredContact">Preferred contact</Label>
                   <select
                     id="preferredContact"
-                    className="mt-1 w-full h-10 rounded-md border border-tsBorder bg-tsBg px-3 text-sm"
+                    className="mt-1 w-full h-10 rounded-md border border-white/10 bg-tsBg px-3 text-sm"
                     {...form.register("preferredContact")}
                   >
                     <option value="both">Phone + Email</option>
@@ -389,7 +389,7 @@ export default function HardrockLanding() {
                 <textarea
                   id="about"
                   rows={4}
-                  className="mt-1 w-full rounded-md border border-tsBorder bg-tsBg px-3 py-2 text-sm text-tsTextMain placeholder:text-tsTextMuted"
+                  className="mt-1 w-full rounded-md border border-white/10 bg-tsBg px-3 py-2 text-sm text-white placeholder:text-white/60"
                   {...form.register("about")}
                   placeholder="Project types, crew size, availability, service area, etc."
                 />
@@ -408,7 +408,7 @@ export default function HardrockLanding() {
                   multiple
                   accept=".pdf,.png,.jpg,.jpeg,.webp"
                 />
-                <p className="text-xs text-tsTextMuted mt-1">
+                <p className="text-xs text-white/60 mt-1">
                   License/insurance PDFs or photos. Max 5 files.
                 </p>
               </div>
@@ -448,7 +448,7 @@ export default function HardrockLanding() {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-tsAccent hover:bg-tsAccent/90 text-black font-semibold"
+                className="w-full bg-ts-orange hover:bg-ts-orange/90 text-black font-semibold"
               >
                 {submitting ? "Submitting…" : "Send my info"}
               </Button>

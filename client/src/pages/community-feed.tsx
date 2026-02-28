@@ -244,9 +244,9 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
 
       <div className="space-y-2">
         {isLoading ? (
-          <p className="text-[11px] text-slate-500">Loading comments...</p>
+          <p className="text-[11px] text-white/60">Loading comments...</p>
         ) : comments.length === 0 ? (
-          <p className="text-[11px] text-slate-500">No comments yet. Be the first to reply.</p>
+          <p className="text-[11px] text-white/60">No comments yet. Be the first to reply.</p>
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="flex items-start gap-2 text-xs md:text-sm">
@@ -258,14 +258,14 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
               </Avatar>
               <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-slate-100 mb-0.5 text-[11px] md:text-xs">
+                  <p className="font-medium text-white mb-0.5 text-[11px] md:text-xs">
                     {comment.author?.name || "Neighbor"}
                   </p>
                   {comment.author?.verified !== undefined && (
                     <Badge
                       variant="secondary"
                       className={`text-[10px] px-1.5 py-0.5 ${
-                        comment.author?.verified ? "text-green-300" : "text-slate-300"
+                        comment.author?.verified ? "text-green-300" : "text-white/70"
                       }`}
                       title={
                         comment.author?.verified
@@ -277,7 +277,7 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
                     </Badge>
                   )}
                 </div>
-                <p className="text-slate-200 text-[11px] md:text-xs whitespace-pre-line">
+                <p className="text-white/70 text-[11px] md:text-xs whitespace-pre-line">
                   {comment.content}
                 </p>
               </div>
@@ -796,7 +796,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     <div className="space-y-3 md:space-y-5">
       {postsLoading ? (
         <div className="text-center py-10">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30"></div>
           <p className="mt-3 text-sm text-[color:var(--text-secondary)]">Loading posts...</p>
         </div>
       ) : tabSortedPosts.length === 0 ? (
@@ -829,11 +829,11 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex gap-3">
                       {isSystemPost ? (
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center">
-                          <TradeScoutIcon size="sm" variant="gradient" className="text-slate-950" />
+                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-ts-orange/20 border border-ts-orange/30 flex items-center justify-center">
+                          <TradeScoutIcon size="sm" variant="gradient" className="text-black" />
                         </div>
                       ) : (
-                        <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-orange-500/25">
+                        <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-ts-orange/70">
                           <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
                           <AvatarFallback>{getAuthorInitials(post)}</AvatarFallback>
                         </Avatar>
@@ -850,7 +850,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               className={`h-5 px-1.5 text-[10px] ${
                                 post.author?.verified
                                   ? "border-emerald-500/50 text-emerald-300"
-                                  : "border-slate-500/50 text-slate-300"
+                                  : "border-white/15 text-white/70"
                               }`}
                               title={
                                 post.author?.verified
@@ -863,7 +863,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 mt-1">
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 mt-1">
                           <span>
                             {post.timestamp || new Date(post.createdAt).toLocaleDateString()}
                           </span>
@@ -919,7 +919,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         {post.title}
                       </h4>
                     )}
-                    <p className="text-slate-200 text-sm md:text-[15px] mb-3 leading-relaxed whitespace-pre-line">
+                    <p className="text-white/70 text-sm md:text-[15px] mb-3 leading-relaxed whitespace-pre-line">
                       {post.content}
                     </p>
 
@@ -928,7 +928,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         {post.tags.map((tag: string, index: number) => (
                           <span
                             key={index}
-                            className="text-orange-400 text-sm hover:text-orange-300 cursor-pointer"
+                            className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer"
                           >
                             #{tag}
                           </span>
@@ -970,7 +970,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         variant="ghost"
                         size="sm"
                         disabled={isGlobalView}
-                        className="text-[color:var(--text-secondary)] hover:text-orange-400 disabled:opacity-50 disabled:pointer-events-none"
+                        className="text-[color:var(--text-secondary)] hover:text-ts-orange disabled:opacity-50 disabled:pointer-events-none"
                         data-testid={`button-comment-${post.id}`}
                         onClick={() => {
                           if (!isAuthenticated) {
@@ -1015,7 +1015,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         variant="ghost"
                         size="sm"
                         disabled={isGlobalView}
-                        className={`text-[color:var(--text-secondary)] hover:text-orange-300 disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-orange-300" : ""}`}
+                        className={`text-[color:var(--text-secondary)] hover:text-ts-orange disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-ts-orange" : ""}`}
                         onClick={() => handleToggleSavePost(post.id)}
                         data-testid={`button-save-${post.id}`}
                       >
@@ -1025,7 +1025,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </div>
 
                     {post.type === "recommendation_request" && (
-                      <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                      <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                         Recommend Someone
                       </Button>
                     )}
@@ -1056,7 +1056,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     }
 
                     return (
-                      <div className="mt-2 text-[11px] text-slate-400">{parts.join(" | ")}</div>
+                      <div className="mt-2 text-[11px] text-white/60">{parts.join(" | ")}</div>
                     );
                   })()}
 
@@ -1113,19 +1113,19 @@ const CommunityFeed = memo(function CommunityFeed() {
       case "project_showcase":
         return <Crown className="h-4 w-4 text-yellow-400" />;
       case "recommendation_request":
-        return <MessageSquare className="h-4 w-4 text-orange-400" />;
+        return <MessageSquare className="h-4 w-4 text-ts-orange" />;
       case "promotion":
         return <TrendingUp className="h-4 w-4 text-green-400" />;
       case "community_highlight":
-        return <Trophy className="h-4 w-4 text-orange-400" />;
+        return <Trophy className="h-4 w-4 text-ts-orange" />;
       case "discussion":
-        return <MessageSquare className="h-4 w-4 text-orange-400" />;
+        return <MessageSquare className="h-4 w-4 text-ts-orange" />;
       case "poll":
         return <BarChart3 className="h-4 w-4 text-purple-400" />;
       case "announcement":
         return <Flag className="h-4 w-4 text-red-400" />;
       default:
-        return <MessageSquare className="h-4 w-4 text-gray-400" />;
+        return <MessageSquare className="h-4 w-4 text-white/60" />;
     }
   };
 
@@ -1301,7 +1301,7 @@ const CommunityFeed = memo(function CommunityFeed() {
             <CardContent className="p-3 md:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-orange-300">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-ts-orange">
                     Community
                   </p>
                   <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
@@ -1310,7 +1310,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
                     Ask, recommend, and coordinate with people in your area.
                   </p>
-                  <p className="mt-1 text-[11px] md:text-xs text-slate-400">
+                  <p className="mt-1 text-[11px] md:text-xs text-white/60">
                     Active today: {communityStats.activeToday} | Posts today:{" "}
                     {communityStats.postsToday}
                   </p>
@@ -1320,13 +1320,13 @@ const CommunityFeed = memo(function CommunityFeed() {
               <div className="mt-3 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
                 <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
                   <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Members</p>
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">Members</p>
                     <p className="text-sm font-semibold text-white">
                       {communityStats.totalMembers}
                     </p>
                   </div>
                   <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">
                       Verified pros
                     </p>
                     <p className="text-sm font-semibold text-white">
@@ -1334,19 +1334,19 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </p>
                   </div>
                   <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Recs (7d)</p>
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">Recs (7d)</p>
                     <p className="text-sm font-semibold text-white">
                       {communityStats.recommendations7d ?? 0}
                     </p>
                   </div>
                   <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Help (7d)</p>
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">Help (7d)</p>
                     <p className="text-sm font-semibold text-white">
                       {communityStats.helpRequests7d ?? 0}
                     </p>
                   </div>
                   <div className="snap-start shrink-0 w-[148px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">
                       Median reply (7d)
                     </p>
                     <p className="text-sm font-semibold text-white">
@@ -1358,10 +1358,10 @@ const CommunityFeed = memo(function CommunityFeed() {
 
               {activeNeighbors.length > 0 && (
                 <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/60">
                     Active now
                   </div>
-                  <div className="text-[11px] text-slate-400">{activeNeighbors.length}</div>
+                  <div className="text-[11px] text-white/60">{activeNeighbors.length}</div>
                 </div>
               )}
               {activeNeighbors.length > 0 && (
@@ -1390,13 +1390,13 @@ const CommunityFeed = memo(function CommunityFeed() {
                           className="shrink-0 flex flex-col items-center gap-1 w-[54px]"
                           title={neighbor.name}
                         >
-                          <Avatar className="h-11 w-11 ring-1 ring-orange-500/25">
+                          <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70">
                             <AvatarImage src={neighbor.avatar} />
                             <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
                               {fallback}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="w-full text-[10px] text-slate-400 text-center truncate">
+                          <div className="w-full text-[10px] text-white/60 text-center truncate">
                             {String(neighbor.name || "Neighbor")}
                           </div>
                         </div>
@@ -1415,7 +1415,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 aria-pressed={!isGlobalView}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   !isGlobalView
-                    ? "bg-orange-500 text-white"
+                    ? "bg-ts-orange text-white"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                 }`}
               >
@@ -1427,7 +1427,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 aria-pressed={isGlobalView}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   isGlobalView
-                    ? "bg-orange-500 text-white"
+                    ? "bg-ts-orange text-white"
                     : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                 }`}
               >
@@ -1592,7 +1592,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 title={intent}
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                                   selectedCategory === key
-                                    ? "bg-orange-500 text-white"
+                                    ? "bg-ts-orange text-white"
                                     : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
                                 }`}
                               >
@@ -1625,7 +1625,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                           {!hasUserPosts && (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
+                              <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-wide">
                                 <MessageSquare className="h-3 w-3" />
                                 <span>Ask your neighbors</span>
                               </div>
@@ -1676,7 +1676,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             </div>
 
                             <Button
-                              className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
+                              className="bg-ts-orange hover:bg-ts-orange-dark w-full sm:w-auto"
                               onClick={handleCreatePost}
                               disabled={!newPostContent.trim() || createPostMutation.isPending}
                               data-testid="button-submit-post"
@@ -1736,7 +1736,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     {trendingTopics.slice(0, 8).map((topic) => (
                       <span
                         key={topic.tag}
-                        className="inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[11px] text-orange-200"
+                        className="inline-flex items-center rounded-full border border-ts-orange/30 bg-ts-orange/10 px-2.5 py-1 text-[11px] text-ts-orange"
                       >
                         #{topic.tag}
                       </span>

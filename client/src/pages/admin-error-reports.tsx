@@ -105,7 +105,7 @@ export default function AdminErrorReports() {
       case "medium":
         return "bg-yellow-500/20 text-yellow-500";
       case "high":
-        return "bg-orange-500/20 text-orange-500";
+        return "bg-ts-orange/20 text-ts-orange";
       case "critical":
         return "bg-red-500/20 text-red-500";
       default:

@@ -259,7 +259,7 @@ export default function RealtorCalculator() {
               <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <PiggyBank className="h-5 w-5 text-orange-500" />
+                    <PiggyBank className="h-5 w-5 text-ts-orange" />
                     Financial Information
                   </CardTitle>
                 </CardHeader>
@@ -306,14 +306,14 @@ export default function RealtorCalculator() {
               <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Home className="h-5 w-5 text-orange-500" />
+                    <Home className="h-5 w-5 text-ts-orange" />
                     Home Affordability
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center p-6 bg-orange-500/10 rounded-lg mb-6">
+                  <div className="text-center p-6 bg-ts-orange/10 rounded-lg mb-6">
                     <p className="text-sm text-muted-foreground mb-2">Maximum Home Price</p>
-                    <p className="text-4xl font-bold text-orange-500">${maxHomePrice.toLocaleString()}</p>
+                    <p className="text-4xl font-bold text-ts-orange">${maxHomePrice.toLocaleString()}</p>
                   </div>
 
                   <div className="space-y-4 text-foreground">
@@ -323,7 +323,7 @@ export default function RealtorCalculator() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Max Housing Payment</span>
-                      <span className="text-orange-500">${maxMonthlyPayment.toFixed(2)}</span>
+                      <span className="text-ts-orange">${maxMonthlyPayment.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Max Loan Amount</span>

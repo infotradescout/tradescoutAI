@@ -1115,14 +1115,14 @@ export default function AdminUsers() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-navy-600 text-gray-200 hover:bg-navy-700"
+                  className="border-white/10 text-white/70 hover:bg-tsCard"
                   onClick={exportFilteredToCsv}
                   disabled={!filteredUsers.length}
                 >
                   Export CSV
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-3 text-[11px] text-gray-400">
+              <div className="flex flex-wrap gap-3 text-[11px] text-white/60">
                 <span className="flex items-center gap-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                   Verified
@@ -1140,7 +1140,7 @@ export default function AdminUsers() {
                   Address verified
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 rounded-full bg-slate-600" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-white/10" />
                   Address not verified
                 </span>
               </div>
@@ -1149,8 +1149,8 @@ export default function AdminUsers() {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
-                <p className="text-gray-300 mt-2">Loading users...</p>
+                <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-white/70 mt-2">Loading users...</p>
               </div>
             ) : (
               <div className="overflow-x-auto">

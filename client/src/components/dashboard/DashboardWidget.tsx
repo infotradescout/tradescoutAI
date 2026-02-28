@@ -65,11 +65,11 @@ export function DashboardWidget({
   };
 
   return (
-    <Card className={`bg-navy-800 border-navy-600 hover:border-orange-500/50 transition-all duration-300 ${status ? statusStyles[status] : ''} ${className}`}>
+    <Card className={`bg-tsCard border-white/10 hover:border-ts-orange/30 transition-all duration-300 ${status ? statusStyles[status] : ''} ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-white flex items-center justify-between text-lg">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-500/20 rounded-lg">
+            <div className="p-2 bg-ts-orange/20 rounded-lg">
               {icon}
             </div>
             <span>{title}</span>
@@ -90,7 +90,7 @@ export function DashboardWidget({
           <div>
             <div className="text-3xl font-bold text-white">{value}</div>
             {subtitle && (
-              <div className="text-sm text-gray-400 mt-1">{subtitle}</div>
+              <div className="text-sm text-white/60 mt-1">{subtitle}</div>
             )}
           </div>
           
@@ -119,7 +119,7 @@ export function DashboardWidget({
             <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-400' : 'text-red-400'}`}>
               {trend.isPositive ? '+' : ''}{trend.value}%
             </span>
-            <span className="text-sm text-gray-400">{trend.label}</span>
+            <span className="text-sm text-white/60">{trend.label}</span>
           </div>
         )}
 
@@ -135,7 +135,7 @@ export function DashboardWidget({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="w-full mt-4 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 border border-orange-500/30 hover:border-orange-500/50"
+            className="w-full mt-4 text-ts-orange hover:text-ts-orange hover:bg-ts-orange/10 border border-ts-orange/30 hover:border-ts-orange/30"
             asChild
           >
             <a href={actionHref} className="flex items-center justify-center gap-2">
@@ -156,7 +156,7 @@ export function LeadsWidget({ count, newToday }: { count: number; newToday: numb
       title="Active Connections"
       value={count}
       subtitle="Total inquiries"
-      icon={<Users className="h-5 w-5 text-orange-400" />}
+      icon={<Users className="h-5 w-5 text-ts-orange" />}
       trend={newToday > 0 ? {
         value: newToday,
         isPositive: true,
@@ -177,7 +177,7 @@ export function RevenueWidget({ amount, monthlyChange }: { amount: number; month
       title="Monthly Revenue"
       value={`$${amount.toLocaleString()}`}
       subtitle="This month"
-      icon={<DollarSign className="h-5 w-5 text-orange-400" />}
+      icon={<DollarSign className="h-5 w-5 text-ts-orange" />}
       trend={{
         value: Math.abs(monthlyChange),
         isPositive: monthlyChange >= 0,
@@ -198,7 +198,7 @@ export function RatingWidget({ rating, recommendationCount }: { rating: number; 
       title="Customer Rating"
       value={`${rating.toFixed(1)} ⭐`}
       subtitle={`From ${recommendationCount} RECOMMENDATIONS`}
-      icon={<Star className="h-5 w-5 text-orange-400" />}
+      icon={<Star className="h-5 w-5 text-ts-orange" />}
       status={rating >= 4.5 ? 'success' : rating >= 4.0 ? 'warning' : 'danger'}
       tooltipContent="Your reputation score - like your Better Business Bureau rating but for the digital age"
       tooltipIllustration="paintbrush"
@@ -214,7 +214,7 @@ export function MessagesWidget({ unreadCount }: { unreadCount: number }) {
       title="Messages"
       value={unreadCount}
       subtitle="Unread messages"
-      icon={<MessageSquare className="h-5 w-5 text-orange-400" />}
+      icon={<MessageSquare className="h-5 w-5 text-ts-orange" />}
       status={unreadCount > 5 ? 'warning' : unreadCount > 0 ? 'info' : 'success'}
       tooltipContent="Stay on top of customer communication - quick responses win more jobs than low prices"
       tooltipIllustration="hammer"
@@ -230,7 +230,7 @@ export function ScheduleWidget({ upcomingJobs }: { upcomingJobs: number }) {
       title="Upcoming Jobs"
       value={upcomingJobs}
       subtitle="Next 7 days"
-      icon={<Calendar className="h-5 w-5 text-orange-400" />}
+      icon={<Calendar className="h-5 w-5 text-ts-orange" />}
       status={upcomingJobs > 0 ? 'success' : 'info'}
       tooltipContent="Your work schedule - like your project calendar but smarter about timing and resources"
       tooltipIllustration="drill"
@@ -238,7 +238,7 @@ export function ScheduleWidget({ upcomingJobs }: { upcomingJobs: number }) {
       actionHref="/project-tracker"
     >
       {upcomingJobs === 0 && (
-        <Badge variant="outline" className="text-orange-300 border-orange-500/30">
+        <Badge variant="outline" className="text-ts-orange border-ts-orange/30">
           Schedule is clear
         </Badge>
       )}

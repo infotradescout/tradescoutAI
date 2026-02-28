@@ -222,7 +222,7 @@ export default function RecommendationGenerator() {
       case "below_average":
         return "text-red-600";
       default:
-        return "text-gray-600";
+        return "text-white/60";
     }
   };
 
@@ -250,16 +250,16 @@ export default function RecommendationGenerator() {
       case "low":
         return "bg-green-100 text-green-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-white/5 text-white/70";
     }
   };
 
   if (!user) {
     return (
       <div className="p-6 text-center">
-        <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
-        <p className="text-gray-600">Please log in to access the recommendation generator.</p>
+        <AlertCircle className="mx-auto h-12 w-12 text-white/60 mb-4" />
+        <h3 className="text-lg font-medium text-white mb-2">Authentication Required</h3>
+        <p className="text-white/60">Please log in to access the recommendation generator.</p>
       </div>
     );
   }
@@ -269,12 +269,12 @@ export default function RecommendationGenerator() {
       <div className="flex justify-between items-center">
         <div>
           <h1
-            className="text-3xl font-bold text-gray-900"
+            className="text-3xl font-bold text-white"
             data-testid="title-recommendation-generator"
           >
             Smart Recommendation Generator
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-white/60 mt-2">
             Strengthen your business with data-driven insights and automated recommendation
             campaigns
           </p>
@@ -307,11 +307,11 @@ export default function RecommendationGenerator() {
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                    <div className="h-3 bg-white/10 rounded w-1/2"></div>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-20 bg-gray-200 rounded"></div>
+                    <div className="h-20 bg-white/10 rounded"></div>
                   </CardContent>
                 </Card>
               ))}
@@ -404,7 +404,7 @@ export default function RecommendationGenerator() {
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           Keep building your reputation to unlock strengths!
                         </p>
                       )}
@@ -433,7 +433,7 @@ export default function RecommendationGenerator() {
                           </Badge>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           Great job! No immediate improvement areas identified.
                         </p>
                       )}
@@ -469,8 +469,8 @@ export default function RecommendationGenerator() {
                             {rec.impact} impact
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{rec.suggestion}</p>
-                        <p className="text-xs text-gray-500">Timeframe: {rec.timeframe}</p>
+                        <p className="text-sm text-white/60">{rec.suggestion}</p>
+                        <p className="text-xs text-white/60">Timeframe: {rec.timeframe}</p>
                       </div>
                     ))}
                   </div>
@@ -495,8 +495,8 @@ export default function RecommendationGenerator() {
                             {action.priority} priority
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">Impact: {action.impact}</p>
-                        <p className="text-xs text-gray-500">Difficulty: {action.difficulty}</p>
+                        <p className="text-sm text-white/60">Impact: {action.impact}</p>
+                        <p className="text-xs text-white/60">Difficulty: {action.difficulty}</p>
                       </div>
                     ))}
                   </div>
@@ -506,9 +506,9 @@ export default function RecommendationGenerator() {
           ) : (
             <Card>
               <CardContent className="text-center py-8">
-                <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
-                <p className="text-gray-600 mb-4">
+                <AlertCircle className="mx-auto h-12 w-12 text-white/60 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Data Available</h3>
+                <p className="text-white/60 mb-4">
                   We need some recommendation data to generate insights.
                 </p>
                 <Button onClick={() => refreshInsightsMutation.mutate()}>
@@ -523,7 +523,7 @@ export default function RecommendationGenerator() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold">Recommendation Goals</h2>
-              <p className="text-gray-600">Set and track your recommendation targets</p>
+              <p className="text-white/60">Set and track your recommendation targets</p>
             </div>
             <Dialog open={showNewGoalDialog} onOpenChange={setShowNewGoalDialog}>
               <DialogTrigger asChild>
@@ -549,9 +549,9 @@ export default function RecommendationGenerator() {
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardContent className="p-6">
-                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
-                    <div className="h-2 bg-gray-200 rounded w-full"></div>
+                    <div className="h-6 bg-white/10 rounded w-1/3 mb-2"></div>
+                    <div className="h-4 bg-white/10 rounded w-full mb-4"></div>
+                    <div className="h-2 bg-white/10 rounded w-full"></div>
                   </CardContent>
                 </Card>
               ))}
@@ -566,7 +566,7 @@ export default function RecommendationGenerator() {
                         <h3 className="font-semibold">
                           {goal.targetRecommendations} Recommendations Goal
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-white/60">
                           Target Rating: {goal.targetRating}/5.0 • Timeframe: {goal.targetTimeframe}
                         </p>
                       </div>
@@ -580,7 +580,7 @@ export default function RecommendationGenerator() {
                         <span>{goal.currentProgress}%</span>
                       </div>
                       <Progress value={parseFloat(goal.currentProgress)} className="w-full" />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-white/60">
                         Started with {goal.startingRecommendations} recommendations
                       </p>
                     </div>
@@ -591,9 +591,9 @@ export default function RecommendationGenerator() {
           ) : (
             <Card>
               <CardContent className="text-center py-8">
-                <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Goals Set</h3>
-                <p className="text-gray-600 mb-4">
+                <Target className="mx-auto h-12 w-12 text-white/60 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Goals Set</h3>
+                <p className="text-white/60 mb-4">
                   Create your first recommendation goal to start tracking progress.
                 </p>
                 <Button onClick={() => setShowNewGoalDialog(true)}>Set Your First Goal</Button>
@@ -606,7 +606,7 @@ export default function RecommendationGenerator() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold">Outreach Campaigns</h2>
-              <p className="text-gray-600">
+              <p className="text-white/60">
                 Automated campaigns to request recommendations from customers
               </p>
             </div>
@@ -634,9 +634,9 @@ export default function RecommendationGenerator() {
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardContent className="p-6">
-                    <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-6 bg-white/10 rounded w-1/2 mb-2"></div>
+                    <div className="h-4 bg-white/10 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-white/10 rounded w-3/4"></div>
                   </CardContent>
                 </Card>
               ))}
@@ -649,7 +649,7 @@ export default function RecommendationGenerator() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="font-semibold">{campaign.name}</h3>
-                        <p className="text-sm text-gray-600">{campaign.description}</p>
+                        <p className="text-sm text-white/60">{campaign.description}</p>
                       </div>
                       <div className="flex gap-2">
                         <Badge variant="outline">{campaign.campaignType.replace("_", " ")}</Badge>
@@ -658,7 +658,7 @@ export default function RecommendationGenerator() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-white/60">
                       <p>Target Customers: {campaign.targetCustomers.length}</p>
                       {campaign.frequency && <p>Frequency: {campaign.frequency}</p>}
                       <p>Created: {new Date(campaign.createdAt).toLocaleDateString()}</p>
@@ -670,9 +670,9 @@ export default function RecommendationGenerator() {
           ) : (
             <Card>
               <CardContent className="text-center py-8">
-                <Mail className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Campaigns Created</h3>
-                <p className="text-gray-600 mb-4">
+                <Mail className="mx-auto h-12 w-12 text-white/60 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Campaigns Created</h3>
+                <p className="text-white/60 mb-4">
                   Create your first outreach campaign to start gathering recommendations.
                 </p>
                 <Button onClick={() => setShowNewCampaignDialog(true)}>

@@ -21,7 +21,7 @@ export function WhyLink({ to, label = "Why?", className }: WhyLinkProps) {
       type="button"
       onClick={handleClick}
       className={cn(
-        "inline-flex items-center text-[11px] font-medium text-tsAccent hover:text-orange-400 underline-offset-2 hover:underline",
+        "inline-flex items-center text-[11px] font-medium text-ts-orange hover:text-ts-orange underline-offset-2 hover:underline",
         className,
       )}
     >

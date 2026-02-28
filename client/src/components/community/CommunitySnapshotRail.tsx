@@ -322,9 +322,9 @@ export const CommunitySnapshotRail: React.FC<{
           w-[104px] sm:w-[120px]
           h-[156px] sm:h-[168px]
           rounded-2xl border 
-          ${isActive ? "border-orange-500 ring-2 ring-orange-500/20" : "border-slate-800"}
-          ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : "bg-slate-950/50"}
-          hover:bg-slate-900/40 hover:border-slate-700
+          ${isActive ? "border-ts-orange/30 ring-2 ring-ts-orange/70" : "border-white/10"}
+          ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : "bg-black/30"}
+          hover:bg-tsCard/95 hover:border-white/10
           transition-all shadow-lg
           flex flex-col justify-between p-2 text-left 
           ${card.href || isFilter ? "cursor-pointer" : "cursor-default"}
@@ -336,8 +336,8 @@ export const CommunitySnapshotRail: React.FC<{
 
         {/* Card header */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/80 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-slate-200">
-            {card.icon && <span className="text-orange-400">{getCardIcon(card.icon)}</span>}
+          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-tsCard/95 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/70">
+            {card.icon && <span className="text-ts-orange">{getCardIcon(card.icon)}</span>}
             <span className="truncate">{card.label ?? "Snapshot"}</span>
           </div>
         </div>
@@ -347,7 +347,7 @@ export const CommunitySnapshotRail: React.FC<{
           <div className="text-[11px] sm:text-[12px] font-bold text-white leading-snug line-clamp-2">
             {card.title}
           </div>
-          <div className="text-[9px] sm:text-[10px] text-slate-300 leading-tight line-clamp-2">
+          <div className="text-[9px] sm:text-[10px] text-white/70 leading-tight line-clamp-2">
             {card.description}
           </div>
         </div>
@@ -355,7 +355,7 @@ export const CommunitySnapshotRail: React.FC<{
         {/* Minimal footer */}
         {isTradeDeal && card.canDirectConnect && (
           <div className="relative z-10 mt-2">
-            <div className="text-[10px] text-orange-400 font-medium">âš¡ Quick Connect</div>
+            <div className="text-[10px] text-ts-orange font-medium">âš¡ Quick Connect</div>
           </div>
         )}
       </div>
@@ -369,7 +369,7 @@ export const CommunitySnapshotRail: React.FC<{
         <button
           type="button"
           onClick={() => navigate("/trade-deals")}
-          className="text-xs text-slate-400 hover:text-white transition-colors"
+          className="text-xs text-white/60 hover:text-white transition-colors"
         >
           View all deals
         </button>
@@ -377,7 +377,7 @@ export const CommunitySnapshotRail: React.FC<{
 
       <div className="relative">
         {loading && (
-          <div className="text-sm text-slate-400 py-8 text-center">Loading snapshotâ€¦</div>
+          <div className="text-sm text-white/60 py-8 text-center">Loading snapshotâ€¦</div>
         )}
 
         {!loading && error && <div className="text-sm text-red-400 py-8 text-center">{error}</div>}
@@ -389,7 +389,7 @@ export const CommunitySnapshotRail: React.FC<{
         )}
       </div>
 
-      <div className="mt-3 border-b border-slate-900" />
+      <div className="mt-3 border-b border-white/10" />
     </div>
   );
 };

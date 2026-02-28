@@ -53,18 +53,18 @@ export default function ContractorDashboardSimple() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Contractor Dashboard</h1>
-          <p className="text-gray-300 text-lg">
+          <p className="text-white/70 text-lg">
             Manage your business, track performance, and grow revenue
           </p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Revenue</p>
+                  <p className="text-white/60 text-sm">Total Revenue</p>
                   <p className="text-3xl font-bold text-white">{stats.revenue}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-400" />
@@ -72,11 +72,11 @@ export default function ContractorDashboardSimple() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Average Rating</p>
+                  <p className="text-white/60 text-sm">Average Rating</p>
                   <p className="text-3xl font-bold text-white">{stats.rating}</p>
                 </div>
                 <Star className="h-8 w-8 text-yellow-400" />
@@ -84,11 +84,11 @@ export default function ContractorDashboardSimple() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Completed Jobs</p>
+                  <p className="text-white/60 text-sm">Completed Jobs</p>
                   <p className="text-3xl font-bold text-white">{stats.jobs}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-blue-400" />
@@ -96,11 +96,11 @@ export default function ContractorDashboardSimple() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Inquiries</p>
+                  <p className="text-white/60 text-sm">Total Inquiries</p>
                   <p className="text-3xl font-bold text-white">{stats.inquiries}</p>
                 </div>
                 <Users className="h-8 w-8 text-purple-400" />
@@ -110,13 +110,13 @@ export default function ContractorDashboardSimple() {
         </div>
 
         {/* Recent Inquiries */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm mb-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center justify-between">
               <span>Recent Project Inquiries</span>
               <Button
                 variant="outline"
-                className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
               >
                 View All
                 <ChevronRight className="h-4 w-4 ml-2" />
@@ -128,15 +128,15 @@ export default function ContractorDashboardSimple() {
               {recentInquiries.map((inquiry) => (
                 <div
                   key={inquiry.id}
-                  className="flex items-center justify-between p-4 bg-navy-700 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-tsCard rounded-lg"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-orange-600/20 rounded-lg flex items-center justify-center">
-                      <FileText className="h-6 w-6 text-orange-400" />
+                    <div className="w-12 h-12 bg-ts-orange-dark/20 rounded-lg flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-ts-orange" />
                     </div>
                     <div>
                       <h3 className="text-white font-semibold">{inquiry.project}</h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-2 text-sm text-white/60">
                         <span>{inquiry.homeowner}</span>
                         <span>•</span>
                         <span>{inquiry.location}</span>
@@ -150,7 +150,7 @@ export default function ContractorDashboardSimple() {
                       <Badge
                         className={
                           inquiry.status === "New"
-                            ? "bg-orange-600"
+                            ? "bg-ts-orange-dark"
                             : inquiry.status === "Quoted"
                               ? "bg-yellow-600"
                               : "bg-green-600"
@@ -163,7 +163,7 @@ export default function ContractorDashboardSimple() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                      className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                       onClick={() => (window.location.pathname = "/chat")}
                     >
                       <Phone className="h-4 w-4 mr-2" />
@@ -179,17 +179,17 @@ export default function ContractorDashboardSimple() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card
-            className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors"
+            className="bg-tsCard/50 border-white/10 backdrop-blur-sm cursor-pointer hover:border-ts-orange/30 transition-colors"
             data-tutorial="connections"
           >
             <CardContent className="p-6 text-center">
-              <Users className="h-12 w-12 text-orange-400 mx-auto mb-4" />
+              <Users className="h-12 w-12 text-ts-orange mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Manage Connections</h3>
-              <p className="text-gray-400 text-sm mb-4">
+              <p className="text-white/60 text-sm mb-4">
                 Review and respond to new customer inquiries
               </p>
               <Button
-                className="bg-orange-600 hover:bg-orange-700 w-full"
+                className="bg-ts-orange-dark hover:bg-ts-orange-dark w-full"
                 onClick={() => (window.location.pathname = "/finances")}
               >
                 View Connections
@@ -197,16 +197,16 @@ export default function ContractorDashboardSimple() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm cursor-pointer hover:border-ts-orange/30 transition-colors">
             <CardContent className="p-6 text-center">
               <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Customer Recommendations</h3>
-              <p className="text-gray-400 text-sm mb-4">
+              <p className="text-white/60 text-sm mb-4">
                 Manage recommendations and build your reputation
               </p>
               <Button
                 variant="outline"
-                className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full"
+                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20 w-full"
                 onClick={() => (window.location.pathname = "/recommendations")}
               >
                 View Recommendations
@@ -214,16 +214,16 @@ export default function ContractorDashboardSimple() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm cursor-pointer hover:border-orange-600 transition-colors">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm cursor-pointer hover:border-ts-orange/30 transition-colors">
             <CardContent className="p-6 text-center">
               <Clock className="h-12 w-12 text-blue-400 mx-auto mb-4" />
               <h3 className="text-white font-semibold mb-2">Schedule Jobs</h3>
-              <p className="text-gray-400 text-sm mb-4">
+              <p className="text-white/60 text-sm mb-4">
                 Manage your project timeline and appointments
               </p>
               <Button
                 variant="outline"
-                className="border-orange-600 text-orange-400 hover:bg-orange-600/20 w-full"
+                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20 w-full"
                 onClick={() => (window.location.pathname = "/schedule")}
               >
                 View Schedule

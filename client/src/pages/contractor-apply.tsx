@@ -128,13 +128,13 @@ export default function ContractorApply() {
           title="Create Contractor Account to Apply"
           description="Join TradeScout's verified contractor network and start receiving quality leads."
         >
-          <Card className="bg-navy-800 border-navy-700">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-12 text-center">
-              <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-ts-orange rounded-full flex items-center justify-center mx-auto mb-6">
                 <Shield className="h-10 w-10 text-white" />
               </div>
               <h2 className="text-3xl font-bold text-white mb-4">Apply to Join TradeScout</h2>
-              <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+              <p className="text-white/70 mb-8 max-w-2xl mx-auto">
                 Join thousands of verified contractors growing their business with TradeScout.
               </p>
             </CardContent>
@@ -148,7 +148,7 @@ export default function ContractorApply() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout's Contractor Network</h1>
-        <p className="text-xl text-gray-300 mb-6">
+        <p className="text-xl text-white/70 mb-6">
           Connect with qualified homeowners and grow your business
         </p>
         {fromScoutReview && (
@@ -165,16 +165,16 @@ export default function ContractorApply() {
         )}
 
         <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-8">
-          <div className="flex items-center gap-2 text-gray-300">
-            <Users className="h-5 w-5 text-orange-500" />
+          <div className="flex items-center gap-2 text-white/70">
+            <Users className="h-5 w-5 text-ts-orange" />
             <span className="text-sm md:text-base">10,000+ Active Homeowners</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-300">
-            <Star className="h-5 w-5 text-orange-500" />
+          <div className="flex items-center gap-2 text-white/70">
+            <Star className="h-5 w-5 text-ts-orange" />
             <span className="text-sm md:text-base">Premium Lead Quality</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-300">
-            <Shield className="h-5 w-5 text-orange-500" />
+          <div className="flex items-center gap-2 text-white/70">
+            <Shield className="h-5 w-5 text-ts-orange" />
             <span className="text-sm md:text-base">Verified Professional Network</span>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function ContractorApply() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Application Form */}
         <div className="lg:col-span-2">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white text-xl flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -201,7 +201,7 @@ export default function ContractorApply() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">Company Name *</Label>
+                      <Label className="text-white/70">Company Name *</Label>
                       <Input
                         value={formData.companyName}
                         onChange={(e) =>
@@ -212,7 +212,7 @@ export default function ContractorApply() {
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Contact Name *</Label>
+                      <Label className="text-white/70">Contact Name *</Label>
                       <Input
                         value={formData.contactName}
                         onChange={(e) =>
@@ -226,7 +226,7 @@ export default function ContractorApply() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">Email *</Label>
+                      <Label className="text-white/70">Email *</Label>
                       <Input
                         type="email"
                         value={formData.email}
@@ -238,7 +238,7 @@ export default function ContractorApply() {
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Phone *</Label>
+                      <Label className="text-white/70">Phone *</Label>
                       <Input
                         type="tel"
                         value={formData.phone}
@@ -252,7 +252,7 @@ export default function ContractorApply() {
                   </div>
 
                   <div>
-                    <Label className="text-gray-300">Business Address</Label>
+                    <Label className="text-white/70">Business Address</Label>
                     <Input
                       value={formData.address}
                       onChange={(e) =>
@@ -265,7 +265,7 @@ export default function ContractorApply() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-gray-300">City</Label>
+                      <Label className="text-white/70">City</Label>
                       <Input
                         value={formData.city}
                         onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
@@ -274,7 +274,7 @@ export default function ContractorApply() {
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">State</Label>
+                      <Label className="text-white/70">State</Label>
                       <Select
                         value={formData.state}
                         onValueChange={(value) =>
@@ -293,7 +293,7 @@ export default function ContractorApply() {
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-gray-300">ZIP Code</Label>
+                      <Label className="text-white/70">ZIP Code</Label>
                       <Input
                         value={formData.zipCode}
                         onChange={(e) =>
@@ -312,7 +312,7 @@ export default function ContractorApply() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">Primary Trade *</Label>
+                      <Label className="text-white/70">Primary Trade *</Label>
                       <Select
                         value={formData.primaryTrade}
                         onValueChange={(value) =>
@@ -333,7 +333,7 @@ export default function ContractorApply() {
                       </Select>
                     </div>
                     <div>
-                      <Label className="text-gray-300">Secondary Trades</Label>
+                      <Label className="text-white/70">Secondary Trades</Label>
                       <Input
                         value={formData.secondaryTrades}
                         onChange={(e) =>
@@ -347,7 +347,7 @@ export default function ContractorApply() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">License Number</Label>
+                      <Label className="text-white/70">License Number</Label>
                       <Input
                         value={formData.licenseNumber}
                         onChange={(e) =>
@@ -358,7 +358,7 @@ export default function ContractorApply() {
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Service Radius (miles)</Label>
+                      <Label className="text-white/70">Service Radius (miles)</Label>
                       <Input
                         type="number"
                         value={formData.serviceRadius}
@@ -375,7 +375,7 @@ export default function ContractorApply() {
                 {/* Contractor Type */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-white">Contractor Type</h3>
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-white/70 text-sm">
                     Select all that apply to describe your business
                   </p>
 
@@ -388,7 +388,7 @@ export default function ContractorApply() {
                           setFormData((prev) => ({ ...prev, isGeneralContractor: !!checked }))
                         }
                       />
-                      <Label htmlFor="generalContractor" className="text-gray-300">
+                      <Label htmlFor="generalContractor" className="text-white/70">
                         General Contractor - I manage complete construction projects and coordinate
                         with other trades
                       </Label>
@@ -402,7 +402,7 @@ export default function ContractorApply() {
                           setFormData((prev) => ({ ...prev, isResidentialContractor: !!checked }))
                         }
                       />
-                      <Label htmlFor="residentialContractor" className="text-gray-300">
+                      <Label htmlFor="residentialContractor" className="text-white/70">
                         Residential Contractor - I specialize in home improvement and residential
                         projects
                       </Label>
@@ -416,7 +416,7 @@ export default function ContractorApply() {
                           setFormData((prev) => ({ ...prev, acceptsSubcontractWork: !!checked }))
                         }
                       />
-                      <Label htmlFor="acceptsSubcontractWork" className="text-gray-300">
+                      <Label htmlFor="acceptsSubcontractWork" className="text-white/70">
                         Accept Subcontract Work - I'm available to work as a subcontractor for other
                         contractors
                       </Label>
@@ -430,7 +430,7 @@ export default function ContractorApply() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-gray-300">Years in Business</Label>
+                      <Label className="text-white/70">Years in Business</Label>
                       <Input
                         type="number"
                         value={formData.yearsInBusiness}
@@ -442,7 +442,7 @@ export default function ContractorApply() {
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Number of Employees</Label>
+                      <Label className="text-white/70">Number of Employees</Label>
                       <Input
                         type="number"
                         value={formData.employeeCount}
@@ -454,7 +454,7 @@ export default function ContractorApply() {
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Insurance Amount</Label>
+                      <Label className="text-white/70">Insurance Amount</Label>
                       <Input
                         value={formData.insuranceAmount}
                         onChange={(e) =>
@@ -467,7 +467,7 @@ export default function ContractorApply() {
                   </div>
 
                   <div>
-                    <Label className="text-gray-300">Website (optional)</Label>
+                    <Label className="text-white/70">Website (optional)</Label>
                     <Input
                       type="url"
                       value={formData.website}
@@ -480,7 +480,7 @@ export default function ContractorApply() {
                   </div>
 
                   <div>
-                    <Label className="text-gray-300">Company Description</Label>
+                    <Label className="text-white/70">Company Description</Label>
                     <Textarea
                       value={formData.description}
                       onChange={(e) =>
@@ -506,7 +506,7 @@ export default function ContractorApply() {
                           setFormData((prev) => ({ ...prev, hasLicense: !!checked }))
                         }
                       />
-                      <Label htmlFor="license" className="text-gray-300">
+                      <Label htmlFor="license" className="text-white/70">
                         I have a valid business license for my trade
                       </Label>
                     </div>
@@ -519,7 +519,7 @@ export default function ContractorApply() {
                           setFormData((prev) => ({ ...prev, hasInsurance: !!checked }))
                         }
                       />
-                      <Label htmlFor="insurance" className="text-gray-300">
+                      <Label htmlFor="insurance" className="text-white/70">
                         I have general liability insurance (minimum $500,000)
                       </Label>
                     </div>
@@ -532,7 +532,7 @@ export default function ContractorApply() {
                           setFormData((prev) => ({ ...prev, hasConsented: !!checked }))
                         }
                       />
-                      <Label htmlFor="consent" className="text-gray-300">
+                      <Label htmlFor="consent" className="text-white/70">
                         I agree to TradeScout's terms and contractor guidelines
                       </Label>
                     </div>
@@ -542,7 +542,7 @@ export default function ContractorApply() {
                 <Button
                   type="submit"
                   disabled={applicationMutation.isPending}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
+                  className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white py-3 rounded-lg font-semibold glow-effect transition-all duration-300"
                 >
                   {applicationMutation.isPending
                     ? "Submitting Application..."
@@ -556,50 +556,50 @@ export default function ContractorApply() {
 
         {/* Benefits Sidebar */}
         <div className="space-y-6">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white text-lg">Why Join TradeScout?</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-ts-orange rounded-full flex items-center justify-center flex-shrink-0">
                   <Users className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Quality Leads</h4>
-                  <p className="text-gray-300 text-sm">Pre-qualified homeowners ready to hire</p>
+                  <p className="text-white/70 text-sm">Pre-qualified homeowners ready to hire</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-ts-orange rounded-full flex items-center justify-center flex-shrink-0">
                   <MapPin className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Local Focus</h4>
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-white/70 text-sm">
                     County-based connection routing in your service area
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-ts-orange rounded-full flex items-center justify-center flex-shrink-0">
                   <Shield className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Professional Network</h4>
-                  <p className="text-gray-300 text-sm">Join verified, licensed contractors</p>
+                  <p className="text-white/70 text-sm">Join verified, licensed contractors</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-ts-orange rounded-full flex items-center justify-center flex-shrink-0">
                   <Star className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Build Your Reputation</h4>
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-white/70 text-sm">
                     Customer RECOMMENDATIONS and ratings system
                   </p>
                 </div>
@@ -607,36 +607,36 @@ export default function ContractorApply() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
+          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-ts-orange/30">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-white mb-2">Application Process</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">
+                  <div className="w-6 h-6 bg-ts-orange rounded-full flex items-center justify-center text-white text-xs">
                     1
                   </div>
-                  <span className="text-gray-300">Submit application</span>
+                  <span className="text-white/70">Submit application</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">
+                  <div className="w-6 h-6 bg-ts-orange rounded-full flex items-center justify-center text-white text-xs">
                     2
                   </div>
-                  <span className="text-gray-300">Document verification</span>
+                  <span className="text-white/70">Document verification</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">
+                  <div className="w-6 h-6 bg-ts-orange rounded-full flex items-center justify-center text-white text-xs">
                     3
                   </div>
-                  <span className="text-gray-300">Background check</span>
+                  <span className="text-white/70">Background check</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">
+                  <div className="w-6 h-6 bg-ts-orange rounded-full flex items-center justify-center text-white text-xs">
                     4
                   </div>
-                  <span className="text-gray-300">Welcome to network</span>
+                  <span className="text-white/70">Welcome to network</span>
                 </div>
               </div>
-              <p className="text-gray-300 text-xs mt-4">Typical approval time: 2-3 business days</p>
+              <p className="text-white/70 text-xs mt-4">Typical approval time: 2-3 business days</p>
             </CardContent>
           </Card>
         </div>

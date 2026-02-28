@@ -103,36 +103,36 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <Car className="h-8 w-8 text-orange-400" />
+          <Car className="h-8 w-8 text-ts-orange" />
           <h1 className="text-4xl font-bold text-white">Vehicle Marketplace</h1>
         </div>
-        <p className="text-gray-300 text-lg">
+        <p className="text-white/70 text-lg">
           Find quality pre-owned vehicles from trusted dealers in your area
         </p>
       </div>
 
       {/* Professional Seller Tools */}
-      <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+      <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm mb-8">
         <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-orange-400">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-ts-orange">
             <Car className="h-5 w-5" />
             Car Sales Professional Tools
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <a
               href="/car-salesman-dashboard"
-              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+              className="bg-tsCard/50 hover:bg-tsCard rounded-lg p-4 transition-all duration-300 group text-center"
             >
-              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 bg-ts-orange rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                 <Car className="h-5 w-5 text-white" />
               </div>
               <div className="text-sm font-medium text-white">Dashboard</div>
             </a>
             <a
               href="/car-sales-new-listing"
-              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+              className="bg-tsCard/50 hover:bg-tsCard rounded-lg p-4 transition-all duration-300 group text-center"
             >
-              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 bg-ts-orange rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                 <svg
                   className="h-5 w-5 text-white"
                   fill="none"
@@ -151,18 +151,18 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
             </a>
             <a
               href="/car-sales-customers"
-              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+              className="bg-tsCard/50 hover:bg-tsCard rounded-lg p-4 transition-all duration-300 group text-center"
             >
-              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 bg-ts-orange rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                 <Users className="h-5 w-5 text-white" />
               </div>
               <div className="text-sm font-medium text-white">Customers</div>
             </a>
             <a
               href="/car-sales-financing"
-              className="bg-navy-700/50 hover:bg-navy-700 rounded-lg p-4 transition-all duration-300 group text-center"
+              className="bg-tsCard/50 hover:bg-tsCard rounded-lg p-4 transition-all duration-300 group text-center"
             >
-              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 bg-ts-orange rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                 <svg
                   className="h-5 w-5 text-white"
                   fill="none"
@@ -184,21 +184,21 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
       </Card>
 
       {/* Search and Filters */}
-      <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+      <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm mb-8">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
               <Input
                 placeholder="Search vehicles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-navy-700 border-navy-600 text-white"
+                className="pl-10 bg-tsCard border-white/10 text-white"
               />
             </div>
 
             <Select value={priceRange} onValueChange={setPriceRange}>
-              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+              <SelectTrigger className="bg-tsCard border-white/10 text-white">
                 <SelectValue placeholder="Price Range" />
               </SelectTrigger>
               <SelectContent>
@@ -211,7 +211,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
             </Select>
 
             <Select value={vehicleType} onValueChange={setVehicleType}>
-              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+              <SelectTrigger className="bg-tsCard border-white/10 text-white">
                 <SelectValue placeholder="Vehicle Type" />
               </SelectTrigger>
               <SelectContent>
@@ -224,7 +224,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
             </Select>
 
             <Select value={location} onValueChange={setLocation}>
-              <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+              <SelectTrigger className="bg-tsCard border-white/10 text-white">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
@@ -238,8 +238,8 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <span className="text-gray-400 text-sm">{vehicles.length} vehicles found</span>
+            <Filter className="h-4 w-4 text-white/60" />
+            <span className="text-white/60 text-sm">{vehicles.length} vehicles found</span>
           </div>
         </CardContent>
       </Card>
@@ -250,7 +250,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
           ? vehicles.map((vehicle) => (
               <Card
                 key={vehicle.id}
-                className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors"
+                className="bg-tsCard/50 border-white/10 backdrop-blur-sm hover:bg-tsCard/50 transition-colors"
               >
                 <CardHeader className="p-0">
                   <div className="relative">
@@ -260,7 +260,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                       className="w-full h-48 object-cover rounded-t-lg"
                     />
                     <div className="absolute top-4 left-4">
-                      <Badge className="bg-orange-600 hover:bg-orange-700">
+                      <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                         {vehicle.condition}
                       </Badge>
                     </div>
@@ -279,12 +279,12 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h2 className="text-xl font-semibold text-white mb-1">{vehicle.title}</h2>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         {vehicle.year} {vehicle.make} {vehicle.model}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-orange-400">{vehicle.price}</p>
+                      <p className="text-2xl font-bold text-ts-orange">{vehicle.price}</p>
                       <div className="flex items-center gap-1 justify-end mt-1">
                         <Star className="h-4 w-4 text-yellow-400 fill-current" />
                         <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
@@ -293,36 +293,36 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                    <div className="flex items-center gap-2 text-gray-300">
+                    <div className="flex items-center gap-2 text-white/70">
                       <Calendar className="h-4 w-4" />
                       {vehicle.year}
                     </div>
-                    <div className="flex items-center gap-2 text-gray-300">
+                    <div className="flex items-center gap-2 text-white/70">
                       <MapPin className="h-4 w-4" />
                       {vehicle.mileage} miles
                     </div>
-                    <div className="flex items-center gap-2 text-gray-300">
+                    <div className="flex items-center gap-2 text-white/70">
                       <Fuel className="h-4 w-4" />
                       {vehicle.fuel}
                     </div>
-                    <div className="flex items-center gap-2 text-gray-300">
+                    <div className="flex items-center gap-2 text-white/70">
                       <Users className="h-4 w-4" />
                       {vehicle.transmission}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <div className="flex items-center gap-2 text-white/60 text-sm">
                       <MapPin className="h-4 w-4" />
                       {vehicle.location}
                     </div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-white/60 text-sm">
                       {vehicle.views} views • {vehicle.saved} saved
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-gray-400 text-sm mb-2">Key Features:</p>
+                    <p className="text-white/60 text-sm mb-2">Key Features:</p>
                     <div className="flex flex-wrap gap-1">
                       {vehicle.features.slice(0, 3).map((feature, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
@@ -338,20 +338,20 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                    <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
                       Request Quote
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1 border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                      className="flex-1 border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                     >
                       View Details
                     </Button>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-navy-600">
-                    <p className="text-gray-400 text-sm">
-                      Listed by <span className="text-orange-400">{vehicle.dealer}</span>
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <p className="text-white/60 text-sm">
+                      Listed by <span className="text-ts-orange">{vehicle.dealer}</span>
                     </p>
                   </div>
                 </CardContent>
@@ -362,7 +362,7 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
 
       {/* Load More */}
       <div className="text-center mt-8">
-        <Button className="bg-orange-600 hover:bg-orange-700 px-8">Load More Vehicles</Button>
+        <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark px-8">Load More Vehicles</Button>
       </div>
     </VehicleMarketplaceShell>
   );

@@ -75,10 +75,10 @@ export function AuthButtons({
   };
 
   return (
-    <Card className={`bg-navy-800 border-navy-700 ${className}`}>
+    <Card className={`bg-tsCard border-white/10 ${className}`}>
       <CardHeader className="text-center">
         <CardTitle className="text-white text-xl">{title}</CardTitle>
-        <CardDescription className="text-gray-300">{description}</CardDescription>
+        <CardDescription className="text-white/70">{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Social Login Buttons */}
@@ -97,7 +97,7 @@ export function AuthButtons({
             <Button
               onClick={handleGoogleLogin}
               variant="outline"
-              className="w-full border-gray-600 text-gray-200 hover:bg-gray-700 font-medium py-3 md:py-6 text-sm md:text-base"
+              className="w-full border-white/15 text-white/70 hover:bg-white/10 font-medium py-3 md:py-6 text-sm md:text-base"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path
@@ -124,9 +124,9 @@ export function AuthButtons({
 
         {/* Divider */}
         <div className="relative">
-          <Separator className="bg-navy-600" />
+          <Separator className="bg-tsCard" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-navy-800 px-3 text-sm text-gray-400">or</span>
+            <span className="bg-tsCard px-3 text-sm text-white/60">or</span>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export function AuthButtons({
           {showSignUp && (
             <Button
               onClick={handleEmailSignUp}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-6 text-base"
+              className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white font-medium py-6 text-base"
             >
               <UserPlus className="w-5 h-5 mr-3" />
               Create Account with Email
@@ -145,7 +145,7 @@ export function AuthButtons({
           <Button
             onClick={handleEmailLogin}
             variant="outline"
-            className="w-full border-navy-600 text-gray-200 hover:bg-navy-700 font-medium py-6 text-base"
+            className="w-full border-white/10 text-white/70 hover:bg-tsCard font-medium py-6 text-base"
           >
             <LogIn className="w-5 h-5 mr-3" />
             Sign In with Email
@@ -156,16 +156,16 @@ export function AuthButtons({
         {showGuestOption && (
           <>
             <div className="relative">
-              <Separator className="bg-navy-600" />
+              <Separator className="bg-tsCard" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-navy-800 px-3 text-sm text-gray-400">or</span>
+                <span className="bg-tsCard px-3 text-sm text-white/60">or</span>
               </div>
             </div>
 
             <Button
               variant="ghost"
               onClick={onGuestContinue}
-              className="w-full text-gray-400 hover:text-white hover:bg-navy-700 py-4"
+              className="w-full text-white/60 hover:text-white hover:bg-tsCard py-4"
             >
               Continue as Guest
               <span className="text-xs ml-2">(Limited access)</span>
@@ -174,13 +174,13 @@ export function AuthButtons({
         )}
 
         {/* Terms */}
-        <p className="text-xs text-gray-400 text-center leading-relaxed">
+        <p className="text-xs text-white/60 text-center leading-relaxed">
           By continuing, you agree to TradeScout's{" "}
-          <a href="/terms" className="text-orange-400 hover:text-orange-300">
+          <a href="/terms" className="text-ts-orange hover:text-ts-orange">
             Terms of Service
           </a>{" "}
           and{" "}
-          <a href="/privacy" className="text-orange-400 hover:text-orange-300">
+          <a href="/privacy" className="text-ts-orange hover:text-ts-orange">
             Privacy Policy
           </a>
         </p>

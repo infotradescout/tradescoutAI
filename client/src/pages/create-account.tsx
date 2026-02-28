@@ -348,8 +348,8 @@ export default function CreateAccountPortal() {
             <div className="inline-flex items-center gap-2 justify-center mb-4">
               <TradeScoutLogo size="md" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">TradeScout</h1>
-            <p className="text-sm text-slate-600 mt-1">Make claims. Prove them. Build trust.</p>
+            <h1 className="text-2xl font-bold text-white/70">TradeScout</h1>
+            <p className="text-sm text-white/60 mt-1">Make claims. Prove them. Build trust.</p>
           </div>
 
           <Card className="border-0 shadow-lg">
@@ -358,8 +358,8 @@ export default function CreateAccountPortal() {
               {step === 1 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">Create Your Account</h2>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white/70">Create Your Account</h2>
+                    <p className="text-sm text-white/60 mt-1">
                       Start by protecting your account with a strong password.
                     </p>
                   </div>
@@ -470,7 +470,7 @@ export default function CreateAccountPortal() {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-700"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/60 hover:text-white/70"
                         >
                           {showPassword ? "Hide" : "Show"}
                         </button>
@@ -479,7 +479,7 @@ export default function CreateAccountPortal() {
                         <p className="text-xs text-red-600 mt-1">{basicErrors.password.message}</p>
                       )}
                       {passwordValue && (
-                        <div className="text-xs text-slate-600 mt-2 space-y-1">
+                        <div className="text-xs text-white/60 mt-2 space-y-1">
                           <div>✓ At least 8 characters</div>
                           <div>{/[A-Z]/.test(passwordValue) ? "✓" : "•"} Uppercase letter</div>
                           <div>{/[a-z]/.test(passwordValue) ? "✓" : "•"} Lowercase letter</div>
@@ -509,7 +509,7 @@ export default function CreateAccountPortal() {
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-700"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/60 hover:text-white/70"
                         >
                           {showConfirmPassword ? "Hide" : "Show"}
                         </button>
@@ -535,7 +535,7 @@ export default function CreateAccountPortal() {
                           />
                         )}
                       />
-                      <label htmlFor="terms" className="text-xs text-slate-600 cursor-pointer">
+                      <label htmlFor="terms" className="text-xs text-white/60 cursor-pointer">
                         I accept the{" "}
                         <a href="/terms" className="text-blue-600 hover:underline">
                           Terms of Service
@@ -563,8 +563,8 @@ export default function CreateAccountPortal() {
               {step === 2 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">What's Your Role?</h2>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white/70">What's Your Role?</h2>
+                    <p className="text-sm text-white/60 mt-1">
                       Choose your primary role. You can add more profiles later.
                     </p>
                   </div>
@@ -574,10 +574,10 @@ export default function CreateAccountPortal() {
                     <button
                       type="button"
                       onClick={() => handleIntentSelect("person")}
-                      className="w-full p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
+                      className="w-full p-4 border-2 border-white/10 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
                     >
-                      <div className="font-semibold text-slate-900">Personal Profile</div>
-                      <p className="text-sm text-slate-600 mt-1">
+                      <div className="font-semibold text-white/70">Personal Profile</div>
+                      <p className="text-sm text-white/60 mt-1">
                         Homeowner, renter, or individual. Can hire contractors, post on marketplace,
                         and sell items locally.
                       </p>
@@ -587,10 +587,10 @@ export default function CreateAccountPortal() {
                     <button
                       type="button"
                       onClick={() => handleIntentSelect("business")}
-                      className="w-full p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
+                      className="w-full p-4 border-2 border-white/10 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
                     >
-                      <div className="font-semibold text-slate-900">Business Profile</div>
-                      <p className="text-sm text-slate-600 mt-1">
+                      <div className="font-semibold text-white/70">Business Profile</div>
+                      <p className="text-sm text-white/60 mt-1">
                         Service provider (contractor, cleaner, consultant) or established business
                         (restaurant, salon, retail).
                       </p>
@@ -614,8 +614,8 @@ export default function CreateAccountPortal() {
               {step === 3 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">Business Type</h2>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white/70">Business Type</h2>
+                    <p className="text-sm text-white/60 mt-1">
                       Which best describes your business?
                     </p>
                   </div>
@@ -625,10 +625,10 @@ export default function CreateAccountPortal() {
                     <button
                       type="button"
                       onClick={() => handleBusinessTypeSelect("service_provider")}
-                      className="w-full p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
+                      className="w-full p-4 border-2 border-white/10 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
                     >
-                      <div className="font-semibold text-slate-900">Service Provider</div>
-                      <p className="text-sm text-slate-600 mt-1">
+                      <div className="font-semibold text-white/70">Service Provider</div>
+                      <p className="text-sm text-white/60 mt-1">
                         Contractor, electrician, plumber, cleaner, consultant, handyman. Will need
                         license/insurance verification.
                       </p>
@@ -638,12 +638,12 @@ export default function CreateAccountPortal() {
                     <button
                       type="button"
                       onClick={() => handleBusinessTypeSelect("seller")}
-                      className="w-full p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
+                      className="w-full p-4 border-2 border-white/10 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
                     >
-                      <div className="font-semibold text-slate-900">
+                      <div className="font-semibold text-white/70">
                         Business Owner (Retail/Food Service)
                       </div>
-                      <p className="text-sm text-slate-600 mt-1">
+                      <p className="text-sm text-white/60 mt-1">
                         Restaurant, salon, online store, product company. Will need business
                         registration and tax ID verification.
                       </p>
@@ -666,8 +666,8 @@ export default function CreateAccountPortal() {
               {step === 4 && currentProfile.businessType === "service_provider" && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">What Services?</h2>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white/70">What Services?</h2>
+                    <p className="text-sm text-white/60 mt-1">
                       Select at least one. More detail can be added in your profile.
                     </p>
                   </div>
@@ -683,8 +683,8 @@ export default function CreateAccountPortal() {
               {step === 4 && currentProfile.businessType === "seller" && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">What Type of Business?</h2>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white/70">What Type of Business?</h2>
+                    <p className="text-sm text-white/60 mt-1">
                       Select your primary business type. (Personal marketplace access is available
                       with a personal profile.)
                     </p>
@@ -703,12 +703,12 @@ export default function CreateAccountPortal() {
               {step === 5 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">Profile Summary</h2>
-                    <p className="text-sm text-slate-600 mt-1 mb-4">
+                    <h2 className="text-xl font-semibold text-white/70">Profile Summary</h2>
+                    <p className="text-sm text-white/60 mt-1 mb-4">
                       {describeProfile(currentProfile as Profile)}
                     </p>
 
-                    <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700">
+                    <div className="bg-white/5 p-3 rounded-lg text-sm text-white/70">
                       <div>
                         <strong>Intent:</strong> {currentProfile.userIntent}
                       </div>
@@ -737,12 +737,12 @@ export default function CreateAccountPortal() {
 
                   {profiles.length > 0 && (
                     <div>
-                      <h3 className="font-semibold text-slate-900 mb-2">Your Profiles</h3>
+                      <h3 className="font-semibold text-white/70 mb-2">Your Profiles</h3>
                       <div className="space-y-2">
                         {profiles.map((p, i) => (
                           <div
                             key={i}
-                            className="flex items-center justify-between bg-slate-50 p-3 rounded-lg text-sm"
+                            className="flex items-center justify-between bg-white/5 p-3 rounded-lg text-sm"
                           >
                             <span>{describeProfile(p)}</span>
                             <button
@@ -793,19 +793,19 @@ export default function CreateAccountPortal() {
               {step === 6 && (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">Review Your Profiles</h2>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <h2 className="text-xl font-semibold text-white/70">Review Your Profiles</h2>
+                    <p className="text-sm text-white/60 mt-1">
                       Each profile will verify independently.
                     </p>
                   </div>
 
                   <div className="space-y-3 max-h-48 overflow-y-auto">
                     {profiles.map((p, i) => (
-                      <div key={i} className="bg-slate-50 p-3 rounded-lg text-sm">
-                        <div className="font-semibold text-slate-900">
+                      <div key={i} className="bg-white/5 p-3 rounded-lg text-sm">
+                        <div className="font-semibold text-white/70">
                           {i + 1}. {describeProfile(p)}
                         </div>
-                        <div className="text-slate-600 mt-1">{formatProfileDetails(p)}</div>
+                        <div className="text-white/60 mt-1">{formatProfileDetails(p)}</div>
                         <button
                           type="button"
                           onClick={() => {
@@ -848,7 +848,7 @@ export default function CreateAccountPortal() {
           </Card>
 
           {/* Sign In Link */}
-          <p className="text-center text-sm text-slate-600 mt-6">
+          <p className="text-center text-sm text-white/60 mt-6">
             Already have an account?{" "}
             <a
               href="/pre-scout-setup?mode=signin"
@@ -886,7 +886,7 @@ function ServiceSelectionStep({
     <div className="space-y-5">
       {Object.entries(SERVICE_CATEGORIES).map(([category, items]) => (
         <div key={category}>
-          <div className="text-sm font-semibold text-slate-700 mb-2 capitalize">
+          <div className="text-sm font-semibold text-white/70 mb-2 capitalize">
             {category.replace(/_/g, " ")}
           </div>
           <div className="space-y-2">
@@ -898,7 +898,7 @@ function ServiceSelectionStep({
                 className={`w-full text-left p-2 rounded border-2 transition flex items-center gap-2 ${
                   local.includes(item.id)
                     ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
+                    : "border-white/10 hover:border-white/10"
                 }`}
               >
                 <Checkbox
@@ -959,7 +959,7 @@ function SellerSelectionStep({
   return (
     <div className="space-y-5">
       <div>
-        <div className="text-sm font-semibold text-slate-700 mb-2">How Do You Sell?</div>
+        <div className="text-sm font-semibold text-white/70 mb-2">How Do You Sell?</div>
         <div className="space-y-2">
           {(["physical", "online", "hybrid"] as const).map((type) => (
             <button
@@ -969,7 +969,7 @@ function SellerSelectionStep({
               className={`w-full text-left p-2 rounded border-2 transition flex items-center gap-2 ${
                 localType === type
                   ? "border-blue-500 bg-blue-50"
-                  : "border-slate-200 hover:border-slate-300"
+                  : "border-white/10 hover:border-white/10"
               }`}
             >
               <Checkbox checked={localType === type} onCheckedChange={() => setLocalType(type)} />
@@ -982,12 +982,12 @@ function SellerSelectionStep({
       <Separator />
 
       <div>
-        <div className="text-sm font-semibold text-slate-700 mb-2">
+        <div className="text-sm font-semibold text-white/70 mb-2">
           Business Type (established business or retail)
         </div>
         {Object.entries(SELLER_CATEGORIES).map(([category, items]) => (
           <div key={category} className="mb-4">
-            <div className="text-xs font-semibold text-slate-600 mb-2 capitalize">
+            <div className="text-xs font-semibold text-white/60 mb-2 capitalize">
               {category.replace(/_/g, " ")}
             </div>
             <div className="space-y-2">
@@ -999,7 +999,7 @@ function SellerSelectionStep({
                   className={`w-full text-left p-2 rounded border-2 transition flex items-center gap-2 ${
                     local.includes(item.id)
                       ? "border-blue-500 bg-blue-50"
-                      : "border-slate-200 hover:border-slate-300"
+                      : "border-white/10 hover:border-white/10"
                   }`}
                 >
                   <Checkbox

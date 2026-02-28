@@ -51,7 +51,7 @@ export function SimpleFloatingHelp() {
               exit={{ opacity: 0, scale: 0.8, y: 10 }}
               className="absolute bottom-full right-0 mb-4 w-80"
             >
-              <Card className="bg-slate-800 border-slate-600 shadow-xl">
+              <Card className="bg-white/5 border-white/15 shadow-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white">Help & Tours</h3>
@@ -59,15 +59,15 @@ export function SimpleFloatingHelp() {
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsOpen(false)}
-                      className="text-gray-400 hover:text-white"
+                      className="text-white/60 hover:text-white"
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="border-b border-slate-600 pb-3">
-                      <h4 className="text-sm font-medium text-gray-300 mb-2">Quick Tours</h4>
+                    <div className="border-b border-white/15 pb-3">
+                      <h4 className="text-sm font-medium text-white/70 mb-2">Quick Tours</h4>
                       <div className="space-y-2">
                         {helpOptions.map((option) => (
                           <Button
@@ -75,13 +75,13 @@ export function SimpleFloatingHelp() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleStartTour(option.title)}
-                            className="w-full justify-start text-left h-auto p-2 text-white hover:bg-slate-700"
+                            className="w-full justify-start text-left h-auto p-2 text-white hover:bg-white/10"
                           >
                             <div className="flex items-center space-x-2">
                               <Play className="w-4 h-4 text-blue-400" />
                               <div>
                                 <div className="font-medium">{option.title}</div>
-                                <div className="text-xs text-gray-400">{option.description}</div>
+                                <div className="text-xs text-white/60">{option.description}</div>
                               </div>
                             </div>
                           </Button>
@@ -92,7 +92,7 @@ export function SimpleFloatingHelp() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full border-gray-500 text-gray-300 hover:bg-slate-700"
+                      className="w-full border-white/15 text-white/70 hover:bg-white/10"
                       onClick={() => {
                         toast({ title: "Opening help center..." });
                         setIsOpen(false);

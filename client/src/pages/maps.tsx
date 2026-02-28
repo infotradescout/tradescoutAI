@@ -300,9 +300,9 @@ export default function MapsPage() {
   if (!MAPS_V1_ENABLED) {
     return (
       <div className="mx-auto max-w-4xl p-4 md:p-6">
-        <div className="rounded-xl border border-tsBorder bg-tsSurface p-4">
+        <div className="rounded-xl border border-white/10 bg-tsCard p-4">
           <h1 className="text-lg font-semibold text-white">Maps is temporarily disabled</h1>
-          <p className="mt-1 text-sm text-tsTextMuted">
+          <p className="mt-1 text-sm text-white/60">
             This feature is disabled by configuration.
           </p>
         </div>
@@ -323,16 +323,16 @@ export default function MapsPage() {
 
   return (
     <div className="mx-auto max-w-7xl p-3 md:p-4 space-y-3">
-      <header className="rounded-xl border border-tsBorder bg-tsSurface p-3 md:p-4">
+      <header className="rounded-xl border border-white/10 bg-tsCard p-3 md:p-4">
         <h1 className="text-base md:text-lg font-semibold text-white">Local Map</h1>
-        <p className="text-xs md:text-sm text-tsTextMuted mt-1">
+        <p className="text-xs md:text-sm text-white/60 mt-1">
           Awareness map with opt-in profiles, deals, and external feeds.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
-          <label className="text-xs text-tsTextMuted">
+          <label className="text-xs text-white/60">
             Trade
             <select
-              className="mt-1 w-full rounded-md border border-tsBorder bg-tsBg px-2 py-2 text-sm text-white"
+              className="mt-1 w-full rounded-md border border-white/10 bg-tsBg px-2 py-2 text-sm text-white"
               value={trade}
               onChange={(event) => setTrade(event.target.value)}
             >
@@ -344,7 +344,7 @@ export default function MapsPage() {
               ))}
             </select>
           </label>
-          <label className="flex items-end gap-2 rounded-md border border-tsBorder bg-tsBg px-3 py-2">
+          <label className="flex items-end gap-2 rounded-md border border-white/10 bg-tsBg px-3 py-2">
             <input
               type="checkbox"
               checked={verifiedOnly}
@@ -352,8 +352,8 @@ export default function MapsPage() {
             />
             <span className="text-sm text-white">Verified only</span>
           </label>
-          <div className="rounded-md border border-tsBorder bg-tsBg px-3 py-2">
-            <div className="text-xs uppercase tracking-wide text-tsTextMuted">Layers</div>
+          <div className="rounded-md border border-white/10 bg-tsBg px-3 py-2">
+            <div className="text-xs uppercase tracking-wide text-white/60">Layers</div>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {(Object.keys(layers) as MapEntityType[]).map((key) => (
                 <label key={key} className="flex items-center gap-2 text-xs text-white">
@@ -369,29 +369,29 @@ export default function MapsPage() {
               ))}
             </div>
           </div>
-          <div className="rounded-md border border-tsBorder bg-tsBg px-3 py-2">
-            <div className="text-xs uppercase tracking-wide text-tsTextMuted">Pins</div>
+          <div className="rounded-md border border-white/10 bg-tsBg px-3 py-2">
+            <div className="text-xs uppercase tracking-wide text-white/60">Pins</div>
             <div className="text-sm text-white">{points.length}</div>
-            <div className="text-xs text-tsTextMuted">
+            <div className="text-xs text-white/60">
               {isFetching ? "Updating..." : "Live bounds"}
             </div>
           </div>
         </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-xl border border-tsBorder bg-black">
+      <section className="relative overflow-hidden rounded-xl border border-white/10 bg-black">
         <div ref={mapContainerRef} className="h-[62vh] min-h-[420px] w-full" />
       </section>
 
       {selectedPoint && (
-        <section className="rounded-xl border border-tsBorder bg-tsSurface p-3 md:p-4">
+        <section className="rounded-xl border border-white/10 bg-tsCard p-3 md:p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-white">{selectedPoint.title}</div>
               {selectedPoint.subtitle ? (
-                <div className="mt-1 text-xs text-tsTextMuted">{selectedPoint.subtitle}</div>
+                <div className="mt-1 text-xs text-white/60">{selectedPoint.subtitle}</div>
               ) : (
-                <div className="mt-1 text-xs text-tsTextMuted capitalize">
+                <div className="mt-1 text-xs text-white/60 capitalize">
                   {selectedPoint.type.replace(/_/g, " ")}
                 </div>
               )}
@@ -399,7 +399,7 @@ export default function MapsPage() {
             <button
               type="button"
               onClick={() => setSelectedPoint(null)}
-              className="rounded-md border border-tsBorder bg-tsBg px-2 py-1 text-xs text-white"
+              className="rounded-md border border-white/10 bg-tsBg px-2 py-1 text-xs text-white"
             >
               Close
             </button>
@@ -409,7 +409,7 @@ export default function MapsPage() {
             <div className="mt-3">
               <Link
                 href={`/request-quote?providerId=${encodeURIComponent(selectedPoint.id)}`}
-                className="inline-flex items-center rounded-md bg-orange-500 px-3 py-2 text-sm font-semibold text-black"
+                className="inline-flex items-center rounded-md bg-ts-orange px-3 py-2 text-sm font-semibold text-black"
               >
                 Request Quote
               </Link>

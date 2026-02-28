@@ -58,7 +58,7 @@ export function OrientationCard({
       {contextSource === "help" && (
         <div className="text-center mb-5 md:mb-6">
           <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-3">Help Center</h1>
-          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-base md:text-xl text-white/70 max-w-2xl mx-auto">
             {displayName
               ? `Hi ${displayName}, this is your hub for getting unstuck and making the most of TradeScout.`
               : "Get answers to your questions and learn how Scout and TradeScout work together for you."}
@@ -66,19 +66,19 @@ export function OrientationCard({
         </div>
       )}
 
-      <Card className="bg-navy-800/60 border-navy-600 mb-5 md:mb-8">
+      <Card className="bg-tsCard/60 border-white/10 mb-5 md:mb-8">
         <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
             <div className="flex-1">
               <div className="flex items-center space-x-2 md:space-x-3 mb-2">
-                <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-orange-500" />
+                <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-ts-orange" />
                 <h2 className="text-lg md:text-2xl font-bold text-white">What is TradeScout?</h2>
               </div>
-              <p className="text-sm md:text-base text-gray-200 mb-2 md:mb-3">
+              <p className="text-sm md:text-base text-white/70 mb-2 md:mb-3">
                 TradeScout is a local participation platform that connects people, services, and tools through verified community activity. Scout, the built-in community helper and site guide, helps you find people, organize projects, and move money and trust around your neighborhood without juggling ten different apps.
               </p>
-              <div className="mt-1 md:mt-2 text-xs md:text-sm text-gray-300 space-y-1.5">
-                <p className="font-semibold text-gray-200">Scout is especially useful if:</p>
+              <div className="mt-1 md:mt-2 text-xs md:text-sm text-white/70 space-y-1.5">
+                <p className="font-semibold text-white/70">Scout is especially useful if:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
                     If you're here to get projects done or keep up with maintenance, Scout helps you plan, compare, and coordinate locally.
@@ -95,7 +95,7 @@ export function OrientationCard({
             <div className="md:w-56 flex-shrink-0 flex flex-col gap-2">
               <Button
                 type="button"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-sm md:text-base"
+                className="w-full bg-ts-orange hover:bg-ts-orange-dark text-sm md:text-base"
                 onClick={handleTourClick}
               >
                 Ask Scout for a quick tour
@@ -103,14 +103,14 @@ export function OrientationCard({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-navy-600 text-gray-200 hover:bg-navy-700 text-xs md:text-sm"
+                className="w-full border-white/10 text-white/70 hover:bg-tsCard text-xs md:text-sm"
                 onClick={handleDummiesClick}
               >
                 "TradeScout for Dummies" in chat
               </Button>
-              <div className="mt-1.5 border-t border-navy-700 pt-1.5">
-                <p className="text-[11px] md:text-xs text-gray-400 mb-1">What Scout can do right now:</p>
-                <ul className="text-[11px] md:text-xs text-gray-400 space-y-0.5 list-disc list-inside">
+              <div className="mt-1.5 border-t border-white/10 pt-1.5">
+                <p className="text-[11px] md:text-xs text-white/60 mb-1">What Scout can do right now:</p>
+                <ul className="text-[11px] md:text-xs text-white/60 space-y-0.5 list-disc list-inside">
                   <li>Explain what you can do next based on your situation.</li>
                   <li>Help you find or offer services and people locally.</li>
                   <li>Walk you through tools and dashboards step-by-step.</li>

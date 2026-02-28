@@ -141,11 +141,11 @@ export function LegalFooter() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 justify-end">
             <button
               onClick={() => window.open("/privacy", "_blank")}
-              className="hover:text-orange-400 transition-colors"
+              className="hover:text-ts-orange transition-colors"
             >
               🍪 Cookie Preferences
             </button>
-            <Link href="/compliance" className="hover:text-orange-400 transition-colors">
+            <Link href="/compliance" className="hover:text-ts-orange transition-colors">
               Compliance Dashboard
             </Link>
           </div>

@@ -88,8 +88,8 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
     return {
       label: "Official Update",
       icon: <Info className="w-3.5 h-3.5" />,
-      className: "bg-orange-500/10 border-orange-400/50 text-orange-200",
-      accentClassName: "border-l-2 border-orange-400/70 pl-4",
+      className: "bg-ts-orange/10 border-ts-orange/30 text-ts-orange",
+      accentClassName: "border-l-2 border-ts-orange/30 pl-4",
       adminNotice: true,
     } as const;
   }
@@ -133,8 +133,8 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   return {
     label: "Update",
     icon: <MessageSquare className="w-3.5 h-3.5" />,
-    className: "bg-slate-500/10 border-slate-500/40 text-slate-200",
-    accentClassName: "border-l-2 border-slate-500/60 pl-4",
+    className: "bg-white/10 border-white/15 text-white/70",
+    accentClassName: "border-l-2 border-white/15 pl-4",
   } as const;
 }
 
@@ -343,12 +343,12 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   return (
     <>
       <Card
-        className={`bg-tsCard border border-tsBorder shadow-sm rounded-xl hover:border-orange-500/30 transition-all ${isAdminNotice ? "ring-1 ring-orange-400/40 bg-tsCard/95" : ""}`}
+        className={`bg-tsCard border border-white/10 shadow-sm rounded-xl hover:border-ts-orange/30 transition-all ${isAdminNotice ? "ring-1 ring-ts-orange/70 bg-tsCard/95" : ""}`}
       >
         <CardContent className="p-4 sm:p-5 space-y-3">
           {(isPinned || isTrending || isAdminNotice) && (
-            <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-orange-500/15 bg-orange-500/5 flex items-center gap-2 text-[11px] text-orange-200">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-orange-500/30">
+            <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-ts-orange/30 bg-ts-orange/5 flex items-center gap-2 text-[11px] text-ts-orange">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ts-orange/30">
                 {isPinned ? (
                   <Heart className="w-3 h-3" />
                 ) : isAdminNotice ? (
@@ -374,7 +374,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   href={`/community/u/${encodeURIComponent(post.author.id)}`}
                   className="flex gap-3 group cursor-pointer"
                 >
-                  <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40 group-hover:ring-orange-400/70">
+                  <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-ts-orange/70 group-hover:ring-ts-orange/70">
                     <AvatarImage src={post.author.avatar} />
                     <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
                       {post.author.name?.[0] || "U"}
@@ -382,11 +382,11 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   </Avatar>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white text-base group-hover:text-orange-300">
+                      <span className="font-semibold text-white text-base group-hover:text-ts-orange">
                         {post.author.name || "Anonymous"}
                       </span>
                       {post.author.role && (
-                        <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
+                        <span className="text-[0.7rem] uppercase tracking-[0.16em] text-white/60">
                           {post.author.role}
                         </span>
                       )}
@@ -394,7 +394,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         <Badge
                           variant="secondary"
                           className={`text-[10px] px-1.5 py-0.5 ${
-                            post.author.verified ? "text-green-300" : "text-slate-300"
+                            post.author.verified ? "text-green-300" : "text-white/70"
                           }`}
                           title={
                             post.author.verified
@@ -422,7 +422,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         </Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-white/60">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
                       >
@@ -436,7 +436,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           <MapPin className="w-3.5 h-3.5" />
                           <span>{post.location}</span>
                           {localityLabel && (
-                            <span className="ml-1 text-slate-500">· {localityLabel}</span>
+                            <span className="ml-1 text-white/60">· {localityLabel}</span>
                           )}
                         </span>
                       )}
@@ -453,7 +453,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 </Link>
               ) : (
                 <>
-                  <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40">
+                  <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-ts-orange/70">
                     <AvatarImage src={post.author?.avatar} />
                     <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
                       {post.author?.name?.[0] || "U"}
@@ -465,7 +465,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         {post.author?.name || "Anonymous"}
                       </span>
                       {post.author?.role && (
-                        <span className="text-[0.7rem] uppercase tracking-[0.16em] text-slate-400">
+                        <span className="text-[0.7rem] uppercase tracking-[0.16em] text-white/60">
                           {post.author.role}
                         </span>
                       )}
@@ -473,7 +473,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         <Badge
                           variant="secondary"
                           className={`text-[10px] px-1.5 py-0.5 ${
-                            post.author.verified ? "text-green-300" : "text-slate-300"
+                            post.author.verified ? "text-green-300" : "text-white/70"
                           }`}
                           title={
                             post.author.verified
@@ -501,7 +501,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         </Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-white/60">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${categoryMeta.className}`}
                       >
@@ -515,7 +515,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           <MapPin className="w-3.5 h-3.5" />
                           <span>{post.location}</span>
                           {localityLabel && (
-                            <span className="ml-1 text-slate-500">· {localityLabel}</span>
+                            <span className="ml-1 text-white/60">· {localityLabel}</span>
                           )}
                         </span>
                       )}
@@ -597,9 +597,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
           <div className={categoryMeta.accentClassName}>
             {post.title && (
-              <h3 className="text-base font-medium text-orange-400 mb-1">{post.title}</h3>
+              <h3 className="text-base font-medium text-ts-orange mb-1">{post.title}</h3>
             )}
-            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
               {post.content}
             </p>
             {post.imageUrls && post.imageUrls.length > 0 && (
@@ -607,7 +607,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 {post.imageUrls.slice(0, 6).map((url, index) => (
                   <div
                     key={url + index}
-                    className="relative w-full overflow-hidden rounded-md border border-tsBorder bg-tsBg/40"
+                    className="relative w-full overflow-hidden rounded-md border border-white/10 bg-tsBg/40"
                     style={{ paddingBottom: "70%" }}
                   >
                     <img
@@ -625,7 +625,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   <Badge
                     key={idx}
                     variant="secondary"
-                    className="text-[10px] bg-orange-500/10 border border-orange-500/30 text-orange-400 px-2 py-0.5"
+                    className="text-[10px] bg-ts-orange/10 border border-ts-orange/30 text-ts-orange px-2 py-0.5"
                   >
                     #{tag}
                   </Badge>
@@ -636,12 +636,12 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
           {!isAdminNotice && (
             <>
-              <Separator className="bg-tsBorder" />
-              <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium">
+              <Separator className="bg-white/10" />
+              <div className="flex items-center justify-between text-[11px] text-white/70 font-medium">
                 <span>{post.upvotes || 0} likes</span>
                 <span>{post.comments || 0} comments</span>
               </div>
-              <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-tsBorder rounded-lg bg-tsBg/40">
+              <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-white/10 rounded-lg bg-tsBg/40">
                 <button
                   onClick={handleLikeClick}
                   className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors"
@@ -649,12 +649,12 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   <Heart className="w-4 h-4" />
                   <span>Like</span>
                 </button>
-                <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder">
+                <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10">
                   <MessageSquare className="w-4 h-4" />
                   <span>Comment</span>
                 </button>
                 <button
-                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-tsBorder"
+                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
                   onClick={handleShareClick}
                 >
                   <Share2 className="w-4 h-4" />
@@ -675,9 +675,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               {/* Authority label - interpretive guidance from Scout */}
               {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
               {ENABLE_AUTHORITY_LABELS && post.authorityLabel && (
-                <div className="mt-3 pt-3 border-t border-tsBorder/50 flex items-start gap-2">
-                  <Info className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
-                  <span className="text-xs text-slate-400 italic leading-relaxed">
+                <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2">
+                  <Info className="h-4 w-4 text-white/60 mt-0.5 shrink-0" />
+                  <span className="text-xs text-white/60 italic leading-relaxed">
                     {post.authorityLabel}
                   </span>
                 </div>

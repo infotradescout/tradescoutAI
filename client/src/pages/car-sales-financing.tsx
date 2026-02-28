@@ -78,12 +78,12 @@ export default function CarSalesFinancing() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Financing Solutions</h1>
-              <p className="text-gray-400">Help customers secure the best auto loans</p>
+              <p className="text-white/60">Help customers secure the best auto loans</p>
             </div>
           </div>
 
           <Tabs defaultValue="calculator" className="space-y-6">
-            <TabsList className="bg-navy-800/50 border border-navy-600">
+            <TabsList className="bg-tsCard/50 border border-white/10">
               <TabsTrigger value="calculator">Payment Calculator</TabsTrigger>
               <TabsTrigger value="lenders">Partner Lenders</TabsTrigger>
               <TabsTrigger value="applications">Applications</TabsTrigger>
@@ -92,7 +92,7 @@ export default function CarSalesFinancing() {
             <TabsContent value="calculator" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Calculator Input */}
-                <Card className="bg-navy-800/50 border-navy-600">
+                <Card className="bg-tsCard/50 border-white/10">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Calculator className="h-5 w-5 text-green-400" />
@@ -108,7 +108,7 @@ export default function CarSalesFinancing() {
                         value={loanAmount}
                         onChange={(e) => setLoanAmount(e.target.value)}
                         placeholder="25000"
-                        className="bg-navy-700/50 border-navy-600"
+                        className="bg-tsCard/50 border-white/10"
                         data-testid="input-loan-amount"
                       />
                     </div>
@@ -121,7 +121,7 @@ export default function CarSalesFinancing() {
                         step="0.1"
                         value={interestRate}
                         onChange={(e) => setInterestRate(e.target.value)}
-                        className="bg-navy-700/50 border-navy-600"
+                        className="bg-tsCard/50 border-white/10"
                         data-testid="input-interest-rate"
                       />
                     </div>
@@ -133,7 +133,7 @@ export default function CarSalesFinancing() {
                         type="number"
                         value={loanTerm}
                         onChange={(e) => setLoanTerm(e.target.value)}
-                        className="bg-navy-700/50 border-navy-600"
+                        className="bg-tsCard/50 border-white/10"
                         data-testid="input-loan-term"
                       />
                     </div>
@@ -141,7 +141,7 @@ export default function CarSalesFinancing() {
                 </Card>
 
                 {/* Calculator Results */}
-                <Card className="bg-navy-800/50 border-navy-600">
+                <Card className="bg-tsCard/50 border-white/10">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-green-400" />
@@ -150,25 +150,25 @@ export default function CarSalesFinancing() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="text-center p-6 bg-green-500/10 rounded-lg">
-                      <p className="text-sm text-gray-400 mb-2">Monthly Payment</p>
+                      <p className="text-sm text-white/60 mb-2">Monthly Payment</p>
                       <p className="text-3xl font-bold text-green-400">${calculatePayment()}</p>
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Principal</span>
+                        <span className="text-white/60">Principal</span>
                         <span>${loanAmount || "0"}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Interest Rate</span>
+                        <span className="text-white/60">Interest Rate</span>
                         <span>{interestRate}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Term</span>
+                        <span className="text-white/60">Term</span>
                         <span>{loanTerm} months</span>
                       </div>
-                      <div className="flex justify-between border-t border-navy-700 pt-3">
-                        <span className="text-gray-400">Total Interest</span>
+                      <div className="flex justify-between border-t border-white/10 pt-3">
+                        <span className="text-white/60">Total Interest</span>
                         <span>
                           $
                           {(
@@ -193,7 +193,7 @@ export default function CarSalesFinancing() {
 
             <TabsContent value="lenders" className="space-y-4">
               {lenders.map((lender) => (
-                <Card key={lender.id} className="bg-navy-800/50 border-navy-600">
+                <Card key={lender.id} className="bg-tsCard/50 border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
@@ -202,7 +202,7 @@ export default function CarSalesFinancing() {
                         </div>
                         <div>
                           <h3 className="font-semibold text-lg">{lender.name}</h3>
-                          <p className="text-sm text-gray-400">{lender.type}</p>
+                          <p className="text-sm text-white/60">{lender.type}</p>
                         </div>
                       </div>
                       <Badge className="bg-green-600">{lender.status}</Badge>
@@ -210,7 +210,7 @@ export default function CarSalesFinancing() {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
-                        <p className="text-sm text-gray-400">Interest Rate</p>
+                        <p className="text-sm text-white/60">Interest Rate</p>
                         <p className="font-medium flex items-center gap-2">
                           <Percent className="h-4 w-4 text-green-400" />
                           {lender.rate}
@@ -218,7 +218,7 @@ export default function CarSalesFinancing() {
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Loan Terms</p>
+                        <p className="text-sm text-white/60">Loan Terms</p>
                         <p className="font-medium flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-blue-400" />
                           {lender.term}
@@ -226,15 +226,15 @@ export default function CarSalesFinancing() {
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Min Credit Score</p>
+                        <p className="text-sm text-white/60">Min Credit Score</p>
                         <p className="font-medium flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-orange-400" />
+                          <TrendingUp className="h-4 w-4 text-ts-orange" />
                           {lender.minCredit}+
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-sm text-gray-400">Approval Time</p>
+                        <p className="text-sm text-white/60">Approval Time</p>
                         <p className="font-medium flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-400" />
                           {lender.approval}
@@ -260,11 +260,11 @@ export default function CarSalesFinancing() {
             </TabsContent>
 
             <TabsContent value="applications">
-              <Card className="bg-navy-800/50 border-navy-600">
+              <Card className="bg-tsCard/50 border-white/10">
                 <CardContent className="p-8 text-center">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <FileText className="h-12 w-12 text-white/60 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Active Applications</h3>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-white/60 mb-6">
                     Customer financing applications will appear here
                   </p>
                   <Button

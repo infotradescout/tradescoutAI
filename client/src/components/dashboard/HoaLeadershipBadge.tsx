@@ -48,13 +48,13 @@ export function HoaLeadershipBadge({ className }: HoaLeadershipBadgeProps) {
       <CardContent className="flex items-center justify-between py-3 px-4 gap-3">
         <div className="flex items-center gap-2 min-w-0">
           {isLeadership ? (
-            <Shield className="h-4 w-4 text-orange-500 shrink-0" />
+            <Shield className="h-4 w-4 text-ts-orange shrink-0" />
           ) : (
-            <Home className="h-4 w-4 text-slate-400 shrink-0" />
+            <Home className="h-4 w-4 text-white/60 shrink-0" />
           )}
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">HOA Role</p>
-            <p className="text-sm font-medium text-slate-100 truncate">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">HOA Role</p>
+            <p className="text-sm font-medium text-white truncate">
               {primary.hoaName || 'Your HOA'}
             </p>
           </div>
@@ -68,7 +68,7 @@ export function HoaLeadershipBadge({ className }: HoaLeadershipBadgeProps) {
               <Button
                 variant="outline"
 		        size="sm"
-                className="h-7 px-2 text-[0.65rem] border-slate-600 text-slate-200 hover:border-orange-500 hover:text-white"
+                className="h-7 px-2 text-[0.65rem] border-white/15 text-white/70 hover:border-ts-orange/30 hover:text-white"
               >
                 <LayoutDashboard className="h-3 w-3 mr-1" />
                 Manage HOA

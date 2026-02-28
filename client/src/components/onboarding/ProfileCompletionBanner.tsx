@@ -61,14 +61,14 @@ export default function ProfileCompletionBanner() {
   return (
     <div className="fixed left-0 right-0 bottom-4 z-40 px-3 md:px-4 pointer-events-none">
       <div className="mx-auto max-w-3xl pointer-events-auto">
-        <Card className="border border-tsBorder bg-tsCard/95 shadow-[0_18px_52px_rgba(0,0,0,0.45)]">
+        <Card className="border border-white/10 bg-tsCard/95 shadow-[0_18px_52px_rgba(0,0,0,0.45)]">
           <CardContent className="p-3 md:p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-white font-semibold">
-                <ShieldCheck className="h-4 w-4 text-tsAccentSoft" />
+                <ShieldCheck className="h-4 w-4 text-ts-orange" />
                 <span className="truncate">{title}</span>
               </div>
-              <div className="mt-1 text-xs text-tsTextMuted">{description}</div>
+              <div className="mt-1 text-xs text-white/60">{description}</div>
             </div>
             <Button onClick={onClick} className="shrink-0">
               {ctaLabel}

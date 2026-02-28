@@ -274,7 +274,7 @@ export default function DailyDealsEnhanced() {
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Clock className="w-4 h-4 mr-2" />
-                    <span className="text-orange-600 dark:text-orange-400">{getTimeRemaining(deal.endDate)}</span>
+                    <span className="text-ts-orange dark:text-ts-orange">{getTimeRemaining(deal.endDate)}</span>
                   </div>
                 </div>
 

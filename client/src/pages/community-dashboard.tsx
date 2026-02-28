@@ -35,18 +35,18 @@ export default function CommunityDashboard() {
           <Users className="h-8 w-8 text-cyan-500 mr-3" />
           Community Dashboard
         </h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-white/60 mt-2">
           Engage with your neighborhood community in {cityHeadline || "your area"}
         </p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Community Score</p>
+                <p className="text-sm font-medium text-white/60">Community Score</p>
                 <p className="text-2xl font-bold text-white">4.8</p>
               </div>
               <Star className="h-8 w-8 text-yellow-500" />
@@ -54,11 +54,11 @@ export default function CommunityDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Posts Created</p>
+                <p className="text-sm font-medium text-white/60">Posts Created</p>
                 <p className="text-2xl font-bold text-white">24</p>
               </div>
               <MessageSquare className="h-8 w-8 text-blue-500" />
@@ -66,11 +66,11 @@ export default function CommunityDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Helpful Votes</p>
+                <p className="text-sm font-medium text-white/60">Helpful Votes</p>
                 <p className="text-2xl font-bold text-white">156</p>
               </div>
               <Heart className="h-8 w-8 text-red-500" />
@@ -78,11 +78,11 @@ export default function CommunityDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Moderation Actions</p>
+                <p className="text-sm font-medium text-white/60">Moderation Actions</p>
                 <p className="text-2xl font-bold text-white">
                   {user?.role?.includes("moderator") ? "8" : "0"}
                 </p>
@@ -96,7 +96,7 @@ export default function CommunityDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <MessageSquare className="h-5 w-5 mr-2" />
@@ -108,15 +108,15 @@ export default function CommunityDashboard() {
                 <div>
                   <h3 className="text-white font-semibold mb-3">Recent Discussions</h3>
                   <div className="space-y-3">
-                    <div className="p-3 bg-navy-600 rounded-lg">
+                    <div className="p-3 bg-tsCard rounded-lg">
                       <p className="text-white text-sm">
                         Neighborhood Safety Initiative Discussion
                       </p>
-                      <p className="text-gray-400 text-xs mt-1">12 comments • 2 hours ago</p>
+                      <p className="text-white/60 text-xs mt-1">12 comments • 2 hours ago</p>
                     </div>
-                    <div className="p-3 bg-navy-600 rounded-lg">
+                    <div className="p-3 bg-tsCard rounded-lg">
                       <p className="text-white text-sm">Local Business Recommendations</p>
-                      <p className="text-gray-400 text-xs mt-1">8 comments • 5 hours ago</p>
+                      <p className="text-white/60 text-xs mt-1">8 comments • 5 hours ago</p>
                     </div>
                   </div>
                 </div>
@@ -134,7 +134,7 @@ export default function CommunityDashboard() {
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-navy-400 text-gray-300 justify-start"
+                        className="border-white/15 text-white/70 justify-start"
                       >
                         <Shield className="h-4 w-4 mr-2" />
                         User Management
@@ -149,7 +149,7 @@ export default function CommunityDashboard() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Quick Actions</CardTitle>
             </CardHeader>
@@ -161,14 +161,14 @@ export default function CommunityDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Join Discussion
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Community Events
@@ -177,22 +177,22 @@ export default function CommunityDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Community Stats</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Active Members</span>
+                  <span className="text-white/60">Active Members</span>
                   <span className="text-white">1,247</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">This Week's Posts</span>
+                  <span className="text-white/60">This Week's Posts</span>
                   <span className="text-white">89</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Response Rate</span>
+                  <span className="text-white/60">Response Rate</span>
                   <span className="text-white">94%</span>
                 </div>
               </div>
@@ -207,30 +207,30 @@ export default function CommunityDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Button
             variant="outline"
-            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+            className="w-full h-16 border-white/10 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
           >
             <MessageSquare className="h-5 w-5 text-cyan-400" />
             <span className="text-xs">Forums</span>
           </Button>
           <Button
             variant="outline"
-            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+            className="w-full h-16 border-white/10 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
           >
             <Calendar className="h-5 w-5 text-green-400" />
             <span className="text-xs">Events</span>
           </Button>
           <Button
             variant="outline"
-            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+            className="w-full h-16 border-white/10 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
           >
             <Users className="h-5 w-5 text-blue-400" />
             <span className="text-xs">Members</span>
           </Button>
           <Button
             variant="outline"
-            className="w-full h-16 border-navy-500 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
+            className="w-full h-16 border-white/10 hover:border-cyan-500 flex flex-col items-center justify-center space-y-1"
           >
-            <Flag className="h-5 w-5 text-orange-400" />
+            <Flag className="h-5 w-5 text-ts-orange" />
             <span className="text-xs">Guidelines</span>
           </Button>
         </div>

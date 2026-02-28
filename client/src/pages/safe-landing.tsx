@@ -7,42 +7,42 @@ export default function SafeLanding() {
             TradeScout Social Platform
           </h1>
 
-          <p className="text-xl mb-8 text-gray-300">
+          <p className="text-xl mb-8 text-white/70">
             Connect with your community, find trusted contractors, and build lasting relationships
           </p>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+            <div className="bg-white/5 p-6 rounded-lg border border-white/10">
               <div className="text-4xl mb-4">🏠</div>
               <h3 className="text-xl font-semibold mb-2">Community Feed</h3>
-              <p className="text-gray-400">
+              <p className="text-white/60">
                 Share updates, ask questions, and connect with neighbors
               </p>
             </div>
 
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+            <div className="bg-white/5 p-6 rounded-lg border border-white/10">
               <div className="text-4xl mb-4">🔨</div>
               <h3 className="text-xl font-semibold mb-2">Find Contractors</h3>
-              <p className="text-gray-400">Discover verified local contractors for your projects</p>
+              <p className="text-white/60">Discover verified local contractors for your projects</p>
             </div>
 
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+            <div className="bg-white/5 p-6 rounded-lg border border-white/10">
               <div className="text-4xl mb-4">💬</div>
               <h3 className="text-xl font-semibold mb-2">Marketplace</h3>
-              <p className="text-gray-400">Buy, sell, and trade with your community</p>
+              <p className="text-white/60">Buy, sell, and trade with your community</p>
             </div>
           </div>
 
           <div className="space-x-4">
             <a
               href="/pre-scout-setup?mode=signin"
-              className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+              className="inline-block bg-ts-orange hover:bg-ts-orange-dark text-white px-8 py-3 rounded-lg font-semibold transition-colors"
             >
               Get Started
             </a>
             <a
               href="/community"
-              className="inline-block border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+              className="inline-block border border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors"
             >
               Explore Community
             </a>

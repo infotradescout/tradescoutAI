@@ -89,7 +89,7 @@ export function CommunityComposerInline({
 
   return (
     <div className="flex gap-3 sm:gap-4">
-      <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-orange-500/40">
+      <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-ts-orange/70">
         <AvatarImage src={userAvatarUrl} />
         <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white text-lg font-semibold">
           {userInitial || "U"}
@@ -97,8 +97,8 @@ export function CommunityComposerInline({
       </Avatar>
       <div className="flex-1 space-y-3">
         {/* Post type selector: enforces intent */}
-        <div className="flex items-center gap-2 text-[12px] text-slate-300">
-          <span className="text-slate-500">Type:</span>
+        <div className="flex items-center gap-2 text-[12px] text-white/70">
+          <span className="text-white/60">Type:</span>
           <div className="flex flex-wrap gap-1.5">
             {(
               [
@@ -115,8 +115,8 @@ export function CommunityComposerInline({
                 onClick={() => setPostType(opt.k)}
                 className={`px-2 py-1 rounded-full border text-[11px] transition-colors ${
                   postType === opt.k
-                    ? "bg-orange-500 text-black border-orange-400"
-                    : "bg-slate-900 text-slate-300 border-slate-700 hover:border-orange-400"
+                    ? "bg-ts-orange text-black border-ts-orange/30"
+                    : "bg-tsCard text-white/70 border-white/10 hover:border-ts-orange/30"
                 }`}
               >
                 {opt.label}
@@ -139,7 +139,7 @@ export function CommunityComposerInline({
             {images.map((url, index) => (
               <div
                 key={url + index}
-                className="relative w-20 h-20 rounded-md overflow-hidden border border-tsBorder"
+                className="relative w-20 h-20 rounded-md overflow-hidden border border-white/10"
               >
                 <img
                   src={url}
@@ -162,10 +162,10 @@ export function CommunityComposerInline({
             ))}
           </div>
         )}
-        <Separator className="bg-tsBorder" />
+        <Separator className="bg-white/10" />
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs sm:text-sm">
-            <label className="inline-flex items-center gap-2 h-8 px-2 text-slate-500 dark:text-slate-400 hover:text-slate-300 cursor-pointer">
+            <label className="inline-flex items-center gap-2 h-8 px-2 text-white/60 dark:text-white/60 hover:text-white/70 cursor-pointer">
               <ImageIcon className="w-4 h-4" />
               <span>Photo</span>
               <input
@@ -176,11 +176,11 @@ export function CommunityComposerInline({
                 onChange={handleImagesSelected}
               />
             </label>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-500 dark:text-slate-400">
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-white/60 dark:text-white/60">
               <Video className="w-4 h-4 mr-2" />
               Video
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-500 dark:text-slate-400">
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-white/60 dark:text-white/60">
               <Smile className="w-4 h-4 mr-2" />
               Feeling
             </Button>
@@ -196,7 +196,7 @@ export function CommunityComposerInline({
             <Button
               onClick={handlePrimaryClick}
               disabled={!value.trim() || isSubmitting}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 sm:px-5"
+              className="bg-ts-orange hover:bg-ts-orange-dark text-white px-4 sm:px-5"
             >
               {isSubmitting ? "Posting..." : "Post"}
             </Button>

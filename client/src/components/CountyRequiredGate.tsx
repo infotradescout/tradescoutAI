@@ -74,25 +74,25 @@ export function CountyRequiredGate({
 
   return (
     <div className="max-w-2xl mx-auto py-10 px-4">
-      <Card className="bg-slate-950/70 border-slate-800">
+      <Card className="bg-black/30 border-white/10">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg md:text-xl text-white">
             Set your county to unlock local features
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-white/70">
             TradeScout uses your saved county to power community feed, marketplace, and other local
             experiences. Choose your county so what you see lines up with where you actually live.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-white/60">
               Current location context:{" "}
-              <span className="font-medium text-slate-100">{areaLabel}</span>
+              <span className="font-medium text-white">{areaLabel}</span>
             </p>
             <Button
               type="button"
-              className="bg-orange-500 hover:bg-orange-600 text-black text-xs font-semibold px-4 py-2 rounded-md"
+              className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
               asChild
             >
               <a href="/settings">Set your county</a>

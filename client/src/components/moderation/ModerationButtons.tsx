@@ -116,7 +116,7 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
 
   if (scoreLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+      <div className="flex items-center gap-2 text-sm text-white/60">
         <div className="animate-pulse">Loading votes...</div>
       </div>
     );
@@ -186,7 +186,7 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
           <div className="text-sm font-semibold">
             {moderationScore.communityScore > 0 ? `+${moderationScore.communityScore}` : moderationScore.communityScore}
           </div>
-          <div className="text-xs text-gray-500">score</div>
+          <div className="text-xs text-white/60">score</div>
         </div>
         
         <Button
@@ -201,7 +201,7 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
       </div>
 
       {/* Vote Counts (for transparency) */}
-      <div className="flex items-center gap-4 text-xs text-gray-500">
+      <div className="flex items-center gap-4 text-xs text-white/60">
         <span className="flex items-center gap-1">
           <ChevronUp className="h-3 w-3 text-green-500" />
           {moderationScore.upvoteCount}

@@ -204,10 +204,10 @@ export default function BusinessListing() {
         <div className="flex items-center gap-3 mb-4">
           <Building2 className="h-8 w-8 text-emerald-600" />
           <div>
-            <h1 className="text-3xl font-bold text-orange-500">
+            <h1 className="text-3xl font-bold text-ts-orange">
               List Your Business Opportunity
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-white/60 dark:text-white/60">
               Sell complete businesses, business packages, or franchise opportunities to qualified buyers
             </p>
           </div>
@@ -239,7 +239,7 @@ export default function BusinessListing() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500">
+                <h3 className="text-lg font-semibold text-ts-orange">
                   Basic Information
                 </h3>
                 
@@ -350,7 +350,7 @@ export default function BusinessListing() {
 
               {/* Location */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500">
+                <h3 className="text-lg font-semibold text-ts-orange">
                   Location
                 </h3>
                 
@@ -418,7 +418,7 @@ export default function BusinessListing() {
 
               {/* Business Details */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-ts-orange flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-emerald-600" />
                   Business Performance
                 </h3>
@@ -492,7 +492,7 @@ export default function BusinessListing() {
 
               {/* Pricing */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-ts-orange flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-emerald-600" />
                   Pricing & Terms
                 </h3>
@@ -560,7 +560,7 @@ export default function BusinessListing() {
 
               {/* What's Included */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-ts-orange flex items-center gap-2">
                   <FileText className="h-5 w-5 text-emerald-600" />
                   What's Included in Sale
                 </h3>
@@ -650,10 +650,10 @@ export default function BusinessListing() {
 
               {/* Business Features */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-orange-500">
+                <h3 className="text-lg font-semibold text-ts-orange">
                   Key Business Strengths
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-white/60 dark:text-white/60">
                   Select features that highlight your business's competitive advantages
                 </p>
                 

@@ -48,20 +48,20 @@ export default function AdminAffiliatesPage() {
   });
 
   return (
-    <div className="bg-slate-950 text-white pt-24 px-4 pb-16">
+    <div className="bg-tsBg text-white pt-24 px-4 pb-16">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Affiliate Management</h1>
-          <p className="text-slate-400 text-sm">Review affiliate accounts and create manual payouts.</p>
+          <p className="text-white/60 text-sm">Review affiliate accounts and create manual payouts.</p>
         </div>
 
-        <Card className="bg-slate-900/60 border-slate-800">
+        <Card className="bg-tsCard/95 border-white/10">
           <CardHeader>
             <CardTitle className="text-lg">Affiliate Accounts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {!data || data.length === 0 ? (
-              <p className="text-slate-400 text-sm">No affiliates found.</p>
+              <p className="text-white/60 text-sm">No affiliates found.</p>
             ) : (
               data.map((a) => (
                 <AffiliateRow
@@ -94,36 +94,36 @@ function AffiliateRow({
   let commissionRatePercent = account.commissionRate ? Number(account.commissionRate) * 100 : 5;
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 rounded-lg bg-slate-900 border border-slate-800">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 rounded-lg bg-tsCard border border-white/10">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <span className="font-semibold">{account.name || account.email || account.affiliateId}</span>
           {account.status && <Badge className="bg-emerald-600/80 text-xs">{account.status}</Badge>}
         </div>
-        <div className="text-xs text-slate-400 space-x-3">
+        <div className="text-xs text-white/60 space-x-3">
           <span>ID: {account.id.slice(0, 8)}</span>
           {account.referralCode && <span>Code: {account.referralCode}</span>}
           <span>Joined: {format(new Date(account.createdAt), "MMM d, yyyy")}</span>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs text-slate-300 mt-1 items-center">
+        <div className="flex flex-wrap gap-3 text-xs text-white/70 mt-1 items-center">
           <span>Lifetime: ${account.lifetimeEarned}</span>
           <span>Paid: ${account.available}</span>
           <span>Pending: ${account.pending}</span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-slate-400">Commission:</span>
+            <span className="text-white/60">Commission:</span>
             <Input
               type="number"
               min={0}
               max={100}
               step={0.1}
               defaultValue={commissionRatePercent.toFixed(2)}
-              className="w-20 h-7 text-xs bg-slate-950 border-slate-800"
+              className="w-20 h-7 text-xs bg-tsBg border-white/10"
               onChange={(e) => {
                 const v = Number(e.target.value || 0);
                 commissionRatePercent = v;
               }}
             />
-            <span className="text-slate-400">%</span>
+            <span className="text-white/60">%</span>
           </span>
         </div>
       </div>
@@ -132,28 +132,28 @@ function AffiliateRow({
           type="number"
           min={0}
           placeholder="Amount"
-          className="w-24 h-8 text-xs bg-slate-950 border-slate-800"
+          className="w-24 h-8 text-xs bg-tsBg border-white/10"
           onChange={(e) => {
             amount = Number(e.target.value || 0);
           }}
         />
         <Input
           placeholder="Method (manual/stripe/etc)"
-          className="w-32 h-8 text-xs bg-slate-950 border-slate-800"
+          className="w-32 h-8 text-xs bg-tsBg border-white/10"
           onChange={(e) => {
             method = e.target.value || "manual";
           }}
         />
         <Input
           placeholder="Note"
-          className="w-40 h-8 text-xs bg-slate-950 border-slate-800"
+          className="w-40 h-8 text-xs bg-tsBg border-white/10"
           onChange={(e) => {
             note = e.target.value || "";
           }}
         />
         <Button
           size="sm"
-          className="h-8 text-xs bg-orange-600 hover:bg-orange-700"
+          className="h-8 text-xs bg-ts-orange-dark hover:bg-ts-orange-dark"
           onClick={() => {
             if (!amount || amount <= 0) return;
             onPayout({ id: account.id, amount, method, note });

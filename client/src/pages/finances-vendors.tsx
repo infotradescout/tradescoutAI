@@ -90,21 +90,21 @@ export default function FinancesVendorsPage() {
   return (
     <Page className="space-y-4">
       <div>
-        <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Vendors</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Vendors</h1>
+        <p className="text-sm text-white/60">
           People and companies you pay for materials, subs, and services.
         </p>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-100">Vendor overview</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
+            <CardTitle className="text-sm font-semibold text-white">Vendor overview</CardTitle>
+            <CardDescription className="text-xs text-white/60">
               Rolled up from your recorded expenses so you can see who you're paying and how much.
             </CardDescription>
           </div>
-          <div className="text-[11px] text-slate-400 text-right flex flex-col items-end gap-0.5">
+          <div className="text-[11px] text-white/60 text-right flex flex-col items-end gap-0.5">
             <span>
               {totals.totalVendors.toLocaleString()} vendor
               {totals.totalVendors === 1 ? "" : "s"}
@@ -116,20 +116,20 @@ export default function FinancesVendorsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-[11px] text-slate-400 py-4">Loading vendor spend…</p>
+            <p className="text-[11px] text-white/60 py-4">Loading vendor spend…</p>
           ) : rows.length === 0 ? (
-            <p className="text-[11px] text-slate-400 py-4">
+            <p className="text-[11px] text-white/60 py-4">
               Once you start recording expenses with vendor names, you'll see spend by vendor here.
             </p>
           ) : (
             <div className="overflow-x-auto -mx-2">
               <Table className="min-w-full text-xs">
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="w-[40%] text-slate-400">Vendor</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Transactions</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Total spent</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Top category</TableHead>
+                  <TableRow className="border-white/10">
+                    <TableHead className="w-[40%] text-white/60">Vendor</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Transactions</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Total spent</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Top category</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -139,17 +139,17 @@ export default function FinancesVendorsPage() {
                       ? categories.sort((a, b) => b[1] - a[1])[0][0]
                       : null;
                     return (
-                      <TableRow key={row.name} className="border-slate-800 hover:bg-slate-900/70">
-                        <TableCell className="py-2 text-[11px] text-slate-100 truncate max-w-[260px]">
+                      <TableRow key={row.name} className="border-white/10 hover:bg-tsCard/95">
+                        <TableCell className="py-2 text-[11px] text-white truncate max-w-[260px]">
                           {row.name}
                         </TableCell>
-                        <TableCell className="py-2 text-right text-[11px] text-slate-200">
+                        <TableCell className="py-2 text-right text-[11px] text-white/70">
                           {row.expenseCount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                        <TableCell className="py-2 text-right text-[11px] text-white">
                           {formatCurrency(row.total)}
                         </TableCell>
-                        <TableCell className="py-2 text-right text-[11px] text-slate-200">
+                        <TableCell className="py-2 text-right text-[11px] text-white/70">
                           {topCategory ? topCategory : "Uncategorized"}
                         </TableCell>
                       </TableRow>

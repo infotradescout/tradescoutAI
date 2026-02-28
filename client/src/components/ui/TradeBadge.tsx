@@ -73,7 +73,7 @@ function getTradeColor(trade: TradeCategory): string {
   
   // Structural & Foundation - Gray
   if (TRADE_CATEGORIES.structural.includes(trade as any)) {
-    return "bg-gray-600 text-white";
+    return "bg-white/10 text-white";
   }
   
   // Building Envelope - Purple
@@ -98,7 +98,7 @@ function getTradeColor(trade: TradeCategory): string {
   
   // Kitchen & Bath - Orange
   if (TRADE_CATEGORIES.kitchen_bath.includes(trade as any)) {
-    return "bg-orange-600 text-white";
+    return "bg-ts-orange-dark text-white";
   }
   
   // Outdoor & Landscaping - Green

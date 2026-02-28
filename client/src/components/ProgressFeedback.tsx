@@ -48,14 +48,14 @@ export function ProgressFeedback({
     if (stepIndex < currentIndex) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     } else if (stepIndex === currentIndex) {
-      return <Clock className="h-4 w-4 text-orange-500 pulse-glow" />;
+      return <Clock className="h-4 w-4 text-ts-orange pulse-glow" />;
     } else {
-      return <AlertCircle className="h-4 w-4 text-gray-500" />;
+      return <AlertCircle className="h-4 w-4 text-white/60" />;
     }
   };
 
   return (
-    <Card className={cn("bg-navy-700 border-navy-600", className)}>
+    <Card className={cn("bg-tsCard border-white/10", className)}>
       <CardContent className="p-6">
         <div className="space-y-4">
           {/* Progress Header */}
@@ -80,7 +80,7 @@ export function ProgressFeedback({
               value={animatedProgress} 
               className="h-2 progress-fill"
             />
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-white/60">
               {Math.round(animatedProgress)}% Complete
             </p>
           </div>
@@ -92,7 +92,7 @@ export function ProgressFeedback({
                 key={index}
                 className={cn(
                   "flex items-center space-x-3 p-2 rounded-lg transition-all",
-                  index === currentIndex ? "bg-orange-500/10 border border-orange-500/30" : "",
+                  index === currentIndex ? "bg-ts-orange/10 border border-ts-orange/30" : "",
                   index < currentIndex ? "opacity-75" : ""
                 )}
               >
@@ -102,7 +102,7 @@ export function ProgressFeedback({
                     "text-sm",
                     index < currentIndex ? "text-green-400 line-through" : 
                     index === currentIndex ? "text-white font-medium" : 
-                    "text-gray-500"
+                    "text-white/60"
                   )}
                 >
                   {label}
@@ -113,8 +113,8 @@ export function ProgressFeedback({
 
           {/* Motivational Message */}
           {safeTotal > 0 && currentIndex + 1 < safeTotal && (
-            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
-              <p className="text-sm text-orange-200">
+            <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-3">
+              <p className="text-sm text-ts-orange">
                 {currentIndex === 0 ? "Let's get started! Complete each step to find the perfect contractor." :
                  currentIndex + 1 < safeTotal / 2 ? "Great progress! You're making excellent choices." :
                  "Almost there! Just a few more steps to connect with contractors."}

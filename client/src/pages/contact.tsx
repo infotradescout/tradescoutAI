@@ -16,7 +16,7 @@ export default function ContactGatePage() {
       <Card className="w-full max-w-2xl bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-orange-500" />
+            <ShieldCheck className="h-5 w-5 text-ts-orange" />
             Contact Requires Intent Confirmation
           </CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -26,7 +26,7 @@ export default function ContactGatePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
-            className="w-full bg-orange-600 hover:bg-orange-700"
+            className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark"
             onClick={() => setLocation("/scout?intent=support&source=contact-cta")}
           >
             <MessageSquare className="h-4 w-4 mr-2" />

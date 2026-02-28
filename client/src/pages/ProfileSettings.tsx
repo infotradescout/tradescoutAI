@@ -812,12 +812,12 @@ export default function ProfileSettings() {
   return (
     <div className="container mx-auto py-8 space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold text-tsTextMain mb-2">Profile Settings</h1>
-        <p className="text-tsTextMuted">
+        <h1 className="text-3xl font-bold text-white mb-2">Profile Settings</h1>
+        <p className="text-white/60">
           Customize your TradeScout experience. Your profile is your website.
         </p>
         {isOnboarding && (
-          <p className="mt-2 text-sm text-tsTextMuted">
+          <p className="mt-2 text-sm text-white/60">
             You just created your account with Google or Facebook. You can finish this now or skip
             and come back later from Settings → Profile.
           </p>
@@ -828,7 +828,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-tsAccent" />
+            <LayoutTemplate className="h-5 w-5 text-ts-orange" />
             Public pages
           </CardTitle>
           <CardDescription>
@@ -839,7 +839,7 @@ export default function ProfileSettings() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="min-w-0">
               <div className="text-sm font-medium">Profile page</div>
-              <div className="text-xs text-tsTextMuted break-all">
+              <div className="text-xs text-white/60 break-all">
                 {profileSlug ? `${window.location.origin}/u/${profileSlug}` : "Not published yet"}
               </div>
             </div>
@@ -866,7 +866,7 @@ export default function ProfileSettings() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="min-w-0">
               <div className="text-sm font-medium">Business page</div>
-              <div className="text-xs text-tsTextMuted break-all">
+              <div className="text-xs text-white/60 break-all">
                 {(user as any)?.businessSlug
                   ? `${window.location.origin}/business/${(user as any).businessSlug}`
                   : "Not published yet"}
@@ -904,7 +904,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-tsAccent" />
+            <Palette className="h-5 w-5 text-ts-orange" />
             Site + Profile Palette
           </CardTitle>
           <CardDescription>
@@ -929,7 +929,7 @@ export default function ProfileSettings() {
                     type="color"
                     value={sanitizeColorForInput(item.value)}
                     onChange={(e) => setPaletteField(item.key as PaletteKey, e.target.value)}
-                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
                   />
                   <Input
                     value={item.value}
@@ -941,7 +941,7 @@ export default function ProfileSettings() {
             ))}
           </div>
 
-          <div className="flex justify-end pt-2 border-t border-tsBorder">
+          <div className="flex justify-end pt-2 border-t border-white/10">
             <Button onClick={savePalette} disabled={loading}>
               {loading ? "Saving…" : "Save Palette"}
             </Button>
@@ -953,7 +953,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-tsAccent" />
+            <Palette className="h-5 w-5 text-ts-orange" />
             Color Scheme
           </CardTitle>
           <CardDescription>
@@ -1005,28 +1005,28 @@ export default function ProfileSettings() {
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.primary }}
                   />
-                  <p className="text-xs text-tsTextMuted text-center">Primary</p>
+                  <p className="text-xs text-white/60 text-center">Primary</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.secondary }}
                   />
-                  <p className="text-xs text-tsTextMuted text-center">Secondary</p>
+                  <p className="text-xs text-white/60 text-center">Secondary</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.background }}
                   />
-                  <p className="text-xs text-tsTextMuted text-center">Background</p>
+                  <p className="text-xs text-white/60 text-center">Background</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.text }}
                   />
-                  <p className="text-xs text-tsTextMuted text-center">Text</p>
+                  <p className="text-xs text-white/60 text-center">Text</p>
                 </div>
               </>
             )}
@@ -1035,7 +1035,7 @@ export default function ProfileSettings() {
           {/* Custom color pickers */}
           <div className="mt-6 space-y-3">
             <Label>Custom Colors</Label>
-            <p className="text-xs text-tsTextMuted">
+            <p className="text-xs text-white/60">
               Pick your own colors for this profile. Select “Custom” above to use them in your theme
               and public profile.
             </p>
@@ -1049,7 +1049,7 @@ export default function ProfileSettings() {
                     onChange={(e) =>
                       setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
                     }
-                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
                   />
                   <Input
                     value={customColors.primary}
@@ -1069,7 +1069,7 @@ export default function ProfileSettings() {
                     onChange={(e) =>
                       setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
                     }
-                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
                   />
                   <Input
                     value={customColors.secondary}
@@ -1089,7 +1089,7 @@ export default function ProfileSettings() {
                     onChange={(e) =>
                       setCustomColors((prev) => ({ ...prev, background: e.target.value }))
                     }
-                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
                   />
                   <Input
                     value={customColors.background}
@@ -1107,7 +1107,7 @@ export default function ProfileSettings() {
                     type="color"
                     value={sanitizeColorForInput(customColors.text)}
                     onChange={(e) => setCustomColors((prev) => ({ ...prev, text: e.target.value }))}
-                    className="w-10 h-10 rounded border border-tsBorder bg-transparent p-0"
+                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
                   />
                   <Input
                     value={customColors.text}
@@ -1130,7 +1130,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-tsAccent" />
+            <Home className="h-5 w-5 text-ts-orange" />
             Default Home Page
           </CardTitle>
           <CardDescription>
@@ -1159,7 +1159,7 @@ export default function ProfileSettings() {
               </SelectContent>
             </Select>
           </div>
-          <p className="text-xs text-tsTextMuted">
+          <p className="text-xs text-white/60">
             Your current default is{" "}
             {preferences.defaultHomePage === "dashboard"
               ? "Dashboard"
@@ -1182,9 +1182,9 @@ export default function ProfileSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {preferences.profileVisibility === "public" ? (
-              <Eye className="h-5 w-5 text-tsAccent" />
+              <Eye className="h-5 w-5 text-ts-orange" />
             ) : (
-              <EyeOff className="h-5 w-5 text-tsAccent" />
+              <EyeOff className="h-5 w-5 text-ts-orange" />
             )}
             Profile Visibility
           </CardTitle>
@@ -1197,7 +1197,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Make Profile Public</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Allow your profile to be found in searches and by the AI
               </p>
             </div>
@@ -1209,8 +1209,8 @@ export default function ProfileSettings() {
           </div>
 
           {preferences.profileVisibility === "public" && (
-            <div className="p-4 bg-tsAccent/10 rounded-lg border border-tsAccent/20">
-              <p className="text-sm text-tsTextMain">
+            <div className="p-4 bg-ts-orange/10 rounded-lg border border-ts-orange/20">
+              <p className="text-sm text-white">
                 <strong>Your profile is your website.</strong> When public, visitors will see your
                 customized colors, user types, activity, and information. Scout can reference your
                 profile when answering questions.
@@ -1224,7 +1224,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-tsAccent" />
+            <LayoutTemplate className="h-5 w-5 text-ts-orange" />
             Services You Offer
           </CardTitle>
           <CardDescription>
@@ -1256,7 +1256,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-tsAccent" />
+            <Calendar className="h-5 w-5 text-ts-orange" />
             Booking, Calendar, and Pricing
           </CardTitle>
           <CardDescription>
@@ -1268,7 +1268,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Enable booking on public profile</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Show a booking section on your public profile for any visitor.
               </p>
             </div>
@@ -1282,7 +1282,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Enable paid bookings</Label>
-              <p className="text-sm text-tsTextMuted">Require a booking deposit through Stripe.</p>
+              <p className="text-sm text-white/60">Require a booking deposit through Stripe.</p>
             </div>
             <Switch
               checked={profileBooking.paidBookings === true}
@@ -1335,7 +1335,7 @@ export default function ProfileSettings() {
             />
           </div>
 
-          <div className="space-y-3 rounded-lg border border-tsBorder p-4">
+          <div className="space-y-3 rounded-lg border border-white/10 p-4">
             <div className="flex items-center justify-between">
               <Label>Weekly availability slots</Label>
               <Button type="button" variant="outline" onClick={addBookingSlot} disabled={loading}>
@@ -1343,7 +1343,7 @@ export default function ProfileSettings() {
               </Button>
             </div>
             {(profileBooking.slots || []).length === 0 ? (
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 No slots yet. Add at least one availability window.
               </p>
             ) : (
@@ -1411,7 +1411,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Show pricing table</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Publish a simple pricing table on your public profile.
               </p>
             </div>
@@ -1423,7 +1423,7 @@ export default function ProfileSettings() {
           </div>
 
           {profileBooking.pricingTableEnabled === true && (
-            <div className="space-y-3 rounded-lg border border-tsBorder p-4">
+            <div className="space-y-3 rounded-lg border border-white/10 p-4">
               <div className="flex items-center justify-between">
                 <Label>Pricing rows</Label>
                 <Button type="button" variant="outline" onClick={addPricingRow} disabled={loading}>
@@ -1431,7 +1431,7 @@ export default function ProfileSettings() {
                 </Button>
               </div>
               {(profileBooking.pricingRows || []).length === 0 ? (
-                <p className="text-sm text-tsTextMuted">No pricing rows yet.</p>
+                <p className="text-sm text-white/60">No pricing rows yet.</p>
               ) : (
                 <div className="space-y-3">
                   {(profileBooking.pricingRows || []).map((row) => (
@@ -1489,7 +1489,7 @@ export default function ProfileSettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-tsAccent" />
+            <LayoutTemplate className="h-5 w-5 text-ts-orange" />
             Profile Site Sections
           </CardTitle>
           <CardDescription>
@@ -1501,7 +1501,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>About</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 High-level overview of who you are on TradeScout.
               </p>
             </div>
@@ -1515,7 +1515,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Roles & badges</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Show your TradeScout roles, badges, and Community Builder badge status.
               </p>
             </div>
@@ -1529,7 +1529,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Stats</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 When available, show counts for listings, RECOMMENDATIONS, and rating.
               </p>
             </div>
@@ -1543,7 +1543,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Services</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 For contractors and pros, show a services overview when available.
               </p>
             </div>
@@ -1557,7 +1557,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Marketplace listings</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Allow TradeScout to feature your active marketplace listings here.
               </p>
             </div>
@@ -1571,7 +1571,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>RECOMMENDATIONS</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 When RECOMMENDATIONS are enabled, show your rating and testimonials.
               </p>
             </div>
@@ -1585,7 +1585,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Community activity</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Highlight your participation in TradeScout communities and boards.
               </p>
             </div>
@@ -1599,7 +1599,7 @@ export default function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Contact card</Label>
-              <p className="text-sm text-tsTextMuted">
+              <p className="text-sm text-white/60">
                 Show a call-to-action so visitors can reach you.
               </p>
             </div>

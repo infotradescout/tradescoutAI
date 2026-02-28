@@ -70,13 +70,13 @@ function StatTile({
   icon: JSX.Element;
 }) {
   return (
-    <Card className="border-slate-800 bg-slate-950/70">
+    <Card className="border-white/10 bg-black/30">
       <CardContent className="flex items-center gap-3 py-4 px-5">
-        <div className="rounded-xl bg-slate-900 text-orange-400 p-3">{icon}</div>
+        <div className="rounded-xl bg-tsCard text-ts-orange p-3">{icon}</div>
         <div className="space-y-1">
-          <div className="text-xs uppercase tracking-[0.08em] text-slate-400">{label}</div>
+          <div className="text-xs uppercase tracking-[0.08em] text-white/60">{label}</div>
           <div className="text-2xl font-semibold text-white">{value}</div>
-          <div className="text-xs text-slate-500">{hint}</div>
+          <div className="text-xs text-white/60">{hint}</div>
         </div>
       </CardContent>
     </Card>
@@ -91,45 +91,45 @@ function BoardCard({ item }: { item: BoardItem }) {
   }[item.priority];
 
   return (
-    <Card className="border-slate-800 bg-slate-950/70 shadow-lg shadow-black/30">
+    <Card className="border-white/10 bg-black/30 shadow-lg shadow-black/30">
       <CardHeader className="pb-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <Badge variant="outline" className="border-slate-700 text-slate-200">
+          <Badge variant="outline" className="border-white/10 text-white/70">
             {item.id}
           </Badge>
           <Badge className={`text-xs ${priorityTone}`}>{item.priority} priority</Badge>
         </div>
         <CardTitle className="text-lg text-white leading-tight">{item.title}</CardTitle>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="flex items-center gap-2 text-sm text-white/60">
           <Hammer className="h-4 w-4" />
           <span>{item.trade}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-2 text-sm text-slate-300">
-          <MapPin className="h-4 w-4 text-orange-400" />
+        <div className="flex items-center gap-2 text-sm text-white/70">
+          <MapPin className="h-4 w-4 text-ts-orange" />
           <span>{item.location}</span>
         </div>
-        <Separator className="bg-slate-800" />
-        <div className="flex items-center justify-between text-sm text-slate-300">
+        <Separator className="bg-white/5" />
+        <div className="flex items-center justify-between text-sm text-white/70">
           <div className="space-y-1">
-            <div className="text-slate-500">Owner</div>
+            <div className="text-white/60">Owner</div>
             <div className="font-medium text-white">{item.owner}</div>
           </div>
           <div className="text-right space-y-1">
-            <div className="text-slate-500">Budget</div>
-            <div className="font-semibold text-orange-300">{item.budget}</div>
+            <div className="text-white/60">Budget</div>
+            <div className="font-semibold text-ts-orange">{item.budget}</div>
           </div>
         </div>
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <div className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-3 py-1">
+        <div className="flex items-center justify-between text-xs text-white/60">
+          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1">
             <Timer className="h-3.5 w-3.5" />
             <span>Updated {item.updated}</span>
           </div>
           <Button
             variant="secondary"
             size="sm"
-            className="bg-orange-600 text-white hover:bg-orange-700"
+            className="bg-ts-orange-dark text-white hover:bg-ts-orange-dark"
           >
             View lane
           </Button>
@@ -162,9 +162,9 @@ const ContractorBoard = () => {
               placeholder="Search by job, trade, or area"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-64 bg-slate-900 border-slate-700 text-white"
+              className="w-64 bg-tsCard border-white/10 text-white"
             />
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+            <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white">
               <Plus className="h-4 w-4 mr-2" />
               New job
             </Button>
@@ -203,13 +203,13 @@ const ContractorBoard = () => {
         {columns.map((column) => (
           <div key={column.key} className="space-y-3">
             <div
-              className={`flex items-center justify-between rounded-xl border px-4 py-3 ${column.tone} border-slate-800/70`}
+              className={`flex items-center justify-between rounded-xl border px-4 py-3 ${column.tone} border-white/10`}
             >
-              <div className="flex items-center gap-2 text-slate-100">
+              <div className="flex items-center gap-2 text-white">
                 {column.icon}
                 <span className="font-semibold">{column.label}</span>
               </div>
-              <Badge variant="outline" className="border-slate-700 text-slate-200">
+              <Badge variant="outline" className="border-white/10 text-white/70">
                 {filtered.filter((item) => item.status === column.key).length}
               </Badge>
             </div>

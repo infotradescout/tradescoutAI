@@ -135,7 +135,7 @@ export default function MarketplaceShellPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search listings..."
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-ts-orange/70"
                 data-testid="marketplace-search-input"
               />
               <select
@@ -143,7 +143,7 @@ export default function MarketplaceShellPage() {
                 onChange={(e) =>
                   setCategoryFilter(e.target.value || undefined)
                 }
-                className="w-32 rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
+                className="w-32 rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-ts-orange/70"
                 data-testid="marketplace-category-filter"
               >
                 <option value="">All</option>
@@ -153,7 +153,7 @@ export default function MarketplaceShellPage() {
             <button
               type="button"
               onClick={() => setIsCreateOpen(true)}
-              className="inline-flex items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-orange-400"
+              className="inline-flex items-center justify-center rounded-xl bg-ts-orange px-3 py-2 text-xs font-semibold text-black hover:bg-ts-orange"
               data-testid="marketplace-create-button"
             >
               + New listing
@@ -161,7 +161,7 @@ export default function MarketplaceShellPage() {
           </div>
 
           {listingsQuery.isLoading && (
-            <div className="py-4 text-center text-slate-400">
+            <div className="py-4 text-center text-white/60">
               Loading listings…
             </div>
           )}
@@ -176,7 +176,7 @@ export default function MarketplaceShellPage() {
             !listingsQuery.isError &&
             listings.length === 0 && (
               <div
-                className="py-6 text-center text-slate-400"
+                className="py-6 text-center text-white/60"
                 data-testid="marketplace-empty-state"
               >
                 No listings in your area yet.
@@ -203,12 +203,12 @@ export default function MarketplaceShellPage() {
               return (
                 <article
                   key={listing.id}
-                  className="flex flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-3"
+                  className="flex flex-col rounded-xl border border-white/10 bg-black/30 p-3"
                   data-testid="marketplace-listing-card"
                 >
                   <div className="flex items-start gap-3">
                     {thumbnailUrl && (
-                      <div className="h-16 w-16 flex-none overflow-hidden rounded-lg bg-slate-900">
+                      <div className="h-16 w-16 flex-none overflow-hidden rounded-lg bg-tsCard">
                         <img
                           src={thumbnailUrl}
                           alt={listing.title}
@@ -217,16 +217,16 @@ export default function MarketplaceShellPage() {
                       </div>
                     )}
                     <div className="flex-1">
-                      <div className="text-sm font-semibold text-slate-50">
+                      <div className="text-sm font-semibold text-white">
                         {listing.title}
                       </div>
                       {listing.description && (
-                        <p className="mt-1 line-clamp-2 text-xs text-slate-400">
+                        <p className="mt-1 line-clamp-2 text-xs text-white/60">
                           {listing.description}
                         </p>
                       )}
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                        <span className="font-semibold text-orange-400">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+                        <span className="font-semibold text-ts-orange">
                           ${formatListingPrice(listing.price)}
                         </span>
                         {categoryName && <span>• {categoryName}</span>}
@@ -235,7 +235,7 @@ export default function MarketplaceShellPage() {
                     </div>
                   </div>
 
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
                     <span>
                       {listing.state} / {listing.county}
                     </span>
@@ -255,15 +255,15 @@ export default function MarketplaceShellPage() {
               className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
               data-testid="marketplace-create-modal"
             >
-              <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-tsBg p-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-50">
+                  <h2 className="text-sm font-semibold text-white">
                     New listing
                   </h2>
                   <button
                     type="button"
                     onClick={() => setIsCreateOpen(false)}
-                    className="text-xs text-slate-400 hover:text-slate-200"
+                    className="text-xs text-white/60 hover:text-white/70"
                   >
                     Close
                   </button>
@@ -274,27 +274,27 @@ export default function MarketplaceShellPage() {
                   onSubmit={handleSubmitCreate}
                 >
                   <div>
-                    <label className="mb-1 block text-xs text-slate-400">
+                    <label className="mb-1 block text-xs text-white/60">
                       Title
                     </label>
                     <input
                       type="text"
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
+                      className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-ts-orange/70"
                       data-testid="marketplace-create-title"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs text-slate-400">
+                    <label className="mb-1 block text-xs text-white/60">
                       Description
                     </label>
                     <textarea
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
-                      className="h-20 w-full resize-none rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
+                      className="h-20 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-ts-orange/70"
                       data-testid="marketplace-create-description"
                       required
                     />
@@ -302,7 +302,7 @@ export default function MarketplaceShellPage() {
 
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="mb-1 block text-xs text-slate-400">
+                      <label className="mb-1 block text-xs text-white/60">
                         Price
                       </label>
                       <input
@@ -311,14 +311,14 @@ export default function MarketplaceShellPage() {
                         step="0.01"
                         value={formPrice}
                         onChange={(e) => setFormPrice(e.target.value)}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
+                        className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-ts-orange/70"
                         data-testid="marketplace-create-price"
                         required
                       />
                     </div>
 
                     <div className="w-32">
-                      <label className="mb-1 block text-xs text-slate-400">
+                      <label className="mb-1 block text-xs text-white/60">
                         Category
                       </label>
                       <select
@@ -326,7 +326,7 @@ export default function MarketplaceShellPage() {
                         onChange={(e) =>
                           setFormCategoryId(e.target.value || undefined)
                         }
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500/70"
+                        className="w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-ts-orange/70"
                         data-testid="marketplace-create-category"
                       >
                         <option value="">None</option>
@@ -337,7 +337,7 @@ export default function MarketplaceShellPage() {
                   <button
                     type="submit"
                     disabled={createListingMutation.isPending}
-                    className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-orange-400 disabled:opacity-60"
+                    className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-ts-orange px-3 py-2 text-xs font-semibold text-black hover:bg-ts-orange disabled:opacity-60"
                     data-testid="marketplace-create-submit"
                   >
                     {createListingMutation.isPending

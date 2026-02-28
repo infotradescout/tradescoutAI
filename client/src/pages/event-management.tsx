@@ -104,7 +104,7 @@ const EventManagement = memo(function EventManagement() {
       case 'upcoming':
         return 'bg-green-600 hover:bg-green-700';
       case 'past':
-        return 'bg-gray-600 hover:bg-gray-700';
+        return 'bg-white/10 hover:bg-white/10';
       case 'cancelled':
         return 'bg-red-600 hover:bg-red-700';
       default:
@@ -113,7 +113,7 @@ const EventManagement = memo(function EventManagement() {
   };
 
   const EventCard = ({ event }: { event: typeof events[0] }) => (
-    <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors">
+    <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm hover:bg-tsCard/50 transition-colors">
       <div className="relative">
         <img
           src={event.image}
@@ -122,7 +122,7 @@ const EventManagement = memo(function EventManagement() {
         />
         {event.featured && (
           <div className="absolute top-4 left-4">
-            <Badge className="bg-orange-600 hover:bg-orange-700">
+            <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">
               Featured
             </Badge>
           </div>
@@ -137,38 +137,38 @@ const EventManagement = memo(function EventManagement() {
       <CardContent className="p-6">
         <div className="mb-4">
           <h3 className="text-white font-semibold text-lg mb-2">{event.title}</h3>
-          <p className="text-gray-400 text-sm mb-3 line-clamp-2">{event.description}</p>
+          <p className="text-white/60 text-sm mb-3 line-clamp-2">{event.description}</p>
           <Badge variant="outline" className="mb-3">{event.category}</Badge>
         </div>
 
         <div className="space-y-3 mb-4">
-          <div className="flex items-center gap-2 text-gray-300 text-sm">
+          <div className="flex items-center gap-2 text-white/70 text-sm">
             <Calendar className="h-4 w-4" />
             <span>{new Date(event.date).toLocaleDateString()}</span>
             <Clock className="h-4 w-4 ml-2" />
             <span>{event.time}</span>
           </div>
           
-          <div className="flex items-center gap-2 text-gray-300 text-sm">
+          <div className="flex items-center gap-2 text-white/70 text-sm">
             <Compass className="h-4 w-4" />
             <span>{event.location}</span>
           </div>
 
-          <div className="flex items-center gap-2 text-gray-300 text-sm">
+          <div className="flex items-center gap-2 text-white/70 text-sm">
             <Users2 className="h-4 w-4" />
             <span>{event.attendees} / {event.maxAttendees} attendees</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between mb-4">
-          <span className="text-orange-400 font-bold text-lg">{event.price}</span>
-          <span className="text-gray-400 text-sm">by {event.organizer}</span>
+          <span className="text-ts-orange font-bold text-lg">{event.price}</span>
+          <span className="text-white/60 text-sm">by {event.organizer}</span>
         </div>
 
         <div className="mb-4">
           <div className="flex flex-wrap gap-1">
             {event.tags.map((tag, index) => (
-              <span key={index} className="text-orange-400 text-xs hover:text-orange-300 cursor-pointer">
+              <span key={index} className="text-ts-orange text-xs hover:text-ts-orange cursor-pointer">
                 #{tag}
               </span>
             ))}
@@ -176,13 +176,13 @@ const EventManagement = memo(function EventManagement() {
         </div>
 
         <div className="flex gap-2">
-          <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+          <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
             {event.status === 'upcoming' ? 'Register' : 'View Details'}
           </Button>
-          <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+          <Button size="sm" variant="outline" className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20">
             <TrendingUp className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+          <Button size="sm" variant="outline" className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20">
             <Crown className="h-4 w-4" />
           </Button>
         </div>
@@ -215,50 +215,50 @@ const EventManagement = memo(function EventManagement() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
-              <Calendar className="h-8 w-8 text-orange-400 mx-auto mb-3" />
+              <Calendar className="h-8 w-8 text-ts-orange mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">{upcomingEvents.length}</div>
-              <div className="text-gray-400 text-sm">Upcoming Events</div>
+              <div className="text-white/60 text-sm">Upcoming Events</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
               <Users2 className="h-8 w-8 text-blue-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">847</div>
-              <div className="text-gray-400 text-sm">Total Attendees</div>
+              <div className="text-white/60 text-sm">Total Attendees</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
               <Crown className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">{featuredEvents.length}</div>
-              <div className="text-gray-400 text-sm">Featured Events</div>
+              <div className="text-white/60 text-sm">Featured Events</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6 text-center">
               <Compass className="h-8 w-8 text-green-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-white mb-1">15</div>
-              <div className="text-gray-400 text-sm">Cities</div>
+              <div className="text-white/60 text-sm">Cities</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+        <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm mb-8">
           <CardContent className="p-6">
             <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-400">Filter by:</span>
+                <SlidersHorizontal className="h-4 w-4 text-white/60" />
+                <span className="text-white/60">Filter by:</span>
               </div>
               
               <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="bg-navy-700 border-navy-600 text-white w-48">
+                <SelectTrigger className="bg-tsCard border-white/10 text-white w-48">
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -272,10 +272,10 @@ const EventManagement = memo(function EventManagement() {
 
               <Input
                 placeholder="Search events..."
-                className="bg-navy-700 border-navy-600 text-white w-64"
+                className="bg-tsCard border-white/10 text-white w-64"
               />
 
-              <Button variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+              <Button variant="outline" className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20">
                 Advanced Filters
               </Button>
             </div>
@@ -284,17 +284,17 @@ const EventManagement = memo(function EventManagement() {
 
         {/* Events Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="upcoming" className="data-[state=active]:bg-orange-600">
+          <TabsList className="grid w-full grid-cols-4 bg-tsCard/50 backdrop-blur-sm">
+            <TabsTrigger value="upcoming" className="data-[state=active]:bg-ts-orange-dark">
               Upcoming ({upcomingEvents.length})
             </TabsTrigger>
-            <TabsTrigger value="featured" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="featured" className="data-[state=active]:bg-ts-orange-dark">
               Featured ({featuredEvents.length})
             </TabsTrigger>
-            <TabsTrigger value="past" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="past" className="data-[state=active]:bg-ts-orange-dark">
               Past Events ({pastEvents.length})
             </TabsTrigger>
-            <TabsTrigger value="my-events" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="my-events" className="data-[state=active]:bg-ts-orange-dark">
               My Events (3)
             </TabsTrigger>
           </TabsList>
@@ -324,19 +324,19 @@ const EventManagement = memo(function EventManagement() {
           </TabsContent>
 
           <TabsContent value="my-events" className="mt-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white">My Created Events</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {events.slice(0, 2).map((event) => (
-                    <div key={event.id} className="p-4 bg-navy-700/50 rounded-lg">
+                    <div key={event.id} className="p-4 bg-tsCard/50 rounded-lg">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h4 className="text-white font-medium mb-1">{event.title}</h4>
-                          <p className="text-gray-400 text-sm mb-2">{event.description}</p>
-                          <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <p className="text-white/60 text-sm mb-2">{event.description}</p>
+                          <div className="flex items-center gap-4 text-xs text-white/60">
                             <span>{new Date(event.date).toLocaleDateString()}</span>
                             <span>{event.attendees} attendees</span>
                             <Badge className={getStatusColor(event.status)}>
@@ -346,10 +346,10 @@ const EventManagement = memo(function EventManagement() {
                         </div>
                         
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="border-navy-600 text-gray-400 hover:bg-navy-600/50">
+                          <Button size="sm" variant="outline" className="border-white/10 text-white/60 hover:bg-tsCard/50">
                             <Eye className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="outline" className="border-orange-600 text-orange-400 hover:bg-orange-600/20">
+                          <Button size="sm" variant="outline" className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20">
                             <Edit className="h-3 w-3" />
                           </Button>
                           <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/20">
@@ -361,7 +361,7 @@ const EventManagement = memo(function EventManagement() {
                   ))}
                 </div>
                 
-                <Button className="w-full mt-6 bg-orange-600 hover:bg-orange-700">
+                <Button className="w-full mt-6 bg-ts-orange-dark hover:bg-ts-orange-dark">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Event
                 </Button>

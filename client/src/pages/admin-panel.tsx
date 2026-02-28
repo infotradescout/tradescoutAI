@@ -189,11 +189,11 @@ export default function AdminPanel() {
   );
   if (!isAuthenticated || !user || !isSuperAdmin) {
     return (
-      <div className="bg-slate-950 flex items-center justify-center py-24">
+      <div className="bg-tsBg flex items-center justify-center py-24">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-gray-600">You need admin privileges to access this panel.</p>
+            <p className="text-white/60">You need admin privileges to access this panel.</p>
           </CardContent>
         </Card>
       </div>
@@ -396,7 +396,7 @@ export default function AdminPanel() {
                 setEditingItem(null);
                 setIsDialogOpen(true);
               }}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Prize
@@ -443,8 +443,8 @@ export default function AdminPanel() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-300 text-sm mb-2">{prize.description}</p>
-                    <div className="space-y-1 text-xs text-gray-400">
+                    <p className="text-white/70 text-sm mb-2">{prize.description}</p>
+                    <div className="space-y-1 text-xs text-white/60">
                       <p>
                         <strong>Value:</strong> {prize.value}
                       </p>
@@ -476,7 +476,7 @@ export default function AdminPanel() {
                 setEditingItem(null);
                 setIsDialogOpen(true);
               }}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Advertisement
@@ -526,8 +526,8 @@ export default function AdminPanel() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-300 text-sm mb-3">{ad.content}</p>
-                    <div className="flex justify-between text-xs text-gray-400">
+                    <p className="text-white/70 text-sm mb-3">{ad.content}</p>
+                    <div className="flex justify-between text-xs text-white/60">
                       <span>Views: {ad.viewCount}</span>
                       <span>Clicks: {ad.clickCount}</span>
                       <span>
@@ -550,7 +550,7 @@ export default function AdminPanel() {
                 setEditingItem(null);
                 setIsDialogOpen(true);
               }}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Setting
@@ -583,10 +583,10 @@ export default function AdminPanel() {
                           </Badge>
                         </div>
                         {setting.description && (
-                          <p className="text-gray-300 text-sm mb-2">{setting.description}</p>
+                          <p className="text-white/70 text-sm mb-2">{setting.description}</p>
                         )}
                         <div
-                          className="text-xs text-gray-400 font-mono p-2 rounded"
+                          className="text-xs text-white/60 font-mono p-2 rounded"
                           style={{ backgroundColor: "var(--surface-card)" }}
                         >
                           {JSON.stringify(setting.value, null, 2)}
@@ -626,7 +626,7 @@ export default function AdminPanel() {
                 setEditingItem(null);
                 setIsDialogOpen(true);
               }}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Setting
@@ -659,10 +659,10 @@ export default function AdminPanel() {
                           </Badge>
                         </div>
                         {setting.description && (
-                          <p className="text-gray-300 text-sm mb-2">{setting.description}</p>
+                          <p className="text-white/70 text-sm mb-2">{setting.description}</p>
                         )}
                         <div
-                          className="text-xs text-gray-400 font-mono p-2 rounded"
+                          className="text-xs text-white/60 font-mono p-2 rounded"
                           style={{ backgroundColor: "var(--surface-card)" }}
                         >
                           {JSON.stringify(setting.value, null, 2)}
@@ -699,24 +699,24 @@ export default function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="notification-ops" className="space-y-4">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
-                <Bell className="h-5 w-5 text-orange-500" />
+                <Bell className="h-5 w-5 text-ts-orange" />
                 Notification & Push Ops Runbook
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-white/70">
                 How to verify in-app and push notifications end-to-end, plus a one-click heartbeat.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm text-slate-100">
+            <CardContent className="space-y-4 text-sm text-white">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-slate-200">
+                <p className="text-white/70">
                   Start here any time you need to confirm that contractor lead, system, or campaign
                   notifications are flowing correctly to users.
                 </p>
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700 whitespace-nowrap"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark whitespace-nowrap"
                   onClick={() => testPushMutation.mutate()}
                   disabled={testPushMutation.isPending}
                 >
@@ -724,14 +724,14 @@ export default function AdminPanel() {
                 </Button>
               </div>
 
-              <Separator className="bg-slate-800" />
+              <Separator className="bg-white/5" />
 
               <div className="space-y-2">
                 <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   Daily quick check (2–3 minutes)
                 </h3>
-                <ul className="list-disc list-inside space-y-1 text-slate-200">
+                <ul className="list-disc list-inside space-y-1 text-white/70">
                   <li>
                     Use the button above to send yourself a test notification (in-app + push).
                   </li>
@@ -751,7 +751,7 @@ export default function AdminPanel() {
                   <Database className="w-4 h-4 text-sky-400" />
                   Lead-driven push (contractor example)
                 </h3>
-                <ul className="list-disc list-inside space-y-1 text-slate-200">
+                <ul className="list-disc list-inside space-y-1 text-white/70">
                   <li>Create or route a new project that assigns at least one contractor.</li>
                   <li>
                     For that contractor account, make sure push is enabled in Settings &gt;
@@ -773,7 +773,7 @@ export default function AdminPanel() {
                   <Shield className="w-4 h-4 text-emerald-400" />
                   Triage checklist when something looks off
                 </h3>
-                <ul className="list-disc list-inside space-y-1 text-slate-200">
+                <ul className="list-disc list-inside space-y-1 text-white/70">
                   <li>
                     First, run the test button above and confirm the request succeeds (no error
                     toast).
@@ -798,7 +798,7 @@ export default function AdminPanel() {
                   <Globe className="w-4 h-4 text-indigo-400" />
                   Environment notes
                 </h3>
-                <ul className="list-disc list-inside space-y-1 text-slate-200">
+                <ul className="list-disc list-inside space-y-1 text-white/70">
                   <li>
                     Push requires a secure origin (https or localhost). In non-secure environments,
                     in-app notifications will still work but push will be unavailable.
@@ -812,18 +812,18 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
-                <Megaphone className="h-5 w-5 text-orange-500" />
+                <Megaphone className="h-5 w-5 text-ts-orange" />
                 Broadcast / Announcement
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-white/70">
                 Send a short announcement to a targeted segment (homeowners, contractors, pros, or
                 admins).
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm text-slate-100">
+            <CardContent className="space-y-4 text-sm text-white">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="broadcast-segment">Segment</Label>
@@ -831,10 +831,10 @@ export default function AdminPanel() {
                     value={broadcastSegment}
                     onValueChange={(value) => setBroadcastSegment(value as BroadcastSegment)}
                   >
-                    <SelectTrigger id="broadcast-segment" className="bg-slate-900 border-slate-700">
+                    <SelectTrigger id="broadcast-segment" className="bg-tsCard border-white/10">
                       <SelectValue placeholder="Select segment" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-700">
+                    <SelectContent className="bg-tsCard border-white/10">
                       <SelectItem value="all">All users (non-filtered)</SelectItem>
                       <SelectItem value="homeowners">Homeowners & residents</SelectItem>
                       <SelectItem value="contractors">Contractors & trades</SelectItem>
@@ -842,7 +842,7 @@ export default function AdminPanel() {
                       <SelectItem value="admins">Platform admins only</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-white/60">
                     Choose who should receive this announcement.
                   </p>
                 </div>
@@ -852,8 +852,8 @@ export default function AdminPanel() {
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-medium text-slate-100">In-app notification</p>
-                        <p className="text-[11px] text-slate-400">Always on for broadcasts</p>
+                        <p className="text-xs font-medium text-white">In-app notification</p>
+                        <p className="text-[11px] text-white/60">Always on for broadcasts</p>
                       </div>
                       <Badge
                         variant="outline"
@@ -864,8 +864,8 @@ export default function AdminPanel() {
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-medium text-slate-100">Email (where allowed)</p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-xs font-medium text-white">Email (where allowed)</p>
+                        <p className="text-[11px] text-white/60">
                           Respects user notification preferences
                         </p>
                       </div>
@@ -877,10 +877,10 @@ export default function AdminPanel() {
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-medium text-slate-100">
+                        <p className="text-xs font-medium text-white">
                           Push (where configured)
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-white/60">
                           Requires valid push subscription
                         </p>
                       </div>
@@ -895,7 +895,7 @@ export default function AdminPanel() {
 
                 <div className="space-y-2">
                   <Label>Guardrails</Label>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+                  <ul className="list-disc list-inside text-xs text-white/70 space-y-1">
                     <li>Keep messages short and actionable.</li>
                     <li>Avoid PII; link users to dashboards or tools.</li>
                     <li>Use "admins" segment for internal alerts.</li>
@@ -910,7 +910,7 @@ export default function AdminPanel() {
                   placeholder="Example: Scheduled maintenance tonight at 9pm"
                   value={broadcastTitle}
                   onChange={(e) => setBroadcastTitle(e.target.value)}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-tsCard border-white/10"
                 />
               </div>
 
@@ -922,9 +922,9 @@ export default function AdminPanel() {
                   placeholder="Write a concise announcement, including what is changing and where users should go."
                   value={broadcastMessage}
                   onChange={(e) => setBroadcastMessage(e.target.value)}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-tsCard border-white/10"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-white/60">
                   This text is sent as the body of the notification and may also be used for email
                   or push content.
                 </p>
@@ -938,9 +938,9 @@ export default function AdminPanel() {
                     placeholder="Example: trade_deal, marketplace_promo"
                     value={broadcastCampaignType}
                     onChange={(e) => setBroadcastCampaignType(e.target.value)}
-                    className="bg-slate-900 border-slate-700"
+                    className="bg-tsCard border-white/10"
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-white/60">
                     Used for grouping and analytics (e.g. trade_deal, marketplace_promo).
                   </p>
                 </div>
@@ -951,9 +951,9 @@ export default function AdminPanel() {
                     placeholder="roofing, hvac, marketplace"
                     value={broadcastTags}
                     onChange={(e) => setBroadcastTags(e.target.value)}
-                    className="bg-slate-900 border-slate-700"
+                    className="bg-tsCard border-white/10"
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-white/60">
                     Comma-separated tags that describe the promotion or category.
                   </p>
                 </div>
@@ -964,12 +964,12 @@ export default function AdminPanel() {
                       placeholder="State code (e.g. TX)"
                       value={broadcastTargetState}
                       onChange={(e) => setBroadcastTargetState(e.target.value)}
-                      className="bg-slate-900 border-slate-700"
+                      className="bg-tsCard border-white/10"
                     />
                     <div className="flex items-center justify-between gap-2">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-medium text-slate-100">Marketing opt-in only</p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-xs font-medium text-white">Marketing opt-in only</p>
+                        <p className="text-[11px] text-white/60">
                           Respect users who allowed marketing emails in their preferences.
                         </p>
                       </div>
@@ -984,12 +984,12 @@ export default function AdminPanel() {
               </div>
 
               <div className="flex items-center justify-between gap-4 pt-2">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-white/60">
                   Scout can also trigger this broadcast as a tool call from chat; this panel is the
                   manual override.
                 </p>
                 <Button
-                  className="bg-orange-600 hover:bg-orange-700 whitespace-nowrap"
+                  className="bg-ts-orange-dark hover:bg-ts-orange-dark whitespace-nowrap"
                   disabled={
                     broadcastMutation.isPending ||
                     !broadcastTitle.trim() ||
@@ -1010,14 +1010,14 @@ export default function AdminPanel() {
             <Button
               variant="outline"
               size="sm"
-              className="border-navy-600 text-slate-200 hover:bg-navy-900/60"
+              className="border-white/10 text-white/70 hover:bg-tsBg/60"
               onClick={() => setLocation("/admin/errors")}
             >
               View full error report console
             </Button>
           </div>
 
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle>Recent Error Reports</CardTitle>
               <CardDescription>User-submitted error reports and system issues</CardDescription>
@@ -1026,7 +1026,7 @@ export default function AdminPanel() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-navy-600">
+                    <TableRow className="border-white/10">
                       <TableHead>Date</TableHead>
                       <TableHead>User</TableHead>
                       <TableHead>Error Type</TableHead>
@@ -1035,7 +1035,7 @@ export default function AdminPanel() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow className="border-navy-600">
+                    <TableRow className="border-white/10">
                       <TableCell colSpan={5} className="text-center text-navy-400 py-8">
                         Recent error report summary is available in the dedicated Error Reports
                         console. Use the button above to drill into full details, screenshots, and
@@ -1059,24 +1059,24 @@ export default function AdminPanel() {
 
         <TabsContent value="pricing" className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-orange-500" />
+                  <BarChart3 className="h-5 w-5 text-ts-orange" />
                   Pricing Analytics & Calculator Updates
                 </CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardDescription className="text-white/70">
                   AI-powered pricing analysis and automatic calculator adjustments
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="text-gray-300 mb-4">
+                  <p className="text-white/70 mb-4">
                     Monitor market trends, track average job quotes, and automatically update
                     calculator pricing based on real-world data.
                   </p>
                   <Button
-                    className="bg-orange-500 hover:bg-orange-600"
+                    className="bg-ts-orange hover:bg-ts-orange-dark"
                     onClick={() => setLocation("/admin/pricing")}
                   >
                     <BarChart3 className="h-4 w-4 mr-2" />
@@ -1087,23 +1087,23 @@ export default function AdminPanel() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-300 text-sm">Active Trades</p>
+                      <p className="text-white/70 text-sm">Active Trades</p>
                       <p className="text-2xl font-bold text-white">24</p>
                     </div>
-                    <Wrench className="h-8 w-8 text-orange-500" />
+                    <Wrench className="h-8 w-8 text-ts-orange" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-300 text-sm">Regions Tracked</p>
+                      <p className="text-white/70 text-sm">Regions Tracked</p>
                       <p className="text-2xl font-bold text-white">156</p>
                     </div>
                     <MapPin className="h-8 w-8 text-blue-500" />
@@ -1111,11 +1111,11 @@ export default function AdminPanel() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-700 border-navy-600">
+              <Card className="bg-tsCard border-white/10">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-300 text-sm">Last Update</p>
+                      <p className="text-white/70 text-sm">Last Update</p>
                       <p className="text-2xl font-bold text-white">2h</p>
                     </div>
                     <Clock className="h-8 w-8 text-green-500" />
@@ -1129,7 +1129,7 @@ export default function AdminPanel() {
         <TabsContent value="finance" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Finance / Invoicing Ledger</h2>
-            <p className="text-xs text-slate-400 max-w-md">
+            <p className="text-xs text-white/60 max-w-md">
               High-level view of all wallet movements across TradeScout. Use this as a starting
               point for reconciling partner payouts, marketplace sales, and affiliate commissions.
             </p>
@@ -1141,7 +1141,7 @@ export default function AdminPanel() {
 
       {/* Edit/Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-slate-900 text-white max-w-[95vw] sm:max-w-2xl">
+        <DialogContent className="bg-tsCard text-white max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Edit" : "Create"}{" "}
@@ -1283,10 +1283,10 @@ function LLMAdminPanel() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+      <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <Upload className="w-5 h-5 text-orange-500" /> Knowledge Upload
+            <Upload className="w-5 h-5 text-ts-orange" /> Knowledge Upload
           </CardTitle>
           <CardDescription>
             Upload files (json, md, text, images). Backend will sort into overrides, county guides,
@@ -1298,13 +1298,13 @@ function LLMAdminPanel() {
             type="file"
             multiple
             onChange={onFileChange}
-            className="bg-slate-900 border-slate-700"
+            className="bg-tsCard border-white/10"
           />
-          <div className="flex items-center justify-between text-sm text-slate-300">
+          <div className="flex items-center justify-between text-sm text-white/70">
             <span>{files.length} files selected</span>
             <Button
               size="sm"
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
               disabled={uploadMutation.isPending || files.length === 0}
               onClick={() => uploadMutation.mutate(files)}
             >
@@ -1312,8 +1312,8 @@ function LLMAdminPanel() {
             </Button>
           </div>
           {uploadSummary && (
-            <div className="text-xs text-slate-200 space-y-1 bg-slate-900 p-3 rounded border border-slate-700">
-              <div className="flex items-center gap-2 text-orange-300 font-semibold">
+            <div className="text-xs text-white/70 space-y-1 bg-tsCard p-3 rounded border border-white/10">
+              <div className="flex items-center gap-2 text-ts-orange font-semibold">
                 <Info className="w-4 h-4" /> Ingest Summary
               </div>
               <div>Processed: {uploadSummary.processed}</div>
@@ -1327,10 +1327,10 @@ function LLMAdminPanel() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+      <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <KeyRound className="w-5 h-5 text-orange-500" /> User Lookup & Password Reset
+            <KeyRound className="w-5 h-5 text-ts-orange" /> User Lookup & Password Reset
           </CardTitle>
           <CardDescription>
             Super-admin tools: fetch user info and set a new password.
@@ -1339,21 +1339,21 @@ function LLMAdminPanel() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <Label className="text-slate-200">Email</Label>
+              <Label className="text-white/70">Email</Label>
               <Input
                 value={infoInput.email}
                 onChange={(e) => setInfoInput((p) => ({ ...p, email: e.target.value }))}
                 placeholder="user@example.com"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
             <div>
-              <Label className="text-slate-200">User ID</Label>
+              <Label className="text-white/70">User ID</Label>
               <Input
                 value={infoInput.userId}
                 onChange={(e) => setInfoInput((p) => ({ ...p, userId: e.target.value }))}
                 placeholder="uuid"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
           </div>
@@ -1367,7 +1367,7 @@ function LLMAdminPanel() {
             </Button>
           </div>
           {userInfo && (
-            <div className="text-xs text-slate-200 bg-slate-900 p-3 rounded border border-slate-700 space-y-1">
+            <div className="text-xs text-white/70 bg-tsCard p-3 rounded border border-white/10 space-y-1">
               <div className="font-semibold">User</div>
               <div>ID: {userInfo.id}</div>
               <div>Email: {userInfo.email}</div>
@@ -1388,62 +1388,62 @@ function LLMAdminPanel() {
             </div>
           )}
 
-          <Separator className="bg-slate-800" />
+          <Separator className="bg-white/5" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-1">
-              <Label className="text-slate-200">Email</Label>
+              <Label className="text-white/70">Email</Label>
               <Input
                 value={resetInput.email}
                 onChange={(e) => setResetInput((p) => ({ ...p, email: e.target.value }))}
                 placeholder="user@example.com"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
             <div className="md:col-span-1">
-              <Label className="text-slate-200">User ID</Label>
+              <Label className="text-white/70">User ID</Label>
               <Input
                 value={resetInput.userId}
                 onChange={(e) => setResetInput((p) => ({ ...p, userId: e.target.value }))}
                 placeholder="uuid"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
             <div className="md:col-span-1">
-              <Label className="text-slate-200">New Password</Label>
+              <Label className="text-white/70">New Password</Label>
               <Input
                 type="password"
                 value={resetInput.newPassword}
                 onChange={(e) => setResetInput((p) => ({ ...p, newPassword: e.target.value }))}
                 placeholder="min 8 chars"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <Label className="text-slate-200">Audit Reason</Label>
+              <Label className="text-white/70">Audit Reason</Label>
               <Input
                 value={resetReason}
                 onChange={(e) => setResetReason(e.target.value)}
                 placeholder="Why this reset is needed"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
             <div>
-              <Label className="text-slate-200">Safety Key (optional)</Label>
+              <Label className="text-white/70">Safety Key (optional)</Label>
               <Input
                 type="password"
                 value={resetSafetyKey}
                 onChange={(e) => setResetSafetyKey(e.target.value)}
                 placeholder="Required only when strict safety key mode is enabled"
-                className="bg-slate-900 border-slate-700"
+                className="bg-tsCard border-white/10"
               />
             </div>
           </div>
           <div className="flex gap-2">
             <Button
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
               disabled={resetPasswordMutation.isPending}
               onClick={() => resetPasswordMutation.mutate()}
             >
@@ -1590,7 +1590,7 @@ function AdminItemForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
+          <Button type="submit" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
             {item ? "Update" : "Create"}
           </Button>
         </DialogFooter>
@@ -1723,7 +1723,7 @@ function AdminItemForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
+          <Button type="submit" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
             {item ? "Update" : "Create"}
           </Button>
         </DialogFooter>
@@ -1805,7 +1805,7 @@ function AdminItemForm({
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
+        <Button type="submit" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
           {item ? "Update" : "Create"}
         </Button>
       </DialogFooter>

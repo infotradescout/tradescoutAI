@@ -4,7 +4,7 @@ const DailyDeals = memo(function DailyDeals() {
   return (
     <div className=" text-white">
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-orange-400">
+        <h1 className="text-3xl font-bold mb-8 text-ts-orange">
           TradeDeals Directory (legacy view)
         </h1>
 
@@ -17,7 +17,7 @@ const DailyDeals = memo(function DailyDeals() {
             <p className="mb-6">Limited time offer from certified kitchen specialists</p>
             <button
               data-testid="claim-featured-deal-btn"
-              className="text-orange-600 px-8 py-3 rounded font-semibold transition-colors"
+              className="text-ts-orange px-8 py-3 rounded font-semibold transition-colors"
               style={{ backgroundColor: "var(--surface-frame)" }}
             >
               Claim Deal
@@ -67,19 +67,19 @@ const DailyDeals = memo(function DailyDeals() {
                 rating: "4.6",
               },
             ].map((deal, i) => (
-              <div key={i} data-testid={`deal-card-${i}`} className="bg-navy-800 p-6 rounded-lg">
-                <div className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold mb-3 inline-block">
+              <div key={i} data-testid={`deal-card-${i}`} className="bg-tsCard p-6 rounded-lg">
+                <div className="bg-ts-orange text-white px-3 py-1 rounded text-sm font-semibold mb-3 inline-block">
                   {deal.discount}
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-orange-400">{deal.title}</h3>
-                <p className="text-gray-300 mb-2">by {deal.contractor}</p>
+                <h3 className="text-xl font-semibold mb-2 text-ts-orange">{deal.title}</h3>
+                <p className="text-white/70 mb-2">by {deal.contractor}</p>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-yellow-400">★★★★★ {deal.rating}</span>
-                  <span className="text-sm text-gray-400">Expires today</span>
+                  <span className="text-sm text-white/60">Expires today</span>
                 </div>
                 <button
                   data-testid={`view-deal-btn-${i}`}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded transition-colors"
+                  className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white py-2 rounded transition-colors"
                 >
                   View Deal
                 </button>
@@ -91,24 +91,24 @@ const DailyDeals = memo(function DailyDeals() {
         {/* How It Works */}
         <section>
           <h2 className="text-2xl font-semibold mb-6">How TradeDeals work with LuckyBucks</h2>
-          <div className="bg-navy-800 p-6 rounded-lg">
+          <div className="bg-tsCard p-6 rounded-lg">
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="text-3xl mb-4">🔍</div>
                 <h3 className="text-lg font-semibold mb-2">Browse Deals</h3>
-                <p className="text-gray-300">Check daily for new contractor promotions</p>
+                <p className="text-white/70">Check daily for new contractor promotions</p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-4">📞</div>
                 <h3 className="text-lg font-semibold mb-2">Request Quote</h3>
-                <p className="text-gray-300">
+                <p className="text-white/70">
                   Submit a request and wait for acceptance before contact
                 </p>
               </div>
               <div className="text-center">
                 <div className="text-3xl mb-4">✅</div>
                 <h3 className="text-lg font-semibold mb-2">Save Money</h3>
-                <p className="text-gray-300">Enjoy premium services at reduced costs</p>
+                <p className="text-white/70">Enjoy premium services at reduced costs</p>
               </div>
             </div>
           </div>

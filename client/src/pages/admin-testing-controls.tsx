@@ -77,7 +77,7 @@ export default function AdminTestingControls() {
         <div className="max-w-4xl mx-auto">
           <div className="animate-pulse space-y-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-navy-700 rounded"></div>
+              <div key={i} className="h-32 bg-tsCard rounded"></div>
             ))}
           </div>
         </div>
@@ -90,17 +90,17 @@ export default function AdminTestingControls() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <TestTube className="h-8 w-8 text-orange-400" />
+            <TestTube className="h-8 w-8 text-ts-orange" />
             Testing Controls
           </h1>
-          <p className="text-gray-400">Manage testing features and bug reporting system settings</p>
+          <p className="text-white/60">Manage testing features and bug reporting system settings</p>
         </div>
 
         {/* Bug Report System Controls */}
-        <Card className="bg-navy-700 border-navy-600 mb-6">
+        <Card className="bg-tsCard border-white/10 mb-6">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Bug className="h-5 w-5 text-orange-400" />
+              <Bug className="h-5 w-5 text-ts-orange" />
               Bug Report System
             </CardTitle>
           </CardHeader>
@@ -108,10 +108,10 @@ export default function AdminTestingControls() {
             {/* System Status */}
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-gray-300 text-base font-semibold">
+                <Label className="text-white/70 text-base font-semibold">
                   Enable Bug Report System
                 </Label>
-                <p className="text-gray-400 text-sm">
+                <p className="text-white/60 text-sm">
                   Show bug report buttons throughout the application
                 </p>
               </div>
@@ -121,13 +121,13 @@ export default function AdminTestingControls() {
               />
             </div>
 
-            <Separator className="bg-navy-600" />
+            <Separator className="bg-tsCard" />
 
             {/* Testing Mode */}
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-gray-300 text-base font-semibold">Testing Mode</Label>
-                <p className="text-gray-400 text-sm">
+                <Label className="text-white/70 text-base font-semibold">Testing Mode</Label>
+                <p className="text-white/60 text-sm">
                   Show enhanced testing features and sample data generation
                 </p>
               </div>
@@ -140,8 +140,8 @@ export default function AdminTestingControls() {
             {/* Banner Display */}
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-gray-300 text-base font-semibold">Show Testing Banner</Label>
-                <p className="text-gray-400 text-sm">
+                <Label className="text-white/70 text-base font-semibold">Show Testing Banner</Label>
+                <p className="text-white/60 text-sm">
                   Display prominent testing banner on landing page
                 </p>
               </div>
@@ -152,8 +152,8 @@ export default function AdminTestingControls() {
             </div>
 
             {/* Test Component Preview */}
-            <div className="bg-navy-800 border border-navy-600 rounded-lg p-4">
-              <Label className="text-gray-300 text-sm font-semibold mb-3 block">
+            <div className="bg-tsCard border border-white/10 rounded-lg p-4">
+              <Label className="text-white/70 text-sm font-semibold mb-3 block">
                 Testing Component Preview:
               </Label>
               <div className="space-y-3">
@@ -165,10 +165,10 @@ export default function AdminTestingControls() {
         </Card>
 
         {/* Error Report Statistics */}
-        <Card className="bg-navy-700 border-navy-600 mb-6">
+        <Card className="bg-tsCard border-white/10 mb-6">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Settings className="h-5 w-5 text-orange-400" />
+              <Settings className="h-5 w-5 text-ts-orange" />
               Error Report Statistics
             </CardTitle>
           </CardHeader>
@@ -176,28 +176,28 @@ export default function AdminTestingControls() {
             {isLoadingStats ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="animate-pulse bg-navy-600 h-16 rounded"></div>
+                  <div key={i} className="animate-pulse bg-tsCard h-16 rounded"></div>
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-navy-600 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-orange-400">{statsData.total || 0}</div>
-                  <div className="text-gray-300 text-sm">Total Reports</div>
+                <div className="bg-tsCard rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-ts-orange">{statsData.total || 0}</div>
+                  <div className="text-white/70 text-sm">Total Reports</div>
                 </div>
-                <div className="bg-navy-600 rounded-lg p-4 text-center">
+                <div className="bg-tsCard rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-red-400">{statsData.open || 0}</div>
-                  <div className="text-gray-300 text-sm">Open Issues</div>
+                  <div className="text-white/70 text-sm">Open Issues</div>
                 </div>
-                <div className="bg-navy-600 rounded-lg p-4 text-center">
+                <div className="bg-tsCard rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-yellow-400">
                     {statsData.inProgress || 0}
                   </div>
-                  <div className="text-gray-300 text-sm">In Progress</div>
+                  <div className="text-white/70 text-sm">In Progress</div>
                 </div>
-                <div className="bg-navy-600 rounded-lg p-4 text-center">
+                <div className="bg-tsCard rounded-lg p-4 text-center">
                   <div className="text-2xl font-bold text-green-400">{statsData.resolved || 0}</div>
-                  <div className="text-gray-300 text-sm">Resolved</div>
+                  <div className="text-white/70 text-sm">Resolved</div>
                 </div>
               </div>
             )}
@@ -205,10 +205,10 @@ export default function AdminTestingControls() {
         </Card>
 
         {/* Testing Data Management */}
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-orange-400" />
+              <RotateCcw className="h-5 w-5 text-ts-orange" />
               Testing Data Management
             </CardTitle>
           </CardHeader>
@@ -233,12 +233,12 @@ export default function AdminTestingControls() {
               </Button>
             </div>
 
-            <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
+            <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <TestTube className="h-5 w-5 text-orange-400 mt-0.5" />
+                <TestTube className="h-5 w-5 text-ts-orange mt-0.5" />
                 <div>
-                  <h4 className="text-orange-400 font-semibold">Testing Instructions</h4>
-                  <ul className="text-orange-300 text-sm mt-2 space-y-1">
+                  <h4 className="text-ts-orange font-semibold">Testing Instructions</h4>
+                  <ul className="text-ts-orange text-sm mt-2 space-y-1">
                     <li>• Enable "Testing Mode" to show enhanced bug report features</li>
                     <li>• Use "Generate Test Reports" to create sample data for demonstration</li>
                     <li>• Testing banner appears on landing page when enabled</li>
@@ -251,7 +251,7 @@ export default function AdminTestingControls() {
 
             {/* Quick Actions */}
             <div className="flex gap-2 flex-wrap">
-              <Badge variant="outline" className="border-orange-500/50 text-orange-300">
+              <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                 Admin Only Feature
               </Badge>
               <Badge variant="outline" className="border-blue-500/50 text-blue-300">

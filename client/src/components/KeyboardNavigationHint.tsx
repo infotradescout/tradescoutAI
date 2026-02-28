@@ -44,13 +44,13 @@ export function KeyboardNavigationHint({ className = "" }: KeyboardNavigationHin
 
   return (
     <div className={`fixed top-24 right-6 z-50 ${className}`}>
-      <div className="bg-navy-800/95 backdrop-blur-sm rounded-xl px-4 py-3 border border-navy-600/50 shadow-xl max-w-sm">
+      <div className="bg-tsCard/95 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10 shadow-xl max-w-sm">
         <div className="flex items-start gap-3">
-          <Keyboard className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+          <Keyboard className="w-5 h-5 text-ts-orange mt-0.5 flex-shrink-0" />
           <div className="flex-1 text-sm">
             <div className="text-white font-medium mb-2">Navigation Shortcuts</div>
             
-            <div className="space-y-2 text-gray-300">
+            <div className="space-y-2 text-white/70">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
                   <ChevronLeft className="w-3 h-3" />
@@ -68,8 +68,8 @@ export function KeyboardNavigationHint({ className = "" }: KeyboardNavigationHin
               </div>
             </div>
             
-            <div className="mt-2 pt-2 border-t border-navy-600">
-              <p className="text-xs text-gray-400">
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <p className="text-xs text-white/60">
                 Or use the dropdown menu for direct access
               </p>
             </div>
@@ -80,7 +80,7 @@ export function KeyboardNavigationHint({ className = "" }: KeyboardNavigationHin
               setShowHint(false);
               localStorage.setItem('hasSeenKeyboardNavigationHint', 'true');
             }}
-            className="text-gray-400 hover:text-white transition-colors text-lg leading-none"
+            className="text-white/60 hover:text-white transition-colors text-lg leading-none"
           >
             ×
           </button>

@@ -68,11 +68,11 @@ export default function AdminAttachments() {
 
   if (isLoading) {
     return (
-      <div className="bg-navy-900 text-white p-6">
+      <div className="bg-tsBg text-white p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse space-y-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-32 bg-navy-700 rounded"></div>
+              <div key={i} className="h-32 bg-tsCard rounded"></div>
             ))}
           </div>
         </div>
@@ -81,11 +81,11 @@ export default function AdminAttachments() {
   }
 
   return (
-    <div className="bg-navy-900 text-white">
+    <div className="bg-tsBg text-white">
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">User Submitted Attachments</h1>
-          <p className="text-gray-400">
+          <p className="text-white/60">
             Screenshots and files from bug reports and error submissions
           </p>
         </div>
@@ -93,10 +93,10 @@ export default function AdminAttachments() {
         {/* Filters */}
         <div className="flex gap-4 mb-6">
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-48 bg-navy-700 border-navy-600 text-white">
+            <SelectTrigger className="w-48 bg-tsCard border-white/10 text-white">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
-            <SelectContent className="bg-navy-700 border-navy-600">
+            <SelectContent className="bg-tsCard border-white/10">
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="bug">Bug Reports</SelectItem>
               <SelectItem value="ui_issue">UI Issues</SelectItem>
@@ -105,26 +105,26 @@ export default function AdminAttachments() {
             </SelectContent>
           </Select>
 
-          <div className="text-sm text-gray-400 flex items-center">
+          <div className="text-sm text-white/60 flex items-center">
             Total reports with attachments: {reportsWithAttachments.length}
           </div>
         </div>
 
         {filteredReports.length === 0 ? (
-          <Card className="bg-navy-800 border-navy-700">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="flex items-center justify-center h-32">
-              <p className="text-gray-400">No reports with attachments found</p>
+              <p className="text-white/60">No reports with attachments found</p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {filteredReports.map((report: ErrorReportWithAttachments) => (
-              <Card key={report.id} className="bg-navy-800 border-navy-700">
+              <Card key={report.id} className="bg-tsCard border-white/10">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-white text-lg">{report.title}</CardTitle>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 mt-2 text-sm text-white/60">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           {formatDate(report.createdAt)}
@@ -146,10 +146,10 @@ export default function AdminAttachments() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-300 mb-4">{report.description}</p>
+                  <p className="text-white/70 mb-4">{report.description}</p>
 
                   <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-200">
+                    <h4 className="text-sm font-semibold text-white/70">
                       Attachments ({report.attachments?.length || 0})
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -158,16 +158,16 @@ export default function AdminAttachments() {
                         return (
                           <div
                             key={index}
-                            className="border border-navy-600 rounded-lg p-3 bg-navy-700"
+                            className="border border-white/10 rounded-lg p-3 bg-tsCard"
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 {attachmentType === "image" ? (
                                   <Image className="h-4 w-4 text-blue-400" />
                                 ) : (
-                                  <FileText className="h-4 w-4 text-gray-400" />
+                                  <FileText className="h-4 w-4 text-white/60" />
                                 )}
-                                <span className="text-sm text-gray-300">
+                                <span className="text-sm text-white/70">
                                   {attachmentType === "image" ? "Screenshot" : "File"}
                                 </span>
                               </div>
@@ -190,7 +190,7 @@ export default function AdminAttachments() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => setSelectedImage(attachment)}
-                                  className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                                  className="border-white/10 text-white/70 hover:bg-tsCard"
                                 >
                                   <Eye className="h-3 w-3 mr-1" />
                                   View
@@ -200,7 +200,7 @@ export default function AdminAttachments() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => window.open(attachment, "_blank")}
-                                className="border-navy-500 text-gray-300 hover:bg-navy-600"
+                                className="border-white/10 text-white/70 hover:bg-tsCard"
                               >
                                 <Download className="h-3 w-3 mr-1" />
                                 Download
@@ -219,7 +219,7 @@ export default function AdminAttachments() {
 
         {/* Image Preview Modal */}
         <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-[95vw] sm:max-w-4xl bg-navy-800 border-navy-700">
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl bg-tsCard border-white/10">
             <DialogHeader>
               <DialogTitle className="text-white">Screenshot Preview</DialogTitle>
             </DialogHeader>

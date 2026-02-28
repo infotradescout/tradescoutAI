@@ -29,7 +29,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full bg-slate-900/98 backdrop-blur-xl shadow-lg ${className}`}
+      className={`sticky top-0 z-50 w-full bg-tsCard/95 backdrop-blur-xl shadow-lg ${className}`}
     >
       <div className="w-full flex items-center justify-between px-6 py-4">
         {/* Logo */}
@@ -38,9 +38,9 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <TradeScoutLogo
               size="lg"
               variant="gradient"
-              className="text-orange-500 group-hover:text-orange-400 transition-colors duration-300"
+              className="text-ts-orange group-hover:text-ts-orange transition-colors duration-300"
             />
-            <span className="text-2xl font-bold text-white tracking-tight group-hover:text-orange-400 transition-colors duration-300">
+            <span className="text-2xl font-bold text-white tracking-tight group-hover:text-ts-orange transition-colors duration-300">
               TradeScout
             </span>
           </div>
@@ -52,7 +52,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <Button
               variant={isActive("/scout") ? "secondary" : "ghost"}
               size="sm"
-              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
               Scout
             </Button>
@@ -62,7 +62,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <Button
               variant={isActive("/direct-connect") ? "secondary" : "ghost"}
               size="sm"
-              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
               Direct Connect
             </Button>
@@ -72,7 +72,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <Button
               variant={isActive("/community") ? "secondary" : "ghost"}
               size="sm"
-              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
               Community
             </Button>
@@ -82,7 +82,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <Button
               variant={isActive("/trade-deals") ? "secondary" : "ghost"}
               size="sm"
-              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
               TradeDeals
             </Button>
@@ -92,7 +92,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <Button
               variant={isActive("/exchange") ? "secondary" : "ghost"}
               size="sm"
-              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
               Exchange
             </Button>
@@ -102,7 +102,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <Button
               variant={isActive("/real-estate-marketplace") ? "secondary" : "ghost"}
               size="sm"
-              className="px-3 py-2 rounded-lg nav-button hover:bg-slate-800/60 text-sm"
+              className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
               HomeScout
             </Button>
@@ -119,7 +119,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-slate-300 hover:text-white hover:bg-slate-800/60"
+                  className="text-white/70 hover:text-white hover:bg-white/5"
                 >
                   Sign In
                 </Button>
@@ -128,7 +128,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10 hover:border-ts-orange/30"
                 >
                   Get Started
                 </Button>
@@ -142,15 +142,15 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-slate-300 hover:text-white hover:bg-slate-800/60 p-2"
+                className="text-white/70 hover:text-white hover:bg-white/5 p-2"
               >
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 bg-slate-900 surface-panel">
+            <SheetContent side="right" className="w-80 bg-tsCard surface-panel">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
-                  <TradeScoutIcon size="sm" variant="gradient" className="text-orange-500" />
+                  <TradeScoutIcon size="sm" variant="gradient" className="text-ts-orange" />
                   <span className="text-lg font-bold text-white">TradeScout</span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(false)}>
@@ -161,13 +161,13 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
               <div className="space-y-6">
                 {/* Core Navigation */}
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
                     Navigation
                   </h3>
                   <Link href="/scout" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                     >
                       Scout
                     </Button>
@@ -175,7 +175,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/direct-connect" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                     >
                       Direct Connect
                     </Button>
@@ -183,7 +183,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                     >
                       Community
                     </Button>
@@ -191,7 +191,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/trade-deals" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                     >
                       TradeDeals
                     </Button>
@@ -199,7 +199,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/exchange" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                     >
                       Exchange
                     </Button>
@@ -207,7 +207,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   <Link href="/real-estate-marketplace" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                     >
                       HomeScout
                     </Button>
@@ -216,8 +216,8 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
 
                 {/* Authentication */}
                 {!isAuthenticated && (
-                  <div className="space-y-2 border-t border-slate-700 pt-4">
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                  <div className="space-y-2 border-t border-white/10 pt-4">
+                    <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
                       Account
                     </h3>
                     <Link
@@ -226,7 +226,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                     >
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-slate-200 hover:text-white hover:bg-slate-800/60"
+                        className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
                       >
                         Sign In
                       </Button>
@@ -234,7 +234,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                     <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant="outline"
-                        className="w-full justify-start border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                        className="w-full justify-start border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                       >
                         Get Started
                       </Button>

@@ -33,7 +33,7 @@ const SavedContractorsPage = () => {
   if (isLoading) {
     return (
       <div className="gradient-bg flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-ts-orange animate-spin" />
       </div>
     );
   }
@@ -41,7 +41,7 @@ const SavedContractorsPage = () => {
   if (isError) {
     return (
       <div className="gradient-bg flex items-center justify-center py-24">
-        <p className="text-slate-200 text-sm">Failed to load saved contractors.</p>
+        <p className="text-white/70 text-sm">Failed to load saved contractors.</p>
       </div>
     );
   }
@@ -54,28 +54,28 @@ const SavedContractorsPage = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-1">Saved Contractors</h1>
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-white/70">
               Pros you&apos;ve bookmarked while browsing Exchange and local listings.
             </p>
           </div>
           {saved.length > 0 && (
-            <Badge variant="secondary" className="bg-slate-800 border-slate-600 text-xs">
+            <Badge variant="secondary" className="bg-white/5 border-white/15 text-xs">
               {saved.length} saved
             </Badge>
           )}
         </div>
 
         {saved.length === 0 ? (
-          <Card className="bg-slate-900/70 border-slate-800">
+          <Card className="bg-tsCard/95 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">No saved contractors yet</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-300 text-sm mb-3">
+              <p className="text-white/70 text-sm mb-3">
                 Use the Save or Bookmark actions on contractor cards to keep track of pros you want
                 to compare later.
               </p>
-              <p className="text-slate-400 text-xs">
+              <p className="text-white/60 text-xs">
                 Once you&apos;ve saved a few, they&apos;ll show up here for quick access and
                 side-by-side review.
               </p>
@@ -84,11 +84,11 @@ const SavedContractorsPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {saved.map((c) => (
-              <Card key={c.id} className="bg-slate-900/70 border-slate-800 flex flex-col">
+              <Card key={c.id} className="bg-tsCard/95 border-white/10 flex flex-col">
                 <CardHeader className="flex flex-row items-center gap-3 pb-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={c.avatarUrl || undefined} alt={c.name} />
-                    <AvatarFallback className="bg-slate-800 text-xs">
+                    <AvatarFallback className="bg-white/5 text-xs">
                       {c.name
                         .split(" ")
                         .map((p) => p[0])
@@ -104,7 +104,7 @@ const SavedContractorsPage = () => {
                         <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                       )}
                     </CardTitle>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                    <div className="flex items-center gap-2 mt-1 text-xs text-white/60">
                       {c.category && <span className="truncate">{c.category}</span>}
                       {c.location && (
                         <span className="inline-flex items-center gap-1 truncate">
@@ -119,7 +119,7 @@ const SavedContractorsPage = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-slate-300 hover:text-red-400 hover:bg-red-950/40"
+                    className="text-xs text-white/70 hover:text-red-400 hover:bg-red-950/40"
                     onClick={() => unsaveMutation.mutate(c.id)}
                     disabled={unsaveMutation.isPending}
                   >

@@ -204,7 +204,7 @@ function CountyHeatmapMap({
   };
 
   return (
-    <div className="relative w-full h-[420px] bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
+    <div className="relative w-full h-[420px] bg-tsCard rounded-lg overflow-hidden border border-white/10">
       <svg viewBox="0 0 975 610" className="w-full h-full">
         <g>
           {counties.map((c) => {
@@ -279,30 +279,30 @@ function CountyHeatmapMap({
 
       {hovered && (
         <div
-          className="pointer-events-none fixed z-50 rounded-md bg-slate-900/95 border border-slate-700 px-3 py-2 text-xs shadow-lg"
+          className="pointer-events-none fixed z-50 rounded-md bg-tsCard/95 border border-white/10 px-3 py-2 text-xs shadow-lg"
           style={{
             left: hovered.clientX + 12,
             top: hovered.clientY + 12,
           }}
         >
-          <div className="font-medium text-slate-100">
+          <div className="font-medium text-white">
             {hovered.countyName}, {hovered.stateCode}
           </div>
           {hovered.lens === "coverage" ? (
             <>
-              <div className="mt-1 text-slate-300">
+              <div className="mt-1 text-white/70">
                 Coverage:{" "}
                 {hovered.coverageStatus
                   ? hovered.coverageStatus.charAt(0).toUpperCase() + hovered.coverageStatus.slice(1)
                   : "Not set"}
               </div>
-              <div className="mt-1 text-slate-400 text-[11px]">
+              <div className="mt-1 text-white/60 text-[11px]">
                 TM: {hovered.territoryManagerCount ?? 0} • Affiliate/partner:{" "}
                 {hovered.affiliateCount ?? 0}
               </div>
             </>
           ) : (
-            <div className="mt-1 text-slate-300">
+            <div className="mt-1 text-white/70">
               {hovered.metricHasData
                 ? `${metricLabel}: ${((hovered.count ?? 0) as number).toLocaleString()}`
                 : "Metric not populated yet."}
@@ -311,12 +311,12 @@ function CountyHeatmapMap({
         </div>
       )}
 
-      <div className="absolute bottom-3 left-3 rounded bg-slate-900/80 px-2 py-1 text-[10px] text-slate-300 border border-slate-700">
+      <div className="absolute bottom-3 left-3 rounded bg-tsCard/95 px-2 py-1 text-[10px] text-white/70 border border-white/10">
         {metricLabel} per county (log scale)
       </div>
 
       <div className="absolute top-3 left-3 w-64">
-        <div className="rounded-md bg-slate-900/90 border border-slate-700 shadow-md p-2">
+        <div className="rounded-md bg-tsCard/95 border border-white/10 shadow-md p-2">
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -328,22 +328,22 @@ function CountyHeatmapMap({
               }
             }}
             placeholder="Search county, state, or FIPS"
-            className="h-8 bg-slate-950/80 border-slate-600 text-xs text-slate-100 placeholder:text-slate-500"
+            className="h-8 bg-black/30 border-white/15 text-xs text-white placeholder:text-white/60"
           />
           {searchFocused && searchResults.length > 0 && (
-            <div className="mt-1 max-h-52 overflow-y-auto rounded-md border border-slate-700 bg-slate-900 text-xs text-slate-100">
+            <div className="mt-1 max-h-52 overflow-y-auto rounded-md border border-white/10 bg-tsCard text-xs text-white">
               {searchResults.map((c) => (
                 <button
                   key={c.fips}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(c.fips)}
-                  className="flex w-full items-center justify-between px-2 py-1 hover:bg-slate-800 text-left"
+                  className="flex w-full items-center justify-between px-2 py-1 hover:bg-white/5 text-left"
                 >
                   <span>
                     {c.countyName}, {c.stateCode}
                   </span>
-                  <span className="text-[10px] text-slate-400">{c.fips}</span>
+                  <span className="text-[10px] text-white/60">{c.fips}</span>
                 </button>
               ))}
             </div>
@@ -547,10 +547,10 @@ export function UserHeatmap() {
     const intensity = interactions / maxInteractions;
 
     if (intensity > 0.8) return "bg-red-500 text-white";
-    if (intensity > 0.6) return "bg-orange-500 text-white";
+    if (intensity > 0.6) return "bg-ts-orange text-white";
     if (intensity > 0.4) return "bg-yellow-500 text-black";
     if (intensity > 0.2) return "bg-blue-400 text-white";
-    return "bg-slate-600 text-gray-300";
+    return "bg-white/10 text-white/70";
   };
 
   const countyMetricLabel = useMemo(() => {
@@ -609,21 +609,21 @@ export function UserHeatmap() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <MapIcon className="w-6 h-6 text-orange-500" />
+            <MapIcon className="w-6 h-6 text-ts-orange" />
             User Activity Heatmap
           </h2>
-          <p className="text-gray-400 mt-1">
+          <p className="text-white/60 mt-1">
             Geographic distribution of user interactions across the United States
           </p>
         </div>
         <div className="flex items-center gap-3">
           {isSuperAdmin && (
-            <div className="inline-flex rounded-full bg-slate-800 border border-slate-700 p-1 text-xs text-slate-200">
+            <div className="inline-flex rounded-full bg-white/5 border border-white/10 p-1 text-xs text-white/70">
               <button
                 type="button"
                 onClick={() => setViewMode("heatmap")}
                 className={`px-3 py-1 rounded-full transition-colors ${
-                  viewMode === "heatmap" ? "bg-slate-200 text-slate-900" : "text-slate-300"
+                  viewMode === "heatmap" ? "bg-white/10 text-white/70" : "text-white/70"
                 }`}
               >
                 Heatmap
@@ -632,7 +632,7 @@ export function UserHeatmap() {
                 type="button"
                 onClick={() => setViewMode("counties")}
                 className={`px-3 py-1 rounded-full transition-colors ${
-                  viewMode === "counties" ? "bg-slate-200 text-slate-900" : "text-slate-300"
+                  viewMode === "counties" ? "bg-white/10 text-white/70" : "text-white/70"
                 }`}
               >
                 Counties
@@ -640,10 +640,10 @@ export function UserHeatmap() {
             </div>
           )}
           <Select value={timeframe} onValueChange={setTimeframe}>
-            <SelectTrigger className="w-32 bg-slate-800 border-slate-700 text-white">
+            <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-white/5 border-white/10">
               <SelectItem value="7d">7 days</SelectItem>
               <SelectItem value="30d">30 days</SelectItem>
               <SelectItem value="90d">90 days</SelectItem>
@@ -652,12 +652,12 @@ export function UserHeatmap() {
 
           {isSuperAdmin && viewMode === "counties" && (
             <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-full bg-slate-800 border border-slate-700 p-1 text-xs text-slate-200">
+              <div className="inline-flex rounded-full bg-white/5 border border-white/10 p-1 text-xs text-white/70">
                 <button
                   type="button"
                   onClick={() => setCountyLens("coverage")}
                   className={`px-3 py-1 rounded-full transition-colors ${
-                    countyLens === "coverage" ? "bg-slate-200 text-slate-900" : "text-slate-300"
+                    countyLens === "coverage" ? "bg-white/10 text-white/70" : "text-white/70"
                   }`}
                 >
                   Coverage
@@ -666,7 +666,7 @@ export function UserHeatmap() {
                   type="button"
                   onClick={() => setCountyLens("metric")}
                   className={`px-3 py-1 rounded-full transition-colors ${
-                    countyLens === "metric" ? "bg-slate-200 text-slate-900" : "text-slate-300"
+                    countyLens === "metric" ? "bg-white/10 text-white/70" : "text-white/70"
                   }`}
                 >
                   Metrics
@@ -675,10 +675,10 @@ export function UserHeatmap() {
               {countyLens === "metric" && (
                 <>
                   <Select value={countyMetric} onValueChange={setCountyMetric}>
-                    <SelectTrigger className="w-44 bg-slate-800 border-slate-700 text-white">
+                    <SelectTrigger className="w-44 bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Metric" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700 text-sm">
+                    <SelectContent className="bg-white/5 border-white/10 text-sm">
                       <SelectItem value="users_total">Users (total)</SelectItem>
                       <SelectItem value="users_verified">Verified users</SelectItem>
                       <SelectItem value="contractors">Contractors</SelectItem>
@@ -699,7 +699,7 @@ export function UserHeatmap() {
                           size="sm"
                           disabled={refreshMetricsMutation.isPending}
                           onClick={() => refreshMetricsMutation.mutate()}
-                          className="bg-slate-800 border-slate-700 text-xs text-slate-100 hover:bg-slate-700"
+                          className="bg-white/5 border-white/10 text-xs text-white hover:bg-white/10"
                         >
                           {refreshMetricsMutation.isPending ? "Refreshing..." : "Refresh metrics"}
                         </Button>
@@ -719,25 +719,25 @@ export function UserHeatmap() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-white/5 border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400">Total Interactions</p>
+                <p className="text-sm text-white/60">Total Interactions</p>
                 <p className="text-2xl font-bold text-white">
                   {totalInteractions.toLocaleString()}
                 </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-orange-500" />
+              <TrendingUp className="w-8 h-8 text-ts-orange" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-white/5 border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400">Active Users</p>
+                <p className="text-sm text-white/60">Active Users</p>
                 <p className="text-2xl font-bold text-white">{totalUsers.toLocaleString()}</p>
               </div>
               <Users className="w-8 h-8 text-blue-500" />
@@ -745,11 +745,11 @@ export function UserHeatmap() {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-white/5 border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-400">Active Locations</p>
+                <p className="text-sm text-white/60">Active Locations</p>
                 <p className="text-2xl font-bold text-white">{heatmapData.length}</p>
               </div>
               <MapPin className="w-8 h-8 text-green-500" />
@@ -766,7 +766,7 @@ export function UserHeatmap() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Heatmap Visualization */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <MapIcon className="w-5 h-5" />
@@ -850,28 +850,28 @@ export function UserHeatmap() {
                   </div>
 
                   {/* Legend */}
-                  <div className="mt-4 pt-4 border-t border-slate-600">
-                    <p className="text-sm text-gray-400 mb-2">Activity Level:</p>
+                  <div className="mt-4 pt-4 border-t border-white/15">
+                    <p className="text-sm text-white/60 mb-2">Activity Level:</p>
                     <div className="flex gap-2 flex-wrap">
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-red-500 rounded"></div>
-                        <span className="text-xs text-gray-400">Very High</span>
+                        <span className="text-xs text-white/60">Very High</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                        <span className="text-xs text-gray-400">High</span>
+                        <div className="w-3 h-3 bg-ts-orange rounded"></div>
+                        <span className="text-xs text-white/60">High</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                        <span className="text-xs text-gray-400">Medium</span>
+                        <span className="text-xs text-white/60">Medium</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-blue-400 rounded"></div>
-                        <span className="text-xs text-gray-400">Low</span>
+                        <span className="text-xs text-white/60">Low</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-slate-600 rounded"></div>
-                        <span className="text-xs text-gray-400">Very Low</span>
+                        <div className="w-3 h-3 bg-white/10 rounded"></div>
+                        <span className="text-xs text-white/60">Very Low</span>
                       </div>
                     </div>
                   </div>
@@ -881,7 +881,7 @@ export function UserHeatmap() {
           </Card>
 
           {/* Top Locations */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 {viewMode === "counties" && isSuperAdmin ? (
@@ -903,22 +903,22 @@ export function UserHeatmap() {
                   {selectedCountyFips ? (
                     <>
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">
+                        <p className="text-xs uppercase tracking-wide text-white/60 mb-1">
                           Selected county
                         </p>
                         <p className="text-sm font-semibold text-white">
                           {FIPS_LOOKUP.get(selectedCountyFips)?.countyName || "Unknown"},{" "}
                           {FIPS_LOOKUP.get(selectedCountyFips)?.stateCode || ""}
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">FIPS: {selectedCountyFips}</p>
+                        <p className="text-xs text-white/60 mt-0.5">FIPS: {selectedCountyFips}</p>
                         {countyHeatmap && (
-                          <p className="text-xs text-slate-300 mt-1">
+                          <p className="text-xs text-white/70 mt-1">
                             {countyMetricLabel}:{" "}
                             {(countyHeatmap.byCounty[selectedCountyFips] || 0).toLocaleString()}
                           </p>
                         )}
                         {coverageByCounty[selectedCountyFips] && (
-                          <p className="text-xs text-slate-300 mt-1">
+                          <p className="text-xs text-white/70 mt-1">
                             Coverage:{" "}
                             {coverageByCounty[selectedCountyFips].coverageStatus
                               .charAt(0)
@@ -930,7 +930,7 @@ export function UserHeatmap() {
                         )}
                         {coverageByCounty[selectedCountyFips] && (
                           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                            <span className="text-slate-400 mr-2">Actions:</span>
+                            <span className="text-white/60 mr-2">Actions:</span>
                             <Button
                               size="sm"
                               variant="outline"
@@ -952,7 +952,7 @@ export function UserHeatmap() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-6 px-2 text-[11px] text-slate-300"
+                              className="h-6 px-2 text-[11px] text-white/70"
                               onClick={handleStartNoteForCounty}
                             >
                               Add note
@@ -965,7 +965,7 @@ export function UserHeatmap() {
                         onValueChange={(v) => setCountyPanelTab(v as "notes" | "entities")}
                         className="mt-4"
                       >
-                        <TabsList className="grid grid-cols-2 mb-3 bg-slate-900/80 border border-slate-700">
+                        <TabsList className="grid grid-cols-2 mb-3 bg-tsCard/95 border border-white/10">
                           <TabsTrigger value="notes" className="text-xs">
                             Notes
                           </TabsTrigger>
@@ -976,15 +976,15 @@ export function UserHeatmap() {
 
                         <TabsContent value="notes" className="mt-0 space-y-3">
                           <div className="space-y-2">
-                            <label className="text-xs font-medium text-slate-300">Add note</label>
+                            <label className="text-xs font-medium text-white/70">Add note</label>
                             <Select
                               value={noteCategory}
                               onValueChange={(v) => setNoteCategory(v as CountyNote["category"])}
                             >
-                              <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-xs text-slate-100 h-8">
+                              <SelectTrigger className="w-full bg-tsCard border-white/10 text-xs text-white h-8">
                                 <SelectValue placeholder="Category" />
                               </SelectTrigger>
-                              <SelectContent className="bg-slate-900 border-slate-700 text-xs text-slate-100">
+                              <SelectContent className="bg-tsCard border-white/10 text-xs text-white">
                                 <SelectItem value="affiliate">Affiliate</SelectItem>
                                 <SelectItem value="employee">Employee</SelectItem>
                                 <SelectItem value="partner">Partner</SelectItem>
@@ -998,7 +998,7 @@ export function UserHeatmap() {
                               onChange={(e) => setNoteContent(e.target.value)}
                               placeholder="Operational note (affiliates, partners, risk, ops...)"
                               ref={noteTextareaRef}
-                              className="min-h-[80px] bg-slate-900 border-slate-700 text-sm text-slate-100"
+                              className="min-h-[80px] bg-tsCard border-white/10 text-sm text-white"
                             />
                             <div className="flex justify-end">
                               <Button
@@ -1017,13 +1017,13 @@ export function UserHeatmap() {
                           </div>
 
                           <div className="mt-3">
-                            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
+                            <p className="text-xs uppercase tracking-wide text-white/60 mb-2">
                               Notes
                             </p>
                             {notesLoading ? (
-                              <div className="text-xs text-slate-400">Loading notes...</div>
+                              <div className="text-xs text-white/60">Loading notes...</div>
                             ) : countyNotes && countyNotes.length > 0 ? (
-                              <ScrollArea className="h-64 w-full rounded-md border border-slate-700 bg-slate-900/60">
+                              <ScrollArea className="h-64 w-full rounded-md border border-white/10 bg-tsCard/95">
                                 <div className="p-3 space-y-3">
                                   {countyNotes.map((note) => {
                                     const isOwner = note.authorUserId === user?.id;
@@ -1036,7 +1036,7 @@ export function UserHeatmap() {
                                     return (
                                       <div
                                         key={note.id}
-                                        className="rounded-md border border-slate-700 bg-slate-900/80 p-2 text-xs text-slate-100"
+                                        className="rounded-md border border-white/10 bg-tsCard/95 p-2 text-xs text-white"
                                       >
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-2">
@@ -1050,12 +1050,12 @@ export function UserHeatmap() {
                                                     : note.category === "affiliate" ||
                                                         note.category === "partner"
                                                       ? "bg-emerald-900/60 text-emerald-100"
-                                                      : "bg-slate-800 text-slate-100")
+                                                      : "bg-white/5 text-white")
                                               }
                                             >
                                               {categoryLabel}
                                             </span>
-                                            <span className="text-[10px] text-slate-400">
+                                            <span className="text-[10px] text-white/60">
                                               {new Date(note.createdAt).toLocaleString()}
                                             </span>
                                           </div>
@@ -1065,7 +1065,7 @@ export function UserHeatmap() {
                                                 <Button
                                                   variant="ghost"
                                                   size="icon"
-                                                  className="h-6 w-6 text-slate-400 hover:text-red-400 hover:bg-slate-800"
+                                                  className="h-6 w-6 text-white/60 hover:text-red-400 hover:bg-white/5"
                                                 >
                                                   ×
                                                 </Button>
@@ -1092,7 +1092,7 @@ export function UserHeatmap() {
                                             </AlertDialog>
                                           )}
                                         </div>
-                                        <div className="whitespace-pre-wrap text-[11px] leading-snug text-slate-100">
+                                        <div className="whitespace-pre-wrap text-[11px] leading-snug text-white">
                                           {note.content}
                                         </div>
                                       </div>
@@ -1101,7 +1101,7 @@ export function UserHeatmap() {
                                 </div>
                               </ScrollArea>
                             ) : (
-                              <div className="text-xs text-slate-400">
+                              <div className="text-xs text-white/60">
                                 No notes yet for this county.
                               </div>
                             )}
@@ -1110,7 +1110,7 @@ export function UserHeatmap() {
 
                         <TabsContent value="entities" className="mt-0 space-y-3">
                           <div className="space-y-2">
-                            <label className="text-xs font-medium text-slate-300">Add entity</label>
+                            <label className="text-xs font-medium text-white/70">Add entity</label>
                             <div className="grid grid-cols-2 gap-2">
                               <Select
                                 defaultValue="affiliate"
@@ -1120,10 +1120,10 @@ export function UserHeatmap() {
                                   })
                                 }
                               >
-                                <SelectTrigger className="col-span-2 bg-slate-900 border-slate-700 text-xs text-slate-100 h-8">
+                                <SelectTrigger className="col-span-2 bg-tsCard border-white/10 text-xs text-white h-8">
                                   <SelectValue placeholder="Entity type" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-slate-900 border-slate-700 text-xs text-slate-100">
+                                <SelectContent className="bg-tsCard border-white/10 text-xs text-white">
                                   <SelectItem value="affiliate">Affiliate</SelectItem>
                                   <SelectItem value="employee">Employee</SelectItem>
                                   <SelectItem value="partner">Partner</SelectItem>
@@ -1137,13 +1137,13 @@ export function UserHeatmap() {
                           </div>
 
                           <div>
-                            <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
+                            <p className="text-xs uppercase tracking-wide text-white/60 mb-2">
                               Entities
                             </p>
                             {entitiesLoading ? (
-                              <div className="text-xs text-slate-400">Loading entities...</div>
+                              <div className="text-xs text-white/60">Loading entities...</div>
                             ) : countyEntities && countyEntities.length > 0 ? (
-                              <ScrollArea className="h-64 w-full rounded-md border border-slate-700 bg-slate-900/60">
+                              <ScrollArea className="h-64 w-full rounded-md border border-white/10 bg-tsCard/95">
                                 <div className="p-3 space-y-3">
                                   {countyEntities.map((entity) => {
                                     const statusBadgeClass =
@@ -1151,7 +1151,7 @@ export function UserHeatmap() {
                                         ? "bg-emerald-900/60 text-emerald-100"
                                         : entity.status === "pending"
                                           ? "bg-amber-900/60 text-amber-100"
-                                          : "bg-slate-800 text-slate-100";
+                                          : "bg-white/5 text-white";
 
                                     const typeLabel =
                                       entity.entityType === "territory_manager"
@@ -1162,15 +1162,15 @@ export function UserHeatmap() {
                                     return (
                                       <div
                                         key={entity.id}
-                                        className="rounded-md border border-slate-700 bg-slate-900/80 p-2 text-xs text-slate-100"
+                                        className="rounded-md border border-white/10 bg-tsCard/95 p-2 text-xs text-white"
                                       >
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex flex-col gap-0.5">
-                                            <span className="font-medium text-[11px] text-slate-100">
+                                            <span className="font-medium text-[11px] text-white">
                                               {entity.label || typeLabel}
                                             </span>
                                             {entity.entityId && (
-                                              <span className="text-[10px] text-slate-400">
+                                              <span className="text-[10px] text-white/60">
                                                 Ref: {entity.entityId}
                                               </span>
                                             )}
@@ -1194,10 +1194,10 @@ export function UserHeatmap() {
                                                 })
                                               }
                                             >
-                                              <SelectTrigger className="h-7 w-20 bg-slate-900 border-slate-700 text-[10px] text-slate-100">
+                                              <SelectTrigger className="h-7 w-20 bg-tsCard border-white/10 text-[10px] text-white">
                                                 <SelectValue />
                                               </SelectTrigger>
-                                              <SelectContent className="bg-slate-900 border-slate-700 text-xs text-slate-100">
+                                              <SelectContent className="bg-tsCard border-white/10 text-xs text-white">
                                                 <SelectItem value="active">Active</SelectItem>
                                                 <SelectItem value="inactive">Inactive</SelectItem>
                                                 <SelectItem value="pending">Pending</SelectItem>
@@ -1208,7 +1208,7 @@ export function UserHeatmap() {
                                                 <Button
                                                   variant="ghost"
                                                   size="icon"
-                                                  className="h-6 w-6 text-slate-400 hover:text-red-400 hover:bg-slate-800"
+                                                  className="h-6 w-6 text-white/60 hover:text-red-400 hover:bg-white/5"
                                                 >
                                                   ×
                                                 </Button>
@@ -1244,7 +1244,7 @@ export function UserHeatmap() {
                                 </div>
                               </ScrollArea>
                             ) : (
-                              <div className="text-xs text-slate-400">
+                              <div className="text-xs text-white/60">
                                 No entities stored for this county.
                               </div>
                             )}
@@ -1253,7 +1253,7 @@ export function UserHeatmap() {
                       </Tabs>
                     </>
                   ) : (
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-white/60">
                       Select a county on the map or search by name/state/FIPS to view or add notes.
                     </div>
                   )}
@@ -1264,34 +1264,34 @@ export function UserHeatmap() {
                     {topLocations.map((location: HeatmapDataPoint, index: number) => (
                       <div
                         key={`${location.state}-${location.county}`}
-                        className="flex items-center justify-between p-3 bg-slate-700 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-white/10 rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          <div className="w-8 h-8 bg-ts-orange rounded-full flex items-center justify-center text-white font-bold text-sm">
                             {index + 1}
                           </div>
                           <div>
                             <h4 className="font-semibold text-white">
                               {location.county}, {location.state}
                             </h4>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-white/60">
                               {location.users} users • {location.contractors} contractors •{" "}
                               {location.homeowners} homeowners
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-orange-400">
+                          <p className="text-lg font-bold text-ts-orange">
                             {location.interactions}
                           </p>
-                          <p className="text-xs text-gray-400">interactions</p>
+                          <p className="text-xs text-white/60">interactions</p>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {topLocations.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
+                    <div className="text-center py-8 text-white/60">
                       <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
                       <p>No activity data available for the selected timeframe</p>
                     </div>

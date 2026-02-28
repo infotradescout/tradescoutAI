@@ -104,30 +104,30 @@ export default function OnboardingProfile() {
   const canContinue = !!firstName.trim() && !!lastName.trim() && !!stateCode && !!countyFips;
 
   return (
-    <div className="flex justify-center px-3 py-6 text-tsTextMain">
+    <div className="flex justify-center px-3 py-6 text-white">
       <div className="w-full max-w-2xl space-y-2.5">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate("/scout")}
-            className="px-0 text-tsTextMuted hover:text-white hover:bg-transparent"
+            className="px-0 text-white/60 hover:text-white hover:bg-transparent"
           >
             Back
           </Button>
-          <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">Step 1/2</div>
+          <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">Step 1/2</div>
         </div>
 
-        <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
+        <Card className="rounded-2xl border border-white/10 bg-tsCard/95 shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
-                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">
+                <span className="text-xs uppercase tracking-[0.2em] text-white/60">
                   TRADESCOUT
                 </span>
               </div>
             </div>
-            <CardTitle className="text-lg font-semibold text-tsTextMain">
+            <CardTitle className="text-lg font-semibold text-white">
               Quick profile check
             </CardTitle>
           </CardHeader>
@@ -136,7 +136,7 @@ export default function OnboardingProfile() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                     First name
                   </Label>
                   <Input
@@ -146,7 +146,7 @@ export default function OnboardingProfile() {
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                     Last name
                   </Label>
                   <Input
@@ -158,7 +158,7 @@ export default function OnboardingProfile() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                   Primary county
                 </Label>
                 <StateCountySelector
@@ -172,7 +172,7 @@ export default function OnboardingProfile() {
               </div>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[11px] text-tsTextMuted">
+                <p className="text-[11px] text-white/60">
                   {canContinue ? "Ready." : "Complete name and county."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>

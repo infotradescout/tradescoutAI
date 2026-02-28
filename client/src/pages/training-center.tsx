@@ -197,11 +197,11 @@ const TrainingCenter = memo(function TrainingCenter() {
 
         {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Courses Enrolled</p>
+                  <p className="text-white/60 text-sm">Courses Enrolled</p>
                   <p className="text-2xl font-bold text-white">12</p>
                 </div>
                 <BookOpen className="h-8 w-8 text-blue-400" />
@@ -209,11 +209,11 @@ const TrainingCenter = memo(function TrainingCenter() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Completed</p>
+                  <p className="text-white/60 text-sm">Completed</p>
                   <p className="text-2xl font-bold text-green-400">8</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-400" />
@@ -221,23 +221,23 @@ const TrainingCenter = memo(function TrainingCenter() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Certifications</p>
-                  <p className="text-2xl font-bold text-orange-400">3</p>
+                  <p className="text-white/60 text-sm">Certifications</p>
+                  <p className="text-2xl font-bold text-ts-orange">3</p>
                 </div>
-                <Award className="h-8 w-8 text-orange-400" />
+                <Award className="h-8 w-8 text-ts-orange" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Learning Hours</p>
+                  <p className="text-white/60 text-sm">Learning Hours</p>
                   <p className="text-2xl font-bold text-purple-400">127</p>
                 </div>
                 <Clock className="h-8 w-8 text-purple-400" />
@@ -248,27 +248,27 @@ const TrainingCenter = memo(function TrainingCenter() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="courses" className="data-[state=active]:bg-orange-600">
+          <TabsList className="grid w-full grid-cols-4 bg-tsCard/50 backdrop-blur-sm">
+            <TabsTrigger value="courses" className="data-[state=active]:bg-ts-orange-dark">
               Courses
             </TabsTrigger>
-            <TabsTrigger value="paths" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="paths" className="data-[state=active]:bg-ts-orange-dark">
               Learning Paths
             </TabsTrigger>
-            <TabsTrigger value="certifications" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="certifications" className="data-[state=active]:bg-ts-orange-dark">
               Certifications
             </TabsTrigger>
-            <TabsTrigger value="progress" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="progress" className="data-[state=active]:bg-ts-orange-dark">
               My Progress
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="courses" className="mt-6">
             {/* Featured Courses */}
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm mb-8">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm mb-8">
               <CardHeader>
                 <CardTitle className="text-white">Featured Courses</CardTitle>
-                <p className="text-gray-400">
+                <p className="text-white/60">
                   Popular and highly-rated courses from industry experts
                 </p>
               </CardHeader>
@@ -279,7 +279,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                     .map((course) => (
                       <div
                         key={course.id}
-                        className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors"
+                        className="bg-tsCard/50 rounded-lg overflow-hidden hover:bg-tsCard/50 transition-colors"
                       >
                         <div className="relative">
                           <img
@@ -297,7 +297,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                               className={
                                 course.price === "Free"
                                   ? "bg-green-600 hover:bg-green-700"
-                                  : "bg-orange-600 hover:bg-orange-700"
+                                  : "bg-ts-orange-dark hover:bg-ts-orange-dark"
                               }
                             >
                               {course.price}
@@ -314,9 +314,9 @@ const TrainingCenter = memo(function TrainingCenter() {
                           </div>
 
                           <h3 className="text-white font-semibold text-lg mb-2">{course.title}</h3>
-                          <p className="text-gray-400 text-sm mb-3">{course.description}</p>
+                          <p className="text-white/60 text-sm mb-3">{course.description}</p>
 
-                          <div className="flex items-center gap-4 mb-4 text-sm text-gray-400">
+                          <div className="flex items-center gap-4 mb-4 text-sm text-white/60">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {course.duration}
@@ -334,14 +334,14 @@ const TrainingCenter = memo(function TrainingCenter() {
                           {course.progress > 0 && (
                             <div className="mb-4">
                               <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-400">Progress</span>
+                                <span className="text-white/60">Progress</span>
                                 <span className="text-white">{course.progress}%</span>
                               </div>
                               <Progress value={course.progress} className="h-2" />
                             </div>
                           )}
 
-                          <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                          <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                             {course.progress > 0 ? "Continue Learning" : "Start Course"}
                           </Button>
                         </div>
@@ -352,7 +352,7 @@ const TrainingCenter = memo(function TrainingCenter() {
             </Card>
 
             {/* All Courses */}
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white">All Courses</CardTitle>
               </CardHeader>
@@ -361,7 +361,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                   {courses.map((course) => (
                     <div
                       key={course.id}
-                      className="bg-navy-700/50 rounded-lg overflow-hidden hover:bg-navy-600/50 transition-colors"
+                      className="bg-tsCard/50 rounded-lg overflow-hidden hover:bg-tsCard/50 transition-colors"
                     >
                       <img
                         src={course.thumbnail}
@@ -374,18 +374,18 @@ const TrainingCenter = memo(function TrainingCenter() {
                           <Badge className={`${getLevelColor(course.level)} text-xs`}>
                             {course.level}
                           </Badge>
-                          <span className="text-orange-400 font-bold">{course.price}</span>
+                          <span className="text-ts-orange font-bold">{course.price}</span>
                         </div>
 
                         <h4 className="text-white font-medium mb-2">{course.title}</h4>
-                        <p className="text-gray-400 text-xs mb-3">By {course.instructor}</p>
+                        <p className="text-white/60 text-xs mb-3">By {course.instructor}</p>
 
-                        <div className="flex justify-between items-center text-xs text-gray-400 mb-3">
+                        <div className="flex justify-between items-center text-xs text-white/60 mb-3">
                           <span>{course.duration}</span>
                           <span>★ {course.rating}</span>
                         </div>
 
-                        <Button size="sm" className="w-full bg-orange-600 hover:bg-orange-700">
+                        <Button size="sm" className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                           View Course
                         </Button>
                       </div>
@@ -399,38 +399,38 @@ const TrainingCenter = memo(function TrainingCenter() {
           <TabsContent value="paths" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {learningPaths.map((path) => (
-                <Card key={path.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <Card key={path.id} className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="text-white">{path.title}</CardTitle>
-                    <p className="text-gray-400 text-sm">{path.description}</p>
+                    <p className="text-white/60 text-sm">{path.description}</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-400">Courses</p>
+                          <p className="text-white/60">Courses</p>
                           <p className="text-white font-semibold">{path.courses}</p>
                         </div>
                         <div>
-                          <p className="text-gray-400">Est. Time</p>
+                          <p className="text-white/60">Est. Time</p>
                           <p className="text-white font-semibold">{path.estimatedTime}</p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Completion Rate</span>
+                          <span className="text-white/60">Completion Rate</span>
                           <span className="text-white">
                             {Math.round((path.completed / path.enrolled) * 100)}%
                           </span>
                         </div>
                         <Progress value={(path.completed / path.enrolled) * 100} className="h-2" />
-                        <p className="text-gray-400 text-xs">
+                        <p className="text-white/60 text-xs">
                           {path.enrolled} enrolled, {path.completed} completed
                         </p>
                       </div>
 
-                      <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                      <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                         Start Learning Path
                       </Button>
                     </div>
@@ -443,7 +443,7 @@ const TrainingCenter = memo(function TrainingCenter() {
           <TabsContent value="certifications" className="mt-6">
             <div className="space-y-6">
               {certifications.map((cert) => (
-                <Card key={cert.id} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                <Card key={cert.id} className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
@@ -456,7 +456,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-gray-400 mb-4">{cert.description}</p>
+                        <p className="text-white/60 mb-4">{cert.description}</p>
 
                         <div>
                           <h4 className="text-white font-medium mb-2">Requirements:</h4>
@@ -464,7 +464,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                             {cert.requirements.map((req, index) => (
                               <li
                                 key={index}
-                                className="flex items-center gap-2 text-sm text-gray-300"
+                                className="flex items-center gap-2 text-sm text-white/70"
                               >
                                 <CheckCircle className="h-3 w-3 text-green-400" />
                                 {req}
@@ -483,7 +483,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                                 ? new Date(cert.earnedDate).toLocaleDateString()
                                 : "Unknown"}
                             </p>
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-white/60 text-sm">
                               Valid until{" "}
                               {cert.validUntil
                                 ? new Date(cert.validUntil).toLocaleDateString()
@@ -496,13 +496,13 @@ const TrainingCenter = memo(function TrainingCenter() {
                         ) : (
                           <div>
                             <div className="text-center mb-3">
-                              <div className="text-2xl font-bold text-orange-400">
+                              <div className="text-2xl font-bold text-ts-orange">
                                 {cert.progress}%
                               </div>
-                              <div className="text-gray-400 text-sm">Complete</div>
+                              <div className="text-white/60 text-sm">Complete</div>
                             </div>
                             <Progress value={cert.progress} className="h-2 w-24 mb-3" />
-                            <Button className="bg-orange-600 hover:bg-orange-700">Continue</Button>
+                            <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Continue</Button>
                           </div>
                         )}
                       </div>
@@ -516,7 +516,7 @@ const TrainingCenter = memo(function TrainingCenter() {
           <TabsContent value="progress" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Recent Activity */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Recent Learning Activity</CardTitle>
                 </CardHeader>
@@ -550,7 +550,7 @@ const TrainingCenter = memo(function TrainingCenter() {
                     ].map((activity, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-3 p-3 bg-navy-700/50 rounded-lg"
+                        className="flex items-center gap-3 p-3 bg-tsCard/50 rounded-lg"
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
@@ -559,9 +559,9 @@ const TrainingCenter = memo(function TrainingCenter() {
                         />
                         <div className="flex-1">
                           <p className="text-white text-sm font-medium">{activity.course}</p>
-                          <p className="text-gray-400 text-xs">{activity.module}</p>
+                          <p className="text-white/60 text-xs">{activity.module}</p>
                         </div>
-                        <div className="text-gray-400 text-xs">{activity.date}</div>
+                        <div className="text-white/60 text-xs">{activity.date}</div>
                       </div>
                     ))}
                   </div>
@@ -569,7 +569,7 @@ const TrainingCenter = memo(function TrainingCenter() {
               </Card>
 
               {/* Learning Stats */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Learning Statistics</CardTitle>
                 </CardHeader>
@@ -577,33 +577,33 @@ const TrainingCenter = memo(function TrainingCenter() {
                   <div className="space-y-6">
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">This Week</span>
+                        <span className="text-white/60">This Week</span>
                         <span className="text-white">8.5 hours</span>
                       </div>
                       <Progress value={85} className="h-2" />
-                      <p className="text-gray-400 text-xs mt-1">Goal: 10 hours/week</p>
+                      <p className="text-white/60 text-xs mt-1">Goal: 10 hours/week</p>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Course Completion Rate</span>
+                        <span className="text-white/60">Course Completion Rate</span>
                         <span className="text-white">67%</span>
                       </div>
                       <Progress value={67} className="h-2" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 bg-navy-700/50 rounded-lg">
-                        <div className="text-lg font-bold text-orange-400">15</div>
-                        <div className="text-gray-400 text-xs">Courses Started</div>
+                      <div className="text-center p-3 bg-tsCard/50 rounded-lg">
+                        <div className="text-lg font-bold text-ts-orange">15</div>
+                        <div className="text-white/60 text-xs">Courses Started</div>
                       </div>
-                      <div className="text-center p-3 bg-navy-700/50 rounded-lg">
+                      <div className="text-center p-3 bg-tsCard/50 rounded-lg">
                         <div className="text-lg font-bold text-green-400">8</div>
-                        <div className="text-gray-400 text-xs">Courses Completed</div>
+                        <div className="text-white/60 text-xs">Courses Completed</div>
                       </div>
                     </div>
 
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                    <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                       View Detailed Analytics
                     </Button>
                   </div>

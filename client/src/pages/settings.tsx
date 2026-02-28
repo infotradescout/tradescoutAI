@@ -654,7 +654,7 @@ export default function Settings() {
               </div>
               <div>
                 <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">Settings</h1>
-                <p className="text-lg text-slate-400">
+                <p className="text-lg text-white/60">
                   Manage your account preferences and privacy
                 </p>
               </div>
@@ -662,52 +662,52 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue={defaultTab} className="space-y-6">
-            <TabsList className="w-full bg-tsCard border border-tsBorder p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
+            <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
               <TabsTrigger
                 value="profile"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Profile
               </TabsTrigger>
               <TabsTrigger
                 value="roles"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Roles
               </TabsTrigger>
               <TabsTrigger
                 value="navigation"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Navigation
               </TabsTrigger>
               <TabsTrigger
                 value="appearance"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Appearance
               </TabsTrigger>
               <TabsTrigger
                 value="notifications"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Notifications
               </TabsTrigger>
               <TabsTrigger
                 value="privacy"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Privacy
               </TabsTrigger>
               <TabsTrigger
                 value="security"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Security
               </TabsTrigger>
               <TabsTrigger
                 value="tools"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white transition-all rounded-lg"
+                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Financial Tools
               </TabsTrigger>
@@ -717,12 +717,12 @@ export default function Settings() {
             <TabsContent value="profile">
               <div className="space-y-6">
                 {activeHoaId && (
-                  <Card className="bg-tsCard border-tsBorder shadow-xl">
-                    <CardHeader className="border-b border-tsBorder pb-6">
+                  <Card className="bg-tsCard border-white/10 shadow-xl">
+                    <CardHeader className="border-b border-white/10 pb-6">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <CardTitle className="text-xl text-white">HOA Membership</CardTitle>
-                          <p className="text-sm text-slate-400 mt-1">
+                          <p className="text-sm text-white/60 mt-1">
                             Leave through the official channel (reason required).
                           </p>
                         </div>
@@ -750,9 +750,9 @@ export default function Settings() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                      <div className="text-sm text-slate-300">
+                      <div className="text-sm text-white/70">
                         <div className="flex items-center justify-between gap-4">
-                          <span className="text-slate-400">Current HOA</span>
+                          <span className="text-white/60">Current HOA</span>
                           <span className="text-white font-medium">
                             {activeHoaName || "Your HOA"}
                           </span>
@@ -762,15 +762,15 @@ export default function Settings() {
                   </Card>
                 )}
 
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-6">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <User className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <User className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Profile Information</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Update your personal details and profile
                         </p>
                       </div>
@@ -778,7 +778,7 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent className="space-y-8 pt-6">
                     {/* Profile Photo Section */}
-                    <div className="flex items-center gap-6 pb-6 border-b border-tsBorder">
+                    <div className="flex items-center gap-6 pb-6 border-b border-white/10">
                       <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                         {profileForm.profileImageUrl ? (
                           <img
@@ -795,11 +795,11 @@ export default function Settings() {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-white font-medium mb-1">Profile Photo</h3>
-                        <p className="text-sm text-slate-400 mb-3">Update your profile picture</p>
+                        <p className="text-sm text-white/60 mb-3">Update your profile picture</p>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                          className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                           onClick={handleUploadClick}
                         >
                           Upload Photo
@@ -826,7 +826,7 @@ export default function Settings() {
                           onChange={(e) =>
                             setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))
                           }
-                          className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
                           placeholder="Enter first name"
                         />
                       </div>
@@ -840,7 +840,7 @@ export default function Settings() {
                           onChange={(e) =>
                             setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))
                           }
-                          className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
                           placeholder="Enter last name"
                         />
                       </div>
@@ -852,7 +852,7 @@ export default function Settings() {
                         htmlFor="email"
                         className="text-white font-medium flex items-center gap-2"
                       >
-                        <Mail className="h-4 w-4 text-orange-500" />
+                        <Mail className="h-4 w-4 text-ts-orange" />
                         Email Address
                       </Label>
                       <Input
@@ -860,10 +860,10 @@ export default function Settings() {
                         type="email"
                         defaultValue={user?.email || ""}
                         disabled
-                        className="bg-tsBg border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                        className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
                         placeholder="email@example.com"
                       />
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-white/60">
                         We'll never share your email with anyone
                       </p>
                     </div>
@@ -880,18 +880,18 @@ export default function Settings() {
                         onChange={(e) =>
                           setProfileForm((prev) => ({ ...prev, bio: e.target.value }))
                         }
-                        className="bg-tsBg border-tsBorder text-tsTextMain min-h-[120px] focus:border-orange-500 transition-colors resize-none"
+                        className="bg-tsBg border-white/10 text-white min-h-[120px] focus:border-ts-orange/30 transition-colors resize-none"
                         rows={5}
                       />
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-white/60">
                         Brief description for your profile. Maximum 500 characters.
                       </p>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-tsBorder">
+                    <div className="flex items-center gap-3 pt-4 border-t border-white/10">
                       <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                         onClick={() => updateProfileMutation.mutate()}
                         disabled={updateProfileMutation.isPending}
                       >
@@ -900,7 +900,7 @@ export default function Settings() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-tsBorder text-slate-300 hover:bg-tsBg"
+                        className="border-white/10 text-white/70 hover:bg-tsBg"
                         onClick={() =>
                           setProfileForm({
                             firstName: user?.firstName || "",
@@ -919,15 +919,15 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-6">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Globe className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Globe className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Home Location</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Set your home location once. This powers all your local experiences:
                           community, marketplace, HOA tools, and leaderboards.
                         </p>
@@ -937,7 +937,7 @@ export default function Settings() {
                   <CardContent className="space-y-6 pt-6">
                     <div className="space-y-2">
                       <Label className="text-white font-medium">Home region</Label>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-white/60">
                         Scout uses your saved location to match you with local activity and
                         experiences. Changing it here updates everything.
                       </p>
@@ -954,13 +954,13 @@ export default function Settings() {
                       onCountySelected={(county) => setLocationCountyName(county?.name || "")}
                       disabled={updateLocationMutation.isPending}
                     />
-                    <div className="flex items-center justify-between gap-3 pt-4 border-t border-tsBorder flex-col sm:flex-row">
-                      <p className="text-xs text-slate-500 max-w-xl">
+                    <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10 flex-col sm:flex-row">
+                      <p className="text-xs text-white/60 max-w-xl">
                         Device location (when shared) helps Scout understand what&apos;s nearby, but
                         your saved location here is what unlocks local experiences.
                       </p>
                       <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                         disabled={
                           updateLocationMutation.isPending ||
                           !locationStateCode ||
@@ -980,15 +980,15 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-6">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Home className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Home className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Home Vault</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Keep private records for your properties: inspections, upgrades,
                           appliances, and documents.
                         </p>
@@ -997,12 +997,12 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
-                      <p className="text-xs text-slate-500 max-w-xl">
+                      <p className="text-xs text-white/60 max-w-xl">
                         This is account-only. Nothing you add here is public.
                       </p>
                       <Button
                         asChild
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                       >
                         <Link href="/homes">Open Home Vault</Link>
                       </Button>
@@ -1010,15 +1010,15 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-6">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Car className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Car className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Vehicle Vault</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Keep private records for your vehicles: service history, repairs, and
                           documents.
                         </p>
@@ -1027,12 +1027,12 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
-                      <p className="text-xs text-slate-500 max-w-xl">
+                      <p className="text-xs text-white/60 max-w-xl">
                         Account-only. Use this to build trust when you decide to sell.
                       </p>
                       <Button
                         asChild
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg w-full sm:w-auto"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                       >
                         <Link href="/vehicles">Open Vehicle Vault</Link>
                       </Button>
@@ -1045,15 +1045,15 @@ export default function Settings() {
             {/* Navigation Settings */}
             <TabsContent value="navigation">
               <div className="space-y-6">
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-6">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Smartphone className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Navigation Preferences</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Customize the order and visibility of your mobile navigation.
                         </p>
                       </div>
@@ -1076,17 +1076,17 @@ export default function Settings() {
             {/* Roles Management */}
             <TabsContent value="roles">
               <Card
-                className="border border-slate-700 shadow-xl"
+                className="border border-white/10 shadow-xl"
                 style={{ backgroundColor: "var(--surface-card)" }}
               >
-                <CardHeader className="border-b border-slate-700 pb-6">
+                <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-orange-500" />
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Briefcase className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
                       <CardTitle className="text-xl text-white">Manage Your Roles</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-white/60 mt-1">
                         Select all the roles that apply to you. Your dashboard and experience will
                         automatically adapt.
                       </p>
@@ -1095,9 +1095,9 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-8 pt-6">
                   {/* Current Roles Summary */}
-                  <div className="bg-gradient-to-br from-tsBg to-tsCard border border-tsBorder rounded-xl p-6 shadow-lg">
+                  <div className="bg-gradient-to-br from-tsBg to-tsCard border border-white/10 rounded-xl p-6 shadow-lg">
                     <div className="flex items-center gap-2 mb-4">
-                      <CheckCircle2 className="h-5 w-5 text-orange-500" />
+                      <CheckCircle2 className="h-5 w-5 text-ts-orange" />
                       <h3 className="text-white font-semibold text-lg">Currently Active Roles</h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -1109,7 +1109,7 @@ export default function Settings() {
                           return (
                             <Badge
                               key={roleKey}
-                              className="bg-orange-500 text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                              className="bg-ts-orange text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
                             >
                               <Icon className="h-3.5 w-3.5" />
                               {config.label}
@@ -1117,20 +1117,20 @@ export default function Settings() {
                           );
                         })
                       ) : (
-                        <p className="text-slate-400 text-sm">No roles selected</p>
+                        <p className="text-white/60 text-sm">No roles selected</p>
                       )}
                     </div>
                   </div>
 
                   {/* Account Types & Business Personas */}
-                  <div className="bg-tsBg border border-tsBorder rounded-xl p-6 shadow-lg space-y-4">
+                  <div className="bg-tsBg border border-white/10 rounded-xl p-6 shadow-lg space-y-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Briefcase className="h-5 w-5 text-orange-500" />
+                      <Briefcase className="h-5 w-5 text-ts-orange" />
                       <h3 className="text-white font-semibold text-lg">
                         Account Types &amp; Business Personas
                       </h3>
                     </div>
-                    <p className="text-sm text-slate-400 mb-2">
+                    <p className="text-sm text-white/60 mb-2">
                       Select all the ways you use TradeScout — homeowner, landlord, restaurant
                       owner, contractor, and more. Scout will use these types to personalize your
                       dashboards and recommendations.
@@ -1140,13 +1140,13 @@ export default function Settings() {
                       onChange={setSelectedUserTypes}
                       className="mt-2"
                     />
-                    <div className="flex justify-end pt-4 border-t border-tsBorder mt-2">
+                    <div className="flex justify-end pt-4 border-t border-white/10 mt-2">
                       <Button
                         onClick={saveUserTypes}
                         disabled={
                           updateUserTypesMutation.isPending || selectedUserTypes.length === 0
                         }
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg disabled:opacity-50"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
                       >
                         {updateUserTypesMutation.isPending ? "Saving…" : "Save Account Types"}
                       </Button>
@@ -1170,18 +1170,18 @@ export default function Settings() {
                               relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
                               ${
                                 isSelected
-                                  ? "bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500 shadow-orange-500/20"
-                                  : "bg-tsBg border-tsBorder hover:border-orange-500/50 hover:bg-tsCard/50"
+                                  ? "bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-ts-orange/30 shadow-orange-500/20"
+                                  : "bg-tsBg border-white/10 hover:border-ts-orange/30 hover:bg-tsCard/50"
                               }
                             `}
                             data-testid={`role-option-${roleKey}`}
                           >
                             <div className="flex items-start gap-4">
                               <div
-                                className={`p-3 rounded-xl transition-all ${isSelected ? "bg-orange-500 shadow-lg" : "bg-tsCard"}`}
+                                className={`p-3 rounded-xl transition-all ${isSelected ? "bg-ts-orange shadow-lg" : "bg-tsCard"}`}
                               >
                                 <Icon
-                                  className={`h-6 w-6 ${isSelected ? "text-white" : "text-orange-500"}`}
+                                  className={`h-6 w-6 ${isSelected ? "text-white" : "text-ts-orange"}`}
                                 />
                               </div>
                               <div className="flex-1">
@@ -1190,11 +1190,11 @@ export default function Settings() {
                                     {config.label}
                                   </h4>
                                   {isSelected && (
-                                    <CheckCircle2 className="h-5 w-5 text-orange-500" />
+                                    <CheckCircle2 className="h-5 w-5 text-ts-orange" />
                                   )}
                                 </div>
                                 {config.desc && (
-                                  <p className="text-sm text-slate-400 leading-relaxed">
+                                  <p className="text-sm text-white/60 leading-relaxed">
                                     {config.desc}
                                   </p>
                                 )}
@@ -1207,21 +1207,21 @@ export default function Settings() {
                   </div>
 
                   {/* Save Button */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-tsBorder">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-white/10">
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <span className="text-orange-500 font-bold text-sm">
+                      <div className="h-8 w-8 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <span className="text-ts-orange font-bold text-sm">
                           {selectedRoles.length}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-white/70">
                         role{selectedRoles.length !== 1 ? "s" : ""} selected
                       </p>
                     </div>
                     <Button
                       onClick={saveRoles}
                       disabled={updateRolesMutation.isPending || selectedRoles.length === 0}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg disabled:opacity-50"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
                       data-testid="button-save-roles"
                     >
                       {updateRolesMutation.isPending ? "Saving..." : "Save Roles"}
@@ -1234,15 +1234,15 @@ export default function Settings() {
             {/* Appearance & Layout Settings */}
             <TabsContent value="appearance">
               <div className="space-y-6">
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-6">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">Profile Colors & Theme</CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Profile colors are managed from your Profile Settings so your in-app theme
                           and public profile stay in sync.
                         </p>
@@ -1250,13 +1250,13 @@ export default function Settings() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-6">
-                    <p className="text-slate-300 text-sm">
+                    <p className="text-white/70 text-sm">
                       Your color scheme is now driven by your profile color settings. Updating your
                       profile colors will update how TradeScout looks to you and how your public
                       profile appears to others.
                     </p>
                     <Button
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                       asChild
                     >
                       <Link href="/profile-settings">Open Profile Settings</Link>
@@ -1264,17 +1264,17 @@ export default function Settings() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-tsCard border-tsBorder shadow-xl">
-                  <CardHeader className="border-b border-tsBorder pb-4">
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Smartphone className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <CardTitle className="text-xl text-white">
                           Handedness & One-Handed Layout
                         </CardTitle>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-white/60 mt-1">
                           Choose how top controls and key buttons are aligned so they are easier to
                           reach with one hand.
                         </p>
@@ -1283,8 +1283,8 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent className="space-y-4 pt-4">
                     <div className="space-y-2">
-                      <Label className="text-sm text-slate-300">Handedness</Label>
-                      <p className="text-xs text-slate-400">
+                      <Label className="text-sm text-white/70">Handedness</Label>
+                      <p className="text-xs text-white/60">
                         Right-handed keeps primary controls on the right. Left-handed moves them to
                         the left side of the screen.
                       </p>
@@ -1295,8 +1295,8 @@ export default function Settings() {
                         variant={handedness === "right" ? "default" : "outline"}
                         className={
                           handedness === "right"
-                            ? "bg-orange-500 hover:bg-orange-600 text-white flex-1"
-                            : "border-tsBorder text-slate-200 hover:border-orange-500/70 flex-1"
+                            ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
+                            : "border-white/10 text-white/70 hover:border-ts-orange/30 flex-1"
                         }
                         onClick={() => setHandedness("right")}
                       >
@@ -1307,18 +1307,18 @@ export default function Settings() {
                         variant={handedness === "left" ? "default" : "outline"}
                         className={
                           handedness === "left"
-                            ? "bg-orange-500 hover:bg-orange-600 text-white flex-1"
-                            : "border-tsBorder text-slate-200 hover:border-orange-500/70 flex-1"
+                            ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
+                            : "border-white/10 text-white/70 hover:border-ts-orange/30 flex-1"
                         }
                         onClick={() => setHandedness("left")}
                       >
                         Left-handed layout
                       </Button>
                     </div>
-                    <div className="flex justify-end pt-2 border-t border-tsBorder mt-2">
+                    <div className="flex justify-end pt-2 border-t border-white/10 mt-2">
                       <Button
                         type="button"
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 shadow-lg"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                         disabled={updateHandednessMutation.isPending}
                         onClick={() => updateHandednessMutation.mutate(handedness)}
                       >
@@ -1332,15 +1332,15 @@ export default function Settings() {
 
             {/* Notification Settings */}
             <TabsContent value="notifications">
-              <Card className="bg-tsCard border-tsBorder shadow-xl">
-                <CardHeader className="border-b border-tsBorder pb-6">
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Bell className="w-5 h-5 text-orange-500" />
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
                       <CardTitle className="text-xl text-white">Notification Preferences</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-white/60 mt-1">
                         Choose how you want to receive updates and alerts
                       </p>
                     </div>
@@ -1376,17 +1376,17 @@ export default function Settings() {
                     return (
                       <div
                         key={key}
-                        className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder hover:border-orange-500/30 transition-all"
+                        className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-white/10 hover:border-ts-orange/30 transition-all"
                       >
                         <div className="flex items-center space-x-4">
-                          <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Icon className="w-5 h-5 text-orange-500" />
+                          <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-5 h-5 text-ts-orange" />
                           </div>
                           <div>
                             <p className="text-white font-medium">{config.label}</p>
-                            <p className="text-slate-400 text-sm">{config.desc}</p>
+                            <p className="text-white/60 text-sm">{config.desc}</p>
                             {isPush && (
-                              <p className="text-xs text-slate-500 mt-1">
+                              <p className="text-xs text-white/60 mt-1">
                                 {pushStatus.permission === "denied"
                                   ? "Browser notifications are blocked for this site. Enable them in your browser settings to turn push on."
                                   : pushStatus.registered
@@ -1433,10 +1433,10 @@ export default function Settings() {
                     );
                   })}
 
-                  <div className="mt-6 p-4 bg-tsBg rounded-xl border border-dashed border-tsBorder flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="mt-6 p-4 bg-tsBg rounded-xl border border-dashed border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                       <p className="text-white font-medium">Advanced per-area controls</p>
-                      <p className="text-slate-400 text-sm">
+                      <p className="text-white/60 text-sm">
                         Fine-tune notifications for Marketplace, Community, HOA, wallet events, and
                         more by channel.
                       </p>
@@ -1444,18 +1444,18 @@ export default function Settings() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-4"
+                      className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-4"
                       onClick={() => setAdvancedNotificationPrefsOpen(true)}
                     >
                       Open advanced preferences
                     </Button>
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t border-tsBorder">
+                  <div className="flex justify-end pt-4 border-t border-white/10">
                     <Button
                       onClick={() => updateNotificationsMutation.mutate()}
                       disabled={updateNotificationsMutation.isPending}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
                     >
                       {updateNotificationsMutation.isPending ? "Saving…" : "Save Notifications"}
                     </Button>
@@ -1466,29 +1466,29 @@ export default function Settings() {
 
             {/* Privacy Settings */}
             <TabsContent value="privacy">
-              <Card className="bg-tsCard border-tsBorder shadow-xl">
-                <CardHeader className="border-b border-tsBorder pb-6">
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Eye className="w-5 h-5 text-orange-500" />
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Eye className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
                       <CardTitle className="text-xl text-white">Privacy Settings</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-white/60 mt-1">
                         Control who can see your information and contact you
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
+                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-white/10">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <p className="text-white font-medium">Profile Visibility</p>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-white/60 text-sm">
                           Make your profile visible to other users
                         </p>
                       </div>
@@ -1504,14 +1504,14 @@ export default function Settings() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-tsBorder">
+                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-white/10">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Globe className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Globe className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <p className="text-white font-medium">Show in Search Results</p>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-white/60 text-sm">
                           Allow others to find you through search
                         </p>
                       </div>
@@ -1524,14 +1524,14 @@ export default function Settings() {
                     />
                   </div>
 
-                  <div className="space-y-3 p-4 bg-tsBg rounded-xl border border-tsBorder">
+                  <div className="space-y-3 p-4 bg-tsBg rounded-xl border border-white/10">
                     <div className="flex items-center gap-4 mb-3">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Mail className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <Label className="text-white font-medium">Who can contact you?</Label>
-                        <p className="text-slate-400 text-sm">Choose who can send you messages</p>
+                        <p className="text-white/60 text-sm">Choose who can send you messages</p>
                       </div>
                     </div>
                     <Select
@@ -1540,10 +1540,10 @@ export default function Settings() {
                         setPrivacy((prev) => ({ ...prev, contactPolicy: value }))
                       }
                     >
-                      <SelectTrigger className="bg-tsCard border-tsBorder text-tsTextMain h-11">
+                      <SelectTrigger className="bg-tsCard border-white/10 text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-tsCard border-tsBorder">
+                      <SelectContent className="bg-tsCard border-white/10">
                         <SelectItem value="everyone">Everyone</SelectItem>
                         <SelectItem value="verified">Verified users only</SelectItem>
                         <SelectItem value="contractors">Contractors only</SelectItem>
@@ -1556,7 +1556,7 @@ export default function Settings() {
                     <Button
                       onClick={() => updatePrivacyMutation.mutate(privacy)}
                       disabled={updatePrivacyMutation.isPending}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-8 shadow-lg"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
                     >
                       {updatePrivacyMutation.isPending ? "Saving…" : "Save Privacy"}
                     </Button>
@@ -1567,29 +1567,29 @@ export default function Settings() {
 
             {/* Security Settings */}
             <TabsContent value="security">
-              <Card className="bg-tsCard border-tsBorder shadow-xl">
-                <CardHeader className="border-b border-tsBorder pb-6">
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-orange-500" />
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
                       <CardTitle className="text-xl text-white">Security Settings</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-white/60 mt-1">
                         Manage your password and account security
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="p-6 bg-tsBg rounded-xl border border-tsBorder">
+                  <div className="p-6 bg-tsBg rounded-xl border border-white/10">
                     <div className="flex items-center gap-3 mb-5">
-                      <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Lock className="w-5 h-5 text-orange-500" />
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-ts-orange" />
                       </div>
                       <div>
                         <h3 className="text-white font-semibold">Change Password</h3>
-                        <p className="text-sm text-slate-400">Update your account password</p>
+                        <p className="text-sm text-white/60">Update your account password</p>
                       </div>
                     </div>
                     <div className="space-y-4">
@@ -1605,7 +1605,7 @@ export default function Settings() {
                               currentPassword: e.target.value,
                             }))
                           }
-                          className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1617,7 +1617,7 @@ export default function Settings() {
                           onChange={(e) =>
                             setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
                           }
-                          className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1632,11 +1632,11 @@ export default function Settings() {
                               confirmNewPassword: e.target.value,
                             }))
                           }
-                          className="bg-tsCard border-tsBorder text-tsTextMain h-11 focus:border-orange-500 transition-colors"
+                          className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
                         />
                       </div>
                       <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white w-full mt-2 shadow-lg"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full mt-2 shadow-lg"
                         disabled={
                           changePasswordMutation.isPending ||
                           !passwordForm.currentPassword ||
@@ -1660,21 +1660,21 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-tsBg rounded-xl border border-tsBorder">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-tsBg rounded-xl border border-white/10">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Shield className="w-6 h-6 text-orange-500" />
+                      <div className="h-12 w-12 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Shield className="w-6 h-6 text-ts-orange" />
                       </div>
                       <div>
                         <p className="text-white font-semibold">Two-Factor Authentication</p>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-white/60 text-sm">
                           Add an extra layer of security to your account
                         </p>
                       </div>
                     </div>
                     <Button
                       variant="outline"
-                      className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-6"
+                      className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-6"
                       onClick={() => {
                         const nextPrivacy = {
                           ...privacy,
@@ -1693,15 +1693,15 @@ export default function Settings() {
 
             {/* Financial Tools List */}
             <TabsContent value="tools">
-              <Card className="bg-tsCard border-tsBorder shadow-xl">
-                <CardHeader className="border-b border-tsBorder pb-6">
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Wrench className="w-5 h-5 text-orange-500" />
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Wrench className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
                       <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-white/60 mt-1">
                         Quick access to calculators and helpers for your finances.
                       </p>
                     </div>
@@ -1714,12 +1714,12 @@ export default function Settings() {
                         <h3 className="text-white font-semibold text-lg mb-1">
                           Invoice Calculator
                         </h3>
-                        <p className="text-sm text-slate-400 mb-2">
+                        <p className="text-sm text-white/60 mb-2">
                           Check payment math and totals for your invoices.
                         </p>
                         <a
                           href="/finances/invoices"
-                          className="text-orange-400 underline hover:text-orange-300 text-sm"
+                          className="text-ts-orange underline hover:text-ts-orange text-sm"
                         >
                           Open Invoices
                         </a>
@@ -1730,12 +1730,12 @@ export default function Settings() {
                         <h3 className="text-white font-semibold text-lg mb-1">
                           Estimate Calculator
                         </h3>
-                        <p className="text-sm text-slate-400 mb-2">
+                        <p className="text-sm text-white/60 mb-2">
                           Double-check your job estimates before sending.
                         </p>
                         <a
                           href="/quote-calculator"
-                          className="text-orange-400 underline hover:text-orange-300 text-sm"
+                          className="text-ts-orange underline hover:text-ts-orange text-sm"
                         >
                           Open Quote Calculator
                         </a>
@@ -1744,12 +1744,12 @@ export default function Settings() {
                     <div className="flex flex-col md:flex-row md:items-center md:gap-6">
                       <div className="flex-1">
                         <h3 className="text-white font-semibold text-lg mb-1">Expense Helper</h3>
-                        <p className="text-sm text-slate-400 mb-2">
+                        <p className="text-sm text-white/60 mb-2">
                           Split, categorize, or review your expenses for better tracking.
                         </p>
                         <a
                           href="/finances/expenses"
-                          className="text-orange-400 underline hover:text-orange-300 text-sm"
+                          className="text-ts-orange underline hover:text-ts-orange text-sm"
                         >
                           Open Expenses
                         </a>

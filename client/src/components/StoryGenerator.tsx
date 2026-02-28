@@ -260,7 +260,7 @@ export function StoryGenerator() {
           <Sparkles className="h-6 w-6 text-yellow-500" />
           <h2 className="text-2xl font-bold">Professional Story Generator</h2>
         </div>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-white/60 dark:text-white/60">
           Create compelling professional stories in one click using our narrative templates
         </p>
       </div>
@@ -299,7 +299,7 @@ export function StoryGenerator() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 space-y-3">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-white/60 dark:text-white/60">
                       {template.description}
                     </p>
                     <div className="flex gap-2">
@@ -342,7 +342,7 @@ export function StoryGenerator() {
                                 {template.prompts.map((prompt, index) => (
                                   <li
                                     key={index}
-                                    className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2"
+                                    className="text-sm text-white/60 dark:text-white/60 flex items-start gap-2"
                                   >
                                     <span className="text-blue-500">•</span>
                                     {prompt}
@@ -395,7 +395,7 @@ export function StoryGenerator() {
                                     data-testid="textarea-edit-story"
                                   />
                                 ) : (
-                                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <div className="p-4 bg-white/5 dark:bg-white/5 rounded-lg">
                                     <p
                                       className="whitespace-pre-wrap text-sm leading-relaxed"
                                       data-testid="text-generated-story"
@@ -446,7 +446,7 @@ export function StoryGenerator() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="p-4 bg-white/5 dark:bg-white/5 rounded-lg">
               <p
                 className="whitespace-pre-wrap leading-relaxed"
                 data-testid="text-quick-generated-story"

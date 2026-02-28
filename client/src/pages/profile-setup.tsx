@@ -174,8 +174,8 @@ export default function ProfileSetup() {
               onClick={() => handleRoleSelection("contractor_user")}
             >
               <CardHeader className="text-center">
-                <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-                  <HardHat className="w-8 h-8 text-orange-600" />
+                <div className="mx-auto w-16 h-16 bg-ts-orange/10 rounded-full flex items-center justify-center mb-4">
+                  <HardHat className="w-8 h-8 text-ts-orange" />
                 </div>
                 <CardTitle className="text-card-foreground">I'm a Contractor</CardTitle>
                 <CardDescription className="text-muted-foreground">

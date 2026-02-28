@@ -165,14 +165,14 @@ export function TutorialOverlay({
       
       {/* Tutorial card */}
       <div ref={overlayRef} style={getPositionStyles()}>
-        <Card className="w-96 max-w-[90vw] bg-navy-800 border-navy-600 shadow-2xl">
+        <Card className="w-96 max-w-[90vw] bg-tsCard border-white/10 shadow-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-orange-500 text-white">
+                <Badge variant="secondary" className="bg-ts-orange text-white">
                   Step {stepIndex + 1} of {totalSteps}
                 </Badge>
-                <Badge variant="outline" className="border-navy-500 text-navy-300">
+                <Badge variant="outline" className="border-white/10 text-navy-300">
                   Tutorial
                 </Badge>
               </div>
@@ -180,7 +180,7 @@ export function TutorialOverlay({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-6 w-6 p-0 text-navy-400 hover:text-white hover:bg-navy-700"
+                className="h-6 w-6 p-0 text-navy-400 hover:text-white hover:bg-tsCard"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -188,9 +188,9 @@ export function TutorialOverlay({
             <CardTitle className="text-lg text-white">
               {currentStep.title}
             </CardTitle>
-            <Progress value={progress} className="h-2 bg-navy-700">
+            <Progress value={progress} className="h-2 bg-tsCard">
               <div 
-                className="h-full bg-orange-500 transition-all duration-300 ease-out"
+                className="h-full bg-ts-orange transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </Progress>
@@ -202,7 +202,7 @@ export function TutorialOverlay({
             </p>
 
             {currentStep.multimedia && (
-              <div className="rounded-lg overflow-hidden border border-navy-600">
+              <div className="rounded-lg overflow-hidden border border-white/10">
                 {currentStep.multimedia.type === 'image' && (
                   <img 
                     src={currentStep.multimedia.url} 
@@ -229,9 +229,9 @@ export function TutorialOverlay({
             )}
 
             {currentStep.action && (
-              <div className="bg-navy-700 rounded-lg p-3 border border-navy-600">
+              <div className="bg-tsCard rounded-lg p-3 border border-white/10">
                 <div className="flex items-center gap-2 text-sm text-navy-300">
-                  <Play className="h-4 w-4 text-orange-500" />
+                  <Play className="h-4 w-4 text-ts-orange" />
                   <span>
                     {currentStep.action === 'click' && 'Click the highlighted element to continue'}
                     {currentStep.action === 'type' && `Type "${currentStep.actionValue}" in the highlighted field`}
@@ -251,7 +251,7 @@ export function TutorialOverlay({
                     size="sm"
                     onClick={onPrevious}
                     disabled={isLoading}
-                    className="bg-navy-700 border-navy-600 text-navy-200 hover:bg-navy-600 hover:text-white"
+                    className="bg-tsCard border-white/10 text-navy-200 hover:bg-tsCard hover:text-white"
                   >
                     <ArrowLeft className="h-4 w-4 mr-1" />
                     Back
@@ -263,7 +263,7 @@ export function TutorialOverlay({
                     size="sm"
                     onClick={onSkip}
                     disabled={isLoading}
-                    className="text-navy-400 hover:text-white hover:bg-navy-700"
+                    className="text-navy-400 hover:text-white hover:bg-tsCard"
                   >
                     <SkipForward className="h-4 w-4 mr-1" />
                     Skip Tour
@@ -274,7 +274,7 @@ export function TutorialOverlay({
               <Button
                 onClick={onNext}
                 disabled={isLoading}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-ts-orange hover:bg-ts-orange-dark text-white"
               >
                 {stepIndex === totalSteps - 1 ? 'Finish' : 'Next'}
                 {stepIndex < totalSteps - 1 && <ArrowRight className="h-4 w-4 ml-1" />}

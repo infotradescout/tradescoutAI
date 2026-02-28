@@ -279,14 +279,14 @@ export default function ProfileSiteEditor() {
   if (!profile) {
     return (
       <div className=" flex items-center justify-center px-4">
-        <Card className="bg-navy-800 border-navy-700 w-full max-w-xl">
+        <Card className="bg-tsCard border-white/10 w-full max-w-xl">
           <CardHeader>
             <CardTitle className="text-white">Profile not found</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-gray-300">You may not have access to this profile.</p>
+            <p className="text-white/70">You may not have access to this profile.</p>
             <Link href="/scout">
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                 Go to Dashboard
               </Button>
             </Link>
@@ -299,26 +299,26 @@ export default function ProfileSiteEditor() {
   return (
     <div className=" py-8">
       <div className="container mx-auto px-4 max-w-3xl">
-        <Card className="bg-navy-800 border-navy-700">
+        <Card className="bg-tsCard border-white/10">
           <CardHeader className="space-y-1">
             <CardTitle className="text-white">Edit Profile Site</CardTitle>
-            <p className="text-gray-300 text-sm">Draft until you publish.</p>
+            <p className="text-white/70 text-sm">Draft until you publish.</p>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="flex flex-wrap gap-2">
               <Link href={`/u/${profile.slug}`}>
-                <Button variant="outline" className="border-navy-500 text-gray-200">
+                <Button variant="outline" className="border-white/10 text-white/70">
                   View public page
                 </Button>
               </Link>
-              <Button onClick={save} className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button onClick={save} className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                 Save
               </Button>
               {profile.status === "published" ? (
                 <Button
                   onClick={unpublish}
                   variant="outline"
-                  className="border-navy-500 text-gray-200"
+                  className="border-white/10 text-white/70"
                 >
                   Unpublish
                 </Button>
@@ -326,7 +326,7 @@ export default function ProfileSiteEditor() {
                 <Button
                   onClick={publish}
                   variant="outline"
-                  className="border-navy-500 text-gray-200"
+                  className="border-white/10 text-white/70"
                 >
                   Publish
                 </Button>
@@ -334,12 +334,12 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">Display name</Label>
+              <Label className="text-white/70">Display name</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">Headline</Label>
+              <Label className="text-white/70">Headline</Label>
               <Input
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
@@ -348,7 +348,7 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">Content blocks (JSON)</Label>
+              <Label className="text-white/70">Content blocks (JSON)</Label>
               <Textarea
                 value={contentBlocksText}
                 onChange={(e) => setContentBlocksText(e.target.value)}
@@ -357,7 +357,7 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">CTA config (JSON)</Label>
+              <Label className="text-white/70">CTA config (JSON)</Label>
               <Textarea
                 value={ctaConfigText}
                 onChange={(e) => setCtaConfigText(e.target.value)}
@@ -366,7 +366,7 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">SEO meta (JSON)</Label>
+              <Label className="text-white/70">SEO meta (JSON)</Label>
               <Textarea
                 value={seoMetaText}
                 onChange={(e) => setSeoMetaText(e.target.value)}
@@ -375,38 +375,38 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-gray-200">Custom domain (optional)</Label>
+              <Label className="text-white/70">Custom domain (optional)</Label>
               <Input
                 value={customDomain}
                 onChange={(e) => setCustomDomain(e.target.value)}
                 placeholder="profile.yourdomain.com"
               />
-              <p className="text-gray-400 text-xs">
+              <p className="text-white/60 text-xs">
                 When configured in DNS, this domain will resolve to this public profile.
               </p>
             </div>
 
-            <div className="pt-2 border-t border-navy-700">
-              <p className="text-gray-300 text-sm mb-2">
+            <div className="pt-2 border-t border-white/10">
+              <p className="text-white/70 text-sm mb-2">
                 Visibility setting: <span className="text-white">{profileVisibility}</span>
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
-                  className="border-navy-500 text-gray-200"
+                  className="border-white/10 text-white/70"
                   onClick={() => setVisibility("public")}
                 >
                   Make link public
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-navy-500 text-gray-200"
+                  className="border-white/10 text-white/70"
                   onClick={() => setVisibility("private")}
                 >
                   Make link private
                 </Button>
               </div>
-              <p className="text-gray-400 text-xs mt-2">
+              <p className="text-white/60 text-xs mt-2">
                 Note: your profile must be published AND visibility must be public for guests to see
                 it.
               </p>

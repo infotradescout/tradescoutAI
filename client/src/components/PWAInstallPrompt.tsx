@@ -82,7 +82,7 @@ export function PWAInstallPrompt() {
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-sm mb-1">Install TradeScout App</h3>
-                <p className="text-xs text-orange-100 leading-relaxed">
+                <p className="text-xs text-ts-orange leading-relaxed">
                   Get the full app experience with faster loading, offline access, and home screen
                   convenience
                 </p>
@@ -101,7 +101,7 @@ export function PWAInstallPrompt() {
           <div className="flex gap-2 mt-3">
             <Button
               onClick={handleInstall}
-              className="bg-white text-orange-600 hover:bg-orange-50 flex-1 text-sm font-medium"
+              className="bg-white text-ts-orange hover:bg-ts-orange/10 flex-1 text-sm font-medium"
               size="sm"
             >
               <Download className="h-4 w-4 mr-2" />

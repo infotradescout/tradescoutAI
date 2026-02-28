@@ -88,31 +88,31 @@ const CountyDirectory = memo(function CountyDirectory() {
   }, [counties, searchQuery]);
 
   return (
-    <div className="text-tsTextMain">
+    <div className="text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <MapPin className="h-8 w-8 text-[color:var(--theme-accent-primary,#ff6600)]" />
             <h1 className="text-4xl font-bold">County Directory</h1>
           </div>
-          <p className="text-tsTextMuted text-lg">Browse counties by state.</p>
+          <p className="text-white/60 text-lg">Browse counties by state.</p>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder backdrop-blur-sm mb-8">
+        <Card className="bg-tsCard border border-white/10 backdrop-blur-sm mb-8">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-tsTextMuted" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                 <Input
                   placeholder="Search counties in selected state…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-tsBg border-tsBorder text-tsTextMain"
+                  className="pl-10 bg-tsBg border-white/10 text-white"
                 />
               </div>
 
               <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger className="bg-tsBg border-tsBorder text-tsTextMain">
+                <SelectTrigger className="bg-tsBg border-white/10 text-white">
                   <SelectValue placeholder="Select State" />
                 </SelectTrigger>
                 <SelectContent>
@@ -125,7 +125,7 @@ const CountyDirectory = memo(function CountyDirectory() {
                 </SelectContent>
               </Select>
 
-              <div className="text-xs text-tsTextMuted flex items-center">
+              <div className="text-xs text-white/60 flex items-center">
                 {statesLoading ? "Loading states…" : `State: ${selectedStateName}`}
                 {selectedState !== "all" && !countiesLoading
                   ? ` • Counties: ${counties.length}`
@@ -135,19 +135,19 @@ const CountyDirectory = memo(function CountyDirectory() {
 
             <div className="space-y-3">
               {selectedState === "all" && (
-                <div className="text-sm text-tsTextMuted bg-tsBg/40 border border-tsBorder rounded-lg p-6">
+                <div className="text-sm text-white/60 bg-tsBg/40 border border-white/10 rounded-lg p-6">
                   Select a state to see its full county list.
                 </div>
               )}
 
               {selectedState !== "all" && countiesLoading && (
-                <div className="text-sm text-tsTextMuted bg-tsBg/40 border border-tsBorder rounded-lg p-6">
+                <div className="text-sm text-white/60 bg-tsBg/40 border border-white/10 rounded-lg p-6">
                   Loading counties…
                 </div>
               )}
 
               {selectedState !== "all" && !countiesLoading && filtered.length === 0 && (
-                <div className="text-sm text-tsTextMuted bg-tsBg/40 border border-tsBorder rounded-lg p-6">
+                <div className="text-sm text-white/60 bg-tsBg/40 border border-white/10 rounded-lg p-6">
                   No counties found.
                 </div>
               )}
@@ -157,7 +157,7 @@ const CountyDirectory = memo(function CountyDirectory() {
                 filtered.slice(0, 200).map((county) => (
                   <div
                     key={county.fips}
-                    className="bg-tsBg/40 border border-tsBorder rounded-lg p-5 hover:bg-tsBg/60 transition-colors"
+                    className="bg-tsBg/40 border border-white/10 rounded-lg p-5 hover:bg-tsBg/60 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -167,13 +167,13 @@ const CountyDirectory = memo(function CountyDirectory() {
                             FIPS: {county.fips}
                           </Badge>
                         </div>
-                        <p className="text-tsTextMuted text-sm">{county.stateCode}</p>
+                        <p className="text-white/60 text-sm">{county.stateCode}</p>
                       </div>
 
                       <Link
                         href={`/county/${county.stateCode.toLowerCase()}/${nameToSlug(county.name)}`}
                       >
-                        <Button size="sm" className="bg-tsAccent hover:bg-tsAccent/90 text-black">
+                        <Button size="sm" className="bg-ts-orange hover:bg-ts-orange/90 text-black">
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </Link>

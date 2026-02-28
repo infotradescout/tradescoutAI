@@ -183,7 +183,7 @@ export default function AdminWorkspace() {
   if (authLoading || statsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -194,56 +194,56 @@ export default function AdminWorkspace() {
     <div className="space-y-8">
       {/* KPI Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Users</p>
+                <p className="text-white/60 text-sm">Total Users</p>
                 <p className="text-2xl font-bold text-white">{adminStats?.totalUsers || 0}</p>
               </div>
               <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
                 <Users className="h-6 w-6 text-blue-500" />
               </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2">Live platform total</p>
+            <p className="text-white/60 text-sm mt-2">Live platform total</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Contractors</p>
+                <p className="text-white/60 text-sm">Total Contractors</p>
                 <p className="text-2xl font-bold text-white">{adminStats?.totalContractors || 0}</p>
               </div>
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                <HardHat className="h-6 w-6 text-orange-500" />
+              <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                <HardHat className="h-6 w-6 text-ts-orange" />
               </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2">Contractor + handyman roles</p>
+            <p className="text-white/60 text-sm mt-2">Contractor + handyman roles</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">New Leads (7d)</p>
+                <p className="text-white/60 text-sm">New Leads (7d)</p>
                 <p className="text-2xl font-bold text-white">{adminStats?.newLeads || 0}</p>
               </div>
               <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
                 <TrendingUp className="h-6 w-6 text-green-500" />
               </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2">Rolling week</p>
+            <p className="text-white/60 text-sm mt-2">Rolling week</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Recommendations</p>
+                <p className="text-white/60 text-sm">Recommendations</p>
                 <p className="text-2xl font-bold text-white">
                   {adminStats?.totalRecommendations || 0}
                 </p>
@@ -252,7 +252,7 @@ export default function AdminWorkspace() {
                 <UserCheck className="h-6 w-6 text-yellow-400" />
               </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2">All-time submissions</p>
+            <p className="text-white/60 text-sm mt-2">All-time submissions</p>
           </CardContent>
         </Card>
       </div>
@@ -267,7 +267,7 @@ export default function AdminWorkspace() {
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card
-            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
+            className="bg-tsCard border-white/10 hover:bg-tsCard transition-colors cursor-pointer"
             onClick={() => setLocation("/admin/listings")}
           >
             <CardContent className="p-4">
@@ -277,31 +277,31 @@ export default function AdminWorkspace() {
                 </div>
                 <div>
                   <h3 className="font-medium text-white">Listings Approval</h3>
-                  <p className="text-sm text-gray-400">Review marketplace submissions</p>
+                  <p className="text-sm text-white/60">Review marketplace submissions</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
+            className="bg-tsCard border-white/10 hover:bg-tsCard transition-colors cursor-pointer"
             onClick={() => setLocation("/admin/panel")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                  <Settings className="h-5 w-5 text-orange-500" />
+                <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                  <Settings className="h-5 w-5 text-ts-orange" />
                 </div>
                 <div>
                   <h3 className="font-medium text-white">Site Settings</h3>
-                  <p className="text-sm text-gray-400">Configure prizes & ads</p>
+                  <p className="text-sm text-white/60">Configure prizes & ads</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
+            className="bg-tsCard border-white/10 hover:bg-tsCard transition-colors cursor-pointer"
             onClick={() => setLocation("/admin/users")}
           >
             <CardContent className="p-4">
@@ -311,14 +311,14 @@ export default function AdminWorkspace() {
                 </div>
                 <div>
                   <h3 className="font-medium text-white">User Management</h3>
-                  <p className="text-sm text-gray-400">Manage user accounts</p>
+                  <p className="text-sm text-white/60">Manage user accounts</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="bg-navy-700 border-navy-600 hover:bg-navy-600 transition-colors cursor-pointer"
+            className="bg-tsCard border-white/10 hover:bg-tsCard transition-colors cursor-pointer"
             onClick={() => setLocation("/content-moderation")}
           >
             <CardContent className="p-4">
@@ -328,7 +328,7 @@ export default function AdminWorkspace() {
                 </div>
                 <div>
                   <h3 className="font-medium text-white">Moderation</h3>
-                  <p className="text-sm text-gray-400">Community oversight</p>
+                  <p className="text-sm text-white/60">Community oversight</p>
                 </div>
               </div>
             </CardContent>
@@ -337,32 +337,32 @@ export default function AdminWorkspace() {
       </div>
 
       {/* Admin Tabs */}
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="border-b border-navy-600">
+          <div className="border-b border-white/10">
             <TabsList className="bg-transparent border-none h-auto p-0">
               <div className="flex flex-wrap gap-4 md:gap-8 px-6">
                 <TabsTrigger
                   value="verification"
-                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 text-gray-400 hover:text-gray-300 font-medium text-sm bg-transparent"
+                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-ts-orange/30 data-[state=active]:text-ts-orange text-white/60 hover:text-white/70 font-medium text-sm bg-transparent"
                 >
                   Verification Queue
                 </TabsTrigger>
                 <TabsTrigger
                   value="leads"
-                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 text-gray-400 hover:text-gray-300 font-medium text-sm bg-transparent"
+                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-ts-orange/30 data-[state=active]:text-ts-orange text-white/60 hover:text-white/70 font-medium text-sm bg-transparent"
                 >
                   Connection Management
                 </TabsTrigger>
                 <TabsTrigger
                   value="imports"
-                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 text-gray-400 hover:text-gray-300 font-medium text-sm bg-transparent"
+                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-ts-orange/30 data-[state=active]:text-ts-orange text-white/60 hover:text-white/70 font-medium text-sm bg-transparent"
                 >
                   Data Imports
                 </TabsTrigger>
                 <TabsTrigger
                   value="analytics"
-                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 text-gray-400 hover:text-gray-300 font-medium text-sm bg-transparent"
+                  className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-ts-orange/30 data-[state=active]:text-ts-orange text-white/60 hover:text-white/70 font-medium text-sm bg-transparent"
                 >
                   Analytics
                 </TabsTrigger>
@@ -374,22 +374,22 @@ export default function AdminWorkspace() {
           <TabsContent value="verification" className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">Pending Verifications</h3>
-              <Badge className="bg-orange-500/20 text-orange-400">
+              <Badge className="bg-ts-orange/20 text-ts-orange">
                 {pendingVerifications.length} pending
               </Badge>
             </div>
             {verificationsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin w-6 h-6 border-4 border-orange-500 border-t-transparent rounded-full" />
+                <div className="animate-spin w-6 h-6 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
               </div>
             ) : pendingVerifications.length === 0 ? (
-              <div className="text-center text-gray-400 text-sm py-8">
+              <div className="text-center text-white/60 text-sm py-8">
                 No pending verifications found.
               </div>
             ) : (
               <div className="space-y-4">
                 {pendingVerifications.map((verification) => (
-                  <Card key={verification.id} className="bg-navy-600 border-navy-500">
+                  <Card key={verification.id} className="bg-tsCard border-white/10">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -412,15 +412,15 @@ export default function AdminWorkspace() {
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div>
-                              <p className="text-gray-400">Trade:</p>
+                              <p className="text-white/60">Trade:</p>
                               <p className="text-white">{verification.trade || "Not specified"}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">License #:</p>
+                              <p className="text-white/60">License #:</p>
                               <p className="text-white">{verification.licenseNumber || "N/A"}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Service Area:</p>
+                              <p className="text-white/60">Service Area:</p>
                               <p className="text-white">
                                 {verification.serviceArea || "Marketplace"}
                               </p>
@@ -428,7 +428,7 @@ export default function AdminWorkspace() {
                           </div>
 
                           <div className="flex items-center space-x-4 mt-3 text-sm">
-                            <span className="text-gray-400">Documents:</span>
+                            <span className="text-white/60">Documents:</span>
                             <span
                               className={
                                 verification.documents.license ? "text-green-400" : "text-red-400"
@@ -474,7 +474,7 @@ export default function AdminWorkspace() {
                             </span>
                             <span
                               className={
-                                verification.documents.id ? "text-green-400" : "text-gray-400"
+                                verification.documents.id ? "text-green-400" : "text-white/60"
                               }
                             >
                               {verification.documents.id ? (
@@ -507,7 +507,7 @@ export default function AdminWorkspace() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-navy-400 text-white hover:bg-navy-500"
+                            className="border-white/15 text-white hover:bg-white/10"
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             Review
@@ -556,19 +556,19 @@ export default function AdminWorkspace() {
           {/* Connection Management Tab */}
           <TabsContent value="leads" className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">
                     Connection Routing Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="rounded-lg border border-navy-500 bg-navy-700/40 p-4 text-sm text-gray-300">
+                  <div className="rounded-lg border border-white/10 bg-tsCard/40 p-4 text-sm text-white/70">
                     Live routing weights are managed in platform settings. Use the admin panel to
                     review or update lead routing policies.
                   </div>
                   <Button
-                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    className="w-full bg-ts-orange hover:bg-ts-orange-dark"
                     onClick={() => setLocation("/admin/panel")}
                   >
                     Open Admin Panel
@@ -576,30 +576,30 @@ export default function AdminWorkspace() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">Recent Lead Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">New Leads (7d)</span>
+                      <span className="text-white/60">New Leads (7d)</span>
                       <span className="text-white font-semibold">{adminStats?.newLeads || 0}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Total Recommendations</span>
+                      <span className="text-white/60">Total Recommendations</span>
                       <span className="text-white font-semibold">
                         {adminStats?.totalRecommendations || 0}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Pending Verifications</span>
+                      <span className="text-white/60">Pending Verifications</span>
                       <span className="text-white font-semibold">
                         {pendingVerifications.length}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Community Posts</span>
+                      <span className="text-white/60">Community Posts</span>
                       <span className="text-white font-semibold">
                         {adminStats?.totalCommunityPosts || 0}
                       </span>
@@ -613,7 +613,7 @@ export default function AdminWorkspace() {
           {/* Data Imports Tab */}
           <TabsContent value="imports" className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
                     <FileText className="h-5 w-5" />
@@ -621,11 +621,11 @@ export default function AdminWorkspace() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-white/70 text-sm">
                     Seed missing states + counties from the built-in dataset (non-destructive).
                   </p>
                   <Button
-                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    className="w-full bg-ts-orange hover:bg-ts-orange-dark"
                     onClick={() => seedCountiesMutation.mutate()}
                     disabled={seedCountiesMutation.isPending}
                   >
@@ -634,7 +634,7 @@ export default function AdminWorkspace() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
                     <BarChart3 className="h-5 w-5" />
@@ -642,7 +642,7 @@ export default function AdminWorkspace() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-white/70 text-sm">
                     Upload regional pricing data for quote calculators by service type.
                   </p>
                   <Select>
@@ -656,11 +656,11 @@ export default function AdminWorkspace() {
                       <SelectItem value="hvac">HVAC</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="border-2 border-dashed border-navy-400 rounded-lg p-6 text-center">
-                    <Upload className="h-8 w-8 text-gray-500 mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm">Drop CSV file here or click to upload</p>
+                  <div className="border-2 border-dashed border-white/15 rounded-lg p-6 text-center">
+                    <Upload className="h-8 w-8 text-white/60 mx-auto mb-2" />
+                    <p className="text-white/60 text-sm">Drop CSV file here or click to upload</p>
                   </div>
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600">
+                  <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark">
                     Import Pricing Data
                   </Button>
                 </CardContent>
@@ -671,7 +671,7 @@ export default function AdminWorkspace() {
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
                     <UserCheck className="h-5 w-5" />
@@ -680,25 +680,25 @@ export default function AdminWorkspace() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Active</span>
+                    <span className="text-white/60">Total Active</span>
                     <span className="text-white font-semibold">
                       {adminStats?.totalContractors || 0}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Pending Verification</span>
+                    <span className="text-white/60">Pending Verification</span>
                     <span className="text-yellow-400 font-semibold">
                       {pendingVerifications.length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Users</span>
+                    <span className="text-white/60">Total Users</span>
                     <span className="text-white font-semibold">{adminStats?.totalUsers || 0}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -707,29 +707,29 @@ export default function AdminWorkspace() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">New Leads (7d)</span>
+                    <span className="text-white/60">New Leads (7d)</span>
                     <span className="text-white font-semibold">{adminStats?.newLeads || 0}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Recommendations</span>
+                    <span className="text-white/60">Recommendations</span>
                     <span className="text-white font-semibold">
                       {adminStats?.totalRecommendations || 0}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Community Posts</span>
+                    <span className="text-white/60">Community Posts</span>
                     <span className="text-white font-semibold">
                       {adminStats?.totalCommunityPosts || 0}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Users</span>
+                    <span className="text-white/60">Total Users</span>
                     <span className="text-white font-semibold">{adminStats?.totalUsers || 0}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg flex items-center gap-2">
                     <HardHat className="h-5 w-5" />
@@ -738,16 +738,16 @@ export default function AdminWorkspace() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Hardrock directory</span>
+                    <span className="text-white/60">Hardrock directory</span>
                     <Button
                       variant="outline"
-                      className="border-navy-400 text-gray-200 hover:bg-navy-500/30"
+                      className="border-white/15 text-white/70 hover:bg-white/10"
                       onClick={() => setLocation("/staff/hardrock-directory")}
                     >
                       Open
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-white/60">
                     Public landing: <span className="text-white">/hardrock</span>
                   </p>
                 </CardContent>
@@ -756,17 +756,17 @@ export default function AdminWorkspace() {
 
             {/* Export Options */}
             <div className="mt-8">
-              <Card className="bg-navy-600 border-navy-500">
+              <Card className="bg-tsCard border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-lg">Export Reports</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-gray-300 mb-4">
+                  <div className="text-sm text-white/70 mb-4">
                     Exportable reports are available in Platform Analytics.
                   </div>
                   <Button
                     variant="outline"
-                    className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                     onClick={() => setLocation("/platform-analytics")}
                   >
                     <Download className="h-4 w-4 mr-2" />

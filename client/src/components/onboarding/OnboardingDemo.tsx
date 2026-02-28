@@ -8,15 +8,15 @@ export function OnboardingDemo() {
   const { currentTour, isTourCompleted } = useOnboarding();
 
   return (
-    <Card className="bg-navy-800 border-navy-600 text-white max-w-md">
+    <Card className="bg-tsCard border-white/10 text-white max-w-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-orange-500" />
+          <Lightbulb className="h-5 w-5 text-ts-orange" />
           Interactive Tours
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="text-sm text-gray-300 mb-4">
+        <div className="text-sm text-white/70 mb-4">
           Learn how to use TradeScout with interactive guided tours:
         </div>
         
@@ -50,8 +50,8 @@ export function OnboardingDemo() {
         </div>
 
         {currentTour && (
-          <div className="mt-4 p-3 bg-orange-500/20 rounded-lg border border-orange-500/30">
-            <div className="text-sm text-orange-200">
+          <div className="mt-4 p-3 bg-ts-orange/20 rounded-lg border border-ts-orange/30">
+            <div className="text-sm text-ts-orange">
               <strong>Tour Active:</strong> {currentTour}
             </div>
           </div>

@@ -546,13 +546,13 @@ const DragDropNavigationPreferences = memo(
     }, [userRole, updateNavigationMutation]);
 
     return (
-      <Card className="bg-navy-800 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <GripVertical className="h-5 w-5" />
             Navigation Preferences
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-white/60">
             Customize your navigation menu order and visibility. Drag items to reorder them.
           </CardDescription>
         </CardHeader>
@@ -572,7 +572,7 @@ const DragDropNavigationPreferences = memo(
             />
           </div>
 
-          <Separator className="bg-navy-600" />
+          <Separator className="bg-tsCard" />
 
           {/* Navigation Items */}
           <div className="space-y-4">
@@ -582,7 +582,7 @@ const DragDropNavigationPreferences = memo(
                 variant="outline"
                 size="sm"
                 onClick={resetToDefaults}
-                className="h-8 bg-navy-700 border-navy-600 text-white hover:bg-navy-600"
+                className="h-8 bg-tsCard border-white/10 text-white hover:bg-tsCard"
                 disabled={updateNavigationMutation.isPending}
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
@@ -597,7 +597,7 @@ const DragDropNavigationPreferences = memo(
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                     className={`space-y-2 p-2 rounded-lg transition-colors ${
-                      snapshot.isDraggingOver ? "bg-navy-600/50" : ""
+                      snapshot.isDraggingOver ? "bg-tsCard/50" : ""
                     }`}
                   >
                     {navigationItems.map((item, index) => (
@@ -606,34 +606,34 @@ const DragDropNavigationPreferences = memo(
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`flex items-center justify-between p-3 bg-navy-700 border border-navy-600 rounded-lg transition-all ${
+                            className={`flex items-center justify-between p-3 bg-tsCard border border-white/10 rounded-lg transition-all ${
                               snapshot.isDragging
-                                ? "shadow-lg border-orange-400 bg-navy-600"
-                                : "hover:bg-navy-600"
+                                ? "shadow-lg border-ts-orange/30 bg-tsCard"
+                                : "hover:bg-tsCard"
                             }`}
                           >
                             <div className="flex items-center gap-3">
                               <div
                                 {...provided.dragHandleProps}
-                                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white transition-colors"
+                                className="cursor-grab active:cursor-grabbing text-white/60 hover:text-white transition-colors"
                               >
                                 <GripVertical className="h-4 w-4" />
                               </div>
                               <div className="flex items-center space-x-3">
-                                <div className="text-gray-400">
+                                <div className="text-white/60">
                                   {React.createElement(getIconComponent(item.icon), {
                                     className: "h-4 w-4",
                                   })}
                                 </div>
-                                <div className="text-gray-300">{item.label}</div>
-                                <div className="text-xs text-gray-500 font-mono">{item.href}</div>
+                                <div className="text-white/70">{item.label}</div>
+                                <div className="text-xs text-white/60 font-mono">{item.href}</div>
                               </div>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleItemVisibility(item.id)}
-                              className="text-gray-400 hover:text-white p-1"
+                              className="text-white/60 hover:text-white p-1"
                               data-tutorial="visibility-toggle"
                             >
                               {item.visible ? (
@@ -652,7 +652,7 @@ const DragDropNavigationPreferences = memo(
               </Droppable>
             </DragDropContext>
 
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-white/60">
               {swipeEnabled ? "✓" : "✗"} Swipe navigation is {swipeEnabled ? "enabled" : "disabled"}
               . Visible items: {navigationItems.filter((item) => item.visible).length}/
               {navigationItems.length}

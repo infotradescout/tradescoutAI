@@ -179,21 +179,21 @@ export default function Groups() {
     return (
       <GroupsShell>
         <div className="max-w-7xl mx-auto py-10">
-          <Card className="border-slate-700 bg-slate-900/70">
+          <Card className="border-white/10 bg-tsCard/95">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-white flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-orange-400" />
+                <MapPin className="w-5 h-5 text-ts-orange" />
                 Set your county to discover local groups
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-slate-300 text-sm">
+              <p className="text-white/70 text-sm">
                 Choose your home county so we can show you groups that match your community. This keeps
                 discussions and recommendations local to {location.label || "your area"}.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/settings">
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                     Open settings to set county
                   </Button>
                 </Link>
@@ -210,8 +210,8 @@ export default function Groups() {
       <GroupsShell>
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-2 text-slate-400">Loading groups...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30 mx-auto"></div>
+            <p className="mt-2 text-white/60">Loading groups...</p>
           </div>
         </div>
       </GroupsShell>
@@ -229,25 +229,25 @@ export default function Groups() {
             </div>
             <h1 className="text-4xl font-bold text-white">Community Groups</h1>
           </div>
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+          <p className="text-xl text-white/70 max-w-3xl mx-auto">
             Connect with homeowners and contractors in {location.label || "your area"}. Share experiences, get advice, and build relationships.
           </p>
         </div>
 
         {/* Your HOA Bridge */}
         {primaryHoa && (
-          <Card className="mb-4 border-slate-700 bg-slate-900/60">
+          <Card className="mb-4 border-white/10 bg-tsCard/95">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div className="min-w-0">
-                <CardTitle className="text-sm font-semibold text-slate-100">
+                <CardTitle className="text-sm font-semibold text-white">
                   Your HOA
                 </CardTitle>
-                <p className="mt-1 truncate text-xs text-slate-300">
+                <p className="mt-1 truncate text-xs text-white/70">
                   {primaryHoa.hoaName}
                 </p>
 
                 {hasLocationMeta && (
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-white/60">
                     {primaryHoa.stateCode && <span>{primaryHoa.stateCode}</span>}
                     {primaryHoa.stateCode && primaryHoa.countyFips && (
                       <span className="mx-1"> b7</span>
@@ -282,20 +282,20 @@ export default function Groups() {
         {/* Search and Filter Controls */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
             <Input
               placeholder="Search groups by name or keywords..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder-slate-400"
+              className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400"
               data-testid="search-groups"
             />
           </div>
           <Select value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger className="w-full md:w-48 bg-slate-800/50 border-slate-700 text-white">
+            <SelectTrigger className="w-full md:w-48 bg-white/5 border-white/10 text-white">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-white/5 border-white/10">
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="county_community">County Community</SelectItem>
               <SelectItem value="specialty_trade">Trade Specialty</SelectItem>
@@ -309,7 +309,7 @@ export default function Groups() {
                 Create Group
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+            <DialogContent className="bg-white/5 border-white/10 text-white max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create a New Group</DialogTitle>
               </DialogHeader>
@@ -318,21 +318,21 @@ export default function Groups() {
                   placeholder="Group name"
                   value={newGroup.name}
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-white/10 border-white/15"
                   data-testid="group-name-input"
                 />
                 <Textarea
                   placeholder="Group description"
                   value={newGroup.description}
                   onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
-                  className="bg-slate-700 border-slate-600 min-h-24"
+                  className="bg-white/10 border-white/15 min-h-24"
                   data-testid="group-description-input"
                 />
                 <Select value={newGroup.type} onValueChange={(value) => setNewGroup({ ...newGroup, type: value })}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectTrigger className="bg-white/10 border-white/15">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-white/5 border-white/10">
                     <SelectItem value="county_community">County Community</SelectItem>
                     <SelectItem value="specialty_trade">Trade Specialty</SelectItem>
                     <SelectItem value="interest_based">Interest Based</SelectItem>
@@ -342,14 +342,14 @@ export default function Groups() {
                   placeholder="Tags (comma separated)"
                   value={newGroup.tags}
                   onChange={(e) => setNewGroup({ ...newGroup, tags: e.target.value })}
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-white/10 border-white/15"
                   data-testid="group-tags-input"
                 />
                 <Textarea
                   placeholder="Group rules (one per line)"
                   value={newGroup.rules}
                   onChange={(e) => setNewGroup({ ...newGroup, rules: e.target.value })}
-                  className="bg-slate-700 border-slate-600 min-h-24"
+                  className="bg-white/10 border-white/15 min-h-24"
                   data-testid="group-rules-input"
                 />
                 <Button 
@@ -374,7 +374,7 @@ export default function Groups() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.isArray(groups) && groups.filter((g) => g.isMember).map((group) => (
-                <Card key={group.id} className="bg-slate-800/50 border-slate-700 hover:border-blue-500/50 transition-all duration-300">
+                <Card key={group.id} className="bg-white/5 border-white/10 hover:border-blue-500/50 transition-all duration-300">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
@@ -393,9 +393,9 @@ export default function Groups() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-slate-300 text-sm line-clamp-2">{group.description}</p>
+                    <p className="text-white/70 text-sm line-clamp-2">{group.description}</p>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-400 flex items-center">
+                      <span className="text-white/60 flex items-center">
                         <Users className="w-4 h-4 mr-1" />
                         {group.memberCount} members
                       </span>
@@ -416,14 +416,14 @@ export default function Groups() {
         {/* All Groups Section */}
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-            <Search className="w-6 h-6 text-orange-500" />
+            <Search className="w-6 h-6 text-ts-orange" />
             <span>Discover Groups</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.isArray(groups) ? groups.map((group: Group) => (
               <Card 
                 key={group.id} 
-                className="bg-slate-800/50 border-slate-700 hover:border-orange-500/50 transition-all duration-300"
+                className="bg-white/5 border-white/10 hover:border-ts-orange/30 transition-all duration-300"
                 data-testid="group-card"
               >
                 <CardHeader className="pb-3">
@@ -431,12 +431,12 @@ export default function Groups() {
                     <CardTitle className="text-white text-lg">{group.name}</CardTitle>
                     <div className="flex items-center space-x-2">
                       {group.category && (
-                        <Badge variant="secondary" className="bg-orange-500/20 text-orange-400">
+                        <Badge variant="secondary" className="bg-ts-orange/20 text-ts-orange">
                           {group.category}
                         </Badge>
                       )}
                       {group.countyFips && (
-                        <Badge variant="outline" className="border-slate-600 text-slate-300">
+                        <Badge variant="outline" className="border-white/15 text-white/70">
                           <MapPin className="w-3 h-3 mr-1" />
                           Local
                         </Badge>
@@ -445,10 +445,10 @@ export default function Groups() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-slate-300 text-sm leading-relaxed line-clamp-3">{group.description}</p>
+                  <p className="text-white/70 text-sm leading-relaxed line-clamp-3">{group.description}</p>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400 flex items-center">
+                    <span className="text-white/60 flex items-center">
                       <Users className="w-4 h-4 mr-1" />
                       {group.memberCount} members
                     </span>
@@ -489,9 +489,9 @@ export default function Groups() {
 
         {groups.length === 0 && !groupsLoading && (
           <div className="text-center py-12">
-            <Users className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <Users className="w-16 h-16 text-white/60 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Groups Found</h3>
-            <p className="text-slate-400 mb-6">
+            <p className="text-white/60 mb-6">
               {searchQuery ? 'Try adjusting your search terms or filters.' : 'Be the first to create a group in your area!'}
             </p>
             <Button 

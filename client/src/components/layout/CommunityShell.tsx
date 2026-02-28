@@ -103,67 +103,67 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="border-b border-slate-800 bg-slate-950 px-3 md:px-4 py-1 space-y-0.5">
+      <div className="border-b border-white/10 bg-tsBg px-3 md:px-4 py-1 space-y-0.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-300 truncate">
+            <span className="text-xs font-semibold uppercase tracking-wide text-white/70 truncate">
               {countyLabel}
             </span>
           </div>
-          <nav className="hidden md:flex items-center gap-3 text-[11px] text-slate-400">
-            <Link href="/community-feed" className="hover:text-orange-400 transition-colors">
+          <nav className="hidden md:flex items-center gap-3 text-[11px] text-white/60">
+            <Link href="/community-feed" className="hover:text-ts-orange transition-colors">
               Community
             </Link>
-            <span className="text-slate-600">-</span>
-            <Link href="/groups" className="hover:text-orange-400 transition-colors">
+            <span className="text-white/60">-</span>
+            <Link href="/groups" className="hover:text-ts-orange transition-colors">
               Groups
             </Link>
-            <span className="text-slate-600">-</span>
-            <Link href="/marketplace" className="hover:text-orange-400 transition-colors">
+            <span className="text-white/60">-</span>
+            <Link href="/marketplace" className="hover:text-ts-orange transition-colors">
               Marketplace
             </Link>
-            <span className="text-slate-600">-</span>
-            <Link href="/direct-connect" className="hover:text-orange-400 transition-colors">
+            <span className="text-white/60">-</span>
+            <Link href="/direct-connect" className="hover:text-ts-orange transition-colors">
               Direct Connect
             </Link>
           </nav>
         </div>
 
         {showSnapshot && (
-          <div className="mt-0.5 text-[11px] text-slate-400">
-            <div className="hidden md:flex items-center gap-3 min-w-0 rounded-full bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-1 border border-slate-800">
+          <div className="mt-0.5 text-[11px] text-white/60">
+            <div className="hidden md:flex items-center gap-3 min-w-0 rounded-full bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-1 border border-white/10">
               <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <Users2 className="h-3.5 w-3.5 text-slate-100" />
-                <span className="truncate text-slate-100">{membersLabel}</span>
+                <Users2 className="h-3.5 w-3.5 text-white" />
+                <span className="truncate text-white">{membersLabel}</span>
               </div>
-              <span className="text-slate-500">-</span>
+              <span className="text-white/60">-</span>
               <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <Landmark className="h-3.5 w-3.5 text-orange-300" />
-                <span className="truncate text-slate-100">County snapshot</span>
+                <Landmark className="h-3.5 w-3.5 text-ts-orange" />
+                <span className="truncate text-white">County snapshot</span>
               </div>
               {activeHighlight && (
                 <>
-                  <span className="text-slate-500">-</span>
+                  <span className="text-white/60">-</span>
                   <div className="flex items-center gap-1.5 min-w-0">
                     {activeHighlight.icon}
-                    <span className="truncate text-slate-200">{activeHighlight.label}</span>
+                    <span className="truncate text-white/70">{activeHighlight.label}</span>
                   </div>
                 </>
               )}
             </div>
 
-            <div className="md:hidden mt-0.5 rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-1.5">
+            <div className="md:hidden mt-0.5 rounded-lg border border-white/10 bg-tsCard/95 px-2.5 py-1.5">
               <div className="flex items-center gap-2 min-w-0">
-                <Users2 className="h-3.5 w-3.5 text-slate-100 shrink-0" />
-                <span className="truncate text-slate-100">{membersLabel}</span>
-                <span className="text-slate-500 shrink-0">-</span>
-                <Landmark className="h-3.5 w-3.5 text-orange-300 shrink-0" />
-                <span className="truncate text-slate-200">County snapshot</span>
+                <Users2 className="h-3.5 w-3.5 text-white shrink-0" />
+                <span className="truncate text-white">{membersLabel}</span>
+                <span className="text-white/60 shrink-0">-</span>
+                <Landmark className="h-3.5 w-3.5 text-ts-orange shrink-0" />
+                <span className="truncate text-white/70">County snapshot</span>
               </div>
               {activeHighlight && (
                 <div className="mt-1 flex items-center gap-1.5 min-w-0">
                   {activeHighlight.icon}
-                  <span className="truncate text-slate-200">{activeHighlight.label}</span>
+                  <span className="truncate text-white/70">{activeHighlight.label}</span>
                 </div>
               )}
             </div>
@@ -171,7 +171,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
         )}
       </div>
 
-      <div className="w-full max-w-full overflow-x-hidden bg-slate-950">{children}</div>
+      <div className="w-full max-w-full overflow-x-hidden bg-tsBg">{children}</div>
     </div>
   );
 };

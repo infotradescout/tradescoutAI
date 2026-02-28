@@ -16,9 +16,9 @@ export default function AdminUserManagement() {
         <Card>
           <CardContent className="flex items-center justify-center py-8">
             <div className="text-center">
-              <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Access Denied</h2>
-              <p className="text-gray-500">You need admin privileges to access this page.</p>
+              <Shield className="w-16 h-16 text-white/60 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-white/70 mb-2">Access Denied</h2>
+              <p className="text-white/60">You need admin privileges to access this page.</p>
             </div>
           </CardContent>
         </Card>
@@ -31,11 +31,11 @@ export default function AdminUserManagement() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-orange-500 flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-ts-orange flex items-center gap-3">
             <Users className="w-8 h-8" />
             User Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-white/60 dark:text-white/60 mt-2">
             Manage user accounts, assign roles, and control platform access
           </p>
         </div>

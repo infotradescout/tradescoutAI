@@ -83,8 +83,8 @@ export default function RealtorContacts() {
       case "Active": return "bg-green-600";
       case "Follow-up": return "bg-yellow-600";
       case "Under Contract": return "bg-blue-600";
-      case "Closed": return "bg-gray-600";
-      default: return "bg-gray-600";
+      case "Closed": return "bg-white/10";
+      default: return "bg-white/10";
     }
   };
 
@@ -98,13 +98,13 @@ export default function RealtorContacts() {
   };
 
   const renderStars = (rating: number | null) => {
-    if (!rating) return <span className="text-gray-400 text-sm">Not rated</span>;
+    if (!rating) return <span className="text-white/60 text-sm">Not rated</span>;
     return (
       <div className="flex items-center gap-1">
         {Array.from({ length: 5 }, (_, i) => (
           <Star 
             key={i} 
-            className={`h-3 w-3 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-400'}`} 
+            className={`h-3 w-3 ${i < rating ? 'text-yellow-400 fill-current' : 'text-white/60'}`} 
           />
         ))}
       </div>

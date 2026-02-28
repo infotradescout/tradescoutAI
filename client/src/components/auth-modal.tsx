@@ -64,18 +64,18 @@ export function AuthModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-navy-900 border-navy-700 max-w-md">
+      <DialogContent className="bg-tsBg border-white/10 max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-white text-xl">{title}</DialogTitle>
-              <DialogDescription className="text-gray-300 mt-1">{description}</DialogDescription>
+              <DialogDescription className="text-white/70 mt-1">{description}</DialogDescription>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-white hover:bg-navy-700"
+              className="text-white/60 hover:text-white hover:bg-tsCard"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -102,7 +102,7 @@ export function AuthModal({
                     type="button"
                     onClick={() => (window.location.href = oauthHref("google", "create"))}
                     variant="outline"
-                    className="w-full border-navy-600 text-gray-200 hover:bg-navy-700 font-medium py-6"
+                    className="w-full border-white/10 text-white/70 hover:bg-tsCard font-medium py-6"
                   >
                     <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                       <path
@@ -128,9 +128,9 @@ export function AuthModal({
               </div>
 
               <div className="relative">
-                <Separator className="bg-navy-600" />
+                <Separator className="bg-tsCard" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-navy-900 px-3 text-sm text-gray-400">or</span>
+                  <span className="bg-tsBg px-3 text-sm text-white/60">or</span>
                 </div>
               </div>
             </>
@@ -151,7 +151,7 @@ export function AuthModal({
             <Button
               type="button"
               variant="ghost"
-              className="w-full text-gray-400 hover:text-white"
+              className="w-full text-white/60 hover:text-white"
               onClick={() => {
                 navigate("/pre-scout-setup?mode=signin");
               }}
@@ -164,12 +164,12 @@ export function AuthModal({
           {showGuestOption && (
             <>
               <div className="relative">
-                <Separator className="bg-navy-600" />
+                <Separator className="bg-tsCard" />
               </div>
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full text-gray-400 hover:text-white"
+                className="w-full text-white/60 hover:text-white"
                 onClick={() => {
                   onGuestContinue?.();
                   onClose();

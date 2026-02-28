@@ -100,8 +100,8 @@ export const OutcomeConfirmationCard: React.FC<OutcomeConfirmationCardProps> = (
 		}
 
 		return (
-			<Card className="mt-4 border-tsBorder bg-tsCard">
-				<CardContent className="py-3 px-4 text-sm text-slate-300">
+			<Card className="mt-4 border-white/10 bg-tsCard">
+				<CardContent className="py-3 px-4 text-sm text-white/70">
 					{message}
 				</CardContent>
 			</Card>
@@ -109,14 +109,14 @@ export const OutcomeConfirmationCard: React.FC<OutcomeConfirmationCardProps> = (
 	}
 
 	return (
-		<Card className="mt-4 border-tsBorder bg-tsCard">
+		<Card className="mt-4 border-white/10 bg-tsCard">
 			<CardContent className="py-3 px-4">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<p className="text-sm font-medium text-white">
 							Did this help coordinate what you needed?
 						</p>
-						<p className="text-xs text-slate-400 mt-1">
+						<p className="text-xs text-white/60 mt-1">
 							Outcome here means coordination — not a review.
 						</p>
 					</div>

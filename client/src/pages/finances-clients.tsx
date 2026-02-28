@@ -125,8 +125,8 @@ export default function FinancesClientsPage() {
     <Page className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Clients</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Clients</h1>
+          <p className="text-sm text-white/60">
             See who you've billed and how much, powered by your invoices.
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function FinancesClientsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 border-slate-600 text-[11px] text-slate-200"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => navigate("/finances/invoices")}
           >
             View invoices
@@ -142,15 +142,15 @@ export default function FinancesClientsPage() {
         </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold text-slate-100">Clients ledger</CardTitle>
-            <CardDescription className="text-xs text-slate-400">
+            <CardTitle className="text-sm font-semibold text-white">Clients ledger</CardTitle>
+            <CardDescription className="text-xs text-white/60">
               Rolled up from your existing invoices. More detail will plug into jobs and CRM over time.
             </CardDescription>
           </div>
-          <div className="text-[11px] text-slate-400 text-right flex flex-col items-end gap-0.5">
+          <div className="text-[11px] text-white/60 text-right flex flex-col items-end gap-0.5">
             <span>
               {rows.length.toLocaleString()} client{rows.length === 1 ? "" : "s"}
             </span>
@@ -163,45 +163,45 @@ export default function FinancesClientsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-[11px] text-slate-400 py-4">Loading clients…</p>
+            <p className="text-[11px] text-white/60 py-4">Loading clients…</p>
           ) : rows.length === 0 ? (
-            <p className="text-[11px] text-slate-400 py-4">
+            <p className="text-[11px] text-white/60 py-4">
               Once you create invoices, you'll see a simple client ledger here.
             </p>
           ) : (
             <div className="overflow-x-auto -mx-2">
               <Table className="min-w-full text-xs">
                 <TableHeader>
-                  <TableRow className="border-slate-800">
-                    <TableHead className="w-[40%] text-slate-400">Client</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Open balance</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Lifetime billed</TableHead>
-                    <TableHead className="w-[20%] text-right text-slate-400">Aging (oldest)</TableHead>
+                  <TableRow className="border-white/10">
+                    <TableHead className="w-[40%] text-white/60">Client</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Open balance</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Lifetime billed</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">Aging (oldest)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
                     <TableRow
                       key={row.name}
-                      className="border-slate-800 hover:bg-slate-900/70 cursor-pointer"
+                      className="border-white/10 hover:bg-tsCard/95 cursor-pointer"
                       onClick={() => navigate(`/finances/invoices?client=${encodeURIComponent(row.name)}`)}
                     >
-                      <TableCell className="py-2 text-[11px] text-slate-100 truncate max-w-[260px]">
+                      <TableCell className="py-2 text-[11px] text-white truncate max-w-[260px]">
                         <div className="flex flex-col gap-0.5">
                           <span>{row.name}</span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-white/60">
                             {row.invoiceCount.toLocaleString()} invoice
                             {row.invoiceCount === 1 ? "" : "s"}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-2 text-right text-[11px] text-slate-200">
+                      <TableCell className="py-2 text-right text-[11px] text-white/70">
                         {formatCurrency(row.unpaidAmount)}
                       </TableCell>
-                      <TableCell className="py-2 text-right text-[11px] text-slate-100">
+                      <TableCell className="py-2 text-right text-[11px] text-white">
                         {formatCurrency(row.totalBilled)}
                       </TableCell>
-                      <TableCell className="py-2 text-right text-[11px] text-slate-200">
+                      <TableCell className="py-2 text-right text-[11px] text-white/70">
                         {(() => {
                           if (row.unpaidAmount <= 0) return "–";
                           const buckets = [

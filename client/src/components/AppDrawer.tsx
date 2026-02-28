@@ -60,7 +60,7 @@ export default function AppDrawer({ isOpen, onClose }: AppDrawerProps) {
           </div>
         </div>
 
-        <div className="border-t border-tsBorder bg-tsBg p-4 text-center text-sm text-muted-foreground">
+        <div className="border-t border-white/10 bg-tsBg p-4 text-center text-sm text-muted-foreground">
           <p>TradeScout OS • Your Local Operating System</p>
         </div>
       </div>

@@ -95,7 +95,7 @@ export default function MortgageBrokerDashboard() {
       case "application":
         return "bg-yellow-500";
       case "underwriting":
-        return "bg-orange-500";
+        return "bg-ts-orange";
       case "approved":
         return "bg-green-500";
       case "closed":
@@ -103,7 +103,7 @@ export default function MortgageBrokerDashboard() {
       case "denied":
         return "bg-red-500";
       default:
-        return "bg-slate-900/60";
+        return "bg-tsCard/95";
     }
   };
 
@@ -140,18 +140,18 @@ export default function MortgageBrokerDashboard() {
           <Home className="h-8 w-8 text-green-500 mr-3" />
           Mortgage Broker Dashboard
         </h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-white/60 mt-2">
           Manage loan applications, track pipeline, and grow your business
         </p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Active Pipeline</p>
+                <p className="text-sm font-medium text-white/60">Active Pipeline</p>
                 <p className="text-2xl font-bold text-white">{mockStats.activePipeline}</p>
               </div>
               <Briefcase className="h-8 w-8 text-blue-500" />
@@ -159,11 +159,11 @@ export default function MortgageBrokerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Loan Volume</p>
+                <p className="text-sm font-medium text-white/60">Loan Volume</p>
                 <p className="text-2xl font-bold text-white">
                   ${(mockStats.loanVolume / 1000000).toFixed(1)}M
                 </p>
@@ -173,25 +173,25 @@ export default function MortgageBrokerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Commission Earned</p>
+                <p className="text-sm font-medium text-white/60">Commission Earned</p>
                 <p className="text-2xl font-bold text-white">
                   ${mockStats.commissionEarned.toLocaleString()}
                 </p>
               </div>
-              <Target className="h-8 w-8 text-orange-500" />
+              <Target className="h-8 w-8 text-ts-orange" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Closing Rate</p>
+                <p className="text-sm font-medium text-white/60">Closing Rate</p>
                 <p className="text-2xl font-bold text-white">{mockStats.closingRate}%</p>
               </div>
               <CheckCircle className="h-8 w-8 text-purple-500" />
@@ -203,7 +203,7 @@ export default function MortgageBrokerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Loan Pipeline */}
         <div className="lg:col-span-2">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white flex items-center">
@@ -219,7 +219,7 @@ export default function MortgageBrokerDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {mockApplications.map((app) => (
-                  <div key={app.id} className="p-4 bg-navy-600 rounded-lg border border-navy-500">
+                  <div key={app.id} className="p-4 bg-tsCard rounded-lg border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className={`w-3 h-3 rounded-full ${getStatusColor(app.status)}`}></div>
@@ -228,40 +228,40 @@ export default function MortgageBrokerDashboard() {
                           {app.creditScore} FICO
                         </Badge>
                       </div>
-                      <span className="text-sm text-gray-400">{getStatusText(app.status)}</span>
+                      <span className="text-sm text-white/60">{getStatusText(app.status)}</span>
                     </div>
                     <div className="grid grid-cols-4 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-400">Loan Amount</p>
+                        <p className="text-white/60">Loan Amount</p>
                         <p className="text-white">${app.loanAmount.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Loan Type</p>
+                        <p className="text-white/60">Loan Type</p>
                         <p className="text-white">{app.loanType}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Submitted</p>
+                        <p className="text-white/60">Submitted</p>
                         <p className="text-white">
                           {new Date(app.submittedDate).toLocaleDateString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Expected Close</p>
+                        <p className="text-white/60">Expected Close</p>
                         <p className="text-white">
                           {new Date(app.expectedClose).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-3">
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <Phone className="h-3 w-3 mr-1" />
                         Contact
                       </Button>
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <FileText className="h-3 w-3 mr-1" />
                         View File
                       </Button>
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <Calculator className="h-3 w-3 mr-1" />
                         Calculate
                       </Button>
@@ -276,10 +276,10 @@ export default function MortgageBrokerDashboard() {
         {/* Action Items & Tools */}
         <div className="space-y-6">
           {/* Urgent Actions */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-orange-500" />
+                <AlertTriangle className="h-5 w-5 mr-2 text-ts-orange" />
                 Urgent Actions
               </CardTitle>
             </CardHeader>
@@ -308,7 +308,7 @@ export default function MortgageBrokerDashboard() {
           </Card>
 
           {/* Quick Tools */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Quick Tools</CardTitle>
             </CardHeader>
@@ -320,21 +320,21 @@ export default function MortgageBrokerDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
                   Rate Sheet
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Pre-Approval Letter
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border-navy-400 text-gray-300 justify-start"
+                  className="w-full border-white/15 text-white/70 justify-start"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Find Realtors
@@ -344,35 +344,35 @@ export default function MortgageBrokerDashboard() {
           </Card>
 
           {/* Current Rates */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Today's Rates</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">30-Year Fixed</span>
+                  <span className="text-white/60">30-Year Fixed</span>
                   <span className="text-white font-semibold">6.85%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">15-Year Fixed</span>
+                  <span className="text-white/60">15-Year Fixed</span>
                   <span className="text-white font-semibold">6.45%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">5/1 ARM</span>
+                  <span className="text-white/60">5/1 ARM</span>
                   <span className="text-white font-semibold">6.25%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">FHA 30-Year</span>
+                  <span className="text-white/60">FHA 30-Year</span>
                   <span className="text-white font-semibold">6.75%</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-3">Rates updated: Today 9:00 AM</p>
+              <p className="text-xs text-white/60 mt-3">Rates updated: Today 9:00 AM</p>
             </CardContent>
           </Card>
 
           {/* Performance */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">This Month's Goals</CardTitle>
             </CardHeader>
@@ -380,21 +380,21 @@ export default function MortgageBrokerDashboard() {
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Loan Volume</span>
+                    <span className="text-white/60">Loan Volume</span>
                     <span className="text-white">$2.8M / $3.5M</span>
                   </div>
                   <Progress value={80} className="h-2" />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Applications</span>
+                    <span className="text-white/60">Applications</span>
                     <span className="text-white">12 / 15</span>
                   </div>
                   <Progress value={80} className="h-2" />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Closing Rate</span>
+                    <span className="text-white/60">Closing Rate</span>
                     <span className="text-white">87%</span>
                   </div>
                   <Progress value={87} className="h-2" />

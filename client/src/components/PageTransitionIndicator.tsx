@@ -31,11 +31,11 @@ export function PageTransitionIndicator({
 
   return (
     <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 ${className}`}>
-      <div className={`bg-navy-800/95 backdrop-blur-sm rounded-xl px-6 py-4 border border-orange-500/30 shadow-2xl ${slideDirection}`}>
+      <div className={`bg-tsCard/95 backdrop-blur-sm rounded-xl px-6 py-4 border border-ts-orange/30 shadow-2xl ${slideDirection}`}>
         <div className="flex items-center gap-3 text-white">
-          <Icon className={`w-6 h-6 text-orange-400 ${direction === 'left' ? 'animate-bounce-left' : 'animate-bounce-right'}`} />
+          <Icon className={`w-6 h-6 text-ts-orange ${direction === 'left' ? 'animate-bounce-left' : 'animate-bounce-right'}`} />
           <div>
-            <div className="text-sm font-medium text-orange-400">Navigating to</div>
+            <div className="text-sm font-medium text-ts-orange">Navigating to</div>
             <div className="text-lg font-semibold">{currentPage}</div>
           </div>
         </div>

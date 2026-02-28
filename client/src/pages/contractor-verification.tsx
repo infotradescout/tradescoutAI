@@ -96,7 +96,7 @@ const ContractorVerification = memo(function ContractorVerification() {
       case "rejected":
         return <XCircle className="h-4 w-4 text-red-400" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-white/60" />;
     }
   };
 
@@ -109,7 +109,7 @@ const ContractorVerification = memo(function ContractorVerification() {
       case "low":
         return "bg-green-600";
       default:
-        return "bg-gray-600";
+        return "bg-white/10";
     }
   };
 
@@ -119,21 +119,21 @@ const ContractorVerification = memo(function ContractorVerification() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-orange-400" />
+            <Shield className="h-8 w-8 text-ts-orange" />
             <h1 className="text-4xl font-bold text-white">Contractor Verification</h1>
           </div>
-          <p className="text-gray-300 text-lg">
+          <p className="text-white/70 text-lg">
             Review and approve contractor license and insurance verifications
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Pending Review</p>
+                  <p className="text-white/60 text-sm">Pending Review</p>
                   <p className="text-2xl font-bold text-white">{pendingVerifications.length}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-400" />
@@ -141,11 +141,11 @@ const ContractorVerification = memo(function ContractorVerification() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Approved Today</p>
+                  <p className="text-white/60 text-sm">Approved Today</p>
                   <p className="text-2xl font-bold text-white">12</p>
                 </div>
                 <CheckCircle2 className="h-8 w-8 text-green-400" />
@@ -153,11 +153,11 @@ const ContractorVerification = memo(function ContractorVerification() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Verified</p>
+                  <p className="text-white/60 text-sm">Total Verified</p>
                   <p className="text-2xl font-bold text-white">847</p>
                 </div>
                 <Award className="h-8 w-8 text-blue-400" />
@@ -165,11 +165,11 @@ const ContractorVerification = memo(function ContractorVerification() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Avg Review Time</p>
+                  <p className="text-white/60 text-sm">Avg Review Time</p>
                   <p className="text-2xl font-bold text-white">2.3h</p>
                 </div>
                 <Briefcase className="h-8 w-8 text-purple-400" />
@@ -180,14 +180,14 @@ const ContractorVerification = memo(function ContractorVerification() {
 
         {/* Verification Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-navy-800 border-navy-600">
-            <TabsTrigger value="pending" className="data-[state=active]:bg-orange-600">
+          <TabsList className="bg-tsCard border-white/10">
+            <TabsTrigger value="pending" className="data-[state=active]:bg-ts-orange-dark">
               Pending Review ({pendingVerifications.length})
             </TabsTrigger>
-            <TabsTrigger value="approved" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="approved" className="data-[state=active]:bg-ts-orange-dark">
               Approved ({approvedVerifications.length})
             </TabsTrigger>
-            <TabsTrigger value="rejected" className="data-[state=active]:bg-orange-600">
+            <TabsTrigger value="rejected" className="data-[state=active]:bg-ts-orange-dark">
               Rejected (3)
             </TabsTrigger>
           </TabsList>
@@ -196,7 +196,7 @@ const ContractorVerification = memo(function ContractorVerification() {
             {pendingVerifications.map((verification) => (
               <Card
                 key={verification.id}
-                className="bg-navy-800/50 border-navy-600 backdrop-blur-sm"
+                className="bg-tsCard/50 border-white/10 backdrop-blur-sm"
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -206,12 +206,12 @@ const ContractorVerification = memo(function ContractorVerification() {
                       ></div>
                       <div>
                         <CardTitle className="text-white">{verification.name}</CardTitle>
-                        <p className="text-gray-400">
+                        <p className="text-white/60">
                           {verification.company} • {verification.trade}
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="border-orange-600 text-orange-400">
+                    <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                       {verification.priority.toUpperCase()} PRIORITY
                     </Badge>
                   </div>
@@ -223,19 +223,19 @@ const ContractorVerification = memo(function ContractorVerification() {
                       <h4 className="text-white font-medium">Contractor Information</h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Email:</span>
+                          <span className="text-white/60">Email:</span>
                           <span className="text-white">{verification.email}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Location:</span>
+                          <span className="text-white/60">Location:</span>
                           <span className="text-white">{verification.location}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-400">License #:</span>
+                          <span className="text-white/60">License #:</span>
                           <span className="text-white">{verification.licenseNumber}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Submitted:</span>
+                          <span className="text-white/60">Submitted:</span>
                           <span className="text-white">{verification.submittedDate}</span>
                         </div>
                       </div>
@@ -248,7 +248,7 @@ const ContractorVerification = memo(function ContractorVerification() {
                         {verification.documents.map((doc, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-3 bg-navy-700 rounded-lg"
+                            className="flex items-center justify-between p-3 bg-tsCard rounded-lg"
                           >
                             <div className="flex items-center gap-3">
                               {getStatusIcon(doc.status)}
@@ -258,7 +258,7 @@ const ContractorVerification = memo(function ContractorVerification() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                               >
                                 <FileText className="h-4 w-4 mr-1" />
                                 View
@@ -290,7 +290,7 @@ const ContractorVerification = memo(function ContractorVerification() {
                         </Button>
                         <Button
                           variant="outline"
-                          className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                          className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                         >
                           <Camera className="h-4 w-4 mr-2" />
                           Request More Info
@@ -304,7 +304,7 @@ const ContractorVerification = memo(function ContractorVerification() {
                         <Textarea
                           id="notes"
                           placeholder="Add verification notes..."
-                          className="mt-2 bg-navy-700 border-navy-600 text-white"
+                          className="mt-2 bg-tsCard border-white/10 text-white"
                         />
                       </div>
                     </div>
@@ -318,7 +318,7 @@ const ContractorVerification = memo(function ContractorVerification() {
             {approvedVerifications.map((verification) => (
               <Card
                 key={verification.id}
-                className="bg-navy-800/50 border-navy-600 backdrop-blur-sm"
+                className="bg-tsCard/50 border-white/10 backdrop-blur-sm"
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -326,10 +326,10 @@ const ContractorVerification = memo(function ContractorVerification() {
                       <CheckCircle2 className="h-8 w-8 text-green-400" />
                       <div>
                         <h3 className="text-white font-medium">{verification.name}</h3>
-                        <p className="text-gray-400">
+                        <p className="text-white/60">
                           {verification.company} • {verification.trade}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-white/60">
                           Approved on {verification.approvedDate}
                         </p>
                       </div>
@@ -347,7 +347,7 @@ const ContractorVerification = memo(function ContractorVerification() {
             <div className="text-center py-12">
               <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
               <h3 className="text-white text-xl mb-2">No Rejected Applications</h3>
-              <p className="text-gray-400">
+              <p className="text-white/60">
                 All contractor applications are currently approved or pending
               </p>
             </div>

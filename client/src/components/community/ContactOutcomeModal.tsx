@@ -147,7 +147,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
     if (policyScore >= 0.85) return "text-emerald-600";
     if (policyScore >= 0.7) return "text-blue-600";
     if (policyScore >= 0.5) return "text-amber-600";
-    return "text-slate-600";
+    return "text-white/60";
   };
 
   const getConfidenceIcon = () => {
@@ -170,18 +170,18 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-slate-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-6 h-6 text-white/60 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900">Contact blocked by policy</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-white/70">Contact blocked by policy</h2>
+              <p className="text-sm text-white/60">
                 Scout policy indicates this contact is not a good match for your decision right now.
               </p>
             </div>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-slate-100">
-            <h3 className="text-sm font-medium text-slate-900">Why policy blocked this</h3>
-            <ul className="space-y-1 text-sm text-slate-600">
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <h3 className="text-sm font-medium text-white/70">Why policy blocked this</h3>
+            <ul className="space-y-1 text-sm text-white/60">
               {outcome.riskFlags.map((flag, i) => (
                 <li key={i}>* {flag}</li>
               ))}
@@ -189,7 +189,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           </div>
 
           <div className="pt-4 flex gap-2">
-            <Button onClick={onClose} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white">
+            <Button onClick={onClose} className="flex-1 bg-tsCard hover:bg-white/5 text-white">
               Understood
             </Button>
           </div>
@@ -203,30 +203,30 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
       <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-5">
         {/* Header: Decision Context */}
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-white/70">
             Ready to contact {outcome.targetUserName}?
           </h2>
-          <p className="text-sm text-slate-600">Decision: {outcome.decisionTitle}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm text-white/60">Decision: {outcome.decisionTitle}</p>
+          <p className="text-xs text-white/60">
             Contact remains intent-based until this authority-confirmed step is completed.
           </p>
         </div>
 
         {/* Section 1: Who */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
-          <h3 className="text-sm font-medium text-slate-900">Who you'll contact</h3>
+        <div className="space-y-3 pt-2 border-t border-white/10">
+          <h3 className="text-sm font-medium text-white/70">Who you'll contact</h3>
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-              <User className="w-6 h-6 text-slate-500" />
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+              <User className="w-6 h-6 text-white/60" />
             </div>
             <div className="flex-1 space-y-1">
-              <p className="font-medium text-slate-900">{outcome.targetUserName}</p>
-              <div className="flex items-center gap-1 text-sm text-slate-600">
+              <p className="font-medium text-white/70">{outcome.targetUserName}</p>
+              <div className="flex items-center gap-1 text-sm text-white/60">
                 <Briefcase className="w-3.5 h-3.5" />
                 <span>{outcome.targetRole}</span>
               </div>
               {outcome.targetLocation && (
-                <div className="flex items-center gap-1 text-sm text-slate-500">
+                <div className="flex items-center gap-1 text-sm text-white/60">
                   <MapPin className="w-3.5 h-3.5" />
                   <span>{outcome.targetLocation}</span>
                 </div>
@@ -237,12 +237,12 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
 
         {/* Section 2: Why (Intent - LOCKED) */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-900">Why you're contacting them</h3>
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
-            <p className="text-sm font-medium text-slate-900 capitalize">
+          <h3 className="text-sm font-medium text-white/70">Why you're contacting them</h3>
+          <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-1">
+            <p className="text-sm font-medium text-white/70 capitalize">
               Intent: {outcome.suggestedIntent}
             </p>
-            <p className="text-xs text-slate-500 mt-2">
+            <p className="text-xs text-white/60 mt-2">
               Intent is locked by policy. Your preview is editable.
             </p>
             <div className="mt-2">
@@ -251,7 +251,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
                 onChange={(e) => setContactPreview(e.target.value)}
                 placeholder="Write a short intro and why you want to connect"
                 rows={4}
-                className="bg-white border-slate-200 text-slate-900"
+                className="bg-white border-white/10 text-white/70"
                 disabled={createConversation.isPending}
               />
             </div>
@@ -260,17 +260,17 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
 
         {/* Section 3: Scout Assessment */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-900">Policy assessment</h3>
+          <h3 className="text-sm font-medium text-white/70">Policy assessment</h3>
           <div className="flex items-start gap-3">
             {getConfidenceIcon()}
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium text-slate-900">{getConfidenceText()}</p>
+              <p className="text-sm font-medium text-white/70">{getConfidenceText()}</p>
               {hasConfidenceScore ? (
                 <p className={`text-sm font-mono ${getConfidenceColor()}`}>
                   Confidence: {(policyScore * 100).toFixed(0)}%
                 </p>
               ) : (
-                <p className="text-xs text-slate-500">Authority verified by Scout policy.</p>
+                <p className="text-xs text-white/60">Authority verified by Scout policy.</p>
               )}
             </div>
           </div>
@@ -289,15 +289,15 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
         </div>
 
         {/* Section 4: Confirmation Checkbox */}
-        <div className="pt-2 border-t border-slate-100">
+        <div className="pt-2 border-t border-white/10">
           <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={confirmed}
               onChange={(e) => setConfirmed(e.target.checked)}
-              className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+              className="mt-1 w-4 h-4 rounded border-white/10 text-white/70 focus:ring-ts-orange/70"
             />
-            <span className="text-sm text-slate-700">
+            <span className="text-sm text-white/70">
               I understand this contact is for <strong>{outcome.suggestedIntent}</strong> related to{" "}
               <strong>{outcome.decisionTitle}</strong>, and Scout has verified the authority for
               this contact.
@@ -310,14 +310,14 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           <Button
             onClick={onClose}
             variant="outline"
-            className="flex-1 border-slate-300 text-slate-700"
+            className="flex-1 border-white/10 text-white/70"
             disabled={createConversation.isPending}
           >
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-slate-900 hover:bg-slate-800 text-white"
+            className="flex-1 bg-tsCard hover:bg-white/5 text-white"
             disabled={!confirmed || createConversation.isPending}
           >
             {createConversation.isPending ? "Connecting..." : "Confirm & Send"}

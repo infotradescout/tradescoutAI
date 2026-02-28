@@ -118,8 +118,8 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
             </>
           ) : (
             <>
-              <Loader2 className="w-12 h-12 mx-auto text-gray-400 mb-4 animate-spin" />
-              <p className="text-gray-500">Connecting to messaging service...</p>
+              <Loader2 className="w-12 h-12 mx-auto text-white/60 mb-4 animate-spin" />
+              <p className="text-white/60">Connecting to messaging service...</p>
             </>
           )}
         </div>
@@ -134,17 +134,17 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg">Conversations</h2>
           {isLoading && !conversations.length && (
-            <p className="text-xs text-gray-500 mt-2">Loading...</p>
+            <p className="text-xs text-white/60 mt-2">Loading...</p>
           )}
         </div>
 
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-2">
             {conversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 space-y-2">
+              <div className="text-center py-8 text-white/60 space-y-2">
                 <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No conversations yet</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-white/60">
                   Start through Scout or Direct Connect to keep contact intent-based.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 pt-1">
@@ -167,11 +167,11 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
                     "w-full text-left p-3 rounded-lg transition-colors",
                     currentConversation === conversation.id
                       ? "bg-blue-100 border border-blue-300"
-                      : "hover:bg-gray-100"
+                      : "hover:bg-white/5"
                   )}
                 >
                   <div className="font-medium text-sm">{getOtherParticipant(conversation)}</div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-white/60 mt-1">
                     Last message:{" "}
                     {formatDistanceToNow(new Date(conversation.lastMessageAt), {
                       addSuffix: true,
@@ -196,7 +196,7 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
                   : "Conversation"}
               </h3>
               {onClose && (
-                <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                <button onClick={onClose} className="text-white/60 hover:text-white/70">
                   ✕
                 </button>
               )}
@@ -206,7 +206,7 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 {messages.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-white/60">
                     <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No messages yet. Start the conversation!</p>
                   </div>
@@ -224,14 +224,14 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
                           "max-w-xs px-4 py-2 rounded-lg",
                           message.senderId === userId
                             ? "bg-blue-500 text-white"
-                            : "bg-gray-200 text-gray-900"
+                            : "bg-white/10 text-white"
                         )}
                       >
                         <p className="text-sm">{message.content}</p>
                         <p
                           className={cn(
                             "text-xs mt-1",
-                            message.senderId === userId ? "text-blue-100" : "text-gray-600"
+                            message.senderId === userId ? "text-blue-100" : "text-white/60"
                           )}
                         >
                           {formatDistanceToNow(new Date(message.createdAt), {
@@ -246,11 +246,11 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
 
                 {/* Typing Indicator */}
                 {typingUsers.size > 0 && (
-                  <div className="flex gap-2 items-center text-gray-500">
+                  <div className="flex gap-2 items-center text-white/60">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
+                      <div className="w-2 h-2 bg-white/10 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-white/10 rounded-full animate-bounce delay-100" />
+                      <div className="w-2 h-2 bg-white/10 rounded-full animate-bounce delay-200" />
                     </div>
                     <span className="text-xs">{Array.from(typingUsers).length} typing...</span>
                   </div>
@@ -284,7 +284,7 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
+          <div className="flex-1 flex items-center justify-center text-white/60">
             <div className="text-center">
               <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>Select a conversation to start messaging</p>

@@ -117,7 +117,7 @@ export function PromptAdminPage() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
-        <div className="text-lg text-gray-600">Loading system prompt…</div>
+        <div className="text-lg text-white/60">Loading system prompt…</div>
       </div>
     );
   }
@@ -127,7 +127,7 @@ export function PromptAdminPage() {
       {/* Header */}
       <div className="border-b pb-6">
         <h1 className="text-3xl font-bold mb-2">System Prompt Editor</h1>
-        <p className="text-gray-600 max-w-2xl">
+        <p className="text-white/60 max-w-2xl">
           Edit Scout's system prompt in real-time. Changes apply immediately to all new
           conversations. This controls how Scout behaves, interprets user requests, and resolves the
           knowledge hierarchy.
@@ -140,25 +140,25 @@ export function PromptAdminPage() {
           <div className="font-semibold text-blue-900">Prompt Status</div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Cached:</span>
+              <span className="text-white/60">Cached:</span>
               <span className="ml-2 font-mono">{status.cached ? "✓ Yes" : "✗ No"}</span>
             </div>
             <div>
-              <span className="text-gray-600">Last Loaded:</span>
+              <span className="text-white/60">Last Loaded:</span>
               <span className="ml-2 font-mono">
                 {status.lastLoaded ? new Date(status.lastLoaded).toLocaleString() : "Never"}
               </span>
             </div>
             <div>
-              <span className="text-gray-600">Reload Interval:</span>
+              <span className="text-white/60">Reload Interval:</span>
               <span className="ml-2 font-mono">{status.reloadIntervalMs / 1000}s</span>
             </div>
             <div>
-              <span className="text-gray-600">File Exists:</span>
+              <span className="text-white/60">File Exists:</span>
               <span className="ml-2 font-mono">{status.exists ? "✓ Yes" : "✗ No"}</span>
             </div>
           </div>
-          <div className="text-xs text-gray-500 mt-2 font-mono break-all">{status.promptPath}</div>
+          <div className="text-xs text-white/60 mt-2 font-mono break-all">{status.promptPath}</div>
         </div>
       )}
 
@@ -175,9 +175,9 @@ export function PromptAdminPage() {
 
       {/* Editor */}
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">System Prompt Markdown</label>
+        <label className="block text-sm font-semibold text-white/70">System Prompt Markdown</label>
         <textarea
-          className="w-full h-[60vh] border-2 border-gray-300 rounded-lg p-4 font-mono text-sm focus:border-blue-500 focus:outline-none resize-none"
+          className="w-full h-[60vh] border-2 border-white/10 rounded-lg p-4 font-mono text-sm focus:border-blue-500 focus:outline-none resize-none"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Enter system prompt in Markdown format…"
@@ -185,7 +185,7 @@ export function PromptAdminPage() {
       </div>
 
       {/* Character count */}
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-white/60">
         {content.length.toLocaleString()} characters
         {content.split("\n").length > 0 && ` • ${content.split("\n").length} lines`}
       </div>
@@ -195,7 +195,7 @@ export function PromptAdminPage() {
         <button
           onClick={savePrompt}
           disabled={saving || !content.trim()}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-white/10 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "Saving…" : "Save Prompt"}
         </button>
@@ -203,7 +203,7 @@ export function PromptAdminPage() {
         <button
           onClick={forceReload}
           disabled={saving}
-          className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-white/10 text-white/70 rounded-lg font-semibold hover:bg-white/10 disabled:bg-white/10 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "Loading…" : "Reload from Disk"}
         </button>
@@ -211,14 +211,14 @@ export function PromptAdminPage() {
         <button
           onClick={loadPrompt}
           disabled={saving || loading}
-          className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-white/10 text-white/70 rounded-lg font-semibold hover:bg-white/10 disabled:bg-white/10 disabled:cursor-not-allowed transition-colors"
         >
           Discard Changes
         </button>
       </div>
 
       {/* Info Section */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-2">
+      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-sm text-white/70 space-y-2">
         <div className="font-semibold">How This Works</div>
         <ul className="list-disc list-inside space-y-1">
           <li>

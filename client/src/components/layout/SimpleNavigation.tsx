@@ -69,7 +69,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white dark:bg-tsCard border-b border-white/10 dark:border-white/10 shadow-sm">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Left: Logo */}
@@ -90,20 +90,20 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                   />
                 </svg>
               </div>
-              <span className="hidden sm:block text-lg font-bold text-slate-900 dark:text-white">
+              <span className="hidden sm:block text-lg font-bold text-white/70 dark:text-white">
                 TradeScout
               </span>
             </Link>
 
             {/* Search Bar */}
             <div className="hidden md:block relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
               <Input
                 type="text"
                 placeholder="Search TradeScout"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-60 h-9 bg-slate-100 dark:bg-slate-800 border-0 focus-visible:ring-1"
+                className="pl-10 w-60 h-9 bg-white/5 dark:bg-white/5 border-0 focus-visible:ring-1"
                 data-testid="input-search"
               />
             </div>
@@ -122,8 +122,8 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                     data-testid={item.testId}
                     className={`relative flex items-center justify-center h-14 px-8 transition-colors ${
                       isActive
-                        ? "text-orange-600 dark:text-orange-500 border-b-2 border-orange-600"
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "text-ts-orange dark:text-ts-orange border-b-2 border-ts-orange/30"
+                        : "text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/5"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -142,7 +142,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="relative w-9 h-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="relative w-9 h-9 rounded-full hover:bg-white/5 dark:hover:bg-white/5"
                     data-testid="button-notifications"
                   >
                     <Bell className="w-5 h-5" />
@@ -155,12 +155,12 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-9 h-9 rounded-full p-0 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="w-9 h-9 rounded-full p-0 hover:bg-white/5 dark:hover:bg-white/5"
                       data-testid="button-profile-menu"
                     >
                       <Avatar className="w-9 h-9">
                         <AvatarImage src={user?.profileImageUrl} />
-                        <AvatarFallback className="bg-orange-500 text-white text-sm">
+                        <AvatarFallback className="bg-ts-orange text-white text-sm">
                           {user?.firstName?.[0] || user?.email?.[0] || "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -168,12 +168,12 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64">
                     <div className="px-3 py-2">
-                      <div className="font-semibold text-slate-900 dark:text-white">
+                      <div className="font-semibold text-white/70 dark:text-white">
                         {user?.firstName && user?.lastName
                           ? `${user.firstName} ${user.lastName}`
                           : user?.email}
                       </div>
-                      <div className="text-xs text-slate-500">{user?.email}</div>
+                      <div className="text-xs text-white/60">{user?.email}</div>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -231,7 +231,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
                 <Link href="/signup">
                   <Button
                     size="sm"
-                    className="bg-orange-600 hover:bg-orange-700"
+                    className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                     data-testid="button-signup"
                   >
                     Sign Up

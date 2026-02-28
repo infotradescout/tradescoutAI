@@ -42,16 +42,16 @@ export function SwipeIndicator({
 
   return (
     <div className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 ${className}`}>
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl px-6 py-4 border border-slate-700/50 shadow-xl">
+      <div className="bg-white/5 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/10 shadow-xl">
         <div className="flex items-center justify-between gap-6 text-white">
           {/* Swipe Right/Previous Indicator */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 animate-pulse">
-              <div className="w-8 h-0.5 bg-orange-400 rounded-full"></div>
-              <div className="w-6 h-0.5 bg-orange-400/60 rounded-full"></div>
-              <div className="w-4 h-0.5 bg-orange-400/30 rounded-full"></div>
+              <div className="w-8 h-0.5 bg-ts-orange rounded-full"></div>
+              <div className="w-6 h-0.5 bg-ts-orange/60 rounded-full"></div>
+              <div className="w-4 h-0.5 bg-ts-orange/30 rounded-full"></div>
             </div>
-            <ChevronLeft className="w-5 h-5 text-orange-400" />
+            <ChevronLeft className="w-5 h-5 text-ts-orange" />
             <span className="text-sm font-medium">Previous</span>
           </div>
 
@@ -64,13 +64,13 @@ export function SwipeIndicator({
                   <div
                     key={i}
                     className={`w-2 h-2 rounded-full transition-all ${
-                      isActive ? 'bg-blue-400 scale-125' : 'bg-slate-600'
+                      isActive ? 'bg-blue-400 scale-125' : 'bg-white/10'
                     }`}
                   />
                 );
               })}
               {totalPages > 5 && (
-                <MoreHorizontal className="w-3 h-3 text-slate-400" />
+                <MoreHorizontal className="w-3 h-3 text-white/60" />
               )}
             </div>
           </div>
@@ -88,7 +88,7 @@ export function SwipeIndicator({
         </div>
         
         <div className="text-center mt-2">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-white/60">
             Swipe to cycle through pages • Page {currentPageIndex + 1} of {totalPages}
           </p>
         </div>

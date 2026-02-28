@@ -161,9 +161,9 @@ export function RoleImpersonation() {
 
   if (!canImpersonate) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-white/5 border-white/10">
         <CardContent className="p-6">
-          <div className="flex items-center space-x-2 text-gray-400">
+          <div className="flex items-center space-x-2 text-white/60">
             <Shield className="h-5 w-5" />
             <span>Role impersonation requires admin privileges</span>
           </div>
@@ -173,31 +173,31 @@ export function RoleImpersonation() {
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-white/5 border-white/10">
       <CardHeader>
         <CardTitle className="text-white flex items-center">
-          <UserCog className="h-5 w-5 mr-2 text-orange-500" />
+          <UserCog className="h-5 w-5 mr-2 text-ts-orange" />
           Role Impersonation
         </CardTitle>
-        <p className="text-gray-400 text-sm">
+        <p className="text-white/60 text-sm">
           Test platform functionality from different user perspectives
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Current Status */}
-        <div className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-white/10 rounded-lg">
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-white font-medium">Current Role:</span>
               <Badge
-                className={impersonationState.isImpersonating ? "bg-orange-500" : "bg-blue-500"}
+                className={impersonationState.isImpersonating ? "bg-ts-orange" : "bg-blue-500"}
               >
                 {AVAILABLE_ROLES.find((r) => r.id === impersonationState.currentRole)?.name ||
                   impersonationState.currentRole}
               </Badge>
             </div>
             {impersonationState.isImpersonating && (
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-white/60 mt-1">
                 Original role:{" "}
                 {AVAILABLE_ROLES.find((r) => r.id === impersonationState.originalRole)?.name}
               </p>
@@ -220,9 +220,9 @@ export function RoleImpersonation() {
 
         {/* Impersonation Warning */}
         {impersonationState.isImpersonating && (
-          <Alert className="border-orange-500/50 bg-orange-500/10">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-            <AlertDescription className="text-orange-300">
+          <Alert className="border-ts-orange/30 bg-ts-orange/10">
+            <AlertTriangle className="h-4 w-4 text-ts-orange" />
+            <AlertDescription className="text-ts-orange">
               You are currently impersonating a{" "}
               {AVAILABLE_ROLES.find((r) => r.id === impersonationState.currentRole)?.name} role. All
               actions will be performed with that role's permissions.
@@ -238,15 +238,15 @@ export function RoleImpersonation() {
                 Select Role to Impersonate
               </label>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="bg-white/10 border-white/15 text-white">
                   <SelectValue placeholder="Choose a role to test..." />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white/5 border-white/10">
                   {AVAILABLE_ROLES.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       <div>
                         <div className="font-medium">{role.name}</div>
-                        <div className="text-sm text-gray-400">{role.description}</div>
+                        <div className="text-sm text-white/60">{role.description}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -257,7 +257,7 @@ export function RoleImpersonation() {
             <Button
               onClick={handleStartImpersonation}
               disabled={!selectedRole || startImpersonationMutation.isPending}
-              className="w-full bg-orange-500 hover:bg-orange-600"
+              className="w-full bg-ts-orange hover:bg-ts-orange-dark"
             >
               <Eye className="h-4 w-4 mr-2" />
               {startImpersonationMutation.isPending ? "Starting..." : "Start Impersonation"}

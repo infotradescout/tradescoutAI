@@ -99,9 +99,9 @@ export const ContextualTooltip = forwardRef<
   };
 
   const variantClasses = {
-    default: 'text-gray-400 hover:text-gray-300',
-    contractor: 'text-orange-400 hover:text-orange-300',
-    homeowner: 'text-orange-400 hover:text-orange-300'
+    default: 'text-white/60 hover:text-white/70',
+    contractor: 'text-ts-orange hover:text-ts-orange',
+    homeowner: 'text-ts-orange hover:text-ts-orange'
   };
 
   const TriggerButton = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
@@ -130,13 +130,13 @@ export const ContextualTooltip = forwardRef<
         >
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <IconComponent className="h-6 w-6 text-orange-400" />
+              <IconComponent className="h-6 w-6 text-ts-orange" />
             </div>
             <div className="flex-1">
               {title && (
-                <h4 className="font-semibold text-orange-400 mb-1">{title}</h4>
+                <h4 className="font-semibold text-ts-orange mb-1">{title}</h4>
               )}
-              <p className="text-sm text-gray-200">{content}</p>
+              <p className="text-sm text-white/70">{content}</p>
             </div>
           </div>
         </TooltipContent>

@@ -62,7 +62,7 @@ export default function CountyTransparencyPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">County Transparency</h1>
-            <p className="text-gray-600">Live view of vault inflows and contributions.</p>
+            <p className="text-white/60">Live view of vault inflows and contributions.</p>
           </div>
           {vault && (
             <Badge variant="secondary" className="flex items-center gap-1">
@@ -79,7 +79,7 @@ export default function CountyTransparencyPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">${vault?.currentBalance ?? "0.00"}</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-white/60 mt-1">
                 Lifetime inflow: ${vault?.lifetimeInflow ?? "0.00"}
               </p>
             </CardContent>
@@ -91,7 +91,7 @@ export default function CountyTransparencyPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{contributions.length}</p>
-              <p className="text-sm text-gray-500 mt-1">Recent inflow events: {ledger.length}</p>
+              <p className="text-sm text-white/60 mt-1">Recent inflow events: {ledger.length}</p>
             </CardContent>
           </Card>
           <Card>
@@ -101,7 +101,7 @@ export default function CountyTransparencyPage() {
             </CardHeader>
             <CardContent>
               <Progress value={Math.min(100, (ledger.length / 10) * 100)} />
-              <p className="text-sm text-gray-500 mt-2">Events last 30 days: {ledger.length}</p>
+              <p className="text-sm text-white/60 mt-2">Events last 30 days: {ledger.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -113,7 +113,7 @@ export default function CountyTransparencyPage() {
           </CardHeader>
           <CardContent>
             {ledger.length === 0 ? (
-              <p className="text-gray-500">No ledger entries yet.</p>
+              <p className="text-white/60">No ledger entries yet.</p>
             ) : (
               <div className="space-y-3">
                 {ledger.slice(0, 8).map((entry: any) => (
@@ -123,7 +123,7 @@ export default function CountyTransparencyPage() {
                   >
                     <div>
                       <p className="font-semibold">${entry.amount}</p>
-                      <p className="text-sm text-gray-600">{entry.memo || entry.sourceType}</p>
+                      <p className="text-sm text-white/60">{entry.memo || entry.sourceType}</p>
                     </div>
                     <Badge variant="outline" className="flex items-center gap-1">
                       <ArrowUpRight className="w-4 h-4" /> {entry.sourceType}
@@ -142,7 +142,7 @@ export default function CountyTransparencyPage() {
           </CardHeader>
           <CardContent>
             {contributions.length === 0 ? (
-              <p className="text-gray-500">No contributions yet.</p>
+              <p className="text-white/60">No contributions yet.</p>
             ) : (
               <div className="space-y-3">
                 {contributions.slice(0, 6).map((c: any) => (
@@ -152,7 +152,7 @@ export default function CountyTransparencyPage() {
                   >
                     <div>
                       <p className="font-semibold">{c.title}</p>
-                      <p className="text-sm text-gray-600">${c.actualValue || c.estimatedValue}</p>
+                      <p className="text-sm text-white/60">${c.actualValue || c.estimatedValue}</p>
                     </div>
                     <Badge variant="outline">{c.status}</Badge>
                   </div>
@@ -169,7 +169,7 @@ export default function CountyTransparencyPage() {
           </CardHeader>
           <CardContent>
             {!vault?.allocation?.length ? (
-              <p className="text-gray-500">No allocation data yet.</p>
+              <p className="text-white/60">No allocation data yet.</p>
             ) : (
               <div className="space-y-3">
                 {vault.allocation.map((bucket) => (
@@ -179,7 +179,7 @@ export default function CountyTransparencyPage() {
                   >
                     <div>
                       <p className="font-semibold">{bucket.label}</p>
-                      <p className="text-xs text-gray-500">{bucket.percent}% of county vault</p>
+                      <p className="text-xs text-white/60">{bucket.percent}% of county vault</p>
                     </div>
                     <Badge variant="outline">${bucket.amount.toFixed(2)}</Badge>
                   </div>

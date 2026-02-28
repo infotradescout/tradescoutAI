@@ -81,10 +81,10 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Calendar className="h-8 w-8 text-orange-400" />
+            <Calendar className="h-8 w-8 text-ts-orange" />
             <h1 className="text-4xl font-bold text-white">Schedule Consultation</h1>
           </div>
-          <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+          <p className="text-white/70 text-lg max-w-2xl mx-auto">
             Book a personalized consultation with our team to discuss your business goals and how
             TradeScout can help you succeed
           </p>
@@ -92,7 +92,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
 
         <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Consultation Form */}
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Users2 className="h-5 w-5" />
@@ -111,7 +111,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                     <Input
                       id="firstName"
                       placeholder="John"
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
                   <div className="space-y-2">
@@ -121,7 +121,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                     <Input
                       id="lastName"
                       placeholder="Smith"
-                      className="bg-navy-700 border-navy-600 text-white"
+                      className="bg-tsCard border-white/10 text-white"
                     />
                   </div>
                 </div>
@@ -134,7 +134,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                     id="email"
                     type="email"
                     placeholder="john@example.com"
-                    className="bg-navy-700 border-navy-600 text-white"
+                    className="bg-tsCard border-white/10 text-white"
                   />
                 </div>
 
@@ -146,7 +146,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                     id="phone"
                     type="tel"
                     placeholder="(555) 123-4567"
-                    className="bg-navy-700 border-navy-600 text-white"
+                    className="bg-tsCard border-white/10 text-white"
                   />
                 </div>
 
@@ -157,7 +157,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <Input
                     id="company"
                     placeholder="Your Company LLC"
-                    className="bg-navy-700 border-navy-600 text-white"
+                    className="bg-tsCard border-white/10 text-white"
                   />
                 </div>
               </div>
@@ -166,7 +166,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
               <div className="space-y-4">
                 <h3 className="text-white font-medium">Consultation Type</h3>
                 <Select value={consultationType} onValueChange={setConsultationType}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Select consultation type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -174,7 +174,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                       <SelectItem key={type.value} value={type.value}>
                         <div>
                           <div className="font-medium">{type.label}</div>
-                          <div className="text-sm text-gray-400">
+                          <div className="text-sm text-white/60">
                             {type.duration} • {type.description}
                           </div>
                         </div>
@@ -192,7 +192,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <div className="space-y-2">
                     <Label className="text-white">Select Date</Label>
                     <Select value={selectedDate} onValueChange={setSelectedDate}>
-                      <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                      <SelectTrigger className="bg-tsCard border-white/10 text-white">
                         <SelectValue placeholder="Choose date" />
                       </SelectTrigger>
                       <SelectContent>
@@ -213,7 +213,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <div className="space-y-2">
                     <Label className="text-white">Select Time</Label>
                     <Select value={selectedTime} onValueChange={setSelectedTime}>
-                      <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                      <SelectTrigger className="bg-tsCard border-white/10 text-white">
                         <SelectValue placeholder="Choose time" />
                       </SelectTrigger>
                       <SelectContent>
@@ -236,13 +236,13 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 <Textarea
                   id="message"
                   placeholder="Tell us about your business goals, challenges, or specific topics you'd like to cover..."
-                  className="bg-navy-700 border-navy-600 text-white"
+                  className="bg-tsCard border-white/10 text-white"
                   rows={4}
                 />
               </div>
 
               <Button
-                className="w-full bg-orange-600 hover:bg-orange-700"
+                className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark"
                 onClick={handleScheduleConsultation}
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -253,7 +253,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
 
           {/* Consultation Details */}
           <div className="space-y-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Clock className="h-5 w-5" />
@@ -265,7 +265,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Personalized Strategy</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       Tailored advice for your specific business needs and goals
                     </p>
                   </div>
@@ -275,7 +275,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Platform Demo</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       Live walkthrough of features that will benefit your business
                     </p>
                   </div>
@@ -285,7 +285,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Q&A Session</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       Get answers to all your questions about TradeScout
                     </p>
                   </div>
@@ -295,7 +295,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                   <CheckCircle2 className="h-5 w-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-white font-medium">Next Steps</p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-white/60 text-sm">
                       Clear action plan for getting started and maximizing results
                     </p>
                   </div>
@@ -303,7 +303,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
               </CardContent>
             </Card>
 
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Phone className="h-5 w-5" />
@@ -311,29 +311,29 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-gray-300">
+                <p className="text-white/70">
                   Prefer to speak with someone right away? You can also reach our team directly:
                 </p>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-orange-400" />
+                    <Phone className="h-4 w-4 text-ts-orange" />
                     <span className="text-white">(555) 123-TRADE</span>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-orange-400" />
+                    <Mail className="h-4 w-4 text-ts-orange" />
                     <span className="text-white">consultations@tradescout.com</span>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Clock className="h-4 w-4 text-orange-400" />
+                    <Clock className="h-4 w-4 text-ts-orange" />
                     <span className="text-white">Mon-Fri 9 AM - 6 PM PST</span>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-navy-600">
-                  <p className="text-gray-400 text-sm">
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-white/60 text-sm">
                     Our consultation team includes experienced contractors and business development
                     specialists who understand your challenges.
                   </p>
@@ -341,7 +341,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
               </CardContent>
             </Card>
 
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
@@ -349,14 +349,14 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300 mb-4">
+                <p className="text-white/70 mb-4">
                   All consultations are conducted via video call for your convenience. You'll
                   receive a meeting link via email 24 hours before your scheduled time.
                 </p>
 
-                <div className="bg-navy-700 p-4 rounded-lg">
-                  <p className="text-orange-400 font-medium mb-2">What You'll Need:</p>
-                  <ul className="text-gray-300 text-sm space-y-1">
+                <div className="bg-tsCard p-4 rounded-lg">
+                  <p className="text-ts-orange font-medium mb-2">What You'll Need:</p>
+                  <ul className="text-white/70 text-sm space-y-1">
                     <li>• Stable internet connection</li>
                     <li>• Computer, tablet, or smartphone with camera</li>
                     <li>• Questions about your business goals</li>

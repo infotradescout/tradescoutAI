@@ -50,7 +50,7 @@ export function MobileAppBar() {
     <>
       {/* Mobile Bottom Navigation */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-bottom-nav border-t border-navy-700"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-bottom-nav border-t border-white/10"
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
           height: "calc(var(--bottom-nav-height, 64px) + env(safe-area-inset-bottom))",
@@ -68,8 +68,8 @@ export function MobileAppBar() {
                     className={cn(
                       "flex flex-col items-center py-2 px-3 rounded-lg transition-all duration-200 min-w-[60px]",
                       location === dashboardLink
-                        ? "text-orange-500 bg-orange-500/15"
-                        : "text-gray-400 hover:text-white active:bg-white/10"
+                        ? "text-ts-orange bg-ts-orange/15"
+                        : "text-white/60 hover:text-white active:bg-white/10"
                     )}
                   >
                     <Layout className="h-5 w-5 mb-1" />
@@ -90,8 +90,8 @@ export function MobileAppBar() {
                   className={cn(
                     "flex flex-col items-center py-2 px-3 rounded-lg transition-all duration-200 min-w-[60px] relative",
                     isActive
-                      ? "text-orange-500 bg-orange-500/15"
-                      : "text-gray-400 hover:text-white active:bg-white/10"
+                      ? "text-ts-orange bg-ts-orange/15"
+                      : "text-white/60 hover:text-white active:bg-white/10"
                   )}
                 >
                   <IconComponent className="h-5 w-5 mb-1" />
@@ -111,12 +111,12 @@ export function MobileAppBar() {
           {/* More menu */}
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-all duration-200 min-w-[60px] text-gray-400 hover:text-white active:bg-white/10">
+              <button className="flex flex-col items-center py-2 px-3 rounded-lg transition-all duration-200 min-w-[60px] text-white/60 hover:text-white active:bg-white/10">
                 <Menu className="h-5 w-5 mb-1" />
                 <span className="text-xs font-medium">More</span>
               </button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="bg-navy-900 border-navy-700 rounded-t-2xl">
+            <SheetContent side="bottom" className="bg-tsBg border-white/10 rounded-t-2xl">
               <div className="py-4">
                 <h3 className="text-white font-semibold mb-4 text-center">Quick Actions</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-6">
@@ -126,10 +126,10 @@ export function MobileAppBar() {
                       <Link key={action.href} href={action.href}>
                         <button
                           onClick={() => setIsMenuOpen(false)}
-                          className="flex flex-col items-center p-4 rounded-xl bg-navy-800 hover:bg-navy-700 transition-colors"
+                          className="flex flex-col items-center p-4 rounded-xl bg-tsCard hover:bg-tsCard transition-colors"
                         >
-                          <IconComponent className="h-6 w-6 text-orange-500 mb-2" />
-                          <span className="text-xs text-gray-300 text-center leading-tight">
+                          <IconComponent className="h-6 w-6 text-ts-orange mb-2" />
+                          <span className="text-xs text-white/70 text-center leading-tight">
                             {action.label}
                           </span>
                         </button>
@@ -143,7 +143,7 @@ export function MobileAppBar() {
                   <Link href="/notifications">
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-gray-300 hover:text-white hover:bg-navy-800"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-tsCard"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <Bell className="h-5 w-5 mr-3" />
@@ -153,7 +153,7 @@ export function MobileAppBar() {
                   <Link href="/settings">
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-gray-300 hover:text-white hover:bg-navy-800"
+                      className="w-full justify-start text-white/70 hover:text-white hover:bg-tsCard"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <Settings className="h-5 w-5 mr-3" />

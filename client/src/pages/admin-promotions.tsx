@@ -98,13 +98,13 @@ export default function AdminPromotionsPage() {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-slate-900/80 border-slate-800">
+      <Card className="bg-tsCard/95 border-white/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-100">
-            <Plus className="w-4 h-4 text-orange-400" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Plus className="w-4 h-4 text-ts-orange" />
             Promotions Manager
           </CardTitle>
-          <CardDescription className="text-slate-300">
+          <CardDescription className="text-white/70">
             Canonical promotions for TradeDeals, sponsors, and announcements. TradeDeals here feed
             the Community Snapshot.
           </CardDescription>
@@ -143,7 +143,7 @@ export default function AdminPromotionsPage() {
                       onChange={(e) => setDraftCountyFips(e.target.value)}
                       placeholder="06037, 48453"
                     />
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-white/60">
                       Required for Community Snapshot. Each TradeDeal must declare the counties it
                       is eligible for.
                     </p>
@@ -165,7 +165,7 @@ export default function AdminPromotionsPage() {
                       onChange={(e) => setDraftCtaUrl(e.target.value)}
                       placeholder="https://... or internal path"
                     />
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-white/60">
                       Where should this TradeDeal send users? Can be an internal route or external
                       partner page.
                     </p>
@@ -177,7 +177,7 @@ export default function AdminPromotionsPage() {
                       onCheckedChange={(v) => setDraftSnapshot(Boolean(v))}
                     />
                     <Label htmlFor="snapshot" className="flex items-center gap-2">
-                      <MapPin className="w-3 h-3 text-orange-400" />
+                      <MapPin className="w-3 h-3 text-ts-orange" />
                       Eligible for Community Snapshot
                     </Label>
                   </div>
@@ -195,7 +195,7 @@ export default function AdminPromotionsPage() {
 
             <TabsContent value="list">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex items-center gap-2 text-xs text-white/60">
                   <Filter className="w-3 h-3" />
                   <span>Status:</span>
                   {(["active", "draft", "paused", "ended"] as const).map((s) => (
@@ -205,8 +205,8 @@ export default function AdminPromotionsPage() {
                       onClick={() => setStatusFilter(s)}
                       className={`px-2 py-0.5 rounded-full border text-[11px] ${
                         statusFilter === s
-                          ? "border-orange-500 text-orange-300"
-                          : "border-slate-700 text-slate-400"
+                          ? "border-ts-orange/30 text-ts-orange"
+                          : "border-white/10 text-white/60"
                       }`}
                     >
                       {s}
@@ -216,20 +216,20 @@ export default function AdminPromotionsPage() {
               </div>
 
               {isLoading ? (
-                <div className="text-sm text-slate-400">Loading promotions...</div>
+                <div className="text-sm text-white/60">Loading promotions...</div>
               ) : !promotions || promotions.length === 0 ? (
-                <div className="text-sm text-slate-400">No promotions found for this filter.</div>
+                <div className="text-sm text-white/60">No promotions found for this filter.</div>
               ) : (
                 <div className="space-y-3">
                   {promotions.map((promo) => (
                     <Card
                       key={promo.id}
-                      className="bg-slate-950/60 border-slate-800 flex items-start justify-between gap-3 p-3"
+                      className="bg-black/30 border-white/10 flex items-start justify-between gap-3 p-3"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-100 text-sm">{promo.title}</span>
-                          <Badge variant="outline" className="border-orange-500/60 text-orange-300">
+                          <span className="font-medium text-white text-sm">{promo.title}</span>
+                          <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                             {promo.type}
                           </Badge>
                           {promo.placementCommunitySnapshot && (
@@ -238,23 +238,23 @@ export default function AdminPromotionsPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-slate-300 max-w-xl">
+                        <p className="text-xs text-white/70 max-w-xl">
                           {promo.shortDescription}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <Badge variant="outline" className="border-slate-600 text-slate-300">
+                          <Badge variant="outline" className="border-white/15 text-white/70">
                             Status: {promo.status}
                           </Badge>
-                          <Badge variant="outline" className="border-slate-600 text-slate-300 flex items-center gap-1">
+                          <Badge variant="outline" className="border-white/15 text-white/70 flex items-center gap-1">
                             <MapPin className="w-3 h-3" /> {promo.countyFips.join(", ") || "No counties"}
                           </Badge>
                           {promo.ctaUrl && (
-                            <Badge variant="outline" className="border-slate-600 text-slate-300 flex items-center gap-1">
+                            <Badge variant="outline" className="border-white/15 text-white/70 flex items-center gap-1">
                               <Link2 className="w-3 h-3" /> CTA
                             </Badge>
                           )}
                           {promo.imageAttachmentId && (
-                            <Badge variant="outline" className="border-slate-600 text-slate-300 flex items-center gap-1">
+                            <Badge variant="outline" className="border-white/15 text-white/70 flex items-center gap-1">
                               <ImageIcon className="w-3 h-3" /> Image
                             </Badge>
                           )}

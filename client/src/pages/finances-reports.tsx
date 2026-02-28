@@ -157,25 +157,25 @@ export default function FinancesReportsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 mb-1">Reports</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Reports</h1>
+          <p className="text-sm text-white/60">
             High-level money analytics powered by your invoices and expenses.
           </p>
         </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold text-slate-100">Summary snapshot</CardTitle>
-          <CardDescription className="text-xs text-slate-400">
+          <CardTitle className="text-sm font-semibold text-white">Summary snapshot</CardTitle>
+          <CardDescription className="text-xs text-white/60">
             This is the same core summary that powers the Finances dashboard, broken out here so you can focus on
             reporting.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3 text-[11px] text-slate-300">
+        <CardContent className="space-y-3 text-[11px] text-white/70">
           {!lifetime ? (
             <div className="space-y-2">
-              <p className="text-slate-400">
+              <p className="text-white/60">
                 {isCommunityFirst
                   ? "You don’t need to wire up reports before you work. When you log invoices and expenses, this snapshot will fill in automatically."
                   : "Once you start issuing invoices and logging expenses, you’ll see totals here."}
@@ -186,7 +186,7 @@ export default function FinancesReportsPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-7 px-3 border-slate-700 text-slate-200"
+                    className="h-7 px-3 border-white/10 text-white/70"
                   >
                     Go to invoices
                   </Button>
@@ -215,9 +215,9 @@ export default function FinancesReportsPage() {
               </p>
             </>
           )}
-          <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
+          <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-slate-400">P&amp;L by period</span>
+              <span className="text-[11px] text-white/60">P&amp;L by period</span>
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
@@ -249,7 +249,7 @@ export default function FinancesReportsPage() {
               </div>
             </div>
             {isInvoicesLoading || isExpensesLoading ? (
-              <p className="text-[11px] text-slate-400">Loading P&amp;L…</p>
+              <p className="text-[11px] text-white/60">Loading P&amp;L…</p>
             ) : (
               <>
                 <p>
@@ -276,7 +276,7 @@ export default function FinancesReportsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="mt-2 h-8 px-3 border-slate-600 text-[11px] text-slate-200"
+            className="mt-2 h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => window.print()}
           >
             Print snapshot

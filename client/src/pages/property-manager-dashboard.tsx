@@ -138,9 +138,9 @@ export default function PropertyManagerDashboard() {
     switch (status) {
       case 'fully_occupied': return 'bg-green-500';
       case 'partially_vacant': return 'bg-yellow-500';
-      case 'maintenance_required': return 'bg-orange-500';
+      case 'maintenance_required': return 'bg-ts-orange';
       case 'under_renovation': return 'bg-blue-500';
-      default: return 'bg-slate-900/60';
+      default: return 'bg-tsCard/95';
     }
   };
 
@@ -157,10 +157,10 @@ export default function PropertyManagerDashboard() {
   const getPriorityColor = (priority: MaintenanceRequest['priority']) => {
     switch (priority) {
       case 'emergency': return 'text-red-600 bg-red-100';
-      case 'high': return 'text-orange-600 bg-orange-100';
+      case 'high': return 'text-ts-orange bg-ts-orange/10';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'low': return 'text-green-600 bg-green-100';
-      default: return 'text-gray-600 bg-slate-900';
+      default: return 'text-white/60 bg-tsCard';
     }
   };
 
@@ -172,16 +172,16 @@ export default function PropertyManagerDashboard() {
           <Building className="h-8 w-8 text-indigo-500 mr-3" />
           Property Manager Dashboard
         </h1>
-        <p className="text-gray-400 mt-2">Manage properties, track maintenance, and optimize operations</p>
+        <p className="text-white/60 mt-2">Manage properties, track maintenance, and optimize operations</p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Total Properties</p>
+                <p className="text-sm font-medium text-white/60">Total Properties</p>
                 <p className="text-2xl font-bold text-white">{mockStats.totalProperties}</p>
               </div>
               <Building className="h-8 w-8 text-indigo-500" />
@@ -189,11 +189,11 @@ export default function PropertyManagerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Occupancy Rate</p>
+                <p className="text-sm font-medium text-white/60">Occupancy Rate</p>
                 <p className="text-2xl font-bold text-white">{mockStats.occupancyRate}%</p>
               </div>
               <Users className="h-8 w-8 text-green-500" />
@@ -201,11 +201,11 @@ export default function PropertyManagerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Monthly Revenue</p>
+                <p className="text-sm font-medium text-white/60">Monthly Revenue</p>
                 <p className="text-2xl font-bold text-white">${mockStats.monthlyRevenue.toLocaleString()}</p>
               </div>
               <DollarSign className="h-8 w-8 text-emerald-500" />
@@ -213,14 +213,14 @@ export default function PropertyManagerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-400">Open Requests</p>
+                <p className="text-sm font-medium text-white/60">Open Requests</p>
                 <p className="text-2xl font-bold text-white">{mockStats.maintenanceRequests}</p>
               </div>
-              <Wrench className="h-8 w-8 text-orange-500" />
+              <Wrench className="h-8 w-8 text-ts-orange" />
             </div>
           </CardContent>
         </Card>
@@ -229,7 +229,7 @@ export default function PropertyManagerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Property Portfolio */}
         <div className="lg:col-span-2">
-          <Card className="bg-navy-700 border-navy-600 mb-6">
+          <Card className="bg-tsCard border-white/10 mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white flex items-center">
@@ -245,42 +245,42 @@ export default function PropertyManagerDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {mockProperties.map((property) => (
-                  <div key={property.id} className="p-4 bg-navy-600 rounded-lg border border-navy-500">
+                  <div key={property.id} className="p-4 bg-tsCard rounded-lg border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className={`w-3 h-3 rounded-full ${getStatusColor(property.status)}`}></div>
                         <h3 className="font-semibold text-white">{property.address}</h3>
                       </div>
-                      <span className="text-sm text-gray-400">{getStatusText(property.status)}</span>
+                      <span className="text-sm text-white/60">{getStatusText(property.status)}</span>
                     </div>
                     <div className="grid grid-cols-4 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-400">Occupancy</p>
+                        <p className="text-white/60">Occupancy</p>
                         <p className="text-white">{property.occupiedUnits}/{property.units} units</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Monthly Rent</p>
+                        <p className="text-white/60">Monthly Rent</p>
                         <p className="text-white">${property.monthlyRent.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Last Inspection</p>
+                        <p className="text-white/60">Last Inspection</p>
                         <p className="text-white">{new Date(property.lastInspection).toLocaleDateString()}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Next Maintenance</p>
+                        <p className="text-white/60">Next Maintenance</p>
                         <p className="text-white">{new Date(property.nextMaintenanceDate).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="flex space-x-2 mt-3">
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <Eye className="h-3 w-3 mr-1" />
                         View Details
                       </Button>
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <Calendar className="h-3 w-3 mr-1" />
                         Schedule
                       </Button>
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <FileText className="h-3 w-3 mr-1" />
                         Reports
                       </Button>
@@ -292,7 +292,7 @@ export default function PropertyManagerDashboard() {
           </Card>
 
           {/* Maintenance Requests */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <Wrench className="h-5 w-5 mr-2" />
@@ -302,7 +302,7 @@ export default function PropertyManagerDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {mockMaintenanceRequests.map((request) => (
-                  <div key={request.id} className="p-4 bg-navy-600 rounded-lg border border-navy-500">
+                  <div key={request.id} className="p-4 bg-tsCard rounded-lg border border-white/10">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <h3 className="font-semibold text-white">{request.propertyAddress} - {request.unit}</h3>
@@ -310,19 +310,19 @@ export default function PropertyManagerDashboard() {
                           {request.priority} priority
                         </Badge>
                       </div>
-                      <span className="text-sm text-gray-400 capitalize">{request.status.replace('_', ' ')}</span>
+                      <span className="text-sm text-white/60 capitalize">{request.status.replace('_', ' ')}</span>
                     </div>
-                    <p className="text-gray-300 mb-2">{request.issue}</p>
+                    <p className="text-white/70 mb-2">{request.issue}</p>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Tenant: {request.tenant}</span>
-                      <span className="text-gray-400">Submitted: {new Date(request.submittedDate).toLocaleDateString()}</span>
+                      <span className="text-white/60">Tenant: {request.tenant}</span>
+                      <span className="text-white/60">Submitted: {new Date(request.submittedDate).toLocaleDateString()}</span>
                     </div>
                     <div className="flex space-x-2 mt-3">
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <Phone className="h-3 w-3 mr-1" />
                         Contact
                       </Button>
-                      <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                      <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Assign
                       </Button>
@@ -337,10 +337,10 @@ export default function PropertyManagerDashboard() {
         {/* Action Items & Tools */}
         <div className="space-y-6">
           {/* Urgent Actions */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-orange-500" />
+                <AlertTriangle className="h-5 w-5 mr-2 text-ts-orange" />
                 Urgent Actions
               </CardTitle>
             </CardHeader>
@@ -369,7 +369,7 @@ export default function PropertyManagerDashboard() {
           </Card>
 
           {/* Quick Tools */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Quick Tools</CardTitle>
             </CardHeader>
@@ -379,15 +379,15 @@ export default function PropertyManagerDashboard() {
                   <Plus className="h-4 w-4 mr-2" />
                   Add New Tenant
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button variant="outline" className="w-full border-white/15 text-white/70 justify-start">
                   <Wrench className="h-4 w-4 mr-2" />
                   Find Contractors
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button variant="outline" className="w-full border-white/15 text-white/70 justify-start">
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Inspection
                 </Button>
-                <Button variant="outline" className="w-full border-navy-400 text-gray-300 justify-start">
+                <Button variant="outline" className="w-full border-white/15 text-white/70 justify-start">
                   <TrendingUp className="h-4 w-4 mr-2" />
                   View Reports
                 </Button>
@@ -396,7 +396,7 @@ export default function PropertyManagerDashboard() {
           </Card>
 
           {/* Performance Metrics */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Performance Metrics</CardTitle>
             </CardHeader>
@@ -404,21 +404,21 @@ export default function PropertyManagerDashboard() {
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Occupancy Rate</span>
+                    <span className="text-white/60">Occupancy Rate</span>
                     <span className="text-white">{mockStats.occupancyRate}%</span>
                   </div>
                   <Progress value={mockStats.occupancyRate} className="h-2" />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Collections Rate</span>
+                    <span className="text-white/60">Collections Rate</span>
                     <span className="text-white">{mockStats.collectionsRate}%</span>
                   </div>
                   <Progress value={mockStats.collectionsRate} className="h-2" />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Maintenance Response</span>
+                    <span className="text-white/60">Maintenance Response</span>
                     <span className="text-white">85%</span>
                   </div>
                   <Progress value={85} className="h-2" />
@@ -428,7 +428,7 @@ export default function PropertyManagerDashboard() {
           </Card>
 
           {/* Vacant Units */}
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Vacant Units</CardTitle>
             </CardHeader>
@@ -437,9 +437,9 @@ export default function PropertyManagerDashboard() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-white text-sm">Oak Ave - Apt 105</p>
-                    <p className="text-gray-400 text-xs">Available Jan 20</p>
+                    <p className="text-white/60 text-xs">Available Jan 20</p>
                   </div>
-                  <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                  <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                     <Key className="h-3 w-3 mr-1" />
                     Show
                   </Button>
@@ -447,9 +447,9 @@ export default function PropertyManagerDashboard() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-white text-sm">Oak Ave - Apt 208</p>
-                    <p className="text-gray-400 text-xs">Available Feb 1</p>
+                    <p className="text-white/60 text-xs">Available Feb 1</p>
                   </div>
-                  <Button size="sm" variant="outline" className="border-navy-400 text-gray-300">
+                  <Button size="sm" variant="outline" className="border-white/15 text-white/70">
                     <Key className="h-3 w-3 mr-1" />
                     Show
                   </Button>

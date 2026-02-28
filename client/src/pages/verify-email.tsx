@@ -82,11 +82,11 @@ export default function VerifyEmail() {
   }, [state, isAuthenticated, setLocation, verifiedEmail]);
 
   return (
-    <div className="flex items-center justify-center px-4 py-10 text-tsTextMain">
-      <Card className="w-full max-w-md bg-tsCard border border-tsBorder shadow-2xl">
+    <div className="flex items-center justify-center px-4 py-10 text-white">
+      <Card className="w-full max-w-md bg-tsCard border border-white/10 shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-tsTextMain">Email verification</CardTitle>
-          <p className="text-sm text-tsTextMuted">{message}</p>
+          <CardTitle className="text-2xl font-bold text-white">Email verification</CardTitle>
+          <p className="text-sm text-white/60">{message}</p>
         </CardHeader>
         <CardContent className="space-y-3">
           {state === "success" && (

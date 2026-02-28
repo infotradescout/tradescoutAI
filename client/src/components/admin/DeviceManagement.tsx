@@ -124,7 +124,7 @@ export default function DeviceManagement() {
   if (devicesLoading || pendingLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30"></div>
       </div>
     );
   }
@@ -135,13 +135,13 @@ export default function DeviceManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Shield className="w-6 h-6 text-orange-400" />
+        <Shield className="w-6 h-6 text-ts-orange" />
         <h2 className="text-2xl font-bold text-white">Device Security Management</h2>
       </div>
 
       {/* Pending Devices */}
       {pendingDevices.length > 0 && (
-        <Card className="border-yellow-500/20 bg-slate-900/50">
+        <Card className="border-yellow-500/20 bg-tsCard/95">
           <CardHeader>
             <CardTitle className="text-yellow-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
@@ -150,15 +150,15 @@ export default function DeviceManagement() {
           </CardHeader>
           <CardContent className="space-y-4">
             {pendingDevices.map((device: PendingDevice) => (
-              <div key={device.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+              <div key={device.id} className="border border-white/10 rounded-lg p-4 bg-white/5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     {getDeviceIcon(device.userAgent)}
                     <div>
                       <h4 className="font-medium text-white">{device.deviceName}</h4>
-                      <p className="text-sm text-slate-400">{device.ipAddress}</p>
-                      <p className="text-xs text-slate-500 truncate max-w-md">{device.userAgent}</p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-sm text-white/60">{device.ipAddress}</p>
+                      <p className="text-xs text-white/60 truncate max-w-md">{device.userAgent}</p>
+                      <p className="text-xs text-white/60 mt-1">
                         Requested: {format(new Date(device.createdAt), 'MMM dd, yyyy HH:mm')}
                       </p>
                     </div>
@@ -193,16 +193,16 @@ export default function DeviceManagement() {
       )}
 
       {/* Authorized Devices */}
-      <Card className="border-slate-700 bg-slate-900/50">
+      <Card className="border-white/10 bg-tsCard/95">
         <CardHeader>
           <CardTitle className="text-white">Authorized Devices ({devices.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {devices.length === 0 ? (
-            <p className="text-slate-400 text-center py-8">No devices registered yet.</p>
+            <p className="text-white/60 text-center py-8">No devices registered yet.</p>
           ) : (
             devices.map((device: TrustedDevice) => (
-              <div key={device.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/30">
+              <div key={device.id} className="border border-white/10 rounded-lg p-4 bg-white/5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     {getDeviceIcon(device.userAgent)}
@@ -211,9 +211,9 @@ export default function DeviceManagement() {
                         <h4 className="font-medium text-white">{device.deviceName}</h4>
                         {getStatusBadge(device.status)}
                       </div>
-                      <p className="text-sm text-slate-400">{device.ipAddress}</p>
-                      <p className="text-xs text-slate-500 truncate max-w-md">{device.userAgent}</p>
-                      <div className="flex gap-4 mt-2 text-xs text-slate-400">
+                      <p className="text-sm text-white/60">{device.ipAddress}</p>
+                      <p className="text-xs text-white/60 truncate max-w-md">{device.userAgent}</p>
+                      <div className="flex gap-4 mt-2 text-xs text-white/60">
                         <span>Last used: {format(new Date(device.lastUsedAt), 'MMM dd, yyyy HH:mm')}</span>
                         <span>Expires: {format(new Date(device.expiresAt), 'MMM dd, yyyy')}</span>
                       </div>
@@ -239,13 +239,13 @@ export default function DeviceManagement() {
       </Card>
 
       {/* Security Info */}
-      <Card className="border-blue-500/20 bg-slate-900/50">
+      <Card className="border-blue-500/20 bg-tsCard/95">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
             <Shield className="w-5 h-5 text-blue-400 mt-0.5" />
             <div className="space-y-2">
               <h4 className="font-medium text-blue-400">How Device Security Works</h4>
-              <ul className="text-sm text-slate-300 space-y-1">
+              <ul className="text-sm text-white/70 space-y-1">
                 <li>• Each new device needs approval before accessing admin functions</li>
                 <li>• Devices are identified by browser fingerprint and IP address</li>
                 <li>• Approved devices stay authorized for 1 year unless revoked</li>

@@ -92,7 +92,7 @@ export default function AdminProvisioning() {
       <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <UserPlus className="h-5 w-5 text-orange-400" />
+            <UserPlus className="h-5 w-5 text-ts-orange" />
             User Provisioning
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
@@ -103,7 +103,7 @@ export default function AdminProvisioning() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 flex items-center gap-2">
+              <label className="text-xs text-white/60 flex items-center gap-2">
                 <Mail className="h-3.5 w-3.5" />
                 Email
               </label>
@@ -111,64 +111,64 @@ export default function AdminProvisioning() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="owner@business.com"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400">Phone (optional)</label>
+              <label className="text-xs text-white/60">Phone (optional)</label>
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="(555) 123-4567"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400">First name (optional)</label>
+              <label className="text-xs text-white/60">First name (optional)</label>
               <Input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="First"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400">Last name (optional)</label>
+              <label className="text-xs text-white/60">Last name (optional)</label>
               <Input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Last"
-                className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
             </div>
           </div>
 
-          <Separator className="bg-slate-800" />
+          <Separator className="bg-white/5" />
 
           <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-sm text-slate-200">
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={sendActivationEmail}
                 onCheckedChange={(v) => setSendActivationEmail(v === true)}
               />
               Send activation email (set password)
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-200">
+            <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={sendVerificationEmail}
                 onCheckedChange={(v) => setSendVerificationEmail(v === true)}
               />
               Send verification email
-              <span className="text-xs text-slate-400 flex items-center gap-1">
+              <span className="text-xs text-white/60 flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 recommended
               </span>
             </label>
           </div>
 
-          <Separator className="bg-slate-800" />
+          <Separator className="bg-white/5" />
 
-          <label className="flex items-center gap-2 text-sm text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-white/70">
             <Checkbox
               checked={createBusiness}
               onCheckedChange={(v) => setCreateBusiness(v === true)}
@@ -177,9 +177,9 @@ export default function AdminProvisioning() {
           </label>
 
           {createBusiness ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded border border-slate-800 bg-slate-950/30 p-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded border border-white/10 bg-black/30 p-3">
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-400 flex items-center gap-2">
+                <label className="text-xs text-white/60 flex items-center gap-2">
                   <Building2 className="h-3.5 w-3.5" />
                   Business name
                 </label>
@@ -187,38 +187,38 @@ export default function AdminProvisioning() {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   placeholder="Acme Roofing"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400">Business slug (optional)</label>
+                <label className="text-xs text-white/60">Business slug (optional)</label>
                 <Input
                   value={businessSlug}
                   onChange={(e) => setBusinessSlug(e.target.value)}
                   placeholder={slugSuggestion || "acme-roofing"}
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
-                <div className="mt-1 text-[11px] text-slate-500">
+                <div className="mt-1 text-[11px] text-white/60">
                   Suggested:{" "}
-                  <span className="text-slate-300">{slugSuggestion || "(type a name)"}</span>
+                  <span className="text-white/70">{slugSuggestion || "(type a name)"}</span>
                 </div>
               </div>
               <div>
-                <label className="text-xs text-slate-400">Business phone (optional)</label>
+                <label className="text-xs text-white/60">Business phone (optional)</label>
                 <Input
                   value={businessPhone}
                   onChange={(e) => setBusinessPhone(e.target.value)}
                   placeholder="(555) 555-5555"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-slate-400">Website (optional)</label>
+                <label className="text-xs text-white/60">Website (optional)</label>
                 <Input
                   value={businessWebsite}
                   onChange={(e) => setBusinessWebsite(e.target.value)}
                   placeholder="https://acme.example"
-                  className="bg-slate-950/40 border-[color:var(--border-subtle)] text-slate-100"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
             </div>
@@ -227,13 +227,13 @@ export default function AdminProvisioning() {
           <Button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending || !email.trim()}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-ts-orange hover:bg-ts-orange-dark"
           >
             {mutation.isPending ? "Creating..." : "Create user"}
           </Button>
 
           {mutation.data ? (
-            <div className="text-xs text-slate-200 bg-slate-950/40 rounded border border-[color:var(--border-subtle)] p-3 space-y-1">
+            <div className="text-xs text-white/70 bg-black/30 rounded border border-[color:var(--border-subtle)] p-3 space-y-1">
               <div>User: {mutation.data.user.email}</div>
               {mutation.data.business ? (
                 <div>

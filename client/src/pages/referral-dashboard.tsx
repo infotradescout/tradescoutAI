@@ -162,11 +162,11 @@ const ReferralDashboard = memo(function ReferralDashboard() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Referrals</p>
+                  <p className="text-white/60 text-sm">Total Referrals</p>
                   <p className="text-2xl font-bold text-white">{referralStats.totalReferrals}</p>
                   <p className="text-green-400 text-sm">{referralStats.activeReferrals} active</p>
                 </div>
@@ -175,39 +175,39 @@ const ReferralDashboard = memo(function ReferralDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Total Earnings</p>
+                  <p className="text-white/60 text-sm">Total Earnings</p>
                   <p className="text-2xl font-bold text-green-400">${referralStats.totalEarnings.toFixed(2)}</p>
-                  <p className="text-gray-400 text-sm">${referralStats.pendingEarnings.toFixed(2)} pending</p>
+                  <p className="text-white/60 text-sm">${referralStats.pendingEarnings.toFixed(2)} pending</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Conversion Rate</p>
-                  <p className="text-2xl font-bold text-orange-400">{referralStats.conversionRate}%</p>
+                  <p className="text-white/60 text-sm">Conversion Rate</p>
+                  <p className="text-2xl font-bold text-ts-orange">{referralStats.conversionRate}%</p>
                   <p className="text-green-400 text-sm">+2.1% this month</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-orange-400" />
+                <TrendingUp className="h-8 w-8 text-ts-orange" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">Current Tier</p>
+                  <p className="text-white/60 text-sm">Current Tier</p>
                   <p className="text-xl font-bold text-yellow-400">{referralStats.tier}</p>
-                  <p className="text-gray-400 text-sm">{referralStats.commissionRate}% commission</p>
+                  <p className="text-white/60 text-sm">{referralStats.commissionRate}% commission</p>
                 </div>
                 <Crown className="h-8 w-8 text-yellow-400" />
               </div>
@@ -216,18 +216,18 @@ const ReferralDashboard = memo(function ReferralDashboard() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-orange-600">Overview</TabsTrigger>
-            <TabsTrigger value="share" className="data-[state=active]:bg-orange-600">Share & Earn</TabsTrigger>
-            <TabsTrigger value="referrals" className="data-[state=active]:bg-orange-600">My Referrals</TabsTrigger>
-            <TabsTrigger value="tiers" className="data-[state=active]:bg-orange-600">Tiers & Benefits</TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-orange-600">Analytics</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 bg-tsCard/50 backdrop-blur-sm">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-ts-orange-dark">Overview</TabsTrigger>
+            <TabsTrigger value="share" className="data-[state=active]:bg-ts-orange-dark">Share & Earn</TabsTrigger>
+            <TabsTrigger value="referrals" className="data-[state=active]:bg-ts-orange-dark">My Referrals</TabsTrigger>
+            <TabsTrigger value="tiers" className="data-[state=active]:bg-ts-orange-dark">Tiers & Benefits</TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-ts-orange-dark">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Performance Summary */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">This Month's Performance</CardTitle>
                 </CardHeader>
@@ -235,7 +235,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">New Referrals</span>
+                        <span className="text-white/60">New Referrals</span>
                         <span className="text-white">34 / 50</span>
                       </div>
                       <Progress value={68} className="h-2" />
@@ -243,7 +243,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
 
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Earnings Goal</span>
+                        <span className="text-white/60">Earnings Goal</span>
                         <span className="text-white">$1,247 / $2,000</span>
                       </div>
                       <Progress value={62} className="h-2" />
@@ -251,36 +251,36 @@ const ReferralDashboard = memo(function ReferralDashboard() {
 
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Next Tier Progress</span>
+                        <span className="text-white/60">Next Tier Progress</span>
                         <span className="text-white">{referralStats.nextTierProgress}%</span>
                       </div>
                       <Progress value={referralStats.nextTierProgress} className="h-2" />
-                      <p className="text-gray-400 text-xs mt-1">32 more referrals to Diamond Partner</p>
+                      <p className="text-white/60 text-xs mt-1">32 more referrals to Diamond Partner</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Quick Actions */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700 justify-start">
+                    <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark justify-start">
                       <TrendingUp className="h-4 w-4 mr-2" />
                       Share Referral Link
                     </Button>
-                    <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">
+                    <Button variant="outline" className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20 justify-start">
                       <Mail className="h-4 w-4 mr-2" />
                       Send Email Invites
                     </Button>
-                    <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">
+                    <Button variant="outline" className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20 justify-start">
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Social Media Post
                     </Button>
-                    <Button variant="outline" className="w-full border-orange-600 text-orange-400 hover:bg-orange-600/20 justify-start">
+                    <Button variant="outline" className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20 justify-start">
                       <Gift className="h-4 w-4 mr-2" />
                       Request Payout
                     </Button>
@@ -293,19 +293,19 @@ const ReferralDashboard = memo(function ReferralDashboard() {
           <TabsContent value="share" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Referral Links */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Your Referral Links</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">General Referral Link</label>
+                      <label className="text-white/60 text-sm mb-2 block">General Referral Link</label>
                       <div className="flex items-center gap-2">
                         <Input 
                           value="https://tradescout.com/join?ref=MIKE2024" 
                           readOnly 
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                         <Button 
                           size="sm" 
@@ -318,12 +318,12 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                     </div>
 
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Contractor Referral Link</label>
+                      <label className="text-white/60 text-sm mb-2 block">Contractor Referral Link</label>
                       <div className="flex items-center gap-2">
                         <Input 
                           value="https://tradescout.com/join/contractor?ref=MIKE2024" 
                           readOnly 
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                         <Button 
                           size="sm" 
@@ -336,12 +336,12 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                     </div>
 
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Homeowner Referral Link</label>
+                      <label className="text-white/60 text-sm mb-2 block">Homeowner Referral Link</label>
                       <div className="flex items-center gap-2">
                         <Input 
                           value="https://tradescout.com/join/homeowner?ref=MIKE2024" 
                           readOnly 
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                         <Button 
                           size="sm" 
@@ -366,18 +366,18 @@ const ReferralDashboard = memo(function ReferralDashboard() {
               </Card>
 
               {/* Sharing Methods Performance */}
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Sharing Methods Performance</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {sharingMethods.map((method, index) => (
-                      <div key={index} className="p-4 bg-navy-700/50 rounded-lg">
+                      <div key={index} className="p-4 bg-tsCard/50 rounded-lg">
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h4 className="text-white font-medium">{method.method}</h4>
-                            <p className="text-gray-400 text-sm">{method.description}</p>
+                            <p className="text-white/60 text-sm">{method.description}</p>
                           </div>
                           <Badge className="bg-green-600 hover:bg-green-700">
                             {method.rate}
@@ -386,12 +386,12 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                         
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-400">Clicks: </span>
+                            <span className="text-white/60">Clicks: </span>
                             <span className="text-white">{method.clicks}</span>
                           </div>
                           <div>
-                            <span className="text-gray-400">Conversions: </span>
-                            <span className="text-orange-400">{method.conversions}</span>
+                            <span className="text-white/60">Conversions: </span>
+                            <span className="text-ts-orange">{method.conversions}</span>
                           </div>
                         </div>
                       </div>
@@ -403,14 +403,14 @@ const ReferralDashboard = memo(function ReferralDashboard() {
           </TabsContent>
 
           <TabsContent value="referrals" className="mt-6">
-            <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-white">Recent Referrals</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {recentReferrals.map((referral) => (
-                    <div key={referral.id} className="p-4 bg-navy-700/50 rounded-lg">
+                    <div key={referral.id} className="p-4 bg-tsCard/50 rounded-lg">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -419,7 +419,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                             <Badge className={
                               referral.status === 'Active' ? 'bg-green-600 hover:bg-green-700' :
                               referral.status === 'Pending Verification' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                              'bg-gray-600 hover:bg-gray-700'
+                              'bg-white/10 hover:bg-white/10'
                             }>
                               {referral.status}
                             </Badge>
@@ -427,15 +427,15 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                           
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-400">Email: </span>
+                              <span className="text-white/60">Email: </span>
                               <span className="text-white">{referral.email}</span>
                             </div>
                             <div>
-                              <span className="text-gray-400">Joined: </span>
+                              <span className="text-white/60">Joined: </span>
                               <span className="text-white">{new Date(referral.joinDate).toLocaleDateString()}</span>
                             </div>
                             <div>
-                              <span className="text-gray-400">Activity: </span>
+                              <span className="text-white/60">Activity: </span>
                               <span className="text-white">{referral.activity}</span>
                             </div>
                           </div>
@@ -445,7 +445,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                           <div className="text-green-400 font-bold text-lg">
                             ${referral.earnings.toFixed(2)}
                           </div>
-                          <div className="text-gray-400 text-sm">earned</div>
+                          <div className="text-white/60 text-sm">earned</div>
                         </div>
                       </div>
                     </div>
@@ -458,30 +458,30 @@ const ReferralDashboard = memo(function ReferralDashboard() {
           <TabsContent value="tiers" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {tierBenefits.map((tier, index) => (
-                <Card key={index} className={`bg-navy-800/50 border-navy-600 backdrop-blur-sm ${
-                  tier.current ? 'ring-2 ring-orange-500' : ''
+                <Card key={index} className={`bg-tsCard/50 border-white/10 backdrop-blur-sm ${
+                  tier.current ? 'ring-2 ring-ts-orange/70' : ''
                 }`}>
                   {tier.current && (
-                    <div className="bg-orange-600 text-white text-center py-2 text-sm font-medium">
+                    <div className="bg-ts-orange-dark text-white text-center py-2 text-sm font-medium">
                       Current Tier
                     </div>
                   )}
                   
                   <CardHeader className="text-center">
                     <CardTitle className="text-white">{tier.tier}</CardTitle>
-                    <div className="text-3xl font-bold text-orange-400">{tier.commission}</div>
-                    <p className="text-gray-400 text-sm">Commission Rate</p>
+                    <div className="text-3xl font-bold text-ts-orange">{tier.commission}</div>
+                    <p className="text-white/60 text-sm">Commission Rate</p>
                   </CardHeader>
                   
                   <CardContent>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-gray-400 text-sm mb-2">Requirements:</p>
+                        <p className="text-white/60 text-sm mb-2">Requirements:</p>
                         <p className="text-white text-sm">{tier.requirements}</p>
                       </div>
 
                       <div>
-                        <p className="text-gray-400 text-sm mb-2">Benefits:</p>
+                        <p className="text-white/60 text-sm mb-2">Benefits:</p>
                         <ul className="space-y-1">
                           {tier.benefits.map((benefit, benefitIndex) => (
                             <li key={benefitIndex} className="text-white text-sm flex items-start gap-2">
@@ -494,7 +494,7 @@ const ReferralDashboard = memo(function ReferralDashboard() {
 
                       {!tier.current && (
                         <Button 
-                          className="w-full bg-orange-600 hover:bg-orange-700"
+                          className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark"
                           disabled={index <= tierBenefits.findIndex(t => t.current)}
                         >
                           {index <= tierBenefits.findIndex(t => t.current) ? 'Achieved' : 'Unlock Tier'}
@@ -509,33 +509,33 @@ const ReferralDashboard = memo(function ReferralDashboard() {
 
           <TabsContent value="analytics" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Monthly Performance</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-400 mb-2">$1,247.50</div>
-                      <div className="text-gray-400">This Month's Earnings</div>
+                      <div className="text-3xl font-bold text-ts-orange mb-2">$1,247.50</div>
+                      <div className="text-white/60">This Month's Earnings</div>
                       <div className="text-green-400 text-sm">+34% from last month</div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-navy-700/50 rounded-lg">
+                      <div className="text-center p-4 bg-tsCard/50 rounded-lg">
                         <div className="text-xl font-bold text-blue-400">67</div>
-                        <div className="text-gray-400 text-sm">Link Clicks</div>
+                        <div className="text-white/60 text-sm">Link Clicks</div>
                       </div>
-                      <div className="text-center p-4 bg-navy-700/50 rounded-lg">
+                      <div className="text-center p-4 bg-tsCard/50 rounded-lg">
                         <div className="text-xl font-bold text-green-400">23</div>
-                        <div className="text-gray-400 text-sm">Sign-ups</div>
+                        <div className="text-white/60 text-sm">Sign-ups</div>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Top Performing Content</CardTitle>
                 </CardHeader>
@@ -547,12 +547,12 @@ const ReferralDashboard = memo(function ReferralDashboard() {
                       { content: "Social Media Post #1", clicks: 145, conversions: 5 },
                       { content: "Email Campaign - March", clicks: 98, conversions: 7 }
                     ].map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                      <div key={index} className="flex justify-between items-center p-3 bg-tsCard/50 rounded-lg">
                         <div>
                           <p className="text-white font-medium text-sm">{item.content}</p>
-                          <p className="text-gray-400 text-xs">{item.clicks} clicks • {item.conversions} conversions</p>
+                          <p className="text-white/60 text-xs">{item.clicks} clicks • {item.conversions} conversions</p>
                         </div>
-                        <div className="text-orange-400 font-bold">
+                        <div className="text-ts-orange font-bold">
                           {Math.round((item.conversions / item.clicks) * 100)}%
                         </div>
                       </div>

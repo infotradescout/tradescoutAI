@@ -108,25 +108,25 @@ const Documentation = memo(function Documentation() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white mb-4">Documentation Center</h1>
-            <p className="text-xl text-gray-300">
+            <p className="text-xl text-white/70">
               Comprehensive guides and resources to help you succeed on TradeScout
             </p>
           </div>
 
           {/* Search Bar */}
-          <Card className="bg-slate-800/50 border-slate-700 mb-8">
+          <Card className="bg-white/5 border-white/10 mb-8">
             <CardContent className="p-6">
               <div className="relative">
-                <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" />
+                <Search className="w-5 h-5 text-white/60 absolute left-4 top-1/2 transform -translate-y-1/2" />
                 <Input
                   placeholder="Search documentation..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 h-12 bg-slate-700 border-slate-600 text-white text-lg"
+                  className="pl-12 h-12 bg-white/10 border-white/15 text-white text-lg"
                 />
                 <Button
                   size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-orange-600 hover:bg-orange-700"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-ts-orange-dark hover:bg-ts-orange-dark"
                 >
                   Search
                 </Button>
@@ -147,13 +147,13 @@ const Documentation = memo(function Documentation() {
                 {documentationSections.map((section) => {
                   const Icon = section.icon;
                   return (
-                    <Card key={section.id} className="bg-slate-800/50 border-slate-700">
+                    <Card key={section.id} className="bg-white/5 border-white/10">
                       <CardHeader>
                         <CardTitle className="text-white flex items-center gap-2">
-                          <Icon className="w-5 h-5 text-orange-500" />
+                          <Icon className="w-5 h-5 text-ts-orange" />
                           {section.title}
                         </CardTitle>
-                        <CardDescription className="text-gray-400">
+                        <CardDescription className="text-white/60">
                           {section.description}
                         </CardDescription>
                       </CardHeader>
@@ -162,13 +162,13 @@ const Documentation = memo(function Documentation() {
                           {section.articles.map((article, index) => (
                             <div
                               key={index}
-                              className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 cursor-pointer transition-colors"
+                              className="flex items-center justify-between p-3 bg-white/10 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
                             >
                               <div className="flex items-center gap-3">
-                                <FileText className="w-4 h-4 text-gray-400" />
+                                <FileText className="w-4 h-4 text-white/60" />
                                 <div>
                                   <h4 className="font-medium text-white text-sm">{article.title}</h4>
-                                  <p className="text-xs text-gray-400">{article.views} views</p>
+                                  <p className="text-xs text-white/60">{article.views} views</p>
                                 </div>
                               </div>
                               <Badge className={getTypeColor(article.type)}>{article.type}</Badge>
@@ -187,13 +187,13 @@ const Documentation = memo(function Documentation() {
             </TabsContent>
 
             <TabsContent value="popular">
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-orange-500" />
+                    <BookOpen className="w-5 h-5 text-ts-orange" />
                     Most Popular Articles
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-white/60">
                     The most viewed and helpful articles this month
                   </CardDescription>
                 </CardHeader>
@@ -202,20 +202,20 @@ const Documentation = memo(function Documentation() {
                     {popularArticles.map((article, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="text-2xl font-bold text-orange-400 w-8">{index + 1}</div>
+                          <div className="text-2xl font-bold text-ts-orange w-8">{index + 1}</div>
                           <div>
                             <h3 className="font-semibold text-white mb-1">{article.title}</h3>
                             <div className="flex items-center gap-2">
                               <Badge
                                 variant="outline"
-                                className="border-gray-500 text-gray-400"
+                                className="border-white/15 text-white/60"
                               >
                                 {article.category}
                               </Badge>
-                              <span className="text-gray-400 text-sm">{article.views} views</span>
+                              <span className="text-white/60 text-sm">{article.views} views</span>
                             </div>
                           </div>
                         </div>
@@ -233,13 +233,13 @@ const Documentation = memo(function Documentation() {
             </TabsContent>
 
             <TabsContent value="videos">
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Video className="w-5 h-5 text-orange-500" />
+                    <Video className="w-5 h-5 text-ts-orange" />
                     Video Tutorials
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-white/60">
                     Step-by-step video guides for platform features
                   </CardDescription>
                 </CardHeader>
@@ -248,7 +248,7 @@ const Documentation = memo(function Documentation() {
                     {videoTutorials.map((video, index) => (
                       <div
                         key={index}
-                        className="bg-slate-700/30 rounded-lg overflow-hidden"
+                        className="bg-white/10 rounded-lg overflow-hidden"
                       >
                         <div
                           className={`h-40 ${video.thumbnail} flex items-center justify-center`}
@@ -262,13 +262,13 @@ const Documentation = memo(function Documentation() {
                         </div>
                         <div className="p-4">
                           <h3 className="font-semibold text-white mb-2">{video.title}</h3>
-                          <div className="flex items-center justify-between text-sm text-gray-400">
+                          <div className="flex items-center justify-between text-sm text-white/60">
                             <span>{video.duration}</span>
                             <span>{video.views} views</span>
                           </div>
                           <Button
                             size="sm"
-                            className="w-full mt-3 bg-orange-600 hover:bg-orange-700"
+                            className="w-full mt-3 bg-ts-orange-dark hover:bg-ts-orange-dark"
                           >
                             Watch Tutorial
                           </Button>
@@ -281,24 +281,24 @@ const Documentation = memo(function Documentation() {
             </TabsContent>
 
             <TabsContent value="downloads">
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Download className="w-5 h-5 text-orange-500" />
+                    <Download className="w-5 h-5 text-ts-orange" />
                     Downloadable Resources
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-white/60">
                     Templates, guides, and tools to help grow your business
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="p-4 bg-slate-700/30 rounded-lg">
+                    <div className="p-4 bg-white/10 rounded-lg">
                       <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4">
                         <FileText className="w-6 h-6 text-blue-400" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">Quote Templates</h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-white/60 text-sm mb-4">
                         Professional quote templates for different trade types
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
@@ -307,12 +307,12 @@ const Documentation = memo(function Documentation() {
                       </Button>
                     </div>
 
-                    <div className="p-4 bg-slate-700/30 rounded-lg">
+                    <div className="p-4 bg-white/10 rounded-lg">
                       <div className="w-12 h-12 bg-emerald-600/20 rounded-lg flex items-center justify-center mb-4">
                         <FileText className="w-6 h-6 text-emerald-400" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">Business Checklist</h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-white/60 text-sm mb-4">
                         Complete checklist for setting up your contractor profile
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
@@ -321,12 +321,12 @@ const Documentation = memo(function Documentation() {
                       </Button>
                     </div>
 
-                    <div className="p-4 bg-slate-700/30 rounded-lg">
+                    <div className="p-4 bg-white/10 rounded-lg">
                       <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center mb-4">
                         <FileText className="w-6 h-6 text-purple-400" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">Marketing Guide</h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-white/60 text-sm mb-4">
                         Comprehensive guide to marketing your services
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
@@ -335,12 +335,12 @@ const Documentation = memo(function Documentation() {
                       </Button>
                     </div>
 
-                    <div className="p-4 bg-slate-700/30 rounded-lg">
-                      <div className="w-12 h-12 bg-orange-600/20 rounded-lg flex items-center justify-center mb-4">
-                        <FileText className="w-6 h-6 text-orange-400" />
+                    <div className="p-4 bg-white/10 rounded-lg">
+                      <div className="w-12 h-12 bg-ts-orange-dark/20 rounded-lg flex items-center justify-center mb-4">
+                        <FileText className="w-6 h-6 text-ts-orange" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">Pricing Worksheet</h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-white/60 text-sm mb-4">
                         Excel template for calculating project costs
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
@@ -349,12 +349,12 @@ const Documentation = memo(function Documentation() {
                       </Button>
                     </div>
 
-                    <div className="p-4 bg-slate-700/30 rounded-lg">
+                    <div className="p-4 bg-white/10 rounded-lg">
                       <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center mb-4">
                         <FileText className="w-6 h-6 text-red-400" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">Contract Templates</h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-white/60 text-sm mb-4">
                         Legal contract templates for different project types
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
@@ -363,12 +363,12 @@ const Documentation = memo(function Documentation() {
                       </Button>
                     </div>
 
-                    <div className="p-4 bg-slate-700/30 rounded-lg">
+                    <div className="p-4 bg-white/10 rounded-lg">
                       <div className="w-12 h-12 bg-cyan-600/20 rounded-lg flex items-center justify-center mb-4">
                         <FileText className="w-6 h-6 text-cyan-400" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">Mobile App Guide</h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-white/60 text-sm mb-4">
                         Complete guide to using the TradeScout mobile app
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
@@ -383,15 +383,15 @@ const Documentation = memo(function Documentation() {
           </Tabs>
 
           {/* Help Section */}
-          <Card className="bg-slate-800/50 border-slate-700 mt-8">
+          <Card className="bg-white/5 border-white/10 mt-8">
             <CardContent className="p-6 text-center">
               <h3 className="text-xl font-semibold text-white mb-2">Need More Help?</h3>
-              <p className="text-gray-400 mb-4">
+              <p className="text-white/60 mb-4">
                 Can't find what you're looking for? Our support team is here to help.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="outline">Contact Support</Button>
-                <Button className="bg-orange-600 hover:bg-orange-700">Schedule a Call</Button>
+                <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Schedule a Call</Button>
               </div>
             </CardContent>
           </Card>

@@ -108,7 +108,7 @@ export default function IdentityVerificationPage() {
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[color:var(--text-primary)]">
-              <ShieldCheck className="h-5 w-5 text-orange-400" />
+              <ShieldCheck className="h-5 w-5 text-ts-orange" />
               Identity verification
             </CardTitle>
             <CardDescription className="text-[color:var(--text-secondary)]">

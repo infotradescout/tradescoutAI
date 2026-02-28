@@ -70,7 +70,7 @@ export function TrustIndicator({
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+    <div className="flex items-center gap-2 text-sm text-white/60 dark:text-white/70">
       <ProfessionalBadge userRole={userRole} verificationStatus={verificationStatus} size="sm" />
       
       {transactionCount > 0 && (
@@ -102,7 +102,7 @@ interface ProfessionalNetworkLinksProps {
 export function ProfessionalNetworkLinks({ className = "" }: ProfessionalNetworkLinksProps) {
   return (
     <div className={`space-y-2 ${className}`}>
-      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <h3 className="text-sm font-medium text-white/70 dark:text-white/70">
         Professional Networks
       </h3>
       <div className="flex flex-col sm:flex-row gap-2">

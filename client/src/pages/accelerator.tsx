@@ -7,14 +7,14 @@ export default function Accelerator() {
   const [, navigate] = useLocation();
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Card className="bg-tsCard border-tsBorder">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-3xl text-tsTextMain flex items-center gap-3">
-            <ShieldCheck className="h-8 w-8 text-tsAccent" />
+          <CardTitle className="text-3xl text-white flex items-center gap-3">
+            <ShieldCheck className="h-8 w-8 text-ts-orange" />
             Connection Without Compromise
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-5 text-tsTextSecondary">
+        <CardContent className="space-y-5 text-white/70">
           <p>
             TradeScout does not run paid acceleration tracks, paid priority routing, paid exposure,
             or paid ranking controls.
@@ -27,7 +27,7 @@ export default function Accelerator() {
             <Button onClick={() => navigate("/how-it-works")}>View Doctrine</Button>
             <Button
               variant="outline"
-              className="border-tsBorder"
+              className="border-white/10"
               onClick={() => navigate("/direct-connect")}
             >
               Open Direct Connect

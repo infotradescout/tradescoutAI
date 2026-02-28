@@ -89,7 +89,7 @@ const Verification = memo(function Verification() {
         >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-[color:var(--text-primary)]">
-              <ShieldCheck className="h-5 w-5 text-orange-400" />
+              <ShieldCheck className="h-5 w-5 text-ts-orange" />
               Verification & Trust
             </CardTitle>
             <CardDescription className="text-[color:var(--text-secondary)]">
@@ -104,7 +104,7 @@ const Verification = memo(function Verification() {
                   <Button
                     asChild
                     size="sm"
-                    className="bg-orange-500 hover:bg-orange-600 text-black"
+                    className="bg-ts-orange hover:bg-ts-orange-dark text-black"
                   >
                     <Link href="/pre-scout-setup?mode=signin">Sign In</Link>
                   </Button>

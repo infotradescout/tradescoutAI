@@ -92,10 +92,10 @@ const LicenseVerification = memo(function LicenseVerification() {
         </div>
 
         {/* License Information Form */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
-              <Award className="w-5 h-5 text-orange-500" />
+              <Award className="w-5 h-5 text-ts-orange" />
               Professional License Information
             </CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -249,8 +249,8 @@ const LicenseVerification = memo(function LicenseVerification() {
                       <h4 className="font-semibold text-foreground mb-3">
                         Experience Requirements
                       </h4>
-                      <div className="p-4 bg-orange-600/10 border border-orange-600/20 rounded-lg">
-                        <p className="text-orange-400 font-medium">
+                      <div className="p-4 bg-ts-orange-dark/10 border border-ts-orange/30 rounded-lg">
+                        <p className="text-ts-orange font-medium">
                           Minimum Experience:{" "}
                           {
                             licenseRequirements[selectedTrade as keyof typeof licenseRequirements]
@@ -270,7 +270,7 @@ const LicenseVerification = memo(function LicenseVerification() {
           )}
 
         {/* Document Upload */}
-        <Card className="border-slate-700 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10 mb-8" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="text-foreground">License Document Upload</CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -290,7 +290,7 @@ const LicenseVerification = memo(function LicenseVerification() {
                 <p className="text-sm text-muted-foreground/70 mb-4">
                   Supported formats: PDF, JPG, PNG (Max 10MB each)
                 </p>
-                <Button className="bg-orange-600 hover:bg-orange-700">Select Files</Button>
+                <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Select Files</Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -338,7 +338,7 @@ const LicenseVerification = memo(function LicenseVerification() {
           <Button variant="outline" className="flex-1">
             Save Progress
           </Button>
-          <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+          <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
             Submit for Verification
           </Button>
         </div>

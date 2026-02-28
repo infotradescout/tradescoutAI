@@ -65,9 +65,9 @@ const iconMap: Record<string, LucideIcon> = {
 
 // Color mapping for notification priorities and icons
 const priorityColors = {
-  low: "text-gray-500",
+  low: "text-white/60",
   normal: "text-blue-500",
-  high: "text-orange-500",
+  high: "text-ts-orange",
   urgent: "text-red-500",
   critical: "text-red-600",
 };
@@ -76,12 +76,12 @@ const iconColors = {
   blue: "text-blue-500",
   green: "text-green-500",
   yellow: "text-yellow-500",
-  orange: "text-orange-500",
+  orange: "text-ts-orange",
   red: "text-red-500",
   purple: "text-purple-500",
   pink: "text-pink-500",
   gold: "text-yellow-600",
-  gray: "text-gray-500",
+  gray: "text-white/60",
 };
 
 export function NotificationCenter() {
@@ -182,9 +182,9 @@ export function NotificationCenter() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-96 max-h-[600px] p-0 bg-navy-800/95 backdrop-blur-sm border-navy-600/50"
+        className="w-96 max-h-[600px] p-0 bg-tsCard/95 backdrop-blur-sm border-white/10"
       >
-        <div className="flex items-center justify-between p-4 border-b border-navy-600/50">
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
           <DropdownMenuLabel className="text-white font-semibold">
             Notifications
             {unreadCount > 0 && (
@@ -200,7 +200,7 @@ export function NotificationCenter() {
                 size="sm"
                 onClick={() => markAllAsReadMutation.mutate()}
                 disabled={markAllAsReadMutation.isPending}
-                className="text-orange-400 hover:text-orange-300 hover:bg-navy-700"
+                className="text-ts-orange hover:text-ts-orange hover:bg-tsCard"
               >
                 <CheckCheck className="h-4 w-4 mr-1" />
                 Mark all read
@@ -209,7 +209,7 @@ export function NotificationCenter() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-gray-400 hover:text-white hover:bg-navy-700"
+              className="h-8 w-8 text-white/60 hover:text-white hover:bg-tsCard"
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -217,13 +217,13 @@ export function NotificationCenter() {
         </div>
 
         {contactRequestCount > 0 && (
-          <div className="p-4 border-b border-navy-600/50 bg-navy-700/40">
+          <div className="p-4 border-b border-white/10 bg-tsCard/40">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-wide text-amber-300">
                   Contact Requests
                 </div>
-                <p className="text-xs text-gray-300 mt-1">
+                <p className="text-xs text-white/70 mt-1">
                   {contactRequestCount} waiting for approval
                 </p>
               </div>
@@ -243,12 +243,12 @@ export function NotificationCenter() {
 
         <ScrollArea className="max-h-[500px]">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-400">
+            <div className="p-4 text-center text-white/60">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
               Loading notifications...
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
+            <div className="p-8 text-center text-white/60">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="font-medium">No notifications yet</p>
               <p className="text-sm">We'll let you know when something important happens.</p>
@@ -258,8 +258,8 @@ export function NotificationCenter() {
               <div
                 key={notification.id}
                 className={cn(
-                  "p-4 border-b border-navy-600/30 hover:bg-navy-700/50 cursor-pointer transition-colors relative group",
-                  !notification.isRead && "bg-navy-700/30"
+                  "p-4 border-b border-white/10 hover:bg-tsCard/50 cursor-pointer transition-colors relative group",
+                  !notification.isRead && "bg-tsCard/30"
                 )}
                 onClick={() => handleNotificationClick(notification)}
               >
@@ -282,7 +282,7 @@ export function NotificationCenter() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-orange-400 hover:text-orange-300 hover:bg-navy-600"
+                            className="h-6 w-6 text-ts-orange hover:text-ts-orange hover:bg-tsCard"
                             onClick={(e) => handleMarkAsRead(e, notification.id)}
                           >
                             <Check className="h-3 w-3" />
@@ -291,7 +291,7 @@ export function NotificationCenter() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-gray-400 hover:text-white hover:bg-navy-600"
+                          className="h-6 w-6 text-white/60 hover:text-white hover:bg-tsCard"
                           onClick={(e) => handleArchive(e, notification.id)}
                         >
                           <Archive className="h-3 w-3" />
@@ -299,20 +299,20 @@ export function NotificationCenter() {
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-300 leading-5 mt-1">{notification.message}</p>
+                    <p className="text-sm text-white/70 leading-5 mt-1">{notification.message}</p>
 
                     {notification.actionText && notification.actionUrl && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-2 h-7 text-xs border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-navy-900"
+                        className="mt-2 h-7 text-xs border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-black"
                       >
                         {notification.actionText}
                       </Button>
                     )}
 
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-white/60">
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </span>
 
@@ -328,7 +328,7 @@ export function NotificationCenter() {
                   </div>
 
                   {!notification.isRead && (
-                    <div className="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-ts-orange rounded-full mt-2 flex-shrink-0"></div>
                   )}
                 </div>
               </div>
@@ -336,10 +336,10 @@ export function NotificationCenter() {
           ) : null}
         </ScrollArea>
 
-        <DropdownMenuSeparator className="bg-navy-600/50" />
+        <DropdownMenuSeparator className="bg-tsCard/50" />
 
         <div className="p-2">
-          <DropdownMenuItem className="text-orange-400 hover:text-orange-300 hover:bg-navy-700 focus:bg-navy-700 focus:text-orange-300">
+          <DropdownMenuItem className="text-ts-orange hover:text-ts-orange hover:bg-tsCard focus:bg-tsCard focus:text-ts-orange">
             <Settings className="h-4 w-4 mr-2" />
             Notification Settings
           </DropdownMenuItem>

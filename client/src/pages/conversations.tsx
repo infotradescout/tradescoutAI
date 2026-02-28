@@ -137,9 +137,9 @@ export default function Conversations() {
       >
         <Card className="w-96">
           <CardContent className="p-6 text-center">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/60" />
             <h2 className="text-xl font-semibold mb-2">Sign in to view conversations</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-white/60 dark:text-white/60 mb-4">
               Connect with buyers and sellers to discuss your marketplace items
             </p>
             <Link href="/pre-scout-setup?mode=signin">
@@ -155,8 +155,8 @@ export default function Conversations() {
     <div className="py-8" style={{ backgroundColor: "var(--surface-app-bg)" }}>
       <div className="max-w-7xl mx-auto p-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-orange-500 mb-2">Your Conversations</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-ts-orange mb-2">Your Conversations</h1>
+          <p className="text-white/60 dark:text-white/60">
             Connect with other TradeScout members about marketplace items
           </p>
         </div>
@@ -181,10 +181,10 @@ export default function Conversations() {
                       {[...Array(3)].map((_, i) => (
                         <div key={i} className="animate-pulse">
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                            <div className="w-12 h-12 bg-white/10 dark:bg-white/10 rounded-full"></div>
                             <div className="flex-1">
-                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                              <div className="h-4 bg-white/10 dark:bg-white/10 rounded w-3/4 mb-2"></div>
+                              <div className="h-3 bg-white/10 dark:bg-white/10 rounded w-1/2"></div>
                             </div>
                           </div>
                         </div>
@@ -192,9 +192,9 @@ export default function Conversations() {
                     </div>
                   ) : conversations.length === 0 ? (
                     <div className="p-6 text-center">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                      <h3 className="font-medium text-orange-500 mb-2">No conversations yet</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/60" />
+                      <h3 className="font-medium text-ts-orange mb-2">No conversations yet</h3>
+                      <p className="text-sm text-white/60 dark:text-white/60 mb-4">
                         Start through Scout or Direct Connect to keep contact intent-based.
                       </p>
                       <div className="flex flex-wrap justify-center gap-2">
@@ -228,9 +228,9 @@ export default function Conversations() {
                           <div
                             key={conversation.id}
                             onClick={() => handleSelectConversation(conversation.id)}
-                            className={`p-4 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800 hover:bg-slate-900 dark:hover:bg-navy-800 ${
+                            className={`p-4 cursor-pointer transition-colors border-b border-white/10 dark:border-white/10 hover:bg-tsCard dark:hover:bg-tsCard ${
                               selectedConversation === conversation.id
-                                ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+                                ? "bg-ts-orange/10 dark:bg-ts-orange/10 border-ts-orange/30 dark:border-ts-orange/30"
                                 : ""
                             }`}
                           >
@@ -246,7 +246,7 @@ export default function Conversations() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-1">
                                   <h4
-                                    className={`font-medium truncate ${isUnread ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}
+                                    className={`font-medium truncate ${isUnread ? "text-ts-orange" : "text-white/70 dark:text-white/70"}`}
                                   >
                                     {otherParticipant.firstName} {otherParticipant.lastName}
                                   </h4>
@@ -257,20 +257,20 @@ export default function Conversations() {
                                   )}
                                 </div>
 
-                                <p className="text-sm text-gray-600 dark:text-gray-400 truncate mb-1">
+                                <p className="text-sm text-white/60 dark:text-white/60 truncate mb-1">
                                   {conversation.listing.title}
                                 </p>
 
                                 {conversation.lastMessage && (
                                   <p
-                                    className={`text-xs truncate ${isUnread ? "font-medium text-gray-700 dark:text-gray-300" : "text-gray-500 dark:text-gray-500"}`}
+                                    className={`text-xs truncate ${isUnread ? "font-medium text-white/70 dark:text-white/70" : "text-white/60 dark:text-white/60"}`}
                                   >
                                     {conversation.lastMessage.content}
                                   </p>
                                 )}
 
                                 <div className="flex items-center justify-between mt-2">
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-white/60">
                                     {formatMessageTime(
                                       conversation.lastMessageAt?.toString() ||
                                         conversation.createdAt?.toString() ||
@@ -297,7 +297,7 @@ export default function Conversations() {
           <div className="lg:col-span-2">
             {selectedConversation && selectedConversationData ? (
               <Card className="h-full flex flex-col">
-                <CardHeader className="border-b border-slate-700">
+                <CardHeader className="border-b border-white/10">
                   <div className="flex items-center gap-4">
                     <Button
                       variant="ghost"
@@ -319,11 +319,11 @@ export default function Conversations() {
                     </Avatar>
 
                     <div className="flex-1">
-                      <h3 className="font-semibold text-orange-500">
+                      <h3 className="font-semibold text-ts-orange">
                         {getOtherParticipant(selectedConversationData).firstName}{" "}
                         {getOtherParticipant(selectedConversationData).lastName}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-white/60 dark:text-white/60">
                         About: {selectedConversationData.listing.title}
                       </p>
                     </div>
@@ -345,10 +345,10 @@ export default function Conversations() {
                         {[...Array(3)].map((_, i) => (
                           <div key={i} className="animate-pulse">
                             <div className="flex items-start gap-3">
-                              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                              <div className="w-8 h-8 bg-white/10 dark:bg-white/10 rounded-full"></div>
                               <div className="flex-1">
-                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                                <div className="h-4 bg-white/10 dark:bg-white/10 rounded w-3/4 mb-2"></div>
+                                <div className="h-3 bg-white/10 dark:bg-white/10 rounded w-1/2"></div>
                               </div>
                             </div>
                           </div>
@@ -389,13 +389,13 @@ export default function Conversations() {
                                 <div
                                   className={`inline-block p-3 rounded-lg ${
                                     isOwn
-                                      ? "bg-orange-600 text-white"
-                                      : "bg-[color:var(--surface-card)] text-orange-500"
+                                      ? "bg-ts-orange-dark text-white"
+                                      : "bg-[color:var(--surface-card)] text-ts-orange"
                                   }`}
                                 >
                                   <p className="text-sm">{message.content}</p>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-white/60 mt-1">
                                   {formatMessageTime(message.createdAt?.toString() || "")}
                                 </p>
                               </div>
@@ -408,7 +408,7 @@ export default function Conversations() {
                 </CardContent>
 
                 {/* Message Input */}
-                <div className="border-t border-slate-700 p-4">
+                <div className="border-t border-white/10 p-4">
                   <form onSubmit={handleSendMessage} className="flex gap-2">
                     <Input
                       value={newMessage}
@@ -420,7 +420,7 @@ export default function Conversations() {
                     <Button
                       type="submit"
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                      className="bg-orange-600 hover:bg-orange-700"
+                      className="bg-ts-orange-dark hover:bg-ts-orange-dark"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -430,11 +430,11 @@ export default function Conversations() {
             ) : (
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
-                  <MessageCircle className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-semibold text-orange-500 mb-2">
+                  <MessageCircle className="h-16 w-16 mx-auto mb-4 text-white/60" />
+                  <h3 className="text-xl font-semibold text-ts-orange mb-2">
                     Select a conversation
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-white/60 dark:text-white/60">
                     Choose a conversation from the list to start messaging
                   </p>
                 </CardContent>

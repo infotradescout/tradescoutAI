@@ -20,10 +20,10 @@ export default function ProjectTracker() {
   }, [location, navigate]);
 
   return (
-    <div className="flex items-center justify-center text-slate-200 px-4 py-24">
+    <div className="flex items-center justify-center text-white/70 px-4 py-24">
       <div className="max-w-md text-center space-y-2">
         <h1 className="text-base font-semibold">Projects moved to Finances</h1>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-white/60">
           Your jobs and deal workflow now live in your Finances workspace. We're sending you there
           automatically.
         </p>

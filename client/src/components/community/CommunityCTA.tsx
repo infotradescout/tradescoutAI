@@ -279,7 +279,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         className={
           layout === "inline"
             ? "flex items-center gap-1 pt-2 text-[11px] text-neutral-500"
-            : "mt-2 grid grid-cols-1 sm:grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-tsBorder/70"
+            : "mt-2 grid grid-cols-1 sm:grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-white/10"
         }
       >
         <div className="flex items-center justify-center py-2 text-neutral-600">Loading...</div>
@@ -310,7 +310,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             className={`flex-1 min-w-0 px-2 py-1 rounded-md text-left truncate ml-1 ${
               directConnectMode === "ask_scout"
                 ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
-                : "bg-orange-500 hover:bg-orange-400 text-black"
+                : "bg-ts-orange hover:bg-ts-orange text-black"
             }`}
           >
             {directConnectLabel}
@@ -343,13 +343,13 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   }
 
   return (
-    <div className="mt-2 grid grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-tsBorder/70">
+    <div className="mt-2 grid grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-white/10">
       <button
         type="button"
         onClick={() => {
           void handleAskScout();
         }}
-        className="flex items-center justify-center gap-1.5 py-2 bg-tsBg hover:bg-tsBg/80 text-slate-100"
+        className="flex items-center justify-center gap-1.5 py-2 bg-tsBg hover:bg-tsBg/80 text-white"
       >
         <MessagesSquare className="w-4 h-4" />
         <span>Ask Scout</span>
@@ -358,10 +358,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         <button
           type="button"
           onClick={handleDirectConnectClick}
-          className={`flex items-center justify-center gap-1.5 py-2 border-l border-tsBorder ${
+          className={`flex items-center justify-center gap-1.5 py-2 border-l border-white/10 ${
             directConnectMode === "ask_scout"
-              ? "bg-tsBg hover:bg-tsBg/80 text-slate-100"
-              : "bg-tsBg hover:bg-tsBg/80 text-slate-100"
+              ? "bg-tsBg hover:bg-tsBg/80 text-white"
+              : "bg-tsBg hover:bg-tsBg/80 text-white"
           }`}
         >
           <Hammer className="w-4 h-4" />
@@ -369,7 +369,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         </button>
       )}
       {!showDirectConnect && (
-        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-600 border-l border-tsBorder">
+        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-600 border-l border-white/10">
           <Info className="w-4 h-4" />
           <span className="text-xs">{directConnectAuthority?.label || "Unavailable"}</span>
         </div>
@@ -378,10 +378,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         <button
           type="button"
           onClick={handleMessageClick}
-          className={`flex items-center justify-center gap-1.5 py-2 border-l border-tsBorder ${
+          className={`flex items-center justify-center gap-1.5 py-2 border-l border-white/10 ${
             messageMode === "ask_scout"
-              ? "bg-tsBg hover:bg-tsBg/80 text-slate-100"
-              : "bg-tsBg hover:bg-tsBg/80 text-slate-100"
+              ? "bg-tsBg hover:bg-tsBg/80 text-white"
+              : "bg-tsBg hover:bg-tsBg/80 text-white"
           }`}
         >
           <MessagesSquare className="w-4 h-4" />
@@ -389,7 +389,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         </button>
       )}
       {!showMessage && (
-        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-600 border-l border-tsBorder">
+        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-600 border-l border-white/10">
           <Info className="w-4 h-4" />
           <span className="text-xs">{messageAuthority?.label || "Unavailable"}</span>
         </div>

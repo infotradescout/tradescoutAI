@@ -182,14 +182,14 @@ export default function ClaimMyBusinessPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 text-tsTextMain">
-      <Card className="rounded-2xl border border-tsBorder bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+    <div className="max-w-3xl mx-auto px-4 py-8 text-white">
+      <Card className="rounded-2xl border border-white/10 bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
         <CardHeader className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-white">
-            <Building2 className="h-5 w-5 text-tsAccentSoft" />
+            <Building2 className="h-5 w-5 text-ts-orange" />
             Claim a Business Profile
           </CardTitle>
-          <CardDescription className="text-tsTextMuted">
+          <CardDescription className="text-white/60">
             Businesses can exist on TradeScout before an owner signs up. Claiming attaches the
             profile to your account.
           </CardDescription>
@@ -198,16 +198,16 @@ export default function ClaimMyBusinessPage() {
         <CardContent className="space-y-4">
           {/* Resolve view (from /business/:slug) */}
           {initialSlug && !initialBusinessId ? (
-            <div className="rounded-xl border border-tsBorder bg-black/25 p-3">
+            <div className="rounded-xl border border-white/10 bg-black/25 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-xs uppercase tracking-[0.14em] text-tsTextMuted">
+                  <div className="text-xs uppercase tracking-[0.14em] text-white/60">
                     From business profile
                   </div>
                   <div className="mt-1 font-semibold text-white truncate">
                     {resolved?.name || initialSlug}
                   </div>
-                  <div className="text-xs text-tsTextMuted">
+                  <div className="text-xs text-white/60">
                     {resolved?.counties
                       ? countyLabel(resolved.counties)
                       : resolving
@@ -236,7 +236,7 @@ export default function ClaimMyBusinessPage() {
           {/* Search */}
           <div className="grid grid-cols-1 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+              <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                 Primary county
               </Label>
               <StateCountySelector
@@ -249,7 +249,7 @@ export default function ClaimMyBusinessPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[11px] uppercase tracking-[0.12em] text-tsTextMuted">
+              <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                 Business name
               </Label>
               <div className="flex gap-2">
@@ -257,14 +257,14 @@ export default function ClaimMyBusinessPage() {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search your business"
-                  className="h-10 border-tsBorder bg-black/30 text-tsTextMain placeholder:text-tsTextMuted focus-visible:ring-tsAccent"
+                  className="h-10 border-white/10 bg-black/30 text-white placeholder:text-white/60 focus-visible:ring-ts-orange/70"
                 />
                 <Button onClick={runSearch} disabled={searching}>
                   <Search className="h-4 w-4 mr-2" />
                   {searching ? "Searching…" : "Search"}
                 </Button>
               </div>
-              <p className="text-xs text-tsTextMuted">
+              <p className="text-xs text-white/60">
                 If you don’t see your business, you can create a listing and claim it.
               </p>
             </div>
@@ -275,12 +275,12 @@ export default function ClaimMyBusinessPage() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-tsBorder bg-black/20 p-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3"
                 >
                   <div className="min-w-0">
                     <div className="font-semibold text-white truncate">{item.name}</div>
-                    <div className="text-xs text-tsTextMuted">{countyLabel(item.counties)}</div>
-                    <div className="text-[11px] text-tsTextMuted">/business/{item.slug}</div>
+                    <div className="text-xs text-white/60">{countyLabel(item.counties)}</div>
+                    <div className="text-[11px] text-white/60">/business/{item.slug}</div>
                   </div>
                   <div className="flex gap-2">
                     {isAuthenticated ? (
@@ -309,13 +309,13 @@ export default function ClaimMyBusinessPage() {
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-tsBorder bg-black/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-white/10 bg-black/20 p-3">
             <div className="min-w-0">
               <div className="font-semibold text-white flex items-center gap-2">
-                <Search className="h-4 w-4 text-tsAccentSoft" />
+                <Search className="h-4 w-4 text-ts-orange" />
                 Not listed?
               </div>
-              <div className="text-xs text-tsTextMuted">
+              <div className="text-xs text-white/60">
                 Create a claimable shell now. You can fill details and verification after claiming.
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function ClaimMyBusinessPage() {
           </div>
 
           {isAuthenticated && selectedBusinessId ? (
-            <div className="text-xs text-tsTextMuted">
+            <div className="text-xs text-white/60">
               Signed in as {String(user?.email || "").trim() || "your account"}.
             </div>
           ) : null}

@@ -108,8 +108,8 @@ export default function NationwideExpansion() {
       <div className="gradient-bg p-6 py-24">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-            <p className="mt-2 text-slate-400">Loading nationwide metrics...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30 mx-auto"></div>
+            <p className="mt-2 text-white/60">Loading nationwide metrics...</p>
           </div>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function NationwideExpansion() {
             </div>
             <h1 className="text-4xl font-bold text-white">Nationwide Expansion</h1>
           </div>
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+          <p className="text-xl text-white/70 max-w-3xl mx-auto">
             This page reflects TradeScout's current nationwide footprint and community impact based
             on real activity.
           </p>
@@ -136,7 +136,7 @@ export default function NationwideExpansion() {
         {/* Key Metrics Dashboard */}
         {metrics && !metricsError ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <Users className="w-4 h-4 text-blue-400" />
@@ -146,29 +146,29 @@ export default function NationwideExpansion() {
                     {metrics.totalUsers.toLocaleString()}
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-400">Users metric unavailable</div>
+                  <div className="text-sm text-white/60">Users metric unavailable</div>
                 )}
-                <p className="text-xs text-slate-400">Registered Users</p>
+                <p className="text-xs text-white/60">Registered Users</p>
               </CardContent>
             </Card>
 
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardContent className="p-4 text-center">
-                <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <MapPin className="w-4 h-4 text-orange-400" />
+                <div className="w-8 h-8 bg-ts-orange/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <MapPin className="w-4 h-4 text-ts-orange" />
                 </div>
                 {typeof metrics.totalContractors === "number" ? (
                   <div className="text-xl font-bold text-white">
                     {metrics.totalContractors.toLocaleString()}
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-400">Contractor metric unavailable</div>
+                  <div className="text-sm text-white/60">Contractor metric unavailable</div>
                 )}
-                <p className="text-xs text-slate-400">Verified Contractors</p>
+                <p className="text-xs text-white/60">Verified Contractors</p>
               </CardContent>
             </Card>
 
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <DollarSign className="w-4 h-4 text-teal-400" />
@@ -176,11 +176,11 @@ export default function NationwideExpansion() {
                 <div className="text-lg font-bold text-white">
                   ${Number(metrics.totalRevenue || 0).toLocaleString()}
                 </div>
-                <p className="text-xs text-slate-400">Platform Revenue (lifetime)</p>
+                <p className="text-xs text-white/60">Platform Revenue (lifetime)</p>
               </CardContent>
             </Card>
 
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardContent className="p-4 text-center">
                 <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
                   <MapPin className="w-4 h-4 text-purple-400" />
@@ -190,15 +190,15 @@ export default function NationwideExpansion() {
                     {metrics.totalProjects.toLocaleString()}
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-400">Project metric unavailable</div>
+                  <div className="text-sm text-white/60">Project metric unavailable</div>
                 )}
-                <p className="text-xs text-slate-400">Projects Recorded</p>
+                <p className="text-xs text-white/60">Projects Recorded</p>
               </CardContent>
             </Card>
           </div>
         ) : (
           <div
-            className="border border-slate-700 rounded-lg p-4 text-center text-slate-400"
+            className="border border-white/10 rounded-lg p-4 text-center text-white/60"
             style={{ backgroundColor: "var(--surface-card)" }}
           >
             Nationwide metrics are temporarily unavailable. No estimates are shown.
@@ -229,7 +229,7 @@ export default function NationwideExpansion() {
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+              <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
                     <Globe className="w-5 h-5 text-green-400" />
@@ -238,7 +238,7 @@ export default function NationwideExpansion() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {metrics && !metricsError ? (
-                    <div className="space-y-2 text-sm text-slate-300">
+                    <div className="space-y-2 text-sm text-white/70">
                       <p>
                         These figures reflect aggregated nationwide activity recorded on TradeScout.
                       </p>
@@ -259,7 +259,7 @@ export default function NationwideExpansion() {
                       </ul>
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-white/60">
                       Nationwide metrics are not available at this time. No estimates are shown.
                     </p>
                   )}
@@ -286,7 +286,7 @@ export default function NationwideExpansion() {
                   {topCounties.map((county) => (
                     <Card
                       key={county.fips}
-                      className="border-slate-700"
+                      className="border-white/10"
                       style={{ backgroundColor: "var(--surface-card)" }}
                       data-testid={`county-${county.fips}`}
                     >
@@ -297,7 +297,7 @@ export default function NationwideExpansion() {
                               County FIPS {county.fips}
                             </CardTitle>
                             <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="border-slate-600 text-slate-300">
+                              <Badge variant="outline" className="border-white/15 text-white/70">
                                 Contractor presence snapshot
                               </Badge>
                             </div>
@@ -306,17 +306,17 @@ export default function NationwideExpansion() {
                             <div className="text-xl font-bold text-yellow-400">
                               {county.avgRating.toFixed(1)}
                             </div>
-                            <p className="text-xs text-slate-400">Average Rating</p>
+                            <p className="text-xs text-white/60">Average Rating</p>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4 text-center">
                           <div className="space-y-1">
-                            <div className="text-lg font-bold text-orange-400">
+                            <div className="text-lg font-bold text-ts-orange">
                               {county.contractorCount}
                             </div>
-                            <p className="text-xs text-slate-400">Contractors</p>
+                            <p className="text-xs text-white/60">Contractors</p>
                           </div>
                         </div>
                       </CardContent>
@@ -334,10 +334,10 @@ export default function NationwideExpansion() {
                 <span>Expansion Planning Snapshot</span>
               </h3>
               {pipelineLoading && (
-                <p className="text-sm text-slate-400">Loading expansion planning data…</p>
+                <p className="text-sm text-white/60">Loading expansion planning data…</p>
               )}
               {!pipelineLoading && (pipelineError || !expansionPipeline.length) && (
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-white/60">
                   Expansion planning data is temporarily unavailable. No projections are shown.
                 </p>
               )}
@@ -347,7 +347,7 @@ export default function NationwideExpansion() {
                 expansionPipeline.map((phase, index) => (
                   <Card
                     key={index}
-                    className="border-slate-700"
+                    className="border-white/10"
                     style={{ backgroundColor: "var(--surface-card)" }}
                     data-testid={`expansion-phase-${index}`}
                   >
@@ -362,7 +362,7 @@ export default function NationwideExpansion() {
                             className={
                               phase.status === "in_progress"
                                 ? "bg-green-500/20 text-green-400"
-                                : "bg-slate-900/40 text-slate-400"
+                                : "bg-tsCard/95 text-white/60"
                             }
                           >
                             {phase.status.replace("_", " ")}
@@ -372,12 +372,12 @@ export default function NationwideExpansion() {
                           <div className="text-2xl font-bold text-purple-400">
                             {(phase.population || 0).toLocaleString()}
                           </div>
-                          <p className="text-sm text-slate-400">Population (census)</p>
+                          <p className="text-sm text-white/60">Population (census)</p>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <p className="text-slate-300">
+                      <p className="text-white/70">
                         This county appears in TradeScout's internal expansion planning records.
                         Status and priority reflect planning state only and are not guarantees of
                         launch timing.
@@ -389,7 +389,7 @@ export default function NationwideExpansion() {
           </TabsContent>
 
           <TabsContent value="foundation" className="space-y-6">
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardHeader>
                 <CardTitle className="text-white flex items-center space-x-2">
                   <Heart className="w-5 h-5 text-pink-400" />
@@ -398,36 +398,36 @@ export default function NationwideExpansion() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {impactLoading && (
-                  <p className="text-sm text-slate-400">Loading foundation impact…</p>
+                  <p className="text-sm text-white/60">Loading foundation impact…</p>
                 )}
                 {!impactLoading && (impactError || !foundationImpact) && (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-white/60">
                     Foundation impact data is not available at this time. No estimates are shown.
                   </p>
                 )}
                 {!impactLoading && !impactError && foundationImpact && (
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Raised</span>
+                      <span className="text-white/60">Total Raised</span>
                       <span className="text-pink-400 font-semibold">
                         ${foundationImpact.totalRaised.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Donors</span>
+                      <span className="text-white/60">Total Donors</span>
                       <span className="text-blue-400 font-semibold">
                         {foundationImpact.totalDonors.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Active Causes</span>
+                      <span className="text-white/60">Active Causes</span>
                       <span className="text-green-400 font-semibold">
                         {foundationImpact.activeCauses.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Counties Supported</span>
-                      <span className="text-orange-400 font-semibold">
+                      <span className="text-white/60">Counties Supported</span>
+                      <span className="text-ts-orange font-semibold">
                         {foundationImpact.countiesSupported.toLocaleString()}
                       </span>
                     </div>
@@ -438,7 +438,7 @@ export default function NationwideExpansion() {
           </TabsContent>
 
           <TabsContent value="affiliates" className="space-y-6">
-            <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+            <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
               <CardHeader>
                 <CardTitle className="text-white flex items-center space-x-2">
                   <Award className="w-5 h-5 text-yellow-400" />
@@ -447,10 +447,10 @@ export default function NationwideExpansion() {
               </CardHeader>
               <CardContent>
                 {affiliateLoading && (
-                  <p className="text-sm text-slate-400">Loading affiliate metrics…</p>
+                  <p className="text-sm text-white/60">Loading affiliate metrics…</p>
                 )}
                 {!affiliateLoading && (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-white/60">
                     Affiliate performance data is not available yet. No projections or earnings
                     estimates are shown.
                   </p>

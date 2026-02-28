@@ -75,16 +75,16 @@ export default function StaffDashboard() {
             <RoleIcon className="h-8 w-8 text-teal-500 mr-3" />
             {getRoleDisplayName(user?.role || "")} Dashboard
           </h1>
-          <p className="text-gray-400 mt-2">Platform operations and team collaboration</p>
+          <p className="text-white/60 mt-2">Platform operations and team collaboration</p>
         </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Open Tickets</p>
+                  <p className="text-sm font-medium text-white/60">Open Tickets</p>
                   <p className="text-2xl font-bold text-white">42</p>
                 </div>
                 <Headphones className="h-8 w-8 text-teal-500" />
@@ -92,11 +92,11 @@ export default function StaffDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Active Tickets</p>
+                  <p className="text-sm font-medium text-white/60">Active Tickets</p>
                   <p className="text-2xl font-bold text-white">23</p>
                 </div>
                 <MessageSquare className="h-8 w-8 text-blue-500" />
@@ -104,23 +104,23 @@ export default function StaffDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Response Time</p>
+                  <p className="text-sm font-medium text-white/60">Response Time</p>
                   <p className="text-2xl font-bold text-white">2.3h</p>
                 </div>
-                <Target className="h-8 w-8 text-orange-500" />
+                <Target className="h-8 w-8 text-ts-orange" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Team Rating</p>
+                  <p className="text-sm font-medium text-white/60">Team Rating</p>
                   <p className="text-2xl font-bold text-white">4.9</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-purple-500" />
@@ -132,7 +132,7 @@ export default function StaffDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
                   <RoleIcon className="h-5 w-5 mr-2" />
@@ -151,7 +151,7 @@ export default function StaffDashboard() {
                         </Button>
                         <Button
                           variant="outline"
-                          className="border-navy-400 text-gray-300 justify-start"
+                          className="border-white/15 text-white/70 justify-start"
                         >
                           <Users className="h-4 w-4 mr-2" />
                           User Lookup
@@ -170,7 +170,7 @@ export default function StaffDashboard() {
                         </Button>
                         <Button
                           variant="outline"
-                          className="border-navy-400 text-gray-300 justify-start"
+                          className="border-white/15 text-white/70 justify-start"
                         >
                           <AlertTriangle className="h-4 w-4 mr-2" />
                           Flagged Content
@@ -189,7 +189,7 @@ export default function StaffDashboard() {
                         </Button>
                         <Button
                           variant="outline"
-                          className="border-navy-400 text-gray-300 justify-start"
+                          className="border-white/15 text-white/70 justify-start"
                         >
                           <TrendingUp className="h-4 w-4 mr-2" />
                           Performance Reports
@@ -203,14 +203,14 @@ export default function StaffDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                       <Button
                         variant="outline"
-                        className="border-navy-400 text-gray-300 justify-start"
+                        className="border-white/15 text-white/70 justify-start"
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Documentation
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-navy-400 text-gray-300 justify-start"
+                        className="border-white/15 text-white/70 justify-start"
                       >
                         <Calendar className="h-4 w-4 mr-2" />
                         Team Calendar
@@ -224,7 +224,7 @@ export default function StaffDashboard() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Quick Actions</CardTitle>
               </CardHeader>
@@ -236,14 +236,14 @@ export default function StaffDashboard() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full border-navy-400 text-gray-300 justify-start"
+                    className="w-full border-white/15 text-white/70 justify-start"
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Team Chat
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full border-navy-400 text-gray-300 justify-start"
+                    className="w-full border-white/15 text-white/70 justify-start"
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Knowledge Base
@@ -252,7 +252,7 @@ export default function StaffDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Performance</CardTitle>
               </CardHeader>
@@ -260,21 +260,21 @@ export default function StaffDashboard() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-400">Tasks Completed</span>
+                      <span className="text-white/60">Tasks Completed</span>
                       <span className="text-white">85%</span>
                     </div>
                     <Progress value={85} className="h-2" />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-400">Quality Score</span>
+                      <span className="text-white/60">Quality Score</span>
                       <span className="text-white">92%</span>
                     </div>
                     <Progress value={92} className="h-2" />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-400">Response Time</span>
+                      <span className="text-white/60">Response Time</span>
                       <span className="text-white">Good</span>
                     </div>
                     <Progress value={78} className="h-2" />
@@ -283,7 +283,7 @@ export default function StaffDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="bg-navy-700 border-navy-600">
+            <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Team Updates</CardTitle>
               </CardHeader>
@@ -291,11 +291,11 @@ export default function StaffDashboard() {
                 <div className="space-y-3">
                   <div className="text-sm">
                     <p className="text-white">Weekly team meeting</p>
-                    <p className="text-gray-400 text-xs">Tomorrow at 10:00 AM</p>
+                    <p className="text-white/60 text-xs">Tomorrow at 10:00 AM</p>
                   </div>
                   <div className="text-sm">
                     <p className="text-white">New platform features</p>
-                    <p className="text-gray-400 text-xs">Training scheduled for Friday</p>
+                    <p className="text-white/60 text-xs">Training scheduled for Friday</p>
                   </div>
                 </div>
               </CardContent>
@@ -309,30 +309,30 @@ export default function StaffDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button
               variant="outline"
-              className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
+              className="w-full h-16 border-white/10 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
             >
               <FileText className="h-5 w-5 text-teal-400" />
               <span className="text-xs">Documentation</span>
             </Button>
             <Button
               variant="outline"
-              className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
+              className="w-full h-16 border-white/10 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
             >
               <Calendar className="h-5 w-5 text-green-400" />
               <span className="text-xs">Schedule</span>
             </Button>
             <Button
               variant="outline"
-              className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
+              className="w-full h-16 border-white/10 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
             >
               <MessageSquare className="h-5 w-5 text-blue-400" />
               <span className="text-xs">Team Chat</span>
             </Button>
             <Button
               variant="outline"
-              className="w-full h-16 border-navy-500 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
+              className="w-full h-16 border-white/10 hover:border-teal-500 flex flex-col items-center justify-center space-y-1"
             >
-              <BarChart3 className="h-5 w-5 text-orange-400" />
+              <BarChart3 className="h-5 w-5 text-ts-orange" />
               <span className="text-xs">Reports</span>
             </Button>
           </div>

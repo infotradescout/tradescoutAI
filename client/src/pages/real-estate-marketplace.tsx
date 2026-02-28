@@ -228,20 +228,20 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
             <div className="space-y-0.5 md:space-y-1">
               <div className="flex items-center gap-3">
-                <Home className="h-6 w-6 md:h-7 md:w-7 text-orange-400" />
+                <Home className="h-6 w-6 md:h-7 md:w-7 text-ts-orange" />
                 <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
               </div>
-              <p className="text-sm md:text-base text-slate-300">
+              <p className="text-sm md:text-base text-white/70">
                 County-first real estate, with intent-based contact.
               </p>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
+              <div className="flex items-center gap-2 text-xs text-white/60">
                 <MapPin className="h-3.5 w-3.5" />
                 <span>{ctx.label || "Your county context"}</span>
               </div>
             </div>
             <div className="flex w-full md:w-auto gap-2">
               <Link href="/homescout/new">
-                <Button className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-black font-semibold">
+                <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   List on HomeScout
                 </Button>
@@ -257,21 +257,21 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
             </div>
           </div>
 
-          <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardContent className="p-4 md:p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     placeholder="Search title or city..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-navy-700 border-navy-600 text-white"
+                    className="pl-10 bg-tsCard border-white/10 text-white"
                   />
                 </div>
 
                 <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Price Range" />
                   </SelectTrigger>
                   <SelectContent>
@@ -284,7 +284,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </Select>
 
                 <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Property Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -299,7 +299,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </Select>
 
                 <Select value={bedrooms} onValueChange={setBedrooms}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Bedrooms" />
                   </SelectTrigger>
                   <SelectContent>
@@ -312,7 +312,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </Select>
 
                 <Select value={bathrooms} onValueChange={setBathrooms}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Bathrooms" />
                   </SelectTrigger>
                   <SelectContent>
@@ -325,7 +325,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </Select>
 
                 <Select value={maxDom} onValueChange={setMaxDom}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Days on market" />
                   </SelectTrigger>
                   <SelectContent>
@@ -338,7 +338,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </Select>
 
                 <Select value={sqftMin} onValueChange={setSqftMin}>
-                  <SelectTrigger className="bg-navy-700 border-navy-600 text-white">
+                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Min sqft" />
                   </SelectTrigger>
                   <SelectContent>
@@ -361,8 +361,8 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-400 text-sm">
+                <Filter className="h-4 w-4 text-white/60" />
+                <span className="text-white/60 text-sm">
                   {isLoading ? "Searching..." : `${listings.length} active listing(s)`}
                   {isError ? " (search failed)" : ""}
                 </span>
@@ -379,7 +379,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               return (
                 <Card
                   key={listing.id}
-                  className="bg-navy-800/50 border-navy-600 backdrop-blur-sm hover:bg-navy-700/50 transition-colors overflow-hidden"
+                  className="bg-tsCard/50 border-white/10 backdrop-blur-sm hover:bg-tsCard/50 transition-colors overflow-hidden"
                 >
                   <CardHeader className="p-0">
                     <div className="relative">
@@ -392,11 +392,11 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                         />
                       ) : (
                         <div className="w-full h-44 sm:h-52 md:h-56 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-                          <div className="text-slate-400 text-sm">No photo</div>
+                          <div className="text-white/60 text-sm">No photo</div>
                         </div>
                       )}
                       <div className="absolute top-3 md:top-4 left-3 md:left-4">
-                        <Badge className="bg-orange-600 hover:bg-orange-700">For Sale</Badge>
+                        <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">For Sale</Badge>
                       </div>
                       <div className="absolute top-3 md:top-4 right-3 md:right-4">
                         <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-md">
@@ -410,8 +410,8 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                       <div className="text-base md:text-lg font-semibold text-white leading-snug">
                         {listing.title}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-300">
-                        <MapPin className="h-4 w-4 text-slate-400" />
+                      <div className="flex items-center gap-2 text-sm text-white/70">
+                        <MapPin className="h-4 w-4 text-white/60" />
                         <span>
                           {locationLabel || `${listing.countyFips}, ${listing.stateCode}`}
                         </span>
@@ -419,28 +419,28 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="flex items-center gap-2 text-slate-200">
-                        <BedDouble className="h-4 w-4 text-slate-400" />
+                      <div className="flex items-center gap-2 text-white/70">
+                        <BedDouble className="h-4 w-4 text-white/60" />
                         <span>{listing.beds ?? "?"} bd</span>
                       </div>
-                      <div className="flex items-center gap-2 text-slate-200">
-                        <Bath className="h-4 w-4 text-slate-400" />
+                      <div className="flex items-center gap-2 text-white/70">
+                        <Bath className="h-4 w-4 text-white/60" />
                         <span>{listing.baths ?? "?"} ba</span>
                       </div>
-                      <div className="flex items-center gap-2 text-slate-200">
-                        <Square className="h-4 w-4 text-slate-400" />
+                      <div className="flex items-center gap-2 text-white/70">
+                        <Square className="h-4 w-4 text-white/60" />
                         <span>{listing.sqft ?? "?"} sqft</span>
                       </div>
                     </div>
 
                     <div className="pt-2 flex items-center justify-between">
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-white/60">
                         Contact requires intent confirmation (Decision Card required).
                       </div>
                       <Link href={`/homescout/listings/${listing.id}`}>
                         <Button
                           size="sm"
-                          className="bg-orange-500 hover:bg-orange-600 text-black font-semibold"
+                          className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
                         >
                           View
                         </Button>
@@ -453,18 +453,18 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
           </div>
 
           {!isLoading && listings.length === 0 && (
-            <Card className="bg-slate-950/60 border-slate-800">
+            <Card className="bg-black/30 border-white/10">
               <CardHeader>
-                <CardTitle className="text-slate-100">No active listings yet</CardTitle>
+                <CardTitle className="text-white">No active listings yet</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-slate-300 space-y-3">
+              <CardContent className="text-sm text-white/70 space-y-3">
                 <p>
                   HomeScout inventory is county-first. If you're the first to post a listing here,
                   it will appear after admin review.
                 </p>
                 <div className="flex gap-2">
                   <Link href="/homescout/new">
-                    <Button className="bg-orange-500 hover:bg-orange-600 text-black font-semibold">
+                    <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                       List on HomeScout
                     </Button>
                   </Link>

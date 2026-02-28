@@ -12,7 +12,7 @@ export default function TermsOfService() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold">Terms of Service</CardTitle>
-            <p className="text-gray-600 dark:text-gray-300">Last Updated: {lastUpdated}</p>
+            <p className="text-white/60 dark:text-white/70">Last Updated: {lastUpdated}</p>
           </CardHeader>
           <CardContent className="prose max-w-none dark:prose-invert">
             <Alert className="mb-6">
@@ -307,7 +307,7 @@ export default function TermsOfService() {
               className="text-center mt-8 pt-6 border-t"
               style={{ borderColor: "var(--border-secondary)" }}
             >
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-white/60 dark:text-white/60">
                 These Terms of Service are effective as of {lastUpdated}
               </p>
             </div>

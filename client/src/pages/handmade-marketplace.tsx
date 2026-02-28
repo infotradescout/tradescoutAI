@@ -120,7 +120,7 @@ export default function HandmadeMarketplace() {
               className="w-full h-full flex items-center justify-center"
               style={{ backgroundColor: "var(--surface-frame)" }}
             >
-              <ShoppingBag className="w-16 h-16 text-gray-400" />
+              <ShoppingBag className="w-16 h-16 text-white/60" />
             </div>
           )}
           {product.featured && (
@@ -153,14 +153,14 @@ export default function HandmadeMarketplace() {
             {formatPrice(product.price)}
           </span>
           {product.compareAtPrice && (
-            <span className="text-sm text-gray-500 line-through">
+            <span className="text-sm text-white/60 line-through">
               {formatPrice(product.compareAtPrice)}
             </span>
           )}
         </div>
 
         {product.city && product.stateCode && (
-          <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+          <div className="flex items-center gap-1 text-sm text-white/60 mb-2">
             <MapPin className="w-3 h-3" />
             <span>{product.city}, {product.stateCode}</span>
           </div>
@@ -181,7 +181,7 @@ export default function HandmadeMarketplace() {
           </div>
         )}
 
-        <div className="flex items-center justify-between text-sm text-gray-600">
+        <div className="flex items-center justify-between text-sm text-white/60">
           <div className="flex items-center gap-1">
             <Star className="w-3 h-3" />
             <span>{product.favoriteCount} favorites</span>
@@ -215,7 +215,7 @@ export default function HandmadeMarketplace() {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">Handmade Marketplace</h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
+        <p className="text-white/60 max-w-2xl mx-auto">
           Discover unique, handcrafted items from talented artisans in your community.
           Support local makers and find one-of-a-kind treasures.
         </p>
@@ -225,7 +225,7 @@ export default function HandmadeMarketplace() {
       <div className="mb-8 space-y-4">
         <div className="flex gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 w-4 h-4" />
             <Input
               placeholder="Search handmade products..."
               value={searchTerm}
@@ -268,7 +268,7 @@ export default function HandmadeMarketplace() {
           </Select>
 
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-gray-600">View:</span>
+            <span className="text-sm text-white/60">View:</span>
             <Button
               variant={viewMode === "grid" ? "default" : "outline"}
               size="sm"
@@ -309,11 +309,11 @@ export default function HandmadeMarketplace() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <div className="aspect-square bg-gray-200 rounded-t-lg"></div>
+              <div className="aspect-square bg-white/10 rounded-t-lg"></div>
               <CardContent className="p-4">
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-white/10 rounded mb-2"></div>
+                <div className="h-4 bg-white/10 rounded w-2/3 mb-2"></div>
+                <div className="h-6 bg-white/10 rounded w-1/3"></div>
               </CardContent>
             </Card>
           ))}
@@ -329,9 +329,9 @@ export default function HandmadeMarketplace() {
         </div>
       ) : (
         <div className="text-center py-16">
-          <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <ShoppingBag className="w-16 h-16 text-white/60 mx-auto mb-4" />
           <h3 className="text-xl font-medium mb-2">No products found</h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-white/60 mb-4">
             Try adjusting your search or filters to find what you're looking for.
           </p>
           <Button variant="outline" onClick={() => {

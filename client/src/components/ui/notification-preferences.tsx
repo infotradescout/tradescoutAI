@@ -169,9 +169,9 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px] bg-navy-800 border-navy-600">
+        <DialogContent className="sm:max-w-[600px] bg-tsCard border-white/10">
           <div className="flex items-center justify-center p-8">
-            <Settings2 className="h-8 w-8 animate-spin text-orange-400" />
+            <Settings2 className="h-8 w-8 animate-spin text-ts-orange" />
           </div>
         </DialogContent>
       </Dialog>
@@ -180,10 +180,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto bg-navy-800 border-navy-600">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto bg-tsCard border-white/10">
         <DialogHeader>
           <DialogTitle className="text-white">Notification Preferences</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-white/60">
             Customize how and when you receive notifications from TradeScout.
           </DialogDescription>
         </DialogHeader>
@@ -193,7 +193,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
             {/* General Settings */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Bell className="h-5 w-5 text-orange-400" />
+                <Bell className="h-5 w-5 text-ts-orange" />
                 General Settings
               </h3>
               
@@ -202,10 +202,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   control={form.control}
                   name="enableNotifications"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white">Enable Notifications</FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Receive all notifications
                         </FormDescription>
                       </div>
@@ -220,13 +220,13 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   control={form.control}
                   name="enableEmailNotifications"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white flex items-center gap-2">
                           <Mail className="h-4 w-4" />
                           Email Notifications
                         </FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Send notifications via email
                         </FormDescription>
                       </div>
@@ -241,13 +241,13 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   control={form.control}
                   name="enableSmsNotifications"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white flex items-center gap-2">
                           <MessageSquare className="h-4 w-4" />
                           SMS Notifications
                         </FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Send notifications via text message
                         </FormDescription>
                       </div>
@@ -262,13 +262,13 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   control={form.control}
                   name="enablePushNotifications"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white flex items-center gap-2">
                           <Smartphone className="h-4 w-4" />
                           Push Notifications
                         </FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Send browser push notifications
                         </FormDescription>
                       </div>
@@ -281,12 +281,12 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
               </div>
             </div>
 
-            <Separator className="bg-navy-600" />
+            <Separator className="bg-tsCard" />
 
             {/* Quiet Hours */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Moon className="h-5 w-5 text-orange-400" />
+                <Moon className="h-5 w-5 text-ts-orange" />
                 Quiet Hours
               </h3>
               
@@ -301,10 +301,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         <Input
                           type="time"
                           {...field}
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                       </FormControl>
-                      <FormDescription className="text-gray-400 text-sm">
+                      <FormDescription className="text-white/60 text-sm">
                         No notifications after this time
                       </FormDescription>
                     </FormItem>
@@ -321,10 +321,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         <Input
                           type="time"
                           {...field}
-                          className="bg-navy-700 border-navy-600 text-white"
+                          className="bg-tsCard border-white/10 text-white"
                         />
                       </FormControl>
-                      <FormDescription className="text-gray-400 text-sm">
+                      <FormDescription className="text-white/60 text-sm">
                         Resume notifications at this time
                       </FormDescription>
                     </FormItem>
@@ -333,7 +333,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
               </div>
             </div>
 
-            <Separator className="bg-navy-600" />
+            <Separator className="bg-tsCard" />
 
             {/* Notification Types */}
             <div className="space-y-4">
@@ -347,11 +347,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   };
 
                   return (
-                    <div key={type.key} className="rounded-lg border border-navy-600 p-4">
+                    <div key={type.key} className="rounded-lg border border-white/10 p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h4 className="text-white font-medium">{type.label}</h4>
-                          <p className="text-gray-400 text-sm">{type.description}</p>
+                          <p className="text-white/60 text-sm">{type.description}</p>
                         </div>
                         <Switch
                           checked={currentPrefs.enabled}
@@ -366,7 +366,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
 
                       {currentPrefs.enabled && (
                         <div className="space-y-2">
-                          <p className="text-sm text-gray-300">Delivery methods:</p>
+                          <p className="text-sm text-white/70">Delivery methods:</p>
                           <div className="flex flex-wrap gap-2">
                             {deliveryMethods.map((method) => {
                               const isSelected = currentPrefs.delivery_methods.includes(method.key);
@@ -388,8 +388,8 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                                   }}
                                   className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs transition-colors ${
                                     isSelected
-                                      ? 'bg-orange-400 text-navy-900'
-                                      : 'bg-navy-700 text-gray-300 border border-navy-600'
+                                      ? 'bg-ts-orange text-black'
+                                      : 'bg-tsCard text-white/70 border border-white/10'
                                   }`}
                                 >
                                   <Icon className="h-3 w-3" />
@@ -406,12 +406,12 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
               </div>
             </div>
 
-            <Separator className="bg-navy-600" />
+            <Separator className="bg-tsCard" />
 
             {/* Digest Settings */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Clock className="h-5 w-5 text-orange-400" />
+                <Clock className="h-5 w-5 text-ts-orange" />
                 Digest Options
               </h3>
               
@@ -420,10 +420,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   control={form.control}
                   name="batchDailyDigest"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white">Daily Digest</FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Receive a daily summary email
                         </FormDescription>
                       </div>
@@ -438,10 +438,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                   control={form.control}
                   name="batchWeeklyDigest"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border border-navy-600 p-3">
+                    <FormItem className="flex items-center justify-between rounded-lg border border-white/10 p-3">
                       <div className="space-y-0.5">
                         <FormLabel className="text-white">Weekly Digest</FormLabel>
-                        <FormDescription className="text-gray-400 text-sm">
+                        <FormDescription className="text-white/60 text-sm">
                           Receive a weekly summary email
                         </FormDescription>
                       </div>
@@ -463,10 +463,10 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                       <Input
                         type="time"
                         {...field}
-                        className="bg-navy-700 border-navy-600 text-white max-w-xs"
+                        className="bg-tsCard border-white/10 text-white max-w-xs"
                       />
                     </FormControl>
-                    <FormDescription className="text-gray-400">
+                    <FormDescription className="text-white/60">
                       When to send digest emails
                     </FormDescription>
                   </FormItem>
@@ -479,14 +479,14 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-navy-600 text-white hover:bg-navy-700"
+                className="border-white/10 text-white hover:bg-tsCard"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={updatePreferencesMutation.isPending}
-                className="bg-orange-500 text-white hover:bg-orange-600"
+                className="bg-ts-orange text-white hover:bg-ts-orange-dark"
               >
                 {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Preferences'}
               </Button>

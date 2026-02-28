@@ -165,17 +165,17 @@ export default function TestFunctionality() {
         <h1 className="text-3xl font-bold text-white mb-4">
           TradeScout Functionality Test
         </h1>
-        <p className="text-gray-300 mb-4">
+        <p className="text-white/70 mb-4">
           Testing core functionality and API endpoints
         </p>
         <div className="flex items-center gap-4">
-          <Badge className="bg-navy-600">
+          <Badge className="bg-tsCard">
             {passedTests}/{totalTests} Tests Passed
           </Badge>
           <Button 
             onClick={runBasicTests} 
             disabled={isRunning}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-ts-orange hover:bg-ts-orange-dark"
           >
             {isRunning ? 'Running Tests...' : 'Run Tests Again'}
           </Button>
@@ -184,40 +184,40 @@ export default function TestFunctionality() {
 
       {/* System Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4 text-center">
             <Server className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-            <p className="text-sm text-gray-300">Server Status</p>
+            <p className="text-sm text-white/70">Server Status</p>
             <p className="text-lg font-bold text-white">
               {healthData?.status === 'healthy' ? 'Online' : 'Checking...'}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4 text-center">
             <Database className="h-8 w-8 text-green-500 mx-auto mb-2" />
-            <p className="text-sm text-gray-300">Database</p>
+            <p className="text-sm text-white/70">Database</p>
             <p className="text-lg font-bold text-white">
               {countiesData?.data?.length > 0 ? 'Connected' : 'Checking...'}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4 text-center">
-            <Wifi className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-            <p className="text-sm text-gray-300">Auth System</p>
+            <Wifi className="h-8 w-8 text-ts-orange mx-auto mb-2" />
+            <p className="text-sm text-white/70">Auth System</p>
             <p className="text-lg font-bold text-white">
               {isAuthenticated ? 'Authenticated' : 'Not Logged In'}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-navy-700 border-navy-600">
+        <Card className="bg-tsCard border-white/10">
           <CardContent className="p-4 text-center">
             <CheckCircle className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-            <p className="text-sm text-gray-300">Overall Health</p>
+            <p className="text-sm text-white/70">Overall Health</p>
             <p className="text-lg font-bold text-white">
               {Math.round((passedTests / totalTests) * 100)}%
             </p>
@@ -226,24 +226,24 @@ export default function TestFunctionality() {
       </div>
 
       {/* Test Results */}
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Test Results</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {tests.map((test, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-navy-600 rounded-lg">
+              <div key={index} className="flex items-center justify-between p-4 bg-tsCard rounded-lg">
                 <div className="flex items-center space-x-3">
                   {getStatusIcon(test.status)}
                   <div>
                     <h4 className="text-white font-medium">{test.name}</h4>
-                    <p className="text-gray-300 text-sm">{test.message}</p>
+                    <p className="text-white/70 text-sm">{test.message}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   {test.timing && (
-                    <span className="text-gray-400 text-sm">{test.timing}ms</span>
+                    <span className="text-white/60 text-sm">{test.timing}ms</span>
                   )}
                   {getStatusBadge(test.status)}
                 </div>
@@ -255,26 +255,26 @@ export default function TestFunctionality() {
 
       {/* User Information */}
       {isAuthenticated && user && (
-        <Card className="bg-navy-700 border-navy-600 mt-8">
+        <Card className="bg-tsCard border-white/10 mt-8">
           <CardHeader>
             <CardTitle className="text-white">Current User</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-gray-300 text-sm">Name</p>
+                <p className="text-white/70 text-sm">Name</p>
                 <p className="text-white">{user.firstName} {user.lastName}</p>
               </div>
               <div>
-                <p className="text-gray-300 text-sm">Email</p>
+                <p className="text-white/70 text-sm">Email</p>
                 <p className="text-white">{user.email}</p>
               </div>
               <div>
-                <p className="text-gray-300 text-sm">Role</p>
+                <p className="text-white/70 text-sm">Role</p>
                 <Badge>{user.role}</Badge>
               </div>
               <div>
-                <p className="text-gray-300 text-sm">Address Verified</p>
+                <p className="text-white/70 text-sm">Address Verified</p>
                 <Badge className={user.addressVerified ? 'bg-green-600' : 'bg-yellow-600'}>
                   {user.addressVerified ? 'Verified' : 'Pending'}
                 </Badge>

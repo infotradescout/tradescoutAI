@@ -163,10 +163,10 @@ export default function CookiePolicy() {
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <Cookie className="h-12 w-12 text-orange-500" />
+              <Cookie className="h-12 w-12 text-ts-orange" />
             </div>
             <CardTitle className="text-3xl font-bold">Cookie Policy & Preferences</CardTitle>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-white/60 dark:text-white/70">
               Manage your cookie preferences and learn about how we use cookies
             </p>
           </CardHeader>
@@ -215,24 +215,24 @@ export default function CookiePolicy() {
                           />
                         </div>
 
-                        <p className="text-gray-600 dark:text-gray-300 mb-4">
+                        <p className="text-white/60 dark:text-white/70 mb-4">
                           {category.description}
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <p className="font-medium mb-2">Purpose:</p>
-                            <p className="text-gray-600 dark:text-gray-300">{category.purpose}</p>
+                            <p className="text-white/60 dark:text-white/70">{category.purpose}</p>
                           </div>
                           <div>
                             <p className="font-medium mb-2">Data Retention:</p>
-                            <p className="text-gray-600 dark:text-gray-300">{category.retention}</p>
+                            <p className="text-white/60 dark:text-white/70">{category.retention}</p>
                           </div>
                         </div>
 
                         <div className="mt-4">
                           <p className="font-medium mb-2">Examples:</p>
-                          <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                          <ul className="text-sm text-white/60 dark:text-white/70 space-y-1">
                             {category.examples.map((example, index) => (
                               <li key={index} className="flex items-start">
                                 <span className="mr-2">•</span>

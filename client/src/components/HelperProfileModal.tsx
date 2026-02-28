@@ -176,13 +176,13 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             </div>
 
             <div className="flex flex-col gap-2">
-              <Button className="bg-orange-500 hover:bg-orange-600">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Contact Helper
               </Button>
               <Button
                 variant="outline"
-                className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
               >
                 Hire for Job
               </Button>
@@ -191,13 +191,13 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
         </DialogHeader>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-navy-600 mb-6">
+        <div className="flex border-b border-white/10 mb-6">
           <button
             onClick={() => setActiveTab("overview")}
             className={`px-4 py-2 font-medium ${
               activeTab === "overview"
-                ? "text-orange-500 border-b-2 border-orange-500"
-                : "text-gray-400 hover:text-white"
+                ? "text-ts-orange border-b-2 border-ts-orange/30"
+                : "text-white/60 hover:text-white"
             }`}
           >
             Overview
@@ -206,8 +206,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             onClick={() => setActiveTab("experience")}
             className={`px-4 py-2 font-medium ${
               activeTab === "experience"
-                ? "text-orange-500 border-b-2 border-orange-500"
-                : "text-gray-400 hover:text-white"
+                ? "text-ts-orange border-b-2 border-ts-orange/30"
+                : "text-white/60 hover:text-white"
             }`}
           >
             Experience
@@ -216,8 +216,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             onClick={() => setActiveTab("portfolio")}
             className={`px-4 py-2 font-medium ${
               activeTab === "portfolio"
-                ? "text-orange-500 border-b-2 border-orange-500"
-                : "text-gray-400 hover:text-white"
+                ? "text-ts-orange border-b-2 border-ts-orange/30"
+                : "text-white/60 hover:text-white"
             }`}
           >
             Portfolio
@@ -226,8 +226,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             onClick={() => setActiveTab("reviews")}
             className={`px-4 py-2 font-medium ${
               activeTab === "reviews"
-                ? "text-orange-500 border-b-2 border-orange-500"
-                : "text-gray-400 hover:text-white"
+                ? "text-ts-orange border-b-2 border-ts-orange/30"
+                : "text-white/60 hover:text-white"
             }`}
           >
             RECOMMENDATIONS
@@ -242,7 +242,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
               {helper.bio && (
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-3">About</h3>
-                  <p className="text-gray-300 leading-relaxed">{helper.bio}</p>
+                  <p className="text-white/70 leading-relaxed">{helper.bio}</p>
                 </div>
               )}
 
@@ -252,7 +252,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                   <h3 className="text-lg font-semibold text-white mb-3">Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {helper.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="bg-navy-600 text-gray-300">
+                      <Badge key={index} variant="secondary" className="bg-tsCard text-white/70">
                         {skill}
                       </Badge>
                     ))}
@@ -264,7 +264,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
               {helper.transportationMethod && (
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-3">Transportation</h3>
-                  <div className="text-gray-300">
+                  <div className="text-white/70">
                     <p>Method: {helper.transportationMethod}</p>
                     {helper.maxTravelDistance && (
                       <p>Travel radius: {helper.maxTravelDistance} miles</p>
@@ -281,19 +281,19 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                     {platformJobs.slice(0, 3).map((job, index) => (
                       <div
                         key={index}
-                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                        className="bg-tsCard p-4 rounded-lg border border-white/10"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
-                            <p className="text-orange-400 text-sm">{job.company}</p>
+                            <p className="text-ts-orange text-sm">{job.company}</p>
                           </div>
-                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50">
+                          <Badge className="bg-ts-orange/20 text-ts-orange border-ts-orange/30">
                             TradeScout
                           </Badge>
                         </div>
-                        <p className="text-gray-300 text-sm mb-2">{job.description}</p>
-                        <p className="text-gray-400 text-xs">
+                        <p className="text-white/70 text-sm mb-2">{job.description}</p>
+                        <p className="text-white/60 text-xs">
                           {formatDate(job.startDate)} -{" "}
                           {job.endDate ? formatDate(job.endDate) : "Present"}
                         </p>
@@ -311,26 +311,26 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
               {platformJobs.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                    <Briefcase className="h-5 w-5 mr-2 text-orange-500" />
+                    <Briefcase className="h-5 w-5 mr-2 text-ts-orange" />
                     TradeScout Experience
                   </h3>
                   <div className="space-y-4">
                     {platformJobs.map((job, index) => (
                       <div
                         key={index}
-                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                        className="bg-tsCard p-4 rounded-lg border border-white/10"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <h4 className="font-medium text-white">{job.jobTitle}</h4>
-                            <p className="text-orange-400">{job.company}</p>
+                            <p className="text-ts-orange">{job.company}</p>
                           </div>
-                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50">
+                          <Badge className="bg-ts-orange/20 text-ts-orange border-ts-orange/30">
                             Platform Job
                           </Badge>
                         </div>
-                        <p className="text-gray-300 mb-3">{job.description}</p>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-white/70 mb-3">{job.description}</p>
+                        <p className="text-white/60 text-sm">
                           {formatDate(job.startDate)} -{" "}
                           {job.endDate ? formatDate(job.endDate) : "Present"}
                         </p>
@@ -351,7 +351,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                     {otherJobs.map((job, index) => (
                       <div
                         key={index}
-                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                        className="bg-tsCard p-4 rounded-lg border border-white/10"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -364,8 +364,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                             </Badge>
                           )}
                         </div>
-                        <p className="text-gray-300 mb-3">{job.description}</p>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-white/70 mb-3">{job.description}</p>
+                        <p className="text-white/60 text-sm">
                           {formatDate(job.startDate)} -{" "}
                           {job.endDate ? formatDate(job.endDate) : "Present"}
                         </p>
@@ -386,15 +386,15 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                     {helper.education.map((edu, index) => (
                       <div
                         key={index}
-                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                        className="bg-tsCard p-4 rounded-lg border border-white/10"
                       >
                         <h4 className="font-medium text-white">{edu.degree}</h4>
                         <p className="text-purple-400">{edu.school}</p>
                         {edu.fieldOfStudy && (
-                          <p className="text-gray-300 text-sm">{edu.fieldOfStudy}</p>
+                          <p className="text-white/70 text-sm">{edu.fieldOfStudy}</p>
                         )}
                         {edu.graduationYear && (
-                          <p className="text-gray-400 text-sm">Graduated {edu.graduationYear}</p>
+                          <p className="text-white/60 text-sm">Graduated {edu.graduationYear}</p>
                         )}
                       </div>
                     ))}
@@ -413,16 +413,16 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                     {helper.certifications.map((cert, index) => (
                       <div
                         key={index}
-                        className="bg-navy-700 p-4 rounded-lg border border-navy-600"
+                        className="bg-tsCard p-4 rounded-lg border border-white/10"
                       >
                         <h4 className="font-medium text-white">{cert.name}</h4>
                         <p className="text-yellow-400">{cert.issuer}</p>
                         <div className="flex items-center justify-between mt-2">
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-white/60 text-sm">
                             Issued: {formatDate(cert.issueDate)}
                           </p>
                           {cert.expirationDate && (
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-white/60 text-sm">
                               Expires: {formatDate(cert.expirationDate)}
                             </p>
                           )}
@@ -441,7 +441,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
               {helper.portfolioItems && helper.portfolioItems.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {helper.portfolioItems.map((item, index) => (
-                    <div key={index} className="bg-navy-700 p-4 rounded-lg border border-navy-600">
+                    <div key={index} className="bg-tsCard p-4 rounded-lg border border-white/10">
                       {item.imageUrl && (
                         <img
                           src={item.imageUrl}
@@ -452,24 +452,24 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                       <div className="flex items-start justify-between mb-2">
                         <h4 className="font-medium text-white">{item.title}</h4>
                         {item.fromPlatform && (
-                          <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/50">
+                          <Badge className="bg-ts-orange/20 text-ts-orange border-ts-orange/30">
                             TradeScout
                           </Badge>
                         )}
                       </div>
-                      <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                      <p className="text-white/70 text-sm mb-3">{item.description}</p>
                       <div className="flex flex-wrap gap-1 mb-2">
                         {item.skills.map((skill, skillIndex) => (
                           <Badge
                             key={skillIndex}
                             variant="secondary"
-                            className="text-xs bg-navy-600 text-gray-300"
+                            className="text-xs bg-tsCard text-white/70"
                           >
                             {skill}
                           </Badge>
                         ))}
                       </div>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-white/60 text-xs">
                         Completed: {formatDate(item.completionDate)}
                       </p>
                     </div>
@@ -477,8 +477,8 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">No portfolio items yet</p>
+                  <User className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                  <p className="text-white/60">No portfolio items yet</p>
                 </div>
               )}
             </div>
@@ -488,9 +488,9 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">RECOMMENDATIONS & Ratings</h3>
               <div className="text-center py-8">
-                <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">RECOMMENDATIONS will be loaded here</p>
-                <p className="text-gray-500 text-sm">
+                <Star className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                <p className="text-white/60">RECOMMENDATIONS will be loaded here</p>
+                <p className="text-white/60 text-sm">
                   This feature connects to the worker RECOMMENDATIONS system
                 </p>
               </div>

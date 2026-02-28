@@ -110,7 +110,7 @@ export function StateCountySelector({
     <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
       {/* State Selector */}
       <div>
-        <Label className="block text-sm font-medium text-tsTextMuted mb-2">State</Label>
+        <Label className="block text-sm font-medium text-white/60 mb-2">State</Label>
         <Select
           value={currentState}
           onValueChange={handleStateChange}
@@ -144,7 +144,7 @@ export function StateCountySelector({
 
       {/* County Selector */}
       <div>
-        <Label className="block text-sm font-medium text-tsTextMuted mb-2">
+        <Label className="block text-sm font-medium text-white/60 mb-2">
           {subdivisionTypeCapitalized}
         </Label>
         <Select

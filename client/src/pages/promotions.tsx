@@ -86,7 +86,7 @@ const Promotions = memo(function Promotions() {
       case 'Active': return 'bg-emerald-600 hover:bg-emerald-700';
       case 'Paused': return 'bg-yellow-600 hover:bg-yellow-700';
       case 'Ended': return 'bg-red-600 hover:bg-red-700';
-      default: return 'bg-gray-600 hover:bg-gray-700';
+      default: return 'bg-white/10 hover:bg-white/10';
     }
   };
 
@@ -96,14 +96,14 @@ const Promotions = memo(function Promotions() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Promotion Manager</h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-xl text-white/70">
             Create and manage promotional campaigns to attract more customers
           </p>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-tsCard/50 border-tsBorder">
+          <Card className="bg-tsCard/50 border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-600/20 rounded-lg">
@@ -111,27 +111,27 @@ const Promotions = memo(function Promotions() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">2,773</p>
-                  <p className="text-gray-400 text-sm">Total Views</p>
+                  <p className="text-white/60 text-sm">Total Views</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-tsCard/50 border-tsBorder">
+          <Card className="bg-tsCard/50 border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-orange-600/20 rounded-lg">
-                  <Target className="w-6 h-6 text-orange-400" />
+                <div className="p-3 bg-ts-orange-dark/20 rounded-lg">
+                  <Target className="w-6 h-6 text-ts-orange" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">312</p>
-                  <p className="text-gray-400 text-sm">Clicks</p>
+                  <p className="text-white/60 text-sm">Clicks</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-tsCard/50 border-tsBorder">
+          <Card className="bg-tsCard/50 border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-emerald-600/20 rounded-lg">
@@ -139,13 +139,13 @@ const Promotions = memo(function Promotions() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">43</p>
-                  <p className="text-gray-400 text-sm">Conversions</p>
+                  <p className="text-white/60 text-sm">Conversions</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-tsCard/50 border-tsBorder">
+          <Card className="bg-tsCard/50 border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-purple-600/20 rounded-lg">
@@ -153,7 +153,7 @@ const Promotions = memo(function Promotions() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">$666</p>
-                  <p className="text-gray-400 text-sm">Total Spent</p>
+                  <p className="text-white/60 text-sm">Total Spent</p>
                 </div>
               </div>
             </CardContent>
@@ -162,76 +162,76 @@ const Promotions = memo(function Promotions() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-tsCard border border-tsBorder">
-            <TabsTrigger value="active" className="data-[state=active]:bg-orange-600">Active Promotions</TabsTrigger>
-            <TabsTrigger value="create" className="data-[state=active]:bg-orange-600">Create New</TabsTrigger>
-            <TabsTrigger value="templates" className="data-[state=active]:bg-orange-600">Templates</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-tsCard border border-white/10">
+            <TabsTrigger value="active" className="data-[state=active]:bg-ts-orange-dark">Active Promotions</TabsTrigger>
+            <TabsTrigger value="create" className="data-[state=active]:bg-ts-orange-dark">Create New</TabsTrigger>
+            <TabsTrigger value="templates" className="data-[state=active]:bg-ts-orange-dark">Templates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
-            <Card className="bg-tsCard/50 border-tsBorder">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Megaphone className="w-5 h-5 text-orange-500" />
+                  <Megaphone className="w-5 h-5 text-ts-orange" />
                   Active Promotions
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-white/60">
                   Monitor and manage your current promotional campaigns
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {activePromotions.map((promo) => (
-                    <div key={promo.id} className="p-4 bg-slate-700/30 rounded-lg">
+                    <div key={promo.id} className="p-4 bg-white/10 rounded-lg">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <h3 className="font-semibold text-white mb-1">{promo.title}</h3>
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline" className="border-orange-500 text-orange-400">
+                            <Badge variant="outline" className="border-ts-orange/30 text-ts-orange">
                               {promo.type}
                             </Badge>
                             <Badge className={getStatusColor(promo.status)}>
                               {promo.status}
                             </Badge>
                           </div>
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-white/60 text-sm">
                             <Clock className="w-4 h-4 inline mr-1" />
                             Ends: {promo.endDate}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-orange-400">{promo.value}</p>
-                          <p className="text-sm text-gray-400">Discount Value</p>
+                          <p className="text-2xl font-bold text-ts-orange">{promo.value}</p>
+                          <p className="text-sm text-white/60">Discount Value</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                         <div className="text-center p-3 bg-tsCard/50 rounded-lg">
                           <p className="text-lg font-bold text-blue-400">{promo.views}</p>
-                          <p className="text-xs text-gray-400">Views</p>
+                          <p className="text-xs text-white/60">Views</p>
                         </div>
                         <div className="text-center p-3 bg-tsCard/50 rounded-lg">
-                          <p className="text-lg font-bold text-orange-400">{promo.clicks}</p>
-                          <p className="text-xs text-gray-400">Clicks</p>
+                          <p className="text-lg font-bold text-ts-orange">{promo.clicks}</p>
+                          <p className="text-xs text-white/60">Clicks</p>
                         </div>
                         <div className="text-center p-3 bg-tsCard/50 rounded-lg">
                           <p className="text-lg font-bold text-emerald-400">{promo.conversions}</p>
-                          <p className="text-xs text-gray-400">Conversions</p>
+                          <p className="text-xs text-white/60">Conversions</p>
                         </div>
                         <div className="text-center p-3 bg-tsCard/50 rounded-lg">
                           <p className="text-lg font-bold text-purple-400">{promo.spent}</p>
-                          <p className="text-xs text-gray-400">Spent</p>
+                          <p className="text-xs text-white/60">Spent</p>
                         </div>
                         <div className="text-center p-3 bg-tsCard/50 rounded-lg">
-                          <p className="text-lg font-bold text-gray-400">{promo.budget}</p>
-                          <p className="text-xs text-gray-400">Budget</p>
+                          <p className="text-lg font-bold text-white/60">{promo.budget}</p>
+                          <p className="text-xs text-white/60">Budget</p>
                         </div>
                       </div>
 
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline">Edit</Button>
                         <Button size="sm" variant="outline">Pause</Button>
-                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">View Details</Button>
+                        <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">View Details</Button>
                       </div>
                     </div>
                   ))}
@@ -241,10 +241,10 @@ const Promotions = memo(function Promotions() {
           </TabsContent>
 
           <TabsContent value="create">
-            <Card className="bg-tsCard/50 border-tsBorder">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Create New Promotion</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-white/60">
                   Set up a new promotional campaign to attract customers
                 </CardDescription>
               </CardHeader>
@@ -253,20 +253,20 @@ const Promotions = memo(function Promotions() {
                   {/* Basic Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="promo-title" className="text-gray-300">Promotion Title</Label>
+                      <Label htmlFor="promo-title" className="text-white/70">Promotion Title</Label>
                       <Input 
                         id="promo-title"
                         placeholder="e.g., Spring Kitchen Special"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white/10 border-white/15 text-white"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="promo-type" className="text-gray-300">Promotion Type</Label>
+                      <Label htmlFor="promo-type" className="text-white/70">Promotion Type</Label>
                       <Select value={promoType} onValueChange={setPromoType}>
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-white/10 border-white/15 text-white">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-700 border-slate-600">
+                        <SelectContent className="bg-white/10 border-white/15">
                           <SelectItem value="discount">Percentage Discount</SelectItem>
                           <SelectItem value="fixed">Fixed Amount Off</SelectItem>
                           <SelectItem value="service">Free Service</SelectItem>
@@ -279,41 +279,41 @@ const Promotions = memo(function Promotions() {
                   {/* Promotion Details */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="promo-value" className="text-gray-300">
+                      <Label htmlFor="promo-value" className="text-white/70">
                         {promoType === 'discount' ? 'Discount Percentage' : 
                          promoType === 'fixed' ? 'Amount Off' : 'Value'}
                       </Label>
                       <Input 
                         id="promo-value"
                         placeholder={promoType === 'discount' ? '15' : promoType === 'fixed' ? '500' : 'Free'}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white/10 border-white/15 text-white"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="start-date" className="text-gray-300">Start Date</Label>
+                      <Label htmlFor="start-date" className="text-white/70">Start Date</Label>
                       <Input 
                         id="start-date"
                         type="date"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white/10 border-white/15 text-white"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="end-date" className="text-gray-300">End Date</Label>
+                      <Label htmlFor="end-date" className="text-white/70">End Date</Label>
                       <Input 
                         id="end-date"
                         type="date"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white/10 border-white/15 text-white"
                       />
                     </div>
                   </div>
 
                   {/* Description */}
                   <div>
-                    <Label htmlFor="description" className="text-gray-300">Description</Label>
+                    <Label htmlFor="description" className="text-white/70">Description</Label>
                     <Textarea 
                       id="description"
                       placeholder="Describe your promotion in detail. What services are included? Any limitations or requirements?"
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-white/10 border-white/15 text-white"
                       rows={4}
                     />
                   </div>
@@ -321,20 +321,20 @@ const Promotions = memo(function Promotions() {
                   {/* Budget and Targeting */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="budget" className="text-gray-300">Daily Budget</Label>
+                      <Label htmlFor="budget" className="text-white/70">Daily Budget</Label>
                       <Input 
                         id="budget"
                         placeholder="50"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white/10 border-white/15 text-white"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="target-area" className="text-gray-300">Target Area</Label>
+                      <Label htmlFor="target-area" className="text-white/70">Target Area</Label>
                       <Select>
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-white/10 border-white/15 text-white">
                           <SelectValue placeholder="Select county" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-700 border-slate-600">
+                        <SelectContent className="bg-white/10 border-white/15">
                           <SelectItem value="all">All Service Areas</SelectItem>
                           <SelectItem value="la">Los Angeles County</SelectItem>
                           <SelectItem value="oc">Orange County</SelectItem>
@@ -345,19 +345,19 @@ const Promotions = memo(function Promotions() {
                   </div>
 
                   {/* Preview */}
-                  <div className="p-4 bg-orange-600/10 border border-orange-600/20 rounded-lg">
-                    <h4 className="font-semibold text-orange-400 mb-2">Promotion Preview</h4>
-                    <div className="p-4 bg-slate-700/50 rounded-lg">
+                  <div className="p-4 bg-ts-orange-dark/10 border border-ts-orange/30 rounded-lg">
+                    <h4 className="font-semibold text-ts-orange mb-2">Promotion Preview</h4>
+                    <div className="p-4 bg-white/10 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
-                        <Percent className="w-5 h-5 text-orange-400" />
+                        <Percent className="w-5 h-5 text-ts-orange" />
                         <h3 className="font-bold text-white">Spring Kitchen Special</h3>
                       </div>
-                      <p className="text-gray-300 text-sm mb-3">
+                      <p className="text-white/70 text-sm mb-3">
                         Save 15% on all kitchen renovation projects booked this month
                       </p>
                       <div className="flex items-center justify-between">
-                        <Badge className="bg-orange-600 hover:bg-orange-700">15% OFF</Badge>
-                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                        <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">15% OFF</Badge>
+                        <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                           Claim Offer
                         </Button>
                       </div>
@@ -369,7 +369,7 @@ const Promotions = memo(function Promotions() {
                     <Button variant="outline" className="flex-1">
                       Save as Draft
                     </Button>
-                    <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                    <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
                       Launch Promotion
                     </Button>
                   </div>
@@ -379,10 +379,10 @@ const Promotions = memo(function Promotions() {
           </TabsContent>
 
           <TabsContent value="templates">
-            <Card className="bg-tsCard/50 border-tsBorder">
+            <Card className="bg-tsCard/50 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Promotion Templates</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-white/60">
                   Choose from proven promotion templates to get started quickly
                 </CardDescription>
               </CardHeader>
@@ -393,26 +393,26 @@ const Promotions = memo(function Promotions() {
                       key={index} 
                       className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
                         template.recommended 
-                          ? 'border-orange-500 bg-orange-500/10' 
-                          : 'border-slate-600 bg-slate-700/30 hover:border-slate-500'
+                          ? 'border-ts-orange/30 bg-ts-orange/10' 
+                          : 'border-white/15 bg-white/10 hover:border-white/15'
                       }`}
                     >
                       {template.recommended && (
-                        <Badge className="mb-3 bg-orange-600 hover:bg-orange-700">
+                        <Badge className="mb-3 bg-ts-orange-dark hover:bg-ts-orange-dark">
                           Recommended
                         </Badge>
                       )}
                       
                       <h3 className="text-lg font-semibold text-white mb-2">{template.title}</h3>
-                      <p className="text-gray-400 text-sm mb-4">{template.description}</p>
+                      <p className="text-white/60 text-sm mb-4">{template.description}</p>
                       
                       <div className="flex items-center gap-2 mb-4">
-                        <Badge variant="outline" className="border-gray-500 text-gray-400">
+                        <Badge variant="outline" className="border-white/15 text-white/60">
                           {template.type}
                         </Badge>
                       </div>
                       
-                      <Button size="sm" className="w-full bg-orange-600 hover:bg-orange-700">
+                      <Button size="sm" className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                         Use Template
                       </Button>
                     </div>

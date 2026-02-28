@@ -76,19 +76,19 @@ export function UserSatisfactionWidget({
       case 'happy': return 'text-green-500 bg-green-500/20 border-green-500/30';
       case 'neutral': return 'text-yellow-500 bg-yellow-500/20 border-yellow-500/30';
       case 'sad': return 'text-red-500 bg-red-500/20 border-red-500/30';
-      default: return 'text-gray-500 bg-gray-500/20 border-gray-500/30';
+      default: return 'text-white/60 bg-white/10 border-white/15';
     }
   };
 
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80 notification-bounce">
-      <Card className="bg-navy-700 border-navy-600 shadow-2xl">
+      <Card className="bg-tsCard border-white/10 shadow-2xl">
         <CardContent className="p-6">
           {/* Close Button */}
           {onClose && (
             <button
               onClick={onClose}
-              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+              className="absolute top-2 right-2 text-white/60 hover:text-white"
             >
               <X className="h-4 w-4" />
             </button>
@@ -102,7 +102,7 @@ export function UserSatisfactionWidget({
               
               {/* Star Rating */}
               <div className="space-y-2">
-                <p className="text-sm text-gray-300">Rate your experience:</p>
+                <p className="text-sm text-white/70">Rate your experience:</p>
                 <div className="flex space-x-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -113,7 +113,7 @@ export function UserSatisfactionWidget({
                       <Star
                         className={cn(
                           "h-6 w-6",
-                          star <= rating ? "text-yellow-500 fill-current" : "text-gray-500"
+                          star <= rating ? "text-yellow-500 fill-current" : "text-white/60"
                         )}
                       />
                     </button>
@@ -123,7 +123,7 @@ export function UserSatisfactionWidget({
 
               {/* Emoji Satisfaction */}
               <div className="space-y-2">
-                <p className="text-sm text-gray-300">Quick feedback:</p>
+                <p className="text-sm text-white/70">Quick feedback:</p>
                 <div className="flex space-x-3">
                   {[
                     { type: 'happy', icon: Smile, label: 'Great!' },
@@ -137,7 +137,7 @@ export function UserSatisfactionWidget({
                         "flex flex-col items-center p-3 rounded-lg border transition-all",
                         satisfaction === type 
                           ? getSatisfactionColor(type)
-                          : "text-gray-500 bg-gray-500/10 border-gray-500/20 hover:border-gray-500/40"
+                          : "text-white/60 bg-white/10 border-white/15 hover:border-white/15"
                       )}
                     >
                       <Icon className="h-6 w-6 mb-1" />
@@ -167,7 +167,7 @@ export function UserSatisfactionWidget({
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="What could we improve? Any specific features you love?"
-                className="w-full p-3 bg-navy-800 border border-navy-600 rounded-lg text-white text-sm resize-none"
+                className="w-full p-3 bg-tsCard border border-white/10 rounded-lg text-white text-sm resize-none"
                 rows={4}
               />
 
@@ -209,7 +209,7 @@ export function UserSatisfactionWidget({
                 <h3 className="text-lg font-semibold text-white mb-2">
                   Thank you!
                 </h3>
-                <p className="text-sm text-gray-300">
+                <p className="text-sm text-white/70">
                   Your feedback helps us make TradeScout better for everyone.
                 </p>
                 {rating >= 4 && (

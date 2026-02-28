@@ -26,12 +26,12 @@ export default function RoleDirectory() {
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold text-white">TradeScout Role Directory</h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl text-white/70 max-w-3xl mx-auto">
             Comprehensive guide to user roles, permissions, and trade categories across the platform
           </p>
           {isAuthenticated && user && (
             <div className="flex items-center justify-center gap-4">
-              <span className="text-gray-400">Your Role:</span>
+              <span className="text-white/60">Your Role:</span>
               <RoleBadge role={currentUserRole} size="lg" />
               <RoleHierarchy role={currentUserRole} showLevel />
             </div>
@@ -39,13 +39,13 @@ export default function RoleDirectory() {
         </div>
 
         {/* User Roles Section */}
-        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-6 w-6" />
               User Role Hierarchy
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-white/70">
               Platform roles organized by authority level and permissions
             </CardDescription>
           </CardHeader>
@@ -60,7 +60,7 @@ export default function RoleDirectory() {
                     {categoryName === "service_provider" && (
                       <Briefcase className="h-5 w-5 text-blue-500" />
                     )}
-                    {categoryName === "customer" && <Building className="h-5 w-5 text-gray-500" />}
+                    {categoryName === "customer" && <Building className="h-5 w-5 text-white/60" />}
                     <h3 className="text-xl font-semibold text-white capitalize">
                       {categoryName.replace("_", " ")} Roles
                     </h3>
@@ -79,19 +79,19 @@ export default function RoleDirectory() {
                     return (
                       <Card
                         key={role}
-                        className={`bg-slate-700/50 border-slate-600 ${isCurrentRole ? "ring-2 ring-orange-500" : ""}`}
+                        className={`bg-white/10 border-white/15 ${isCurrentRole ? "ring-2 ring-ts-orange/70" : ""}`}
                       >
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <RoleBadge role={role as UserRole} size="md" />
                             {isCurrentRole && (
-                              <Badge className="bg-orange-500 text-white text-xs">You</Badge>
+                              <Badge className="bg-ts-orange text-white text-xs">You</Badge>
                             )}
                           </div>
                           <RoleHierarchy role={role as UserRole} showLevel />
                         </CardHeader>
                         <CardContent className="space-y-3">
-                          <div className="text-sm text-gray-300">
+                          <div className="text-sm text-white/70">
                             Authority Level:{" "}
                             <span className="font-medium text-white">{hierarchyLevel}</span>
                           </div>
@@ -113,7 +113,7 @@ export default function RoleDirectory() {
                                   />
                                 ))}
                               {Object.values(permissions).filter(Boolean).length > 4 && (
-                                <div className="text-xs text-gray-400 mt-1">
+                                <div className="text-xs text-white/60 mt-1">
                                   +{Object.values(permissions).filter(Boolean).length - 4} more
                                   permissions
                                 </div>
@@ -131,13 +131,13 @@ export default function RoleDirectory() {
         </Card>
 
         {/* Trade Categories Section */}
-        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Hammer className="h-6 w-6" />
               Trade Categories
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-white/70">
               Specialized contractor categories organized by industry sector
             </CardDescription>
           </CardHeader>
@@ -162,13 +162,13 @@ export default function RoleDirectory() {
         </Card>
 
         {/* Role Permissions Matrix */}
-        <Card className="border-slate-700" style={{ backgroundColor: "var(--surface-card)" }}>
+        <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Shield className="h-6 w-6" />
               Permissions Overview
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-white/70">
               Quick reference for role-based permissions across the platform
             </CardDescription>
           </CardHeader>
@@ -176,7 +176,7 @@ export default function RoleDirectory() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-600">
+                  <tr className="border-b border-white/15">
                     <th className="text-left py-2 text-white">Role</th>
                     <th className="text-center py-2 text-white">Level</th>
                     <th className="text-center py-2 text-white">Admin Panel</th>
@@ -195,7 +195,7 @@ export default function RoleDirectory() {
                       const level = getRoleHierarchyLevel(role as UserRole);
 
                       return (
-                        <tr key={role} className="border-b border-slate-700/50">
+                        <tr key={role} className="border-b border-white/10">
                           <td className="py-2">
                             <RoleBadge role={role as UserRole} size="sm" />
                           </td>

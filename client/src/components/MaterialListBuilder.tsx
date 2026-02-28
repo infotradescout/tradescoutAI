@@ -257,7 +257,7 @@ export function MaterialListBuilder({
           Create Material List
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-navy-700 border-navy-600 max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-tsCard border-white/10 max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
@@ -269,7 +269,7 @@ export function MaterialListBuilder({
           {/* Basic Info */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">List Title *</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">List Title *</label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -279,7 +279,7 @@ export function MaterialListBuilder({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Description</label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -334,11 +334,11 @@ export function MaterialListBuilder({
             <div className="space-y-4">
               {Array.isArray(items)
                 ? items.map((item, index) => (
-                    <Card key={index} className="bg-navy-600 border-navy-500">
+                    <Card key={index} className="bg-tsCard border-white/10">
                       <CardContent className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                           <div className="md:col-span-2">
-                            <label className="block text-xs text-gray-400 mb-1">Item Name *</label>
+                            <label className="block text-xs text-white/60 mb-1">Item Name *</label>
                             <Input
                               value={item.name}
                               onChange={(e) => updateItem(index, "name", e.target.value)}
@@ -348,7 +348,7 @@ export function MaterialListBuilder({
                           </div>
 
                           <div>
-                            <label className="block text-xs text-gray-400 mb-1">Quantity</label>
+                            <label className="block text-xs text-white/60 mb-1">Quantity</label>
                             <Input
                               type="number"
                               min="1"
@@ -361,7 +361,7 @@ export function MaterialListBuilder({
                           </div>
 
                           <div>
-                            <label className="block text-xs text-gray-400 mb-1">
+                            <label className="block text-xs text-white/60 mb-1">
                               Unit Cost ($)
                             </label>
                             <Input
@@ -377,7 +377,7 @@ export function MaterialListBuilder({
                           </div>
 
                           <div>
-                            <label className="block text-xs text-gray-400 mb-1">SKU/Model #</label>
+                            <label className="block text-xs text-white/60 mb-1">SKU/Model #</label>
                             <Input
                               value={item.sku}
                               onChange={(e) => updateItem(index, "sku", e.target.value)}
@@ -392,7 +392,7 @@ export function MaterialListBuilder({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => window.open(generateHomeDepotLink(item), "_blank")}
-                                className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
@@ -467,7 +467,7 @@ export function MaterialListBuilder({
                                 </div>
                               )}
                           </div>
-                          <div className="text-sm font-medium text-orange-400">
+                          <div className="text-sm font-medium text-ts-orange">
                             Subtotal: ${(item.quantity * item.estimatedCost).toFixed(2)}
                           </div>
                         </div>
@@ -493,14 +493,14 @@ export function MaterialListBuilder({
           </div>
 
           {/* Total */}
-          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-orange-500/30">
+          <Card className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 border-ts-orange/30">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-orange-400" />
+                  <DollarSign className="h-5 w-5 text-ts-orange" />
                   <span className="text-lg font-semibold text-white">Total Estimated Cost</span>
                 </div>
-                <div className="text-2xl font-bold text-orange-400">
+                <div className="text-2xl font-bold text-ts-orange">
                   ${calculateTotal().toFixed(2)}
                 </div>
               </div>
@@ -512,7 +512,7 @@ export function MaterialListBuilder({
             <Button
               variant="outline"
               onClick={() => setIsOpen(false)}
-              className="border-gray-600 text-gray-300"
+              className="border-white/15 text-white/70"
             >
               Cancel
             </Button>

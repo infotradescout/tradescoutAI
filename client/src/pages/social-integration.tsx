@@ -120,11 +120,11 @@ const SocialIntegration = memo(function SocialIntegration() {
         </div>
 
         <Tabs defaultValue="accounts" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-navy-800/50 backdrop-blur-sm">
-            <TabsTrigger value="accounts" className="data-[state=active]:bg-orange-600">Connected Accounts</TabsTrigger>
-            <TabsTrigger value="sharing" className="data-[state=active]:bg-orange-600">Auto-Sharing</TabsTrigger>
-            <TabsTrigger value="templates" className="data-[state=active]:bg-orange-600">Post Templates</TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-orange-600">Social Analytics</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-tsCard/50 backdrop-blur-sm">
+            <TabsTrigger value="accounts" className="data-[state=active]:bg-ts-orange-dark">Connected Accounts</TabsTrigger>
+            <TabsTrigger value="sharing" className="data-[state=active]:bg-ts-orange-dark">Auto-Sharing</TabsTrigger>
+            <TabsTrigger value="templates" className="data-[state=active]:bg-ts-orange-dark">Post Templates</TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-ts-orange-dark">Social Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="accounts" className="mt-6">
@@ -132,7 +132,7 @@ const SocialIntegration = memo(function SocialIntegration() {
               {socialPlatforms.map((platform) => {
                 const IconComponent = platform.icon;
                 return (
-                  <Card key={platform.name} className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+                  <Card key={platform.name} className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                           </div>
                           <div>
                             <CardTitle className="text-white">{platform.name}</CardTitle>
-                            <Badge className={platform.connected ? "bg-green-600 hover:bg-green-700" : "bg-gray-600 hover:bg-gray-700"}>
+                            <Badge className={platform.connected ? "bg-green-600 hover:bg-green-700" : "bg-white/10 hover:bg-white/10"}>
                               {platform.connected ? 'Connected' : 'Not Connected'}
                             </Badge>
                           </div>
@@ -154,22 +154,22 @@ const SocialIntegration = memo(function SocialIntegration() {
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="text-gray-400">Followers</p>
+                              <p className="text-white/60">Followers</p>
                               <p className="text-white font-semibold">{platform.followers.toLocaleString()}</p>
                             </div>
                             <div>
-                              <p className="text-gray-400">Engagement</p>
+                              <p className="text-white/60">Engagement</p>
                               <p className="text-white font-semibold">{platform.engagement}</p>
                             </div>
                           </div>
                           
                           <div>
-                            <p className="text-gray-400 text-sm">Last Post</p>
+                            <p className="text-white/60 text-sm">Last Post</p>
                             <p className="text-white text-sm">{platform.lastPost}</p>
                           </div>
 
                           <div className="flex gap-2">
-                            <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                            <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
                               Manage
                             </Button>
                             <Button variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/20">
@@ -179,10 +179,10 @@ const SocialIntegration = memo(function SocialIntegration() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-white/60 text-sm">
                             Connect your {platform.name} account to automatically share your TradeScout content
                           </p>
-                          <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                          <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                             Connect {platform.name}
                           </Button>
                         </div>
@@ -196,10 +196,10 @@ const SocialIntegration = memo(function SocialIntegration() {
 
           <TabsContent value="sharing" className="mt-6">
             <div className="space-y-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Auto-Sharing Settings</CardTitle>
-                  <p className="text-gray-400">Automatically share your TradeScout activity to social media</p>
+                  <p className="text-white/60">Automatically share your TradeScout activity to social media</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -211,10 +211,10 @@ const SocialIntegration = memo(function SocialIntegration() {
                       { label: 'Achievement badges', description: 'Share when you earn new badges or certifications', enabled: true },
                       { label: 'Referral milestones', description: 'Share referral program achievements', enabled: false }
                     ].map((setting, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-navy-700/50 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-4 bg-tsCard/50 rounded-lg">
                         <div>
                           <h4 className="text-white font-medium">{setting.label}</h4>
-                          <p className="text-gray-400 text-sm">{setting.description}</p>
+                          <p className="text-white/60 text-sm">{setting.description}</p>
                         </div>
                         <Switch checked={setting.enabled} />
                       </div>
@@ -223,7 +223,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Platform-Specific Settings</CardTitle>
                 </CardHeader>
@@ -232,7 +232,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                     {socialPlatforms.filter(p => p.connected).map((platform) => {
                       const IconComponent = platform.icon;
                       return (
-                        <div key={platform.name} className="flex items-center justify-between p-4 bg-navy-700/50 rounded-lg">
+                        <div key={platform.name} className="flex items-center justify-between p-4 bg-tsCard/50 rounded-lg">
                           <div className="flex items-center gap-3">
                             <div className={`p-2 rounded ${platform.color}`}>
                               <IconComponent className="h-4 w-4 text-white" />
@@ -240,7 +240,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                             <span className="text-white">{platform.name}</span>
                           </div>
                           <div className="flex items-center gap-4">
-                            <label className="text-gray-400 text-sm">Auto-post:</label>
+                            <label className="text-white/60 text-sm">Auto-post:</label>
                             <Switch />
                           </div>
                         </div>
@@ -254,31 +254,31 @@ const SocialIntegration = memo(function SocialIntegration() {
 
           <TabsContent value="templates" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Post Templates</CardTitle>
-                  <p className="text-gray-400">Pre-written templates for easy social media posting</p>
+                  <p className="text-white/60">Pre-written templates for easy social media posting</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {sharingTemplates.map((template) => (
-                      <div key={template.id} className="p-4 bg-navy-700/50 rounded-lg">
+                      <div key={template.id} className="p-4 bg-tsCard/50 rounded-lg">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="text-white font-medium">{template.name}</h4>
                           <Badge variant="outline">{template.category}</Badge>
                         </div>
-                        <p className="text-gray-300 text-sm mb-3">{template.template}</p>
+                        <p className="text-white/70 text-sm mb-3">{template.template}</p>
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="border-orange-600 text-orange-400 hover:bg-orange-600/20"
+                            className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange-dark/20"
                             onClick={() => copyToClipboard(template.template, template.name)}
                           >
                             {copyStatus === template.name ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                             Copy
                           </Button>
-                          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                          <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                             Edit
                           </Button>
                         </div>
@@ -292,7 +292,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Quick Share Tools</CardTitle>
                 </CardHeader>
@@ -305,7 +305,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                           <Input 
                             value="https://tradescout.com/contractor/mike-construction-llc" 
                             readOnly 
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className="bg-tsCard border-white/10 text-white"
                           />
                           <Button 
                             size="sm" 
@@ -336,7 +336,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                           <Input 
                             value="https://tradescout.com/join?ref=MIKE2024" 
                             readOnly 
-                            className="bg-navy-700 border-navy-600 text-white"
+                            className="bg-tsCard border-white/10 text-white"
                           />
                           <Button 
                             size="sm" 
@@ -347,7 +347,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                           </Button>
                         </div>
                         
-                        <p className="text-gray-400 text-xs">
+                        <p className="text-white/60 text-xs">
                           Earn 10% commission on every new user who signs up with your link
                         </p>
                       </div>
@@ -355,15 +355,15 @@ const SocialIntegration = memo(function SocialIntegration() {
 
                     <div>
                       <h4 className="text-white font-medium mb-3">Business Card Integration</h4>
-                      <div className="bg-navy-700/50 rounded-lg p-4">
+                      <div className="bg-tsCard/50 rounded-lg p-4">
                         <div className="flex items-center gap-3 mb-3">
-                          <Crown className="h-5 w-5 text-orange-400" />
+                          <Crown className="h-5 w-5 text-ts-orange" />
                           <span className="text-white font-medium">Digital Business Card</span>
                         </div>
-                        <p className="text-gray-400 text-sm mb-3">
+                        <p className="text-white/60 text-sm mb-3">
                           Share your TradeScout profile as a digital business card
                         </p>
-                        <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                        <Button className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark">
                           Create Digital Card
                         </Button>
                       </div>
@@ -376,7 +376,7 @@ const SocialIntegration = memo(function SocialIntegration() {
 
           <TabsContent value="analytics" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Social Media Performance</CardTitle>
                 </CardHeader>
@@ -385,7 +385,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                     {socialPlatforms.filter(p => p.connected).map((platform) => {
                       const IconComponent = platform.icon;
                       return (
-                        <div key={platform.name} className="p-4 bg-navy-700/50 rounded-lg">
+                        <div key={platform.name} className="p-4 bg-tsCard/50 rounded-lg">
                           <div className="flex items-center gap-3 mb-4">
                             <div className={`p-2 rounded ${platform.color}`}>
                               <IconComponent className="h-4 w-4 text-white" />
@@ -396,15 +396,15 @@ const SocialIntegration = memo(function SocialIntegration() {
                           <div className="grid grid-cols-3 gap-4 text-center">
                             <div>
                               <div className="text-xl font-bold text-white">{platform.followers}</div>
-                              <div className="text-gray-400 text-xs">Followers</div>
+                              <div className="text-white/60 text-xs">Followers</div>
                             </div>
                             <div>
-                              <div className="text-xl font-bold text-orange-400">{platform.engagement}</div>
-                              <div className="text-gray-400 text-xs">Engagement</div>
+                              <div className="text-xl font-bold text-ts-orange">{platform.engagement}</div>
+                              <div className="text-white/60 text-xs">Engagement</div>
                             </div>
                             <div>
                               <div className="text-xl font-bold text-green-400">+127</div>
-                              <div className="text-gray-400 text-xs">This Month</div>
+                              <div className="text-white/60 text-xs">This Month</div>
                             </div>
                           </div>
                         </div>
@@ -414,15 +414,15 @@ const SocialIntegration = memo(function SocialIntegration() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-navy-800/50 border-navy-600 backdrop-blur-sm">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-white">Referral Traffic</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="text-center p-6 bg-navy-700/50 rounded-lg">
-                      <div className="text-3xl font-bold text-orange-400 mb-2">1,247</div>
-                      <div className="text-gray-400">Total Social Visits</div>
+                    <div className="text-center p-6 bg-tsCard/50 rounded-lg">
+                      <div className="text-3xl font-bold text-ts-orange mb-2">1,247</div>
+                      <div className="text-white/60">Total Social Visits</div>
                       <div className="text-green-400 text-sm">+23% this month</div>
                     </div>
 
@@ -432,7 +432,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                         { source: 'Instagram', visits: 398, conversion: '18%' },
                         { source: 'LinkedIn', visits: 306, conversion: '8%' }
                       ].map((source) => (
-                        <div key={source.source} className="flex justify-between items-center p-3 bg-navy-700/50 rounded-lg">
+                        <div key={source.source} className="flex justify-between items-center p-3 bg-tsCard/50 rounded-lg">
                           <span className="text-white">{source.source}</span>
                           <div className="text-right">
                             <div className="text-white font-medium">{source.visits} visits</div>

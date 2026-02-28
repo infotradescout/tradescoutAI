@@ -64,30 +64,30 @@ export default function OnboardingIntent() {
   };
 
   return (
-    <div className="flex justify-center px-3 py-6 text-tsTextMain">
+    <div className="flex justify-center px-3 py-6 text-white">
       <div className="w-full max-w-xl space-y-2.5">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate(INTENT_ROUTES.community)}
-            className="px-0 text-tsTextMuted hover:text-white hover:bg-transparent"
+            className="px-0 text-white/60 hover:text-white hover:bg-transparent"
           >
             Skip
           </Button>
-          <div className="text-[11px] uppercase tracking-[0.15em] text-tsTextMuted">Step 2/2</div>
+          <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">Step 2/2</div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder">
+        <Card className="bg-tsCard border border-white/10">
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
-                <span className="text-xs uppercase tracking-[0.2em] text-tsTextMuted">
+                <span className="text-xs uppercase tracking-[0.2em] text-white/60">
                   TRADESCOUT
                 </span>
               </div>
             </div>
-            <CardTitle className="text-lg font-semibold text-tsTextMain">Pick your start</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">Pick your start</CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -95,44 +95,44 @@ export default function OnboardingIntent() {
               <button
                 type="button"
                 onClick={() => handleChoose("community")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
               >
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Community</span>
+                  <Users className="h-4 w-4 text-ts-orange" />
+                  <span className="font-medium text-white">Community</span>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChoose("services")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
               >
                 <div className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Find pros</span>
+                  <Briefcase className="h-4 w-4 text-ts-orange" />
+                  <span className="font-medium text-white">Find pros</span>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChoose("business")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
               >
                 <div className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Business</span>
+                  <MessageCircle className="h-4 w-4 text-ts-orange" />
+                  <span className="font-medium text-white">Business</span>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleChoose("tools")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-tsAccent/80 border-tsBorder bg-tsBg hover:border-tsAccent/60 hover:bg-black/40"
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
               >
                 <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-tsAccent" />
-                  <span className="font-medium text-tsTextMain">Scout</span>
+                  <SlidersHorizontal className="h-4 w-4 text-ts-orange" />
+                  <span className="font-medium text-white">Scout</span>
                 </div>
               </button>
             </div>
@@ -141,7 +141,7 @@ export default function OnboardingIntent() {
               <button
                 type="button"
                 onClick={() => handleChoose(null)}
-                className="text-xs text-tsTextMuted underline-offset-2 hover:underline text-left"
+                className="text-xs text-white/60 underline-offset-2 hover:underline text-left"
               >
                 Open community
               </button>

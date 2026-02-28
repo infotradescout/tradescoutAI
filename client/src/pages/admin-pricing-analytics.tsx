@@ -157,9 +157,9 @@ export default function AdminPricingAnalytics() {
           {[1, 2, 3].map(i => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-white/10 rounded mb-4"></div>
+                <div className="h-8 bg-white/10 rounded mb-2"></div>
+                <div className="h-4 bg-white/10 rounded w-1/2"></div>
               </CardContent>
             </Card>
           ))}
@@ -170,25 +170,25 @@ export default function AdminPricingAnalytics() {
 
   const renderOverview = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-300 text-sm">Total Trades Tracked</p>
+              <p className="text-white/70 text-sm">Total Trades Tracked</p>
               <p className="text-2xl font-bold text-white">
                 {Object.keys(analytics?.averageQuotes?.byTrade || {}).length}
               </p>
             </div>
-            <Wrench className="h-8 w-8 text-orange-500" />
+            <Wrench className="h-8 w-8 text-ts-orange" />
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-300 text-sm">Regions with Data</p>
+              <p className="text-white/70 text-sm">Regions with Data</p>
               <p className="text-2xl font-bold text-white">
                 {Object.keys(analytics?.averageQuotes?.byRegion || {}).length}
               </p>
@@ -198,11 +198,11 @@ export default function AdminPricingAnalytics() {
         </CardContent>
       </Card>
 
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-300 text-sm">Popular Projects</p>
+              <p className="text-white/70 text-sm">Popular Projects</p>
               <p className="text-2xl font-bold text-white">
                 {analytics?.popularProjects?.length || 0}
               </p>
@@ -212,11 +212,11 @@ export default function AdminPricingAnalytics() {
         </CardContent>
       </Card>
 
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-300 text-sm">Avg Quote Value</p>
+              <p className="text-white/70 text-sm">Avg Quote Value</p>
               <p className="text-2xl font-bold text-white">
                 ${Math.round((
                   ((Object.values(analytics?.averageQuotes?.byTrade || {}) as Array<{ average: number }>))
@@ -234,7 +234,7 @@ export default function AdminPricingAnalytics() {
 
   const renderPriceFluctuations = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Trade Price Changes</CardTitle>
         </CardHeader>
@@ -244,7 +244,7 @@ export default function AdminPricingAnalytics() {
               <div key={trade.tradeId} className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">{trade.tradeName}</p>
-                  <p className="text-gray-400 text-sm">${trade.currentAvg.toLocaleString()} avg</p>
+                  <p className="text-white/60 text-sm">${trade.currentAvg.toLocaleString()} avg</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {trade.percentChange > 0 ? (
@@ -264,7 +264,7 @@ export default function AdminPricingAnalytics() {
         </CardContent>
       </Card>
 
-      <Card className="bg-navy-700 border-navy-600">
+      <Card className="bg-tsCard border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Regional Price Changes</CardTitle>
         </CardHeader>
@@ -274,7 +274,7 @@ export default function AdminPricingAnalytics() {
               <div key={region.countyId} className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">{region.countyName}, {region.stateCode}</p>
-                  <p className="text-gray-400 text-sm">${region.currentAvg.toLocaleString()} avg</p>
+                  <p className="text-white/60 text-sm">${region.currentAvg.toLocaleString()} avg</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {region.percentChange > 0 ? (
@@ -297,7 +297,7 @@ export default function AdminPricingAnalytics() {
   );
 
   const renderPopularProjects = () => (
-    <Card className="bg-navy-700 border-navy-600">
+    <Card className="bg-tsCard border-white/10">
       <CardHeader>
         <CardTitle className="text-white">Popular Project Types</CardTitle>
       </CardHeader>
@@ -313,12 +313,12 @@ export default function AdminPricingAnalytics() {
                   <p className="text-white font-medium capitalize">
                     {project.projectType.replace(/-/g, ' ')}
                   </p>
-                  <p className="text-gray-400 text-sm">{project.quoteCount} quotes</p>
+                  <p className="text-white/60 text-sm">{project.quoteCount} quotes</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-white font-semibold">${project.averageValue.toLocaleString()}</p>
-                <p className="text-gray-400 text-sm">avg value</p>
+                <p className="text-white/60 text-sm">avg value</p>
               </div>
             </div>
           ))}
@@ -332,27 +332,27 @@ export default function AdminPricingAnalytics() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Pricing Analytics</h1>
-          <p className="text-gray-300">Monitor system-wide market trends across all regions and update calculator pricing</p>
+          <p className="text-white/70">Monitor system-wide market trends across all regions and update calculator pricing</p>
         </div>
         
         <div className="flex items-center gap-4">
           <Select value={timeframe} onValueChange={(value: any) => setTimeframe(value)}>
-            <SelectTrigger className="w-32 bg-navy-600 border-navy-500 text-white">
+            <SelectTrigger className="w-32 bg-tsCard border-white/10 text-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-navy-700 border-navy-600">
+            <SelectContent className="bg-tsCard border-white/10">
               <SelectItem value="7d">Last 7 days</SelectItem>
               <SelectItem value="30d">Last 30 days</SelectItem>
               <SelectItem value="90d">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
           
-          <Button onClick={handleExportData} variant="outline" className="border-navy-400">
+          <Button onClick={handleExportData} variant="outline" className="border-white/15">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
           
-          <Button onClick={handleUpdatePricing} className="bg-orange-500 hover:bg-orange-600">
+          <Button onClick={handleUpdatePricing} className="bg-ts-orange hover:bg-ts-orange-dark">
             <RefreshCw className="h-4 w-4 mr-2" />
             Update Calculator
           </Button>
@@ -370,7 +370,7 @@ export default function AdminPricingAnalytics() {
             key={id}
             variant={selectedView === id ? "default" : "outline"}
             onClick={() => setSelectedView(id as any)}
-            className={selectedView === id ? "bg-orange-500" : "border-navy-400"}
+            className={selectedView === id ? "bg-ts-orange" : "border-white/15"}
           >
             <Icon className="h-4 w-4 mr-2" />
             {label}
@@ -386,7 +386,7 @@ export default function AdminPricingAnalytics() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {renderPopularProjects()}
           
-          <Card className="bg-navy-700 border-navy-600">
+          <Card className="bg-tsCard border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Market Insights</CardTitle>
             </CardHeader>
@@ -397,7 +397,7 @@ export default function AdminPricingAnalytics() {
                   <div className="space-y-2">
                     {analytics?.marketInsights?.topPerformingRegions?.slice(0, 5).map((region: PricingAnalytics['marketInsights']['topPerformingRegions'][number]) => (
                       <div key={`${region.county}-${region.state}`} className="flex justify-between">
-                        <span className="text-gray-300">{region.county}, {region.state}</span>
+                        <span className="text-white/70">{region.county}, {region.state}</span>
                         <span className="text-white">${region.averageQuote.toLocaleString()}</span>
                       </div>
                     ))}
@@ -408,12 +408,12 @@ export default function AdminPricingAnalytics() {
                   <h4 className="text-white font-medium mb-3">Emerging Trends</h4>
                   <div className="space-y-3">
                     {analytics?.marketInsights?.emergingTrends?.map((trend: PricingAnalytics['marketInsights']['emergingTrends'][number]) => (
-                      <div key={trend.trend} className="border-l-2 border-orange-500 pl-3">
+                      <div key={trend.trend} className="border-l-2 border-ts-orange/30 pl-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-white font-medium">{trend.trend}</span>
                           <Badge className="bg-green-600">+{trend.growth}%</Badge>
                         </div>
-                        <p className="text-gray-400 text-sm">{trend.description}</p>
+                        <p className="text-white/60 text-sm">{trend.description}</p>
                       </div>
                     ))}
                   </div>
@@ -425,7 +425,7 @@ export default function AdminPricingAnalytics() {
       )}
 
       {analytics && (
-        <Card className="bg-navy-700 border-navy-600 mt-8">
+        <Card className="bg-tsCard border-white/10 mt-8">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
@@ -435,15 +435,15 @@ export default function AdminPricingAnalytics() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center">
-                <p className="text-gray-300 text-sm">Data Collection</p>
+                <p className="text-white/70 text-sm">Data Collection</p>
                 <p className="text-green-500 font-semibold">Active</p>
               </div>
               <div className="text-center">
-                <p className="text-gray-300 text-sm">Last Calculator Update</p>
+                <p className="text-white/70 text-sm">Last Calculator Update</p>
                 <p className="text-white">2 hours ago</p>
               </div>
               <div className="text-center">
-                <p className="text-gray-300 text-sm">Market Coverage</p>
+                <p className="text-white/70 text-sm">Market Coverage</p>
                 <p className="text-white">
                   {Object.keys(analytics.averageQuotes.byRegion).length} regions
                 </p>

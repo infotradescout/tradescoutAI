@@ -232,7 +232,7 @@ export default function AdminCommercialContractorsPage() {
         <h1 className="text-3xl font-semibold mt-2">
           Commercial Contractor Management and Verification
         </h1>
-        <p className="text-sm text-slate-300 mt-2 max-w-3xl">
+        <p className="text-sm text-white/70 mt-2 max-w-3xl">
           Dedicated portal for commercial contractor eligibility, document review, and activation
           controls.
         </p>
@@ -254,28 +254,28 @@ export default function AdminCommercialContractorsPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Total</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Total</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <UserCog className="h-4 w-4 text-teal-200" />
             {stats.total}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Eligible</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Eligible</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <BadgeCheck className="h-4 w-4 text-emerald-200" />
             {stats.eligible}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Pending</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Pending</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <FileClock className="h-4 w-4 text-amber-200" />
             {stats.pending}
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="text-xs uppercase tracking-wide text-slate-400">Suspended</div>
+          <div className="text-xs uppercase tracking-wide text-white/60">Suspended</div>
           <div className="mt-1 text-xl font-semibold flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 text-rose-200" />
             {stats.suspended}
@@ -283,7 +283,7 @@ export default function AdminCommercialContractorsPage() {
         </div>
       </div>
 
-      <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+      <Card className="border-white/10 bg-black/30 backdrop-blur">
         <CardHeader>
           <CardTitle className="text-base">Verification Throughput</CardTitle>
           <CardDescription>
@@ -292,10 +292,10 @@ export default function AdminCommercialContractorsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-300">Readiness score</span>
+            <span className="text-white/70">Readiness score</span>
             <span className="font-semibold">{reviewReadinessPct}%</span>
           </div>
-          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div className="h-2 rounded-full bg-white/5 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-teal-400 to-emerald-400"
               style={{ width: `${reviewReadinessPct}%` }}
@@ -305,7 +305,7 @@ export default function AdminCommercialContractorsPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <Card className="border-white/10 bg-black/30 backdrop-blur">
           <CardHeader>
             <CardTitle>Commercial Contractor Roster</CardTitle>
             <CardDescription>Separate from other user-type verification queues.</CardDescription>
@@ -324,7 +324,7 @@ export default function AdminCommercialContractorsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-md border border-white/10 bg-tsCard px-3 py-2 text-sm"
               >
                 <option value="all">all</option>
                 <option value="eligible">eligible</option>
@@ -359,7 +359,7 @@ export default function AdminCommercialContractorsPage() {
                     className={`w-full text-left rounded-xl border transition ${
                       selectedContractorId === row.contractor.id
                         ? "border-teal-500 bg-teal-500/10"
-                        : "border-slate-700 bg-slate-900/60 hover:border-slate-500"
+                        : "border-white/10 bg-tsCard/95 hover:border-white/15"
                     } ${compactMode ? "p-2" : "p-3"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -373,7 +373,7 @@ export default function AdminCommercialContractorsPage() {
                       </div>
                     </div>
                     <div
-                      className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-slate-400 mt-1`}
+                      className={`${compactMode ? "text-[10px]" : "text-[11px]"} text-white/60 mt-1`}
                     >
                       pending: {row.verification.pendingDocs} | rejected:{" "}
                       {row.verification.rejectedDocs}
@@ -385,7 +385,7 @@ export default function AdminCommercialContractorsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-slate-950/75 backdrop-blur">
+        <Card className="border-white/10 bg-black/30 backdrop-blur">
           <CardHeader>
             <CardTitle>Contractor Detail and Verification Controls</CardTitle>
             <CardDescription>
@@ -397,19 +397,19 @@ export default function AdminCommercialContractorsPage() {
             {selected && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                  <div className="rounded border border-slate-700 p-3">
+                  <div className="rounded border border-white/10 p-3">
                     License requirement:{" "}
                     {selected.verification.hasApprovedLicenseDoc
                       ? "approved doc"
                       : "missing approved doc"}
                   </div>
-                  <div className="rounded border border-slate-700 p-3">
+                  <div className="rounded border border-white/10 p-3">
                     Insurance requirement:{" "}
                     {selected.verification.hasApprovedInsuranceDoc
                       ? "approved doc"
                       : "missing approved doc"}
                   </div>
-                  <div className="rounded border border-slate-700 p-3">
+                  <div className="rounded border border-white/10 p-3">
                     Access: {selected.verification.eligibleForCommercial ? "eligible" : "blocked"}
                   </div>
                 </div>
@@ -443,12 +443,12 @@ export default function AdminCommercialContractorsPage() {
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm uppercase tracking-wide text-slate-300">
+                    <h3 className="text-sm uppercase tracking-wide text-white/70">
                       License and Insurance Documents
                     </h3>
-                    <div className="text-[11px] text-slate-400">
-                      Shortcuts: <kbd className="px-1 rounded border border-slate-600">A</kbd>{" "}
-                      approve, <kbd className="px-1 rounded border border-slate-600">R</kbd> reject
+                    <div className="text-[11px] text-white/60">
+                      Shortcuts: <kbd className="px-1 rounded border border-white/15">A</kbd>{" "}
+                      approve, <kbd className="px-1 rounded border border-white/15">R</kbd> reject
                     </div>
                   </div>
                   {selectedDocument && (
@@ -489,17 +489,17 @@ export default function AdminCommercialContractorsPage() {
                   {selected.documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className={`rounded border p-3 bg-slate-900/60 ${
+                      className={`rounded border p-3 bg-tsCard/95 ${
                         selectedDocumentId === doc.id
                           ? "border-teal-500 shadow-[0_0_0_1px_rgba(20,184,166,0.35)]"
-                          : "border-slate-700"
+                          : "border-white/10"
                       }`}
                       onClick={() => setSelectedDocumentId(doc.id)}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <div className="font-medium text-sm">
-                            <span className="uppercase text-[10px] tracking-[0.15em] text-slate-400 mr-1">
+                            <span className="uppercase text-[10px] tracking-[0.15em] text-white/60 mr-1">
                               {doc.type}
                             </span>
                             -{" "}
@@ -515,8 +515,8 @@ export default function AdminCommercialContractorsPage() {
                               {doc.status}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-400">{doc.fileName}</div>
-                          <div className="text-[11px] text-slate-500 mt-1">
+                          <div className="text-xs text-white/60">{doc.fileName}</div>
+                          <div className="text-[11px] text-white/60 mt-1">
                             Uploaded{" "}
                             {doc.createdAt ? new Date(doc.createdAt).toLocaleString() : "unknown"}
                           </div>
@@ -552,7 +552,7 @@ export default function AdminCommercialContractorsPage() {
                         </div>
                       </div>
                       {doc.reviewNotes && (
-                        <p className="text-xs text-slate-400 mt-2">Notes: {doc.reviewNotes}</p>
+                        <p className="text-xs text-white/60 mt-2">Notes: {doc.reviewNotes}</p>
                       )}
                     </div>
                   ))}
