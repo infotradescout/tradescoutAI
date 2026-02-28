@@ -220,7 +220,8 @@ export default function MessagesPanel() {
       });
       toast({
         title: "Home report shared",
-        description: "This thread can now see your home context (address stays private unless you opted in).",
+        description:
+          "This thread can now see your home context (address stays private unless you opted in).",
       });
     },
     onError: (err: any) => {

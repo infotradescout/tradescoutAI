@@ -9046,14 +9046,20 @@ export async function registerRoutes(app: any) {
         let threadType: "marketplace" | "legacy" = "marketplace";
 
         if (marketplaceConversation) {
-          if (marketplaceConversation.buyerId !== userId && marketplaceConversation.sellerId !== userId) {
+          if (
+            marketplaceConversation.buyerId !== userId &&
+            marketplaceConversation.sellerId !== userId
+          ) {
             return res.status(403).json({ message: "Access denied" });
           }
         } else {
           const legacyConversation = await storage.getConversation(threadId);
           if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
           threadType = "legacy";
-          if (legacyConversation.homeownerId !== userId && legacyConversation.contractorId !== userId) {
+          if (
+            legacyConversation.homeownerId !== userId &&
+            legacyConversation.contractorId !== userId
+          ) {
             return res.status(403).json({ message: "Access denied" });
           }
         }
@@ -9073,10 +9079,7 @@ export async function registerRoutes(app: any) {
 
         const homeIds = shares.map((s: any) => String((s as any).userHomeId || "")).filter(Boolean);
         const homes = homeIds.length
-          ? await db
-              .select()
-              .from(userHomes)
-              .where(inArray(userHomes.id, homeIds))
+          ? await db.select().from(userHomes).where(inArray(userHomes.id, homeIds))
           : [];
         const homeById = new Map<string, any>(homes.map((h: any) => [String(h.id), h]));
 
@@ -9289,14 +9292,20 @@ export async function registerRoutes(app: any) {
         let threadType: "marketplace" | "legacy" = "marketplace";
 
         if (marketplaceConversation) {
-          if (marketplaceConversation.buyerId !== userId && marketplaceConversation.sellerId !== userId) {
+          if (
+            marketplaceConversation.buyerId !== userId &&
+            marketplaceConversation.sellerId !== userId
+          ) {
             return res.status(403).json({ message: "Access denied" });
           }
         } else {
           const legacyConversation = await storage.getConversation(threadId);
           if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
           threadType = "legacy";
-          if (legacyConversation.homeownerId !== userId && legacyConversation.contractorId !== userId) {
+          if (
+            legacyConversation.homeownerId !== userId &&
+            legacyConversation.contractorId !== userId
+          ) {
             return res.status(403).json({ message: "Access denied" });
           }
         }
@@ -9332,7 +9341,8 @@ export async function registerRoutes(app: any) {
             .orderBy(desc(propertyPrograms.updatedAt))
             .limit(1);
           if (program?.id) {
-            const { addPropertyLifecycleEvent } = await import("./services/propertyLifecycleService");
+            const { addPropertyLifecycleEvent } =
+              await import("./services/propertyLifecycleService");
             await addPropertyLifecycleEvent({
               propertyProgramId: program.id,
               actionType: "home_report_shared",
