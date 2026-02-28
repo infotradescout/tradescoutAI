@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin, Phone } from "lucide-react";
-
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,13 +146,13 @@ export default function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 py-8 text-tsTextMain">
+    <div className="flex items-center justify-center px-4 py-8 text-white font-body">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6 order-2 lg:order-1">
           <Link href="/">
             <Button
               variant="ghost"
-              className="flex items-center gap-2 text-tsTextMuted hover:text-white hover:bg-white/5 pl-0"
+              className="flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/5 pl-0"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Scout
@@ -160,27 +160,27 @@ export default function Register() {
           </Link>
 
           <div className="space-y-4">
-            <div className="inline-flex items-center rounded-full border border-tsBorder/60 bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-tsAccentSoft">
-              PROFILE OS
+            <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1">
+              <span className="text-sm font-medium text-ts-orange uppercase tracking-[0.18em]">PROFILE OS</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white">
+            <h1 className="font-display text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               One account. Every role you play in the community.
             </h1>
-            <p className="text-sm md:text-base text-tsTextMuted max-w-xl">
+            <p className="text-sm md:text-base text-white/60 max-w-xl">
               Pick your user types (homeowner, contractor, realtor, restaurant owner, community
               builder and more). Your profile becomes your website - Scout handles the routing,
               tools, and trust badges.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-tsTextMuted">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-white/60">
               <div className="space-y-1">
-                <p className="font-semibold text-tsTextMain text-sm">Multi-role support</p>
+                <p className="font-semibold text-white text-sm">Multi-role support</p>
                 <p>
                   Check every hat you wear: contractor, realtor, landlord, organizer, affiliate, and
                   more.
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="font-semibold text-tsTextMain text-sm">County-first identity</p>
+                <p className="font-semibold text-white text-sm">County-first identity</p>
                 <p>
                   We tie your roles to where you live so locals know exactly who they’re dealing
                   with.
@@ -189,8 +189,8 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="hidden lg:block rounded-2xl border border-tsBorder bg-black/30 p-4 text-xs text-tsTextMuted">
-            <p className="mb-2 font-semibold text-tsTextMain">What happens after signup?</p>
+          <div className="hidden lg:block bg-tsCard border border-white/10 rounded-xl p-4 text-xs text-white/60 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
+            <p className="mb-2 font-semibold text-white">What happens after signup?</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Choose your colors and profile layout.</li>
               <li>
@@ -202,37 +202,37 @@ export default function Register() {
           </div>
         </div>
 
-        <Card className="bg-tsCard border border-tsBorder shadow-2xl order-1 lg:order-2">
+        <Card className="bg-tsCard border border-white/10 rounded-xl shadow-[0_18px_52px_rgba(0,0,0,0.36)] order-1 lg:order-2">
           <CardHeader className="text-center space-y-3">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <div className="mx-auto w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center">
               <UserPlus className="h-6 w-6 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold text-tsTextMain">Join TradeScout</CardTitle>
-            <p className="text-sm text-tsTextMuted">
+            <CardTitle className="font-display text-2xl font-extrabold text-white">Join TradeScout</CardTitle>
+            <p className="text-sm text-white/60">
               Create your account and choose your user types to personalize your experience.
             </p>
           </CardHeader>
 
           <CardContent>
-            <div className="bg-tsBg border border-tsBorder rounded-xl p-4 mb-5">
-              <div className="text-sm text-slate-300">Continue with</div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-5">
+              <div className="text-sm text-white/60">Continue with</div>
               <div className="mt-3 grid grid-cols-1 gap-2">
                 <button
                   type="button"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
+                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15 font-semibold transition-all"
                   onClick={() => beginOAuth("google")}
                 >
                   Google
                 </button>
                 <button
                   type="button"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm hover:bg-slate-800"
+                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15 font-semibold transition-all"
                   onClick={() => beginOAuth("facebook")}
                 >
                   Facebook
                 </button>
               </div>
-              <div className="mt-3 text-xs text-tsTextMuted">
+              <div className="mt-3 text-xs text-white/50">
                 Or create an account with email below.
               </div>
             </div>
@@ -344,7 +344,7 @@ export default function Register() {
                     className="mt-1"
                     placeholder="123 Main St"
                   />
-                  <p className="text-xs text-tsTextMuted mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     For neighborhood verification and local content relevance.
                   </p>
                   {form.formState.errors.address && (
@@ -398,7 +398,7 @@ export default function Register() {
               </div>
 
               <div>
-                <p className="text-xs text-tsTextMuted mt-1">
+                <p className="text-xs text-white/50 mt-1">
                   We use your state and county for neighborhood verification, local feeds, and
                   matching. You can update this later in your profile settings.
                 </p>
@@ -423,10 +423,10 @@ export default function Register() {
                 <input
                   id="acceptTerms"
                   type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-tsBorder bg-tsBg text-tsAccent focus:ring-tsAccent"
+                  className="mt-1 h-4 w-4 rounded border-white/10 bg-white/5 text-ts-orange focus:ring-ts-orange"
                   {...form.register("acceptTerms")}
                 />
-                <Label htmlFor="acceptTerms" className="text-xs text-tsTextMuted leading-relaxed">
+                <Label htmlFor="acceptTerms" className="text-xs text-white/60 leading-relaxed">
                   I agree to the{" "}
                   <a href="/terms" className="underline" target="_blank" rel="noreferrer">
                     Terms of Service
@@ -480,11 +480,11 @@ export default function Register() {
               </Button>
 
               <div className="mt-6 text-center">
-                <p className="text-sm text-tsTextMuted">
+                <p className="text-sm text-white/60">
                   Already have an account?{" "}
                   <Link
                     href="/pre-scout-setup?mode=signin"
-                    className="text-tsAccent hover:text-orange-400 font-medium"
+                    className="text-ts-orange hover:text-ts-orange-light font-medium"
                   >
                     Sign in here
                   </Link>
@@ -492,9 +492,9 @@ export default function Register() {
                 </p>
               </div>
 
-              <div className="mt-4 p-4 bg-tsBg border border-tsBorder rounded-lg">
-                <p className="text-xs text-tsTextMuted">
-                  <strong className="text-tsTextMain">Why join TradeScout?</strong> Your profile
+              <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+                <p className="text-xs text-white/60">
+                  <strong className="text-white">Why join TradeScout?</strong> Your profile
                   replaces a website: colors, roles, and your area are all baked in. Scout uses this
                   to tune marketplace matches, community visibility, and future tools for whatever
                   roles you pick - homeowner, pro, organizer, affiliate, or any new roles we add
