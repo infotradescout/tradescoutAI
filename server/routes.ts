@@ -121,6 +121,17 @@ import {
   marketplaceTransactions,
   profiles,
   userProfiles,
+  // Home Vault + Property Lifecycle OS (used by intent-gated home report sharing in messages)
+  homeReportShares,
+  userHomes,
+  userHomeRecords,
+  userHomeAppliances,
+  userHomeDocuments,
+  homeMaintenanceSchedules,
+  homeProjects,
+  homeProjectPlans,
+  propertyPrograms,
+  propertyHomefaxSnapshots,
 } from "../shared/schema";
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
@@ -9014,6 +9025,344 @@ export async function registerRoutes(app: any) {
       } catch (error: any) {
         console.error("Error fetching thread messages:", error);
         res.status(500).json({ message: "Failed to fetch thread messages" });
+      }
+    }
+  );
+
+  // Home report sharing (intent-gated thread context)
+  app.get(
+    "/api/messages/threads/:threadId/home-report",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const threadId = String(req.params.threadId || "").trim();
+        if (!threadId) return res.status(400).json({ message: "threadId required" });
+
+        const marketplaceConversation = await storage.getMarketplaceConversation(threadId);
+        let threadType: "marketplace" | "legacy" = "marketplace";
+
+        if (marketplaceConversation) {
+          if (marketplaceConversation.buyerId !== userId && marketplaceConversation.sellerId !== userId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else {
+          const legacyConversation = await storage.getConversation(threadId);
+          if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
+          threadType = "legacy";
+          if (legacyConversation.homeownerId !== userId && legacyConversation.contractorId !== userId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        }
+
+        const shares = await db
+          .select()
+          .from(homeReportShares)
+          .where(
+            and(
+              eq(homeReportShares.threadId, threadId),
+              eq(homeReportShares.threadType, threadType),
+              isNull(homeReportShares.revokedAt)
+            )
+          )
+          .orderBy(desc(homeReportShares.createdAt))
+          .limit(5);
+
+        const homeIds = shares.map((s: any) => String((s as any).userHomeId || "")).filter(Boolean);
+        const homes = homeIds.length
+          ? await db
+              .select()
+              .from(userHomes)
+              .where(inArray(userHomes.id, homeIds))
+          : [];
+        const homeById = new Map<string, any>(homes.map((h: any) => [String(h.id), h]));
+
+        const projectIds = homeIds.length
+          ? (
+              await db
+                .select({ id: homeProjects.id })
+                .from(homeProjects)
+                .where(inArray(homeProjects.userHomeId, homeIds))
+                .orderBy(desc(homeProjects.updatedAt))
+                .limit(200)
+            ).map((p: any) => String(p.id))
+          : [];
+
+        const plans = projectIds.length
+          ? await db
+              .select({
+                homeProjectId: homeProjectPlans.homeProjectId,
+                planType: homeProjectPlans.planType,
+                targetAmount: homeProjectPlans.targetAmount,
+                monthlyContribution: homeProjectPlans.monthlyContribution,
+                targetBy: homeProjectPlans.targetBy,
+              })
+              .from(homeProjectPlans)
+              .where(inArray(homeProjectPlans.homeProjectId, projectIds))
+              .orderBy(desc(homeProjectPlans.updatedAt))
+          : [];
+        const planByProjectId = new Map<string, any>();
+        for (const plan of plans as any[]) {
+          const pid = String(plan.homeProjectId || "");
+          if (pid && !planByProjectId.has(pid)) planByProjectId.set(pid, plan);
+        }
+
+        const reports = await Promise.all(
+          (shares as any[]).map(async (share) => {
+            const homeId = String(share.userHomeId || "");
+            const home = homeById.get(homeId);
+            if (!home) return null;
+
+            const includeAddress = share.includeAddress === true;
+            const includeDocuments = share.includeDocuments === true;
+
+            const safeHome = {
+              id: home.id,
+              nickname: home.nickname,
+              propertyType: home.propertyType,
+              yearBuilt: home.yearBuilt,
+              city: home.city,
+              stateCode: home.stateCode,
+              countyFips: home.countyFips,
+              ...(includeAddress
+                ? {
+                    address1: home.address1,
+                    address2: home.address2,
+                    zipCode: home.zipCode,
+                  }
+                : {}),
+            };
+
+            const records = await db
+              .select({
+                id: userHomeRecords.id,
+                recordType: userHomeRecords.recordType,
+                occurredAt: userHomeRecords.occurredAt,
+                title: userHomeRecords.title,
+                cost: userHomeRecords.cost,
+                tags: userHomeRecords.tags,
+                createdAt: userHomeRecords.createdAt,
+              })
+              .from(userHomeRecords)
+              .where(eq(userHomeRecords.homeId, homeId))
+              .orderBy(desc(userHomeRecords.occurredAt), desc(userHomeRecords.createdAt))
+              .limit(50);
+
+            const appliances = await db
+              .select({
+                id: userHomeAppliances.id,
+                category: userHomeAppliances.category,
+                brand: userHomeAppliances.brand,
+                model: userHomeAppliances.model,
+                installedAt: userHomeAppliances.installedAt,
+                notes: userHomeAppliances.notes,
+                updatedAt: userHomeAppliances.updatedAt,
+              })
+              .from(userHomeAppliances)
+              .where(eq(userHomeAppliances.homeId, homeId))
+              .orderBy(desc(userHomeAppliances.updatedAt))
+              .limit(80);
+
+            const schedules = await db
+              .select({
+                id: homeMaintenanceSchedules.id,
+                title: homeMaintenanceSchedules.title,
+                cadenceDays: homeMaintenanceSchedules.cadenceDays,
+                nextDueAt: homeMaintenanceSchedules.nextDueAt,
+                lastCompletedAt: homeMaintenanceSchedules.lastCompletedAt,
+                status: homeMaintenanceSchedules.status,
+                updatedAt: homeMaintenanceSchedules.updatedAt,
+              })
+              .from(homeMaintenanceSchedules)
+              .where(eq(homeMaintenanceSchedules.userHomeId, homeId))
+              .orderBy(desc(homeMaintenanceSchedules.updatedAt))
+              .limit(80);
+
+            const projects = await db
+              .select({
+                id: homeProjects.id,
+                title: homeProjects.title,
+                description: homeProjects.description,
+                projectType: homeProjects.projectType,
+                status: homeProjects.status,
+                estimatedCost: homeProjects.estimatedCost,
+                desiredStartAt: homeProjects.desiredStartAt,
+                createdAt: homeProjects.createdAt,
+                updatedAt: homeProjects.updatedAt,
+              })
+              .from(homeProjects)
+              .where(eq(homeProjects.userHomeId, homeId))
+              .orderBy(desc(homeProjects.updatedAt))
+              .limit(50);
+
+            const docs = includeDocuments
+              ? await db
+                  .select({
+                    documentType: userHomeDocuments.documentType,
+                    originalName: userHomeDocuments.originalName,
+                    bytes: userHomeDocuments.bytes,
+                    createdAt: userHomeDocuments.createdAt,
+                  })
+                  .from(userHomeDocuments)
+                  .where(eq(userHomeDocuments.homeId, homeId))
+                  .orderBy(desc(userHomeDocuments.createdAt))
+                  .limit(25)
+              : [];
+
+            // Include the latest Homefax snapshot if this home is linked to a Property Program.
+            let homefax: any = null;
+            const [program] = await db
+              .select({ id: propertyPrograms.id })
+              .from(propertyPrograms)
+              .where(eq(propertyPrograms.userHomeId, homeId))
+              .orderBy(desc(propertyPrograms.updatedAt))
+              .limit(1);
+            if (program?.id) {
+              const [snap] = await db
+                .select()
+                .from(propertyHomefaxSnapshots)
+                .where(eq(propertyHomefaxSnapshots.propertyProgramId, program.id))
+                .orderBy(desc(propertyHomefaxSnapshots.computedAt))
+                .limit(1);
+              if (snap) {
+                homefax = {
+                  computedAt: snap.computedAt,
+                  version: snap.version,
+                  summary: snap.summary,
+                  timeline: snap.timeline,
+                };
+              }
+            }
+
+            return {
+              share: {
+                id: share.id,
+                sharedByUserId: share.sharedByUserId,
+                createdAt: share.createdAt,
+                includeAddress,
+                includeDocuments,
+              },
+              report: {
+                home: safeHome,
+                records,
+                appliances,
+                schedules,
+                projects: (projects as any[]).map((p) => ({
+                  ...p,
+                  plan: planByProjectId.get(String(p.id)) || null,
+                })),
+                documents: docs,
+                homefax,
+              },
+            };
+          })
+        );
+
+        res.json({ shares: reports.filter(Boolean) });
+      } catch (error: any) {
+        console.error("Error fetching shared home report:", error);
+        res.status(500).json({ message: "Failed to fetch shared home report" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/messages/threads/:threadId/home-report/share",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const threadId = String(req.params.threadId || "").trim();
+        if (!threadId) return res.status(400).json({ message: "threadId required" });
+
+        const { homeId, includeAddress, includeDocuments } = (req.body ?? {}) as any;
+        const userHomeId = String(homeId || "").trim();
+        if (!userHomeId) return res.status(400).json({ message: "homeId required" });
+
+        const marketplaceConversation = await storage.getMarketplaceConversation(threadId);
+        let threadType: "marketplace" | "legacy" = "marketplace";
+
+        if (marketplaceConversation) {
+          if (marketplaceConversation.buyerId !== userId && marketplaceConversation.sellerId !== userId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else {
+          const legacyConversation = await storage.getConversation(threadId);
+          if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
+          threadType = "legacy";
+          if (legacyConversation.homeownerId !== userId && legacyConversation.contractorId !== userId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        }
+
+        const [home] = await db
+          .select({ id: userHomes.id, ownerUserId: userHomes.ownerUserId })
+          .from(userHomes)
+          .where(and(eq(userHomes.id, userHomeId), eq(userHomes.ownerUserId, userId)))
+          .limit(1);
+        if (!home) return res.status(404).json({ message: "Home not found" });
+
+        const [created] = await db
+          .insert(homeReportShares)
+          .values({
+            ownerUserId: userId,
+            sharedByUserId: userId,
+            threadId,
+            threadType,
+            userHomeId,
+            includeAddress: includeAddress === true,
+            includeDocuments: includeDocuments === true,
+            metadata: {},
+            updatedAt: new Date(),
+          } as any)
+          .returning();
+
+        // Keep Homefax and readiness snapshots up-to-date when users take actions linked to a home.
+        try {
+          const [program] = await db
+            .select({ id: propertyPrograms.id })
+            .from(propertyPrograms)
+            .where(eq(propertyPrograms.userHomeId, userHomeId))
+            .orderBy(desc(propertyPrograms.updatedAt))
+            .limit(1);
+          if (program?.id) {
+            const { addPropertyLifecycleEvent } = await import("./services/propertyLifecycleService");
+            await addPropertyLifecycleEvent({
+              propertyProgramId: program.id,
+              actionType: "home_report_shared",
+              phase: "maintain",
+              title: "Home report shared",
+              description: "Home report shared inside an intent-gated conversation.",
+              occurredAt: new Date(),
+              source: "user",
+              status: "completed",
+              createdByUserId: userId,
+              sourceSurface: "messages",
+              idempotencyKey: `home:${userHomeId}:thread:${threadId}:home_report_share:${created?.id ?? "missing"}`,
+              metadata: {
+                threadId,
+                threadType,
+                userHomeId,
+                shareId: created?.id ?? null,
+                includeAddress: includeAddress === true,
+                includeDocuments: includeDocuments === true,
+              },
+            } as any);
+          }
+        } catch (err) {
+          console.error("[messages] Failed to sync home_report_shared lifecycle event:", err);
+        }
+
+        res.status(201).json({ share: created });
+      } catch (error: any) {
+        console.error("Error sharing home report:", error);
+        res.status(500).json({ message: "Failed to share home report" });
       }
     }
   );

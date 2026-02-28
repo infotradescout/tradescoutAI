@@ -67,6 +67,41 @@ type IncomingRequest = {
 
 type InboxView = "threads" | "requests";
 
+type UserHome = {
+  id: string;
+  nickname?: string | null;
+  propertyType?: string | null;
+  yearBuilt?: number | null;
+  city?: string | null;
+  stateCode?: string | null;
+};
+
+type SharedHomeReportPayload = {
+  shares: Array<{
+    share: {
+      id: string;
+      sharedByUserId: string;
+      createdAt: string;
+      includeAddress: boolean;
+      includeDocuments: boolean;
+    };
+    report: {
+      home: UserHome & {
+        address1?: string | null;
+        address2?: string | null;
+        zipCode?: string | null;
+        countyFips?: string | null;
+      };
+      records: any[];
+      appliances: any[];
+      schedules: any[];
+      projects: any[];
+      documents: any[];
+      homefax: any | null;
+    };
+  }>;
+};
+
 export default function MessagesPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -77,6 +112,9 @@ export default function MessagesPanel() {
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeView, setActiveView] = useState<InboxView>("threads");
+  const [selectedHomeId, setSelectedHomeId] = useState<string>("");
+  const [shareIncludeAddress, setShareIncludeAddress] = useState(false);
+  const [shareIncludeDocuments, setShareIncludeDocuments] = useState(false);
 
   const searchParams = useMemo(
     () => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""),
@@ -147,6 +185,53 @@ export default function MessagesPanel() {
     queryFn: () => apiRequest("GET", `/api/messages/threads/${activeThreadId}`),
   });
 
+  const homesQuery = useQuery<{ homes: UserHome[] }>({
+    queryKey: ["/api/homes"],
+    enabled: Boolean(user && activeView === "threads"),
+    queryFn: () => apiRequest("GET", "/api/homes"),
+  });
+  const homes = homesQuery.data?.homes || [];
+
+  useEffect(() => {
+    if (!selectedHomeId && homes.length > 0) setSelectedHomeId(homes[0].id);
+  }, [selectedHomeId, homes]);
+
+  const homeReportQuery = useQuery<SharedHomeReportPayload>({
+    queryKey: ["/api/messages/threads", activeThreadId, "home-report"],
+    enabled: Boolean(activeThreadId && user && activeView === "threads"),
+    queryFn: () => apiRequest("GET", `/api/messages/threads/${activeThreadId}/home-report`),
+  });
+
+  const shareHomeReportMutation = useMutation({
+    mutationFn: (payload: {
+      threadId: string;
+      homeId: string;
+      includeAddress: boolean;
+      includeDocuments: boolean;
+    }) =>
+      apiRequest("POST", `/api/messages/threads/${payload.threadId}/home-report/share`, {
+        homeId: payload.homeId,
+        includeAddress: payload.includeAddress,
+        includeDocuments: payload.includeDocuments,
+      }),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/messages/threads", variables.threadId, "home-report"],
+      });
+      toast({
+        title: "Home report shared",
+        description: "This thread can now see your home context (address stays private unless you opted in).",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Share failed",
+        description: err?.message || "Could not share your home report.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const mappedMessages: Message[] =
     messagesQuery.data?.messages.map((m) => ({
       id: m.id,
@@ -198,6 +283,24 @@ export default function MessagesPanel() {
   const handleSend = () => {
     if (!activeThreadId || !newMessage.trim()) return;
     sendMutation.mutate({ threadId: activeThreadId, content: newMessage });
+  };
+
+  const handleShareHomeReport = () => {
+    if (!activeThreadId) return;
+    if (!selectedHomeId) {
+      toast({
+        title: "No home selected",
+        description: "Add a home in HomeScout first, then share it here.",
+        variant: "destructive",
+      });
+      return;
+    }
+    shareHomeReportMutation.mutate({
+      threadId: activeThreadId,
+      homeId: selectedHomeId,
+      includeAddress: shareIncludeAddress,
+      includeDocuments: shareIncludeDocuments,
+    });
   };
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || null;
@@ -456,6 +559,152 @@ export default function MessagesPanel() {
           </div>
         ) : (
           <>
+            {activeThreadId && (
+              <div className="px-5 py-4 border-b border-slate-800 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-white">Home report</div>
+                    <div className="text-xs text-slate-400">
+                      Share your Home Vault context into this already-approved thread.
+                    </div>
+                  </div>
+                  <Badge className="bg-slate-900 border border-slate-800 text-slate-300 text-[10px]">
+                    Private
+                  </Badge>
+                </div>
+
+                {homeReportQuery.data?.shares?.length ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {homeReportQuery.data.shares.map((s) => {
+                      const home = s.report?.home;
+                      const title =
+                        home?.nickname ||
+                        [home?.city, home?.stateCode].filter(Boolean).join(", ") ||
+                        "Shared home";
+                      const counts = [
+                        { label: "records", value: s.report?.records?.length ?? 0 },
+                        { label: "schedules", value: s.report?.schedules?.length ?? 0 },
+                        { label: "projects", value: s.report?.projects?.length ?? 0 },
+                        { label: "docs", value: s.report?.documents?.length ?? 0 },
+                      ];
+                      return (
+                        <div
+                          key={s.share.id}
+                          className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="text-sm font-medium text-white">{title}</div>
+                              <div className="mt-1 text-[11px] text-slate-500">
+                                Shared{" "}
+                                {formatDistanceToNow(new Date(s.share.createdAt), {
+                                  addSuffix: true,
+                                })}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <Badge className="bg-orange-500/15 text-orange-200 text-[10px]">
+                                {s.share.includeAddress ? "Address shared" : "Address hidden"}
+                              </Badge>
+                              {s.share.includeDocuments && (
+                                <Badge className="bg-slate-800 text-slate-200 text-[10px]">
+                                  Docs listed
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {counts.map((c) => (
+                              <span
+                                key={c.label}
+                                className="text-[11px] text-slate-300 rounded-full border border-slate-800 bg-slate-950/40 px-2 py-0.5"
+                              >
+                                {c.value} {c.label}
+                              </span>
+                            ))}
+                            {s.report?.homefax?.computedAt && (
+                              <span className="text-[11px] text-slate-300 rounded-full border border-slate-800 bg-slate-950/40 px-2 py-0.5">
+                                Homefax updated{" "}
+                                {formatDistanceToNow(new Date(s.report.homefax.computedAt), {
+                                  addSuffix: true,
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500">
+                    Nothing shared yet. Share a home report below when you want the other party to
+                    see context.
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <select
+                      value={selectedHomeId}
+                      onChange={(e) => setSelectedHomeId(e.target.value)}
+                      className="w-full md:w-[360px] h-9 rounded-md bg-slate-900 border border-slate-800 text-slate-200 px-3 text-sm"
+                      disabled={homes.length === 0}
+                    >
+                      {homes.length === 0 ? (
+                        <option value="">No homes found</option>
+                      ) : (
+                        homes.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.nickname ||
+                              [h.city, h.stateCode].filter(Boolean).join(", ") ||
+                              "Home"}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <Button
+                      className="bg-orange-500 hover:bg-orange-600"
+                      onClick={handleShareHomeReport}
+                      disabled={
+                        !activeThreadId ||
+                        !selectedHomeId ||
+                        homes.length === 0 ||
+                        shareHomeReportMutation.isPending
+                      }
+                    >
+                      Share home report
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="accent-orange-500"
+                        checked={shareIncludeAddress}
+                        onChange={(e) => setShareIncludeAddress(e.target.checked)}
+                      />
+                      Include address (optional)
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="accent-orange-500"
+                        checked={shareIncludeDocuments}
+                        onChange={(e) => setShareIncludeDocuments(e.target.checked)}
+                      />
+                      Include document list (no files)
+                    </label>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500">
+                    Address is hidden by default. Documents shared here are names/types only, not
+                    downloads.
+                  </div>
+                </div>
+              </div>
+            )}
+
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
                 {mappedMessages.length === 0 ? (

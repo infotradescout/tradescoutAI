@@ -5275,6 +5275,52 @@ export type HomeProjectPlan = typeof homeProjectPlans.$inferSelect;
 export type InsertHomeProjectPlan = typeof homeProjectPlans.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// Home Report Shares (intent-gated messaging context)
+// ---------------------------------------------------------------------------
+
+export const homeReportShares = pgTable(
+  "home_report_shares",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sharedByUserId: varchar("shared_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    threadId: varchar("thread_id").notNull(),
+    threadType: varchar("thread_type", { length: 24, enum: ["marketplace", "legacy"] })
+      .notNull()
+      .default("marketplace"),
+
+    userHomeId: varchar("user_home_id")
+      .notNull()
+      .references(() => userHomes.id, { onDelete: "cascade" }),
+
+    includeAddress: boolean("include_address").notNull().default(false),
+    includeDocuments: boolean("include_documents").notNull().default(false),
+
+    metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default({}),
+
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_home_report_shares_thread").on(table.threadId, table.createdAt),
+    index("idx_home_report_shares_home").on(table.userHomeId, table.createdAt),
+    index("idx_home_report_shares_owner").on(table.ownerUserId, table.updatedAt),
+  ]
+);
+
+export type HomeReportShare = typeof homeReportShares.$inferSelect;
+export type InsertHomeReportShare = typeof homeReportShares.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // Property Lifecycle OS (Build / Existing / Upgrades / Maintain / Sell)
 // ---------------------------------------------------------------------------
 
