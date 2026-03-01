@@ -7,44 +7,67 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-type TierKey = "high" | "medium" | "low";
+type TierKey = "high" | "medium" | "low" | "budget" | "promo";
 type PlacementKey = "front_center" | "left_chest";
 
 type TierSpec = {
   key: TierKey;
+  series: "contractor" | "value";
   label: string;
   summary: string;
-  retailPrice: number;
   wholesaleEstimate: number;
   blankUrl: string;
   technique: "EMBROIDERY" | "DTG";
+  featured?: boolean;
 };
+
+const PROFIT_PER_SHIRT = 18;
 
 const TIERS: Record<TierKey, TierSpec> = {
   high: {
     key: "high",
+    series: "contractor",
     label: "High (Carhartt K87)",
     summary: "Pocket tee + embroidery. Built for job sites.",
     wholesaleEstimate: 24,
-    retailPrice: 45,
     blankUrl: "/scoutfitters/blank-high.svg",
     technique: "EMBROIDERY",
+    featured: true,
   },
   medium: {
     key: "medium",
+    series: "contractor",
     label: "Medium (Hanes Beefy-T)",
     summary: "6.1oz heavyweight + DTG. Durable daily driver.",
     wholesaleEstimate: 13,
-    retailPrice: 32,
     blankUrl: "/scoutfitters/blank-medium.svg",
     technique: "DTG",
+    featured: true,
   },
   low: {
     key: "low",
+    series: "contractor",
     label: "Low (Gildan Ultra)",
     summary: "6oz heavyweight + DTG. No thin promo tees.",
     wholesaleEstimate: 10,
-    retailPrice: 25,
+    blankUrl: "/scoutfitters/blank-low.svg",
+    technique: "DTG",
+  },
+  budget: {
+    key: "budget",
+    series: "value",
+    label: "Budget (Gildan 5000)",
+    summary: "Classic tee + DTG. Cheaper, less durable.",
+    wholesaleEstimate: 6,
+    blankUrl: "/scoutfitters/blank-low.svg",
+    technique: "DTG",
+  },
+  promo: {
+    key: "promo",
+    series: "value",
+    label: "Promo (Softstyle / thin)",
+    summary: "Thin promo tee + DTG. Not recommended for workwear.",
+    wholesaleEstimate: 4,
     blankUrl: "/scoutfitters/blank-low.svg",
     technique: "DTG",
   },
@@ -119,6 +142,7 @@ export default function ScoutFitters() {
   const [tier, setTier] = useState<TierKey>("high");
   const [placement, setPlacement] = useState<PlacementKey>("left_chest");
   const [quantity, setQuantity] = useState<number>(1);
+  const [showValueOptions, setShowValueOptions] = useState(false);
 
   const [qualityError, setQualityError] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -148,10 +172,12 @@ export default function ScoutFitters() {
 
   const tierSpec = TIERS[tier];
 
+  const unitPrice = useMemo(() => tierSpec.wholesaleEstimate + PROFIT_PER_SHIRT, [tierSpec]);
+
   const subtotal = useMemo(() => {
     const q = Number.isFinite(quantity) ? Math.max(1, Math.floor(quantity)) : 1;
-    return q * tierSpec.retailPrice;
-  }, [quantity, tierSpec.retailPrice]);
+    return q * unitPrice;
+  }, [quantity, unitPrice]);
 
   const printBox = useMemo(() => {
     // Canvas coordinates for preview placement. These do not dictate Printful positioning;
@@ -554,8 +580,8 @@ export default function ScoutFitters() {
             ScoutFitters
           </h1>
           <p className="text-sm text-white/70 mt-1">
-            Rugged workwear merch, no thin promo tees. Upload a logo, preview placement, and send to
-            fulfillment.
+            Contractor Series is featured first. Customers can still pick budget blanks if they
+            want. Upload a logo, preview placement, and send to fulfillment.
           </p>
         </div>
         <div className="flex gap-2">
@@ -582,32 +608,114 @@ export default function ScoutFitters() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 space-y-2">
-                <Label>Tier</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {(Object.keys(TIERS) as TierKey[]).map((k) => {
-                    const t = TIERS[k];
-                    const active = tier === k;
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setTier(k)}
-                        className="rounded-xl border px-3 py-2 text-left transition-colors"
-                        style={{
-                          borderColor: active ? "rgba(249,115,22,0.65)" : "rgba(255,255,255,0.10)",
-                          backgroundColor: active ? "rgba(249,115,22,0.10)" : "rgba(17,20,24,0.55)",
-                        }}
-                      >
-                        <div className="text-sm font-medium">{t.label}</div>
-                        <div className="text-[11px] text-white/70 mt-1">{t.summary}</div>
-                        <div className="text-[11px] text-white/70 mt-2">
-                          Technique: <span className="text-white">{t.technique}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
+              <div className="flex-1 space-y-3">
+                <div>
+                  <Label>Contractor Series</Label>
+                  <div className="text-[11px] text-white/70 mt-1">
+                    Featured workwear tiers (profit stays the same across tiers).
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {(Object.keys(TIERS) as TierKey[])
+                    .filter((k) => TIERS[k].series === "contractor")
+                    .map((k) => {
+                      const t = TIERS[k];
+                      const active = tier === k;
+                      const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setTier(k)}
+                          className="rounded-xl border px-3 py-2 text-left transition-colors"
+                          style={{
+                            borderColor: active
+                              ? "rgba(249,115,22,0.65)"
+                              : t.featured
+                                ? "rgba(249,115,22,0.35)"
+                                : "rgba(255,255,255,0.10)",
+                            backgroundColor: active
+                              ? "rgba(249,115,22,0.10)"
+                              : "rgba(17,20,24,0.55)",
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-medium">{t.label}</div>
+                            {t.featured && (
+                              <span className="text-[10px] rounded-full px-2 py-0.5 bg-ts-orange/20 text-ts-orange border border-ts-orange/30">
+                                Featured
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-white/70 mt-1">{t.summary}</div>
+                          <div className="text-[11px] text-white/70 mt-2">
+                            Technique: <span className="text-white">{t.technique}</span>
+                          </div>
+                          <div className="text-[11px] text-white/70 mt-1">
+                            Your price: <span className="text-white">${unit.toFixed(2)}</span> •
+                            Profit:{" "}
+                            <span className="text-white">${PROFIT_PER_SHIRT.toFixed(2)}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <div>
+                    <Label>Value options</Label>
+                    <div className="text-[11px] text-white/70 mt-1">
+                      Cheaper blanks for customers who want budget pricing.
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowValueOptions((s) => !s)}
+                  >
+                    {showValueOptions ? "Hide" : "Show"}
+                  </Button>
+                </div>
+
+                {showValueOptions && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {(Object.keys(TIERS) as TierKey[])
+                      .filter((k) => TIERS[k].series === "value")
+                      .map((k) => {
+                        const t = TIERS[k];
+                        const active = tier === k;
+                        const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setTier(k)}
+                            className="rounded-xl border px-3 py-2 text-left transition-colors"
+                            style={{
+                              borderColor: active
+                                ? "rgba(249,115,22,0.65)"
+                                : "rgba(255,255,255,0.10)",
+                              backgroundColor: active
+                                ? "rgba(249,115,22,0.10)"
+                                : "rgba(17,20,24,0.55)",
+                            }}
+                          >
+                            <div className="text-sm font-medium">{t.label}</div>
+                            <div className="text-[11px] text-white/70 mt-1">{t.summary}</div>
+                            <div className="text-[11px] text-white/70 mt-2">
+                              Technique: <span className="text-white">{t.technique}</span>
+                            </div>
+                            <div className="text-[11px] text-white/70 mt-1">
+                              Your price: <span className="text-white">${unit.toFixed(2)}</span> •
+                              Profit:{" "}
+                              <span className="text-white">${PROFIT_PER_SHIRT.toFixed(2)}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
 
               <div className="w-full md:w-72 space-y-3">

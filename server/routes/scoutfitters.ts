@@ -7,7 +7,7 @@ import multer from "multer";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
 
-type TierKey = "high" | "medium" | "low";
+type TierKey = string;
 type PlacementKey = "front_center" | "left_chest";
 
 type Recipient = {
@@ -40,7 +40,15 @@ function parsePositiveInt(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
 }
 
-async function getVariantMapFromSiteSettings(): Promise<Partial<Record<TierKey, number>> | null> {
+function sanitizeTierKey(value: unknown): string | null {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!raw) return null;
+  if (raw.length > 64) return null;
+  if (!/^[a-z0-9_-]+$/.test(raw)) return null;
+  return raw;
+}
+
+async function getVariantMapFromSiteSettings(): Promise<Record<string, number> | null> {
   try {
     const settings = await storage.getSiteSettings("marketing");
     const candidates = settings
@@ -54,38 +62,43 @@ async function getVariantMapFromSiteSettings(): Promise<Partial<Record<TierKey, 
     const value: any = candidates[0]?.value;
     if (!value || typeof value !== "object") return null;
 
-    const high = parsePositiveInt(value.high);
-    const medium = parsePositiveInt(value.medium);
-    const low = parsePositiveInt(value.low);
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(value)) {
+      const key = sanitizeTierKey(k);
+      const variantId = parsePositiveInt(v);
+      if (!key || !variantId) continue;
+      out[key] = variantId;
+    }
 
-    return {
-      ...(high ? { high } : {}),
-      ...(medium ? { medium } : {}),
-      ...(low ? { low } : {}),
-    };
+    return Object.keys(out).length ? out : null;
   } catch {
     return null;
   }
 }
 
 async function getVariantIdForTier(tier: TierKey): Promise<number | null> {
+  const key = sanitizeTierKey(tier);
+  if (!key) return null;
   const fromSettings = await getVariantMapFromSiteSettings();
-  const byTier = fromSettings?.[tier];
+  const byTier = key ? fromSettings?.[key] : null;
   if (byTier) return byTier;
 
   // Fallback: env vars (not required; variant IDs are not secrets, but some deploys prefer env-based config).
   const env =
-    tier === "high"
+    key === "high"
       ? process.env.SCOUTFITTERS_PRINTFUL_VARIANT_ID_HIGH
-      : tier === "medium"
+      : key === "medium"
         ? process.env.SCOUTFITTERS_PRINTFUL_VARIANT_ID_MEDIUM
-        : process.env.SCOUTFITTERS_PRINTFUL_VARIANT_ID_LOW;
+        : key === "low"
+          ? process.env.SCOUTFITTERS_PRINTFUL_VARIANT_ID_LOW
+          : null;
 
   return parsePositiveInt(env);
 }
 
 function getTechniqueForTier(tier: TierKey): "EMBROIDERY" | "DTG" {
-  return tier === "high" ? "EMBROIDERY" : "DTG";
+  const key = sanitizeTierKey(tier);
+  return key === "high" ? "EMBROIDERY" : "DTG";
 }
 
 function sanitizePrintfulFileType(value: unknown): string | null {
@@ -211,6 +224,7 @@ export function registerScoutFittersRoutes(app: any) {
       getVariantIdForTier("medium"),
       getVariantIdForTier("low"),
     ]);
+    const variantMap = await getVariantMapFromSiteSettings();
     const fileTypeOverrides = await getPrintfulFileTypeOverridesFromSiteSettings();
     res.status(200).json({
       tiers: {
@@ -225,6 +239,8 @@ export function registerScoutFittersRoutes(app: any) {
           medium: Boolean(medium),
           low: Boolean(low),
         },
+        // Not secrets; helpful for UI/admin debugging.
+        allowedTierKeys: Object.keys(variantMap || {}).sort(),
         fileTypeOverridesConfigured: Boolean(
           fileTypeOverrides?.embroidery?.left_chest || fileTypeOverrides?.embroidery?.front_center
         ),
@@ -279,7 +295,7 @@ export function registerScoutFittersRoutes(app: any) {
           .json({ message: "Printful is not configured (PRINTFUL_API_KEY missing)" });
       }
 
-      const tier = String((req.body ?? {}).tier || "").toLowerCase() as TierKey;
+      const tier = String((req.body ?? {}).tier || (req.body ?? {}).productKey || "").toLowerCase();
       const placement = String((req.body ?? {}).placement || "").toLowerCase() as PlacementKey;
       const quantityRaw = Number((req.body ?? {}).quantity);
       const quantity = Number.isFinite(quantityRaw) ? Math.max(1, Math.floor(quantityRaw)) : 1;
@@ -287,7 +303,8 @@ export function registerScoutFittersRoutes(app: any) {
       const designUrl = String((req.body ?? {}).designUrl || "").trim();
       const recipient = (req.body ?? {}).recipient as Recipient | undefined;
 
-      if (!["high", "medium", "low"].includes(tier)) {
+      const normalizedTier = sanitizeTierKey(tier);
+      if (!normalizedTier) {
         return res.status(400).json({ message: "Invalid tier" });
       }
       if (!["front_center", "left_chest"].includes(placement)) {
@@ -300,7 +317,7 @@ export function registerScoutFittersRoutes(app: any) {
         return res.status(400).json({ message: "Invalid recipient" });
       }
 
-      const variantId = await getVariantIdForTier(tier);
+      const variantId = await getVariantIdForTier(normalizedTier);
       if (!variantId) {
         return res.status(503).json({
           message:
@@ -308,7 +325,7 @@ export function registerScoutFittersRoutes(app: any) {
         });
       }
 
-      const technique = getTechniqueForTier(tier);
+      const technique = getTechniqueForTier(normalizedTier);
       const fileTypeOverrides = await getPrintfulFileTypeOverridesFromSiteSettings();
       const file = buildPrintFile({ technique, placement, designUrl, fileTypeOverrides });
 
