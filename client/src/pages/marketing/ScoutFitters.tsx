@@ -588,8 +588,20 @@ export default function ScoutFitters() {
           <Button variant="outline" onClick={() => navigate("/profile-settings")}>
             Profile settings
           </Button>
-          <Button variant="outline" onClick={() => navigate("/reset")}>
-            Reset cache
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              try {
+                const url = new URL(window.location.href);
+                url.searchParams.set("__reset", "1");
+                window.location.assign(url.toString());
+              } catch {
+                window.location.assign(`${window.location.pathname}?__reset=1`);
+              }
+            }}
+          >
+            Repair &amp; Reload
           </Button>
         </div>
       </div>
