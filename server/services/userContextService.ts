@@ -501,7 +501,8 @@ function buildLanguageProfile(
   if (perspective === "work") {
     focusAreas.push("service coverage", "quoting and scope clarity", "scheduling");
     contextualHints.push(
-      "If the user is asking as a service provider, focus on process and trust signals (not marketing hype)."
+      "If the user is asking as a service provider, focus on process and trust signals (not marketing hype).",
+      "Do not use the word 'leads' when referring to opportunities. Use 'job requests' or 'projects'."
     );
   } else if (perspective === "hire") {
     focusAreas.push("scope and requirements", "local matching", "pricing expectations");
@@ -511,7 +512,8 @@ function buildLanguageProfile(
   } else if (userTypes.includes("contractor")) {
     focusAreas.push("next steps", "local context", "clear options");
     contextualHints.push(
-      "If you can't tell whether the user is hiring or seeking work, ask: 'Are you trying to hire someone, or get leads for your business?'"
+      "If you can't tell whether the user is hiring or offering services, ask: 'Are you trying to hire someone, or offer your services as a pro?'",
+      "Do not use the word 'leads' when referring to opportunities. Use 'job requests' or 'projects'."
     );
   }
 
@@ -524,10 +526,11 @@ function buildLanguageProfile(
   }
 
   if (userTypes.includes("business")) {
-    focusAreas.push("growth opportunities", "customer acquisition", "local market insights");
+    focusAreas.push("profile readiness", "verification steps", "availability and scheduling");
     contextualHints.push(
-      "Highlight competitive advantages and market positioning.",
-      "Scout understands your market niche."
+      "Stay operational: help them set up their profile, coverage area, availability, and how Scout routes work.",
+      "Avoid marketing language (no 'customer acquisition', no 'market positioning', no 'lead gen').",
+      "Do not use the word 'leads' when referring to opportunities. Use 'job requests' or 'projects'."
     );
   }
 
@@ -584,10 +587,10 @@ export function formatUserContextForPrompt(context: UserContext): string {
   if (!context.userId) {
     // Guest user context
     return `
-## User Context: Guest User
-You're assisting a guest user exploring TradeScout. Be welcoming and educational.
-Emphasize the platform's value proposition and encourage exploration.
-`;
+ ## User Context: Guest User
+ You're assisting a guest user exploring TradeScout. Be welcoming and concise.
+ Keep the response practical and route them into the next step.
+ `;
   }
 
   const locationStr = formatLocation(context.location);

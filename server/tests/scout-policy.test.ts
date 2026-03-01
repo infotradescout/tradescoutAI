@@ -23,6 +23,16 @@ describe("scoutPolicy", () => {
     expect(violations.length).toBeGreaterThan(0);
   });
 
+  it("sanitizes lead language in Scout messages", () => {
+    const raw =
+      "I can help you find new leads for your business. Lead gen is part of the workflow.";
+    const { message } = sanitizeScoutMessageForPolicy(raw);
+
+    expect(message.toLowerCase()).not.toContain("new leads");
+    expect(message.toLowerCase()).not.toContain("lead gen");
+    expect(message.toLowerCase()).toContain("job requests");
+  });
+
   it("sanitizes recommendation language in action labels and subtitles", () => {
     const rawActions = [
       {

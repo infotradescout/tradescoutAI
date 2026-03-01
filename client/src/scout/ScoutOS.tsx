@@ -92,7 +92,8 @@ import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
-const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_played_session";
+// Must match the key used by ScoutInput so the demo only runs once per session.
+const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
@@ -628,6 +629,9 @@ export default function ScoutOS() {
     [state.messages]
   );
 
+  // First-time guest state: controls the calm intro + auto-demo gating.
+  const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
+
   const controllerActions = useMemo(() => {
     const actions = Array.isArray(state.lastActions) ? state.lastActions : [];
     const filtered = actions.filter(
@@ -755,9 +759,26 @@ export default function ScoutOS() {
     }
   }, [activeObjective?.id, refreshObjective]);
 
-  // Disable auto-demo typing so Scout never speaks before the user does.
-  // Scout should only respond after an explicit user intent (typing or tile).
-  const shouldPlayIntroDemo = false;
+  // Auto-demo typing for first-time guest sessions.
+  // This is intentionally session-scoped and can be forced via ?forceIntro=1.
+  const shouldPlayIntroDemo = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    if (!location.startsWith("/scout")) return false;
+
+    let forceIntro = false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      forceIntro = params.get("forceIntro") === "1";
+    } catch {
+      // ignore
+    }
+
+    if (forceIntro) return true;
+    if (isAuthenticated) return false;
+    if (!isFirstGuestVisit) return false;
+    if (hasPlayedDemoThisSession) return false;
+    return true;
+  }, [hasPlayedDemoThisSession, isAuthenticated, isFirstGuestVisit, location]);
 
   // Parse URL search params to detect explicit intent (e.g. /scout?intent=estimate)
   const urlIntent = useMemo(() => {
@@ -875,10 +896,7 @@ export default function ScoutOS() {
     onboarding.startOnboardingFlow(userIntentText, provisionalUserTypes, countyName, profileDraft);
   }, [location, user, locality.county, onboarding]);
 
-  // First-time guest state: controls entire top half of Scout.
-  // We treat this as "guest has not actively interacted yet" so that
-  // auto-demo typing does NOT collapse the calm intro.
-  const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
+  // First-time guest state is derived earlier (before intro demo gating).
   // Diagnostic: log intro demo gating values to verify which guard blocks (dev-only)
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -3610,8 +3628,8 @@ export default function ScoutOS() {
                       label: "typing",
                     });
                   }}
-                  autoDemoText={undefined}
-                  enableAutoDemo={false}
+                  autoDemoText={introDemoText}
+                  enableAutoDemo={shouldPlayIntroDemo}
                   autoRouteEnabled={autoRouteEnabled}
                   onToggleAutoRoute={handleToggleAutoRoute}
                 />

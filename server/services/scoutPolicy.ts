@@ -47,6 +47,22 @@ function replaceWithRules(input: string): { output: string; violations: ScoutPol
       regex: /\brecommendations?\b/gi,
       replacement: "trust signals",
     },
+    {
+      rule: "no_leads_language_for_opportunities",
+      // Avoid "lead" framing for jobs/opportunities; keep safety uses like "lead paint" intact.
+      regex: /\b(new|more|project|job|client|customer|service)\s+leads?\b/gi,
+      replacement: "job requests",
+    },
+    {
+      rule: "no_lead_gen_shorthand",
+      regex: /\blead\s*(gen|generation)\b/gi,
+      replacement: "job request flow",
+    },
+    {
+      rule: "no_leads_for_business_phrase",
+      regex: /\bleads?\s+for\s+your\s+business\b/gi,
+      replacement: "job requests for your services",
+    },
   ];
 
   for (const rule of textRules) {
