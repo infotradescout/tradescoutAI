@@ -624,7 +624,7 @@ export async function getScoutHealthSummary(now = new Date()): Promise<string> {
 
   const total = rows.length;
   if (total === 0) {
-    return "Last 7 days: no Scout interactions recorded.";
+    return "Last 7 days: no Scout interactions recorded yet. This card will populate as people use Scout.";
   }
 
   const highConfidence = rows.filter((r) => (r.scoutConfidence ?? 0) >= 70).length;

@@ -833,8 +833,17 @@ export default function ScoutOS() {
       const wantsOnboarding = params.get("onboarding") === "true";
       const provisional = (user as any)?.preferences?.provisional;
       const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+      const hasCanonicalLocation = Boolean(
+        (user as any)?.locationCommitted || ((user as any)?.stateCode && (user as any)?.countyFips)
+      );
 
-      if (wantsOnboarding && (!profileDraft?.countyFips || !profileDraft.presenceType)) {
+      // Avoid redirect loops: once a user has a canonical location committed, they should not be
+      // forced back into pre-scout setup just because a provisional draft was cleared.
+      if (
+        wantsOnboarding &&
+        !hasCanonicalLocation &&
+        (!profileDraft?.countyFips || !profileDraft.presenceType)
+      ) {
         navigate("/pre-scout-setup");
       }
     } catch {
