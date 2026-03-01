@@ -131,6 +131,7 @@ export default function AdminBusinessImport() {
   const [content, setContent] = useState("");
   const [source, setSource] = useState("csv_manual");
   const [dryRun, setDryRun] = useState(false);
+  const [createOwnerAccounts, setCreateOwnerAccounts] = useState(false);
   const [sendActivationEmails, setSendActivationEmails] = useState(false);
   const [includeActivationLinks, setIncludeActivationLinks] = useState(false);
   const [createPublicProfiles, setCreatePublicProfiles] = useState(false);
@@ -138,6 +139,7 @@ export default function AdminBusinessImport() {
   const [defaultStateCode, setDefaultStateCode] = useState("");
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [selectedBatchStatus, setSelectedBatchStatus] = useState("all");
+  const [batchRowLimit, setBatchRowLimit] = useState("200");
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [enrichLimit, setEnrichLimit] = useState("100");
   const [enrichDryRun, setEnrichDryRun] = useState(false);
@@ -169,7 +171,9 @@ export default function AdminBusinessImport() {
     enabled: Boolean(effectiveBatchId),
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.set("limit", "200");
+      const parsed = typeof batchRowLimit === "string" ? parseInt(batchRowLimit || "200", 10) : 200;
+      const clamped = Number.isFinite(parsed) ? Math.max(1, Math.min(500, parsed)) : 200;
+      params.set("limit", String(clamped));
       if (selectedBatchStatus !== "all") {
         params.set("status", selectedBatchStatus);
       }
@@ -190,6 +194,7 @@ export default function AdminBusinessImport() {
       const params = new URLSearchParams();
       params.set("source", source.trim() || "csv_manual");
       if (dryRun) params.set("dryRun", "true");
+      if (createOwnerAccounts) params.set("createOwnerAccounts", "true");
       if (sendActivationEmails) params.set("sendActivationEmails", "true");
       if (includeActivationLinks) params.set("includeActivationLinks", "true");
       if (createPublicProfiles) params.set("createPublicProfiles", "true");
@@ -449,7 +454,23 @@ export default function AdminBusinessImport() {
             </label>
             <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
+                checked={createOwnerAccounts}
+                onCheckedChange={(v) => {
+                  const next = v === true;
+                  setCreateOwnerAccounts(next);
+                  if (!next) {
+                    setSendActivationEmails(false);
+                    setIncludeActivationLinks(false);
+                    setCreatePublicProfiles(false);
+                  }
+                }}
+              />
+              Create owner accounts (creates site users)
+            </label>
+            <label className="flex items-center gap-2 text-sm text-white/70">
+              <Checkbox
                 checked={sendActivationEmails}
+                disabled={!createOwnerAccounts}
                 onCheckedChange={(v) => setSendActivationEmails(v === true)}
               />
               Send activation emails (requires email config)
@@ -457,6 +478,7 @@ export default function AdminBusinessImport() {
             <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={includeActivationLinks}
+                disabled={!createOwnerAccounts}
                 onCheckedChange={(v) => setIncludeActivationLinks(v === true)}
               />
               Include activation links in response (sensitive)
@@ -464,6 +486,7 @@ export default function AdminBusinessImport() {
             <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox
                 checked={createPublicProfiles}
+                disabled={!createOwnerAccounts}
                 onCheckedChange={(v) => setCreatePublicProfiles(v === true)}
               />
               Create public profiles for owner-email rows
@@ -546,7 +569,7 @@ export default function AdminBusinessImport() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-white/60">Batch</label>
               <select
@@ -575,6 +598,15 @@ export default function AdminBusinessImport() {
                 <option value="failed">Failed</option>
                 <option value="skipped_duplicate">Skipped duplicate</option>
               </select>
+            </div>
+            <div>
+              <label className="text-xs text-white/60">Rows shown (max 500)</label>
+              <Input
+                value={batchRowLimit}
+                onChange={(e) => setBatchRowLimit(e.target.value)}
+                placeholder="200"
+                className="bg-black/30 border-[color:var(--border-subtle)]"
+              />
             </div>
           </div>
 

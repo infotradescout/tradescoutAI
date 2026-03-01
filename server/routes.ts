@@ -12212,6 +12212,18 @@ export async function registerRoutes(app: any) {
             query.includeActivationLinks ??
             query.include_activation_links
         );
+        // Default to importing directory entries (unclaimed businesses). Creating real auth users
+        // from an import is powerful and should be opt-in to avoid inflating "site user" counts.
+        const createOwnerAccounts = readBool(
+          body.createOwnerAccounts ??
+            body.create_owner_accounts ??
+            body.createUsers ??
+            body.create_users ??
+            query.createOwnerAccounts ??
+            query.create_owner_accounts ??
+            query.createUsers ??
+            query.create_users
+        );
         const createPublicProfiles = readBool(
           body.createPublicProfiles ?? query.createPublicProfiles ?? query.create_public_profiles
         );
@@ -12232,6 +12244,12 @@ export async function registerRoutes(app: any) {
           process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
         const allowActivationLinkExport =
           process.env.ADMIN_ALLOW_ACTIVATION_LINK_EXPORT === "true" || !isProductionEnv;
+        // Guardrails: activation links/emails and profile provisioning only make sense when we are
+        // explicitly creating owner accounts (users). If we're importing directory entries only,
+        // ignore these flags even if the client sends them.
+        const sendActivationEmailsEffective = sendActivationEmails && createOwnerAccounts;
+        const includeActivationLinksEffective = includeActivationLinks && createOwnerAccounts;
+        const createPublicProfilesEffective = createPublicProfiles && createOwnerAccounts;
 
         const parseDelimited = (
           input: string,
@@ -12746,6 +12764,7 @@ export async function registerRoutes(app: any) {
 
           try {
             const hasOwnerEmail = Boolean(email);
+            const shouldCreateOwnerAccounts = hasOwnerEmail && createOwnerAccounts;
             const countyIds = county?.id ? [county.id] : [];
 
             let userId: string | null = null;
@@ -12845,8 +12864,14 @@ export async function registerRoutes(app: any) {
             // Stable dedupe key for repeatable imports across chunks/files.
             if (dedupeKey && !importExtras.dedupe_key) importExtras.dedupe_key = dedupeKey;
             if (externalId && !importExtras.external_id) importExtras.external_id = externalId;
+            // Preserve contact hints for later claim/verification flows without creating users.
+            if (email && !importExtras.owner_email) importExtras.owner_email = email;
+            if (ownerFirstName && !importExtras.owner_first_name)
+              importExtras.owner_first_name = ownerFirstName;
+            if (ownerLastName && !importExtras.owner_last_name)
+              importExtras.owner_last_name = ownerLastName;
 
-            if (hasOwnerEmail) {
+            if (shouldCreateOwnerAccounts) {
               const existingUser = await storage.getUserByEmail(email);
               let userRecord = existingUser;
 
@@ -12951,7 +12976,7 @@ export async function registerRoutes(app: any) {
                   publishedAt: new Date().toISOString(),
                 } as any);
 
-                if (createPublicProfiles) {
+                if (createPublicProfilesEffective) {
                   const existingProfiles = await storage.listProfilesByOwner(userId);
                   if (existingProfiles.length > 0) {
                     publicProfileSlug = String(existingProfiles[0]?.slug || "") || null;
@@ -13169,7 +13194,7 @@ export async function registerRoutes(app: any) {
               activationPrepared++;
               const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
-              if (sendActivationEmails && emailService.isConfigured()) {
+              if (sendActivationEmailsEffective && emailService.isConfigured()) {
                 const emailVerificationRequired = await getGeneralSetting<boolean>(
                   "email_verification_required",
                   true
@@ -13192,7 +13217,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
                   purpose: "activation",
                 });
                 activationEmailed++;
-              } else if (includeActivationLinks && allowActivationLinkExport) {
+              } else if (includeActivationLinksEffective && allowActivationLinkExport) {
                 activationLink = resetLink;
               }
             }
@@ -13231,10 +13256,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             activationEmailed,
           },
           activationLinkExport: {
-            requested: includeActivationLinks,
-            allowed: includeActivationLinks && allowActivationLinkExport,
+            requested: includeActivationLinksEffective,
+            allowed: includeActivationLinksEffective && allowActivationLinkExport,
             reason:
-              includeActivationLinks && !allowActivationLinkExport
+              includeActivationLinksEffective && !allowActivationLinkExport
                 ? "Activation link export is disabled in production. Set ADMIN_ALLOW_ACTIVATION_LINK_EXPORT=true to allow."
                 : null,
           },
