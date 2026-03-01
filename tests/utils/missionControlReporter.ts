@@ -1,4 +1,4 @@
-import type { TestError } from "@playwright/test";
+type TestError = { message?: string; value?: unknown };
 
 type FailureType = "broken" | "stub" | "confusing" | "misleading" | "permission_block";
 

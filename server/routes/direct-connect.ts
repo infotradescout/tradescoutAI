@@ -24,7 +24,7 @@ import {
 import { hasPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 
 type AuthedRequest = Request & {
-  user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
+  user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
 const directConnectRequestSchema = z.object({

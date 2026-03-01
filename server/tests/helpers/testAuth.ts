@@ -1,5 +1,4 @@
 import request from "supertest";
-import type { SuperAgentTest } from "supertest";
 import { createApp } from "../../app";
 import { storage } from "../../storage";
 import { hashPassword } from "../../auth";
@@ -16,7 +15,7 @@ type Role =
   | "head_admin";
 
 export type TestLoginResult = {
-  agent: SuperAgentTest;
+  agent: ReturnType<typeof request.agent>;
   user: any;
   email: string;
   password: string;

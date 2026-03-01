@@ -2,7 +2,8 @@ declare global {
   namespace Express {
     interface User {
       id: string;
-      role: string;
+      // DB-backed users may have null/empty legacy roles; authorization code normalizes this.
+      role?: string | null;
       email: string;
       claims?: { sub?: string; [key: string]: any };
       [key: string]: any;

@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Objective as ObjectiveDto } from "@shared/types/objective";
 
 type AuthedRequest = Request & {
-  user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
+  user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
 type ObjectiveRow = typeof objectives.$inferSelect;

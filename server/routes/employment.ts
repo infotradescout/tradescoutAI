@@ -6,7 +6,7 @@ import { db } from "../db";
 import { counties, employmentPosts, identityVerifications, users } from "@shared/schema";
 
 type AuthedRequest = Request & {
-  user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
+  user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
 const createEmploymentPostSchema = z.object({

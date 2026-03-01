@@ -11,7 +11,7 @@ export default defineConfig({
     include: ["server/tests/**/*.test.ts", "server/utils/**/*.test.ts", "client/src/**/*.test.ts"],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     passWithNoTests: false,
-    reporter: ["default", "html"],
+    reporters: ["default", "html"],
     outputFile: {
       // Keep Vitest HTML output out of git-tracked root files (and inside an ignored folder).
       html: "./test-results/vitest-report.html",

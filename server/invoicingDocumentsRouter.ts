@@ -18,7 +18,9 @@ class HttpError extends Error {
   }
 }
 
-type AuthedRequest = Request & { user?: { id?: string; role?: string; [key: string]: any } };
+type AuthedRequest = Request & {
+  user?: { id?: string; role?: string | null; claims?: { sub?: string }; [key: string]: any };
+};
 function requireAuth(req: AuthedRequest): asserts req is AuthedRequest & { user: { id: string } } {
   if (!req.user?.id) {
     throw new HttpError("AUTH_REQUIRED", 401);
@@ -400,6 +402,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
       const { jobId } = req.params;
+      const userId = req.user.id;
       const { rows } = await pool.query(
         "SELECT * FROM documents WHERE job_id = $1 ORDER BY created_at ASC, version ASC",
         [jobId]
@@ -827,6 +830,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
       const { jobId } = req.params;
+      const userId = req.user.id;
 
       const invoiceRes = await pool.query(
         "SELECT * FROM documents WHERE job_id=$1 AND type='INVOICE' ORDER BY created_at DESC LIMIT 1",
@@ -840,7 +844,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
       // C2-3: Verification gate - check contractor tax/identity verification (ACCEPT_CONTRACTOR_PAYMENT action)
       if (markPaid) {
-        const user = await storage.getUser(req.user?.id || req.user?.claims?.sub);
+        const user = await storage.getUser(userId);
         const hasTaxId = (user as any)?.taxIdVerified;
         const hasBankAccount = (user as any)?.bankAccountVerified;
         const hasIdentity = (user as any)?.identityVerified;
@@ -893,7 +897,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
 					 VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
 					 RETURNING *`,
-        [jobId, JSON.stringify(receiptPayload), JSON.stringify({}), req.user.id]
+        [jobId, JSON.stringify(receiptPayload), JSON.stringify({}), userId]
       );
       const receipt = created.rows[0];
       try {

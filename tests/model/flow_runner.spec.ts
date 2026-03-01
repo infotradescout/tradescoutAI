@@ -1,20 +1,20 @@
 /**
  * Model-Based Flow Runner - Deterministic Random Walk
- * 
+ *
  * Tests core invariants across randomized flows:
  * - No 404 errors
  * - Mission element always visible (on business profile)
  * - No stub/placeholder content
  * - Contact CTA always present on business profile
  * - Graceful error handling
- * 
+ *
  * Uses seeded RNG for reproducible runs
  */
 
-import { test, expect } from '../fixtures/botArmy';
-import { env } from '../utils/env';
-import { selectors, hasStubContent } from '../utils/selectors';
-import { NetworkWatcher } from '../utils/networkWatch';
+import { test, expect } from "../fixtures/botArmy";
+import { env } from "../utils/env";
+import { selectors, hasStubContent } from "../utils/selectors";
+import { NetworkWatcher } from "../utils/networkWatch";
 
 /**
  * Seeded random number generator (for reproducibility)
@@ -23,7 +23,7 @@ class SeededRandom {
   private seed: number;
 
   constructor(seed?: number) {
-    this.seed = seed || (env.TEST_SEED ? parseInt(env.TEST_SEED, 10) : Date.now());
+    this.seed = seed ?? env.TEST_SEED ?? Date.now();
   }
 
   next(): number {
@@ -48,22 +48,17 @@ interface FlowState {
   invariantViolations: string[];
 }
 
-test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
+test.describe("Model-Based Testing - Deterministic Flow Runner", () => {
   let networkWatcher: NetworkWatcher;
   let rng: SeededRandom;
 
-  const PAGES = [
-    '/',
-    '/login',
-    '/create-account',
-    `/business/${env.AGENT_SCOPE_SLUG}`,
-  ];
+  const PAGES = ["/", "/login", "/create-account", `/business/${env.AGENT_SCOPE_SLUG}`];
 
   const ACTIONS = {
     navigate: (page: string) => `navigate:${page}`,
-    clickContactCTA: 'click:contact-cta',
-    openEditor: 'open:editor',
-    closeModal: 'close:modal',
+    clickContactCTA: "click:contact-cta",
+    openEditor: "open:editor",
+    closeModal: "close:modal",
   };
 
   test.beforeEach(async ({ page }) => {
@@ -72,7 +67,9 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
     console.log(`🌱 Seeded RNG with: ${rng.toString()}`);
   });
 
-  test('should satisfy mission invariants across 25-step random walk', async ({ page }, testInfo) => {
+  test("should satisfy mission invariants across 25-step random walk", async ({
+    page,
+  }, testInfo) => {
     try {
       const state: FlowState = {
         currentUrl: `${env.BASE_URL}/`,
@@ -89,17 +86,13 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
         console.log(`\n[Step ${step}/${maxSteps}] At: ${state.currentUrl}`);
 
         // Navigate to current URL
-        const response = await page.goto(state.currentUrl, { waitUntil: 'networkidle' });
+        const response = await page.goto(state.currentUrl, { waitUntil: "networkidle" });
 
         if (!response?.ok()) {
-          state.errors.push(
-            `Navigation to ${state.currentUrl} returned ${response?.status()}`
-          );
+          state.errors.push(`Navigation to ${state.currentUrl} returned ${response?.status()}`);
           // 404s are not acceptable in core flows
           if (response?.status() === 404) {
-            state.invariantViolations.push(
-              `Got 404 at ${state.currentUrl}`
-            );
+            state.invariantViolations.push(`Got 404 at ${state.currentUrl}`);
           }
         }
 
@@ -112,14 +105,12 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
 
           if (!isMissionVisible) {
             state.invariantViolations.push(
-              'VIOLATION: Mission element not visible on business profile'
+              "VIOLATION: Mission element not visible on business profile"
             );
           } else {
             const missionText = await missionElement.textContent();
-            if (hasStubContent(missionText || '')) {
-              state.invariantViolations.push(
-                'VIOLATION: Mission contains stub content'
-              );
+            if (hasStubContent(missionText || "")) {
+              state.invariantViolations.push("VIOLATION: Mission contains stub content");
             }
           }
         }
@@ -127,9 +118,7 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
         // Check for stub/unfinished UI
         const allText = await page.content();
         if (hasStubContent(allText)) {
-          state.invariantViolations.push(
-            `Stub content found on ${state.currentUrl}`
-          );
+          state.invariantViolations.push(`Stub content found on ${state.currentUrl}`);
         }
 
         // Randomly choose next action
@@ -142,8 +131,8 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
 
         console.log(`  → Action: ${nextAction}`);
 
-        if (nextAction.startsWith('navigate:')) {
-          const targetPage = nextAction.replace('navigate:', '');
+        if (nextAction.startsWith("navigate:")) {
+          const targetPage = nextAction.replace("navigate:", "");
           state.currentUrl = `${env.BASE_URL}${targetPage}`;
         } else if (nextAction === ACTIONS.clickContactCTA) {
           const contactCTA = page.locator(selectors.businessProfileView.contactCTA);
@@ -154,8 +143,13 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
             await page.waitForTimeout(500);
           }
         } else if (nextAction === ACTIONS.closeModal) {
-          const closeButton = page.locator('button:has-text("Cancel"), button:has-text("Close"), [aria-label="Close"]');
-          const isVisible = await closeButton.first().isVisible().catch(() => false);
+          const closeButton = page.locator(
+            'button:has-text("Cancel"), button:has-text("Close"), [aria-label="Close"]'
+          );
+          const isVisible = await closeButton
+            .first()
+            .isVisible()
+            .catch(() => false);
 
           if (isVisible) {
             await closeButton.first().click();
@@ -171,12 +165,12 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
 
       // Non-blocking errors
       if (state.errors.length > 0) {
-        console.warn('Network/Navigation Errors:', state.errors);
+        console.warn("Network/Navigation Errors:", state.errors);
       }
 
       // Blocking violations (mission invariants)
       if (state.invariantViolations.length > 0) {
-        console.error('MISSION INVARIANT VIOLATIONS:', state.invariantViolations);
+        console.error("MISSION INVARIANT VIOLATIONS:", state.invariantViolations);
         expect(state.invariantViolations.length).toBe(0);
       }
     } finally {
@@ -184,11 +178,11 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
     }
   });
 
-  test('should handle missing test user gracefully', async ({ page }, testInfo) => {
+  test("should handle missing test user gracefully", async ({ page }, testInfo) => {
     try {
       // Try to navigate to a page that might require auth
       const response = await page.goto(`${env.BASE_URL}/dashboard`, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: "domcontentloaded",
       });
 
       // Should either:
@@ -198,9 +192,9 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
       if (response?.status() === 403 || response?.status() === 401) {
         // Fine - auth required
         expect([401, 403]).toContain(response.status());
-      } else if (page.url().includes('/login')) {
+      } else if (page.url().includes("/login")) {
         // Redirected to login - fine
-        expect(page.url()).toContain('/login');
+        expect(page.url()).toContain("/login");
       } else {
         // Should not be a generic error
         expect(response?.status()).toBeLessThanOrEqual(400);
@@ -210,7 +204,7 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
     }
   });
 
-  test('should verify Scout AI chat is available', async ({ page }, testInfo) => {
+  test("should verify Scout AI chat is available", async ({ page }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/`);
 
@@ -219,9 +213,9 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
       const isChatVisible = await scoutChat.isVisible().catch(() => false);
 
       if (!isChatVisible) {
-        console.warn('⚠️  Scout chat not immediately visible (may load asynchronously)');
+        console.warn("⚠️  Scout chat not immediately visible (may load asynchronously)");
       } else {
-        console.log('✅ Scout chat is visible');
+        console.log("✅ Scout chat is visible");
       }
     } finally {
       networkWatcher.attachToTestInfo(testInfo);
@@ -229,7 +223,7 @@ test.describe('Model-Based Testing - Deterministic Flow Runner', () => {
   });
 
   test.afterEach(async ({}, testInfo) => {
-    if (testInfo.status !== 'passed') {
+    if (testInfo.status !== "passed") {
       networkWatcher.logErrors();
     }
   });

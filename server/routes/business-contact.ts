@@ -10,7 +10,7 @@ import { storage } from "../storage";
 import { hasPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 
 type AuthedRequest = Request & {
-  user?: { id?: string; claims?: { sub?: string }; role?: string; [key: string]: any };
+  user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
 const revealSchema = z.object({
