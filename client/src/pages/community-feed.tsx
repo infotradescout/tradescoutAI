@@ -429,25 +429,22 @@ const CommunityFeed = memo(function CommunityFeed() {
   useEffect(() => {
     if (effectiveGeoScope === "local" && countyCommitted) {
       try {
-        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-        if (user?.email === "traderscornerllc@gmail.com") {
-          recordActivity({
-            type: "community.county_default",
-            ts: new Date().toISOString(),
-            path: typeof window !== "undefined" ? window.location.pathname : "",
-            meta: {
-              surface: "community",
-              scope: "local",
-              countyFips: countyFips || undefined,
-              stateCode: stateCode || undefined,
-              source: new URLSearchParams(window.location.search).has("scope")
-                ? "manual_change"
-                : "nav",
-              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
-              asOf: new Date().toISOString(),
-            },
-          });
-        }
+        recordActivity({
+          type: "community.county_default",
+          ts: new Date().toISOString(),
+          path: typeof window !== "undefined" ? window.location.pathname : "",
+          meta: {
+            surface: "community",
+            scope: "local",
+            countyFips: countyFips || undefined,
+            stateCode: stateCode || undefined,
+            source: new URLSearchParams(window.location.search).has("scope")
+              ? "manual_change"
+              : "nav",
+            sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+            asOf: new Date().toISOString(),
+          },
+        });
       } catch {
         // fire-and-forget: ignore telemetry failures
       }
@@ -460,24 +457,21 @@ const CommunityFeed = memo(function CommunityFeed() {
       const previousScope = previousScopeRef.current;
       previousScopeRef.current = effectiveGeoScope;
       try {
-        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-        if (user?.email === "traderscornerllc@gmail.com") {
-          recordActivity({
-            type: "community.scope_override",
-            ts: new Date().toISOString(),
-            path: typeof window !== "undefined" ? window.location.pathname : "",
-            meta: {
-              surface: "community",
-              scope: effectiveGeoScope,
-              countyFips: effectiveGeoScope === "local" ? countyFips : undefined,
-              stateCode: effectiveGeoScope === "local" ? stateCode : undefined,
-              source: "manual_change",
-              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
-              asOf: new Date().toISOString(),
-              previousScope,
-            },
-          });
-        }
+        recordActivity({
+          type: "community.scope_override",
+          ts: new Date().toISOString(),
+          path: typeof window !== "undefined" ? window.location.pathname : "",
+          meta: {
+            surface: "community",
+            scope: effectiveGeoScope,
+            countyFips: effectiveGeoScope === "local" ? countyFips : undefined,
+            stateCode: effectiveGeoScope === "local" ? stateCode : undefined,
+            source: "manual_change",
+            sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+            asOf: new Date().toISOString(),
+            previousScope,
+          },
+        });
       } catch {
         // fire-and-forget: ignore telemetry failures
       }

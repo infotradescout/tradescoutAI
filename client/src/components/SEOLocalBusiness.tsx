@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 interface LocalBusinessSEOProps {
   contractor?: {
@@ -15,6 +15,37 @@ interface LocalBusinessSEOProps {
   };
 }
 
+function normalizePublicOrigin(origin: string) {
+  try {
+    const parsed = new URL(origin);
+    const host = parsed.hostname.toLowerCase();
+    const isLocal = host === "localhost" || host === "127.0.0.1";
+    if (isLocal) return parsed.toString().replace(/\/$/, "");
+
+    const canonicalHost =
+      host === "thetradescout.com" ||
+      host === "www.thetradescout.com" ||
+      host === "tradescoutai.onrender.com";
+
+    if (canonicalHost) {
+      parsed.protocol = "https:";
+      parsed.hostname = "www.thetradescout.com";
+      parsed.port = "";
+      return parsed.toString().replace(/\/$/, "");
+    }
+
+    if (parsed.protocol === "http:") parsed.protocol = "https:";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return origin.replace(/\/$/, "");
+  }
+}
+
+function getPublicOriginForStructuredData() {
+  if (typeof window === "undefined") return "https://www.thetradescout.com";
+  return normalizePublicOrigin(window.location.origin);
+}
+
 /**
  * Component to inject local business structured data for individual contractor profiles
  * Helps with local SEO and Google My Business integration
@@ -25,52 +56,56 @@ export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps
 
     const structuredData = {
       "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": contractor.companyName,
-    "description": contractor.about || `Professional home improvement services by ${contractor.companyName}`,
-    "url": window.location.href,
-    "sameAs": contractor.website ? [contractor.website] : undefined,
-      "address": {
+      "@type": "LocalBusiness",
+      name: contractor.companyName,
+      description:
+        contractor.about || `Professional home improvement services by ${contractor.companyName}`,
+      url: window.location.href,
+      sameAs: contractor.website ? [contractor.website] : undefined,
+      address: {
         "@type": "PostalAddress",
-        "addressRegion": location?.state || "US",
-        "addressLocality": location?.county || "Local Area",
-        "addressCountry": "US"
+        addressRegion: location?.state || "US",
+        addressLocality: location?.county || "Local Area",
+        addressCountry: "US",
       },
-      "priceRange": "$$",
-      "paymentAccepted": ["Cash", "Credit Card", "Check", "Financing"],
-      "currenciesAccepted": "USD",
-      "areaServed": {
+      priceRange: "$$",
+      paymentAccepted: ["Cash", "Credit Card", "Check", "Financing"],
+      currenciesAccepted: "USD",
+      areaServed: {
         "@type": "GeoCircle",
-        "geoMidpoint": {
+        geoMidpoint: {
           "@type": "GeoCoordinates",
-          "addressRegion": location?.state,
-          "addressLocality": location?.county
+          addressRegion: location?.state,
+          addressLocality: location?.county,
         },
-        "geoRadius": "50000"
+        geoRadius: "50000",
       },
-      "serviceType": "Home Improvement Contractor",
-      "hasCredential": contractor.verifiedLicensed ? {
-        "@type": "EducationalOccupationalCredential",
-        "credentialCategory": "Professional License",
-        "recognizedBy": {
-          "@type": "Organization",
-          "name": "State Licensing Board"
-        }
-      } : undefined,
-      "makesOffer": {
+      serviceType: "Home Improvement Contractor",
+      hasCredential: contractor.verifiedLicensed
+        ? {
+            "@type": "EducationalOccupationalCredential",
+            credentialCategory: "Professional License",
+            recognizedBy: {
+              "@type": "Organization",
+              name: "State Licensing Board",
+            },
+          }
+        : undefined,
+      makesOffer: {
         "@type": "Offer",
-        "itemOffered": {
+        itemOffered: {
           "@type": "Service",
-          "name": "Home Improvement Services",
-          "description": "Professional contractor services including renovations, repairs, and installations"
+          name: "Home Improvement Services",
+          description:
+            "Professional contractor services including renovations, repairs, and installations",
         },
-        "areaServed": location?.county || "Local Area"
-      }
+        areaServed: location?.county || "Local Area",
+      },
     };
 
     // Create and inject structured data
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
 
@@ -86,78 +121,86 @@ export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps
  * Enhanced structured data for service categories
  * Helps with service-specific searches and AI model understanding
  */
-export function createServiceCategoryStructuredData(services: string[], location?: { state?: string; county?: string }) {
+export function createServiceCategoryStructuredData(
+  services: string[],
+  location?: { state?: string; county?: string }
+) {
+  const publicOrigin = getPublicOriginForStructuredData();
   return {
     "@context": "https://schema.org",
     "@type": "Service",
-    "serviceType": "Home Improvement Services",
-    "provider": {
+    serviceType: "Home Improvement Services",
+    provider: {
       "@type": "Organization",
-      "name": "TradeScout",
-      "url": "https://trade-scout-pro-traderscornerll.replit.app"
+      name: "TradeScout",
+      url: publicOrigin,
     },
-    "areaServed": {
+    areaServed: {
       "@type": "Place",
-      "addressRegion": location?.state || "United States",
-      "addressLocality": location?.county
+      addressRegion: location?.state || "United States",
+      addressLocality: location?.county,
     },
-    "hasOfferCatalog": {
+    hasOfferCatalog: {
       "@type": "OfferCatalog",
-      "name": "Home Improvement Services",
-      "itemListElement": services.map((service, index) => ({
+      name: "Home Improvement Services",
+      itemListElement: services.map((service, index) => ({
         "@type": "Offer",
-        "itemOffered": {
+        itemOffered: {
           "@type": "Service",
-          "name": service,
-          "serviceType": "Home Improvement"
+          name: service,
+          serviceType: "Home Improvement",
         },
-        "priceSpecification": {
+        priceSpecification: {
           "@type": "PriceSpecification",
-          "priceCurrency": "USD",
-          "price": "0",
-          "description": "Free quotes available"
-        }
-      }))
-    }
+          priceCurrency: "USD",
+          price: "0",
+          description: "Free quotes available",
+        },
+      })),
+    },
   };
 }
 
 /**
- * Generate job posting structured data for contractors looking for leads
+ * Generate job posting structured data for contractors browsing job requests.
  */
-export function createJobPostingStructuredData(projectType: string, location?: { state?: string; county?: string }) {
+export function createJobPostingStructuredData(
+  projectType: string,
+  location?: { state?: string; county?: string }
+) {
+  const publicOrigin = getPublicOriginForStructuredData();
   return {
     "@context": "https://schema.org",
     "@type": "JobPosting",
-    "title": `${projectType} Project Available`,
-    "description": `Homeowner seeking qualified contractor for ${projectType.toLowerCase()} services`,
-    "hiringOrganization": {
+    title: `${projectType} Project Available`,
+    description: `Homeowner seeking qualified contractor for ${projectType.toLowerCase()} services`,
+    hiringOrganization: {
       "@type": "Organization",
-      "name": "TradeScout",
-      "sameAs": "https://trade-scout-pro-traderscornerll.replit.app"
+      name: "TradeScout",
+      sameAs: publicOrigin,
     },
-    "jobLocation": {
+    jobLocation: {
       "@type": "Place",
-      "address": {
+      address: {
         "@type": "PostalAddress",
-        "addressRegion": location?.state || "US",
-        "addressLocality": location?.county,
-        "addressCountry": "US"
-      }
+        addressRegion: location?.state || "US",
+        addressLocality: location?.county,
+        addressCountry: "US",
+      },
     },
-    "employmentType": "CONTRACTOR",
-    "workHours": "Flexible",
-    "qualifications": [
+    employmentType: "CONTRACTOR",
+    workHours: "Flexible",
+    qualifications: [
       "Licensed and insured contractor",
       "Proven experience in home improvement",
       "Good communication skills",
-      "Professional references available"
+      "Professional references available",
     ],
-    "responsibilities": [
+    responsibilities: [
       "Provide accurate project estimates",
       "Complete work to professional standards",
       "Maintain clear communication with homeowner",
-      "Follow safety protocols"
-    ]
+      "Follow safety protocols",
+    ],
   };
 }

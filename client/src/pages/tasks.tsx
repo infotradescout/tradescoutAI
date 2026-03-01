@@ -194,24 +194,21 @@ export default function TasksHub({
   useEffect(() => {
     if (defaultCountyFips && selectedCountyFips === defaultCountyFips) {
       try {
-        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-        if (user?.email === "traderscornerllc@gmail.com") {
-          recordActivity({
-            type: "dc.county_default_applied",
-            ts: new Date().toISOString(),
-            path: window.location.pathname,
-            meta: {
-              surface: "direct_connect",
-              scope: "county",
-              countyFips: defaultCountyFips,
-              source: new URLSearchParams(window.location.search).has("county")
-                ? "county_page"
-                : "manual_change",
-              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
-              asOf: new Date().toISOString(),
-            },
-          });
-        }
+        recordActivity({
+          type: "dc.county_default_applied",
+          ts: new Date().toISOString(),
+          path: window.location.pathname,
+          meta: {
+            surface: "direct_connect",
+            scope: "county",
+            countyFips: defaultCountyFips,
+            source: new URLSearchParams(window.location.search).has("county")
+              ? "county_page"
+              : "manual_change",
+            sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+            asOf: new Date().toISOString(),
+          },
+        });
       } catch {
         // fire-and-forget: ignore telemetry failures
       }
@@ -1163,23 +1160,20 @@ export default function TasksHub({
                     if (newFips && newFips !== selectedCountyFips) {
                       // Telemetry: dc.county_override (Enter key)
                       try {
-                        // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-                        if (user?.email === "traderscornerllc@gmail.com") {
-                          recordActivity({
-                            type: "dc.county_override",
-                            ts: new Date().toISOString(),
-                            path: typeof window !== "undefined" ? window.location.pathname : "",
-                            meta: {
-                              surface: "direct_connect",
-                              scope: "county",
-                              countyFips: newFips,
-                              source: "manual_change",
-                              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
-                              asOf: new Date().toISOString(),
-                              previousCounty: selectedCountyFips,
-                            },
-                          });
-                        }
+                        recordActivity({
+                          type: "dc.county_override",
+                          ts: new Date().toISOString(),
+                          path: typeof window !== "undefined" ? window.location.pathname : "",
+                          meta: {
+                            surface: "direct_connect",
+                            scope: "county",
+                            countyFips: newFips,
+                            source: "manual_change",
+                            sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+                            asOf: new Date().toISOString(),
+                            previousCounty: selectedCountyFips,
+                          },
+                        });
                       } catch {
                         // fire-and-forget: ignore telemetry failures
                       }
@@ -1209,24 +1203,20 @@ export default function TasksHub({
                       if (newFips && newFips !== selectedCountyFips) {
                         // Telemetry: dc.county_override (button click)
                         try {
-                          // Pilot flag enforcement: only fire for traderscornerllc@gmail.com
-                          if (user?.email === "traderscornerllc@gmail.com") {
-                            recordActivity({
-                              type: "dc.county_override",
-                              ts: new Date().toISOString(),
-                              path: typeof window !== "undefined" ? window.location.pathname : "",
-                              meta: {
-                                surface: "direct_connect",
-                                scope: "county",
-                                countyFips: newFips,
-                                source: "manual_change",
-                                sessionId:
-                                  sessionStorage.getItem("sessionId") || crypto.randomUUID(),
-                                asOf: new Date().toISOString(),
-                                previousCounty: selectedCountyFips,
-                              },
-                            });
-                          }
+                          recordActivity({
+                            type: "dc.county_override",
+                            ts: new Date().toISOString(),
+                            path: typeof window !== "undefined" ? window.location.pathname : "",
+                            meta: {
+                              surface: "direct_connect",
+                              scope: "county",
+                              countyFips: newFips,
+                              source: "manual_change",
+                              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
+                              asOf: new Date().toISOString(),
+                              previousCounty: selectedCountyFips,
+                            },
+                          });
                         } catch {
                           // fire-and-forget: ignore telemetry failures
                         }
