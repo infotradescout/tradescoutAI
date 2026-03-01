@@ -198,6 +198,82 @@ async function maybeHandleBuildChangeReset(): Promise<boolean> {
   return true;
 }
 
+async function fetchServerBuildId(timeoutMs = 2200): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = `/api/scout/health?_=${Date.now()}`;
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "omit",
+      headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const payload = (await res.json()) as unknown;
+    const record =
+      payload && typeof payload === "object" ? (payload as Record<string, unknown>) : null;
+    const buildId = typeof record?.buildId === "string" ? record.buildId.trim() : "";
+    return buildId || null;
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function maybeHandleServerBuildMismatchReset(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+
+  const currentBuildId =
+    typeof __APP_BUILD_ID__ === "string" && __APP_BUILD_ID__.trim() ? __APP_BUILD_ID__.trim() : "";
+  if (!currentBuildId) return false;
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("__reset")) return false;
+
+  // Prevent a reset loop if something about the network/API is flaky.
+  const guardKey = "ts:lastServerBuildMismatchResetAt";
+  try {
+    const last = Number(window.sessionStorage.getItem(guardKey) || "0");
+    if (Number.isFinite(last) && last > 0 && Date.now() - last < 60_000) return false;
+  } catch {
+    // ignore
+  }
+
+  const serverBuildId = await fetchServerBuildId();
+  if (!serverBuildId) return false;
+  if (serverBuildId === currentBuildId) return false;
+
+  try {
+    window.sessionStorage.setItem(guardKey, String(Date.now()));
+  } catch {
+    // ignore
+  }
+
+  showBootFallback(
+    "Updating TradeScout...",
+    "Your browser loaded an older cached version. Clearing caches now."
+  );
+
+  await resetClientCaches({ clearLocalStorage: false });
+
+  // Keep the build marker aligned to the server to avoid flip-flopping between versions.
+  try {
+    window.localStorage.setItem("ts:lastBuildId", serverBuildId);
+  } catch {
+    // ignore
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("__fresh", String(Date.now()));
+  window.location.replace(url.toString());
+  return true;
+}
+
 function reportClientRuntimeError(source: "error" | "unhandledrejection", error: unknown) {
   const message = formatErrorMessage(error, "Runtime error");
   const stack = error instanceof Error ? error.stack || null : null;
@@ -238,6 +314,7 @@ window.addEventListener("unhandledrejection", (event) => {
 async function bootstrap() {
   if (await maybeHandleManualReset()) return;
   if (await maybeHandleBuildChangeReset()) return;
+  if (await maybeHandleServerBuildMismatchReset()) return;
 
   enforceCanonicalHost();
   setViewportVars();
@@ -278,11 +355,22 @@ async function bootstrap() {
   if (import.meta.env.PROD) {
     const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1";
 
+    const coerceErrorMessage = (err: unknown): string => {
+      if (typeof err === "string") return err;
+      if (err && typeof err === "object") {
+        const record = err as Record<string, unknown>;
+        if (typeof record.message === "string") return record.message;
+        if (typeof record.reason === "string") return record.reason;
+      }
+      try {
+        return String(err ?? "");
+      } catch {
+        return "";
+      }
+    };
+
     const isLikelyChunkLoadError = (err: unknown) => {
-      const msg =
-        typeof err === "string"
-          ? err
-          : (err as any)?.message || (err as any)?.reason || (err as any)?.toString?.() || "";
+      const msg = coerceErrorMessage(err);
       return (
         typeof msg === "string" &&
         (msg.includes("Failed to fetch dynamically imported module") ||
@@ -309,16 +397,16 @@ async function bootstrap() {
       window.location.reload();
     };
 
-    window.addEventListener("unhandledrejection", (event) => {
-      if (isLikelyChunkLoadError((event as any).reason)) {
-        recoverFromChunkError((event as any).reason);
+    window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
+      if (isLikelyChunkLoadError(event.reason)) {
+        recoverFromChunkError(event.reason);
       }
     });
 
-    window.addEventListener("error", (event) => {
-      const anyEvent = event as any;
-      if (isLikelyChunkLoadError(anyEvent?.error ?? anyEvent?.message)) {
-        recoverFromChunkError(anyEvent?.error ?? anyEvent?.message);
+    window.addEventListener("error", (event: ErrorEvent) => {
+      const candidate = event.error ?? event.message;
+      if (isLikelyChunkLoadError(candidate)) {
+        recoverFromChunkError(candidate);
       }
     });
   }
