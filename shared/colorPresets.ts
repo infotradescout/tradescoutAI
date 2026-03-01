@@ -36,8 +36,9 @@ export const COLOR_PRESETS: Record<string, ColorScheme> = {
   default: {
     primary: "#f97316", // ts-orange (matches landing)
     secondary: "#fb923c", // ts-orange-light
-    background: "#0a0f1e", // tsBg — near-black (matches landing)
-    surface: "#111827", // tsCard — dark slate (matches landing)
+    // Match the universal "charcoal" default theme (neutral, not navy/blue-cast).
+    background: "#07090B", // --ts-bg (charcoal)
+    surface: "#111418", // --ts-surface (charcoal)
     text: "#ffffff", // Pure white (matches landing)
     textMuted: "rgba(255,255,255,0.70)", // white/70 (matches landing)
     accent: "#f97316",

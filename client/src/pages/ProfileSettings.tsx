@@ -252,6 +252,25 @@ export default function ProfileSettings() {
   // Lightweight onboarding hint when redirected after social sign-up
   const isOnboarding = location.includes("onboarding=1");
 
+  const readApiError = async (response: Response): Promise<string> => {
+    try {
+      const json: any = await response.json();
+      if (json?.message) return String(json.message);
+      if (json?.code) return String(json.code);
+    } catch {
+      // ignore
+    }
+
+    try {
+      const text = await response.text();
+      if (text) return text.slice(0, 500);
+    } catch {
+      // ignore
+    }
+
+    return `Request failed (${response.status})`;
+  };
+
   const updateColorScheme = async (preset: string) => {
     setLoading(true);
     try {
@@ -262,7 +281,7 @@ export default function ProfileSettings() {
         body: JSON.stringify({ preset }),
       });
 
-      if (!response.ok) throw new Error("Failed to update color scheme");
+      if (!response.ok) throw new Error(await readApiError(response));
 
       const data = await response.json();
       setPreferences((prev) => ({ ...prev, colorScheme: data.colorScheme }));
@@ -279,7 +298,7 @@ export default function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update color scheme",
+        description: error instanceof Error ? error.message : "Failed to update color scheme",
         variant: "destructive",
       });
     } finally {
@@ -303,7 +322,7 @@ export default function ProfileSettings() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to update color scheme");
+      if (!response.ok) throw new Error(await readApiError(response));
 
       const data = await response.json();
       setPreferences((prev) => ({ ...prev, colorScheme: data.colorScheme }));
@@ -332,7 +351,7 @@ export default function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update color scheme",
+        description: error instanceof Error ? error.message : "Failed to update color scheme",
         variant: "destructive",
       });
     } finally {
@@ -444,7 +463,8 @@ export default function ProfileSettings() {
 
       const { response, payload } = await requestVisibility(false);
 
-      if (!response.ok) throw new Error("Failed to update visibility");
+      if (!response.ok)
+        throw new Error((payload as any)?.message || `Request failed (${response.status})`);
 
       if (payload?.allowProceedUnverified && visibility === "public") {
         const proceed = window.confirm(
@@ -459,7 +479,11 @@ export default function ProfileSettings() {
         }
 
         const retry = await requestVisibility(true);
-        if (!retry.response.ok) throw new Error("Failed to update visibility");
+        if (!retry.response.ok) {
+          throw new Error(
+            (retry.payload as any)?.message || `Request failed (${retry.response.status})`
+          );
+        }
       }
 
       setPreferences((prev) => ({ ...prev, profileVisibility: visibility }));
@@ -472,7 +496,7 @@ export default function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update visibility",
+        description: error instanceof Error ? error.message : "Failed to update visibility",
         variant: "destructive",
       });
     } finally {
@@ -555,10 +579,6 @@ export default function ProfileSettings() {
     // Keep global theme context in sync so the rest of the app
     // immediately reflects these custom colors.
     updateCustomColors(themeFromScheme.colors);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("themeId", themeFromScheme.id);
-      localStorage.setItem("customColors", JSON.stringify(themeFromScheme.colors));
-    }
   };
 
   const applyThemeFromScheme = (preset: string) => {
@@ -581,10 +601,20 @@ export default function ProfileSettings() {
     };
 
     applyTheme(themeFromScheme);
-    setTheme(`profile-${preset}`);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("themeId", themeFromScheme.id);
-      localStorage.setItem("customColors", JSON.stringify(themeFromScheme.colors));
+    // IMPORTANT:
+    // - Do NOT call ThemeContext.setTheme() with synthetic IDs like "profile-*".
+    //   Those IDs are not part of the preset theme registry and will fall back to default,
+    //   while also persisting confusing values to storage.
+    // - Do NOT persist preset-based profile schemes as "customColors" in localStorage.
+    //   That creates "blue flicker" (default theme flashes, then storage overrides).
+    // ThemeContext already derives the active app theme from `user.preferences.colorScheme`.
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("customColors");
+        // Keep themeId untouched; user's chosen base theme is separate from profile color scheme.
+      }
+    } catch {
+      // ignore storage errors
     }
   };
 

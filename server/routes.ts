@@ -1056,6 +1056,12 @@ export async function registerRoutes(app: any) {
       typeof (user as any).countyFips === "string" &&
       (user as any).countyFips.length === 5;
 
+    const rawThemePreference =
+      typeof user?.themePreference === "string" ? user.themePreference : "";
+    const normalizedThemePreference = rawThemePreference.startsWith("profile-")
+      ? "default"
+      : rawThemePreference;
+
     return {
       ...user,
       role: normalizedPrimaryRole || user?.role,
@@ -1063,6 +1069,9 @@ export async function registerRoutes(app: any) {
       badges: computeBadgesForUser(user),
       isAdmin: computedIsAdmin,
       isSuperAdmin: computedIsSuperAdmin,
+      // Guard against legacy/synthetic theme IDs leaking into persisted preferences.
+      // The app derives "profile-*" appearance from `preferences.colorScheme`, not from themePreference.
+      themePreference: normalizedThemePreference || user?.themePreference,
       // Canonical flag for whether this account has a committed
       // county-level location. All UX prompts should key off this,
       // not off ad-hoc context checks.
