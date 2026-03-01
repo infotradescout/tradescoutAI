@@ -768,6 +768,55 @@ app.use((req, res, next) => {
 </html>`);
               });
 
+              // Emergency appearance reset endpoint:
+              // Resets saved color scheme + theme preference back to default.
+              app.all("/reset-theme", (_req, res) => {
+                const fresh = Date.now();
+                res.setHeader("Cache-Control", "no-store");
+                res.status(200).type("html").send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resetting Theme…</title>
+    <style>
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;padding:24px;max-width:720px;margin:0 auto;line-height:1.5}
+      code{background:#1118270d;padding:2px 6px;border-radius:6px}
+      .muted{opacity:.75}
+    </style>
+  </head>
+  <body>
+    <h1>Resetting theme…</h1>
+    <p class="muted">Resetting your saved color scheme + theme preference back to default.</p>
+    <pre id="log" class="muted">Working…</pre>
+    <script>
+      (async () => {
+        const logEl = document.getElementById('log');
+        const log = (msg) => { try { logEl.textContent += '\\n' + msg; } catch {} };
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          const r1 = await fetch('/api/users/color-scheme', { method: 'PATCH', headers, credentials: 'include', body: JSON.stringify({ preset: 'default' }) });
+          log('color-scheme: ' + r1.status);
+        } catch {
+          log('color-scheme: failed');
+        }
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          const r2 = await fetch('/api/user/theme', { method: 'PATCH', headers, credentials: 'include', body: JSON.stringify({ themePreference: 'default', customThemeColors: null }) });
+          log('theme: ' + r2.status);
+        } catch {
+          log('theme: failed');
+        }
+        window.location.replace('/reset?__fresh=${fresh}');
+      })();
+    </script>
+    <noscript>
+      <p>JavaScript is required. Alternative: open <code>/profile-settings</code> and set Color Scheme preset to <code>default</code>.</p>
+    </noscript>
+  </body>
+</html>`);
+              });
+
               // 1) Serve hashed asset chunks with long cache first
               const assetsPath = path.join(publicDistPath, "assets");
               if (fs.existsSync(assetsPath)) {
