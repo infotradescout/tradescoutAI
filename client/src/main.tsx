@@ -74,7 +74,8 @@ function hideBootFallback() {
   fallback.setAttribute("aria-hidden", "true");
 }
 
-async function resetClientCaches() {
+async function resetClientCaches(options?: { clearLocalStorage?: boolean }) {
+  const clearLocalStorage = options?.clearLocalStorage === true;
   try {
     if ("serviceWorker" in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -99,34 +100,36 @@ async function resetClientCaches() {
     // ignore
   }
 
-  try {
-    // Clear local persisted UI state that can cause "old version" look/behavior after deploys.
-    // Avoid clearing auth cookies (server-side) and keep this scoped to TradeScout keys.
-    if (typeof window !== "undefined" && "localStorage" in window) {
-      const prefixes = ["ts:", "scout:", "tradescout-", "tradescout:", "admin:"];
-      const exactKeys = new Set([
-        "themeId",
-        "customColors",
-        "ts-active-theme",
-        "userLocation",
-        "guestMode",
-        "cookiePreferences",
-        "floatingBugReportPosition",
-        "hasSeenKeyboardNavigationHint",
-      ]);
+  if (clearLocalStorage) {
+    try {
+      // Clear local persisted UI state that can cause "old version" look/behavior after deploys.
+      // Avoid clearing auth cookies (server-side) and keep this scoped to TradeScout keys.
+      if (typeof window !== "undefined" && "localStorage" in window) {
+        const prefixes = ["ts:", "scout:", "tradescout-", "tradescout:", "admin:"];
+        const exactKeys = new Set([
+          "themeId",
+          "customColors",
+          "ts-active-theme",
+          "userLocation",
+          "guestMode",
+          "cookiePreferences",
+          "floatingBugReportPosition",
+          "hasSeenKeyboardNavigationHint",
+        ]);
 
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key) continue;
-        if (exactKeys.has(key) || prefixes.some((p) => key.startsWith(p))) {
-          keysToRemove.push(key);
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (!key) continue;
+          if (exactKeys.has(key) || prefixes.some((p) => key.startsWith(p))) {
+            keysToRemove.push(key);
+          }
         }
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
       }
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
 }
 
@@ -136,14 +139,60 @@ async function maybeHandleManualReset(): Promise<boolean> {
   if (!params.has("__reset")) return false;
 
   showBootFallback(
-    "Refreshing TradeScout…",
+    "Refreshing TradeScout...",
     "Clearing cached assets. This can take a few seconds."
   );
 
-  await resetClientCaches();
+  await resetClientCaches({ clearLocalStorage: true });
 
   const url = new URL(window.location.href);
   url.searchParams.delete("__reset");
+  url.searchParams.set("__fresh", String(Date.now()));
+  window.location.replace(url.toString());
+  return true;
+}
+
+async function maybeHandleBuildChangeReset(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+
+  const currentBuildId =
+    typeof __APP_BUILD_ID__ === "string" && __APP_BUILD_ID__.trim() ? __APP_BUILD_ID__.trim() : "";
+  if (!currentBuildId) return false;
+
+  const storageKey = "ts:lastBuildId";
+
+  let lastBuildId: string | null = null;
+  try {
+    lastBuildId = window.localStorage.getItem(storageKey);
+  } catch {
+    lastBuildId = null;
+  }
+
+  // First run: persist build marker and continue boot normally.
+  if (!lastBuildId) {
+    try {
+      window.localStorage.setItem(storageKey, currentBuildId);
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
+  if (lastBuildId === currentBuildId) return false;
+
+  // Auto-repair: build changed since last load, so clear SW + caches and reload.
+  // This prevents "new version flashes then old version" when an old SW/cached assets take over.
+  showBootFallback("Updating TradeScout...", "Installing the latest version. One moment.");
+
+  await resetClientCaches({ clearLocalStorage: false });
+
+  try {
+    window.localStorage.setItem(storageKey, currentBuildId);
+  } catch {
+    // ignore
+  }
+
+  const url = new URL(window.location.href);
   url.searchParams.set("__fresh", String(Date.now()));
   window.location.replace(url.toString());
   return true;
@@ -188,6 +237,7 @@ window.addEventListener("unhandledrejection", (event) => {
 
 async function bootstrap() {
   if (await maybeHandleManualReset()) return;
+  if (await maybeHandleBuildChangeReset()) return;
 
   enforceCanonicalHost();
   setViewportVars();
