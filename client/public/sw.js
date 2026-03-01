@@ -8,7 +8,8 @@
  * This is intentionally conservative: we do not cache API responses.
  */
 
-const CACHE_VERSION = "v3-2026-02-21";
+// Bump this whenever caching behavior changes to guarantee clients drop old caches.
+const CACHE_VERSION = "v4-2026-03-01";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -41,19 +42,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-async function networkFirst(request) {
+async function navigationNetworkOnly(request) {
+  // IMPORTANT: Do not cache HTML navigations.
+  // Stale cached HTML can reference removed hashed assets after deploys, causing "old version" lock-in.
+  // We prefer correctness over offline support here.
   const cache = await caches.open(STATIC_CACHE);
 
   try {
-    const response = await fetch(request);
-    // Cache a successful navigation response for offline fallback.
-    if (response && response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
+    return await fetch(request);
   } catch {
-    const cached = await cache.match(request);
-    if (cached) return cached;
     const offline = await cache.match(OFFLINE_URL);
     if (offline) return offline;
     return new Response("Offline", {
@@ -102,7 +99,7 @@ self.addEventListener("fetch", (event) => {
 
   // Network-first for navigations (prevents stale HTML).
   if (request.mode === "navigate" || request.destination === "document") {
-    event.respondWith(networkFirst(request));
+    event.respondWith(navigationNetworkOnly(request));
     return;
   }
 
