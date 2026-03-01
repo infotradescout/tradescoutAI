@@ -14,7 +14,7 @@ interface DecisionContext {
 }
 
 interface DecisionCardProps {
-  action: "message" | "direct_connect" | "contact_person";
+  action: "message" | "direct_connect" | "contact_person" | "call_business";
   context: DecisionContext;
   scoutAction: ScoutAction;
   riskFraming: string[];
@@ -40,7 +40,15 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   contactOutcome,
 }) => {
   const actionLabel =
-    action === "message" ? "Message" : action === "contact_person" ? "Contact" : "Direct Connect";
+    action === "message"
+      ? "Message"
+      : action === "contact_person"
+        ? "Contact"
+        : action === "call_business"
+          ? "Call"
+          : "Direct Connect";
+  const actionVerb =
+    action === "message" ? "message" : action === "call_business" ? "call" : "connect with";
 
   // D1: Contact outcome modal state
   const [showContactModal, setShowContactModal] = useState(false);
@@ -97,9 +105,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
     <div className="bg-white border border-white/10 rounded-lg p-6 shadow-sm space-y-5">
       {/* 1. Context */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-white/70">
-          Who am I about to {action === "message" ? "message" : "connect with"}?
-        </h3>
+        <h3 className="text-sm font-medium text-white/70">Who am I about to {actionVerb}?</h3>
         <div className="space-y-1 text-sm text-white/70">
           <p className="font-medium">{context.targetName}</p>
           <p className="text-white/60">{context.targetRole}</p>

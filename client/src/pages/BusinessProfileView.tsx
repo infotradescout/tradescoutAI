@@ -10,6 +10,8 @@ import type { MarketplaceListing } from "@shared/schema";
 import { recordActivity } from "@/agent/activity";
 import { useAuth } from "@/hooks/useAuth";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { useToast } from "@/hooks/use-toast";
+import { DecisionCard } from "@/components/community/DecisionCard";
 
 /**
  * PublicBusinessProfileView
@@ -28,6 +30,7 @@ export default function BusinessProfileView() {
   const { slug } = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [profileSource, setProfileSource] = useState<"published" | "directory" | null>(null);
@@ -40,6 +43,10 @@ export default function BusinessProfileView() {
   const [listingsError, setListingsError] = useState<string | null>(null);
 
   const isOwner = user?.businessSlug === slug;
+  const viewerVerified = Boolean(user?.addressVerified);
+
+  const [showCallDecisionCard, setShowCallDecisionCard] = useState(false);
+  const [callBusy, setCallBusy] = useState(false);
 
   function formatListingPrice(price: MarketplaceListing["price"]): string {
     const numeric = typeof price === "number" ? price : Number((price as any) ?? 0);
@@ -462,26 +469,162 @@ export default function BusinessProfileView() {
               <p className="text-muted-foreground mb-4">
                 Reach out through TradeScout for trusted local connections.
               </p>
-              <Button
-                size="lg"
-                data-testid="bp-contact-cta"
-                onClick={() => {
-                  // Route to Direct Connect with business context
-                  // wouter doesn't support state, so we pass via query params
-                  const params = new URLSearchParams({
-                    prefill_businessName: profile.name,
-                    prefill_businessSlug: profile.slug,
-                    prefill_countyFips: profile.countyFips || "",
-                  });
-                  setLocation(`/direct-connect?${params.toString()}`);
-                }}
-              >
-                <MessageSquare className="h-5 w-5 mr-2" />
-                Contact via TradeScout
-              </Button>
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  size="lg"
+                  data-testid="bp-contact-cta"
+                  onClick={() => {
+                    // Route to Direct Connect with business context
+                    // wouter doesn't support state, so we pass via query params
+                    const params = new URLSearchParams({
+                      prefill_businessName: profile.name,
+                      prefill_businessSlug: profile.slug,
+                      prefill_countyFips: profile.countyFips || "",
+                    });
+                    setLocation(`/direct-connect?${params.toString()}`);
+                  }}
+                >
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  Contact via TradeScout
+                </Button>
+
+                {/* Directory-only: verified users can call after Decision Card confirmation */}
+                {profileSource === "directory" && directoryBusinessId ? (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    disabled={!user || !viewerVerified || callBusy}
+                    onClick={() => {
+                      if (!user) {
+                        toast({
+                          title: "Sign in required",
+                          description: "Please sign in to initiate contact.",
+                          variant: "destructive",
+                        });
+                        setLocation(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+                        return;
+                      }
+                      if (!viewerVerified) {
+                        toast({
+                          title: "Verification required",
+                          description: "Verify your address before initiating contact.",
+                          variant: "destructive",
+                        });
+                        setLocation("/account?tab=verification");
+                        return;
+                      }
+                      setShowCallDecisionCard(true);
+                    }}
+                    title={
+                      user && viewerVerified
+                        ? "Call this business (Decision Card required)"
+                        : "Verify your address to call (browse is allowed)."
+                    }
+                  >
+                    <Shield className="h-5 w-5 mr-2" />
+                    Call (verified)
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {showCallDecisionCard && profileSource === "directory" && directoryBusinessId && !isOwner && (
+        <div className="mt-4">
+          <DecisionCard
+            action="call_business"
+            context={{
+              targetName: profile.name,
+              targetRole: "Directory business (unclaimed)",
+              communitySignal: "Contact is intent-gated (Decision Card required).",
+              absenceNote:
+                "This business is not on TradeScout yet — your verified account can still call.",
+            }}
+            scoutAction="COMPLY"
+            riskFraming={[
+              "Contact is logged and rate-limited to reduce spam and scraping.",
+              "If the number is wrong, report it and use Direct Connect instead.",
+            ]}
+            guidance="Your account is verified. Scout will unlock the phone number for this call after you confirm intent."
+            explanation="Intent → Decision Card → Contact"
+            onAskScout={() => {
+              const params = new URLSearchParams({
+                intent: "hire",
+                source: "business_profile_call",
+                businessId: directoryBusinessId,
+                businessSlug: profile.slug,
+              });
+              setLocation(`/scout?${params.toString()}`);
+            }}
+            onCancel={() => setShowCallDecisionCard(false)}
+            onProceed={async () => {
+              try {
+                setCallBusy(true);
+                const decisionScope = `directory_business:${directoryBusinessId}`;
+                const decisionRes = await fetch("/api/decision-cards", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    intent: "hire",
+                    decisionScope,
+                    title: `Call ${profile.name}`,
+                    description: `Call ${profile.name} about a service job.`,
+                  }),
+                });
+
+                if (!decisionRes.ok) {
+                  const err = await decisionRes.json().catch(() => ({}));
+                  throw new Error(
+                    err?.message || `Failed to create decision card (${decisionRes.status})`
+                  );
+                }
+                const decisionJson: any = await decisionRes.json().catch(() => ({}));
+                const decisionCardId = String(decisionJson?.id || "");
+                if (!decisionCardId) throw new Error("Decision card creation failed");
+
+                const revealRes = await fetch("/api/business-contact/reveal", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    businessId: directoryBusinessId,
+                    contactType: "call",
+                    intent: "hire",
+                    decisionScope,
+                    authorityGate: "decision_card",
+                    sourceDecisionCardId: decisionCardId,
+                  }),
+                });
+                if (!revealRes.ok) {
+                  const err = await revealRes.json().catch(() => ({}));
+                  throw new Error(err?.message || `Failed to reveal phone (${revealRes.status})`);
+                }
+                const revealJson: any = await revealRes.json().catch(() => ({}));
+                const tel = typeof revealJson?.tel === "string" ? revealJson.tel : "";
+                const phone = typeof revealJson?.phone === "string" ? revealJson.phone : "";
+                if (!tel) throw new Error("No callable phone returned");
+
+                toast({
+                  title: "Phone unlocked",
+                  description: phone || "Ready to call",
+                });
+                window.location.href = tel;
+                setShowCallDecisionCard(false);
+              } catch (e: any) {
+                toast({
+                  title: "Call unavailable",
+                  description: e?.message || "Failed to start call",
+                  variant: "destructive",
+                });
+              } finally {
+                setCallBusy(false);
+              }
+            }}
+          />
+        </div>
       )}
 
       {/* Footer: Explore more in county */}

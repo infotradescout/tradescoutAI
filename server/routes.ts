@@ -20,6 +20,7 @@ import { registerEmploymentRoutes } from "./routes/employment";
 import { registerIdentityVerificationRoutes } from "./routes/identity-verification";
 import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
+import { registerBusinessContactRoutes } from "./routes/business-contact";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerHardrockRoutes } from "./routes/hardrock";
 import { registerCommercialDirectoryRoutes } from "./routes/commercial-directory";
@@ -22192,6 +22193,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register business profile routes (PHASE 3d-C: Published Presence)
   registerBusinessProfileRoutes(app);
+  registerBusinessContactRoutes(app);
 
   // Register business profile routes
   app.use(businessesRouter);
