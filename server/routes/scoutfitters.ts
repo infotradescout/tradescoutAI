@@ -88,18 +88,61 @@ function getTechniqueForTier(tier: TierKey): "EMBROIDERY" | "DTG" {
   return tier === "high" ? "EMBROIDERY" : "DTG";
 }
 
+function sanitizePrintfulFileType(value: unknown): string | null {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return null;
+  if (!/^[a-z0-9_]+$/i.test(raw)) return null;
+  return raw;
+}
+
+async function getPrintfulFileTypeOverridesFromSiteSettings(): Promise<{
+  embroidery?: Partial<Record<PlacementKey, string>>;
+} | null> {
+  try {
+    const settings = await storage.getSiteSettings("marketing");
+    const candidates = settings
+      .filter((s) => s && s.key === "scoutfitters_printful_file_types" && s.isActive !== false)
+      .sort((a: any, b: any) => {
+        const aT = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const bT = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return bT - aT;
+      });
+
+    const value: any = candidates[0]?.value;
+    if (!value || typeof value !== "object") return null;
+
+    const embroidery =
+      value.embroidery && typeof value.embroidery === "object" ? value.embroidery : null;
+    if (!embroidery) return null;
+
+    const left = sanitizePrintfulFileType(embroidery.left_chest);
+    const front = sanitizePrintfulFileType(embroidery.front_center);
+
+    return {
+      embroidery: {
+        ...(left ? { left_chest: left } : {}),
+        ...(front ? { front_center: front } : {}),
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 function buildPrintFile(args: {
   technique: "EMBROIDERY" | "DTG";
   placement: PlacementKey;
   designUrl: string;
+  fileTypeOverrides?: { embroidery?: Partial<Record<PlacementKey, string>> } | null;
 }) {
-  const { technique, placement, designUrl } = args;
+  const { technique, placement, designUrl, fileTypeOverrides } = args;
 
   // Printful file `type` controls placement + (for embroidery products) technique routing.
   // DTG placement is simulated via `position` on the "front" print area.
   if (technique === "EMBROIDERY") {
+    const override = fileTypeOverrides?.embroidery?.[placement];
     return {
-      type: placement === "left_chest" ? "embroidery_chest_left" : "embroidery_front",
+      type: override || (placement === "left_chest" ? "embroidery_chest_left" : "embroidery_front"),
       url: designUrl,
     };
   }
@@ -168,6 +211,7 @@ export function registerScoutFittersRoutes(app: any) {
       getVariantIdForTier("medium"),
       getVariantIdForTier("low"),
     ]);
+    const fileTypeOverrides = await getPrintfulFileTypeOverridesFromSiteSettings();
     res.status(200).json({
       tiers: {
         high: { technique: "EMBROIDERY" },
@@ -181,6 +225,9 @@ export function registerScoutFittersRoutes(app: any) {
           medium: Boolean(medium),
           low: Boolean(low),
         },
+        fileTypeOverridesConfigured: Boolean(
+          fileTypeOverrides?.embroidery?.left_chest || fileTypeOverrides?.embroidery?.front_center
+        ),
       },
       quality: {
         minShortestSidePx: 2000,
@@ -262,7 +309,8 @@ export function registerScoutFittersRoutes(app: any) {
       }
 
       const technique = getTechniqueForTier(tier);
-      const file = buildPrintFile({ technique, placement, designUrl });
+      const fileTypeOverrides = await getPrintfulFileTypeOverridesFromSiteSettings();
+      const file = buildPrintFile({ technique, placement, designUrl, fileTypeOverrides });
 
       const payload: any = {
         confirm,

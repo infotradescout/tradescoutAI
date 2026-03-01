@@ -385,9 +385,9 @@ export default function ScoutFitters() {
     if (!fabric || !logoObj || !logoFile) return null;
 
     // Output file is *not* the preview canvas. It’s a high-res, transparent PNG suitable for print.
-    // Left chest: 4"x4" @ 300 DPI => 1200px square.
+    // Left chest: require >=2000px shortest-side (no-BS rule) even though 300DPI would be 1200px.
     // Front center: 12"x12" @ 300 DPI => 3600px square.
-    const targetPx = placement === "left_chest" ? 1200 : 3600;
+    const targetPx = placement === "left_chest" ? 2000 : 3600;
 
     const rect = logoObj.getBoundingRect(true, true);
     const boxCx = printBox.x + printBox.w / 2;
