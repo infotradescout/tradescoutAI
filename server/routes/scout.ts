@@ -4562,8 +4562,15 @@ router.get("/health", (req: Request, res: Response) => {
   } catch {
     // ignore
   }
+  const buildId =
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.GITHUB_SHA ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.COMMIT_REF ||
+    null;
   res.json({
     status: "ok",
+    buildId,
     geminiConfigured: !!process.env.GEMINI_API_KEY,
     knowledgeBasePresent,
     manualCachePresent,

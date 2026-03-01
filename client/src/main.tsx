@@ -7,6 +7,7 @@ const BOOT_FALLBACK_ID = "ts-boot-fallback";
 const BOOT_MESSAGE_ID = "ts-boot-fallback-message";
 const BOOT_DETAIL_ID = "ts-boot-fallback-detail";
 const APP_READY_ATTR = "data-app-mounted";
+const SERVICE_WORKER_URL = `/sw.js?build=${encodeURIComponent(__APP_BUILD_ID__)}`;
 
 function enforceCanonicalHost() {
   if (typeof window === "undefined") return;
@@ -73,6 +74,51 @@ function hideBootFallback() {
   fallback.setAttribute("aria-hidden", "true");
 }
 
+async function resetClientCaches() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter(
+            (k) => k.startsWith("tradescout-") || k.startsWith("workbox-") || k.startsWith("vite-")
+          )
+          .map((k) => caches.delete(k))
+      );
+    }
+  } catch {
+    // ignore
+  }
+}
+
+async function maybeHandleManualReset(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has("__reset")) return false;
+
+  showBootFallback(
+    "Refreshing TradeScout…",
+    "Clearing cached assets. This can take a few seconds."
+  );
+
+  await resetClientCaches();
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete("__reset");
+  url.searchParams.set("__fresh", String(Date.now()));
+  window.location.replace(url.toString());
+  return true;
+}
+
 function reportClientRuntimeError(source: "error" | "unhandledrejection", error: unknown) {
   const message = formatErrorMessage(error, "Runtime error");
   const stack = error instanceof Error ? error.stack || null : null;
@@ -110,132 +156,120 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
-enforceCanonicalHost();
-setViewportVars();
-window.addEventListener("resize", setViewportVars);
-window.addEventListener("orientationchange", setViewportVars);
-window.visualViewport?.addEventListener("resize", setViewportVars);
-applyImageTitleFallback();
+async function bootstrap() {
+  if (await maybeHandleManualReset()) return;
 
-const imageTitleObserver = new MutationObserver((mutations) => {
-  for (const mutation of mutations) {
-    mutation.addedNodes.forEach((node) => {
-      if (!(node instanceof Element)) return;
-      if (node.tagName.toLowerCase() === "img") {
-        applyImageTitleFallback(node.parentNode || document);
-        return;
+  enforceCanonicalHost();
+  setViewportVars();
+  window.addEventListener("resize", setViewportVars);
+  window.addEventListener("orientationchange", setViewportVars);
+  window.visualViewport?.addEventListener("resize", setViewportVars);
+  applyImageTitleFallback();
+
+  const imageTitleObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      mutation.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) return;
+        if (node.tagName.toLowerCase() === "img") {
+          applyImageTitleFallback(node.parentNode || document);
+          return;
+        }
+        applyImageTitleFallback(node);
+      });
+    }
+  });
+
+  imageTitleObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+
+  const container = document.getElementById("root");
+
+  if (!container) {
+    throw new Error("Root container missing in index.html");
+  }
+
+  const root = ReactDOM.createRoot(container);
+
+  // Production hardening: if a deploy happens while a user has an old bundle cached,
+  // dynamic chunk loads can 404 and the app can crash. Detect that case and force a
+  // one-time cache/SW reset so the user gets the latest assets.
+  if (import.meta.env.PROD) {
+    const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1";
+
+    const isLikelyChunkLoadError = (err: unknown) => {
+      const msg =
+        typeof err === "string"
+          ? err
+          : (err as any)?.message || (err as any)?.reason || (err as any)?.toString?.() || "";
+      return (
+        typeof msg === "string" &&
+        (msg.includes("Failed to fetch dynamically imported module") ||
+          msg.includes("Importing a module script failed") ||
+          msg.includes("Loading chunk") ||
+          msg.includes("ChunkLoadError") ||
+          msg.includes("/assets/"))
+      );
+    };
+
+    const recoverFromChunkError = async (err: unknown) => {
+      try {
+        if (sessionStorage.getItem(RECOVERY_FLAG) === "1") return;
+        sessionStorage.setItem(RECOVERY_FLAG, "1");
+      } catch {
+        // ignore
       }
-      applyImageTitleFallback(node);
+
+      console.warn("[Boot] chunk load failure detected; resetting caches", err);
+
+      await resetClientCaches();
+
+      // Force a full reload to pull the latest HTML + assets.
+      window.location.reload();
+    };
+
+    window.addEventListener("unhandledrejection", (event) => {
+      if (isLikelyChunkLoadError((event as any).reason)) {
+        recoverFromChunkError((event as any).reason);
+      }
+    });
+
+    window.addEventListener("error", (event) => {
+      const anyEvent = event as any;
+      if (isLikelyChunkLoadError(anyEvent?.error ?? anyEvent?.message)) {
+        recoverFromChunkError(anyEvent?.error ?? anyEvent?.message);
+      }
     });
   }
-});
 
-imageTitleObserver.observe(document.documentElement, {
-  childList: true,
-  subtree: true,
-});
-
-const container = document.getElementById("root");
-
-if (!container) {
-  throw new Error("Root container missing in index.html");
-}
-
-const root = ReactDOM.createRoot(container);
-
-// Production hardening: if a deploy happens while a user has an old bundle cached,
-// dynamic chunk loads can 404 and the app can crash. Detect that case and force a
-// one-time cache/SW reset so the user gets the latest assets.
-if (import.meta.env.PROD) {
-  const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1";
-
-  const isLikelyChunkLoadError = (err: unknown) => {
-    const msg =
-      typeof err === "string"
-        ? err
-        : (err as any)?.message || (err as any)?.reason || (err as any)?.toString?.() || "";
-    return (
-      typeof msg === "string" &&
-      (msg.includes("Failed to fetch dynamically imported module") ||
-        msg.includes("Importing a module script failed") ||
-        msg.includes("Loading chunk") ||
-        msg.includes("ChunkLoadError") ||
-        msg.includes("/assets/"))
-    );
-  };
-
-  const recoverFromChunkError = async (err: unknown) => {
-    try {
-      if (sessionStorage.getItem(RECOVERY_FLAG) === "1") return;
-      sessionStorage.setItem(RECOVERY_FLAG, "1");
-    } catch {
-      // ignore
-    }
-
-    console.warn("[Boot] chunk load failure detected; resetting caches", err);
-
-    try {
-      if ("serviceWorker" in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
-      }
-    } catch {
-      // ignore
-    }
-
-    try {
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(
-          keys.filter((k) => k.startsWith("tradescout-")).map((k) => caches.delete(k))
-        );
-      }
-    } catch {
-      // ignore
-    }
-
-    // Force a full reload to pull the latest HTML + assets.
-    window.location.reload();
-  };
-
-  window.addEventListener("unhandledrejection", (event) => {
-    if (isLikelyChunkLoadError((event as any).reason)) {
-      recoverFromChunkError((event as any).reason);
-    }
-  });
-
-  window.addEventListener("error", (event) => {
-    const anyEvent = event as any;
-    if (isLikelyChunkLoadError(anyEvent?.error ?? anyEvent?.message)) {
-      recoverFromChunkError(anyEvent?.error ?? anyEvent?.message);
-    }
-  });
-}
-
-// IMPORTANT:
-// Do NOT wrap App in React.StrictMode here.
-// StrictMode intentionally double-mounts in dev,
-// which was breaking Scout, animations, and OAuth.
-try {
-  root.render(<App />);
-  document.body.setAttribute(APP_READY_ATTR, "true");
-  window.requestAnimationFrame(() => {
-    hideBootFallback();
-  });
-} catch (error) {
-  reportClientRuntimeError("error", error);
-  showBootFallback(
-    "TradeScout failed to load.",
-    formatErrorMessage(error, "Unexpected startup error.")
-  );
-}
-
-// PWA installability: register a service worker in production.
-// Keep this simple and reliable; any caching logic lives in `client/public/sw.js`.
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((err) => {
-      console.warn("[PWA] service worker registration failed", err);
+  // IMPORTANT:
+  // Do NOT wrap App in React.StrictMode here.
+  // StrictMode intentionally double-mounts in dev,
+  // which was breaking Scout, animations, and OAuth.
+  try {
+    root.render(<App />);
+    document.body.setAttribute(APP_READY_ATTR, "true");
+    window.requestAnimationFrame(() => {
+      hideBootFallback();
     });
-  });
+  } catch (error) {
+    reportClientRuntimeError("error", error);
+    showBootFallback(
+      "TradeScout failed to load.",
+      formatErrorMessage(error, "Unexpected startup error.")
+    );
+  }
+
+  // PWA installability: register a service worker in production.
+  // Keep this simple and reliable; any caching logic lives in `client/public/sw.js`.
+  if (import.meta.env.PROD && "serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register(SERVICE_WORKER_URL).catch((err) => {
+        console.warn("[PWA] service worker registration failed", err);
+      });
+    });
+  }
 }
+
+void bootstrap();
