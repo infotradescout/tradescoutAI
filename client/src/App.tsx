@@ -415,42 +415,16 @@ const LazyPage = memo(function LazyPage({
 }) {
   const repairAndReload = async () => {
     try {
-      if ("serviceWorker" in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
-      }
-    } catch {
-      // ignore
-    }
-
-    try {
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(
-          keys
-            .filter(
-              (k) =>
-                k === "tradescout-static-v1" ||
-                k.startsWith("tradescout-") ||
-                k.startsWith("workbox-") ||
-                k.startsWith("vite-")
-            )
-            .map((k) => caches.delete(k))
-        );
-      }
-    } catch {
-      // ignore
-    }
-
-    try {
       // Reset the chunk recovery session guard so ErrorBoundary can attempt auto-repair again.
       sessionStorage.removeItem("ts_chunk_recovery_attempted");
     } catch {
       // ignore
     }
 
+    // Route through the boot-level reset handler so we clear caches + SW in one place.
+    // This prevents "new version flashes then old version" when a stale SW or cache serves old assets.
     const url = new URL(window.location.href);
-    url.searchParams.set("__fresh", String(Date.now()));
+    url.searchParams.set("__reset", "1");
     window.location.replace(url.toString());
   };
 

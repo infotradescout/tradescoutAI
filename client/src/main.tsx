@@ -98,6 +98,36 @@ async function resetClientCaches() {
   } catch {
     // ignore
   }
+
+  try {
+    // Clear local persisted UI state that can cause "old version" look/behavior after deploys.
+    // Avoid clearing auth cookies (server-side) and keep this scoped to TradeScout keys.
+    if (typeof window !== "undefined" && "localStorage" in window) {
+      const prefixes = ["ts:", "scout:", "tradescout-", "tradescout:", "admin:"];
+      const exactKeys = new Set([
+        "themeId",
+        "customColors",
+        "ts-active-theme",
+        "userLocation",
+        "guestMode",
+        "cookiePreferences",
+        "floatingBugReportPosition",
+        "hasSeenKeyboardNavigationHint",
+      ]);
+
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (exactKeys.has(key) || prefixes.some((p) => key.startsWith(p))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    }
+  } catch {
+    // ignore
+  }
 }
 
 async function maybeHandleManualReset(): Promise<boolean> {

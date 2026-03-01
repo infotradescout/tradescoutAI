@@ -25,6 +25,7 @@ import {
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { share } from "@/utils/share";
+import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 
 function getDefaultHomePageLabel(value?: string) {
   if (!value || value === "llm") return "Scout";
@@ -123,8 +124,8 @@ export default function ProfilePage() {
   } as React.CSSProperties;
 
   const profileUrl = profileSlug
-    ? `${window.location.origin}/u/${profileSlug}`
-    : `${window.location.origin}/profile/${user.id}`;
+    ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
+    : `${getCanonicalAppOrigin()}/profile/${user.id}`;
   const isPublic = user.preferences?.profileVisibility === "public";
 
   const copyProfileUrl = async () => {

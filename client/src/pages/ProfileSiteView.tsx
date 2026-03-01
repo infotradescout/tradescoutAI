@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { MessageCircle, ShieldCheck, Calendar, Clock3, DollarSign } from "lucide-react";
 
 type ProfileSections = {
@@ -179,7 +180,7 @@ export default function ProfileSiteView() {
     "@type": business?.name ? "LocalBusiness" : "Person",
     name: displayName,
     description: seoDescription,
-    url: `${window.location.origin}/u/${encodeURIComponent(profile.slug)}`,
+    url: `${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`,
     ...(business?.categories?.length ? { category: business.categories.slice(0, 6) } : {}),
     ...(business?.serviceAreas?.length ? { areaServed: business.serviceAreas.slice(0, 10) } : {}),
   };
@@ -189,7 +190,7 @@ export default function ProfileSiteView() {
       <SEOHelmet
         title={seoTitle}
         description={seoDescription}
-        canonical={`${window.location.origin}/u/${encodeURIComponent(profile.slug)}`}
+        canonical={`${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`}
         ogType="profile"
         ogImage={seoImage}
         structuredData={structuredData}

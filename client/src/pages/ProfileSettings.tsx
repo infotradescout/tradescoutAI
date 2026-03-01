@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPresets";
 import { Palette, Home, Eye, EyeOff, LayoutTemplate, Calendar } from "lucide-react";
 import { applyTheme, type Theme } from "@/lib/themes";
+import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 
 interface UserPreferences {
   defaultHomePage?: string;
@@ -870,7 +871,7 @@ export default function ProfileSettings() {
             <div className="min-w-0">
               <div className="text-sm font-medium">Profile page</div>
               <div className="text-xs text-white/60 break-all">
-                {profileSlug ? `${window.location.origin}/u/${profileSlug}` : "Not published yet"}
+                {profileSlug ? `${getCanonicalAppOrigin()}/u/${profileSlug}` : "Not published yet"}
               </div>
             </div>
             <div className="flex gap-2">

@@ -1365,6 +1365,15 @@ export default function Settings() {
                       If the app looks wrong after an update (or you see the new version for a split
                       second and it reverts), use this to clear cached assets and refresh.
                     </p>
+                    <p className="text-xs text-white/60">
+                      Build{" "}
+                      <span className="font-mono text-white/70">
+                        {typeof __APP_BUILD_ID__ === "string"
+                          ? __APP_BUILD_ID__.slice(0, 12)
+                          : String(__APP_BUILD_ID__)}
+                      </span>{" "}
+                      - Host <span className="font-mono text-white/70">{window.location.host}</span>
+                    </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         type="button"
