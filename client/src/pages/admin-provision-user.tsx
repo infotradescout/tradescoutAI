@@ -209,125 +209,134 @@ export default function AdminProvisionUser() {
             email). This does not create admin accounts.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-white/60">Email</label>
-              <Input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">Password (optional)</label>
-              <Input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank to send set-password link"
-                type="password"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-white/60">First name</label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="First"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">Last name</label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Last"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-xs text-white/70">
-            <Checkbox checked={sendEmail} onCheckedChange={(v) => setSendEmail(v === true)} />
-            Send setup email (recommended)
-          </label>
-
-          <label className="flex items-center gap-2 text-xs text-white/70">
-            <Checkbox
-              checked={createBusinessProfile}
-              onCheckedChange={(v) => setCreateBusinessProfile(v === true)}
-            />
-            Create public business profile during provisioning
-          </label>
-
-          {createBusinessProfile ? (
-            <div className="space-y-3 rounded-md border border-[color:var(--border-subtle)] bg-black/30 p-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-white/60">Profile display name</label>
-                  <Input
-                    value={profileDisplayName}
-                    onChange={(e) => setProfileDisplayName(e.target.value)}
-                    placeholder="Company or profile name"
-                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/60">Role context</label>
-                  <Input
-                    value={profileRoleContext}
-                    onChange={(e) => setProfileRoleContext(e.target.value)}
-                    placeholder="business_owner"
-                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                  />
-                </div>
-              </div>
-
+        <CardContent>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!email.trim() || provision.isPending) return;
+              provision.mutate();
+            }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-white/60">Profile headline (optional)</label>
+                <label className="text-xs text-white/60">Email</label>
                 <Input
-                  value={profileHeadline}
-                  onChange={(e) => setProfileHeadline(e.target.value)}
-                  placeholder="Trusted local service provider"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="user@example.com"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
-
-              <label className="flex items-center gap-2 text-xs text-white/70">
-                <Checkbox
-                  checked={createBusinessRecord}
-                  onCheckedChange={(v) => setCreateBusinessRecord(v === true)}
+              <div>
+                <label className="text-xs text-white/60">Password (optional)</label>
+                <Input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Leave blank to send set-password link"
+                  type="password"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
-                Also create linked business record
-              </label>
+              </div>
+            </div>
 
-              {createBusinessRecord ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">First name</label>
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Last name</label>
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-xs text-white/70">
+              <Checkbox checked={sendEmail} onCheckedChange={(v) => setSendEmail(v === true)} />
+              Send setup email (recommended)
+            </label>
+
+            <label className="flex items-center gap-2 text-xs text-white/70">
+              <Checkbox
+                checked={createBusinessProfile}
+                onCheckedChange={(v) => setCreateBusinessProfile(v === true)}
+              />
+              Create public business profile during provisioning
+            </label>
+
+            {createBusinessProfile ? (
+              <div className="space-y-3 rounded-md border border-[color:var(--border-subtle)] bg-black/30 p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-white/60">Profile display name</label>
+                    <Input
+                      value={profileDisplayName}
+                      onChange={(e) => setProfileDisplayName(e.target.value)}
+                      placeholder="Company or profile name"
+                      className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/60">Role context</label>
+                    <Input
+                      value={profileRoleContext}
+                      onChange={(e) => setProfileRoleContext(e.target.value)}
+                      placeholder="business_owner"
+                      className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-xs text-white/60">Business name</label>
+                  <label className="text-xs text-white/60">Profile headline (optional)</label>
                   <Input
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="Acme Services LLC"
+                    value={profileHeadline}
+                    onChange={(e) => setProfileHeadline(e.target.value)}
+                    placeholder="Trusted local service provider"
                     className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                   />
                 </div>
-              ) : null}
-            </div>
-          ) : null}
 
-          <Button
-            onClick={() => provision.mutate()}
-            disabled={provision.isPending || !email.trim()}
-            className="bg-ts-orange hover:bg-ts-orange-dark"
-          >
-            {provision.isPending ? "Provisioning..." : "Provision user"}
-          </Button>
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <Checkbox
+                    checked={createBusinessRecord}
+                    onCheckedChange={(v) => setCreateBusinessRecord(v === true)}
+                  />
+                  Also create linked business record
+                </label>
+
+                {createBusinessRecord ? (
+                  <div>
+                    <label className="text-xs text-white/60">Business name</label>
+                    <Input
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Acme Services LLC"
+                      className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <Button
+              type="submit"
+              disabled={provision.isPending || !email.trim()}
+              className="bg-ts-orange hover:bg-ts-orange-dark"
+            >
+              {provision.isPending ? "Provisioning..." : "Provision user"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
@@ -339,157 +348,168 @@ export default function AdminProvisionUser() {
             `ADMIN_SAFETY_KEY` is configured, enter it below.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-white/60">Target user email</label>
-              <Input
-                value={editTargetEmail}
-                onChange={(e) => setEditTargetEmail(e.target.value)}
-                placeholder="user@example.com"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">Target user ID (optional)</label>
-              <Input
-                value={editTargetUserId}
-                onChange={(e) => setEditTargetUserId(e.target.value)}
-                placeholder="uuid..."
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-white/60">First name (optional)</label>
-              <Input
-                value={editFirstName}
-                onChange={(e) => setEditFirstName(e.target.value)}
-                placeholder="First"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">Last name (optional)</label>
-              <Input
-                value={editLastName}
-                onChange={(e) => setEditLastName(e.target.value)}
-                placeholder="Last"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs text-white/60">Phone (optional)</label>
-              <Input
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="(555) 555-5555"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">City (optional)</label>
-              <Input
-                value={editCity}
-                onChange={(e) => setEditCity(e.target.value)}
-                placeholder="City"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">State code (optional)</label>
-              <Input
-                value={editStateCode}
-                onChange={(e) => setEditStateCode(e.target.value)}
-                placeholder="FL"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-white/60">County FIPS (optional)</label>
-              <Input
-                value={editCountyFips}
-                onChange={(e) => setEditCountyFips(e.target.value)}
-                placeholder="12033"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">Profile visibility</label>
-              <select
-                value={editProfileVisibility}
-                onChange={(e) =>
-                  setEditProfileVisibility(e.target.value === "private" ? "private" : "public")
-                }
-                className="w-full rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-white"
-              >
-                <option value="public">public</option>
-                <option value="private">private</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs text-white/60">Bio (optional)</label>
-            <Textarea
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-              placeholder="Support note or user-provided profile text"
-              className="bg-black/30 border-[color:var(--border-subtle)] text-white min-h-20"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-white/60">
-                Audit reason (required, min 12 chars)
-              </label>
-              <Input
-                value={editReason}
-                onChange={(e) => setEditReason(e.target.value)}
-                placeholder="User requested profile correction via support ticket..."
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">Admin safety key (if required)</label>
-              <Input
-                value={editSafetyKey}
-                onChange={(e) => setEditSafetyKey(e.target.value)}
-                placeholder="Enter key if server requires it"
-                type="password"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-xs text-white/70">
-            <Checkbox
-              checked={editAllowPrivilegedTarget}
-              onCheckedChange={(v) => setEditAllowPrivilegedTarget(v === true)}
-            />
-            Allow edit for protected admin target (head/super only)
-          </label>
-
-          <Button
-            onClick={() => supportEditUser.mutate()}
-            disabled={
-              supportEditUser.isPending ||
-              (!editTargetEmail.trim() && !editTargetUserId.trim()) ||
-              editReason.trim().length < 12
-            }
-            className="bg-ts-orange hover:bg-ts-orange-dark"
+        <CardContent>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (supportEditUser.isPending) return;
+              if (!editTargetEmail.trim() && !editTargetUserId.trim()) return;
+              if (editReason.trim().length < 12) return;
+              supportEditUser.mutate();
+            }}
           >
-            {supportEditUser.isPending ? "Applying edit..." : "Apply safeguarded support edit"}
-          </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">Target user email</label>
+                <Input
+                  value={editTargetEmail}
+                  onChange={(e) => setEditTargetEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Target user ID (optional)</label>
+                <Input
+                  value={editTargetUserId}
+                  onChange={(e) => setEditTargetUserId(e.target.value)}
+                  placeholder="uuid..."
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">First name (optional)</label>
+                <Input
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  placeholder="First"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Last name (optional)</label>
+                <Input
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  placeholder="Last"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-white/60">Phone (optional)</label>
+                <Input
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="(555) 555-5555"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">City (optional)</label>
+                <Input
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                  placeholder="City"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">State code (optional)</label>
+                <Input
+                  value={editStateCode}
+                  onChange={(e) => setEditStateCode(e.target.value)}
+                  placeholder="FL"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">County FIPS (optional)</label>
+                <Input
+                  value={editCountyFips}
+                  onChange={(e) => setEditCountyFips(e.target.value)}
+                  placeholder="12033"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Profile visibility</label>
+                <select
+                  value={editProfileVisibility}
+                  onChange={(e) =>
+                    setEditProfileVisibility(e.target.value === "private" ? "private" : "public")
+                  }
+                  className="w-full rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-white"
+                >
+                  <option value="public">public</option>
+                  <option value="private">private</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-white/60">Bio (optional)</label>
+              <Textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                placeholder="Support note or user-provided profile text"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white min-h-20"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">
+                  Audit reason (required, min 12 chars)
+                </label>
+                <Input
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="User requested profile correction via support ticket..."
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Admin safety key (if required)</label>
+                <Input
+                  value={editSafetyKey}
+                  onChange={(e) => setEditSafetyKey(e.target.value)}
+                  placeholder="Enter key if server requires it"
+                  type="password"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-xs text-white/70">
+              <Checkbox
+                checked={editAllowPrivilegedTarget}
+                onCheckedChange={(v) => setEditAllowPrivilegedTarget(v === true)}
+              />
+              Allow edit for protected admin target (head/super only)
+            </label>
+
+            <Button
+              type="submit"
+              disabled={
+                supportEditUser.isPending ||
+                (!editTargetEmail.trim() && !editTargetUserId.trim()) ||
+                editReason.trim().length < 12
+              }
+              className="bg-ts-orange hover:bg-ts-orange-dark"
+            >
+              {supportEditUser.isPending ? "Applying edit..." : "Apply safeguarded support edit"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
