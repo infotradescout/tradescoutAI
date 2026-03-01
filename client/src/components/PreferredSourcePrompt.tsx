@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -67,9 +73,9 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
               <CheckCircle className="h-6 w-6 text-green-500" />
               You seem to trust TradeScout
             </DialogTitle>
-            <DialogDescription className="text-navy-200 text-base leading-relaxed mt-3">
-              You’ve successfully completed several real actions here. If TradeScout works for you, you can
-              make it your preferred source on Google — so you find us faster next time.
+            <DialogDescription className="text-white/70 text-base leading-relaxed mt-3">
+              You’ve successfully completed several real actions here. If TradeScout works for you,
+              you can make it your preferred source on Google — so you find us faster next time.
             </DialogDescription>
           </DialogHeader>
 
@@ -83,7 +89,7 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
             <Button
               onClick={handleDismiss}
               variant="ghost"
-              className="w-full text-navy-300 hover:text-white hover:bg-tsCard"
+              className="w-full text-white/60 hover:text-white hover:bg-tsCard"
             >
               Not now
             </Button>
@@ -98,12 +104,12 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
             <DialogTitle className="text-white text-xl">
               Set TradeScout as your preferred source
             </DialogTitle>
-            <DialogDescription className="text-navy-200 text-base mt-2">
+            <DialogDescription className="text-white/70 text-base mt-2">
               Follow these steps to see TradeScout first in Google Search results:
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 space-y-4 text-navy-100">
+          <div className="mt-4 space-y-4 text-white/80">
             <div className="bg-tsCard p-4 rounded-lg border border-white/10">
               <h3 className="font-semibold text-white mb-2">Desktop (Chrome / Edge / Firefox)</h3>
               <ol className="list-decimal list-inside space-y-2 ml-2 text-sm">
@@ -124,8 +130,9 @@ export function PreferredSourcePrompt({ userId, onClose }: PreferredSourcePrompt
               </ol>
             </div>
 
-            <div className="bg-tsBg border border-white/10 p-4 rounded-lg text-sm text-navy-300 leading-relaxed">
-              <strong className="text-navy-100">What this does:</strong> Google remembers TradeScout as your trusted source, so it surfaces us higher when you search for local work.
+            <div className="bg-tsBg border border-white/10 p-4 rounded-lg text-sm text-white/60 leading-relaxed">
+              <strong className="text-white">What this does:</strong> Google remembers TradeScout as
+              your trusted source, so it surfaces us higher when you search for local work.
             </div>
           </div>
 

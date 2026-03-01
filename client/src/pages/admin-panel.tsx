@@ -877,9 +877,7 @@ export default function AdminPanel() {
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-medium text-white">
-                          Push (where configured)
-                        </p>
+                        <p className="text-xs font-medium text-white">Push (where configured)</p>
                         <p className="text-[11px] text-white/60">
                           Requires valid push subscription
                         </p>
@@ -1036,7 +1034,7 @@ export default function AdminPanel() {
                   </TableHeader>
                   <TableBody>
                     <TableRow className="border-white/10">
-                      <TableCell colSpan={5} className="text-center text-navy-400 py-8">
+                      <TableCell colSpan={5} className="text-center text-white/60 py-8">
                         Recent error report summary is available in the dedicated Error Reports
                         console. Use the button above to drill into full details, screenshots, and
                         triage tools.
