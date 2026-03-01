@@ -103,6 +103,23 @@ interface ObservabilityBaselines {
   };
 }
 
+function coerceBaselines(payload: any): ObservabilityBaselines | null {
+  const root = payload && typeof payload === "object" ? payload : null;
+  const candidate =
+    root && typeof (root as any).baselines === "object" ? (root as any).baselines : root;
+  if (!candidate || typeof candidate !== "object") return null;
+
+  const scheduler = (candidate as any).scheduler;
+  const dbPool = (candidate as any).dbPool;
+  const http = (candidate as any).http;
+
+  if (!scheduler || typeof scheduler !== "object") return null;
+  if (!dbPool || typeof dbPool !== "object") return null;
+  if (!http || typeof http !== "object") return null;
+
+  return candidate as ObservabilityBaselines;
+}
+
 export default function ObservabilityDashboard() {
   const [metrics, setMetrics] = useState<MetricsSummary | null>(null);
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
@@ -152,7 +169,11 @@ export default function ObservabilityDashboard() {
         const response = await fetch("/api/admin/observability/baselines");
         if (!response.ok) throw new Error("Failed to fetch baselines");
         const data = await response.json();
-        setBaselines(data);
+        const parsed = coerceBaselines(data);
+        if (!parsed) {
+          throw new Error("Baselines payload missing required fields");
+        }
+        setBaselines(parsed);
       } catch (err) {
         console.error("Failed to fetch baselines:", err);
       }
