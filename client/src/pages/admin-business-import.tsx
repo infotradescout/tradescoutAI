@@ -73,6 +73,25 @@ type ImportProgress = {
   processedRows: number;
 };
 
+type ImportedDirectoryUserCandidate = {
+  id: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  roles?: string[] | null;
+  onboardingCompleted?: boolean | null;
+  emailVerified?: boolean | null;
+  activeBusinessId?: string | null;
+  activeProfileId?: string | null;
+  businessSlug?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  ownedBusinessId?: string | null;
+  ownedBusinessSlug?: string | null;
+};
+
 // Large imports are uploaded in multiple requests to avoid per-request payload limits (413).
 // There is no cap on total rows; we just split into parts.
 //
@@ -161,6 +180,43 @@ export default function AdminBusinessImport() {
   });
   const batches = batchData?.batches || [];
   const effectiveBatchId = selectedBatchId || batches[0]?.batchId || "";
+
+  const {
+    data: cleanupUsersData,
+    isLoading: cleanupUsersLoading,
+    refetch: refetchCleanupUsers,
+  } = useQuery({
+    queryKey: ["/api/admin/imported-directory-users"],
+    queryFn: async () =>
+      ((await apiRequest("GET", "/api/admin/imported-directory-users")) as {
+        users?: ImportedDirectoryUserCandidate[];
+      }) || { users: [] },
+    retry: false,
+  });
+  const cleanupUsers = cleanupUsersData?.users || [];
+
+  const archiveCleanupUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest(
+        "POST",
+        `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`
+      );
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Archived",
+        description: `Archived user and preserved directory business: ${data?.directoryBusinessSlug || data?.directoryBusinessId || ""}`,
+      });
+      void refetchCleanupUsers();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Archive failed",
+        description: error?.message || "Failed to archive user",
+        variant: "destructive",
+      });
+    },
+  });
 
   const {
     data: batchRowsData,
@@ -557,6 +613,94 @@ export default function AdminBusinessImport() {
               rows={10}
               className="bg-black/30 border-[color:var(--border-subtle)] text-white"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardHeader>
+          <CardTitle className="text-white">Cleanup imported users (directory)</CardTitle>
+          <CardDescription className="text-[color:var(--text-secondary)]">
+            If you previously imported businesses as login accounts, this archives those accounts
+            and keeps them as <span className="text-white">unclaimed directory businesses</span>{" "}
+            until claimed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-white/60">
+              Candidates: <span className="text-white">{cleanupUsers.length}</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-[color:var(--border-subtle)]"
+              onClick={() => void refetchCleanupUsers()}
+              disabled={cleanupUsersLoading}
+            >
+              Refresh
+            </Button>
+          </div>
+
+          {cleanupUsersLoading ? (
+            <div className="text-xs text-white/60">Loading candidates...</div>
+          ) : cleanupUsers.length === 0 ? (
+            <div className="text-xs text-white/60">
+              No import-created business_owner accounts detected.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {cleanupUsers.slice(0, 25).map((u) => {
+                const name = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
+                return (
+                  <div
+                    key={u.id}
+                    className="rounded border border-[color:var(--border-subtle)] bg-black/30 p-3 text-xs text-white/70"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-white">
+                          {u.email} {name ? `— ${name}` : ""}
+                        </div>
+                        <div className="mt-1 text-white/60">
+                          Owned business:{" "}
+                          <span className="text-white/80">
+                            {u.ownedBusinessSlug || u.ownedBusinessId || "—"}
+                          </span>
+                          {u.createdAt
+                            ? ` · Created ${new Date(u.createdAt).toLocaleString()}`
+                            : ""}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                          disabled={archiveCleanupUserMutation.isPending}
+                          onClick={() => archiveCleanupUserMutation.mutate(u.id)}
+                        >
+                          {archiveCleanupUserMutation.isPending
+                            ? "Archiving..."
+                            : "Archive to directory"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {cleanupUsers.length > 25 ? (
+                <div className="text-xs text-white/60">
+                  Showing 25 of {cleanupUsers.length}. Use Refresh after archiving.
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          <div className="rounded border border-ts-orange/30 bg-ts-orange/10 p-3 text-xs text-ts-orange">
+            Archiving changes the user&apos;s email to an{" "}
+            <span className="text-white">.invalid</span> address and preserves the real contact info
+            on the directory business. This is admin-only and reversible only with manual database
+            edits.
           </div>
         </CardContent>
       </Card>

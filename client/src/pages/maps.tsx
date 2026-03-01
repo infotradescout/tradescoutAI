@@ -33,6 +33,7 @@ type TradeOption = {
 declare global {
   interface Window {
     google?: any;
+    gm_authFailure?: () => void;
   }
 }
 
@@ -87,6 +88,11 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
   }
 
   await new Promise<void>((resolve, reject) => {
+    // Google Maps calls `window.gm_authFailure()` when the key is blocked by restrictions
+    // (commonly HTTP referrer restrictions / RefererNotAllowedMapError).
+    window.gm_authFailure = () =>
+      reject(new Error("Google Maps auth failed (check HTTP referrer restrictions)"));
+
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.async = true;
@@ -302,20 +308,50 @@ export default function MapsPage() {
       <div className="mx-auto max-w-4xl p-4 md:p-6">
         <div className="rounded-xl border border-white/10 bg-tsCard p-4">
           <h1 className="text-lg font-semibold text-white">Maps is temporarily disabled</h1>
-          <p className="mt-1 text-sm text-white/60">
-            This feature is disabled by configuration.
-          </p>
+          <p className="mt-1 text-sm text-white/60">This feature is disabled by configuration.</p>
         </div>
       </div>
     );
   }
 
   if (scriptError) {
+    const lower = scriptError.toLowerCase();
+    const isAuthFailure =
+      lower.includes("auth failed") ||
+      lower.includes("referrer") ||
+      lower.includes("referer") ||
+      lower.includes("notallowed") ||
+      lower.includes("not allowed");
+
     return (
       <div className="mx-auto max-w-4xl p-4 md:p-6">
         <div className="rounded-xl border border-red-500/40 bg-red-950/30 p-4">
           <h1 className="text-lg font-semibold text-white">Map unavailable</h1>
           <p className="mt-1 text-sm text-red-200">{scriptError}</p>
+          {isAuthFailure && (
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-white/80">
+              <div className="font-semibold text-white">Fix (Google Cloud Console)</div>
+              <ol className="mt-2 list-decimal pl-5 space-y-1 text-white/70">
+                <li>
+                  Enable <span className="text-white">Maps JavaScript API</span> for the project.
+                </li>
+                <li>
+                  In the API key&apos;s restrictions, allow these HTTP referrers:
+                  <ul className="mt-1 list-disc pl-5">
+                    <li>
+                      <span className="text-white">https://www.thetradescout.com/*</span>
+                    </li>
+                    <li>
+                      <span className="text-white">https://thetradescout.com/*</span>
+                    </li>
+                    <li>
+                      <span className="text-white">http://localhost:*/*</span> (dev)
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          )}
         </div>
       </div>
     );

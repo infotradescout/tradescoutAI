@@ -10,6 +10,8 @@ import { storage } from "../storage";
 type TierKey = string;
 type PlacementKey = "front_center" | "left_chest";
 
+const ALLOWED_TIER_KEYS = new Set(["high", "medium", "low", "budget", "promo"]);
+
 type Recipient = {
   name: string;
   email: string;
@@ -45,6 +47,7 @@ function sanitizeTierKey(value: unknown): string | null {
   if (!raw) return null;
   if (raw.length > 64) return null;
   if (!/^[a-z0-9_-]+$/.test(raw)) return null;
+  if (!ALLOWED_TIER_KEYS.has(raw)) return null;
   return raw;
 }
 

@@ -546,7 +546,9 @@ export default function AdminPanel() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Site Settings</h2>
             <Button
+              type="button"
               onClick={() => {
+                setSelectedTab("site-settings");
                 setEditingItem(null);
                 setIsDialogOpen(true);
               }}
@@ -622,7 +624,9 @@ export default function AdminPanel() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Contractor Settings</h2>
             <Button
+              type="button"
               onClick={() => {
+                setSelectedTab("contractor-settings");
                 setEditingItem(null);
                 setIsDialogOpen(true);
               }}

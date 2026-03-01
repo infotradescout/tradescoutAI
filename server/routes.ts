@@ -13276,6 +13276,275 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   );
 
+  // Admin: find "import-created" directory owner accounts so they can be archived into unclaimed businesses.
+  // These accounts were created before we defaulted imports to "directory entries only" (no auth users).
+  app.get(
+    "/api/admin/imported-directory-users",
+    isAuthenticated,
+    isAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const result = (await db.execute(sql`
+          select
+            u.id,
+            u.email,
+            u.first_name as "firstName",
+            u.last_name as "lastName",
+            u.phone,
+            u.role,
+            u.roles,
+            u.onboarding_completed as "onboardingCompleted",
+            u.email_verified as "emailVerified",
+            u.active_business_id as "activeBusinessId",
+            u.active_profile_id as "activeProfileId",
+            u.business_slug as "businessSlug",
+            u.created_at as "createdAt",
+            u.updated_at as "updatedAt",
+            (
+              select b.id
+              from businesses b
+              where b.owner_user_id = u.id
+              order by b.created_at desc
+              limit 1
+            ) as "ownedBusinessId",
+            (
+              select b.slug
+              from businesses b
+              where b.owner_user_id = u.id
+              order by b.created_at desc
+              limit 1
+            ) as "ownedBusinessSlug"
+          from users u
+          where u.onboarding_completed = false
+            and u.password_hash is null
+            and (
+              'business_owner' = any(u.roles)
+              or u.role = 'business_owner'
+            )
+          order by u.created_at desc
+          limit 200
+        `)) as any;
+
+        const users = Array.isArray(result?.rows) ? result.rows : [];
+        return res.json({ users });
+      } catch (error: any) {
+        console.error("Error listing imported directory users:", error);
+        return res.status(500).json({ message: "Failed to list imported directory users" });
+      }
+    }
+  );
+
+  // Admin: archive an import-created directory owner account into an unclaimed business listing.
+  // This keeps directory discovery/calling intact while preventing these accounts from inflating "real users".
+  app.post(
+    "/api/admin/imported-directory-users/:userId/archive-to-directory",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = String(req.params.userId || "").trim();
+        if (!userId) return res.status(400).json({ message: "userId is required" });
+
+        const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        const user = rows[0] as any;
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const roles: string[] = Array.isArray(user.roles)
+          ? user.roles.map((r: any) => String(r))
+          : [];
+        const isCandidate =
+          user.onboardingCompleted === false &&
+          (user.password == null || user.password === "") &&
+          (roles.includes("business_owner") || String(user.role || "") === "business_owner");
+
+        if (!isCandidate) {
+          return res.status(400).json({
+            message:
+              "User does not match import-cleanup heuristics (must be an unclaimed import-style business_owner account).",
+          });
+        }
+
+        const originalEmail = String(user.email || "").trim();
+        const originalPhone = typeof user.phone === "string" ? user.phone : null;
+        const archivedEmail = `archived+${userId}@thetradescout.invalid`;
+
+        const slugify = (text: string): string =>
+          String(text || "")
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, "")
+            .replace(/[\s_-]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 80);
+
+        const now = new Date();
+        const outcome = await db.transaction(async (tx) => {
+          // Prefer to detach an existing owned business (created during the old import flow)
+          // so we don't duplicate directory entries.
+          const ownedBizRows = await tx
+            .select({
+              id: businesses.id,
+              name: businesses.name,
+              slug: businesses.slug,
+              profileData: businesses.profileData,
+              sources: businesses.sources,
+              status: businesses.status,
+              roleContext: businesses.roleContext,
+              type: businesses.type,
+              createdAt: businesses.createdAt,
+            })
+            .from(businesses)
+            .where(eq(businesses.ownerUserId, userId))
+            .orderBy(desc(businesses.createdAt))
+            .limit(1);
+
+          let directoryBusinessId: string | null = null;
+          let directoryBusinessSlug: string | null = null;
+          let directoryBusinessName: string | null = null;
+
+          if (ownedBizRows.length > 0) {
+            const biz = ownedBizRows[0] as any;
+            directoryBusinessId = String(biz.id);
+            directoryBusinessSlug = String(biz.slug);
+            directoryBusinessName = String(biz.name);
+
+            const existingProfile: any = biz.profileData || {};
+            const existingExtras: any =
+              existingProfile && typeof existingProfile === "object"
+                ? existingProfile.importExtras
+                : null;
+
+            const nextExtras: Record<string, string> = {
+              ...(existingExtras && typeof existingExtras === "object" ? existingExtras : {}),
+              archived_from_user_id: userId,
+              archived_from_user_email: originalEmail,
+              ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
+            };
+
+            const nextProfileData: any = {
+              ...existingProfile,
+              // Preserve original contact fields so verified TradeScout users can reach this business
+              // via the intent-gated reveal flow even before it is claimed.
+              ...(originalEmail ? { email: originalEmail } : {}),
+              ...(originalPhone ? { phone: originalPhone } : {}),
+              importExtras: nextExtras,
+            };
+
+            const currentSources: string[] = Array.isArray(biz.sources)
+              ? biz.sources.map((s: any) => String(s)).filter(Boolean)
+              : [];
+            const nextSources = Array.from(new Set([...currentSources, "admin_import_cleanup"]));
+
+            await tx
+              .update(businesses)
+              .set({
+                ownerUserId: null,
+                claimStatus: "unclaimed" as any,
+                profileData: nextProfileData,
+                sources: nextSources as any,
+                updatedAt: now,
+              } as any)
+              .where(eq(businesses.id, directoryBusinessId));
+          } else {
+            // Fallback: create a directory business if the import-created user has no owned business.
+            const baseName =
+              String(user.businessSlug || "").trim() ||
+              String(user.firstName || "").trim() ||
+              (originalEmail.includes("@") ? originalEmail.split("@")[0] : "") ||
+              `business-${userId.slice(0, 8)}`;
+
+            const baseSlug = slugify(baseName) || `business-${userId.slice(0, 8)}`;
+            let candidateSlug = baseSlug;
+            for (let attempt = 0; attempt < 50; attempt++) {
+              const existing = await tx
+                .select({ id: businesses.id })
+                .from(businesses)
+                .where(eq(businesses.slug, candidateSlug))
+                .limit(1);
+              if (!existing.length) break;
+              candidateSlug = `${baseSlug}-${attempt + 2}`;
+            }
+
+            const inserted = await tx
+              .insert(businesses)
+              .values({
+                name: String(baseName).slice(0, 255),
+                slug: candidateSlug,
+                type: "other" as any,
+                ownerUserId: null,
+                roleContext: "business_owner" as any,
+                claimStatus: "unclaimed" as any,
+                sources: ["admin_import_cleanup"] as any,
+                status: "draft" as any,
+                profileData: {
+                  ...(originalEmail ? { email: originalEmail } : {}),
+                  ...(originalPhone ? { phone: originalPhone } : {}),
+                  importExtras: {
+                    archived_from_user_id: userId,
+                    archived_from_user_email: originalEmail,
+                    ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
+                  },
+                } as any,
+                createdAt: now,
+                updatedAt: now,
+              } as any)
+              .returning();
+
+            const createdBiz = inserted[0] as any;
+            directoryBusinessId = createdBiz?.id ? String(createdBiz.id) : null;
+            directoryBusinessSlug = createdBiz?.slug ? String(createdBiz.slug) : null;
+            directoryBusinessName = createdBiz?.name ? String(createdBiz.name) : null;
+          }
+
+          const nextPreferences: any =
+            user.preferences && typeof user.preferences === "object" ? { ...user.preferences } : {};
+          nextPreferences.archivedEmail = originalEmail || null;
+          nextPreferences.archivedAt = now.toISOString();
+          nextPreferences.archivedReason = "admin_import_cleanup";
+          nextPreferences.archivedDirectoryBusinessId = directoryBusinessId;
+
+          const nextRoles = roles.filter((r) => r !== "business_owner");
+
+          await tx
+            .update(users)
+            .set({
+              email: archivedEmail,
+              password: null,
+              phone: null,
+              roles: nextRoles as any,
+              role: "homeowner" as any,
+              activeRole: "homeowner",
+              activeBusinessId: null,
+              activeProfileId: null,
+              businessSlug: null,
+              preferences: nextPreferences,
+              updatedAt: now,
+            } as any)
+            .where(eq(users.id, userId));
+
+          return {
+            archivedEmail,
+            directoryBusinessId,
+            directoryBusinessSlug,
+            directoryBusinessName,
+          };
+        });
+
+        return res.json({
+          ok: true,
+          userId,
+          archivedEmail: outcome.archivedEmail,
+          directoryBusinessId: outcome.directoryBusinessId,
+          directoryBusinessSlug: outcome.directoryBusinessSlug,
+          directoryBusinessName: outcome.directoryBusinessName,
+        });
+      } catch (error: any) {
+        console.error("Error archiving imported directory user:", error);
+        return res.status(500).json({ message: error?.message || "Failed to archive user" });
+      }
+    }
+  );
+
   // Admin: list import batches from staging table with status counts
   app.get(
     "/api/admin/businesses/import/batches",

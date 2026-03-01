@@ -23,7 +23,6 @@ import {
   Users,
   CheckCircle,
   ArrowRight,
-  Star,
   Zap,
   Lock,
   Eye,
@@ -33,18 +32,13 @@ import {
   X,
   Menu,
   Sparkles,
-  BadgeCheck,
-  MapPin,
   FileCheck,
   UserCheck,
   Handshake,
   Ban,
   DollarSign,
   Briefcase,
-  Heart,
-  Target,
   AlertCircle,
-  Code,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -68,11 +62,10 @@ function useLandingVariant() {
   const queryString = raw.includes("?") ? raw.split("?").slice(1).join("?") : "";
   const query = useMemo(() => new URLSearchParams(queryString), [queryString]);
 
-  const [, p1] = useRoute("/landing/:variant");
-  const [, p2] = useRoute("/lp/:variant");
+  const [, p1] = useRoute<{ variant: string }>("/landing/:variant");
+  const [, p2] = useRoute<{ variant: string }>("/lp/:variant");
   const pathVariant =
-    (p1 && (p1 as any).variant ? String((p1 as any).variant) : null) ||
-    (p2 && (p2 as any).variant ? String((p2 as any).variant) : null);
+    (p1?.variant ? String(p1.variant) : null) || (p2?.variant ? String(p2.variant) : null);
 
   const effectiveVariant = pathOnly === "/lp" ? null : pathVariant;
 
@@ -275,6 +268,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
       className="relative min-h-[34vh] md:min-h-[40vh] lg:min-h-[46vh] flex items-start overflow-hidden"
     >
       <motion.div
+        // eslint-disable-next-line no-restricted-syntax -- framer-motion transform props (non-color styles)
         style={{ y: heroY, opacity: heroOpacity }}
         className="relative z-10 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-3 pb-4 md:pt-4 md:pb-5 lg:pt-5 lg:pb-6 w-full"
       >
@@ -703,11 +697,10 @@ function PricingSection() {
             <span className="text-sm font-medium text-ts-orange">Simple Pricing</span>
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
-          <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            For you. For free. Forever.
-          </p>
+          <p className="text-sm text-white/60 max-w-2xl mx-auto">For you. For free. Forever.</p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
-            We make money, just not from you reading this. No paywalls. No lead sales. No pay-to-play.
+            We make money, just not from you reading this. No paywalls. No lead sales. No
+            pay-to-play.
           </p>
         </Reveal>
 

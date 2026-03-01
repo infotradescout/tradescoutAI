@@ -42,7 +42,10 @@ describe("buildScoutProvenance", () => {
     const provenance = buildScoutProvenance({
       metadata: {},
       knowledge: {
-        sources: [{ type: "unknown" as any }, null as any],
+        sources: [
+          { type: "unknown" } as unknown as { title: string },
+          null as unknown as { title: string },
+        ],
       },
     });
 

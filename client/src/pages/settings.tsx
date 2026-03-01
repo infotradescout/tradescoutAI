@@ -1345,6 +1345,57 @@ export default function Settings() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                        <Wrench className="w-5 h-5 text-ts-orange" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-white">Troubleshooting</CardTitle>
+                        <p className="text-sm text-white/60 mt-1">
+                          Fix "old version" issues after deploys
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-4">
+                    <p className="text-sm text-white/70">
+                      If the app looks wrong after an update (or you see the new version for a split
+                      second and it reverts), use this to clear cached assets and refresh.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        type="button"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
+                        onClick={() => {
+                          try {
+                            const url = new URL(window.location.href);
+                            url.searchParams.set("__reset", "1");
+                            window.location.assign(url.toString());
+                          } catch {
+                            window.location.assign(`${window.location.pathname}?__reset=1`);
+                          }
+                        }}
+                      >
+                        Repair &amp; Reload
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
+                        onClick={() => window.location.reload()}
+                      >
+                        Normal reload
+                      </Button>
+                    </div>
+                    <p className="text-xs text-white/60">
+                      This does not change your account. It only clears local caches and reloads the
+                      app.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 

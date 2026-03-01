@@ -27,7 +27,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   high: {
     key: "high",
     series: "contractor",
-    label: "High (Carhartt K87)",
+    label: "Contractor Series — Carhartt K87",
     summary: "Pocket tee + embroidery. Built for job sites.",
     wholesaleEstimate: 24,
     blankUrl: "/scoutfitters/blank-high.svg",
@@ -37,7 +37,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   medium: {
     key: "medium",
     series: "contractor",
-    label: "Medium (Hanes Beefy-T)",
+    label: "Contractor Series — Hanes Beefy-T",
     summary: "6.1oz heavyweight + DTG. Durable daily driver.",
     wholesaleEstimate: 13,
     blankUrl: "/scoutfitters/blank-medium.svg",
@@ -47,7 +47,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   low: {
     key: "low",
     series: "contractor",
-    label: "Low (Gildan Ultra)",
+    label: "Contractor Series — Gildan Ultra",
     summary: "6oz heavyweight + DTG. No thin promo tees.",
     wholesaleEstimate: 10,
     blankUrl: "/scoutfitters/blank-low.svg",
@@ -56,7 +56,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   budget: {
     key: "budget",
     series: "value",
-    label: "Budget (Gildan 5000)",
+    label: "Value — Budget (Gildan 5000)",
     summary: "Classic tee + DTG. Cheaper, less durable.",
     wholesaleEstimate: 6,
     blankUrl: "/scoutfitters/blank-low.svg",
@@ -65,7 +65,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   promo: {
     key: "promo",
     series: "value",
-    label: "Promo (Softstyle / thin)",
+    label: "Value — Promo (Softstyle / thin)",
     summary: "Thin promo tee + DTG. Not recommended for workwear.",
     wholesaleEstimate: 4,
     blankUrl: "/scoutfitters/blank-low.svg",

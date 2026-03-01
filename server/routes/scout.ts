@@ -1,25 +1,17 @@
-import { recordQuery, recordFallback, getAnalytics, getAuditLog } from "../services/adminAnalytics";
+/* eslint-disable @typescript-eslint/no-explicit-any -- Scout ingests dynamic JSON (LLM + integrations); harden types iteratively. */
+
+import { recordQuery, getAnalytics, getAuditLog } from "../services/adminAnalytics";
 import { Router, type Request, Response } from "express";
 import {
   extractUserMessage,
   extractMetadata,
   type RawScoutOutput,
 } from "../utils/extractUserMessage";
-import {
-  createCapabilityChecker,
-  buildCapabilitySignals,
-  type Capability,
-} from "../utils/userCapabilities";
-import { runScoutAction, safeExecute, type ScoutActionContext } from "../utils/scoutActionGuard";
-import { classifyScoutError, getRecoveryStrategy } from "../utils/scoutErrorMapping";
-import {
-  GeminiProvider,
-  VertexGeminiProvider,
-  generateWithFallback,
-  LLMProvider,
-} from "../services/llmProvider";
+import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCapabilities";
+import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
+import { GeminiProvider, VertexGeminiProvider, LLMProvider } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { executeAssistantAction, type AssistantAction, type User } from "../assistantActions";
+import type { User } from "../assistantActions";
 import {
   resolveKnowledge,
   getLocalGuide,
@@ -29,10 +21,7 @@ import {
   getKnowledgeBaseStatus,
 } from "../services/knowledgeService";
 import { shouldOverrideResponse, isOnboardingOrIdentityQuery } from "../scout/brandGuard";
-import {
-  deriveDeterministicIntent,
-  maybeHandleDeterministicIntent,
-} from "../services/scoutDeterministicIntent";
+import { maybeHandleDeterministicIntent } from "../services/scoutDeterministicIntent";
 import type { DeterministicContext } from "../services/scoutDeterministicIntent";
 import { loadSystemPrompt } from "../services/promptService";
 import {
@@ -52,11 +41,8 @@ import {
   type InsertScoutInteraction,
 } from "../../shared/schema";
 import { desc, eq } from "drizzle-orm";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { createHash } from "crypto";
-import { govern, type GovernorDecision } from "../scout/governor";
+import { govern } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
 import { recordScoutInteraction } from "../services/missionControl";
@@ -68,7 +54,6 @@ import {
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
 import {
-  isOnboardingRequest,
   initializeOnboardingSession,
   getOnboardingSession,
   getNextQuestion,
@@ -82,8 +67,6 @@ import {
 } from "../utils/onboardingService";
 
 const router = Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
   [
@@ -1160,128 +1143,6 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
  * Parse structured JSON response from LLM with fail-safes
  * Ensures valid format: { message: string, suggestedActions: string[] }
  */
-function deriveContextualActions(
-  base: string[],
-  userMessage: string,
-  userContext?: any,
-  historyMessages?: { role: string; content: string }[]
-): string[] {
-  const defaults = [
-    "Find vetted local contractors for this",
-    "Explore Exchange listings that match this need",
-    "Start the Community Builder for my county",
-    "Support a local cause through the Foundation",
-    "Turn this into a trackable project on my board",
-  ];
-
-  // Filter out generic, non-contextual meta prompts that the model
-  // tends to repeat and that don't move the user into a concrete flow.
-  const bannedMetaPhrases = [
-    "Summarize this into a simple next-step plan",
-    "Route me to the best place in TradeScout for this",
-  ].map((s) => s.toLowerCase());
-
-  const now = new Date();
-  const hour = now.getHours();
-  const day = now.getDay();
-  const isWeekend = day === 0 || day === 6;
-  const lowerMessage = userMessage.toLowerCase();
-  const county = userContext?.location?.county || userContext?.location?.city || "your county";
-
-  const keywords = [
-    ...(historyMessages || []).map((h) => h.content.toLowerCase()),
-    lowerMessage,
-  ].join(" \n ");
-
-  const prioritized: string[] = [];
-
-  const pushUnique = (val: string) => {
-    if (!val || prioritized.includes(val)) return;
-    prioritized.push(val);
-  };
-
-  // Time-of-day steering
-  if (hour >= 6 && hour < 12) {
-    pushUnique(`Find vetted pros available this morning in ${county}`);
-    pushUnique(`Plan and price my next project in ${county}`);
-  } else if (hour >= 17 && hour < 23) {
-    pushUnique(`Find pros or projects I can move forward on tonight in ${county}`);
-    pushUnique(`Explore evening Exchange deals in ${county}`);
-  } else {
-    pushUnique(`Check active pros and projects in ${county}`);
-  }
-
-  if (isWeekend) {
-    pushUnique("Plan my weekend projects");
-    pushUnique("Create my weekly project list");
-  }
-
-  // Content-based steering
-  if (/roof|storm|hail|wind/.test(keywords)) {
-    pushUnique(`Find roofers who handle storm damage in ${county}`);
-    pushUnique("Turn this into a storm-repair project I can track");
-  }
-
-  if (/market|sell|list|item|trailer|equipment/.test(keywords)) {
-    pushUnique("Draft an Exchange listing based on this");
-    pushUnique("Search local trailers, tools, and equipment");
-  }
-
-  if (
-    /community|neighbors?|neighbours?|group|groups|club|hoa|association|board meeting|meet people|connect with my local community/.test(
-      keywords
-    )
-  ) {
-    pushUnique("Open my community feed in TradeScout");
-    pushUnique(`Show local groups, HOAs, and boards in ${county}`);
-    pushUnique("Draft a welcome or intro post I can share locally");
-  }
-
-  // User capabilities shape suggested actions
-  // Note: capabilities may be inferred from message/context, not just explicit roles
-  const capabilitiesSet = userContext?.inferredCapabilities; // Will be a Set<string> passed by Scout handler
-  if (capabilitiesSet instanceof Set || Array.isArray(capabilitiesSet)) {
-    const hasCapability = (cap: string) => {
-      if (capabilitiesSet instanceof Set) return capabilitiesSet.has(cap);
-      if (Array.isArray(capabilitiesSet)) return capabilitiesSet.includes(cap);
-      return false;
-    };
-
-    if (hasCapability("find_contractors")) {
-      pushUnique(`Get bids from vetted pros in ${county}`);
-    }
-    if (hasCapability("send_quotes") || hasCapability("send_invoices")) {
-      pushUnique("Find homeowners in my county who need bids");
-      pushUnique("Tune up my contractor profile so Scout can send better leads");
-    }
-  }
-
-  // Let contextual suggestions take precedence over raw LLM output.
-  // We append the model's suggestions AFTER our contextual list so
-  // that time/role/locality-aware options are ranked first.
-  const merged = [...prioritized, ...base];
-
-  const clean = merged
-    .filter(Boolean)
-    .map((a) => a.trim())
-    .filter((a) => a.length > 0)
-    .filter((a) => !bannedMetaPhrases.includes(a.toLowerCase()))
-    .map((a) => (a.length > 48 ? `${a.slice(0, 45)}...` : a));
-
-  // Pad/clamp to exactly 3 with defaults
-  const final: string[] = [];
-  for (const a of clean) {
-    if (final.length >= 3) break;
-    if (!final.includes(a)) final.push(a);
-  }
-  let idx = 0;
-  while (final.length < 3 && idx < defaults.length) {
-    const d = defaults[idx++];
-    if (!final.includes(d)) final.push(d);
-  }
-  return final.slice(0, 3);
-}
-
 /**
  * Trim response to ensure it fits on screen without scrolling.
  * For general answers we keep things tight; for the first OS orientation
@@ -1546,7 +1407,6 @@ const llmProviders: LLMProvider[] = [
   new GeminiProvider(process.env.GEMINI_API_KEY || ""),
   // Add new OpenAIProvider(process.env.OPENAI_API_KEY) here if needed
 ];
-const llmEnabled = llmProviders.some((p) => p.isConfigured());
 
 // Dedicated Gemini client for knowledge layer (internet search)
 const geminiClient = process.env.GEMINI_API_KEY
@@ -1773,10 +1633,6 @@ export type ScoutClientAction = {
 };
 
 export type ScoutAction = ScoutClientAction;
-function allowsAction(ctx: ResolvedContext | null, action: AllowedAction): boolean {
-  if (!ctx) return false;
-  return ctx.allowedActions.includes(action);
-}
 
 function inferJobIdFromActivity(recentActivity: ScoutRequest["recentActivity"]): string | null {
   if (!recentActivity || !recentActivity.length) return null;
@@ -3019,7 +2875,7 @@ router.post("/", async (req: Request, res: Response) => {
           sessionId: userId, // Use userId as session identifier for server-side
           asOf: new Date().toISOString(),
         });
-      } catch (err) {
+      } catch {
         // fire-and-forget: ignore telemetry failures
       }
     }
@@ -3038,7 +2894,7 @@ router.post("/", async (req: Request, res: Response) => {
           asOf: new Date().toISOString(),
           overrideReason: "user_requested_broader_scope",
         });
-      } catch (err) {
+      } catch {
         // fire-and-forget: ignore telemetry failures
       }
     }
@@ -3101,11 +2957,15 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
+    const systemPromptWithLocalGuides = localGuideContext
+      ? `${systemPrompt}${localGuideContext}`
+      : systemPrompt;
+
     const synthesized = await synthesizeResponse(
       message,
       knowledge,
       geminiClient,
-      systemPrompt,
+      systemPromptWithLocalGuides,
       conversationHistory,
       userContext,
       history,
@@ -4320,7 +4180,7 @@ router.post("/", async (req: Request, res: Response) => {
           type: "external_actions",
         });
       }
-    } catch (err) {
+    } catch {
       // fail-soft
     }
 

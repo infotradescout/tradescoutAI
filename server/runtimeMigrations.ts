@@ -65,15 +65,6 @@ async function recordMigration(hash: string) {
   ]);
 }
 
-function splitSqlStatements(sql: string): string[] {
-  // Minimal splitter: we intentionally rely on migration files being well-formed SQL
-  // and avoid complex parsing. This works for our migrations (no $$ functions).
-  return sql
-    .split(/;\s*$/m)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 export async function runRuntimeMigrations(options?: { log?: (msg: string) => void }) {
   const log = options?.log ?? ((msg: string) => console.log(msg));
   const root = getRepoRoot();
@@ -96,10 +87,8 @@ export async function runRuntimeMigrations(options?: { log?: (msg: string) => vo
     const client = await pool.connect();
     try {
       await client.query("begin");
-      for (const stmt of splitSqlStatements(migration.sql)) {
-        // Each statement gets its own query; migration SQL uses IF NOT EXISTS to be idempotent.
-        await client.query(stmt);
-      }
+      // Execute the full migration file as-is so dollar-quoted blocks (DO $$ ... $$) work reliably.
+      await client.query(migration.sql);
       await client.query("commit");
       await recordMigration(migration.hash);
       applied += 1;
