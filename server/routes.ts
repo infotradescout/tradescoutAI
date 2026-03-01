@@ -3,6 +3,7 @@ import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { resolveCountyFips } from "./services/regionResolver";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
+import express from "express";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -12161,876 +12162,934 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
-  app.post("/api/admin/businesses/import", isAuthenticated, isAdmin, async (req: any, res: any) => {
-    try {
-      const body = (req.body ?? {}) as any;
-      const content = typeof body.content === "string" ? body.content : "";
-      const dryRun = body.dryRun === true;
-      const sendActivationEmails = body.sendActivationEmails === true;
-      const includeActivationLinks = body.includeActivationLinks === true;
-      const createPublicProfiles = body.createPublicProfiles === true;
-      const defaultCountyFips =
-        typeof body.defaultCountyFips === "string" ? body.defaultCountyFips.trim() : "";
-      const defaultStateCode =
-        typeof body.defaultStateCode === "string" ? body.defaultStateCode.trim() : "";
-      const sourceLabelRaw = typeof body.source === "string" ? body.source.trim() : "";
-      const sourceLabel = (sourceLabelRaw || "admin_import").toLowerCase().slice(0, 64);
-
-      if (!content.trim()) {
-        return res.status(400).json({ message: "content is required" });
-      }
-
-      const isProductionEnv =
-        process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
-      const allowActivationLinkExport =
-        process.env.ADMIN_ALLOW_ACTIVATION_LINK_EXPORT === "true" || !isProductionEnv;
-
-      const parseDelimited = (input: string, delimiter: string): Array<Record<string, string>> => {
-        const normalizeHeaderKey = (value: unknown): string =>
-          String(value || "")
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "_")
-            .replace(/^_+|_+$/g, "")
-            .replace(/_+/g, "_");
-
-        const normalized = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-        const rows: string[][] = [];
-        let row: string[] = [];
-        let field = "";
-        let inQuotes = false;
-
-        const pushField = () => {
-          row.push(field);
-          field = "";
-        };
-
-        const pushRow = () => {
-          // Trim trailing empty columns
-          while (row.length > 0 && row[row.length - 1] === "") row.pop();
-          if (row.length > 0) rows.push(row);
-          row = [];
-        };
-
-        for (let i = 0; i < normalized.length; i++) {
-          const ch = normalized[i];
-          if (inQuotes) {
-            if (ch === '"') {
-              const next = normalized[i + 1];
-              if (next === '"') {
-                field += '"';
-                i++;
-              } else {
-                inQuotes = false;
-              }
-            } else {
-              field += ch;
-            }
-            continue;
-          }
-
-          if (ch === '"') {
-            inQuotes = true;
-            continue;
-          }
-          if (ch === delimiter) {
-            pushField();
-            continue;
-          }
-          if (ch === "\n") {
-            pushField();
-            pushRow();
-            continue;
-          }
-          field += ch;
-        }
-
-        pushField();
-        pushRow();
-
-        if (!rows.length) return [];
-
-        const headerRowRaw = rows[0];
-        const headerRow = headerRowRaw.map((h) => normalizeHeaderKey(h));
-        const looksLikeHeader =
-          headerRow.length >= 2 &&
-          headerRow.some((h) =>
-            ["email", "business_name", "name", "company", "phone", "county_fips", "fips"].includes(
-              h
-            )
-          );
-
-        const headers = looksLikeHeader
-          ? headerRow
-          : [
-              "email",
-              "business_name",
-              "county_fips",
-              "state_code",
-              "phone",
-              "website",
-              "category",
-              "services",
-              "owner_first_name",
-              "owner_last_name",
-            ];
-
-        const dataRows = looksLikeHeader ? rows.slice(1) : rows;
-
-        return dataRows
-          .map((cols) => {
-            const rec: Record<string, string> = {};
-            for (let idx = 0; idx < headers.length; idx++) {
-              const key = headers[idx] || `col_${idx}`;
-              rec[key] =
-                typeof cols[idx] === "string" ? cols[idx].trim() : String(cols[idx] ?? "").trim();
-            }
-            return rec;
-          })
-          .filter((r) => Object.values(r).some((v) => String(v || "").trim().length > 0));
-      };
-
-      const detectDelimiter = (input: string): string => {
-        const sample = input.slice(0, 4000);
-        const comma = (sample.match(/,/g) || []).length;
-        const semi = (sample.match(/;/g) || []).length;
-        const tab = (sample.match(/\t/g) || []).length;
-        const pipe = (sample.match(/\|/g) || []).length;
-        if (tab >= comma && tab >= pipe && tab >= semi && tab > 0) return "\t";
-        if (pipe >= comma && pipe >= semi && pipe > 0) return "|";
-        if (semi >= comma && semi > 0) return ";";
-        return ",";
-      };
-
-      const delimiter = detectDelimiter(content);
-      const records = parseDelimited(content, delimiter);
-      if (!records.length) {
-        return res.status(400).json({ message: "No rows found to import" });
-      }
-
-      const normalizeEmail = (value: unknown) =>
-        String(value || "")
-          .trim()
-          .toLowerCase();
-
-      const getFirstNonEmpty = (rec: Record<string, string>, keys: string[]): string => {
-        for (const key of keys) {
-          const raw = rec[key];
-          if (typeof raw === "string" && raw.trim()) return raw.trim();
-        }
-        return "";
-      };
-
-      const normalizeServices = (value: unknown): string[] => {
-        const raw = String(value || "").trim();
-        if (!raw) return [];
-        return Array.from(
-          new Set(
-            raw
-              // Allow comma-separated category lists (e.g. Maps-scraper exports).
-              .split(/[;,|]/g)
-              .map((s) => s.trim())
-              .filter(Boolean)
-          )
-        ).slice(0, 50);
-      };
-
-      const slugify = (text: string): string =>
-        String(text || "")
-          .toLowerCase()
-          .trim()
-          .replace(/[^\w\s-]/g, "")
-          .replace(/[\s_-]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-          .slice(0, 80);
-
-      const STATE_NAME_TO_CODE: Record<string, string> = {
-        alabama: "AL",
-        alaska: "AK",
-        arizona: "AZ",
-        arkansas: "AR",
-        california: "CA",
-        colorado: "CO",
-        connecticut: "CT",
-        delaware: "DE",
-        florida: "FL",
-        georgia: "GA",
-        hawaii: "HI",
-        idaho: "ID",
-        illinois: "IL",
-        indiana: "IN",
-        iowa: "IA",
-        kansas: "KS",
-        kentucky: "KY",
-        louisiana: "LA",
-        maine: "ME",
-        maryland: "MD",
-        massachusetts: "MA",
-        michigan: "MI",
-        minnesota: "MN",
-        mississippi: "MS",
-        missouri: "MO",
-        montana: "MT",
-        nebraska: "NE",
-        nevada: "NV",
-        "new hampshire": "NH",
-        "new jersey": "NJ",
-        "new mexico": "NM",
-        "new york": "NY",
-        "north carolina": "NC",
-        "north dakota": "ND",
-        ohio: "OH",
-        oklahoma: "OK",
-        oregon: "OR",
-        pennsylvania: "PA",
-        "rhode island": "RI",
-        "south carolina": "SC",
-        "south dakota": "SD",
-        tennessee: "TN",
-        texas: "TX",
-        utah: "UT",
-        vermont: "VT",
-        virginia: "VA",
-        washington: "WA",
-        "west virginia": "WV",
-        wisconsin: "WI",
-        wyoming: "WY",
-        "district of columbia": "DC",
-      };
-
-      const normalizeStateCodeLoose = (input: unknown): string => {
-        const raw = String(input || "").trim();
-        if (!raw) return "";
-        const upper = raw.toUpperCase();
-        if (/^[A-Z]{2}$/.test(upper)) return upper;
-        const name = raw.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
-        return STATE_NAME_TO_CODE[name] || "";
-      };
-
-      const inferStateCodeFromLooseAddress = (input: unknown): string => {
-        const raw = String(input || "").trim();
-        if (!raw) return "";
-        const match2 = raw.match(/\b([A-Z]{2})\b(?:\s+\d{5}(?:-\d{4})?)?$/);
-        if (match2?.[1]) return match2[1];
-        const matchName = raw
-          .toLowerCase()
-          .replace(/\./g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .match(/\b([a-z]+(?:\s+[a-z]+)*)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
-        const tail = matchName?.[1] ? normalizeStateCodeLoose(matchName[1]) : "";
-        return tail || "";
-      };
-
-      const inferZipFromLooseAddress = (input: unknown): string => {
-        const raw = String(input || "").trim();
-        if (!raw) return "";
-        const match = raw.match(/\b(\d{5})(?:-\d{4})?\b/);
-        return match?.[1] || "";
-      };
-
-      const ensureUniqueBusinessProfileSlug = async (base: string, userId: string) => {
-        const baseSlug = slugify(base) || randomUUID();
-        let candidate = baseSlug;
-        for (let attempt = 0; attempt < 50; attempt++) {
-          const existing = await storage.getBusinessProfileBySlug(candidate);
-          if (!existing || existing.userId === userId) return candidate;
-          candidate = `${baseSlug}-${attempt + 2}`;
-        }
-        return `${baseSlug}-${randomUUID().slice(0, 8)}`;
-      };
-
-      // Preload county lookups (FIPS -> county row)
-      const allFips = Array.from(
-        new Set(
-          records
-            .map((r) => String(r.county_fips || r.countyfips || r.fips || "").trim())
-            .filter(Boolean)
-            .concat(defaultCountyFips ? [defaultCountyFips] : [])
-        )
-      );
-      const countyRows = allFips.length
-        ? await db
-            .select({
-              id: counties.id,
-              fips: counties.fips,
-              name: counties.name,
-              stateCode: counties.stateCode,
-            })
-            .from(counties)
-            .where(inArray(counties.fips, allFips))
-        : [];
-      const countyByFips = new Map<string, (typeof countyRows)[number]>();
-      for (const c of countyRows) countyByFips.set(String(c.fips), c);
-
-      const adminUserId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
-      const resetBase =
-        process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
-
-      const results: any[] = [];
-      let createdUsers = 0;
-      let updatedUsers = 0;
-      let createdBusinesses = 0;
-      let updatedBusinesses = 0;
-      let createdUnclaimedBusinesses = 0;
-      let updatedUnclaimedBusinesses = 0;
-      let createdPublicProfiles = 0;
-      let activationPrepared = 0;
-      let activationEmailed = 0;
-
-      for (let idx = 0; idx < records.length; idx++) {
-        const rec = records[idx] || {};
-        const email = normalizeEmail(
-          getFirstNonEmpty(rec, [
-            "email",
-            "owner_email",
-            "invitee_email",
-            "business_email",
-            "contact_email",
-          ])
-        );
-        const businessName = getFirstNonEmpty(rec, [
-          "business_name",
-          "businessname",
-          "business",
-          "name",
-          "company_name",
-          "companyname",
-          "company",
-          "trade_name",
-          "tradename",
-          "dba",
-          "legal_name",
-          "legalname",
-          "organization",
-          "org_name",
-          "orgname",
-        ]);
-        const countyFips =
-          getFirstNonEmpty(rec, ["county_fips", "countyfips", "fips", "county_fips_code"]).trim() ||
-          defaultCountyFips ||
-          "";
-        const stateCodeRaw =
-          getFirstNonEmpty(rec, ["state_code", "state", "st", "sourcestate"]).trim() ||
-          defaultStateCode ||
-          "";
-        const muni = getFirstNonEmpty(rec, ["municipality", "city_state_zip", "city"]);
-        const fulladdr = getFirstNonEmpty(rec, [
-          "fulladdress",
-          "full_address",
-          "mailing_address",
-          "address",
-          "street",
-        ]);
-        const stateCode =
-          normalizeStateCodeLoose(stateCodeRaw) ||
-          inferStateCodeFromLooseAddress(muni) ||
-          inferStateCodeFromLooseAddress(fulladdr) ||
-          "";
-        const phone = getFirstNonEmpty(rec, [
-          "phone",
-          "phone_number",
-          "business_phone",
-          "contact_phone",
-          "telephone",
-          "tel",
-        ]);
-        const website = getFirstNonEmpty(rec, ["website", "url", "web", "site"]);
-        const category = getFirstNonEmpty(rec, [
-          "category",
-          "categories",
-          "business_category",
-          "industry",
-        ]);
-        const services = normalizeServices(
-          getFirstNonEmpty(rec, ["services", "service_list", "categories"])
-        );
-
-        const latStr = getFirstNonEmpty(rec, ["lat", "latitude", "y"]);
-        const lngStr = getFirstNonEmpty(rec, ["lng", "lon", "longitude", "x"]);
-        const lat = latStr ? Number.parseFloat(String(latStr)) : NaN;
-        const lng = lngStr ? Number.parseFloat(String(lngStr)) : NaN;
-        const hasLatLng = Number.isFinite(lat) && Number.isFinite(lng);
-
-        const licenseNumber = getFirstNonEmpty(rec, [
-          "license_number",
-          "licensenumber",
-          "license",
-        ]).trim();
-        const licenseStatus = getFirstNonEmpty(rec, ["license_status", "status"]).trim();
-        const licenseExpiresAt = getFirstNonEmpty(rec, [
-          "license_expires_at",
-          "expireson",
-          "expires_on",
-        ]).trim();
-
-        const osmType = getFirstNonEmpty(rec, ["osm_type", "osmtype"]).trim();
-        const osmId = getFirstNonEmpty(rec, ["osm_id", "osmid"]).trim();
-        const categoryId = getFirstNonEmpty(rec, ["category_id", "categoryid"]).trim();
-        const categoryLabel = getFirstNonEmpty(rec, ["category_label", "categorylabel"]).trim();
-
-        const businessTypeRaw = getFirstNonEmpty(rec, ["business_type", "businesstype", "type"])
-          .trim()
-          .toLowerCase();
-        const roleContextRaw = getFirstNonEmpty(rec, ["role_context", "rolecontext"])
-          .trim()
-          .toLowerCase();
-
-        const inferredBusinessType = (() => {
-          const raw = businessTypeRaw;
-          const normalized =
-            raw === "contractor" || raw === "community" || raw === "vendor" || raw === "other"
-              ? raw
-              : raw.includes("contract")
-                ? "contractor"
-                : raw.includes("vendor") || raw.includes("retail") || raw.includes("store")
-                  ? "vendor"
-                  : raw.includes("community")
-                    ? "community"
-                    : "";
-
-          if (normalized) return normalized as "contractor" | "community" | "vendor" | "other";
-          if (licenseNumber) return "contractor" as const;
-
-          const hint = `${category} ${categoryId} ${categoryLabel}`.toLowerCase();
-          if (
-            hint.includes("supply") ||
-            hint.includes("materials") ||
-            hint.includes("lumber") ||
-            hint.includes("equipment") ||
-            hint.includes("tool") ||
-            hint.includes("rental")
-          ) {
-            return "vendor" as const;
-          }
-
-          return "other" as const;
-        })();
-
-        const inferredRoleContext = (() => {
-          // Keep this conservative: role_context is a user_role enum, but imports are directory entities.
-          if (
-            roleContextRaw === "contractor" ||
-            roleContextRaw === "business_owner" ||
-            roleContextRaw === "community_builder"
-          ) {
-            return roleContextRaw as "contractor" | "business_owner" | "community_builder";
-          }
-          if (inferredBusinessType === "contractor") return "contractor" as const;
-          if (inferredBusinessType === "community") return "community_builder" as const;
-          return "business_owner" as const;
-        })();
-
-        const externalId =
-          licenseNumber && stateCode
-            ? `license:${stateCode}:${licenseNumber}`
-            : osmType && osmId
-              ? `osm:${osmType}:${osmId}`
+  app.post(
+    "/api/admin/businesses/import",
+    isAuthenticated,
+    isAdmin,
+    // Accept text/csv uploads directly to avoid JSON body-size limits (413) in production.
+    express.text({
+      type: ["text/plain", "text/csv", "text/tab-separated-values"],
+      limit: process.env.BUSINESS_IMPORT_TEXT_LIMIT || "25mb",
+    }),
+    async (req: any, res: any) => {
+      try {
+        const rawBody = req.body;
+        const body = rawBody && typeof rawBody === "object" ? (rawBody as any) : {};
+        const content =
+          typeof rawBody === "string"
+            ? rawBody
+            : typeof body.content === "string"
+              ? body.content
               : "";
 
-        const normalizedWebsite = String(website || "")
-          .trim()
-          .toLowerCase()
-          .replace(/^https?:\/\//, "")
-          .replace(/^www\./, "")
-          .replace(/\/+$/, "");
-        const normalizedPhone = String(phone || "").replace(/\D/g, "");
+        const readBool = (value: any): boolean => {
+          if (value === true) return true;
+          const v = String(value ?? "")
+            .trim()
+            .toLowerCase();
+          return v === "true" || v === "1" || v === "yes" || v === "y";
+        };
 
-        const dedupeKey = externalId
-          ? externalId
-          : normalizedWebsite
-            ? `web:${normalizedWebsite}`
-            : normalizedPhone
-              ? `phone:${normalizedPhone}`
-              : `name:${slugify(businessName)}:${stateCode || ""}:${inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr) || ""}`;
-        const ownerFirstName = getFirstNonEmpty(rec, [
-          "owner_first_name",
-          "first_name",
-          "contact_first_name",
-        ]);
-        const ownerLastName = getFirstNonEmpty(rec, [
-          "owner_last_name",
-          "last_name",
-          "contact_last_name",
-        ]);
+        const readStr = (value: any): string => (typeof value === "string" ? value : "").trim();
 
-        const rowRef = { row: idx + 1, email, businessName, countyFips };
+        const query = (req.query ?? {}) as any;
+        const dryRun = readBool(body.dryRun ?? query.dryRun ?? query.dry_run);
+        const sendActivationEmails = readBool(
+          body.sendActivationEmails ?? query.sendActivationEmails ?? query.send_activation_emails
+        );
+        const includeActivationLinks = readBool(
+          body.includeActivationLinks ??
+            query.includeActivationLinks ??
+            query.include_activation_links
+        );
+        const createPublicProfiles = readBool(
+          body.createPublicProfiles ?? query.createPublicProfiles ?? query.create_public_profiles
+        );
+        const defaultCountyFips = readStr(
+          body.defaultCountyFips ?? query.defaultCountyFips ?? query.default_county_fips
+        );
+        const defaultStateCode = readStr(
+          body.defaultStateCode ?? query.defaultStateCode ?? query.default_state_code
+        );
+        const sourceLabelRaw = readStr(body.source ?? query.source);
+        const sourceLabel = (sourceLabelRaw || "admin_import").toLowerCase().slice(0, 64);
 
-        if (!businessName) {
-          results.push({ ...rowRef, status: "error", error: "Missing business_name" });
-          continue;
-        }
-        if (email && !email.includes("@")) {
-          results.push({ ...rowRef, status: "error", error: "Invalid email" });
-          continue;
-        }
-
-        if (countyFips && !/^[0-9]{5}$/.test(countyFips)) {
-          results.push({ ...rowRef, status: "error", error: "Invalid county_fips" });
-          continue;
+        if (!content.trim()) {
+          return res.status(400).json({ message: "content is required" });
         }
 
-        const county = countyFips ? countyByFips.get(countyFips) : null;
-        if (countyFips && !county) {
-          results.push({
-            ...rowRef,
-            status: "error",
-            error: `Unknown county_fips (${countyFips})`,
-          });
-          continue;
+        const isProductionEnv =
+          process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+        const allowActivationLinkExport =
+          process.env.ADMIN_ALLOW_ACTIVATION_LINK_EXPORT === "true" || !isProductionEnv;
+
+        const parseDelimited = (
+          input: string,
+          delimiter: string
+        ): Array<Record<string, string>> => {
+          const normalizeHeaderKey = (value: unknown): string =>
+            String(value || "")
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_")
+              .replace(/^_+|_+$/g, "")
+              .replace(/_+/g, "_");
+
+          const normalized = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+          const rows: string[][] = [];
+          let row: string[] = [];
+          let field = "";
+          let inQuotes = false;
+
+          const pushField = () => {
+            row.push(field);
+            field = "";
+          };
+
+          const pushRow = () => {
+            // Trim trailing empty columns
+            while (row.length > 0 && row[row.length - 1] === "") row.pop();
+            if (row.length > 0) rows.push(row);
+            row = [];
+          };
+
+          for (let i = 0; i < normalized.length; i++) {
+            const ch = normalized[i];
+            if (inQuotes) {
+              if (ch === '"') {
+                const next = normalized[i + 1];
+                if (next === '"') {
+                  field += '"';
+                  i++;
+                } else {
+                  inQuotes = false;
+                }
+              } else {
+                field += ch;
+              }
+              continue;
+            }
+
+            if (ch === '"') {
+              inQuotes = true;
+              continue;
+            }
+            if (ch === delimiter) {
+              pushField();
+              continue;
+            }
+            if (ch === "\n") {
+              pushField();
+              pushRow();
+              continue;
+            }
+            field += ch;
+          }
+
+          pushField();
+          pushRow();
+
+          if (!rows.length) return [];
+
+          const headerRowRaw = rows[0];
+          const headerRow = headerRowRaw.map((h) => normalizeHeaderKey(h));
+          const looksLikeHeader =
+            headerRow.length >= 2 &&
+            headerRow.some((h) =>
+              [
+                "email",
+                "business_name",
+                "name",
+                "company",
+                "phone",
+                "county_fips",
+                "fips",
+              ].includes(h)
+            );
+
+          const headers = looksLikeHeader
+            ? headerRow
+            : [
+                "email",
+                "business_name",
+                "county_fips",
+                "state_code",
+                "phone",
+                "website",
+                "category",
+                "services",
+                "owner_first_name",
+                "owner_last_name",
+              ];
+
+          const dataRows = looksLikeHeader ? rows.slice(1) : rows;
+
+          return dataRows
+            .map((cols) => {
+              const rec: Record<string, string> = {};
+              for (let idx = 0; idx < headers.length; idx++) {
+                const key = headers[idx] || `col_${idx}`;
+                rec[key] =
+                  typeof cols[idx] === "string" ? cols[idx].trim() : String(cols[idx] ?? "").trim();
+              }
+              return rec;
+            })
+            .filter((r) => Object.values(r).some((v) => String(v || "").trim().length > 0));
+        };
+
+        const detectDelimiter = (input: string): string => {
+          const sample = input.slice(0, 4000);
+          const comma = (sample.match(/,/g) || []).length;
+          const semi = (sample.match(/;/g) || []).length;
+          const tab = (sample.match(/\t/g) || []).length;
+          const pipe = (sample.match(/\|/g) || []).length;
+          if (tab >= comma && tab >= pipe && tab >= semi && tab > 0) return "\t";
+          if (pipe >= comma && pipe >= semi && pipe > 0) return "|";
+          if (semi >= comma && semi > 0) return ";";
+          return ",";
+        };
+
+        const delimiter = detectDelimiter(content);
+        const records = parseDelimited(content, delimiter);
+        if (!records.length) {
+          return res.status(400).json({ message: "No rows found to import" });
         }
 
-        const resolvedStateCode = stateCode || county?.stateCode || "";
+        const normalizeEmail = (value: unknown) =>
+          String(value || "")
+            .trim()
+            .toLowerCase();
 
-        try {
-          const hasOwnerEmail = Boolean(email);
-          const countyIds = county?.id ? [county.id] : [];
+        const getFirstNonEmpty = (rec: Record<string, string>, keys: string[]): string => {
+          for (const key of keys) {
+            const raw = rec[key];
+            if (typeof raw === "string" && raw.trim()) return raw.trim();
+          }
+          return "";
+        };
 
-          let userId: string | null = null;
-          let businessId: string | null = null;
-          let profileSlug: string | null = null;
-          let publicProfileSlug: string | null = null;
+        const normalizeServices = (value: unknown): string[] => {
+          const raw = String(value || "").trim();
+          if (!raw) return [];
+          return Array.from(
+            new Set(
+              raw
+                // Allow comma-separated category lists (e.g. Maps-scraper exports).
+                .split(/[;,|]/g)
+                .map((s) => s.trim())
+                .filter(Boolean)
+            )
+          ).slice(0, 50);
+        };
 
-          const knownKeys = new Set([
-            "email",
-            "owner_email",
-            "invitee_email",
-            "business_email",
-            "contact_email",
+        const slugify = (text: string): string =>
+          String(text || "")
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, "")
+            .replace(/[\s_-]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 80);
+
+        const STATE_NAME_TO_CODE: Record<string, string> = {
+          alabama: "AL",
+          alaska: "AK",
+          arizona: "AZ",
+          arkansas: "AR",
+          california: "CA",
+          colorado: "CO",
+          connecticut: "CT",
+          delaware: "DE",
+          florida: "FL",
+          georgia: "GA",
+          hawaii: "HI",
+          idaho: "ID",
+          illinois: "IL",
+          indiana: "IN",
+          iowa: "IA",
+          kansas: "KS",
+          kentucky: "KY",
+          louisiana: "LA",
+          maine: "ME",
+          maryland: "MD",
+          massachusetts: "MA",
+          michigan: "MI",
+          minnesota: "MN",
+          mississippi: "MS",
+          missouri: "MO",
+          montana: "MT",
+          nebraska: "NE",
+          nevada: "NV",
+          "new hampshire": "NH",
+          "new jersey": "NJ",
+          "new mexico": "NM",
+          "new york": "NY",
+          "north carolina": "NC",
+          "north dakota": "ND",
+          ohio: "OH",
+          oklahoma: "OK",
+          oregon: "OR",
+          pennsylvania: "PA",
+          "rhode island": "RI",
+          "south carolina": "SC",
+          "south dakota": "SD",
+          tennessee: "TN",
+          texas: "TX",
+          utah: "UT",
+          vermont: "VT",
+          virginia: "VA",
+          washington: "WA",
+          "west virginia": "WV",
+          wisconsin: "WI",
+          wyoming: "WY",
+          "district of columbia": "DC",
+        };
+
+        const normalizeStateCodeLoose = (input: unknown): string => {
+          const raw = String(input || "").trim();
+          if (!raw) return "";
+          const upper = raw.toUpperCase();
+          if (/^[A-Z]{2}$/.test(upper)) return upper;
+          const name = raw.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+          return STATE_NAME_TO_CODE[name] || "";
+        };
+
+        const inferStateCodeFromLooseAddress = (input: unknown): string => {
+          const raw = String(input || "").trim();
+          if (!raw) return "";
+          const match2 = raw.match(/\b([A-Z]{2})\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+          if (match2?.[1]) return match2[1];
+          const matchName = raw
+            .toLowerCase()
+            .replace(/\./g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .match(/\b([a-z]+(?:\s+[a-z]+)*)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+          const tail = matchName?.[1] ? normalizeStateCodeLoose(matchName[1]) : "";
+          return tail || "";
+        };
+
+        const inferZipFromLooseAddress = (input: unknown): string => {
+          const raw = String(input || "").trim();
+          if (!raw) return "";
+          const match = raw.match(/\b(\d{5})(?:-\d{4})?\b/);
+          return match?.[1] || "";
+        };
+
+        const ensureUniqueBusinessProfileSlug = async (base: string, userId: string) => {
+          const baseSlug = slugify(base) || randomUUID();
+          let candidate = baseSlug;
+          for (let attempt = 0; attempt < 50; attempt++) {
+            const existing = await storage.getBusinessProfileBySlug(candidate);
+            if (!existing || existing.userId === userId) return candidate;
+            candidate = `${baseSlug}-${attempt + 2}`;
+          }
+          return `${baseSlug}-${randomUUID().slice(0, 8)}`;
+        };
+
+        // Preload county lookups (FIPS -> county row)
+        const allFips = Array.from(
+          new Set(
+            records
+              .map((r) => String(r.county_fips || r.countyfips || r.fips || "").trim())
+              .filter(Boolean)
+              .concat(defaultCountyFips ? [defaultCountyFips] : [])
+          )
+        );
+        const countyRows = allFips.length
+          ? await db
+              .select({
+                id: counties.id,
+                fips: counties.fips,
+                name: counties.name,
+                stateCode: counties.stateCode,
+              })
+              .from(counties)
+              .where(inArray(counties.fips, allFips))
+          : [];
+        const countyByFips = new Map<string, (typeof countyRows)[number]>();
+        for (const c of countyRows) countyByFips.set(String(c.fips), c);
+
+        const adminUserId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
+        const resetBase =
+          process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
+
+        const results: any[] = [];
+        let createdUsers = 0;
+        let updatedUsers = 0;
+        let createdBusinesses = 0;
+        let updatedBusinesses = 0;
+        let createdUnclaimedBusinesses = 0;
+        let updatedUnclaimedBusinesses = 0;
+        let createdPublicProfiles = 0;
+        let activationPrepared = 0;
+        let activationEmailed = 0;
+
+        for (let idx = 0; idx < records.length; idx++) {
+          const rec = records[idx] || {};
+          const email = normalizeEmail(
+            getFirstNonEmpty(rec, [
+              "email",
+              "owner_email",
+              "invitee_email",
+              "business_email",
+              "contact_email",
+            ])
+          );
+          const businessName = getFirstNonEmpty(rec, [
             "business_name",
+            "businessname",
             "business",
             "name",
             "company_name",
+            "companyname",
             "company",
             "trade_name",
+            "tradename",
             "dba",
             "legal_name",
+            "legalname",
             "organization",
             "org_name",
-            "county_fips",
-            "countyfips",
-            "fips",
-            "county_fips_code",
-            "state_code",
-            "state",
-            "st",
+            "orgname",
+          ]);
+          const countyFips =
+            getFirstNonEmpty(rec, [
+              "county_fips",
+              "countyfips",
+              "fips",
+              "county_fips_code",
+            ]).trim() ||
+            defaultCountyFips ||
+            "";
+          const stateCodeRaw =
+            getFirstNonEmpty(rec, ["state_code", "state", "st", "sourcestate"]).trim() ||
+            defaultStateCode ||
+            "";
+          const muni = getFirstNonEmpty(rec, ["municipality", "city_state_zip", "city"]);
+          const fulladdr = getFirstNonEmpty(rec, [
+            "fulladdress",
+            "full_address",
+            "mailing_address",
+            "address",
+            "street",
+          ]);
+          const stateCode =
+            normalizeStateCodeLoose(stateCodeRaw) ||
+            inferStateCodeFromLooseAddress(muni) ||
+            inferStateCodeFromLooseAddress(fulladdr) ||
+            "";
+          const phone = getFirstNonEmpty(rec, [
             "phone",
             "phone_number",
             "business_phone",
             "contact_phone",
             "telephone",
             "tel",
-            "website",
-            "url",
-            "web",
-            "site",
+          ]);
+          const website = getFirstNonEmpty(rec, ["website", "url", "web", "site"]);
+          const category = getFirstNonEmpty(rec, [
             "category",
+            "categories",
             "business_category",
             "industry",
-            "services",
-            "service_list",
-            "owner_first_name",
-            "first_name",
-            "contact_first_name",
-            "owner_last_name",
-            "last_name",
-            "contact_last_name",
-            "mailing_address",
-            "fulladdress",
-            "full_address",
-            "address",
-            "street",
-            "municipality",
-            "city_state_zip",
-            "city",
-            "zip",
-            "zip_code",
-            "postcode",
-            "lat",
-            "latitude",
-            "lng",
-            "lon",
-            "longitude",
-            "osm_type",
-            "osmtype",
-            "osm_id",
-            "osmid",
-            "category_id",
-            "categoryid",
-            "category_label",
-            "categorylabel",
+          ]);
+          const services = normalizeServices(
+            getFirstNonEmpty(rec, ["services", "service_list", "categories"])
+          );
+
+          const latStr = getFirstNonEmpty(rec, ["lat", "latitude", "y"]);
+          const lngStr = getFirstNonEmpty(rec, ["lng", "lon", "longitude", "x"]);
+          const lat = latStr ? Number.parseFloat(String(latStr)) : NaN;
+          const lng = lngStr ? Number.parseFloat(String(lngStr)) : NaN;
+          const hasLatLng = Number.isFinite(lat) && Number.isFinite(lng);
+
+          const licenseNumber = getFirstNonEmpty(rec, [
             "license_number",
             "licensenumber",
-            "license_status",
+            "license",
+          ]).trim();
+          const licenseStatus = getFirstNonEmpty(rec, ["license_status", "status"]).trim();
+          const licenseExpiresAt = getFirstNonEmpty(rec, [
             "license_expires_at",
             "expireson",
             "expires_on",
-            "sourcestate",
-            "external_id",
-            "businesstype",
-            "business_type",
-            "rolecontext",
-            "role_context",
+          ]).trim();
+
+          const osmType = getFirstNonEmpty(rec, ["osm_type", "osmtype"]).trim();
+          const osmId = getFirstNonEmpty(rec, ["osm_id", "osmid"]).trim();
+          const categoryId = getFirstNonEmpty(rec, ["category_id", "categoryid"]).trim();
+          const categoryLabel = getFirstNonEmpty(rec, ["category_label", "categorylabel"]).trim();
+
+          const businessTypeRaw = getFirstNonEmpty(rec, ["business_type", "businesstype", "type"])
+            .trim()
+            .toLowerCase();
+          const roleContextRaw = getFirstNonEmpty(rec, ["role_context", "rolecontext"])
+            .trim()
+            .toLowerCase();
+
+          const inferredBusinessType = (() => {
+            const raw = businessTypeRaw;
+            const normalized =
+              raw === "contractor" || raw === "community" || raw === "vendor" || raw === "other"
+                ? raw
+                : raw.includes("contract")
+                  ? "contractor"
+                  : raw.includes("vendor") || raw.includes("retail") || raw.includes("store")
+                    ? "vendor"
+                    : raw.includes("community")
+                      ? "community"
+                      : "";
+
+            if (normalized) return normalized as "contractor" | "community" | "vendor" | "other";
+            if (licenseNumber) return "contractor" as const;
+
+            const hint = `${category} ${categoryId} ${categoryLabel}`.toLowerCase();
+            if (
+              hint.includes("supply") ||
+              hint.includes("materials") ||
+              hint.includes("lumber") ||
+              hint.includes("equipment") ||
+              hint.includes("tool") ||
+              hint.includes("rental")
+            ) {
+              return "vendor" as const;
+            }
+
+            return "other" as const;
+          })();
+
+          const inferredRoleContext = (() => {
+            // Keep this conservative: role_context is a user_role enum, but imports are directory entities.
+            if (
+              roleContextRaw === "contractor" ||
+              roleContextRaw === "business_owner" ||
+              roleContextRaw === "community_builder"
+            ) {
+              return roleContextRaw as "contractor" | "business_owner" | "community_builder";
+            }
+            if (inferredBusinessType === "contractor") return "contractor" as const;
+            if (inferredBusinessType === "community") return "community_builder" as const;
+            return "business_owner" as const;
+          })();
+
+          const externalId =
+            licenseNumber && stateCode
+              ? `license:${stateCode}:${licenseNumber}`
+              : osmType && osmId
+                ? `osm:${osmType}:${osmId}`
+                : "";
+
+          const normalizedWebsite = String(website || "")
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, "")
+            .replace(/^www\./, "")
+            .replace(/\/+$/, "");
+          const normalizedPhone = String(phone || "").replace(/\D/g, "");
+
+          const dedupeKey = externalId
+            ? externalId
+            : normalizedWebsite
+              ? `web:${normalizedWebsite}`
+              : normalizedPhone
+                ? `phone:${normalizedPhone}`
+                : `name:${slugify(businessName)}:${stateCode || ""}:${inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr) || ""}`;
+          const ownerFirstName = getFirstNonEmpty(rec, [
+            "owner_first_name",
+            "first_name",
+            "contact_first_name",
           ]);
-          const importExtras: Record<string, string> = {};
-          for (const [key, value] of Object.entries(rec)) {
-            if (knownKeys.has(key)) continue;
-            const v = String(value || "").trim();
-            if (!v) continue;
-            // Preserve any extra indexed columns so they can be used later.
-            importExtras[key] = v;
+          const ownerLastName = getFirstNonEmpty(rec, [
+            "owner_last_name",
+            "last_name",
+            "contact_last_name",
+          ]);
+
+          const rowRef = { row: idx + 1, email, businessName, countyFips };
+
+          if (!businessName) {
+            results.push({ ...rowRef, status: "error", error: "Missing business_name" });
+            continue;
+          }
+          if (email && !email.includes("@")) {
+            results.push({ ...rowRef, status: "error", error: "Invalid email" });
+            continue;
           }
 
-          if (hasOwnerEmail) {
-            const existingUser = await storage.getUserByEmail(email);
-            let userRecord = existingUser;
+          if (countyFips && !/^[0-9]{5}$/.test(countyFips)) {
+            results.push({ ...rowRef, status: "error", error: "Invalid county_fips" });
+            continue;
+          }
 
-            if (!existingUser) {
-              if (dryRun) {
-                userRecord = {
-                  id: "__dry_run__",
-                  email,
-                } as any;
-              } else {
-                userRecord = await storage.createUser({
-                  email,
-                  phone: phone || undefined,
-                  firstName: ownerFirstName || undefined,
-                  lastName: ownerLastName || undefined,
-                  role: "business_owner" as any,
-                  roles: ["business_owner"],
-                  activeRole: "business_owner",
-                  onboardingCompleted: false,
-                  profileVersion: 0,
-                  provider: "local",
-                } as any);
-              }
-              createdUsers++;
-            } else {
-              const currentRoles: string[] = Array.isArray((existingUser as any).roles)
-                ? ((existingUser as any).roles as string[])
-                : [];
-              const nextRoles = Array.from(new Set([...currentRoles, "business_owner"]));
-              if (!dryRun && nextRoles.length !== currentRoles.length) {
-                await storage.updateUser(existingUser.id, { roles: nextRoles } as any);
-                updatedUsers++;
-              }
+          const county = countyFips ? countyByFips.get(countyFips) : null;
+          if (countyFips && !county) {
+            results.push({
+              ...rowRef,
+              status: "error",
+              error: `Unknown county_fips (${countyFips})`,
+            });
+            continue;
+          }
+
+          const resolvedStateCode = stateCode || county?.stateCode || "";
+
+          try {
+            const hasOwnerEmail = Boolean(email);
+            const countyIds = county?.id ? [county.id] : [];
+
+            let userId: string | null = null;
+            let businessId: string | null = null;
+            let profileSlug: string | null = null;
+            let publicProfileSlug: string | null = null;
+
+            const knownKeys = new Set([
+              "email",
+              "owner_email",
+              "invitee_email",
+              "business_email",
+              "contact_email",
+              "business_name",
+              "business",
+              "name",
+              "company_name",
+              "company",
+              "trade_name",
+              "dba",
+              "legal_name",
+              "organization",
+              "org_name",
+              "county_fips",
+              "countyfips",
+              "fips",
+              "county_fips_code",
+              "state_code",
+              "state",
+              "st",
+              "phone",
+              "phone_number",
+              "business_phone",
+              "contact_phone",
+              "telephone",
+              "tel",
+              "website",
+              "url",
+              "web",
+              "site",
+              "category",
+              "business_category",
+              "industry",
+              "services",
+              "service_list",
+              "owner_first_name",
+              "first_name",
+              "contact_first_name",
+              "owner_last_name",
+              "last_name",
+              "contact_last_name",
+              "mailing_address",
+              "fulladdress",
+              "full_address",
+              "address",
+              "street",
+              "municipality",
+              "city_state_zip",
+              "city",
+              "zip",
+              "zip_code",
+              "postcode",
+              "lat",
+              "latitude",
+              "lng",
+              "lon",
+              "longitude",
+              "osm_type",
+              "osmtype",
+              "osm_id",
+              "osmid",
+              "category_id",
+              "categoryid",
+              "category_label",
+              "categorylabel",
+              "license_number",
+              "licensenumber",
+              "license_status",
+              "license_expires_at",
+              "expireson",
+              "expires_on",
+              "sourcestate",
+              "external_id",
+              "businesstype",
+              "business_type",
+              "rolecontext",
+              "role_context",
+            ]);
+            const importExtras: Record<string, string> = {};
+            for (const [key, value] of Object.entries(rec)) {
+              if (knownKeys.has(key)) continue;
+              const v = String(value || "").trim();
+              if (!v) continue;
+              // Preserve any extra indexed columns so they can be used later.
+              importExtras[key] = v;
             }
+            // Stable dedupe key for repeatable imports across chunks/files.
+            if (dedupeKey && !importExtras.dedupe_key) importExtras.dedupe_key = dedupeKey;
+            if (externalId && !importExtras.external_id) importExtras.external_id = externalId;
 
-            userId = String((userRecord as any).id);
+            if (hasOwnerEmail) {
+              const existingUser = await storage.getUserByEmail(email);
+              let userRecord = existingUser;
 
-            // Create/attach a business entity record (draft)
-            if (!dryRun && userId && userId !== "__dry_run__") {
-              const existingBiz = await db
-                .select({ id: businesses.id, name: businesses.name })
-                .from(businesses)
-                .where(
-                  and(
-                    eq(businesses.ownerUserId, userId),
-                    sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`
-                  )
-                )
-                .limit(1);
-
-              if (existingBiz.length > 0) {
-                businessId = existingBiz[0].id;
-                updatedBusinesses++;
-              } else {
-                const createdBiz = await storage.createBusinessForOwner(userId, {
-                  name: businessName,
-                  slug: businessName,
-                  type: "other" as any,
-                  roleContext: "business_owner" as any,
-                  profileData: {
-                    category: category || undefined,
-                    services: services.length ? services : undefined,
-                    website: website || undefined,
-                    phone: phone || undefined,
+              if (!existingUser) {
+                if (dryRun) {
+                  userRecord = {
+                    id: "__dry_run__",
                     email,
-                    importExtras: Object.keys(importExtras).length ? importExtras : undefined,
-                  },
-                  sources: [sourceLabel],
-                  status: "draft" as any,
-                  countyIds,
-                } as any);
-                businessId = createdBiz.id;
-                createdBusinesses++;
-              }
-            }
-
-            // Ensure business profile exists (stored on the user for now)
-            if (!dryRun && userId && userId !== "__dry_run__") {
-              const baseSlug = businessName;
-              const nextSlug = await ensureUniqueBusinessProfileSlug(baseSlug, userId);
-              profileSlug = nextSlug;
-
-              await storage.saveBusinessProfile({
-                id: userId,
-                userId,
-                slug: nextSlug,
-                name: businessName,
-                headline: null as any,
-                description: null,
-                countyFips: countyFips || "",
-                countyName: county?.name || "",
-                city: null,
-                stateCode: resolvedStateCode || null,
-                serviceAreas: countyFips ? [countyFips] : [],
-                website: website || null,
-                services: services.length ? services : null,
-                verificationStatus: "pending" as any,
-                addressVerified: false,
-                cvsScore: null as any,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                publishedAt: new Date().toISOString(),
-              } as any);
-
-              if (createPublicProfiles) {
-                const existingProfiles = await storage.listProfilesByOwner(userId);
-                if (existingProfiles.length > 0) {
-                  publicProfileSlug = String(existingProfiles[0]?.slug || "") || null;
-                  if (!(existingUser as any)?.activeProfileId && existingProfiles[0]?.id) {
-                    await storage.setUserActiveProfile(userId, existingProfiles[0].id);
-                  }
+                  } as any;
                 } else {
-                  const createdProfile = await storage.createProfileForOwner(userId, {
-                    businessId: businessId || undefined,
-                    roleContext: "business_owner" as any,
-                    slug: businessName,
-                    displayName: businessName,
-                    headline: null,
-                    contentBlocks: [],
-                    ctaConfig: {},
-                    seoMeta: {},
-                    status: "published" as any,
+                  userRecord = await storage.createUser({
+                    email,
+                    phone: phone || undefined,
+                    firstName: ownerFirstName || undefined,
+                    lastName: ownerLastName || undefined,
+                    role: "business_owner" as any,
+                    roles: ["business_owner"],
+                    activeRole: "business_owner",
+                    onboardingCompleted: false,
+                    profileVersion: 0,
+                    provider: "local",
                   } as any);
-                  createdPublicProfiles++;
-                  publicProfileSlug = createdProfile.slug;
-                  await storage.setUserActiveProfile(userId, createdProfile.id);
+                }
+                createdUsers++;
+              } else {
+                const currentRoles: string[] = Array.isArray((existingUser as any).roles)
+                  ? ((existingUser as any).roles as string[])
+                  : [];
+                const nextRoles = Array.from(new Set([...currentRoles, "business_owner"]));
+                if (!dryRun && nextRoles.length !== currentRoles.length) {
+                  await storage.updateUser(existingUser.id, { roles: nextRoles } as any);
+                  updatedUsers++;
                 }
               }
-            }
 
-            // Claim-first: write claim event for representsBusiness in this county (only with county scope)
-            if (!dryRun && userId && userId !== "__dry_run__" && countyFips && county) {
-              try {
-                await writeClaimEvent({
-                  userId,
-                  claimType: ClaimType.REPRESENTS_BUSINESS,
-                  countyFips,
-                  countyName: county.name,
-                  source: ClaimSource.ADMIN,
-                  claimTimestamp: new Date(),
-                  metadata: {
-                    import: true,
-                    businessName,
-                    businessId,
-                    profileSlug,
-                  },
-                });
-              } catch (e) {
-                console.warn("[admin business import] claim write failed", e);
+              userId = String((userRecord as any).id);
+
+              // Create/attach a business entity record (draft)
+              if (!dryRun && userId && userId !== "__dry_run__") {
+                const existingBiz = await db
+                  .select({ id: businesses.id, name: businesses.name })
+                  .from(businesses)
+                  .where(
+                    and(
+                      eq(businesses.ownerUserId, userId),
+                      sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`
+                    )
+                  )
+                  .limit(1);
+
+                if (existingBiz.length > 0) {
+                  businessId = existingBiz[0].id;
+                  updatedBusinesses++;
+                } else {
+                  const createdBiz = await storage.createBusinessForOwner(userId, {
+                    name: businessName,
+                    slug: businessName,
+                    type: "other" as any,
+                    roleContext: "business_owner" as any,
+                    profileData: {
+                      category: category || undefined,
+                      services: services.length ? services : undefined,
+                      website: website || undefined,
+                      phone: phone || undefined,
+                      email,
+                      importExtras: Object.keys(importExtras).length ? importExtras : undefined,
+                    },
+                    sources: [sourceLabel],
+                    status: "draft" as any,
+                    countyIds,
+                  } as any);
+                  businessId = createdBiz.id;
+                  createdBusinesses++;
+                }
               }
-            }
-          } else {
-            // Business-name-only minimum: create/attach an unclaimed directory business.
-            if (dryRun) {
-              createdUnclaimedBusinesses++;
-            } else {
-              const normalizedWebsite = String(website || "")
-                .trim()
-                .toLowerCase()
-                .replace(/^https?:\/\//, "")
-                .replace(/^www\./, "")
-                .replace(/\/+$/, "");
-              const normalizedPhone = String(phone || "").replace(/\D/g, "");
 
-              const existingUnclaimed = await db
-                .select({
-                  id: businesses.id,
-                  profileData: businesses.profileData,
-                })
-                .from(businesses)
-                .where(
-                  and(
-                    isNull(businesses.ownerUserId),
-                    eq(businesses.claimStatus, "unclaimed" as any),
-                    ne(businesses.status, "suspended" as any),
-                    or(
-                      externalId
-                        ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'external_id', '') = ${externalId}`
-                        : sql`false`,
-                      normalizedWebsite
-                        ? sql`lower(coalesce(${businesses.profileData} ->> 'website', '')) = ${normalizedWebsite}`
-                        : sql`false`,
-                      normalizedPhone
-                        ? sql`regexp_replace(coalesce(${businesses.profileData} ->> 'phone', ''), '\\D', '', 'g') = ${normalizedPhone}`
-                        : sql`false`,
-                      and(
-                        sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`,
-                        resolvedStateCode
-                          ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'state_code', '') = ${resolvedStateCode}`
-                          : sql`true`
+              // Ensure business profile exists (stored on the user for now)
+              if (!dryRun && userId && userId !== "__dry_run__") {
+                const baseSlug = businessName;
+                const nextSlug = await ensureUniqueBusinessProfileSlug(baseSlug, userId);
+                profileSlug = nextSlug;
+
+                await storage.saveBusinessProfile({
+                  id: userId,
+                  userId,
+                  slug: nextSlug,
+                  name: businessName,
+                  headline: null as any,
+                  description: null,
+                  countyFips: countyFips || "",
+                  countyName: county?.name || "",
+                  city: null,
+                  stateCode: resolvedStateCode || null,
+                  serviceAreas: countyFips ? [countyFips] : [],
+                  website: website || null,
+                  services: services.length ? services : null,
+                  verificationStatus: "pending" as any,
+                  addressVerified: false,
+                  cvsScore: null as any,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  publishedAt: new Date().toISOString(),
+                } as any);
+
+                if (createPublicProfiles) {
+                  const existingProfiles = await storage.listProfilesByOwner(userId);
+                  if (existingProfiles.length > 0) {
+                    publicProfileSlug = String(existingProfiles[0]?.slug || "") || null;
+                    if (!(existingUser as any)?.activeProfileId && existingProfiles[0]?.id) {
+                      await storage.setUserActiveProfile(userId, existingProfiles[0].id);
+                    }
+                  } else {
+                    const createdProfile = await storage.createProfileForOwner(userId, {
+                      businessId: businessId || undefined,
+                      roleContext: "business_owner" as any,
+                      slug: businessName,
+                      displayName: businessName,
+                      headline: null,
+                      contentBlocks: [],
+                      ctaConfig: {},
+                      seoMeta: {},
+                      status: "published" as any,
+                    } as any);
+                    createdPublicProfiles++;
+                    publicProfileSlug = createdProfile.slug;
+                    await storage.setUserActiveProfile(userId, createdProfile.id);
+                  }
+                }
+              }
+
+              // Claim-first: write claim event for representsBusiness in this county (only with county scope)
+              if (!dryRun && userId && userId !== "__dry_run__" && countyFips && county) {
+                try {
+                  await writeClaimEvent({
+                    userId,
+                    claimType: ClaimType.REPRESENTS_BUSINESS,
+                    countyFips,
+                    countyName: county.name,
+                    source: ClaimSource.ADMIN,
+                    claimTimestamp: new Date(),
+                    metadata: {
+                      import: true,
+                      businessName,
+                      businessId,
+                      profileSlug,
+                    },
+                  });
+                } catch (e) {
+                  console.warn("[admin business import] claim write failed", e);
+                }
+              }
+            } else {
+              // Business-name-only minimum: create/attach an unclaimed directory business.
+              if (dryRun) {
+                createdUnclaimedBusinesses++;
+              } else {
+                const normalizedWebsite = String(website || "")
+                  .trim()
+                  .toLowerCase()
+                  .replace(/^https?:\/\//, "")
+                  .replace(/^www\./, "")
+                  .replace(/\/+$/, "");
+                const normalizedPhone = String(phone || "").replace(/\D/g, "");
+
+                const existingUnclaimed = await db
+                  .select({
+                    id: businesses.id,
+                    profileData: businesses.profileData,
+                  })
+                  .from(businesses)
+                  .where(
+                    and(
+                      isNull(businesses.ownerUserId),
+                      eq(businesses.claimStatus, "unclaimed" as any),
+                      ne(businesses.status, "suspended" as any),
+                      or(
+                        dedupeKey
+                          ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'dedupe_key', '') = ${dedupeKey}`
+                          : sql`false`,
+                        externalId
+                          ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'external_id', '') = ${externalId}`
+                          : sql`false`,
+                        normalizedWebsite
+                          ? sql`lower(coalesce(${businesses.profileData} ->> 'website', '')) = ${normalizedWebsite}`
+                          : sql`false`,
+                        normalizedPhone
+                          ? sql`regexp_replace(coalesce(${businesses.profileData} ->> 'phone', ''), '\\D', '', 'g') = ${normalizedPhone}`
+                          : sql`false`,
+                        and(
+                          sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`,
+                          resolvedStateCode
+                            ? sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'state_code', '') = ${resolvedStateCode}`
+                            : sql`true`
+                        )
                       )
                     )
                   )
-                )
-                .limit(1);
+                  .limit(1);
 
-              if (existingUnclaimed.length > 0) {
-                businessId = existingUnclaimed[0].id;
+                if (existingUnclaimed.length > 0) {
+                  businessId = existingUnclaimed[0].id;
 
-                // Merge in missing profile fields (do not overwrite).
-                const existingProfile: any = existingUnclaimed[0].profileData || {};
-                const nextProfile: any = { ...existingProfile };
-                if (!nextProfile.category && category) nextProfile.category = category;
-                if (
-                  (!nextProfile.services || !Array.isArray(nextProfile.services)) &&
-                  services.length
-                ) {
-                  nextProfile.services = services;
-                }
-                if (!nextProfile.website && website) nextProfile.website = website;
-                if (!nextProfile.phone && phone) nextProfile.phone = phone;
+                  // Merge in missing profile fields (do not overwrite).
+                  const existingProfile: any = existingUnclaimed[0].profileData || {};
+                  const nextProfile: any = { ...existingProfile };
+                  if (!nextProfile.category && category) nextProfile.category = category;
+                  if (
+                    (!nextProfile.services || !Array.isArray(nextProfile.services)) &&
+                    services.length
+                  ) {
+                    nextProfile.services = services;
+                  }
+                  if (!nextProfile.website && website) nextProfile.website = website;
+                  if (!nextProfile.phone && phone) nextProfile.phone = phone;
 
-                const nextExtras: any =
-                  nextProfile.importExtras && typeof nextProfile.importExtras === "object"
-                    ? { ...nextProfile.importExtras }
-                    : {};
-                if (externalId && !nextExtras.external_id) nextExtras.external_id = externalId;
-                if (licenseNumber && !nextExtras.license_number)
-                  nextExtras.license_number = licenseNumber;
-                if (licenseStatus && !nextExtras.license_status)
-                  nextExtras.license_status = licenseStatus;
-                if (licenseExpiresAt && !nextExtras.license_expires_at)
-                  nextExtras.license_expires_at = licenseExpiresAt;
-                // Always record the best known state code for safer future dedupe.
-                if (resolvedStateCode && !nextExtras.state_code)
-                  nextExtras.state_code = resolvedStateCode;
-                for (const [k, v] of Object.entries(importExtras)) {
-                  if (!nextExtras[k] && v) nextExtras[k] = String(v);
-                }
-                if (hasLatLng) {
-                  if (!nextExtras.lat) nextExtras.lat = String(lat);
-                  if (!nextExtras.lng) nextExtras.lng = String(lng);
-                }
-                if (Object.keys(nextExtras).length) nextProfile.importExtras = nextExtras;
+                  const nextExtras: any =
+                    nextProfile.importExtras && typeof nextProfile.importExtras === "object"
+                      ? { ...nextProfile.importExtras }
+                      : {};
+                  if (dedupeKey && !nextExtras.dedupe_key) nextExtras.dedupe_key = dedupeKey;
+                  if (externalId && !nextExtras.external_id) nextExtras.external_id = externalId;
+                  if (licenseNumber && !nextExtras.license_number)
+                    nextExtras.license_number = licenseNumber;
+                  if (licenseStatus && !nextExtras.license_status)
+                    nextExtras.license_status = licenseStatus;
+                  if (licenseExpiresAt && !nextExtras.license_expires_at)
+                    nextExtras.license_expires_at = licenseExpiresAt;
+                  // Always record the best known state code for safer future dedupe.
+                  if (resolvedStateCode && !nextExtras.state_code)
+                    nextExtras.state_code = resolvedStateCode;
+                  for (const [k, v] of Object.entries(importExtras)) {
+                    if (!nextExtras[k] && v) nextExtras[k] = String(v);
+                  }
+                  if (hasLatLng) {
+                    if (!nextExtras.lat) nextExtras.lat = String(lat);
+                    if (!nextExtras.lng) nextExtras.lng = String(lng);
+                  }
+                  if (Object.keys(nextExtras).length) nextProfile.importExtras = nextExtras;
 
-                if (hasLatLng) {
-                  if (!nextExtras.lat) nextExtras.lat = String(lat);
-                  if (!nextExtras.lng) nextExtras.lng = String(lng);
-                }
+                  if (hasLatLng) {
+                    if (!nextExtras.lat) nextExtras.lat = String(lat);
+                    if (!nextExtras.lng) nextExtras.lng = String(lng);
+                  }
 
-                await db
-                  .update(businesses)
-                  .set({
-                    profileData: nextProfile,
-                    updatedAt: new Date(),
-                  } as any)
-                  .where(eq(businesses.id, businessId));
+                  await db
+                    .update(businesses)
+                    .set({
+                      profileData: nextProfile,
+                      updatedAt: new Date(),
+                    } as any)
+                    .where(eq(businesses.id, businessId));
 
-                await db.execute(sql`
+                  await db.execute(sql`
                   update businesses
                   set sources = (
                     select coalesce(jsonb_agg(distinct source_value), '[]'::jsonb)
@@ -13043,135 +13102,140 @@ export async function registerRoutes(app: any) {
                   updated_at = now()
                   where businesses.id = ${businessId}
                 `);
-                updatedUnclaimedBusinesses++;
-              } else {
-                // Always record state code inside importExtras so future uploads can dedupe by state
-                // even when we don't yet know county FIPS.
-                if (resolvedStateCode && !importExtras.state_code) {
-                  importExtras.state_code = resolvedStateCode;
-                }
-                if (externalId && !importExtras.external_id) importExtras.external_id = externalId;
-                if (licenseNumber && !importExtras.license_number)
-                  importExtras.license_number = licenseNumber;
-                if (licenseStatus && !importExtras.license_status)
-                  importExtras.license_status = licenseStatus;
-                if (licenseExpiresAt && !importExtras.license_expires_at)
-                  importExtras.license_expires_at = licenseExpiresAt;
-                if (hasLatLng) {
-                  if (!importExtras.lat) importExtras.lat = String(lat);
-                  if (!importExtras.lng) importExtras.lng = String(lng);
-                }
-                const inferredZip =
-                  inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr);
-                if (inferredZip && !importExtras.zip_code) {
-                  importExtras.zip_code = inferredZip;
-                }
+                  updatedUnclaimedBusinesses++;
+                } else {
+                  // Always record state code inside importExtras so future uploads can dedupe by state
+                  // even when we don't yet know county FIPS.
+                  if (resolvedStateCode && !importExtras.state_code) {
+                    importExtras.state_code = resolvedStateCode;
+                  }
+                  if (dedupeKey && !importExtras.dedupe_key) {
+                    importExtras.dedupe_key = dedupeKey;
+                  }
+                  if (externalId && !importExtras.external_id)
+                    importExtras.external_id = externalId;
+                  if (licenseNumber && !importExtras.license_number)
+                    importExtras.license_number = licenseNumber;
+                  if (licenseStatus && !importExtras.license_status)
+                    importExtras.license_status = licenseStatus;
+                  if (licenseExpiresAt && !importExtras.license_expires_at)
+                    importExtras.license_expires_at = licenseExpiresAt;
+                  if (hasLatLng) {
+                    if (!importExtras.lat) importExtras.lat = String(lat);
+                    if (!importExtras.lng) importExtras.lng = String(lng);
+                  }
+                  const inferredZip =
+                    inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr);
+                  if (inferredZip && !importExtras.zip_code) {
+                    importExtras.zip_code = inferredZip;
+                  }
 
-                const createdBiz = await storage.createUnclaimedBusiness({
-                  name: businessName,
-                  slug: businessName,
-                  type: inferredBusinessType as any,
-                  roleContext: inferredRoleContext as any,
-                  profileData: {
-                    category: category || undefined,
-                    services: services.length ? services : undefined,
-                    website: website || undefined,
-                    phone: phone || undefined,
-                    importExtras: Object.keys(importExtras).length ? importExtras : undefined,
-                  },
-                  sources: [sourceLabel],
-                  status: "active" as any,
-                  countyIds,
-                } as any);
-                businessId = createdBiz.id;
-                createdUnclaimedBusinesses++;
+                  const createdBiz = await storage.createUnclaimedBusiness({
+                    name: businessName,
+                    slug: businessName,
+                    type: inferredBusinessType as any,
+                    roleContext: inferredRoleContext as any,
+                    profileData: {
+                      category: category || undefined,
+                      services: services.length ? services : undefined,
+                      website: website || undefined,
+                      phone: phone || undefined,
+                      importExtras: Object.keys(importExtras).length ? importExtras : undefined,
+                    },
+                    sources: [sourceLabel],
+                    status: "active" as any,
+                    countyIds,
+                  } as any);
+                  businessId = createdBiz.id;
+                  createdUnclaimedBusinesses++;
+                }
               }
             }
-          }
 
-          // Activation: generate password reset token and optionally email it (only when a user exists)
-          let activationLink: string | undefined;
-          if (!dryRun && userId && userId !== "__dry_run__") {
-            const { token, expiresAt } = passwordResetService.createToken(userId);
-            activationPrepared++;
-            const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
+            // Activation: generate password reset token and optionally email it (only when a user exists)
+            let activationLink: string | undefined;
+            if (!dryRun && userId && userId !== "__dry_run__") {
+              const { token, expiresAt } = passwordResetService.createToken(userId);
+              activationPrepared++;
+              const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
-            if (sendActivationEmails && emailService.isConfigured()) {
-              const emailVerificationRequired = await getGeneralSetting<boolean>(
-                "email_verification_required",
-                true
-              );
-              let verifyLink: string | null = null;
-              if (emailVerificationRequired) {
-                const verify = emailVerificationService.createToken(userId);
-                const verifyBase = getPublicBaseUrlFromRequest(req as any);
-                verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
-              }
+              if (sendActivationEmails && emailService.isConfigured()) {
+                const emailVerificationRequired = await getGeneralSetting<boolean>(
+                  "email_verification_required",
+                  true
+                );
+                let verifyLink: string | null = null;
+                if (emailVerificationRequired) {
+                  const verify = emailVerificationService.createToken(userId);
+                  const verifyBase = getPublicBaseUrlFromRequest(req as any);
+                  verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
+                }
 
-              await emailService.sendEmail({
-                to: email,
-                subject: "Claim your TradeScout business account",
-                html: `<p>Your business account has been created in TradeScout.</p>
+                await emailService.sendEmail({
+                  to: email,
+                  subject: "Claim your TradeScout business account",
+                  html: `<p>Your business account has been created in TradeScout.</p>
 <p><a href="${resetLink}">Set your password</a> to claim your account. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
 ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` : ""}
 <p>After you sign in, you can finish your profile and complete insurance/license verification.</p>`,
-                text: `Set your password: ${resetLink}`,
-                purpose: "activation",
-              });
-              activationEmailed++;
-            } else if (includeActivationLinks && allowActivationLinkExport) {
-              activationLink = resetLink;
+                  text: `Set your password: ${resetLink}`,
+                  purpose: "activation",
+                });
+                activationEmailed++;
+              } else if (includeActivationLinks && allowActivationLinkExport) {
+                activationLink = resetLink;
+              }
             }
+
+            results.push({
+              ...rowRef,
+              status: dryRun ? "dry_run" : "ok",
+              userId: dryRun ? null : userId,
+              businessId,
+              profileSlug,
+              publicProfileSlug,
+              activationLink,
+            });
+          } catch (e: any) {
+            results.push({
+              ...rowRef,
+              status: "error",
+              error: e?.message || "Import failed",
+            });
           }
-
-          results.push({
-            ...rowRef,
-            status: dryRun ? "dry_run" : "ok",
-            userId: dryRun ? null : userId,
-            businessId,
-            profileSlug,
-            publicProfileSlug,
-            activationLink,
-          });
-        } catch (e: any) {
-          results.push({
-            ...rowRef,
-            status: "error",
-            error: e?.message || "Import failed",
-          });
         }
-      }
 
-      res.json({
-        dryRun,
-        delimiter: delimiter === "\t" ? "tab" : delimiter === "|" ? "pipe" : "comma",
-        totals: {
-          rows: records.length,
-          createdUsers,
-          updatedUsers,
-          createdBusinesses,
-          updatedBusinesses,
-          createdUnclaimedBusinesses,
-          updatedUnclaimedBusinesses,
-          createdPublicProfiles,
-          activationPrepared,
-          activationEmailed,
-        },
-        activationLinkExport: {
-          requested: includeActivationLinks,
-          allowed: includeActivationLinks && allowActivationLinkExport,
-          reason:
-            includeActivationLinks && !allowActivationLinkExport
-              ? "Activation link export is disabled in production. Set ADMIN_ALLOW_ACTIVATION_LINK_EXPORT=true to allow."
-              : null,
-        },
-        results,
-      });
-    } catch (error: any) {
-      console.error("Error importing businesses:", error);
-      res.status(500).json({ message: error?.message || "Failed to import businesses" });
+        res.json({
+          dryRun,
+          delimiter: delimiter === "\t" ? "tab" : delimiter === "|" ? "pipe" : "comma",
+          totals: {
+            rows: records.length,
+            createdUsers,
+            updatedUsers,
+            createdBusinesses,
+            updatedBusinesses,
+            createdUnclaimedBusinesses,
+            updatedUnclaimedBusinesses,
+            createdPublicProfiles,
+            activationPrepared,
+            activationEmailed,
+          },
+          activationLinkExport: {
+            requested: includeActivationLinks,
+            allowed: includeActivationLinks && allowActivationLinkExport,
+            reason:
+              includeActivationLinks && !allowActivationLinkExport
+                ? "Activation link export is disabled in production. Set ADMIN_ALLOW_ACTIVATION_LINK_EXPORT=true to allow."
+                : null,
+          },
+          results,
+        });
+      } catch (error: any) {
+        console.error("Error importing businesses:", error);
+        res.status(500).json({ message: error?.message || "Failed to import businesses" });
+      }
     }
-  });
+  );
 
   // Admin: list import batches from staging table with status counts
   app.get(

@@ -75,7 +75,10 @@ type ImportProgress = {
 
 // Large imports are uploaded in multiple requests to avoid per-request payload limits (413).
 // There is no cap on total rows; we just split into parts.
-const CHUNK_TARGET_CHARS = 400_000;
+//
+// In production, JSON bodies default to 1mb; this page uses text/plain uploads (see server route),
+// so we can safely use a larger chunk target while staying well below server text limits.
+const CHUNK_TARGET_CHARS = 2_000_000;
 
 function looksLikeHeaderLine(line: string): boolean {
   const normalized = String(line || "").toLowerCase();
@@ -85,7 +88,9 @@ function looksLikeHeaderLine(line: string): boolean {
 }
 
 function splitIntoImportChunks(raw: string): { chunks: string[]; estimatedRows: number } {
-  const normalized = String(raw || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const normalized = String(raw || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
   const lines = normalized.split("\n");
   const header = lines[0] || "";
   const includeHeader = looksLikeHeaderLine(header);
@@ -114,7 +119,10 @@ function splitIntoImportChunks(raw: string): { chunks: string[]; estimatedRows: 
 
   pushChunk();
 
-  const estimatedRows = Math.max(0, dataLines.filter((l) => String(l || "").trim().length > 0).length);
+  const estimatedRows = Math.max(
+    0,
+    dataLines.filter((l) => String(l || "").trim().length > 0).length
+  );
   return { chunks: chunks.filter((c) => c.trim().length > 0), estimatedRows };
 }
 
@@ -178,20 +186,23 @@ export default function AdminBusinessImport() {
   const importMutation = useMutation({
     mutationFn: async () => {
       const { chunks, estimatedRows } = splitIntoImportChunks(content);
+
+      const params = new URLSearchParams();
+      params.set("source", source.trim() || "csv_manual");
+      if (dryRun) params.set("dryRun", "true");
+      if (sendActivationEmails) params.set("sendActivationEmails", "true");
+      if (includeActivationLinks) params.set("includeActivationLinks", "true");
+      if (createPublicProfiles) params.set("createPublicProfiles", "true");
+      if (defaultCountyFips.trim()) params.set("defaultCountyFips", defaultCountyFips.trim());
+      if (defaultStateCode.trim()) params.set("defaultStateCode", defaultStateCode.trim());
+
+      const importUrl = `/api/admin/businesses/import?${params.toString()}`;
+
       if (chunks.length <= 1) {
-        const res = await apiRequest("/api/admin/businesses/import", {
+        const res = await apiRequest(importUrl, {
           method: "POST",
           timeoutMs: 120_000,
-          body: {
-            content,
-            source: source.trim() || "csv_manual",
-            dryRun,
-            sendActivationEmails,
-            includeActivationLinks,
-            createPublicProfiles,
-            defaultCountyFips: defaultCountyFips.trim() || undefined,
-            defaultStateCode: defaultStateCode.trim() || undefined,
-          },
+          body: content,
         });
         return res as ImportResponse;
       }
@@ -225,20 +236,18 @@ export default function AdminBusinessImport() {
           processedRows: combined.totals.rows,
         });
 
-        const res = (await apiRequest("POST", "/api/admin/businesses/import", {
-          method: "POST",
-          timeoutMs: 120_000,
-          body: {
-            content: chunks[i],
-            source: source.trim() || "csv_manual",
-            dryRun,
-            sendActivationEmails,
-            includeActivationLinks,
-            createPublicProfiles,
-            defaultCountyFips: defaultCountyFips.trim() || undefined,
-            defaultStateCode: defaultStateCode.trim() || undefined,
-          },
-        })) as ImportResponse;
+        let res: ImportResponse;
+        try {
+          res = (await apiRequest(importUrl, {
+            method: "POST",
+            timeoutMs: 120_000,
+            body: chunks[i],
+          })) as ImportResponse;
+        } catch (err: any) {
+          throw new Error(
+            `Import failed on chunk ${i + 1}/${chunks.length}: ${err?.message || "unknown error"}`
+          );
+        }
 
         combined.delimiter = res.delimiter;
         combined.activationLinkExport = res.activationLinkExport;
@@ -248,9 +257,11 @@ export default function AdminBusinessImport() {
         combined.totals.createdBusinesses += res.totals.createdBusinesses;
         combined.totals.updatedBusinesses += res.totals.updatedBusinesses;
         combined.totals.createdUnclaimedBusinesses =
-          (combined.totals.createdUnclaimedBusinesses || 0) + (res.totals.createdUnclaimedBusinesses || 0);
+          (combined.totals.createdUnclaimedBusinesses || 0) +
+          (res.totals.createdUnclaimedBusinesses || 0);
         combined.totals.updatedUnclaimedBusinesses =
-          (combined.totals.updatedUnclaimedBusinesses || 0) + (res.totals.updatedUnclaimedBusinesses || 0);
+          (combined.totals.updatedUnclaimedBusinesses || 0) +
+          (res.totals.updatedUnclaimedBusinesses || 0);
         combined.totals.createdPublicProfiles =
           (combined.totals.createdPublicProfiles || 0) + (res.totals.createdPublicProfiles || 0);
         combined.totals.activationPrepared += res.totals.activationPrepared;
@@ -395,8 +406,9 @@ export default function AdminBusinessImport() {
                 </>
               ) : null}
               Estimated rows: <span className="text-white/70">{chunkPreview.estimatedRows}</span>.{" "}
-              This import will upload in <span className="text-white/70">{chunkPreview.chunks}</span>{" "}
-              parts to avoid per-request payload limits. No row cap.
+              This import will upload in{" "}
+              <span className="text-white/70">{chunkPreview.chunks}</span> parts to avoid
+              per-request payload limits. No row cap.
             </div>
           ) : null}
 

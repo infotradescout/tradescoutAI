@@ -16,7 +16,16 @@ export class ApiError extends Error {
 export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
 export async function apiRequest(
   url: string,
-  options?: { method?: string; body?: any; data?: any; timeoutMs?: number; signal?: AbortSignal } | any
+  options?:
+    | {
+        method?: string;
+        body?: any;
+        data?: any;
+        timeoutMs?: number;
+        signal?: AbortSignal;
+        headers?: Record<string, string>;
+      }
+    | any
 ): Promise<any>;
 export async function apiRequest(
   methodOrUrl: string,
@@ -33,7 +42,9 @@ export async function apiRequest(
 
     // Allow callers to pass their own AbortSignal (e.g., when using react-query cancellation).
     const externalSignal =
-      typeof urlOrData === "object" && urlOrData !== null ? ((urlOrData as any).signal as any) : null;
+      typeof urlOrData === "object" && urlOrData !== null
+        ? ((urlOrData as any).signal as any)
+        : null;
     if (externalSignal && typeof externalSignal.addEventListener === "function") {
       externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
     }
@@ -67,15 +78,42 @@ export async function apiRequest(
       signal: controller.signal,
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json",
       },
     };
+
+    const extraHeaders =
+      typeof urlOrData === "object" && urlOrData !== null && (urlOrData as any).headers
+        ? ((urlOrData as any).headers as Record<string, string>)
+        : null;
+    if (extraHeaders && typeof extraHeaders === "object") {
+      config.headers = { ...(config.headers as any), ...extraHeaders };
+    }
 
     if (
       payload &&
       (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE")
     ) {
-      config.body = JSON.stringify(payload);
+      // Allow raw bodies for large/admin endpoints (e.g. text/csv imports) without hitting JSON limits.
+      if (typeof payload === "string") {
+        config.body = payload;
+        const headers = config.headers as Record<string, string>;
+        if (!headers["Content-Type"]) {
+          headers["Content-Type"] = "text/plain; charset=utf-8";
+        }
+      } else if (typeof FormData !== "undefined" && payload instanceof FormData) {
+        config.body = payload as any;
+        // Let the browser set multipart boundaries.
+        const headers = config.headers as Record<string, string>;
+        if (headers["Content-Type"]) {
+          delete headers["Content-Type"];
+        }
+      } else {
+        config.body = JSON.stringify(payload);
+        const headers = config.headers as Record<string, string>;
+        if (!headers["Content-Type"]) {
+          headers["Content-Type"] = "application/json";
+        }
+      }
     }
 
     const fullUrl = buildApiUrl(url);
