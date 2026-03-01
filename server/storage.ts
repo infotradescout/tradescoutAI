@@ -2062,7 +2062,8 @@ export class DatabaseStorage implements IStorage {
       })
       .from(businesses)
       .where(eq(businesses.status, "active" as any))
-      .orderBy(desc(businesses.updatedAt))
+      // Stable ordering is important when paging large sitemaps.
+      .orderBy(asc(businesses.slug))
       .limit(limit)
       .offset(offset);
 
