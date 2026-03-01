@@ -628,6 +628,12 @@ export interface IStorage {
   getProfileOwnerUserId(profileId: string): Promise<string | null>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
   listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
+  listBusinessProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
+  countActiveDirectoryBusinessesForSitemap(): Promise<number>;
+  listActiveDirectoryBusinessesForSitemap(args?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
   listActiveHomeScoutListingsForSitemap(args?: {
     limit?: number;
   }): Promise<Array<{ id: string; updatedAt: Date | null }>>;
@@ -2010,6 +2016,62 @@ export class DatabaseStorage implements IStorage {
       slug: row.slug,
       updatedAt: row.updatedAt ?? null,
     }));
+  }
+
+  async listBusinessProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
+    const rows = await db
+      .select({
+        slug: users.businessSlug,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(sql`${users.businessSlug} IS NOT NULL`)
+      .orderBy(desc(users.updatedAt))
+      .limit(100_000);
+
+    return rows
+      .map((row) => ({
+        slug: String(row.slug || "").trim(),
+        updatedAt: row.updatedAt ?? null,
+      }))
+      .filter((row) => row.slug.length > 0);
+  }
+
+  async countActiveDirectoryBusinessesForSitemap(): Promise<number> {
+    const rows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(businesses)
+      .where(eq(businesses.status, "active" as any));
+    const count = Number((rows[0] as any)?.count ?? 0);
+    return Number.isFinite(count) && count >= 0 ? count : 0;
+  }
+
+  async listActiveDirectoryBusinessesForSitemap(args?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
+    const limitRequested = Number(args?.limit ?? 40_000) || 40_000;
+    const limit = Math.max(1, Math.min(50_000, limitRequested));
+    const offsetRequested = Number(args?.offset ?? 0) || 0;
+    const offset = Math.max(0, offsetRequested);
+
+    const rows = await db
+      .select({
+        slug: businesses.slug,
+        updatedAt: businesses.updatedAt,
+      })
+      .from(businesses)
+      .where(eq(businesses.status, "active" as any))
+      .orderBy(desc(businesses.updatedAt))
+      .limit(limit)
+      .offset(offset);
+
+    return rows
+      .map((row) => ({
+        slug: String(row.slug || "").trim(),
+        updatedAt: row.updatedAt ?? null,
+      }))
+      .filter((row) => row.slug.length > 0);
   }
 
   async listActiveHomeScoutListingsForSitemap(args?: {

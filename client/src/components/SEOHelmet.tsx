@@ -33,6 +33,7 @@ export function SEOHelmet({
 
     // Update meta tags
     updateMetaTag("description", description);
+    updateMetaTag("keywords", keywords);
     updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
 
     // Open Graph
@@ -51,7 +52,8 @@ export function SEOHelmet({
     updateMetaTag("twitter:site", "@TradeScout", "name");
 
     // Additional SEO tags
-    updateMetaTag("theme-color", "var(--theme-accent-primary)", "name");
+    // Meta tags do not reliably support CSS variables; keep a real hex value.
+    updateMetaTag("theme-color", "#0B0F14", "name");
     updateMetaTag("apple-mobile-web-app-title", "TradeScout", "name");
 
     // Canonical link

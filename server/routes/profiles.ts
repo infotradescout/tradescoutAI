@@ -692,6 +692,14 @@ router.get("/sitemap.xml", async (req, res) => {
     <lastmod>${today}</lastmod>
   </sitemap>
   <sitemap>
+    <loc>${baseUrl}/sitemap-directory-businesses.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-business-profiles.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
     <loc>${baseUrl}/sitemap-profiles.xml</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
@@ -774,6 +782,117 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
     );
   } catch (error: any) {
     console.error("Error generating profiles sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-business-profiles.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    // Business profiles are stored on users.preferences for now (published presence).
+    let businessProfiles: any[] = [];
+    try {
+      const maybe = await storage.listBusinessProfilesForSitemap();
+      businessProfiles = Array.isArray(maybe) ? maybe : [];
+    } catch (error) {
+      console.warn("Business profiles sitemap fallback: failed to load business profiles", error);
+      businessProfiles = [];
+    }
+
+    const urls = businessProfiles
+      .filter((row) => row && typeof row === "object")
+      .map((row) => {
+        const slug = String((row as any).slug || "").trim();
+        if (!slug) return null;
+        return {
+          loc: `${baseUrl}/business/${encodeURIComponent(slug)}`,
+          lastmod: toYmd((row as any).updatedAt, today),
+        };
+      })
+      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating business profiles sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+const DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE = 40_000;
+
+router.get("/sitemap-directory-businesses.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    let total = 0;
+    try {
+      total = await storage.countActiveDirectoryBusinessesForSitemap();
+    } catch (error) {
+      console.warn("Directory businesses sitemap fallback: failed to count businesses", error);
+      total = 0;
+    }
+
+    const pages = Math.max(1, Math.ceil(total / DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE));
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: pages })
+  .map((_, idx) => {
+    return `  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-businesses-${idx}.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>`;
+  })
+  .join("\n")}
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating directory businesses sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const page = Number(req.params.page || 0);
+    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const offset = safePage * DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE;
+
+    let businesses: any[] = [];
+    try {
+      const maybe = await storage.listActiveDirectoryBusinessesForSitemap({
+        limit: DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE,
+        offset,
+      });
+      businesses = Array.isArray(maybe) ? maybe : [];
+    } catch (error) {
+      console.warn("Directory businesses sitemap fallback: failed to load businesses", error);
+      businesses = [];
+    }
+
+    const urls = businesses
+      .filter((row) => row && typeof row === "object")
+      .map((row) => {
+        const slug = String((row as any).slug || "").trim();
+        if (!slug) return null;
+        return {
+          loc: `${baseUrl}/business/${encodeURIComponent(slug)}`,
+          lastmod: toYmd((row as any).updatedAt, today),
+        };
+      })
+      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating directory businesses sitemap page:", error);
     res.status(500).send("Failed to generate sitemap");
   }
 });

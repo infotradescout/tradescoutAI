@@ -24,6 +24,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
+import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -832,6 +833,34 @@ app.use((req, res, next) => {
                 } catch (err) {
                   console.error("Error rendering public profile HTML:", err);
                   res.status(500).send("Failed to render profile");
+                }
+              });
+
+              // Public business pages: server-rendered HTML for crawlability
+              app.get("/business/:slug", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(404).send("Application files not found");
+                  }
+
+                  const origin = resolvePublicOrigin(req);
+                  const slug = String(req.params.slug || "");
+
+                  const html = await buildPublicBusinessHtml({ slug, origin, templateHtml });
+                  if (!html) {
+                    return res.status(404).send("Business not found");
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering public business HTML:", err);
+                  res.status(500).send("Failed to render business");
                 }
               });
 
