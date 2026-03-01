@@ -22,9 +22,34 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const hmrPath = "/__vite_hmr";
   const hmrEnabled = process.env.ENABLE_VITE_HMR === "true";
+  const hmrHost =
+    typeof process.env.VITE_HMR_HOST === "string" && process.env.VITE_HMR_HOST.trim().length > 0
+      ? process.env.VITE_HMR_HOST.trim()
+      : undefined;
+  const hmrPortRaw = Number.parseInt(String(process.env.VITE_HMR_PORT || ""), 10);
+  const hmrPort = Number.isFinite(hmrPortRaw) && hmrPortRaw > 0 ? hmrPortRaw : 24678;
+  const hmrProtocol =
+    typeof process.env.VITE_HMR_PROTOCOL === "string" &&
+    process.env.VITE_HMR_PROTOCOL.trim().length > 0
+      ? process.env.VITE_HMR_PROTOCOL.trim()
+      : undefined;
+
+  // IMPORTANT:
+  // Do not attach Vite HMR to the shared HTTP server. Socket.io uses websocket upgrades too,
+  // and mixing multiple upgrade handlers is a common cause of:
+  //   "server.handleUpgrade() was called more than once with the same socket"
+  // Instead, run HMR on its own port and let the app server handle /socket.io exclusively.
   const serverOptions = {
     middlewareMode: true,
-    hmr: hmrEnabled ? { server, path: hmrPath } : false,
+    hmr: hmrEnabled
+      ? {
+          host: hmrHost,
+          port: hmrPort,
+          clientPort: hmrPort,
+          protocol: hmrProtocol,
+          path: hmrPath,
+        }
+      : false,
     allowedHosts: true as const,
   };
 

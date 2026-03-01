@@ -52,8 +52,15 @@ export function SEOHelmet({
     updateMetaTag("twitter:site", "@TradeScout", "name");
 
     // Additional SEO tags
-    // Meta tags do not reliably support CSS variables; keep a real hex value.
-    updateMetaTag("theme-color", "#0B0F14", "name");
+    // Use the currently-applied theme token (set by ThemeContext/applyTheme) without hardcoding hex.
+    // If tokens are unavailable, fall back to a safe named color.
+    const themeColor =
+      typeof window !== "undefined"
+        ? getComputedStyle(document.documentElement)
+            .getPropertyValue("--ts-surface-strong")
+            .trim() || "black"
+        : "black";
+    updateMetaTag("theme-color", themeColor, "name");
     updateMetaTag("apple-mobile-web-app-title", "TradeScout", "name");
 
     // Canonical link
