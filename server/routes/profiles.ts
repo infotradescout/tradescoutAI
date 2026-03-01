@@ -692,14 +692,6 @@ router.get("/sitemap.xml", async (req, res) => {
     <lastmod>${today}</lastmod>
   </sitemap>
   <sitemap>
-    <loc>${baseUrl}/sitemap-directory-businesses.xml</loc>
-    <lastmod>${today}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${baseUrl}/sitemap-business-profiles.xml</loc>
-    <lastmod>${today}</lastmod>
-  </sitemap>
-  <sitemap>
     <loc>${baseUrl}/sitemap-profiles.xml</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
@@ -756,6 +748,37 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
+
+    // Profile sitemap (legacy-friendly): this file is commonly submitted directly in Search Console.
+    // Keep it as a sitemap *index* that points to the concrete profile-like URL sets.
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-u-profiles.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-business-profiles.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-businesses.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating profiles sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-u-profiles.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
     let profiles: any[] = [];
     try {
       const maybeProfiles = await storage.listPublicProfilesForSitemap();
@@ -774,14 +797,13 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
           loc: `${baseUrl}/u/${encodeURIComponent(slug)}`,
           lastmod: toYmd(profile.updatedAt, today),
         };
-      });
+      })
+      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
 
     res.type("application/xml");
-    res.send(
-      buildUrlSet(urls.filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry)))
-    );
+    res.send(buildUrlSet(urls));
   } catch (error: any) {
-    console.error("Error generating profiles sitemap:", error);
+    console.error("Error generating user profiles sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
   }
 });
