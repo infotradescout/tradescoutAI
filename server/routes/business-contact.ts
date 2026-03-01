@@ -25,16 +25,26 @@ const revealSchema = z.object({
 function normalizePhoneForTel(raw: unknown): { display: string; tel: string } | null {
   const value = typeof raw === "string" ? raw.trim() : "";
   if (!value) return null;
-  const digits = value.replace(/[^\d+]/g, "");
-  const telDigits = digits.startsWith("+") ? digits : `+1${digits.replace(/\D/g, "")}`;
   const display = value;
-  if (!/^\+?\d{10,15}$/.test(telDigits)) {
-    // Fallback to raw digits (still gated; this just prevents producing an invalid tel link).
-    const plain = value.replace(/\D/g, "");
-    if (plain.length < 10) return null;
-    return { display, tel: `tel:${plain}` };
+  const plain = value.replace(/\D/g, "");
+  if (plain.length < 10) return null;
+
+  // US-first normalization (directory data is primarily US); avoid double-prefixing country code.
+  const e164 =
+    plain.length === 10
+      ? `+1${plain}`
+      : plain.length === 11 && plain.startsWith("1")
+        ? `+${plain}`
+        : plain.length >= 10 && plain.length <= 15
+          ? `+${plain}`
+          : null;
+
+  if (e164) {
+    return { display, tel: `tel:${e164}` };
   }
-  return { display, tel: `tel:${telDigits}` };
+
+  // Fallback: allow tel: with local digits (still gated; just avoids producing invalid links).
+  return { display, tel: `tel:${plain}` };
 }
 
 export function registerBusinessContactRoutes(app: Express) {
