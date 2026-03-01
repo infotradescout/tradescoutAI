@@ -465,7 +465,7 @@ export default function AdminBusinessImport() {
                   }
                 }}
               />
-              Create owner accounts (creates site users)
+              Create login accounts now (creates site users)
             </label>
             <label className="flex items-center gap-2 text-sm text-white/70">
               <Checkbox

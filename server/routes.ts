@@ -13086,6 +13086,8 @@ export async function registerRoutes(app: any) {
                   }
                   if (!nextProfile.website && website) nextProfile.website = website;
                   if (!nextProfile.phone && phone) nextProfile.phone = phone;
+                  // Store owner email for later claim verification without creating a site user.
+                  if (!nextProfile.email && email) nextProfile.email = email;
 
                   const nextExtras: any =
                     nextProfile.importExtras && typeof nextProfile.importExtras === "object"
@@ -13175,6 +13177,7 @@ export async function registerRoutes(app: any) {
                       services: services.length ? services : undefined,
                       website: website || undefined,
                       phone: phone || undefined,
+                      email: email || undefined,
                       importExtras: Object.keys(importExtras).length ? importExtras : undefined,
                     },
                     sources: [sourceLabel],
