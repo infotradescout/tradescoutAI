@@ -9,6 +9,7 @@ import {
   Bookmark,
   ClipboardList,
   Building,
+  Shirt,
   LogOut,
   StickyNote,
   Shield,
@@ -145,6 +146,15 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onNavigate={handleNavigate}
             />
             <NavLink
+              href="/profile-settings"
+              icon={
+                <Shield className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Profile settings"
+              description="Theme, profile sections, booking, and visibility controls."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
               href="/settings"
               icon={
                 <Settings
@@ -254,6 +264,29 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
             />
           </div>
         </section>
+
+        {/* Marketing tools (personal) */}
+        {isAuthenticated && (
+          <section>
+            <div
+              className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Marketing
+            </div>
+            <div className="space-y-2">
+              <NavLink
+                href="/marketing/scoutfitters"
+                icon={
+                  <Shirt className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+                }
+                label="ScoutFitters"
+                description="Rugged merch visualizer + fulfillment (no thin promo tees)."
+                onNavigate={handleNavigate}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Notes */}
         <section>

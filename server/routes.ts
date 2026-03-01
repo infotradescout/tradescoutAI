@@ -23,6 +23,7 @@ import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerHardrockRoutes } from "./routes/hardrock";
 import { registerCommercialDirectoryRoutes } from "./routes/commercial-directory";
+import { registerScoutFittersRoutes } from "./routes/scoutfitters";
 import { geographicCoverageRouter } from "./routes/geographic-coverage";
 import { registerCrmRoutes } from "./crm-routes";
 import { registerAICodeFixRoutes } from "./ai-code-fixes";
@@ -22144,6 +22145,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register CRM routes
   registerCrmRoutes(app);
+
+  // Register ScoutFitters (merch / marketing tools)
+  registerScoutFittersRoutes(app);
 
   // Register notification routes
   registerNotificationRoutes(app);

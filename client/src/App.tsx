@@ -270,6 +270,9 @@ const Checkout = React.lazy(() => import("./pages/checkout"));
 const PaymentSuccess = React.lazy(() => import("./pages/payment-success"));
 const PaymentHistory = React.lazy(() => import("./pages/payment-history"));
 const Wallet = React.lazy(() => import("./pages/wallet"));
+
+// Marketing tools (personal)
+const ScoutFitters = React.lazy(() => import("./pages/marketing/ScoutFitters"));
 const RequestQuote = React.lazy(() => import("./pages/request-quote"));
 const CommercialDirectoryPage = React.lazy(() => import("./pages/commercial-directory"));
 const CommercialProjectLandingPage = React.lazy(() => import("./pages/commercial-project-landing"));
@@ -1278,6 +1281,11 @@ const AppLayout = memo(function AppLayout() {
                   </Route>
                   <Route path="/crm">
                     <LazyPage Component={CRM} />
+                  </Route>
+                  <Route path="/marketing/scoutfitters">
+                    <ProtectedRoute>
+                      <LazyPage Component={ScoutFitters} />
+                    </ProtectedRoute>
                   </Route>
                   {/* Finances workspace (aliases /finances and /accounting for back-compat) */}
                   <Route path="/finances">
