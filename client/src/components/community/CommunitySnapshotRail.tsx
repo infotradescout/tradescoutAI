@@ -149,7 +149,7 @@ export const CommunitySnapshotRail: React.FC<{
           authorityLabel: r.verified
             ? "Verified provider in your area"
             : r.isNew
-              ? "New listing â€” gather context before contact"
+              ? "New listing - gather context before contact"
               : undefined,
         }));
 
@@ -223,7 +223,7 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "starter-community",
               type: "starter_invitation",
-              title: "New county â€” early access",
+              title: "New county - early access",
               description: "You're among the first neighbors here. Help shape this community",
               label: "Pioneer",
               icon: "sparkles",
@@ -355,7 +355,7 @@ export const CommunitySnapshotRail: React.FC<{
         {/* Minimal footer */}
         {isTradeDeal && card.canDirectConnect && (
           <div className="relative z-10 mt-2">
-            <div className="text-[10px] text-ts-orange font-medium">âš¡ Quick Connect</div>
+            <div className="text-[10px] text-ts-orange font-medium">Quick Connect</div>
           </div>
         )}
       </div>
@@ -377,7 +377,7 @@ export const CommunitySnapshotRail: React.FC<{
 
       <div className="relative">
         {loading && (
-          <div className="text-sm text-white/60 py-8 text-center">Loading snapshotâ€¦</div>
+          <div className="text-sm text-white/60 py-8 text-center">Loading snapshot...</div>
         )}
 
         {!loading && error && <div className="text-sm text-red-400 py-8 text-center">{error}</div>}

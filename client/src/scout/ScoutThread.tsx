@@ -102,7 +102,8 @@ function buildEvidenceChips(msg: ScoutMessage): string[] {
   return chips;
 }
 
-function EvidenceStrip({ msg }: { msg: ScoutMessage }) {
+function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }) {
+  const [open, setOpen] = React.useState(false);
   const chips = React.useMemo(() => buildEvidenceChips(msg), [msg]);
   const evidenceSources = React.useMemo(() => {
     const sourceTitles = Array.isArray(msg.provenance?.sourceTitles)
@@ -111,26 +112,39 @@ function EvidenceStrip({ msg }: { msg: ScoutMessage }) {
     return sourceTitles.slice(0, 2);
   }, [msg.provenance?.sourceTitles]);
 
+  if (!enabled) return null;
   if (chips.length === 0 && evidenceSources.length === 0) return null;
 
   return (
     <div className="scout-evidence-strip" aria-label="Scout evidence and authority">
-      {chips.length > 0 && (
-        <div className="scout-evidence-chip-row">
-          {chips.map((chip) => (
-            <span key={`${msg.id}-${chip}`} className="scout-evidence-chip">
-              {chip}
-            </span>
-          ))}
-        </div>
-      )}
-      {evidenceSources.length > 0 && (
-        <div className="scout-evidence-sources">Evidence: {evidenceSources.join(" • ")}</div>
+      <button
+        type="button"
+        className="scout-evidence-chip"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        {open ? "Hide details" : "Details"}
+      </button>
+
+      {open && (
+        <>
+          {chips.length > 0 && (
+            <div className="scout-evidence-chip-row">
+              {chips.map((chip) => (
+                <span key={`${msg.id}-${chip}`} className="scout-evidence-chip">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          )}
+          {evidenceSources.length > 0 && (
+            <div className="scout-evidence-sources">Evidence: {evidenceSources.join(" | ")}</div>
+          )}
+        </>
       )}
     </div>
   );
 }
-
 function MessageExtras({
   msg,
   isUser,
@@ -160,7 +174,7 @@ function MessageExtras({
     msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage)
   );
 
-  const [controllerOpen, setControllerOpen] = React.useState(true);
+  const [controllerOpen, setControllerOpen] = React.useState(false);
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
 
@@ -799,7 +813,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     </p>
                   )}
                 </div>
-                {!isUser && <EvidenceStrip msg={msg} />}
+                {!isUser && <EvidenceStrip msg={msg} enabled={showControllerExtras} />}
               </div>
             </div>
 

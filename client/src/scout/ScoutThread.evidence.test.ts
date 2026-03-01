@@ -4,18 +4,18 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ScoutThread from "./ScoutThread";
 import type { ScoutMessage } from "./state";
 
-function renderThread(messages: ScoutMessage[]): string {
+function renderThread(messages: ScoutMessage[], showControllerExtras = false): string {
   return renderToStaticMarkup(
     React.createElement(ScoutThread, {
       messages,
       status: "idle",
-      showControllerExtras: false,
+      showControllerExtras,
     })
   );
 }
 
 describe("ScoutThread evidence strip", () => {
-  it("renders provenance chips and evidence sources for assistant messages", () => {
+  it("renders an evidence toggle for assistant messages when controller extras are enabled", () => {
     const assistantMessage: ScoutMessage = {
       id: "a_1",
       role: "assistant",
@@ -35,14 +35,12 @@ describe("ScoutThread evidence strip", () => {
       },
     };
 
-    const html = renderThread([assistantMessage]);
+    const html = renderThread([assistantMessage], true);
 
-    expect(html).toContain("Source: Classic Knowledge Pipeline");
-    expect(html).toContain("Confidence: Medium");
-    expect(html).toContain("Layer: 3");
-    expect(html).toContain("Fallback: Active");
-    expect(html).toContain("Authority: Gated (Auth Required)");
-    expect(html).toContain("Evidence: TradeScout Brain (data folder)");
+    expect(html).toContain("scout-evidence-strip");
+    expect(html).toContain(">Details<");
+    // Details are collapsed by default; content renders after a user toggle in the browser.
+    expect(html).not.toContain("Source:");
   });
 
   it("does not render evidence strip for user-only messages", () => {
