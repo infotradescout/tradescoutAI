@@ -24,10 +24,11 @@ type NavLinkProps = {
   icon: React.ReactNode;
   label: string;
   description?: string;
+  badge?: string | number;
   onNavigate?: (href: string) => void;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNavigate }) => (
+const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge, onNavigate }) => (
   <a
     href={href}
     onClick={(e) => {
@@ -64,9 +65,16 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNav
       >
         {icon}
       </span>
-      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-        {label}
-      </span>
+      <div className="flex-1 flex items-center justify-between gap-2">
+        <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+          {label}
+        </span>
+        {badge != null && String(badge).trim() !== "" ? (
+          <span className="inline-flex items-center rounded-full bg-red-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+            {badge}
+          </span>
+        ) : null}
+      </div>
     </div>
     {description && (
       <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: "var(--text-secondary)" }}>
@@ -79,12 +87,18 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, onNav
 type RightToolsPanelProps = {
   footer?: ReactNode;
   onNavigate?: () => void;
+  contactRequestCount?: number;
 };
 
-export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
+export function RightToolsPanel({
+  footer,
+  onNavigate,
+  contactRequestCount = 0,
+}: RightToolsPanelProps) {
   const { user, isAuthenticated } = useAuth();
   const logout = useLogout();
   const [, navigate] = useLocation();
+  const messagesHref = contactRequestCount > 0 ? "/messages?tab=requests" : "/messages";
 
   const handleNavigate = (href: string) => {
     safeNavigate(navigate, href);
@@ -240,7 +254,7 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               onNavigate={handleNavigate}
             />
             <NavLink
-              href="/messages"
+              href={messagesHref}
               icon={
                 <MessageCircle
                   className="h-3.5 w-3.5"
@@ -249,6 +263,13 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
+              badge={
+                contactRequestCount > 0
+                  ? contactRequestCount > 9
+                    ? "9+"
+                    : contactRequestCount
+                  : undefined
+              }
               onNavigate={handleNavigate}
             />
             <NavLink

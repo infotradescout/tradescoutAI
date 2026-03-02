@@ -472,7 +472,9 @@ export function AppShell({ children, footer }: AppShellProps) {
                 {/* Messages quick icon */}
                 <button
                   type="button"
-                  onClick={() => navigate("/messages")}
+                  onClick={() =>
+                    navigate(contactRequestCount > 0 ? "/messages?tab=requests" : "/messages")
+                  }
                   className="relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                   aria-label="Messages and helpers"
                 >
@@ -556,7 +558,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             color: "var(--text-primary)",
           }}
         >
-          <RightToolsPanel />
+          <RightToolsPanel contactRequestCount={contactRequestCount} />
         </aside>
       )}
 
@@ -580,7 +582,10 @@ export function AppShell({ children, footer }: AppShellProps) {
               color: "var(--text-primary)",
             }}
           >
-            <RightToolsPanel onNavigate={() => setIsToolsOpen(false)} />
+            <RightToolsPanel
+              contactRequestCount={contactRequestCount}
+              onNavigate={() => setIsToolsOpen(false)}
+            />
           </aside>
         </div>
       )}
@@ -640,7 +645,10 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <RightToolsPanel onNavigate={() => setIsToolsOpen(false)} />
+              <RightToolsPanel
+                contactRequestCount={contactRequestCount}
+                onNavigate={() => setIsToolsOpen(false)}
+              />
             </div>
           </div>
         </div>

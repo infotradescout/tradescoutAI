@@ -37,6 +37,19 @@ interface ContactConnection {
   threadId?: string | null;
 }
 
+interface IncomingContactRequest {
+  id: string;
+  createdAt?: string | null;
+  fromUserId?: string | null;
+  fromName?: string | null;
+  fromRole?: string | null;
+  fromVerified?: boolean | null;
+  preview?: string | null;
+  intent?: string | null;
+  contactType?: string | null;
+  postId?: string | null;
+}
+
 function SuggestedConnections({
   followers,
   following,
@@ -184,6 +197,13 @@ export default function ConnectionsPage() {
     enabled: activeTab === "contact",
   });
 
+  const incomingRequestsQuery = useQuery<{ requests: IncomingContactRequest[] }>({
+    queryKey: ["/api/social/conversations/requests/incoming"],
+    queryFn: () => apiRequest("GET", "/api/social/conversations/requests/incoming"),
+    enabled: activeTab === "contact",
+  });
+  const incomingRequests = incomingRequestsQuery.data?.requests || [];
+
   const { data: summary } = useQuery({
     queryKey: ["/api/social/connections/summary"],
     queryFn: () => apiRequest("GET", "/api/social/connections/summary"),
@@ -232,7 +252,58 @@ export default function ConnectionsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="contact" className="mt-6">
+          <TabsContent value="contact" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-sm font-medium">
+                    Pending contact requests
+                    {incomingRequests.length ? ` (${incomingRequests.length})` : ""}
+                  </CardTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Accepting opens contact and creates a connection.
+                  </p>
+                </div>
+                <a href="/messages?tab=requests">
+                  <Button size="sm" variant="outline">
+                    Review in Messages
+                  </Button>
+                </a>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {incomingRequestsQuery.isError ? (
+                  <p className="text-sm text-destructive">Failed to load requests.</p>
+                ) : incomingRequestsQuery.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading requestsâ€¦</p>
+                ) : incomingRequests.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No pending requests right now.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {incomingRequests.slice(0, 6).map((req) => (
+                      <div
+                        key={req.id}
+                        className="flex items-center justify-between rounded-md border bg-card px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            {req.fromName || "TradeScout member"}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {req.preview || "Wants to connect."}
+                          </div>
+                        </div>
+                        <a href="/messages?tab=requests">
+                          <Button size="sm" variant="outline">
+                            Open
+                          </Button>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm font-medium">Approved contact connections</CardTitle>

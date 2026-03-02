@@ -94,11 +94,18 @@ async function schemaLooksInitialized(): Promise<boolean> {
   const result = await pool.query<{
     users_reg: string | null;
     conversations_reg: string | null;
+    marketplace_conversations_reg: string | null;
   }>(
-    `select to_regclass('public.users') as users_reg, to_regclass('public.conversations') as conversations_reg`
+    `select
+      to_regclass('public.users') as users_reg,
+      to_regclass('public.conversations') as conversations_reg,
+      to_regclass('public.marketplace_conversations') as marketplace_conversations_reg`
   );
   const row = result.rows?.[0];
-  return Boolean(row?.users_reg) && Boolean(row?.conversations_reg);
+  return (
+    Boolean(row?.users_reg) &&
+    (Boolean(row?.marketplace_conversations_reg) || Boolean(row?.conversations_reg))
+  );
 }
 
 export async function runRuntimeMigrations(options?: { log?: (msg: string) => void }) {
