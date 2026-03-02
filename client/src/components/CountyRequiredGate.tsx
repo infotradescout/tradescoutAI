@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import {
   useLocationContext,
   hasCountyContext,
@@ -87,15 +88,14 @@ export function CountyRequiredGate({
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-white/60">
-              Current location context:{" "}
-              <span className="font-medium text-white">{areaLabel}</span>
+              Current location context: <span className="font-medium text-white">{areaLabel}</span>
             </p>
             <Button
               type="button"
               className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
               asChild
             >
-              <a href="/settings">Set your county</a>
+              <Link href="/settings">Set your county</Link>
             </Button>
           </div>
         </CardContent>

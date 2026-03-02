@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ContextualTooltip } from "@/components/ui/contextual-tooltip";
+import { Link } from "wouter";
 import {
   TrendingUp,
   Users,
@@ -147,10 +148,10 @@ export function DashboardWidget({
             className="w-full mt-4 text-ts-orange hover:text-ts-orange hover:bg-ts-orange/10 border border-ts-orange/30 hover:border-ts-orange/30"
             asChild
           >
-            <a href={actionHref} className="flex items-center justify-center gap-2">
+            <Link href={actionHref} className="flex items-center justify-center gap-2">
               {actionLabel}
               <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
           </Button>
         )}
       </CardContent>
