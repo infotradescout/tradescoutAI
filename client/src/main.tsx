@@ -76,10 +76,35 @@ function hideBootFallback() {
 
 async function resetClientCaches(options?: { clearLocalStorage?: boolean }) {
   const clearLocalStorage = options?.clearLocalStorage === true;
+
+  const withTimeout = async <T,>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    fallback: T
+  ): Promise<T> => {
+    let timeout: number | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((resolve) => {
+          timeout = window.setTimeout(() => resolve(fallback), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (typeof timeout === "number") {
+        window.clearTimeout(timeout);
+      }
+    }
+  };
+
   try {
     if ("serviceWorker" in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
+      const regs = await withTimeout(navigator.serviceWorker.getRegistrations(), 1500, []);
+      await withTimeout(
+        Promise.allSettled(regs.map((r) => r.unregister())),
+        1500,
+        [] as PromiseSettledResult<boolean>[]
+      );
     }
   } catch {
     // ignore
@@ -87,14 +112,13 @@ async function resetClientCaches(options?: { clearLocalStorage?: boolean }) {
 
   try {
     if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter(
-            (k) => k.startsWith("tradescout-") || k.startsWith("workbox-") || k.startsWith("vite-")
-          )
-          .map((k) => caches.delete(k))
-      );
+      const keys = await withTimeout(caches.keys(), 1500, []);
+      const deletions = keys
+        .filter(
+          (k) => k.startsWith("tradescout-") || k.startsWith("workbox-") || k.startsWith("vite-")
+        )
+        .map((k) => caches.delete(k));
+      await withTimeout(Promise.allSettled(deletions), 2000, [] as PromiseSettledResult<boolean>[]);
     }
   } catch {
     // ignore
@@ -180,11 +204,13 @@ async function maybeHandleBuildChangeReset(): Promise<boolean> {
 
   if (lastBuildId === currentBuildId) return false;
 
-  // Auto-repair: build changed since last load, so clear SW + caches and reload.
-  // This prevents "new version flashes then old version" when an old SW/cached assets take over.
-  showBootFallback("Updating TradeScout...", "Installing the latest version. One moment.");
-
-  await resetClientCaches({ clearLocalStorage: false });
+  // Build changed since last load: record the new marker and proceed.
+  // Avoid blocking boot on cache clearing; cache/SW recovery is handled by:
+  // - server build mismatch detection
+  // - chunk-load recovery handlers below
+  // - manual `?__reset` when needed
+  //
+  // This keeps first-load after deploy fast, especially on mobile browsers.
 
   try {
     window.localStorage.setItem(storageKey, currentBuildId);
@@ -192,10 +218,7 @@ async function maybeHandleBuildChangeReset(): Promise<boolean> {
     // ignore
   }
 
-  const url = new URL(window.location.href);
-  url.searchParams.set("__fresh", String(Date.now()));
-  window.location.replace(url.toString());
-  return true;
+  return false;
 }
 
 async function fetchServerBuildId(timeoutMs = 2200): Promise<string | null> {
