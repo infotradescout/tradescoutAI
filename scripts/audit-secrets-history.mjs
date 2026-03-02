@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 
 const sensitiveFilePatterns = [
   "secrets/db_password.txt",
@@ -8,43 +8,53 @@ const sensitiveFilePatterns = [
   "ssl/privkey.pem",
 ];
 
-function runGit(args) {
-  const result = spawnSync("git", args, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+function main() {
+  const maxNeedleLength = sensitiveFilePatterns.reduce((max, pattern) => Math.max(max, pattern.length), 0);
+
+  const hits = new Set();
+  let carry = "";
+
+  const proc = spawn("git", ["rev-list", "--objects", "--all"], {
+    stdio: ["ignore", "pipe", "ignore"],
   });
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString?.().trim() || "unknown git error";
-    throw new Error(stderr);
-  }
-  return result.stdout.trim();
+
+  proc.on("error", (error) => {
+    console.error("[secrets-history] failed to inspect git history");
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+
+  proc.stdout.on("data", (chunk) => {
+    const text = carry + String(chunk);
+
+    for (const pattern of sensitiveFilePatterns) {
+      if (hits.has(pattern)) continue;
+      if (text.includes(pattern)) hits.add(pattern);
+    }
+
+    carry = text.slice(-maxNeedleLength);
+  });
+
+  proc.on("close", (code) => {
+    if (code !== 0) {
+      console.error("[secrets-history] failed to inspect git history");
+      console.error(`git exited with code ${code}`);
+      process.exit(1);
+    }
+
+    const found = [...hits];
+    if (found.length) {
+      console.error("[secrets-history] sensitive files detected in git history:");
+      found.forEach((hit) => console.error(`  - ${hit}`));
+      console.error("");
+      console.error(
+        "Required remediation: rewrite history to remove secret-bearing files, rotate all exposed credentials, and force-push all refs."
+      );
+      process.exit(1);
+    }
+
+    console.log("[secrets-history] no known sensitive files found in git history");
+  });
 }
 
-let logNames = "";
-try {
-  logNames = runGit(["log", "--all", "--name-only", "--pretty=format:"]);
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error("[secrets-history] failed to inspect git history");
-  console.error(message);
-  process.exit(1);
-}
-
-const historyHits = [];
-for (const pattern of sensitiveFilePatterns) {
-  if (logNames.includes(pattern)) historyHits.push(pattern);
-}
-
-if (historyHits.length > 0) {
-  console.error("[secrets-history] sensitive files detected in git history:");
-  for (const hit of historyHits) console.error(`  - ${hit}`);
-  console.error(
-    "\nRequired remediation: rewrite history to remove secret-bearing files, rotate all exposed credentials, and force-push all refs."
-  );
-  process.exit(1);
-}
-
-console.log("[secrets-history] no known sensitive files found in git history");
+main();

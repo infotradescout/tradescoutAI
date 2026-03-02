@@ -32,6 +32,9 @@ scout-dev*.log
 logs/
 agent-runtime/logs/
 
+# Local eslint reports
+artifacts/eslint-report.json
+
 # Playwright
 .playwright/
 playwright-report/

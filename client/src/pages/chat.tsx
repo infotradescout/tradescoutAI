@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation, useRoute, Link } from "wouter";
+import { useRoute, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,39 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageCircle,
   Send,
   Calendar,
-  DollarSign,
   ShoppingCart,
   Plus,
   FileText,
-  Clock,
-  CheckCircle,
   ThumbsDown,
   ThumbsUp,
-  User,
   Building2,
-  Phone,
-  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { MaterialListBuilder } from "@/components/MaterialListBuilder";
@@ -65,33 +45,8 @@ interface Message {
   senderType: "homeowner" | "contractor";
   content: string;
   messageType: "text" | "quote" | "schedule" | "materials" | "image";
-  metadata?: any;
+  metadata?: Record<string, unknown> | null;
   readAt?: string;
-  createdAt: string;
-}
-
-interface Quote {
-  id: string;
-  title: string;
-  description: string;
-  laborCost: string;
-  materialCost: string;
-  totalCost: string;
-  validUntil: string;
-  status: string;
-  terms: string;
-  createdAt: string;
-}
-
-interface Schedule {
-  id: string;
-  title: string;
-  description: string;
-  proposedDate: string;
-  duration: number;
-  status: string;
-  location: string;
-  notes: string;
   createdAt: string;
 }
 
@@ -105,17 +60,25 @@ interface MaterialList {
     estimatedCost: number;
     vendor?: string;
     sku?: string;
+    status?: "pending" | "approved" | "denied" | string;
+    suggestedBy?: string;
+    denialReason?: string;
   }>;
   totalEstimatedCost: string;
-  vendorInfo?: any;
+  vendorInfo?: Record<string, unknown> | null;
   status: string;
   createdAt: string;
 }
 
+type SendMessagePayload = {
+  content: string;
+  messageType: Message["messageType"];
+  metadata?: Record<string, unknown>;
+};
+
 export default function Chat() {
   const { user, isAuthenticated } = useAuth();
-  const [location] = useLocation();
-  const [match, params] = useRoute("/chat/:conversationId?");
+  const [, params] = useRoute("/chat/:conversationId?");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -126,6 +89,14 @@ export default function Chat() {
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState("");
+
+  const [quoteTitle, setQuoteTitle] = useState("");
+  const [quoteDetails, setQuoteDetails] = useState("");
+  const [quoteTargetBudget, setQuoteTargetBudget] = useState("");
+
+  const [scheduleTitle, setScheduleTitle] = useState("");
+  const [scheduleDetails, setScheduleDetails] = useState("");
+  const [scheduleProposedAt, setScheduleProposedAt] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -150,18 +121,6 @@ export default function Chat() {
     refetchInterval: 3000, // Poll for new messages every 3 seconds
   });
 
-  // Fetch quotes for current conversation
-  const { data: quotes = [] } = useQuery({
-    queryKey: ["/api/conversations", conversationId, "quotes"],
-    enabled: isAuthenticated && !!conversationId,
-  });
-
-  // Fetch schedules for current conversation
-  const { data: schedules = [] } = useQuery({
-    queryKey: ["/api/conversations", conversationId, "schedules"],
-    enabled: isAuthenticated && !!conversationId,
-  });
-
   // Fetch material lists for current conversation
   const { data: materialLists = [] } = useQuery<MaterialList[]>({
     queryKey: ["/api/conversations", conversationId, "material-lists"],
@@ -171,7 +130,7 @@ export default function Chat() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: any) => {
+    mutationFn: async (messageData: SendMessagePayload) => {
       return apiRequest("POST", `/api/conversations/${conversationId}/messages`, messageData);
     },
     onSuccess: () => {
@@ -180,7 +139,7 @@ export default function Chat() {
       });
       setNewMessage("");
     },
-    onError: (error) => {
+    onError: (_error) => {
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -204,7 +163,7 @@ export default function Chat() {
         description: "Thank you for your feedback!",
       });
     },
-    onError: (error) => {
+    onError: (_error) => {
       toast({
         title: "Error",
         description: "Failed to submit rating. Please try again.",
@@ -232,6 +191,84 @@ export default function Chat() {
       rating,
       feedback,
     });
+  };
+
+  const handleSubmitQuoteRequest = () => {
+    if (!conversationId) return;
+
+    const title = quoteTitle.trim();
+    const details = quoteDetails.trim();
+    const budget = quoteTargetBudget.trim();
+    if (!title && !details && !budget) {
+      toast({
+        title: "Add a detail",
+        description: "Add at least a title, details, or a target budget.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const lines = [
+      "Quote request",
+      title ? `Title: ${title}` : null,
+      details ? `Details: ${details}` : null,
+      budget ? `Target budget: ${budget}` : null,
+    ].filter(Boolean);
+
+    sendMessageMutation.mutate({
+      content: lines.join("\n"),
+      messageType: "quote",
+      metadata: {
+        kind: "quote_request",
+        title: title || null,
+        details: details || null,
+        targetBudget: budget || null,
+      },
+    });
+
+    setShowQuoteDialog(false);
+    setQuoteTitle("");
+    setQuoteDetails("");
+    setQuoteTargetBudget("");
+  };
+
+  const handleSubmitScheduleRequest = () => {
+    if (!conversationId) return;
+
+    const title = scheduleTitle.trim();
+    const details = scheduleDetails.trim();
+    const proposedAt = scheduleProposedAt.trim();
+    if (!title && !details && !proposedAt) {
+      toast({
+        title: "Add a detail",
+        description: "Add at least a title, details, or a proposed time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const lines = [
+      "Schedule request",
+      title ? `Title: ${title}` : null,
+      proposedAt ? `Proposed: ${proposedAt}` : null,
+      details ? `Details: ${details}` : null,
+    ].filter(Boolean);
+
+    sendMessageMutation.mutate({
+      content: lines.join("\n"),
+      messageType: "schedule",
+      metadata: {
+        kind: "schedule_request",
+        title: title || null,
+        details: details || null,
+        proposedAt: proposedAt || null,
+      },
+    });
+
+    setShowScheduleDialog(false);
+    setScheduleTitle("");
+    setScheduleDetails("");
+    setScheduleProposedAt("");
   };
 
   const formatMessageTime = (timestamp: string) => {
@@ -472,6 +509,116 @@ export default function Chat() {
         </div>
       </div>
 
+      {/* Quote Dialog */}
+      <Dialog open={showQuoteDialog} onOpenChange={setShowQuoteDialog}>
+        <DialogContent className="bg-tsCard border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Request a quote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Title</label>
+              <Input
+                value={quoteTitle}
+                onChange={(e) => setQuoteTitle(e.target.value)}
+                placeholder="e.g., Replace water heater"
+                className="form-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Details</label>
+              <Textarea
+                value={quoteDetails}
+                onChange={(e) => setQuoteDetails(e.target.value)}
+                placeholder="Scope, constraints, and any must-haves."
+                className="form-field"
+                rows={4}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Target budget</label>
+              <Input
+                value={quoteTargetBudget}
+                onChange={(e) => setQuoteTargetBudget(e.target.value)}
+                placeholder="Optional"
+                className="form-field"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowQuoteDialog(false)}
+                className="border-white/15 text-white/70"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitQuoteRequest}
+                disabled={sendMessageMutation.isPending}
+                className="btn-primary"
+              >
+                Send request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Dialog */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="bg-tsCard border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Propose a schedule</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Title</label>
+              <Input
+                value={scheduleTitle}
+                onChange={(e) => setScheduleTitle(e.target.value)}
+                placeholder="e.g., Site visit"
+                className="form-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Proposed time</label>
+              <Input
+                value={scheduleProposedAt}
+                onChange={(e) => setScheduleProposedAt(e.target.value)}
+                placeholder="e.g., Tue 3pm or 2026-03-05 15:00"
+                className="form-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Details</label>
+              <Textarea
+                value={scheduleDetails}
+                onChange={(e) => setScheduleDetails(e.target.value)}
+                placeholder="What are we doing, and how long should it take?"
+                className="form-field"
+                rows={4}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowScheduleDialog(false)}
+                className="border-white/15 text-white/70"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitScheduleRequest}
+                disabled={sendMessageMutation.isPending}
+                className="btn-primary"
+              >
+                Send proposal
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Feedback Dialog */}
       <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
         <DialogContent className="bg-tsCard border-white/10">
@@ -560,7 +707,7 @@ export default function Chat() {
               <div>
                 <h3 className="text-lg font-semibold text-white mb-4">Existing Material Lists</h3>
                 <div className="space-y-4">
-                  {materialLists.map((materialList: any) => (
+                  {materialLists.map((materialList) => (
                     <Card key={materialList.id} className="bg-tsCard border-white/10">
                       <CardHeader>
                         <div className="flex items-center justify-between">
@@ -576,7 +723,7 @@ export default function Chat() {
                       <CardContent>
                         <div className="space-y-3">
                           {Array.isArray(materialList.items)
-                            ? materialList.items.map((item: any, index: number) => (
+                            ? materialList.items.map((item, index) => (
                                 <div
                                   key={index}
                                   className="flex items-center justify-between p-3 bg-tsCard rounded-lg border border-white/10"

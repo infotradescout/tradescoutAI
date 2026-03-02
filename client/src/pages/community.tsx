@@ -3,27 +3,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PostType } from "@/components/community/CommunityComposerInline";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useNotifications } from "@/hooks/useNotifications";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Search,
-  MapPin,
-  MessageSquare,
-  ThumbsUp,
-  Plus,
-  Users,
-  Calendar,
-  Image as ImageIcon,
-  Video,
-  Smile,
-  Heart,
-} from "lucide-react";
+import { MessageSquare, ThumbsUp, Plus, Users, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -79,13 +59,10 @@ export default function Community() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("for-you");
-  const [searchQuery, setSearchQuery] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
-  const [showPostComposer, setShowPostComposer] = useState(false);
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
   const [fromScoutDraft, setFromScoutDraft] = useState(false);
   const draftStartedAtRef = useRef<number | null>(null);
-  const { unreadCount } = useNotifications();
 
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
@@ -96,10 +73,11 @@ export default function Community() {
     queryKey: ["/api/community/posts", stateCode, countyFips],
     enabled: countyCommitted,
     queryFn: async () => {
+      if (!stateCode || !countyFips) return [];
       const params = new URLSearchParams({
         scope: "county",
-        stateCode: stateCode!,
-        countyFips: countyFips!,
+        stateCode,
+        countyFips,
         limit: "20",
         offset: "0",
       });
@@ -115,7 +93,7 @@ export default function Community() {
     mutationFn: async (postId: string) => {
       return apiRequest("POST", `/api/community/posts/${postId}/like`);
     },
-    onSuccess: (createdPost: any) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts", stateCode, countyFips] });
     },
   });
@@ -198,10 +176,12 @@ export default function Community() {
         ),
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : typeof error === "string" ? error : "";
       toast({
         title: "Error",
-        description: error?.message || "Failed to create post",
+        description: message || "Failed to create post",
         variant: "destructive",
       });
     },
@@ -450,9 +430,7 @@ export default function Community() {
                         aria-hidden="true"
                       />
                       <div>
-                        <p className="font-medium text-sm text-white">
-                          Draft imported from Scout
-                        </p>
+                        <p className="font-medium text-sm text-white">Draft imported from Scout</p>
                         <p className="text-[11px] text-white/70">Review and publish.</p>
                       </div>
                     </div>
@@ -479,7 +457,6 @@ export default function Community() {
                         });
                         return;
                       }
-                      setShowPostComposer(true);
                     }}
                     isSubmitting={createPostMutation.isPending}
                   />
@@ -514,7 +491,16 @@ export default function Community() {
                   <p className="mt-2 text-white/60 dark:text-white/60">Loading posts...</p>
                 </div>
               ) : visiblePosts.length === 0 ? (
-                <CommunityEmptyState onCreateFirstPost={() => setShowPostComposer(true)} />
+                <CommunityEmptyState
+                  onCreateFirstPost={() => {
+                    try {
+                      if (typeof window !== "undefined")
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                />
               ) : (
                 <div className="space-y-5">
                   {visiblePosts.map((post) => (
@@ -530,8 +516,8 @@ export default function Community() {
                           avatar: post.author?.avatar,
                           role: post.author?.role,
                           verified: post.author?.verified,
-                          cvsScore: (post.author as any)?.cvsScore,
-                          verificationStatus: (post.author as any)?.verificationStatus,
+                          cvsScore: post.author?.cvsScore,
+                          verificationStatus: post.author?.verificationStatus,
                           badges: post.author?.badges,
                         },
                         category: post.category,
