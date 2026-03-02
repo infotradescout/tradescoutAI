@@ -9,13 +9,25 @@ import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
 export default function AdminLogin() {
-  const [facebookId, setFacebookId] = useState("927070657"); // Pre-filled with your ID
+  const [facebookId, setFacebookId] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const emergencyAccessEnabled =
+    import.meta.env.DEV &&
+    String((import.meta.env as any).VITE_ENABLE_EMERGENCY_ADMIN_ACCESS || "") === "true";
 
   const handleEmergencyAccess = async () => {
     try {
+      if (!emergencyAccessEnabled) {
+        toast({
+          title: "Disabled",
+          description: "Emergency admin access is disabled in this environment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setLoading(true);
 
       const response = await apiRequest("POST", "/api/auth/emergency-admin-access", {
@@ -62,7 +74,10 @@ export default function AdminLogin() {
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-amber-700">
               <p className="font-medium">Emergency Access</p>
-              <p>Use this form to gain immediate admin access to your platform.</p>
+              <p>
+                This legacy emergency access flow is disabled by default. Use standard admin
+                authentication and role-gated tools.
+              </p>
             </div>
           </div>
 
@@ -81,7 +96,7 @@ export default function AdminLogin() {
 
           <Button
             onClick={handleEmergencyAccess}
-            disabled={loading || !facebookId}
+            disabled={loading || !facebookId || !emergencyAccessEnabled}
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             data-testid="button-emergency-access"
           >

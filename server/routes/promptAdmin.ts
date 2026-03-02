@@ -12,13 +12,7 @@ const router = express.Router();
 // ESM-safe directory resolution
 const routeDir = path.dirname(fileURLToPath(import.meta.url));
 
-const PROMPT_PATH = path.join(
-  routeDir,
-  "..",
-  "cache",
-  "manual",
-  "system_prompt.md"
-);
+const PROMPT_PATH = path.join(routeDir, "..", "cache", "manual", "system_prompt.md");
 
 /**
  * Middleware to check if user is super admin or head admin
@@ -30,7 +24,24 @@ function requireSuperAdmin(req: Request, res: Response, next: () => void) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  if (user.role !== "super_admin" && user.role !== "head_admin") {
+  const normalizeRole = (role: unknown): string => {
+    const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+    if (!raw) return "";
+    return raw === "owner" ? "head_admin" : raw;
+  };
+
+  const allowed = new Set(["super_admin", "head_admin"]);
+  const primaryRole = normalizeRole((user as any).role);
+  const activeRole = normalizeRole((user as any).activeRole);
+  const roles = Array.isArray((user as any).roles)
+    ? (user as any).roles.map((r: any) => normalizeRole(r)).filter(Boolean)
+    : [];
+  const hasAccess =
+    allowed.has(primaryRole) ||
+    allowed.has(activeRole) ||
+    roles.some((r: string) => allowed.has(r));
+
+  if (!hasAccess) {
     return res.status(403).json({ error: "Super admin access required" });
   }
 
@@ -73,10 +84,12 @@ router.post("/", requireSuperAdmin, (req: Request, res: Response) => {
     }
 
     // Validate content has required sections
-    if (!content.includes("DATA SOURCE HIERARCHY") && !content.includes("1. DATA SOURCE HIERARCHY")) {
+    if (
+      !content.includes("DATA SOURCE HIERARCHY") &&
+      !content.includes("1. DATA SOURCE HIERARCHY")
+    ) {
       console.warn("[PromptAdmin] Warning: prompt missing DATA SOURCE HIERARCHY section");
     }
-
 
     // Write to disk
     fs.writeFileSync(PROMPT_PATH, content, "utf8");
@@ -85,9 +98,7 @@ router.post("/", requireSuperAdmin, (req: Request, res: Response) => {
     reloadSystemPrompt();
 
     logAdminAction("update_prompt", user, { length: content.length });
-    console.log(
-      `[PromptAdmin] System prompt updated by ${user.id} (${content.length} bytes)`
-    );
+    console.log(`[PromptAdmin] System prompt updated by ${user.id} (${content.length} bytes)`);
 
     res.json({
       ok: true,

@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Users } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface ConnectionUser {
   id: string;
@@ -16,6 +18,23 @@ interface ConnectionUser {
   roles?: string[] | null;
   role?: string | null;
   followedAt?: string | null;
+}
+
+interface ContactConnection {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+  city?: string | null;
+  state?: string | null;
+  roles?: string[] | null;
+  role?: string | null;
+  connectedAt?: string | null;
+  intent?: string | null;
+  authorityGate?: string | null;
+  decisionScope?: string | null;
+  countyFips?: string | null;
+  threadId?: string | null;
 }
 
 function SuggestedConnections({
@@ -85,84 +104,205 @@ function ConnectionList({ users }: { users: ConnectionUser[] }) {
   );
 }
 
+function ContactConnectionsList({ connections }: { connections: ContactConnection[] }) {
+  if (!connections || connections.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No connections yet. Connections appear after you and another member approve first-contact.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {connections.map((c) => {
+        const displayName =
+          c.firstName || c.lastName
+            ? `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim()
+            : "TradeScout User";
+        const location = [c.city, c.state].filter(Boolean).join(", ") || "Location not set";
+        const connectedAtLabel = c.connectedAt
+          ? new Date(c.connectedAt).toLocaleDateString()
+          : null;
+
+        return (
+          <div
+            key={c.id}
+            className="flex items-center justify-between rounded-md border bg-card px-3 py-2"
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="h-9 w-9">
+                {c.profileImageUrl ? (
+                  <AvatarImage src={c.profileImageUrl} alt={displayName} />
+                ) : (
+                  <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium leading-none">{displayName}</span>
+                <span className="text-xs text-muted-foreground">
+                  {location}
+                  {connectedAtLabel ? ` \u2022 Connected ${connectedAtLabel}` : ""}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {c.threadId ? (
+                <a href={`/messages?thread=${encodeURIComponent(String(c.threadId))}`}>
+                  <Button size="sm">Message</Button>
+                </a>
+              ) : null}
+              <a href={`/profile/${c.id}`}>
+                <Button size="sm" variant="outline">
+                  View profile
+                </Button>
+              </a>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ConnectionsPage() {
+  const [route, setRoute] = useLocation();
+  const activeTab = useMemo(() => {
+    const idx = route.indexOf("?");
+    const search = idx >= 0 ? route.slice(idx + 1) : "";
+    const tab = new URLSearchParams(search).get("tab");
+    return tab === "social" ? "social" : "contact";
+  }, [route]);
+
+  const {
+    data: contactConnections,
+    isLoading: isLoadingContact,
+    error: contactError,
+  } = useQuery<ContactConnection[]>({
+    queryKey: ["/api/social/contact-connections"],
+    queryFn: () => apiRequest("GET", "/api/social/contact-connections"),
+    enabled: activeTab === "contact",
+  });
+
   const { data: summary } = useQuery({
     queryKey: ["/api/social/connections/summary"],
     queryFn: () => apiRequest("GET", "/api/social/connections/summary"),
+    enabled: activeTab === "social",
   });
 
   const { data: following } = useQuery<ConnectionUser[]>({
     queryKey: ["/api/social/connections/following"],
     queryFn: () => apiRequest("GET", "/api/social/connections/following"),
+    enabled: activeTab === "social",
   });
 
   const { data: followers } = useQuery<ConnectionUser[]>({
     queryKey: ["/api/social/connections/followers"],
     queryFn: () => apiRequest("GET", "/api/social/connections/followers"),
+    enabled: activeTab === "social",
   });
 
   return (
     <div className="bg-background py-8">
       <div className="container mx-auto space-y-6">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 connections-header">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Users className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Connections</h1>
             <p className="text-sm text-muted-foreground">
-              People you follow and people who follow you across TradeScout.
+              People you&rsquo;ve approved contact with, plus your social follows.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Followers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{summary?.followers ?? 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Following</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{summary?.following ?? 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Mutual Connections</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{summary?.mutual ?? 0}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(next) =>
+            setRoute(next === "social" ? "/connections?tab=social" : "/connections")
+          }
+        >
+          <TabsList>
+            <TabsTrigger value="contact" className="connections-contact-tab">
+              Connections
+            </TabsTrigger>
+            <TabsTrigger value="social" className="connections-social-tab">
+              Social
+            </TabsTrigger>
+          </TabsList>
 
-        <Card>
-          <CardContent className="pt-6">
-            <Tabs defaultValue="following">
-              <TabsList>
-                <TabsTrigger value="following">Following</TabsTrigger>
-                <TabsTrigger value="followers">Followers</TabsTrigger>
-                <TabsTrigger value="suggested">Suggested</TabsTrigger>
-              </TabsList>
-              <TabsContent value="following" className="mt-4">
-                <ConnectionList users={following || []} />
-              </TabsContent>
-              <TabsContent value="followers" className="mt-4">
-                <ConnectionList users={followers || []} />
-              </TabsContent>
-              <TabsContent value="suggested" className="mt-4">
-                <SuggestedConnections followers={followers || []} following={following || []} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+          <TabsContent value="contact" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Approved contact connections</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 connections-contact-list">
+                {contactError ? (
+                  <p className="text-sm text-destructive">
+                    {contactError instanceof Error
+                      ? contactError.message
+                      : "Failed to load connections."}
+                  </p>
+                ) : isLoadingContact ? (
+                  <p className="text-sm text-muted-foreground">Loading connections…</p>
+                ) : (
+                  <ContactConnectionsList connections={contactConnections || []} />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="social" className="mt-6 space-y-6">
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Followers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{summary?.followers ?? 0}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Following</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{summary?.following ?? 0}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Mutual Connections</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{summary?.mutual ?? 0}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardContent className="pt-6">
+                <Tabs defaultValue="following">
+                  <TabsList>
+                    <TabsTrigger value="following">Following</TabsTrigger>
+                    <TabsTrigger value="followers">Followers</TabsTrigger>
+                    <TabsTrigger value="suggested">Suggested</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="following" className="mt-4">
+                    <ConnectionList users={following || []} />
+                  </TabsContent>
+                  <TabsContent value="followers" className="mt-4">
+                    <ConnectionList users={followers || []} />
+                  </TabsContent>
+                  <TabsContent value="suggested" className="mt-4 connections-suggested">
+                    <SuggestedConnections followers={followers || []} following={following || []} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

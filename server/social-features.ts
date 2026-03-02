@@ -27,6 +27,7 @@ import {
   decisionCards,
   users,
   userFollows,
+  contactPermissions,
   conversations,
   messages,
   marketplaceConversations,
@@ -1086,6 +1087,147 @@ export function registerSocialFeatures(app: Express) {
       } catch (error: any) {
         console.error("Error responding to first-contact request:", error);
         res.status(500).json({ message: "Failed to respond to request" });
+      }
+    }
+  );
+
+  /**
+   * CONTACT CONNECTIONS: Accepted first-contact permissions involving the current user.
+   * A "connection" is established the moment contact is approved/accepted.
+   *
+   * GET /api/social/contact-connections
+   */
+  app.get(
+    "/api/social/contact-connections",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const permissionRows = await db
+          .select({
+            requesterId: contactPermissions.requesterId,
+            targetUserId: contactPermissions.targetUserId,
+            respondedAt: contactPermissions.respondedAt,
+            updatedAt: contactPermissions.updatedAt,
+            intent: contactPermissions.intent,
+            authorityGate: contactPermissions.authorityGate,
+            decisionScope: contactPermissions.decisionScope,
+            countyFips: contactPermissions.countyFips,
+          })
+          .from(contactPermissions)
+          .where(
+            and(
+              eq(contactPermissions.status, "accepted"),
+              or(
+                eq(contactPermissions.requesterId, userId),
+                eq(contactPermissions.targetUserId, userId)
+              )
+            )
+          );
+
+        const bestByPartnerId = new Map<string, (typeof permissionRows)[number]>();
+        for (const row of permissionRows) {
+          const partnerId = row.requesterId === userId ? row.targetUserId : row.requesterId;
+          if (!partnerId || partnerId === userId) continue;
+
+          const existing = bestByPartnerId.get(partnerId);
+          if (!existing) {
+            bestByPartnerId.set(partnerId, row);
+            continue;
+          }
+
+          const existingAt = (existing.respondedAt ?? existing.updatedAt)?.getTime() ?? 0;
+          const rowAt = (row.respondedAt ?? row.updatedAt)?.getTime() ?? 0;
+          if (rowAt > existingAt) {
+            bestByPartnerId.set(partnerId, row);
+          }
+        }
+
+        const partnerIds = Array.from(bestByPartnerId.keys());
+        if (partnerIds.length === 0) return res.json([]);
+
+        const userRows = await db
+          .select({
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            profileImageUrl: users.profileImageUrl,
+            city: users.city,
+            state: users.state,
+            roles: users.roles,
+            role: users.role,
+          })
+          .from(users)
+          .where(inArray(users.id, partnerIds));
+
+        const usersById = new Map(userRows.map((row) => [row.id, row]));
+
+        const convRows = await db
+          .select({
+            id: marketplaceConversations.id,
+            buyerId: marketplaceConversations.buyerId,
+            sellerId: marketplaceConversations.sellerId,
+          })
+          .from(marketplaceConversations)
+          .where(
+            or(
+              and(
+                eq(marketplaceConversations.buyerId, userId),
+                inArray(marketplaceConversations.sellerId, partnerIds)
+              ),
+              and(
+                eq(marketplaceConversations.sellerId, userId),
+                inArray(marketplaceConversations.buyerId, partnerIds)
+              )
+            )
+          );
+
+        const threadIdByPartnerId = new Map<string, string>();
+        for (const row of convRows) {
+          const partnerId = row.buyerId === userId ? row.sellerId : row.buyerId;
+          if (!partnerId) continue;
+          threadIdByPartnerId.set(partnerId, row.id);
+        }
+
+        const connections = partnerIds
+          .map((partnerId) => {
+            const partner = usersById.get(partnerId);
+            const permission = bestByPartnerId.get(partnerId);
+            if (!partner || !permission) return null;
+
+            const connectedAt = permission.respondedAt ?? permission.updatedAt ?? null;
+            return {
+              id: partner.id,
+              firstName: partner.firstName ?? null,
+              lastName: partner.lastName ?? null,
+              profileImageUrl: partner.profileImageUrl ?? null,
+              city: partner.city ?? null,
+              state: partner.state ?? null,
+              roles: partner.roles ?? null,
+              role: partner.role ?? null,
+              connectedAt: connectedAt ? connectedAt.toISOString() : null,
+              intent: permission.intent ?? null,
+              authorityGate: permission.authorityGate ?? null,
+              decisionScope: permission.decisionScope ?? null,
+              countyFips: permission.countyFips ?? null,
+              threadId: threadIdByPartnerId.get(partnerId) ?? null,
+            };
+          })
+          .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+        connections.sort((a, b) => {
+          const aAt = a.connectedAt ? new Date(a.connectedAt).getTime() : 0;
+          const bAt = b.connectedAt ? new Date(b.connectedAt).getTime() : 0;
+          return bAt - aAt;
+        });
+
+        res.json(connections);
+      } catch (error: any) {
+        console.error("Error fetching contact connections:", error);
+        res.status(500).json({ message: "Failed to load connections" });
       }
     }
   );

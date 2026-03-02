@@ -140,18 +140,18 @@ export function useHelpSystem() {
       {
         id: "connections-intro",
         target: ".connections-header",
-        title: "Connections & Scout",
+        title: "Connections",
         content:
-          "This page shows people you follow and who follow you. Scout can also open this view and help you decide who to connect with next.",
+          "Connections are people you've approved contact with. The moment first-contact is accepted, they appear here. Social follows live under the Social tab.",
         illustration: "users",
         position: "bottom",
       },
       {
-        id: "connections-suggested",
-        target: ".connections-suggested",
-        title: "Suggested connections",
+        id: "connections-social",
+        target: ".connections-social-tab",
+        title: "Social follows",
         content:
-          "We highlight people who follow you that you aren't following back yet so you can build mutual connections quickly.",
+          "Use the Social tab to view followers/following and suggested mutuals without granting contact authority.",
         illustration: "sparkles",
         position: "right",
       },

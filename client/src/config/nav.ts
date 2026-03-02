@@ -9,5 +9,6 @@ export const NAV_SECTIONS: NavSection[] = [
   { label: "Marketplace", href: "/marketplace" },
   { label: "Groups / HOA", href: "/groups" },
   { label: "Messages", href: "/messages" },
+  { label: "Connections", href: "/connections" },
   { label: "Dashboard", href: "/hoa-dashboard" },
 ];

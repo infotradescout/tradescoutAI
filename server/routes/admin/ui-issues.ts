@@ -37,6 +37,28 @@ const uiIssuesStore: UIIssuesStore = {
   },
 };
 
+const UI_MONITORING_ALLOWED_ROLES = new Set(["head_admin", "super_admin", "ops_admin"]);
+
+function normalizeRole(role: unknown): string {
+  const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+  if (!raw) return "";
+  return raw === "owner" ? "head_admin" : raw;
+}
+
+function canAccessUIMonitoring(user: any): boolean {
+  if (!user) return false;
+
+  const primaryRole = normalizeRole(user.role);
+  const activeRole = normalizeRole(user.activeRole);
+  const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => normalizeRole(r)) : [];
+
+  return (
+    UI_MONITORING_ALLOWED_ROLES.has(primaryRole) ||
+    UI_MONITORING_ALLOWED_ROLES.has(activeRole) ||
+    roles.some((r: string) => UI_MONITORING_ALLOWED_ROLES.has(r))
+  );
+}
+
 export function registerUIIssuesRoutes(app: Express) {
   // Get all UI issues and stats
   app.get("/api/admin/ui-issues", isAuthenticated, async (req: any, res) => {
@@ -44,7 +66,7 @@ export function registerUIIssuesRoutes(app: Express) {
       const user = req.user;
 
       // Only allow admin users to access UI monitoring
-      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
+      if (!canAccessUIMonitoring(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -99,7 +121,7 @@ export function registerUIIssuesRoutes(app: Express) {
       const user = req.user;
 
       // Only allow admin users to submit issues
-      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
+      if (!canAccessUIMonitoring(user)) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
@@ -183,7 +205,7 @@ export function registerUIIssuesRoutes(app: Express) {
     try {
       const user = req.user;
 
-      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
+      if (!canAccessUIMonitoring(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -215,7 +237,7 @@ export function registerUIIssuesRoutes(app: Express) {
     try {
       const user = req.user;
 
-      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
+      if (!canAccessUIMonitoring(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -250,7 +272,7 @@ export function registerUIIssuesRoutes(app: Express) {
     try {
       const user = req.user;
 
-      if (!user || !["head_admin", "ops_admin"].includes(user.role)) {
+      if (!canAccessUIMonitoring(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 

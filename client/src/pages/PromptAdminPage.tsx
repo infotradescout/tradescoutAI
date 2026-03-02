@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 
 interface PromptStatus {
   cached: boolean;
@@ -26,28 +27,19 @@ export function PromptAdminPage() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch("/api/prompt-admin");
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          setError("Authentication required. Please log in.");
-        } else if (res.status === 403) {
-          setError("Access denied. Super admin access required.");
-        } else {
-          setError(`Failed to load prompt: ${res.statusText}`);
-        }
-        setContent("");
-        setLoading(false);
-        return;
-      }
-
-      const data = await res.json();
-      setContent(data.content || "");
-      setStatus(data.status || null);
+      const data = await apiRequest("GET", "/api/prompt-admin");
+      setContent(data?.content || "");
+      setStatus(data?.status || null);
       setSuccess("System prompt loaded successfully");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load system prompt");
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Authentication required. Please log in.");
+      } else if (err instanceof ApiError && err.status === 403) {
+        setError("Access denied. Super admin access required.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load system prompt");
+      }
       setContent("");
     } finally {
       setLoading(false);
@@ -65,27 +57,15 @@ export function PromptAdminPage() {
       setError(null);
       setSuccess(null);
 
-      const res = await fetch("/api/prompt-admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!res.ok) {
-        if (res.status === 403) {
-          setError("Access denied. Super admin access required.");
-        } else {
-          const errData = await res.json();
-          setError(errData.error || `Failed to save prompt: ${res.statusText}`);
-        }
-        return;
-      }
-
-      const data = await res.json();
-      setSuccess(data.message || "System prompt saved and reloaded successfully!");
+      const data = await apiRequest("POST", "/api/prompt-admin", { content });
+      setSuccess(data?.message || "System prompt saved and reloaded successfully!");
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save system prompt");
+      if (err instanceof ApiError && err.status === 403) {
+        setError("Access denied. Super admin access required.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to save system prompt");
+      }
     } finally {
       setSaving(false);
     }
@@ -97,15 +77,8 @@ export function PromptAdminPage() {
       setError(null);
       setSuccess(null);
 
-      const res = await fetch("/api/prompt-admin/reload", { method: "POST" });
-
-      if (!res.ok) {
-        setError(`Failed to reload: ${res.statusText}`);
-        return;
-      }
-
-      const data = await res.json();
-      setSuccess(data.message || "Prompt reloaded from disk");
+      const data = await apiRequest("POST", "/api/prompt-admin/reload");
+      setSuccess(data?.message || "Prompt reloaded from disk");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reload system prompt");

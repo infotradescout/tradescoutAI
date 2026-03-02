@@ -2584,11 +2584,27 @@ export async function registerRoutes(app: any) {
   app.post("/api/auth/setup-master", async (req: AuthedRequest, res: Response) => {
     try {
       const { email, password, firstName, lastName } = (req.body ?? {}) as any;
+      const isProductionEnv =
+        process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+      const requiredSetupToken = String(process.env.SETUP_MASTER_ADMIN_TOKEN || "").trim();
 
       // Check if any head_admin already exists
       const existingHeadAdmin = await storage.getUserByRole("head_admin");
       if (existingHeadAdmin) {
         return res.status(403).json({ message: "Master admin already exists" });
+      }
+
+      if (isProductionEnv) {
+        if (!requiredSetupToken) {
+          return res.status(503).json({
+            message:
+              "Master admin setup is not configured. Set SETUP_MASTER_ADMIN_TOKEN to enable initial setup.",
+          });
+        }
+        const providedSetupToken = String((req.body as any)?.setupToken || "").trim();
+        if (!providedSetupToken || providedSetupToken !== requiredSetupToken) {
+          return res.status(403).json({ message: "Invalid setup token" });
+        }
       }
 
       const masterAdmin = await storage.createMasterAdmin(email, password, firstName, lastName);
@@ -2599,7 +2615,7 @@ export async function registerRoutes(app: any) {
       // Set secure cookie for trusted session
       res.cookie("trusted_session", sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NODE_ENV === "production" || process.env.APP_ENV === "production",
         sameSite: "strict",
         maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
       });
@@ -2625,6 +2641,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/auth/connect-master-admin",
     isAuthenticated,
+    requireRole(["head_admin"]),
     async (req: AuthedRequest, res: Response) => {
       try {
         const currentUser = req.user as any;
@@ -2636,10 +2653,14 @@ export async function registerRoutes(app: any) {
             .json({ message: "Must be logged in via Facebook to connect to master admin" });
         }
 
-        // Find the master admin account that needs Facebook connection
-        const masterAdmin = await storage.getUserByEmail("mrplatypus4777@gmail.com");
+        const userId: string = currentUser?.id || currentUser?.claims?.sub || "";
+        if (!userId) {
+          return res.status(400).json({ message: "User ID missing" });
+        }
+
+        const masterAdmin = await storage.getUser(userId);
         if (!masterAdmin || masterAdmin.role !== "head_admin") {
-          return res.status(404).json({ message: "Master admin account not found" });
+          return res.status(403).json({ message: "Admin access required" });
         }
 
         // Check if master admin already has Facebook connected
@@ -2659,7 +2680,7 @@ export async function registerRoutes(app: any) {
         // );
 
         // Connect Facebook ID to master admin account and update profile
-        await storage.updateUser(masterAdmin.id, {
+        const updatedAdmin = await storage.updateUser(masterAdmin.id, {
           facebookId: currentUser.claims.sub,
           profileImageUrl: currentUser.claims.profile_image_url,
           // Update name if Facebook has more recent data
@@ -2667,36 +2688,17 @@ export async function registerRoutes(app: any) {
           lastName: currentUser.claims.last_name || masterAdmin.lastName,
         });
 
-        // Update session to reflect master admin privileges
-        req.user = {
-          ...currentUser,
-          id: masterAdmin.id,
-          email: masterAdmin.email,
-          role: "head_admin",
-          firstName: currentUser.claims.first_name || masterAdmin.firstName,
-          lastName: currentUser.claims.last_name || masterAdmin.lastName,
-          facebookId: currentUser.claims.sub,
-        };
-
-        res.json({
-          message: "Facebook account connected to master admin with device security enabled",
-          user: {
-            id: masterAdmin.id,
-            email: masterAdmin.email,
-            role: "head_admin",
-            firstName: (req.user as any)?.firstName,
-            lastName: (req.user as any)?.lastName,
-            profileImageUrl: currentUser.claims.profile_image_url,
-            facebookId: currentUser.claims.sub,
-          },
-          deviceSecurity: {
-            deviceId: req.headers["user-agent"]
-              ? Buffer.from(req.headers["user-agent"] + (req.ip || ""))
-                  .toString("base64")
-                  .substring(0, 32)
-              : "unknown-device",
-            message: "This device has been registered and approved for admin access",
-          },
+        req.login(updatedAdmin as any, (err: any) => {
+          if (err) {
+            console.error("Connect master admin: session refresh failed:", err);
+            return res
+              .status(500)
+              .json({ message: "Facebook connected but session refresh failed" });
+          }
+          return res.json({
+            message: "Facebook account connected to admin account",
+            user: sanitizeUserForResponse(updatedAdmin),
+          });
         });
       } catch (error: any) {
         console.error("Connect master admin error:", error);
@@ -5429,7 +5431,6 @@ export async function registerRoutes(app: any) {
     passwordResetLimiter,
     async (req: Request, res: Response) => {
       try {
-        console.log("[REQUEST-PASSWORD-RESET] Request received:", { body: req.body });
         const { email } = req.body || {};
 
         if (!email) {
@@ -5437,22 +5438,20 @@ export async function registerRoutes(app: any) {
         }
 
         const user = await storage.getUserByEmail(String(email).toLowerCase());
-        console.log("[REQUEST-PASSWORD-RESET] Lookup:", {
-          email: String(email).toLowerCase(),
-          found: !!user,
-        });
+        const allowDebugArtifacts =
+          process.env.NODE_ENV !== "production" &&
+          process.env.APP_ENV !== "production" &&
+          process.env.ALLOW_PASSWORD_RESET_DEBUG === "true";
         let debugToken: string | undefined;
         let debugCode: string | undefined;
 
         if (user) {
-          console.log("[REQUEST-PASSWORD-RESET] User found:", { id: user.id, email: user.email });
           const { token, code, expiresAt } = passwordResetService.createToken(user.id);
           const resetBase =
             process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
           const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
           if (emailService.isConfigured()) {
-            console.log("[REQUEST-PASSWORD-RESET] Sending email...");
             await emailService.sendEmail({
               to: user.email,
               subject: "Reset your TradeScout password",
@@ -5463,30 +5462,25 @@ export async function registerRoutes(app: any) {
               text: `Reset your password: ${resetLink}\nVerification code: ${code}`,
               purpose: "password_reset",
             });
-            console.log("[REQUEST-PASSWORD-RESET] Email send attempted");
           } else {
             console.warn(
               `[password-reset] SendGrid not configured; token generated for ${user.email}`
             );
-            // Expose token only in non-production for manual smoke testing
-            const isProductionEnv =
-              process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
-            if (!isProductionEnv) {
+            if (allowDebugArtifacts) {
               debugToken = token;
               debugCode = code;
             }
           }
         }
 
-        console.log("[REQUEST-PASSWORD-RESET] Responding with message and debug artifacts:", {
-          debugToken,
-          debugCode,
-        });
-        res.json({
+        const payload: any = {
           message: "If an account exists for that email, a reset link has been sent.",
-          debugToken,
-          debugCode,
-        });
+        };
+        if (allowDebugArtifacts) {
+          payload.debugToken = debugToken;
+          payload.debugCode = debugCode;
+        }
+        res.json(payload);
       } catch (error: any) {
         console.error("[REQUEST-PASSWORD-RESET] CRITICAL ERROR:", error);
         console.error("[REQUEST-PASSWORD-RESET] Stack:", error?.stack);
@@ -5537,39 +5531,29 @@ export async function registerRoutes(app: any) {
       });
     }
     try {
-      console.log("[RESET-PASSWORD] Request received:", { body: req.body });
-
       const { token, newPassword } = req.body || {};
 
       if (!token || !newPassword) {
-        console.log("[RESET-PASSWORD] Missing token or newPassword");
         return res.status(400).json({ message: "Token and new password are required" });
       }
 
       if (typeof newPassword !== "string" || newPassword.length < 8) {
-        console.log("[RESET-PASSWORD] Invalid password length");
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
 
-      console.log("[RESET-PASSWORD] Consuming token...");
       const userId = passwordResetService.consumeToken(token);
 
       if (!userId) {
-        console.log("[RESET-PASSWORD] Invalid or expired token");
         return res.status(400).json({ message: "Invalid or expired token" });
       }
 
-      console.log("[RESET-PASSWORD] Token valid, userId:", userId);
-      console.log("[RESET-PASSWORD] Hashing password...");
       const passwordHash = await hashPassword(newPassword);
 
-      console.log("[RESET-PASSWORD] Updating user in database...");
-      const updated = await storage.updateUser(userId, {
+      await storage.updateUser(userId, {
         password: passwordHash,
         updatedAt: new Date(),
       });
 
-      console.log("[RESET-PASSWORD] User updated successfully:", { userId, updated });
       return res.json({ message: "Password has been reset successfully" });
     } catch (error: any) {
       console.error("[RESET-PASSWORD] CRITICAL ERROR:", error);
@@ -9923,36 +9907,10 @@ export async function registerRoutes(app: any) {
 
   // Emergency admin access route - allows Facebook login to become master admin
   app.post("/api/auth/emergency-admin-access", async (req: any, res: any) => {
-    try {
-      const { facebookId } = req.body;
-
-      // Check if this Facebook ID matches the master admin
-      if (facebookId !== "927070657") {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      // Get the master admin user
-      const [masterAdmin] = await db.select().from(users).where(eq(users.facebookId, facebookId));
-      if (!masterAdmin) {
-        return res.status(404).json({ message: "Master admin not found" });
-      }
-
-      // Create session for master admin
-      req.login(masterAdmin, (err: any) => {
-        if (err) {
-          return res.status(500).json({ message: "Login failed" });
-        }
-
-        res.json({
-          message: "Emergency admin access granted",
-          user: masterAdmin,
-          adminAccess: true,
-        });
-      });
-    } catch (error: any) {
-      console.error("Emergency admin access error:", error);
-      res.status(500).json({ message: "Emergency access failed" });
-    }
+    return res.status(410).json({
+      message:
+        "Emergency admin access has been disabled. Use normal admin authentication and role-gated admin tools.",
+    });
   });
 
   app.post("/api/auth/switch-role", isAuthenticated, async (req: any, res: any) => {
@@ -14560,13 +14518,36 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/admin/error-reports", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
-      const user = await storage.getUser(userId);
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const user = userId ? await storage.getUser(userId) : null;
 
-      if (
-        !user ||
-        !["head_admin", "moderator", "ops_admin", "support_agent"].includes(user.role || "")
-      ) {
+      const normalizeRole = (role: unknown): string => {
+        const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+        if (!raw) return "";
+        return raw === "owner" ? "head_admin" : raw;
+      };
+
+      const allowedRoles = new Set([
+        "head_admin",
+        "super_admin",
+        "moderator",
+        "ops_admin",
+        "support_agent",
+      ]);
+
+      const primaryRole = normalizeRole((user as any)?.role);
+      const activeRole = normalizeRole((user as any)?.activeRole);
+      const roleList = Array.isArray((user as any)?.roles)
+        ? (user as any).roles.map((r: any) => normalizeRole(r)).filter(Boolean)
+        : [];
+      const hasAccess =
+        (user as any)?.isAdmin === true ||
+        (user as any)?.isSuperAdmin === true ||
+        allowedRoles.has(primaryRole) ||
+        allowedRoles.has(activeRole) ||
+        roleList.some((r: string) => allowedRoles.has(r));
+
+      if (!user || !hasAccess) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -14581,13 +14562,36 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.patch("/api/admin/error-reports/:id", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
-      const user = await storage.getUser(userId);
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const user = userId ? await storage.getUser(userId) : null;
 
-      if (
-        !user ||
-        !["head_admin", "moderator", "ops_admin", "support_agent"].includes(user.role || "")
-      ) {
+      const normalizeRole = (role: unknown): string => {
+        const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+        if (!raw) return "";
+        return raw === "owner" ? "head_admin" : raw;
+      };
+
+      const allowedRoles = new Set([
+        "head_admin",
+        "super_admin",
+        "moderator",
+        "ops_admin",
+        "support_agent",
+      ]);
+
+      const primaryRole = normalizeRole((user as any)?.role);
+      const activeRole = normalizeRole((user as any)?.activeRole);
+      const roleList = Array.isArray((user as any)?.roles)
+        ? (user as any).roles.map((r: any) => normalizeRole(r)).filter(Boolean)
+        : [];
+      const hasAccess =
+        (user as any)?.isAdmin === true ||
+        (user as any)?.isSuperAdmin === true ||
+        allowedRoles.has(primaryRole) ||
+        allowedRoles.has(activeRole) ||
+        roleList.some((r: string) => allowedRoles.has(r));
+
+      if (!user || !hasAccess) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -14690,13 +14694,36 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/admin/error-report-stats", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
-      const user = await storage.getUser(userId);
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const user = userId ? await storage.getUser(userId) : null;
 
-      if (
-        !user ||
-        !["head_admin", "moderator", "ops_admin", "support_agent"].includes(user.role || "")
-      ) {
+      const normalizeRole = (role: unknown): string => {
+        const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+        if (!raw) return "";
+        return raw === "owner" ? "head_admin" : raw;
+      };
+
+      const allowedRoles = new Set([
+        "head_admin",
+        "super_admin",
+        "moderator",
+        "ops_admin",
+        "support_agent",
+      ]);
+
+      const primaryRole = normalizeRole((user as any)?.role);
+      const activeRole = normalizeRole((user as any)?.activeRole);
+      const roleList = Array.isArray((user as any)?.roles)
+        ? (user as any).roles.map((r: any) => normalizeRole(r)).filter(Boolean)
+        : [];
+      const hasAccess =
+        (user as any)?.isAdmin === true ||
+        (user as any)?.isSuperAdmin === true ||
+        allowedRoles.has(primaryRole) ||
+        allowedRoles.has(activeRole) ||
+        roleList.some((r: string) => allowedRoles.has(r));
+
+      if (!user || !hasAccess) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -14732,11 +14759,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     requireAdmin,
     async (req: any, res: any) => {
       try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
         const now = Date.now();
         const testReports = [
           {
             id: `TEST-${now}-1`,
-            userId: req.user?.claims?.sub || "test-user",
+            userId,
             userEmail: req.user?.email || null,
             title: "[TEST] Sample bug report",
             errorType: "test_data",
@@ -14749,7 +14780,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           },
           {
             id: `TEST-${now}-2`,
-            userId: req.user?.claims?.sub || "test-user",
+            userId,
             userEmail: req.user?.email || null,
             title: "[TEST] Sample UI issue",
             errorType: "test_data",
@@ -23144,39 +23175,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     res.json({ googleMapsApiKey });
   });
 
-  // 2. MESSAGING API - Basic endpoints (real-time via WebSocket in WebSocketManager)
-  app.post("/api/conversations", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      return res.status(400).json({
-        reasonCode: "MISSING_AUTHORITY_GATE",
-        message:
-          "Direct conversation creation is blocked. Use /api/social/conversations/start with authorityGate and intent.",
-      });
-    } catch (error: any) {
-      console.error("Error creating conversation:", error);
-      res.status(500).json({ message: "Failed to create conversation" });
-    }
-  });
-
-  app.get("/api/conversations", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-      const userConversations = await db
-        .select()
-        .from(conversations)
-        .where(
-          sql`${conversations.homeownerId} = ${userId} OR ${conversations.contractorId} = ${userId}`
-        )
-        .orderBy(desc(conversations.updatedAt));
-
-      res.json(userConversations);
-    } catch (error: any) {
-      console.error("Error fetching conversations:", error);
-      res.status(500).json({ message: "Failed to fetch conversations" });
-    }
-  });
+  // 2. MESSAGING API
+  // Note: /api/conversations handlers live earlier under "Chat system routes".
 
   // 3. STRIPE PAYMENT - Setup endpoint
   app.post("/api/payments/intent", isAuthenticated, async (req: AuthedRequest, res: Response) => {

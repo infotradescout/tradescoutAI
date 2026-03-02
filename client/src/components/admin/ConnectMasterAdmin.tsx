@@ -11,17 +11,12 @@ export default function ConnectMasterAdmin() {
 
   const connectMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/auth/connect-master-admin");
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to connect admin account");
-      }
-      return response.json();
+      return await apiRequest("POST", "/api/auth/connect-master-admin");
     },
     onSuccess: (data) => {
       toast({
         title: "Success!",
-        description: "Facebook account connected to master admin. You now have full admin access.",
+        description: "Facebook account connected to your admin account.",
       });
       // Refresh the page to update auth state
       setTimeout(() => {
@@ -65,12 +60,10 @@ export default function ConnectMasterAdmin() {
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <div className="flex items-center gap-3 mb-3">
               <UserCheck className="w-5 h-5 text-ts-orange" />
-              <span className="text-sm font-medium text-white/70">Master Admin Access</span>
+              <span className="text-sm font-medium text-white/70">Admin Access</span>
             </div>
             <p className="text-sm text-white/60">
-              Connect to: mrplatypus4777@gmail.com
-              <br />
-              Role: Super Admin
+              This connects your current Facebook login to your existing admin account.
             </p>
           </div>
 

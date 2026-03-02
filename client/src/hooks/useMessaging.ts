@@ -1,13 +1,13 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useState, useRef, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
 
 interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  senderType: 'homeowner' | 'contractor';
+  senderType: "homeowner" | "contractor";
   content: string;
-  messageType: 'text' | 'quote' | 'schedule' | 'materials' | 'image';
+  messageType: "text" | "quote" | "schedule" | "materials" | "image";
   metadata?: Record<string, any>;
   createdAt: Date;
   readAt?: Date;
@@ -17,7 +17,7 @@ interface Conversation {
   id: string;
   homeownerId: string;
   contractorId: string;
-  status: 'active' | 'closed' | 'archived';
+  status: "active" | "closed" | "archived";
   lastMessageAt: Date;
   homeownerRating?: number;
   contractorRating?: number;
@@ -44,57 +44,51 @@ export function useMessaging(userId: string) {
     // In Vite, env vars are exposed via import.meta.env
     const devPort = (import.meta.env.VITE_SERVER_PORT as string) || "5000";
 
-    const socketUrl = import.meta.env.PROD
-      ? window.location.origin
-      : `http://localhost:${devPort}`;
+    const socketUrl = import.meta.env.PROD ? window.location.origin : `http://localhost:${devPort}`;
 
     const newSocket: Socket = io(socketUrl, {
-      auth: {
-        userId,
-      },
+      withCredentials: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: maxReconnectAttempts,
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
     });
 
-    newSocket.on('connect', () => {
-      console.log('[Messaging] Connected to server');
+    newSocket.on("connect", () => {
+      console.log("[Messaging] Connected to server");
       setIsConnected(true);
       reconnectAttempts.current = 0;
       setError(null);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('[Messaging] Disconnected from server');
+    newSocket.on("disconnect", () => {
+      console.log("[Messaging] Disconnected from server");
       setIsConnected(false);
     });
 
-    newSocket.on('connect_error', (error: any) => {
-      console.error('[Messaging] Connection error:', error);
+    newSocket.on("connect_error", (error: any) => {
+      console.error("[Messaging] Connection error:", error);
       reconnectAttempts.current++;
       if (reconnectAttempts.current >= maxReconnectAttempts) {
-        setError('Unable to connect to messaging service. Please refresh the page.');
+        setError("Unable to connect to messaging service. Please refresh the page.");
       }
     });
 
-    newSocket.on('new_message', (message: Message) => {
-      console.log('[Messaging] New message received:', message);
+    newSocket.on("new_message", (message: Message) => {
+      console.log("[Messaging] New message received:", message);
       setMessages((prev) => [...prev, message]);
     });
 
-    newSocket.on('message_read', (data: { messageId: string; readAt: Date }) => {
+    newSocket.on("message_read", (data: { messageId: string; readAt: Date }) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === data.messageId
-            ? { ...msg, readAt: new Date(data.readAt) }
-            : msg
+          msg.id === data.messageId ? { ...msg, readAt: new Date(data.readAt) } : msg
         )
       );
     });
 
-    newSocket.on('user_typing', (data: { userId: string; conversationId: string }) => {
+    newSocket.on("user_typing", (data: { userId: string; conversationId: string }) => {
       if (data.conversationId === currentConversation) {
         setTypingUsers((prev) => {
           const updated = new Set(prev);
@@ -104,7 +98,7 @@ export function useMessaging(userId: string) {
       }
     });
 
-    newSocket.on('user_stopped_typing', (data: { userId: string; conversationId: string }) => {
+    newSocket.on("user_stopped_typing", (data: { userId: string; conversationId: string }) => {
       if (data.conversationId === currentConversation) {
         setTypingUsers((prev) => {
           const updated = new Set(prev);
@@ -114,8 +108,8 @@ export function useMessaging(userId: string) {
       }
     });
 
-    newSocket.on('message_notification', (data: any) => {
-      console.log('[Messaging] Message notification:', data);
+    newSocket.on("message_notification", (data: any) => {
+      console.log("[Messaging] Message notification:", data);
       // Could trigger notification here
     });
 
@@ -132,7 +126,7 @@ export function useMessaging(userId: string) {
 
     setIsLoading(true);
     try {
-      socket.emit('load_conversations', (response: any) => {
+      socket.emit("load_conversations", (response: any) => {
         if (response.success) {
           setConversations(response.conversations);
           setError(null);
@@ -155,7 +149,7 @@ export function useMessaging(userId: string) {
       setCurrentConversation(conversationId);
       setIsLoading(true);
       try {
-        socket.emit('join_conversation', conversationId, (response: any) => {
+        socket.emit("join_conversation", conversationId, (response: any) => {
           if (response.success) {
             setMessages(response.messages);
             setError(null);
@@ -174,15 +168,15 @@ export function useMessaging(userId: string) {
 
   // Send message
   const sendMessage = useCallback(
-    async (content: string, messageType: string = 'text', metadata?: Record<string, any>) => {
+    async (content: string, messageType: string = "text", metadata?: Record<string, any>) => {
       if (!socket || !currentConversation) {
-        setError('No active conversation');
+        setError("No active conversation");
         return;
       }
 
       try {
         socket.emit(
-          'send_message',
+          "send_message",
           {
             conversationId: currentConversation,
             content,
@@ -209,9 +203,9 @@ export function useMessaging(userId: string) {
     (messageId: string) => {
       if (!socket) return;
 
-      socket.emit('mark_read', messageId, (response: any) => {
+      socket.emit("mark_read", messageId, (response: any) => {
         if (!response.success) {
-          console.error('[Messaging] Error marking read:', response.error);
+          console.error("[Messaging] Error marking read:", response.error);
         }
       });
     },
@@ -221,13 +215,13 @@ export function useMessaging(userId: string) {
   // Send typing indicator
   const notifyTyping = useCallback(() => {
     if (!socket || !currentConversation) return;
-    socket.emit('typing', currentConversation);
+    socket.emit("typing", currentConversation);
   }, [socket, currentConversation]);
 
   // Stop typing indicator
   const notifyStoppedTyping = useCallback(() => {
     if (!socket || !currentConversation) return;
-    socket.emit('stop_typing', currentConversation);
+    socket.emit("stop_typing", currentConversation);
   }, [socket, currentConversation]);
 
   return {

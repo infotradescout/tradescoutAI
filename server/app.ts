@@ -105,7 +105,16 @@ export async function createApp() {
   ].map((o) => o.toLowerCase());
 
   const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
-  const allowAllCors = rawAllowlist === "*";
+  const isProductionEnv =
+    process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+  const allowAllCorsRequested = rawAllowlist === "*";
+  const allowAllCors = allowAllCorsRequested && !isProductionEnv;
+
+  if (allowAllCorsRequested && isProductionEnv) {
+    console.error(
+      "[HTTP] Refusing CORS_ALLOWED_ORIGINS='*' in production; falling back to explicit allowlist only."
+    );
+  }
 
   if (rawAllowlist && rawAllowlist !== "*") {
     for (const origin of rawAllowlist.split(",")) {
@@ -116,7 +125,7 @@ export async function createApp() {
     }
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProductionEnv) {
     const devOrigins = [
       "http://localhost:3000",
       "http://localhost:5173",
@@ -134,14 +143,16 @@ export async function createApp() {
       if (!origin) return callback(null, true);
       const normalized = origin.toLowerCase();
       if (allowAllCors) return callback(null, true);
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
-        return callback(null, true);
+      if (!isProductionEnv) {
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+          return callback(null, true);
+        }
+        const sameHostOrigins = [
+          `http://localhost:${PORT}`.toLowerCase(),
+          `https://localhost:${PORT}`.toLowerCase(),
+        ];
+        if (sameHostOrigins.includes(normalized)) return callback(null, true);
       }
-      const sameHostOrigins = [
-        `http://localhost:${PORT}`.toLowerCase(),
-        `https://localhost:${PORT}`.toLowerCase(),
-      ];
-      if (sameHostOrigins.includes(normalized)) return callback(null, true);
       if (ALLOWED_ORIGINS.includes(normalized)) return callback(null, true);
       return callback(new Error(`CORS: Origin not allowed: ${origin}`));
     },

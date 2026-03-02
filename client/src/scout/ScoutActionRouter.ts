@@ -142,7 +142,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
       try {
         await followUser(targetId);
         // After follow, take the user to their connections view so they see the change.
-        helpers.navigate("/connections");
+        helpers.navigate("/connections?tab=social");
       } catch (err) {
         console.error("Failed to follow user from Scout action", err);
       }
@@ -157,7 +157,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
 
       try {
         await unfollowUser(targetId);
-        helpers.navigate("/connections");
+        helpers.navigate("/connections?tab=social");
       } catch (err) {
         console.error("Failed to unfollow user from Scout action", err);
       }

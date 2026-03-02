@@ -328,7 +328,16 @@ const ALLOWED_ORIGINS: string[] = [
 ].map((o) => o.toLowerCase());
 
 const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
-const allowAllCors = rawAllowlist === "*";
+const isProductionEnv =
+  process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+const allowAllCorsRequested = rawAllowlist === "*";
+const allowAllCors = allowAllCorsRequested && !isProductionEnv;
+
+if (allowAllCorsRequested && isProductionEnv) {
+  console.error(
+    "[HTTP] Refusing CORS_ALLOWED_ORIGINS='*' in production; falling back to explicit allowlist only."
+  );
+}
 
 if (rawAllowlist && rawAllowlist !== "*") {
   for (const origin of rawAllowlist.split(",")) {
@@ -340,7 +349,7 @@ if (rawAllowlist && rawAllowlist !== "*") {
   }
 }
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProductionEnv) {
   const devOrigins = ["http://localhost:3000", "http://localhost:5173", `http://localhost:${PORT}`];
   for (const devOrigin of devOrigins) {
     if (!ALLOWED_ORIGINS.includes(devOrigin)) {
@@ -358,16 +367,18 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
 
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(normalized)) {
-      return callback(null, true);
-    }
+    if (!isProductionEnv) {
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/.test(normalized)) {
+        return callback(null, true);
+      }
 
-    const sameHostOrigins = [
-      `http://localhost:${PORT}`.toLowerCase(),
-      `https://localhost:${PORT}`.toLowerCase(),
-    ];
-    if (sameHostOrigins.includes(normalized)) {
-      return callback(null, true);
+      const sameHostOrigins = [
+        `http://localhost:${PORT}`.toLowerCase(),
+        `https://localhost:${PORT}`.toLowerCase(),
+      ];
+      if (sameHostOrigins.includes(normalized)) {
+        return callback(null, true);
+      }
     }
 
     if (ALLOWED_ORIGINS.includes(normalized)) {

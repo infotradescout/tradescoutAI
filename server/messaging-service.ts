@@ -1,9 +1,108 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import { Server as HTTPServer } from 'http';
-import { db } from './db';
-import { conversations, messages, users } from '@shared/schema';
-import { eq, and, or, desc } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
+import { Server as SocketIOServer, Socket } from "socket.io";
+import { Server as HTTPServer } from "http";
+import { db } from "./db";
+import { conversations, messages, users } from "@shared/schema";
+import { eq, and, or, desc } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
+import { getSession } from "./auth";
+
+const PORT = parseInt(process.env.PORT || "5000", 10);
+
+const SOCKET_ALLOWED_ORIGINS: string[] = [
+  "https://www.thetradescout.com",
+  "https://thetradescout.com",
+  "https://tradescoutai.onrender.com",
+].map((o) => o.toLowerCase());
+
+const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
+const allowAllCorsRequested = rawAllowlist === "*";
+const isProductionEnv =
+  process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+const allowAllCors = allowAllCorsRequested && !isProductionEnv;
+
+if (allowAllCorsRequested && isProductionEnv) {
+  console.error(
+    "[Messaging] Refusing CORS_ALLOWED_ORIGINS='*' in production; falling back to explicit allowlist only."
+  );
+}
+
+if (rawAllowlist && rawAllowlist !== "*") {
+  for (const origin of rawAllowlist.split(",")) {
+    const normalized = origin.trim().toLowerCase();
+    if (!normalized) continue;
+    if (!SOCKET_ALLOWED_ORIGINS.includes(normalized)) {
+      SOCKET_ALLOWED_ORIGINS.push(normalized);
+    }
+  }
+}
+
+if (!isProductionEnv) {
+  const devOrigins = ["http://localhost:3000", "http://localhost:5173", `http://localhost:${PORT}`];
+  for (const devOrigin of devOrigins) {
+    if (!SOCKET_ALLOWED_ORIGINS.includes(devOrigin)) {
+      SOCKET_ALLOWED_ORIGINS.push(devOrigin);
+    }
+  }
+}
+
+function isSocketOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const normalized = origin.toLowerCase();
+
+  if (allowAllCors) return true;
+
+  if (!isProductionEnv && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+    return true;
+  }
+
+  if (!isProductionEnv) {
+    const sameHostOrigins = [
+      `http://localhost:${PORT}`.toLowerCase(),
+      `https://localhost:${PORT}`.toLowerCase(),
+    ];
+    if (sameHostOrigins.includes(normalized)) {
+      return true;
+    }
+  }
+
+  return SOCKET_ALLOWED_ORIGINS.includes(normalized);
+}
+
+const socketSessionMiddleware = getSession();
+const socketSessionResShim: any = {
+  getHeader: () => undefined,
+  setHeader: () => undefined,
+};
+
+async function loadSocketSession(socket: Socket): Promise<any | null> {
+  return await new Promise((resolve, reject) => {
+    try {
+      socketSessionMiddleware(socket.request as any, socketSessionResShim, (err: any) => {
+        if (err) return reject(err);
+        resolve((socket.request as any).session ?? null);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function extractSessionUserId(session: any): string | null {
+  const passportUser = session?.passport?.user;
+
+  if (typeof passportUser === "string" && passportUser.trim()) {
+    return passportUser.trim();
+  }
+
+  if (passportUser && typeof passportUser === "object") {
+    const idCandidate = (passportUser as any).id ?? (passportUser as any)?.claims?.sub;
+    if (typeof idCandidate === "string" && idCandidate.trim()) {
+      return idCandidate.trim();
+    }
+  }
+
+  return null;
+}
 
 interface ConnectedUser {
   userId: string;
@@ -19,11 +118,14 @@ export class MessagingService {
   constructor(httpServer: HTTPServer) {
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
+        origin: (origin, callback) => {
+          if (isSocketOriginAllowed(origin)) return callback(null, true);
+          return callback(new Error("Socket origin not allowed"), false);
+        },
+        methods: ["GET", "POST"],
         credentials: true,
       },
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
       pingInterval: 25000,
       pingTimeout: 10000,
     });
@@ -35,25 +137,35 @@ export class MessagingService {
   private setupMiddleware() {
     this.io.use(async (socket, next) => {
       try {
-        const session = (socket.handshake.auth as any)?.session;
-        const userId = (socket.handshake.auth as any)?.userId;
-
-        if (!userId) {
-          return next(new Error('Authentication failed: missing userId'));
+        const session = await loadSocketSession(socket);
+        const sessionUserId = extractSessionUserId(session);
+        if (!sessionUserId) {
+          return next(new Error("Authentication failed: missing session user"));
         }
+
+        const requestedUserId = String((socket.handshake.auth as any)?.userId || "").trim();
+        if (requestedUserId && requestedUserId !== sessionUserId) {
+          console.warn(
+            `[Messaging] Ignoring client-provided userId (${requestedUserId}) that does not match session userId (${sessionUserId}).`
+          );
+        }
+
+        const impersonatedUserId = String((session as any)?.impersonatedUserId || "").trim();
+        const isImpersonating =
+          (session as any)?.isImpersonating === true && Boolean((session as any)?.originalUser);
+        const effectiveUserId =
+          isImpersonating && impersonatedUserId ? impersonatedUserId : sessionUserId;
 
         // Verify user exists
-        const user = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-
+        const user = await db.select().from(users).where(eq(users.id, effectiveUserId)).limit(1);
         if (!user || user.length === 0) {
-          return next(new Error('Authentication failed: user not found'));
+          return next(new Error("Authentication failed: user not found"));
         }
 
-        socket.data.userId = userId;
+        socket.data.userId = effectiveUserId;
+        socket.data.sessionUserId = sessionUserId;
+        socket.data.isImpersonating = isImpersonating && Boolean(impersonatedUserId);
+
         next();
       } catch (error) {
         next(new Error(`Authentication error: ${(error as Error).message}`));
@@ -62,7 +174,7 @@ export class MessagingService {
   }
 
   private setupEventHandlers() {
-    this.io.on('connection', (socket: Socket) => {
+    this.io.on("connection", (socket: Socket) => {
       const userId = socket.data.userId as string;
       console.log(`[Messaging] User connected: ${userId} (socket: ${socket.id})`);
 
@@ -74,16 +186,13 @@ export class MessagingService {
       });
 
       // Load user's conversations
-      socket.on('load_conversations', async (cb) => {
+      socket.on("load_conversations", async (cb) => {
         try {
           const userConversations = await db
             .select()
             .from(conversations)
             .where(
-              or(
-                eq(conversations.homeownerId, userId),
-                eq(conversations.contractorId, userId)
-              )
+              or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
             )
             .orderBy(desc(conversations.lastMessageAt));
 
@@ -97,13 +206,13 @@ export class MessagingService {
 
           cb({ success: true, conversations: userConversations });
         } catch (error) {
-          console.error('[Messaging] Error loading conversations:', error);
+          console.error("[Messaging] Error loading conversations:", error);
           cb({ success: false, error: (error as Error).message });
         }
       });
 
       // Join conversation
-      socket.on('join_conversation', async (conversationId: string, cb) => {
+      socket.on("join_conversation", async (conversationId: string, cb) => {
         try {
           // Verify user is part of conversation
           const conv = await db
@@ -112,16 +221,13 @@ export class MessagingService {
             .where(
               and(
                 eq(conversations.id, conversationId),
-                or(
-                  eq(conversations.homeownerId, userId),
-                  eq(conversations.contractorId, userId)
-                )
+                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
               )
             )
             .limit(1);
 
           if (!conv || conv.length === 0) {
-            return cb({ success: false, error: 'Not authorized for this conversation' });
+            return cb({ success: false, error: "Not authorized for this conversation" });
           }
 
           const connectedUser = this.connectedUsers.get(userId);
@@ -141,15 +247,15 @@ export class MessagingService {
 
           cb({ success: true, messages: messageHistory });
         } catch (error) {
-          console.error('[Messaging] Error joining conversation:', error);
+          console.error("[Messaging] Error joining conversation:", error);
           cb({ success: false, error: (error as Error).message });
         }
       });
 
       // Send message
-      socket.on('send_message', async (data, cb) => {
+      socket.on("send_message", async (data, cb) => {
         try {
-          const { conversationId, content, messageType = 'text', metadata } = data;
+          const { conversationId, content, messageType = "text", metadata } = data;
 
           // Verify user is part of conversation
           const conv = await db
@@ -158,20 +264,17 @@ export class MessagingService {
             .where(
               and(
                 eq(conversations.id, conversationId),
-                or(
-                  eq(conversations.homeownerId, userId),
-                  eq(conversations.contractorId, userId)
-                )
+                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
               )
             )
             .limit(1);
 
           if (!conv || conv.length === 0) {
-            return cb({ success: false, error: 'Not authorized for this conversation' });
+            return cb({ success: false, error: "Not authorized for this conversation" });
           }
 
           // Determine sender type
-          const senderType = conv[0].homeownerId === userId ? 'homeowner' : 'contractor';
+          const senderType = conv[0].homeownerId === userId ? "homeowner" : "contractor";
 
           // [USER-CONTEXT] Track interaction type for language personalization
           // This metadata helps Scout understand user preferences and communication patterns
@@ -214,78 +317,99 @@ export class MessagingService {
             readAt: null,
           };
 
-          this.io.to(`conversation:${conversationId}`).emit('new_message', messageData);
+          this.io.to(`conversation:${conversationId}`).emit("new_message", messageData);
 
           // Emit notification to other user
-          const otherUserId = conv[0].homeownerId === userId
-            ? conv[0].contractorId
-            : conv[0].homeownerId;
+          const otherUserId =
+            conv[0].homeownerId === userId ? conv[0].contractorId : conv[0].homeownerId;
 
           const otherUserConnection = this.connectedUsers.get(otherUserId);
           if (otherUserConnection) {
-            otherUserConnection.socket.emit('message_notification', {
+            otherUserConnection.socket.emit("message_notification", {
               conversationId,
               senderId: userId,
               senderType,
-              message: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+              message: content.substring(0, 50) + (content.length > 50 ? "..." : ""),
               createdAt: new Date(),
             });
           }
 
           cb({ success: true, message: messageData });
         } catch (error) {
-          console.error('[Messaging] Error sending message:', error);
+          console.error("[Messaging] Error sending message:", error);
           cb({ success: false, error: (error as Error).message });
         }
       });
 
       // Mark message as read
-      socket.on('mark_read', async (messageId: string, cb) => {
+      socket.on("mark_read", async (messageId: string, cb) => {
         try {
-          await db
-            .update(messages)
-            .set({ readAt: new Date() })
-            .where(eq(messages.id, messageId));
-
-          // Broadcast read receipt
-          const message = await db
+          const [message] = await db
             .select()
             .from(messages)
             .where(eq(messages.id, messageId))
             .limit(1);
-
-          if (message && message.length > 0) {
-            this.io.to(`conversation:${message[0].conversationId}`).emit('message_read', {
-              messageId,
-              readAt: new Date(),
-            });
+          if (!message) {
+            return cb({ success: false, error: "Message not found" });
           }
+
+          const conv = await db
+            .select()
+            .from(conversations)
+            .where(
+              and(
+                eq(conversations.id, message.conversationId),
+                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
+              )
+            )
+            .limit(1);
+
+          if (!conv || conv.length === 0) {
+            return cb({ success: false, error: "Not authorized to update this message" });
+          }
+
+          const readAt = new Date();
+          await db.update(messages).set({ readAt }).where(eq(messages.id, messageId));
+
+          // Broadcast read receipt
+          this.io.to(`conversation:${message.conversationId}`).emit("message_read", {
+            messageId,
+            readAt,
+          });
 
           cb({ success: true });
         } catch (error) {
-          console.error('[Messaging] Error marking read:', error);
+          console.error("[Messaging] Error marking read:", error);
           cb({ success: false, error: (error as Error).message });
         }
       });
 
       // Typing indicator
-      socket.on('typing', (conversationId: string) => {
-        socket.broadcast.to(`conversation:${conversationId}`).emit('user_typing', {
+      socket.on("typing", (conversationId: string) => {
+        if (!conversationId) return;
+        const connectedUser = this.connectedUsers.get(userId);
+        if (!connectedUser?.conversationIds.has(conversationId)) return;
+
+        socket.broadcast.to(`conversation:${conversationId}`).emit("user_typing", {
           userId,
           conversationId,
         });
       });
 
       // Stop typing
-      socket.on('stop_typing', (conversationId: string) => {
-        socket.broadcast.to(`conversation:${conversationId}`).emit('user_stopped_typing', {
+      socket.on("stop_typing", (conversationId: string) => {
+        if (!conversationId) return;
+        const connectedUser = this.connectedUsers.get(userId);
+        if (!connectedUser?.conversationIds.has(conversationId)) return;
+
+        socket.broadcast.to(`conversation:${conversationId}`).emit("user_stopped_typing", {
           userId,
           conversationId,
         });
       });
 
       // Disconnect
-      socket.on('disconnect', () => {
+      socket.on("disconnect", () => {
         console.log(`[Messaging] User disconnected: ${userId} (socket: ${socket.id})`);
         this.connectedUsers.delete(userId);
       });
@@ -322,7 +446,7 @@ export class MessagingService {
         id,
         homeownerId,
         contractorId,
-        status: 'active',
+        status: "active",
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any);
@@ -335,7 +459,7 @@ export class MessagingService {
 
       return newConv[0];
     } catch (error) {
-      console.error('[Messaging] Error creating conversation:', error);
+      console.error("[Messaging] Error creating conversation:", error);
       throw error;
     }
   }
@@ -364,38 +488,38 @@ function extractInteractionSignature(content: string): string[] {
 
   // Communication style
   if (/[!]{2,}|[?]{2,}|^\s*YES|^\s*NO|very|extremely/.test(lower)) {
-    signatures.push('emphatic');
+    signatures.push("emphatic");
   }
   if (/please|thanks|thank you|would you|could you/.test(lower)) {
-    signatures.push('formal_polite');
+    signatures.push("formal_polite");
   }
   if (/hey|thanks|cool|awesome|great/.test(lower)) {
-    signatures.push('casual_friendly');
+    signatures.push("casual_friendly");
   }
 
   // Domain signals
   if (/roofing|plumb|electric|hvac|contractor|build|construct|renovate|install/.test(lower)) {
-    signatures.push('construction_domain');
+    signatures.push("construction_domain");
   }
   if (/price|cost|budget|afford|expensive|cheap/.test(lower)) {
-    signatures.push('pricing_focused');
+    signatures.push("pricing_focused");
   }
   if (/timeline|urgent|rush|asap|soon|available|schedule/.test(lower)) {
-    signatures.push('time_sensitive');
+    signatures.push("time_sensitive");
   }
   if (/review|quality|experience|recommend|trustworthy|verify/.test(lower)) {
-    signatures.push('quality_conscious');
+    signatures.push("quality_conscious");
   }
 
   // Relationship signals
   if (/community|neighbor|local|area|county|nearby/.test(lower)) {
-    signatures.push('community_engaged');
+    signatures.push("community_engaged");
   }
   if (/business|offer|service|client|customer|hire/.test(lower)) {
-    signatures.push('business_service');
+    signatures.push("business_service");
   }
 
-  return signatures.length > 0 ? signatures : ['neutral'];
+  return signatures.length > 0 ? signatures : ["neutral"];
 }
 
 // Helper to manage Socket.io service globally
@@ -408,7 +532,7 @@ export function initializeMessagingService(httpServer: HTTPServer): MessagingSer
 
 export function getMessagingService(): MessagingService {
   if (!messagingService) {
-    throw new Error('Messaging service not initialized');
+    throw new Error("Messaging service not initialized");
   }
   return messagingService;
 }
