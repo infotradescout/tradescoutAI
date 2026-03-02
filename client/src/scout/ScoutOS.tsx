@@ -1,5 +1,5 @@
-﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
@@ -21,11 +21,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import ScoutInput from "./ScoutInput";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
 import { executeScoutActions } from "./ScoutActionRouter";
-import { getUserAudienceLabel } from "@/lib/copyHelpers";
 import { ROUTES } from "@/lib/routes";
 import type { ScoutAction, ScoutCluster, ScoutMessage } from "./state";
 import { useSession } from "../contexts/SessionContext";
@@ -70,9 +68,7 @@ import {
 import {
   getProviderRequirements,
   getProviderStanding,
-  proposeProviderProfileUpdate,
   type ProviderStanding,
-  type ProviderProfileProposal,
 } from "@/agent/tools/providers";
 import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 import { useScoutOnboarding } from "./useScoutOnboarding";
@@ -84,7 +80,6 @@ import type { ProfileDraft } from "@/types/profileDraft";
 import { useScoutMode } from "./useScoutMode";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
-import type { ScoutMode as ScoutModeType } from "./scoutModeTypes";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 import ObjectiveChip from "./ObjectiveChip";
@@ -327,9 +322,6 @@ export default function ScoutOS() {
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [overridePendingScope, setOverridePendingScope] = useState<string | null>(null);
   const [introDemoText, setIntroDemoText] = useState("");
-  const [introDemoState, setIntroDemoState] = useState<
-    "idle" | "typing" | "armingSend" | "sending" | "done"
-  >("idle");
   const [isUpdatingGeo, setIsUpdatingGeo] = useState(false);
   const [autoRouteEnabled, setAutoRouteEnabled] = useState<boolean>(() => {
     try {
@@ -376,10 +368,6 @@ export default function ScoutOS() {
     }
   });
   const autoRouteTimerRef = useRef<number | null>(null);
-  const introTimersRef = useRef<{
-    typeTimer: number | null;
-    startTimer: number | null;
-  }>({ typeTimer: null, startTimer: null });
   const { sessionRole } = useSession();
 
   const hasPlayedDemoThisSession = (() => {
@@ -447,11 +435,6 @@ export default function ScoutOS() {
   // Removed client-side injected welcome message to avoid collision
   // with auto-typing demo. Scout should not speak until the user (or
   // auto demo) sends the first message.
-
-  const unreadMessages = (user as any)?.unreadMessages ?? (user as any)?.unreadMessageCount ?? 0;
-
-  const unreadNotifications =
-    (user as any)?.unreadNotifications ?? (user as any)?.unreadNotificationCount ?? 0;
 
   const locationCtx = useLocationContext();
   const countyCommitted = hasCountyContext(locationCtx as any);
@@ -600,11 +583,7 @@ export default function ScoutOS() {
   );
 
   const userRoles = (user as any)?.roles as string[] | undefined;
-  const hasRoles = Array.isArray(userRoles) && userRoles.length > 0;
   const isGuest = !isAuthenticated;
-  const isSuperAdminTester =
-    (Array.isArray(userRoles) && userRoles.some((r) => r.toLowerCase() === "super_admin")) ||
-    (typeof sessionRole === "string" && sessionRole.toLowerCase() === "super_admin");
 
   const isBusy =
     state.status === "resolving_context" ||
@@ -909,14 +888,13 @@ export default function ScoutOS() {
         isGuest,
         hasMessages,
         hasUserMessages,
-        introDemoState,
         sessionPlayed,
         shouldPlayIntroDemo,
       });
     } catch {
       // ignore
     }
-  }, [isAuthenticated, isGuest, hasMessages, hasUserMessages, introDemoState, shouldPlayIntroDemo]);
+  }, [isAuthenticated, isGuest, hasMessages, hasUserMessages, shouldPlayIntroDemo]);
 
   // Clear any stale prefill on first guest visit so input is always empty
   useEffect(() => {
@@ -1078,7 +1056,7 @@ export default function ScoutOS() {
   };
 
   const handleSend = useCallback(
-    async (value: string, explicitMode?: ScoutMode, opts?: { isScriptedIntro?: boolean }) => {
+    async (value: string, explicitMode?: ScoutMode, _opts?: { isScriptedIntro?: boolean }) => {
       if (containsProfanity(value)) {
         const blocked: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -1098,7 +1076,6 @@ export default function ScoutOS() {
         return;
       }
 
-      const isFirstAnswer = !hasSeenFirstAnswer();
       const rolesForRequest =
         (userRoles && userRoles.length > 0
           ? userRoles
@@ -1635,24 +1612,8 @@ export default function ScoutOS() {
           }
 
           const countyFips = (locationCtx as any).countyFips as string | undefined;
-          const countyName = (locationCtx as any).countyName || (locationCtx as any).county;
-          const stateCode = (locationCtx as any).stateCode;
 
           let requirementsSummary: string | undefined;
-
-          // Build a pure provider profile proposal; no writes, no API calls.
-          const proposal: ProviderProfileProposal | null =
-            selectedTrade && stateCode
-              ? proposeProviderProfileUpdate({
-                  services: [selectedTrade.name || selectedTrade.slug || ""].filter(Boolean),
-                  serviceAreas: [
-                    {
-                      state: stateCode,
-                      county: countyName,
-                    },
-                  ],
-                })
-              : null;
 
           // Best-effort: fetch requirements so the user knows what promotion will expect.
           if (selectedTrade && countyFips) {
@@ -2093,7 +2054,10 @@ export default function ScoutOS() {
             const m = value.match(k);
             if (!m) return null;
 
-            const after = value.slice(m.index! + m[0].length).trim();
+            const matchIndex = m.index;
+            if (typeof matchIndex !== "number") return null;
+
+            const after = value.slice(matchIndex + m[0].length).trim();
             if (!after) return null;
             // Stop at common location delimiters
             const stop = after.split(/\b(in|near|around)\b/i)[0].trim();
@@ -2134,11 +2098,15 @@ export default function ScoutOS() {
                     .sort((a, b) => b - a)[1] ?? 0)
                 : 0;
 
+            const bestMatchScore = bestMatch?.score ?? 0;
+            const bestMatchContractor = bestMatch?.contractor;
+            const bestMatchNavTarget =
+              bestMatchContractor?.profileUrl ||
+              (bestMatchContractor ? `/contractors/${bestMatchContractor.id}` : "/direct-connect");
             const shouldAutoToProfile =
               Boolean(nameQuery) &&
-              Boolean(bestMatch) &&
-              bestMatch!.score >= 0.9 &&
-              (contractors.length === 1 || bestMatch!.score - secondBestScore >= 0.08);
+              bestMatchScore >= 0.9 &&
+              (contractors.length === 1 || bestMatchScore - secondBestScore >= 0.08);
 
             const contractorClusters: ScoutCluster[] = contractors.slice(0, 3).map((c) => ({
               id: `contractor-${c.id}`,
@@ -2182,9 +2150,7 @@ export default function ScoutOS() {
                 : `Found ${contractors.length} ${trade} contractors near ${locality.county}, ${locality.state}. Here are the top matches:`,
               timestamp: new Date().toISOString(),
               clusters: contractorClustersWithCtas,
-              navTarget: shouldAutoToProfile
-                ? bestMatch!.contractor.profileUrl || `/contractors/${bestMatch!.contractor.id}`
-                : "/direct-connect",
+              navTarget: shouldAutoToProfile ? bestMatchNavTarget : "/direct-connect",
               memoryDelta: {
                 lastViewedTrade: trade,
                 lastIntent: "find_contractors",
@@ -2201,11 +2167,11 @@ export default function ScoutOS() {
             const msg = msgBase;
             applyServerResponse(msg, []);
 
-            if (shouldAutoToProfile) {
+            if (shouldAutoToProfile && bestMatchContractor) {
               queueAutoRoute({
                 to: msg.navTarget || "/direct-connect",
-                label: bestMatch!.contractor.name,
-                confidence: bestMatch!.score,
+                label: bestMatchContractor.name,
+                confidence: bestMatchScore,
                 why: "Name match",
               });
             }
@@ -2482,11 +2448,6 @@ export default function ScoutOS() {
         setStatus("ready");
 
         const isFirstAnswer = !hasSeenFirstAnswer();
-        const isScriptedIntro =
-          !isAuthenticated &&
-          isFirstAnswer &&
-          !!opts?.isScriptedIntro &&
-          firstIntroAppendix.trim().length > 0;
 
         const smartSuggestions = buildSmartSuggestions(mode, value, res.suggestedActions, {
           isFirstAnswer,
@@ -3127,16 +3088,6 @@ export default function ScoutOS() {
   }, [location, state.messages, handleSend, setPrefillKey, shouldPlayIntroDemo]);
 
   const heroLocationLabel = formatCityOnly({ label: locationCtx.label });
-  const heroAudienceLabel = getUserAudienceLabel(user as any);
-  const heroHeadlineTarget = (() => {
-    if (isAuthenticated && heroLocationLabel) {
-      return heroLocationLabel;
-    }
-    if (heroLocationLabel && heroLocationLabel.toLowerCase() !== "your area") {
-      return heroLocationLabel;
-    }
-    return "your area";
-  })();
 
   const handleUseDeviceLocation = useCallback(() => {
     if (isUpdatingGeo) return;
