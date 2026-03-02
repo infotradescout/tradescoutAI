@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Legacy route module ingests dynamic JSON across many endpoints; incremental hardening tracked separately. */
 import scoutRoute from "./routes/scout";
 import { ClaimSource, ClaimType } from "./services/claimEventSchema";
-import { resolveCountyFips } from "./services/regionResolver";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import express from "express";
@@ -48,7 +48,7 @@ import partnerInterestRouter from "./routes/partner-interest";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
-import { sendInternalServerError, sendAutoClassifiedError } from "./utils/httpErrors";
+import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
@@ -71,7 +71,6 @@ import {
   businesses,
   affiliateAccounts,
   affiliateReferrals,
-  affiliatePayouts,
   affiliateShareLinks,
   affiliateTrafficEvents,
   generatedStories,
@@ -104,7 +103,6 @@ import {
   insertCarSalesmanProfileSchema,
   insertGeneratedStorySchema,
   insertLeadSchema,
-  insertGrowthPackDownloadSchema,
   insertContractorPromoSchema,
   insertMarketplaceCategorySchema,
   insertMarketplaceListingSchema,
@@ -122,7 +120,6 @@ import {
   userFollows,
   walletTransactions,
   marketplaceTransactions,
-  profiles,
   userProfiles,
   businessCounties,
   // Home Vault + Property Lifecycle OS (used by intent-gated home report sharing in messages)
@@ -143,10 +140,11 @@ function sanitizeContractorPublic<T extends Record<string, any>>(
 ): Omit<T, "phone" | "email"> {
   if (!contractor || typeof contractor !== "object") return contractor as any;
   const { phone, email, ...rest } = contractor as any;
+  void phone;
+  void email;
   return rest;
 }
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
-import type { AffiliateAccount, AffiliateReferral, AffiliatePayout } from "../shared/schema";
 import { storage } from "./storage";
 import {
   setupAuth,
@@ -199,15 +197,9 @@ type AuthedRequest = Request & {
 };
 
 type ExpressHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
-type AuthedHandler = (
-  req: AuthedRequest,
-  res: Response,
-  next: NextFunction
-) => void | Promise<void>;
 import { eq, ne, desc, and, or, sql, gt, gte, lte, asc, inArray, isNull } from "drizzle-orm";
 // Removed duplicate User import
 // Stubs for undeclared globals
-const program = {};
 const DeviceAuthService = {
   registerTrustedDevice: async () => "token",
   getUserDevices: async () => [],

@@ -34,6 +34,9 @@ agent-runtime/logs/
 
 # Local eslint reports
 artifacts/eslint-report.json
+artifacts/*.json
+artifacts/*.html
+artifacts/*.txt
 
 # Playwright
 .playwright/
