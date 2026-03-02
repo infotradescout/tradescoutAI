@@ -304,9 +304,52 @@ export default function Exchange() {
     "exact"
   );
   const [sellImages, setSellImages] = useState<string[]>([]);
-  const [sellCategoryId, setSellCategoryId] = useState<string>("");
+  const [sellCategorySlug, setSellCategorySlug] = useState<string>("");
   const [sellCondition, setSellCondition] = useState<string>("");
   const [hasScoutDraft, setHasScoutDraft] = useState(false);
+
+  const { data: marketplaceCategories = [] } = useQuery<any[]>({
+    queryKey: ["/api/marketplace/categories"],
+    retry: false,
+  });
+
+  const exchangeSlugToMarketplaceCategoryName: Record<string, string> = useMemo(
+    () => ({
+      business: "Sell Your Business",
+      "real-estate": "Real Estate",
+      vehicles: "Vehicles",
+      construction: "Construction Equipment",
+      tools: "Tools & Hardware",
+      furniture: "Furniture & Home Goods",
+      farm: "Farm Equipment",
+      "business-equipment": "Business Equipment",
+      electronics: "Electronics & Technology",
+      sports: "Sports & Recreation",
+      collectibles: "Art & Collectibles",
+      jewelry: "Jewelry & Luxury Items",
+      "local-food": "Local Food & Artisan Goods",
+      metals: "Precious Metals (Physical)",
+      other: "Other High-Value Items",
+    }),
+    []
+  );
+
+  const resolveMarketplaceCategoryId = useMemo(() => {
+    const byName = new Map<string, string>();
+    for (const c of marketplaceCategories || []) {
+      const name = String((c as any)?.name || "")
+        .trim()
+        .toLowerCase();
+      const id = String((c as any)?.id || "").trim();
+      if (name && id) byName.set(name, id);
+    }
+
+    return (exchangeSlug: string): string | null => {
+      const desiredName = exchangeSlugToMarketplaceCategoryName[exchangeSlug] || "";
+      if (!desiredName) return null;
+      return byName.get(desiredName.toLowerCase()) || null;
+    };
+  }, [exchangeSlugToMarketplaceCategoryName, marketplaceCategories]);
 
   // Fetch exchange items
   const { data: items, isLoading } = useQuery<ExchangeItem[]>({
@@ -363,7 +406,7 @@ export default function Exchange() {
       setSellLocation("");
       setSellLocationVisibility("exact");
       setSellImages([]);
-      setSellCategoryId("");
+      setSellCategorySlug("");
       setSellCondition("");
       toast({
         title: "Listing submitted",
@@ -1456,18 +1499,30 @@ export default function Exchange() {
                     <Label htmlFor="category" className="text-white">
                       Category
                     </Label>
-                    <Select value={sellCategoryId} onValueChange={setSellCategoryId}>
+                    <Select value={sellCategorySlug} onValueChange={setSellCategorySlug}>
                       <SelectTrigger className="bg-white/10 border-white/15 text-white">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-tsCard border-white/10">
-                        {EXCHANGE_CATEGORIES.map((category) => (
+                        {EXCHANGE_CATEGORIES.filter((c) => c.id !== "metals").map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <div className="mt-2 text-xs text-white/60 flex items-center justify-between gap-2">
+                      <span>Listing precious metals?</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 border-white/10 text-white/70"
+                        onClick={() => navigate("/exchange/metals")}
+                      >
+                        Use Metals Exchange
+                      </Button>
+                    </div>
                   </div>
 
                   <div>
@@ -1674,11 +1729,21 @@ export default function Exchange() {
                       return;
                     }
 
-                    if (!sellCategoryId) {
+                    if (!sellCategorySlug) {
                       toast({
                         title: "Choose a category",
                         description:
                           "Pick the closest category so the right people see your listing.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    const resolvedCategoryId = resolveMarketplaceCategoryId(sellCategorySlug);
+                    if (!resolvedCategoryId) {
+                      toast({
+                        title: "Categories still loading",
+                        description: "Please try again in a moment.",
                         variant: "destructive",
                       });
                       return;
@@ -1699,7 +1764,7 @@ export default function Exchange() {
                       title: sellTitle.trim(),
                       description: sellDescription.trim() || sellTitle.trim(),
                       price: numericPrice,
-                      categoryId: sellCategoryId,
+                      categoryId: resolvedCategoryId,
                       state: stateCode,
                       county: countyFips,
                       condition: mappedCondition,

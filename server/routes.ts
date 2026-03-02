@@ -15005,7 +15005,40 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       }
 
-      const validatedData = parsedListing.data;
+      const validatedData = parsedListing.data as any;
+
+      // Back-compat: some clients still send Exchange category slugs instead of a category UUID.
+      const maybeCategoryId = String(validatedData.categoryId || "").trim();
+      const looksLikeUuid = (value: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+      if (maybeCategoryId && !looksLikeUuid(maybeCategoryId)) {
+        const slugToName: Record<string, string> = {
+          business: "Sell Your Business",
+          "real-estate": "Real Estate",
+          vehicles: "Vehicles",
+          construction: "Construction Equipment",
+          tools: "Tools & Hardware",
+          furniture: "Furniture & Home Goods",
+          farm: "Farm Equipment",
+          "business-equipment": "Business Equipment",
+          electronics: "Electronics & Technology",
+          sports: "Sports & Recreation",
+          collectibles: "Art & Collectibles",
+          jewelry: "Jewelry & Luxury Items",
+          "local-food": "Local Food & Artisan Goods",
+          metals: "Precious Metals (Physical)",
+          other: "Other High-Value Items",
+        };
+
+        const desiredName = slugToName[maybeCategoryId] || "";
+        if (desiredName) {
+          const resolvedId = await getMarketplaceCategoryIdByName(desiredName);
+          if (resolvedId) {
+            validatedData.categoryId = resolvedId;
+          }
+        }
+      }
 
       // Require basic verification before allowing marketplace listings.
       // Marketplace listing requires a verified person (address/email) or an approved vendor verification.
