@@ -517,7 +517,7 @@ interface ScoredContractor extends Contractor {
 async function routeLeadToTopContractors(lead: any, leadData: any) {
   try {
     const { countyId, tradeId } = lead;
-    const { county, trade, city, state, zipCode, maxAssignees } = leadData;
+    const { county, trade, city, state, maxAssignees } = leadData;
     // Fetch active contractors that match the lead's geography and trade
     const contractors: Contractor[] = await storage.getContractors({
       countyId,
@@ -645,20 +645,6 @@ async function routeLeadToTopContractors(lead: any, leadData: any) {
         score: c.matchScore?.toFixed(1),
       }))
     );
-
-    // Notify contractors about the new lead
-    const leadDetails = {
-      id: lead.id,
-      title: lead.title,
-      // description: lead.description,
-      location: `${city}, ${state} ${zipCode}`,
-      trade: trade,
-      budget: lead.budget,
-      urgency: lead.urgency,
-      contactName: lead.contactName,
-      contactEmail: lead.contactEmail,
-      contactPhone: lead.contactPhone,
-    };
 
     await Promise.all(
       scoredContractors.map(async (contractor: ScoredContractor) => {
@@ -1720,7 +1706,7 @@ export async function registerRoutes(app: any) {
               claim = { status: "claimed", businessId: biz.id };
             }
           }
-        } catch (e) {
+        } catch {
           claim = { status: "not_verified", businessId: claimBusinessId };
         }
       }
@@ -2846,7 +2832,8 @@ export async function registerRoutes(app: any) {
         });
 
         // Remove password hash from response
-        const { password: _, ...userResponse } = newAdmin;
+        const { password: passwordHash, ...userResponse } = newAdmin;
+        void passwordHash;
 
         res.json({
           user: userResponse,
@@ -2882,11 +2869,19 @@ export async function registerRoutes(app: any) {
 
     console.log("[AUTH] Using Google callback URL:", googleCallbackURL);
 
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!googleClientId || !googleClientSecret) {
+      throw new Error(
+        "[AUTH] Google OAuth enabled but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET missing"
+      );
+    }
+
     passport.use(
       new GoogleStrategy(
         {
-          clientID: process.env.GOOGLE_CLIENT_ID!,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
           callbackURL: googleCallbackURL,
         },
         async (
@@ -5790,7 +5785,6 @@ export async function registerRoutes(app: any) {
         return res.json([]);
       }
 
-      const contractorIds = contractors.map((c: any) => c.id);
       const userIds = contractors
         .map((c: any) => c.userId as string | undefined)
         .filter((id): id is string => Boolean(id));
@@ -6507,6 +6501,7 @@ export async function registerRoutes(app: any) {
       }
 
       const { notificationService } = await import("./notification-service");
+      void notificationService;
       // await notificationService.triggerReminders();
 
       res.json({ message: "Reminder processing triggered successfully" });
@@ -6736,7 +6731,6 @@ export async function registerRoutes(app: any) {
         businessDescription,
         licenseNumber,
         yearsInBusiness,
-        serviceAreas,
         isGeneralContractor,
         isResidentialContractor,
         acceptsSubcontractWork,
@@ -6765,15 +6759,6 @@ export async function registerRoutes(app: any) {
       if (!allowedOnboardingRoles.has(String(normalizedRole || "").trim())) {
         return res.status(400).json({ message: "Invalid role selection" });
       }
-
-      const normalizedServiceAreas: string[] = Array.isArray(serviceAreas)
-        ? serviceAreas.filter(Boolean).map((area: any) => String(area).trim())
-        : typeof serviceAreas === "string"
-          ? serviceAreas
-              .split(",")
-              .map((area: string) => area.trim())
-              .filter(Boolean)
-          : [];
 
       // Update user profile
       const updatedUser = await storage.updateUser(userId, {
@@ -7867,8 +7852,7 @@ export async function registerRoutes(app: any) {
   // Quote calculator endpoint (public access)
   app.post("/api/calculator", async (req: any, res: any) => {
     try {
-      const { projectType, squareFootage, stateCode, countyFips, urgency } = (req.body ??
-        {}) as any;
+      const { projectType, squareFootage, countyFips, urgency } = (req.body ?? {}) as any;
 
       // Track calculator usage with locality context
       // LocalityTracker call removed
@@ -8868,7 +8852,7 @@ export async function registerRoutes(app: any) {
     async (req: any, res: any) => {
       try {
         const { id } = req.params;
-        const { action, reason } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
+        const { action } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
         const moderatorId = (req.user as any)?.id;
 
         if (!["approve", "reject"].includes(action)) {
@@ -8915,7 +8899,7 @@ export async function registerRoutes(app: any) {
   // Get contractor leaderboard (ranked by net recommendation score)
   app.get("/api/contractors/leaderboard", async (req: any, res: any) => {
     try {
-      const { limit = 20, state, county, trade } = req.query;
+      const { limit = 20 } = req.query;
 
       const query = db
         .select({
@@ -9087,8 +9071,6 @@ export async function registerRoutes(app: any) {
   // Exchange contractor promotions (legacy)
   app.get("/api/exchange/contractor-promos", async (req: any, res: any) => {
     try {
-      const { search, category, sort } = req.query;
-
       const contractorId = req.query.contractorId as string | undefined;
       const promos = contractorId ? await storage.getContractorPromos(contractorId) : [];
       res.json(promos || []);
@@ -12531,7 +12513,6 @@ export async function registerRoutes(app: any) {
         const countyByFips = new Map<string, (typeof countyRows)[number]>();
         for (const c of countyRows) countyByFips.set(String(c.fips), c);
 
-        const adminUserId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
         const resetBase =
           process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
 
@@ -15838,106 +15819,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Social Features API Routes
 
-  const communityExternalTrendingCache: {
-    fetchedAt: number;
-    items: Array<{ tag: string; source: "news" }>;
-  } = {
-    fetchedAt: 0,
-    items: [],
-  };
-
-  const COMMUNITY_TRENDING_CACHE_TTL_MS = 30 * 60 * 1000;
-
-  function extractRssItemTitles(xml: string): string[] {
-    const items = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
-    const titles: string[] = [];
-
-    for (const item of items) {
-      const match = item.match(
-        /<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title>([\s\S]*?)<\/title>/i
-      );
-      const raw = (match?.[1] ?? match?.[2] ?? "").trim();
-      if (!raw) continue;
-      const cleaned = raw
-        .replace(/&amp;/g, "&")
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .trim();
-      if (cleaned) titles.push(cleaned);
-    }
-
-    return titles;
-  }
-
-  function titleToHashtag(title: string): string {
-    const primary = title.split(" - ")[0].split(" | ")[0].split(" — ")[0].trim();
-
-    const words = primary
-      .replace(/[^\w\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .split(" ")
-      .filter((w) => w.length >= 3)
-      .slice(0, 3);
-
-    const token = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
-
-    return token ? `#${token}` : "#Trending";
-  }
-
-  async function fetchExternalTrendingHashtags(): Promise<Array<{ tag: string; source: "news" }>> {
-    const now = Date.now();
-    if (
-      communityExternalTrendingCache.items.length > 0 &&
-      now - communityExternalTrendingCache.fetchedAt < COMMUNITY_TRENDING_CACHE_TTL_MS
-    ) {
-      return communityExternalTrendingCache.items;
-    }
-
-    const rssUrls = [
-      "https://news.google.com/rss/search?q=home+improvement&hl=en-US&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=roofing+repair&hl=en-US&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=plumbing+tips&hl=en-US&gl=US&ceid=US:en",
-      "https://news.google.com/rss/search?q=hvac+maintenance&hl=en-US&gl=US&ceid=US:en",
-    ];
-
-    const titles: string[] = [];
-
-    for (const url of rssUrls) {
-      try {
-        const res = await fetch(url, {
-          headers: {
-            "User-Agent": "TradeScout/1.0 (+https://thetradescout.com)",
-            Accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
-          },
-        });
-
-        if (!res.ok) continue;
-        const xml = await res.text();
-        titles.push(...extractRssItemTitles(xml));
-      } catch {
-        // Ignore per-source failures; we'll fall back to whatever we can fetch.
-      }
-    }
-
-    const unique = new Set<string>();
-    const items: Array<{ tag: string; source: "news" }> = [];
-
-    for (const title of titles) {
-      const tag = titleToHashtag(title);
-      if (unique.has(tag)) continue;
-      unique.add(tag);
-      items.push({ tag, source: "news" });
-      if (items.length >= 10) break;
-    }
-
-    communityExternalTrendingCache.fetchedAt = now;
-    communityExternalTrendingCache.items = items;
-    return items;
-  }
-
   // Community Posts
   app.get("/api/community/posts", async (req: any, res: any) => {
     try {
@@ -16486,7 +16367,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   async function createAutomaticCommunityWelcomeForUser(
     user: any,
-    options?: { createdViaScout?: boolean }
+    _options?: { createdViaScout?: boolean }
   ): Promise<void> {
     try {
       const resolvedStateCode = (user.state as string | undefined) || undefined;
@@ -18502,7 +18383,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         typeof req.body?.affiliateId === "string" ? req.body.affiliateId.trim() : "";
       const action = typeof req.body?.action === "string" ? req.body.action.trim() : "";
       const entityId = typeof req.body?.entityId === "string" ? req.body.entityId.trim() : "";
-      const meta = req.body?.meta && typeof req.body.meta === "object" ? req.body.meta : {};
 
       if (!affiliateId || !action) {
         return res.status(400).json({ ok: false, message: "affiliateId and action are required" });
@@ -18642,14 +18522,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Process commission (internal use - called when revenue is generated)
   app.post("/api/affiliate/commission", isAuthenticated, async (req: any, res: any) => {
     try {
-      const {
-        affiliateProgramId,
-        referralId,
-        transactionId,
-        revenueAmount,
-        commissionAmount,
-        description,
-      } = req.body;
+      const { affiliateProgramId, referralId, transactionId, revenueAmount, commissionAmount } =
+        req.body;
 
       if (!affiliateProgramId || !revenueAmount || !commissionAmount) {
         return res.status(400).json({
@@ -19847,7 +19721,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const body = req.body ?? {};
       const stateCode = typeof body.stateCode === "string" ? body.stateCode.trim() : "";
       const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : "";
-      const propertyType = typeof body.propertyType === "string" ? body.propertyType.trim() : "";
       const condition = typeof body.condition === "string" ? body.condition.trim() : "";
       const yearBuilt = body.yearBuilt != null ? Number(body.yearBuilt) : null;
       const sqft = body.sqft != null ? Number(body.sqft) : null;
@@ -20765,15 +20638,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       const dispute = await storage.createTransactionDispute(disputeData);
 
-      // Notify relevant parties
-      const notification = {
-        userId: dispute.transactionId, // Will need to get the other party's ID
-        type: "dispute",
-        title: "Transaction Dispute Opened",
-        message: "A dispute has been opened for one of your transactions",
-        actionUrl: `/disputes/${dispute.id}`,
-      };
-
       res.json(dispute);
     } catch (error: any) {
       console.error("Error creating dispute:", error);
@@ -20865,11 +20729,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const baseQuery = db.select().from(walletTransactions);
       const conditions: any[] = [];
 
-      if (hasFrom) {
-        conditions.push(gte(walletTransactions.createdAt, fromDate!));
+      if (hasFrom && fromDate) {
+        conditions.push(gte(walletTransactions.createdAt, fromDate));
       }
-      if (hasTo) {
-        conditions.push(lte(walletTransactions.createdAt, toDate!));
+      if (hasTo && toDate) {
+        conditions.push(lte(walletTransactions.createdAt, toDate));
       }
       if (normalizedDirection) {
         conditions.push(eq(walletTransactions.direction, normalizedDirection as any));
@@ -23217,7 +23081,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       try {
         const dbCheck = await db.execute(sql`SELECT 1`);
         dbStatus = dbCheck ? "connected" : "disconnected";
-      } catch (err) {
+      } catch {
         dbStatus = "disconnected";
       }
 

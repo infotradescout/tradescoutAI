@@ -18,7 +18,6 @@ import {
   contractorTrades,
   contractorCounties,
   leadAssignments,
-  verificationDocuments,
   conversations,
   messages,
   quotes,
@@ -55,7 +54,6 @@ import {
   postComments,
   postLikes,
   communityPostSaves,
-  commentLikes,
   userFollows,
   communityGroups,
   groupMembers,
@@ -117,7 +115,6 @@ import {
   foundationDonations,
   userDonationPreferences,
   foundationImpactReports,
-  donationMatching,
   countyVaults,
   vaultLedgerEntries,
   communityVaults,
@@ -141,7 +138,6 @@ import {
   hoaVoteResponses,
   hoaVoteBoardTransfers,
   hoaServiceRequests,
-  hoaDocuments,
   hoaMembers,
   hoaMembershipDepartures,
   hoaGovernance,
@@ -156,14 +152,11 @@ import {
   // Trusted devices
   trustedDevices,
   type TrustedDevice,
-  type InsertTrustedDevice,
   type User,
   type InsertUser,
   type UpsertUser,
   type Business,
   type InsertBusiness,
-  type BusinessCounty,
-  type InsertBusinessCounty,
   type Profile,
   type InsertProfile,
   type Contractor,
@@ -203,7 +196,6 @@ import {
   type ContractorSetting,
   type InsertContractorSetting,
   type SavedAd,
-  type InsertSavedAd,
   type Notification,
   type InsertNotification,
   type ContractorPromo,
@@ -234,8 +226,6 @@ import {
   type InsertHandmadeCategory,
   type HandmadeProduct,
   type InsertHandmadeProduct,
-  type ProductFavorite,
-  type InsertProductFavorite,
   type ProductOrder,
   type InsertProductOrder,
   type ProductReview,
@@ -257,17 +247,8 @@ import {
   type InsertCommunityPost,
   type PostComment,
   type InsertPostComment,
-  type PostLike,
-  type InsertPostLike,
-  type CommentLike,
-  type InsertCommentLike,
-  type UserFollow,
   type CommunityGroup,
-  type InsertCommunityGroup,
-  type GroupMember,
-  type InsertGroupMember,
   type Region,
-  type InsertRegion,
   // Community moderation types
   type ModerationReport,
   type InsertModerationReport,
@@ -294,13 +275,10 @@ import {
   countyMetrics,
   countyEntities,
   type CountyMetric,
-  type InsertCountyMetric,
   type CountyEntity,
   type InsertCountyEntity,
   // Leaderboard
   contractorLeaderboardStats,
-  type ContractorLeaderboardStats,
-  type InsertContractorLeaderboardStats,
   // New marketplace features types
   type MarketplaceTransaction,
   type InsertMarketplaceTransaction,
@@ -340,25 +318,17 @@ import {
   type FoundationImpactReport,
   type InsertFoundationImpactReport,
   type CountyVault,
-  type InsertCountyVault,
   type VaultLedgerEntry,
-  type InsertVaultLedgerEntry,
   type CommunityVault,
-  type InsertCommunityVault,
   type CommunityVaultLedgerEntry,
-  type InsertCommunityVaultLedgerEntry,
   type CommunityCause,
-  type InsertCommunityCause,
   type CommunityCauseVote,
-  type InsertCommunityCauseVote,
   type PlatformSupportLedgerEntry,
   type InsertPlatformSupportLedgerEntry,
   type WalletAccount,
   type InsertWalletAccount,
   type WalletTransaction,
   type InsertWalletTransaction,
-  type DonationMatching,
-  type InsertDonationMatching,
   type AffiliateAccount,
   type AffiliateReferral as DbAffiliateReferral,
   type AffiliatePayout as DbAffiliatePayout,
@@ -366,7 +336,6 @@ import {
   type InsertPromotion,
   // Community Builder types
   type CommunityBuilderProfile,
-  type InsertCommunityBuilderProfile,
   type BuilderContribution,
   type InsertBuilderContribution,
   type BuilderAuditLog,
@@ -419,7 +388,6 @@ import {
   workRequests,
   type WorkRequest,
   countyNotes,
-  trustSnapshots,
   type CountyNote,
   type InsertCountyNote,
 } from "@shared/schema";
@@ -1877,6 +1845,7 @@ export class DatabaseStorage implements IStorage {
 
     const countyIds = updates.countyIds;
     const { countyIds: _ignored, ...businessUpdates } = updates as any;
+    void _ignored;
 
     const nextSlug = businessUpdates.slug
       ? await this.generateUniqueBusinessSlug(businessUpdates.slug)
@@ -2532,7 +2501,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.id, deviceId)));
   }
 
-  async getUserLoginHistory(userId: string, limit: number, offset: number): Promise<any> {
+  async getUserLoginHistory(_userId: string, _limit: number, _offset: number): Promise<any> {
     // Simple mock implementation - in a real app you'd track login sessions
     return [
       {
@@ -3301,7 +3270,10 @@ export class DatabaseStorage implements IStorage {
     };
 
     const artifacts = artifactKinds.map((kind) => {
-      const acc = byKind.get(kind)!;
+      const acc = byKind.get(kind);
+      if (!acc) {
+        throw new Error(`Missing draft accumulator for kind: ${kind}`);
+      }
       const median = computeMedian(acc.publishDurations);
 
       const countyArray = Array.from(acc.counties.values())
@@ -3481,7 +3453,10 @@ export class DatabaseStorage implements IStorage {
     };
 
     const byActionType = actionTypes.map((type) => {
-      const acc = byType.get(type)!;
+      const acc = byType.get(type);
+      if (!acc) {
+        throw new Error(`Missing action accumulator for type: ${type}`);
+      }
       const median = computeMedian(acc.outcomeDurations);
 
       const countyArray = Array.from(acc.counties.values())
@@ -6594,7 +6569,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(vendorVerifications.id, id))
         .returning();
       if (vendorVerification) return vendorVerification;
-    } catch (error: any) {
+    } catch {
       // If vendor update fails, try buyer verification
     }
 
@@ -7441,7 +7416,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async updateProductRatings(productId: string): Promise<void> {
-    const summary = await this.getProductRatingSummary(productId);
+    await this.getProductRatingSummary(productId);
     // Products don't have rating fields, but we could add them if needed
   }
 
@@ -8613,7 +8588,7 @@ export class DatabaseStorage implements IStorage {
 
   async generateInvitationCode(): Promise<string> {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code: string;
+    let code = "";
     let exists = true;
 
     while (exists) {
@@ -8626,12 +8601,12 @@ export class DatabaseStorage implements IStorage {
       exists = !!existingInvitation;
     }
 
-    return code!;
+    return code;
   }
 
   async generateUserReferralCode(userId: string): Promise<string> {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code: string;
+    let code = "";
     let exists = true;
 
     while (exists) {
@@ -8645,8 +8620,8 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Update user with referral code
-    await this.updateUser(userId, { referralCode: code! });
-    return code!;
+    await this.updateUser(userId, { referralCode: code });
+    return code;
   }
 
   // Referral stats implementation
@@ -9392,6 +9367,7 @@ export class DatabaseStorage implements IStorage {
     updates: Partial<InsertPlatformAnalytics>
   ): Promise<PlatformAnalytics> {
     const { date: _ignored, ...restUpdates } = (updates ?? {}) as any;
+    void _ignored;
     const [analytics] = await db
       .insert(platformAnalytics)
       .values({
@@ -12854,11 +12830,12 @@ export class DatabaseStorage implements IStorage {
 
     let mapped = rows.map(({ group, membership }) => {
       const activeMember = membership && membership.isActive && !membership.isBanned;
+      const membershipRole = membership?.role;
       const isAdmin =
         !!activeMember &&
-        (membership!.role === "admin" ||
-          membership!.role === "owner" ||
-          membership!.role === "moderator");
+        (membershipRole === "admin" ||
+          membershipRole === "owner" ||
+          membershipRole === "moderator");
 
       return {
         id: group.id,
@@ -13001,7 +12978,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Boosts/Promotions operations
-  async getBoostsByRole(userRole: string): Promise<any[]> {
+  async getBoostsByRole(_userRole: string): Promise<any[]> {
     return await db
       .select()
       .from(contractorPromos)
