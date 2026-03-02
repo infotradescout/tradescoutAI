@@ -264,6 +264,24 @@ export default function Exchange() {
 
   const [route, navigate] = useLocation();
 
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const categoryParam = String(params.get("category") || params.get("cat") || "").trim();
+      const tabParam = String(params.get("tab") || "").trim();
+
+      if (tabParam && (tabParam === "browse" || tabParam === "sell")) {
+        setActiveTab(tabParam);
+      }
+
+      if (categoryParam) {
+        setSelectedCategory(categoryParam);
+      }
+    } catch {
+      // ignore malformed query
+    }
+  }, []);
+
   // Real estate has its own portal (HomeScout). Keep the Exchange category for discoverability,
   // but route users into the dedicated surface.
   useEffect(() => {

@@ -31,6 +31,21 @@ import { useToast } from "@/hooks/use-toast";
 
 type MetalChoice = "XAU" | "XAG" | "XPT" | "XPD" | "OTHER";
 
+type ExchangeItem = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  condition: string;
+  images: string[];
+  location: string;
+  seller: { id: string; name: string; rating: number; verified: boolean };
+  createdAt: string;
+  featured: boolean;
+  views: number;
+  favorites: number;
+};
+
 type PricesResponse = {
   snapshot: {
     asOf: string;
@@ -103,7 +118,7 @@ export default function MetalsExchange() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [tab, setTab] = useState<"prices" | "portfolio">("prices");
+  const [tab, setTab] = useState<"prices" | "listings" | "portfolio">("prices");
   const [form, setForm] = useState<{
     direction: "buy" | "sell";
     metalChoice: MetalChoice;
@@ -133,6 +148,19 @@ export default function MetalsExchange() {
     },
     refetchInterval: 15 * 60 * 1000,
     staleTime: 60 * 1000,
+  });
+
+  const listingsQuery = useQuery<ExchangeItem[]>({
+    queryKey: ["/api/exchange/items", "metals"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("categoryId", "metals");
+      params.set("limit", "50");
+      const res = await fetch(`/api/exchange/items?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to load metals listings");
+      return res.json();
+    },
+    enabled: tab === "listings",
   });
 
   const transactionsQuery = useQuery<TransactionsResponse>({
@@ -266,20 +294,32 @@ export default function MetalsExchange() {
             Live spot snapshots refresh every 15 minutes. Portfolio tracking is private and manual.
           </div>
         </div>
-        <Button
-          variant="outline"
-          className="border-white/10 text-white/80"
-          onClick={() => pricesQuery.refetch()}
-          disabled={pricesQuery.isFetching}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="border-white/10 text-white/80"
+            onClick={() =>
+              setLocation("/marketplace/new?categoryName=Precious%20Metals%20(Physical)")
+            }
+          >
+            List Metal
+          </Button>
+          <Button
+            variant="outline"
+            className="border-white/10 text-white/80"
+            onClick={() => pricesQuery.refetch()}
+            disabled={pricesQuery.isFetching}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
         <TabsList className="bg-white/5 border border-white/10">
           <TabsTrigger value="prices">Prices</TabsTrigger>
+          <TabsTrigger value="listings">Listings</TabsTrigger>
           <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
         </TabsList>
 
@@ -326,6 +366,69 @@ export default function MetalsExchange() {
                 Note: Local premiums, mint spreads, and dealer fees vary; TradeScout tracks spot
                 only.
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="listings" className="mt-4 space-y-4">
+          <Card className="bg-tsCard border-white/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-base">Physical Metals Listings</CardTitle>
+              <div className="text-xs text-white/60">
+                Browse listings here or open the full Exchange surface for messaging/contact.
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Button
+                  variant="outline"
+                  className="border-white/10 text-white/80"
+                  onClick={() => setLocation("/exchange?category=metals")}
+                >
+                  Open in Exchange
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white/10 text-white/80"
+                  onClick={() => listingsQuery.refetch()}
+                  disabled={listingsQuery.isFetching}
+                >
+                  Refresh listings
+                </Button>
+              </div>
+
+              {listingsQuery.isLoading ? (
+                <div className="text-white/60 text-sm">Loading listingsâ€¦</div>
+              ) : listingsQuery.isError ? (
+                <div className="text-white/60 text-sm">Could not load listings.</div>
+              ) : (listingsQuery.data?.length || 0) === 0 ? (
+                <div className="text-white/60 text-sm">No active metals listings yet.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Seller</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {listingsQuery.data!.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-white">{item.title}</TableCell>
+                        <TableCell className="text-white/80">
+                          {item.seller?.name || "â€”"}
+                        </TableCell>
+                        <TableCell className="text-white/70">{item.location || "â€”"}</TableCell>
+                        <TableCell className="text-right text-white">
+                          {formatUsd(item.price)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

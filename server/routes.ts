@@ -8931,6 +8931,46 @@ export async function registerRoutes(app: any) {
   // Exchange routes
   app.get("/api/exchange/items", async (req: any, res: any) => {
     try {
+      const rawCategoryId =
+        typeof req.query.categoryId === "string" ? String(req.query.categoryId).trim() : "";
+
+      const categorySlugToName: Record<string, string> = {
+        business: "Sell Your Business",
+        "real-estate": "Real Estate",
+        vehicles: "Vehicles",
+        construction: "Construction Equipment",
+        tools: "Tools & Hardware",
+        furniture: "Furniture & Home Goods",
+        farm: "Farm Equipment",
+        "business-equipment": "Business Equipment",
+        electronics: "Electronics & Technology",
+        sports: "Sports & Recreation",
+        collectibles: "Art & Collectibles",
+        jewelry: "Jewelry & Luxury Items",
+        "local-food": "Local Food & Artisan Goods",
+        metals: "Precious Metals (Physical)",
+        other: "Other High-Value Items",
+      };
+
+      const looksLikeUuid = (value: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+      let resolvedCategoryId: string | undefined;
+      if (rawCategoryId) {
+        if (looksLikeUuid(rawCategoryId)) {
+          resolvedCategoryId = rawCategoryId;
+        } else {
+          const desiredName = categorySlugToName[rawCategoryId] || rawCategoryId;
+          const categories = await storage.getMarketplaceCategories();
+          const match = (categories || []).find(
+            (c: any) => String(c?.name || "").toLowerCase() === desiredName.toLowerCase()
+          );
+          if (match?.id) {
+            resolvedCategoryId = String(match.id);
+          }
+        }
+      }
+
       // Exchange is not location-gated. Locality params are treated as a sort preference, not a filter.
       const preferredStateCode =
         typeof req.query.stateCode === "string"
@@ -8958,7 +8998,7 @@ export async function registerRoutes(app: any) {
       }
 
       const listings = await storage.getMarketplaceListings({
-        categoryId: req.query.categoryId as string,
+        categoryId: resolvedCategoryId,
         // Keep explicit county/state filters available for callers that truly want filtering.
         county:
           typeof req.query.filterCounty === "string"
@@ -8978,7 +9018,78 @@ export async function registerRoutes(app: any) {
         offset: req.query.offset ? Number(req.query.offset) : undefined,
       });
 
-      res.json(listings || []);
+      const sellerIds = Array.from(
+        new Set((listings || []).map((l: any) => String(l?.sellerId || "").trim()).filter(Boolean))
+      );
+
+      const sellers =
+        sellerIds.length > 0
+          ? await db
+              .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                trustScore: users.trustScore,
+                verifiedBadge: users.verifiedBadge,
+                emailVerified: users.emailVerified,
+                addressVerified: users.addressVerified,
+              })
+              .from(users)
+              .where(inArray(users.id, sellerIds))
+          : [];
+
+      const sellerById = new Map<string, any>(sellers.map((s: any) => [String(s.id), s]));
+
+      const mapped = (listings || []).map((listing: any) => {
+        const seller = sellerById.get(String(listing?.sellerId || "")) || {};
+        const firstName = String(seller?.firstName || "").trim();
+        const lastName = String(seller?.lastName || "").trim();
+        const sellerName =
+          `${firstName} ${lastName}`.trim() ||
+          (String(seller?.id || "").trim() ? "TradeScout Member" : "Unknown seller");
+
+        const trustScore = Number(seller?.trustScore ?? 10);
+        const rating = Number.isFinite(trustScore)
+          ? Math.max(3, Math.min(5, 3 + trustScore / 20))
+          : 4.0;
+
+        const city = String(listing?.city || "").trim();
+        const county = String(listing?.county || "").trim();
+        const state = String(listing?.state || "").trim();
+        const location = city
+          ? `${city}${state ? `, ${state}` : ""}`
+          : `${county || "Local pickup"}${state ? `, ${state}` : ""}`.trim();
+
+        const promotedUntil = listing?.promotedUntil ? new Date(listing.promotedUntil) : null;
+        const featured =
+          Boolean(listing?.isPromoted) ||
+          Boolean(promotedUntil && promotedUntil.getTime() > Date.now());
+
+        return {
+          id: String(listing.id),
+          title: listing.title,
+          description: listing.description,
+          price: Number(listing.price),
+          category: String(rawCategoryId || listing.categoryId || ""),
+          condition: listing.condition,
+          images: Array.isArray(listing.images) ? listing.images : [],
+          location,
+          seller: {
+            id: String(listing.sellerId),
+            name: sellerName,
+            rating,
+            verified: Boolean(
+              seller?.verifiedBadge || (seller?.emailVerified && seller?.addressVerified)
+            ),
+          },
+          createdAt: listing.createdAt,
+          featured,
+          views: Number(listing.viewCount || 0),
+          favorites: Number(listing.favoriteCount || 0),
+        };
+      });
+
+      res.json(mapped);
     } catch (error: any) {
       console.error("Error fetching exchange items:", error);
       res.status(500).json({ message: "Failed to fetch items" });

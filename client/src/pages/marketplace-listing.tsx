@@ -85,6 +85,16 @@ export default function MarketplaceListing() {
     }
   }, []);
 
+  const categoryNamePrefill = useMemo(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const raw = params.get("categoryName") || params.get("category");
+      return raw ? String(raw).trim() : "";
+    } catch {
+      return "";
+    }
+  }, []);
+
   const form = useForm<MarketplaceListingForm>({
     resolver: zodResolver(marketplaceListingSchema),
     defaultValues: {
@@ -186,6 +196,21 @@ export default function MarketplaceListing() {
     queryKey: ["/api/marketplace/categories"],
     retry: false,
   });
+
+  useEffect(() => {
+    if (!categoryNamePrefill) return;
+    if (!Array.isArray(categories) || categories.length === 0) return;
+
+    const existing = String(form.getValues("category") || "").trim();
+    if (existing) return;
+
+    const match = categories.find(
+      (c: any) => String(c?.name || "").toLowerCase() === categoryNamePrefill.toLowerCase()
+    );
+    if (match?.id) {
+      form.setValue("category", String(match.id), { shouldValidate: true, shouldDirty: true });
+    }
+  }, [categories, categoryNamePrefill, form]);
 
   const createListingMutation = useMutation({
     mutationFn: async (data: MarketplaceListingForm) => {
