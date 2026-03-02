@@ -7,7 +7,7 @@ const BOOT_FALLBACK_ID = "ts-boot-fallback";
 const BOOT_MESSAGE_ID = "ts-boot-fallback-message";
 const BOOT_DETAIL_ID = "ts-boot-fallback-detail";
 const APP_READY_ATTR = "data-app-mounted";
-const SERVICE_WORKER_URL = `/sw.js?build=${encodeURIComponent(__APP_BUILD_ID__)}`;
+const SERVICE_WORKER_URL = "/sw.js";
 
 function enforceCanonicalHost() {
   if (typeof window === "undefined") return;
@@ -272,7 +272,7 @@ async function bootstrap() {
 
   // Production hardening: if a deploy happens while a user has an old bundle cached,
   // dynamic chunk loads can 404 and the app can crash. Detect that case and force a
-  // one-time cache/SW reset so the user gets the latest assets.
+  // safe recovery path so the user gets the latest assets.
   if (import.meta.env.PROD) {
     const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1";
 
@@ -316,13 +316,25 @@ async function bootstrap() {
         // ignore
       }
 
-      console.warn("[Boot] chunk load failure detected; reloading once", err);
+      console.warn("[Boot] chunk load failure detected", err);
 
-      // Avoid heavy-handed cache clearing here. If the user truly has a stale SW/cache
-      // wedging the app, they can use `/?__reset=1` or the server `/reset` endpoint.
-      const url = new URL(window.location.href);
-      url.searchParams.set("__fresh", String(Date.now()));
-      window.location.replace(url.toString());
+      // Ask the browser to check for an updated service worker in the background.
+      // Avoid auto-reloading here; repeated auto-refresh loops feel like "the app is stuck updating".
+      try {
+        if ("serviceWorker" in navigator) {
+          void navigator.serviceWorker
+            .getRegistration()
+            .then((reg) => reg?.update())
+            .catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
+
+      showBootFallback(
+        "TradeScout needs a refresh to load the latest version.",
+        "Tap Reload. If this keeps happening, open /reset or add ?__reset=1 to the URL."
+      );
     };
 
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {

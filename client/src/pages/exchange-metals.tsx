@@ -46,6 +46,15 @@ type ExchangeItem = {
   favorites: number;
 };
 
+type MarketplaceListingRow = {
+  id: string;
+  title: string;
+  price: string | number;
+  status: string;
+  categoryId: string;
+  createdAt: string;
+};
+
 type PricesResponse = {
   snapshot: {
     asOf: string;
@@ -161,6 +170,51 @@ export default function MetalsExchange() {
       return res.json();
     },
     enabled: tab === "listings",
+  });
+
+  const categoriesQuery = useQuery<any[]>({
+    queryKey: ["/api/marketplace/categories"],
+    retry: false,
+    staleTime: 10 * 60 * 1000,
+    enabled: tab === "listings" && Boolean(user),
+  });
+
+  const metalsCategoryId = useMemo(() => {
+    const categories = categoriesQuery.data || [];
+    const match = categories.find(
+      (c: any) =>
+        String(c?.name || "")
+          .trim()
+          .toLowerCase() === "precious metals (physical)"
+    );
+    return match?.id ? String(match.id) : null;
+  }, [categoriesQuery.data]);
+
+  const myListingsQuery = useQuery<{ listings: MarketplaceListingRow[] }>({
+    queryKey: ["/api/marketplace/my-listings", "metals"],
+    queryFn: async () => {
+      const res = await fetch("/api/marketplace/my-listings", { credentials: "include" });
+      if (res.status === 401) return { listings: [] };
+      if (!res.ok) throw new Error("Failed to load my listings");
+      const json = await res.json();
+      const rows = Array.isArray(json) ? json : json?.listings;
+      const listings = Array.isArray(rows) ? rows : [];
+      return {
+        listings: listings
+          .filter(
+            (l: any) => !metalsCategoryId || String(l?.categoryId) === String(metalsCategoryId)
+          )
+          .map((l: any) => ({
+            id: String(l.id),
+            title: String(l.title || ""),
+            price: l.price,
+            status: String(l.status || ""),
+            categoryId: String(l.categoryId || ""),
+            createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : new Date().toISOString(),
+          })),
+      };
+    },
+    enabled: tab === "listings" && Boolean(user) && Boolean(metalsCategoryId),
   });
 
   const transactionsQuery = useQuery<TransactionsResponse>({
@@ -429,6 +483,59 @@ export default function MetalsExchange() {
               )}
             </CardContent>
           </Card>
+
+          {user ? (
+            <Card className="bg-tsCard border-white/10">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-base">My Metals Listings</CardTitle>
+                <div className="text-xs text-white/60">
+                  New listings are submitted as <span className="text-white">pending approval</span>{" "}
+                  before they go live.
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!metalsCategoryId ? (
+                  <div className="text-white/60 text-sm">
+                    Categories are still loading. Try again in a moment.
+                  </div>
+                ) : myListingsQuery.isLoading ? (
+                  <div className="text-white/60 text-sm">Loading…</div>
+                ) : myListingsQuery.isError ? (
+                  <div className="text-white/60 text-sm">Could not load your listings.</div>
+                ) : (myListingsQuery.data?.listings?.length || 0) === 0 ? (
+                  <div className="text-white/60 text-sm">
+                    No metals listings yet. Use <span className="text-white">List Metal</span> to
+                    create one.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Submitted</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myListingsQuery.data!.listings.map((l) => (
+                        <TableRow key={l.id}>
+                          <TableCell className="text-white">{l.title}</TableCell>
+                          <TableCell className="text-white/80">{l.status || "—"}</TableCell>
+                          <TableCell className="text-right text-white">
+                            {formatUsd(Number(l.price))}
+                          </TableCell>
+                          <TableCell className="text-right text-white/70">
+                            {l.createdAt ? new Date(l.createdAt).toLocaleDateString() : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="portfolio" className="mt-4 space-y-4">

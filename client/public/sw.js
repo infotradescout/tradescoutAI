@@ -9,7 +9,7 @@
  */
 
 // Bump this whenever caching behavior changes to guarantee clients drop old caches.
-const CACHE_VERSION = "v4-2026-03-01";
+const CACHE_VERSION = "v5-2026-03-02";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -72,21 +72,6 @@ async function cacheFirst(request) {
   return response;
 }
 
-async function networkFirstAsset(request) {
-  const cache = await caches.open(STATIC_CACHE);
-  try {
-    const response = await fetch(request);
-    if (response && response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    return new Response("", { status: 503 });
-  }
-}
-
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (!request || request.method !== "GET") return;
@@ -103,9 +88,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for Vite hashed asset chunks to avoid stale JS after deploys.
+  // Cache-first for Vite hashed assets. Navigations are network-only, so fresh HTML
+  // will always reference the latest hashed filenames after deploys.
   if (url.pathname.startsWith("/assets/")) {
-    event.respondWith(networkFirstAsset(request));
+    event.respondWith(cacheFirst(request));
     return;
   }
 });
