@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Users } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 
 interface ConnectionUser {
   id: string;
@@ -105,11 +105,11 @@ function ConnectionList({ users }: { users: ConnectionUser[] }) {
                 <span className="text-xs text-muted-foreground">{location}</span>
               </div>
             </div>
-            <a href={`/profile/${u.id}`}>
+            <Link href={`/profile/${u.id}`}>
               <Button size="sm" variant="outline">
                 View profile
               </Button>
-            </a>
+            </Link>
           </div>
         );
       })}
@@ -161,15 +161,15 @@ function ContactConnectionsList({ connections }: { connections: ContactConnectio
             </div>
             <div className="flex items-center gap-2">
               {c.threadId ? (
-                <a href={`/messages?thread=${encodeURIComponent(String(c.threadId))}`}>
+                <Link href={`/messages?thread=${encodeURIComponent(String(c.threadId))}`}>
                   <Button size="sm">Message</Button>
-                </a>
+                </Link>
               ) : null}
-              <a href={`/profile/${c.id}`}>
+              <Link href={`/profile/${c.id}`}>
                 <Button size="sm" variant="outline">
                   View profile
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
         );
@@ -264,11 +264,11 @@ export default function ConnectionsPage() {
                     Accepting opens contact and creates a connection.
                   </p>
                 </div>
-                <a href="/messages?tab=requests">
+                <Link href="/messages?tab=requests">
                   <Button size="sm" variant="outline">
                     Review in Messages
                   </Button>
-                </a>
+                </Link>
               </CardHeader>
               <CardContent className="space-y-3">
                 {incomingRequestsQuery.isError ? (
@@ -292,11 +292,11 @@ export default function ConnectionsPage() {
                             {req.preview || "Wants to connect."}
                           </div>
                         </div>
-                        <a href="/messages?tab=requests">
+                        <Link href="/messages?tab=requests">
                           <Button size="sm" variant="outline">
                             Open
                           </Button>
-                        </a>
+                        </Link>
                       </div>
                     ))}
                   </div>

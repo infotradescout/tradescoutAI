@@ -137,6 +137,7 @@ const PAGING_CONFIG = {
 };
 
 const TICK_INTERVAL_MS = 15 * 1000; // 15s evaluation cadence
+const DEBUG_ALERTS = process.env.OBS_DEBUG_ALERTS === "true";
 
 // ============================================================================
 // ALERT EVALUATION LOGIC
@@ -157,13 +158,17 @@ function evaluateSchedulerAlerts(): void {
 
   for (const jobName of jobNames) {
     const metrics = getJobMetrics(jobName);
-    console.log(`[DEBUG evaluateSchedulerAlerts] ${jobName}: ${metrics.length} metrics`);
+    if (DEBUG_ALERTS) {
+      console.log(`[alerts] scheduler metrics ${jobName}: ${metrics.length}`);
+    }
     if (metrics.length === 0) continue;
 
     // Alert 4: Job Error (check this FIRST, before percentiles, so it works with incomplete metrics)
     const errorAlertId = `scheduler.error.${jobName}`;
     const errorCount = jobErrorCounters.get(jobName) ?? 0;
-    console.log(`[DEBUG ERROR] Job ${jobName} error count: ${errorCount}`);
+    if (DEBUG_ALERTS) {
+      console.log(`[alerts] scheduler errorCount ${jobName}: ${errorCount}`);
+    }
 
     if (errorCount >= 2) {
       // CRITICAL: 2+ consecutive failures

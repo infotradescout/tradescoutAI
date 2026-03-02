@@ -86,10 +86,13 @@ export class LocalityTracker {
   /**
    * Extract locality context from request
    */
-  static extractLocalityFromRequest(req: Request): LocalityContext {
+  static extractLocalityFromRequest(
+    req: Request,
+    opts?: { actor?: ReturnType<typeof detectActorFromUserAgent> }
+  ): LocalityContext {
     const user = (req as any)?.user;
     const userAgent = req.get("User-Agent");
-    const actor = detectActorFromUserAgent(userAgent);
+    const actor = opts?.actor ?? detectActorFromUserAgent(userAgent);
     const ipInfo = getClientIp(req);
 
     const locality: LocalityContext = {
@@ -150,7 +153,16 @@ export class LocalityTracker {
     req: Request,
     details: UserInteraction["details"] = {}
   ): Promise<void> {
-    const locality = this.extractLocalityFromRequest(req);
+    const userAgent = req.get("User-Agent");
+    const actor = detectActorFromUserAgent(userAgent);
+
+    // Page view tracking is high-volume and should never slow down the app.
+    // Also, skip crawler traffic to avoid polluting analytics and wasting CPU.
+    if (interactionType === "page_view" && actor.actorType === "bot") {
+      return;
+    }
+
+    const locality = this.extractLocalityFromRequest(req, { actor });
 
     const interaction: UserInteraction = {
       id: this.generateInteractionId(),
@@ -170,11 +182,9 @@ export class LocalityTracker {
       deviceInfo: this.extractDeviceInfo(req),
     };
 
-    // Store interaction in database
-    await this.storeInteraction(interaction);
-
-    // Real-time analytics processing
-    await this.processRealTimeAnalytics(interaction);
+    // Fire-and-forget: never block user-facing requests on analytics.
+    void this.storeInteraction(interaction).catch(() => {});
+    void this.processRealTimeAnalytics(interaction).catch(() => {});
   }
 
   /**
@@ -412,16 +422,18 @@ export class LocalityTracker {
   }
 
   private static async storeInteraction(interaction: UserInteraction): Promise<void> {
-    // In development, skip logging to reduce console noise
-    if (process.env.NODE_ENV !== "production") {
-      return;
-    }
-    // Store in database - implement with actual database connection
-    console.log("Storing interaction:", {
+    // Default: no-op. High-volume interaction logging can overwhelm stdout and
+    // slow the server. Enable explicitly via sampling if needed.
+    const sampleRate = Number(process.env.LOCALITY_INTERACTION_LOG_SAMPLE_RATE || 0);
+    if (!Number.isFinite(sampleRate) || sampleRate <= 0) return;
+    if (Math.random() > Math.min(1, sampleRate)) return;
+
+    console.log("[LocalityTracking] interaction", {
       type: interaction.interactionType,
       actorType: interaction.actorType,
       botName: interaction.botName,
-      locality: interaction.locality,
+      stateCode: interaction.locality.stateCode,
+      countyFips: interaction.locality.countyFips,
       timestamp: interaction.timestamp,
     });
   }
@@ -539,7 +551,7 @@ export function localityTrackingMiddleware() {
       !req.path.startsWith("/src/");
 
     if (isPageLoad) {
-      await LocalityTracker.trackInteraction("page_view", req);
+      void LocalityTracker.trackInteraction("page_view", req).catch(() => {});
     }
     next();
   };

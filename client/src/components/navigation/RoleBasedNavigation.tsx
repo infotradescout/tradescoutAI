@@ -434,6 +434,13 @@ export function UserMenu() {
           Conversations
         </DropdownMenuItem>
         <DropdownMenuItem
+          onSelect={() => safeNavigate(navigate, "/connections")}
+          className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
+        >
+          <Users className="h-4 w-4" />
+          Connections
+        </DropdownMenuItem>
+        <DropdownMenuItem
           onSelect={() => safeNavigate(navigate, "/saved-ads")}
           className="flex items-center gap-3 cursor-pointer text-white/70 hover:text-white px-3 py-2 hover:bg-white/10"
         >
