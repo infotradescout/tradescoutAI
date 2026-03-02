@@ -2587,6 +2587,20 @@ export async function registerRoutes(app: any) {
       const isProductionEnv =
         process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
       const requiredSetupToken = String(process.env.SETUP_MASTER_ADMIN_TOKEN || "").trim();
+      const allowUnsafeDevSetup =
+        !isProductionEnv && String(process.env.ALLOW_SETUP_MASTER_WITHOUT_TOKEN || "") === "true";
+
+      const isLocalRequest = () => {
+        const ip = String((req as any).ip || "")
+          .trim()
+          .toLowerCase();
+        return (
+          ip === "127.0.0.1" ||
+          ip === "::1" ||
+          ip.startsWith("::ffff:127.0.0.1") ||
+          ip === "localhost"
+        );
+      };
 
       // Check if any head_admin already exists
       const existingHeadAdmin = await storage.getUserByRole("head_admin");
@@ -2594,13 +2608,18 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Master admin already exists" });
       }
 
-      if (isProductionEnv) {
-        if (!requiredSetupToken) {
+      // This endpoint is intentionally unauthenticated, but must be explicitly enabled via a token.
+      // Without a token, this is a public takeover window.
+      if (!requiredSetupToken) {
+        if (allowUnsafeDevSetup && isLocalRequest()) {
+          // Allow local-only setup for dev when explicitly requested.
+        } else {
           return res.status(503).json({
             message:
-              "Master admin setup is not configured. Set SETUP_MASTER_ADMIN_TOKEN to enable initial setup.",
+              "Master admin setup is disabled. Set SETUP_MASTER_ADMIN_TOKEN (recommended) to enable initial setup.",
           });
         }
+      } else {
         const providedSetupToken = String((req.body as any)?.setupToken || "").trim();
         if (!providedSetupToken || providedSetupToken !== requiredSetupToken) {
           return res.status(403).json({ message: "Invalid setup token" });
@@ -22323,7 +22342,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   };
 
-  app.post("/api/admin/scout-insights", scoutInsightsHandler);
+  app.post("/api/admin/scout-insights", isAuthenticated, requireAdmin, scoutInsightsHandler);
 
   // Bug report endpoint with Formspree integration
   app.post("/api/bug-report", async (req: any, res: any) => {

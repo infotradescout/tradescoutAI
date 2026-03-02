@@ -29,6 +29,13 @@ describe("security regressions", () => {
     expect(routes).not.toContain("mrplatypus4777@gmail.com");
   });
 
+  it("does not leave an unauth setup-master takeover window without an explicit token", () => {
+    const routes = readRepoFile("server/routes.ts");
+    expect(routes).toContain('"/api/auth/setup-master"');
+    expect(routes).toContain("SETUP_MASTER_ADMIN_TOKEN");
+    expect(routes).toContain("ALLOW_SETUP_MASTER_WITHOUT_TOKEN");
+  });
+
   it("Socket.IO auth is session-derived (not client-declared userId)", () => {
     const messagingService = readRepoFile("server/messaging-service.ts");
     expect(messagingService).toContain("loadSocketSession(socket)");

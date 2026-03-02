@@ -28,7 +28,7 @@ const contractorSignupSchema = z.object({
 // Handle contractor signup
 router.post("/api/contractor-signup", async (req, res) => {
   try {
-    console.log("Contractor signup request received:", req.body);
+    // Do not log raw request bodies (PII risk). Keep logs minimal if needed.
 
     const userId = (req as any)?.user?.id || (req as any)?.user?.claims?.sub;
     if (!userId) {

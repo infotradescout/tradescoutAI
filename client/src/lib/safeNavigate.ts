@@ -18,10 +18,16 @@ export function safeNavigate(navigate: NavigateFn, href: string) {
 
   if (current === target) return;
 
+  let navigateFailed = false;
   try {
     navigate(href);
   } catch {
-    // ignore
+    navigateFailed = true;
+  }
+
+  if (navigateFailed) {
+    window.location.assign(target);
+    return;
   }
 
   window.setTimeout(() => {
@@ -29,5 +35,5 @@ export function safeNavigate(navigate: NavigateFn, href: string) {
     if (now !== target) {
       window.location.assign(target);
     }
-  }, 60);
+  }, 350);
 }
