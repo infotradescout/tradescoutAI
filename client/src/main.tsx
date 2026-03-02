@@ -304,18 +304,25 @@ async function bootstrap() {
 
     const recoverFromChunkError = async (err: unknown) => {
       try {
-        if (sessionStorage.getItem(RECOVERY_FLAG) === "1") return;
+        if (sessionStorage.getItem(RECOVERY_FLAG) === "1") {
+          showBootFallback(
+            "TradeScout could not load the latest version.",
+            "Tap Reload. If this keeps happening, open /reset or add ?__reset=1 to the URL."
+          );
+          return;
+        }
         sessionStorage.setItem(RECOVERY_FLAG, "1");
       } catch {
         // ignore
       }
 
-      console.warn("[Boot] chunk load failure detected; resetting caches", err);
+      console.warn("[Boot] chunk load failure detected; reloading once", err);
 
-      await resetClientCaches();
-
-      // Force a full reload to pull the latest HTML + assets.
-      window.location.reload();
+      // Avoid heavy-handed cache clearing here. If the user truly has a stale SW/cache
+      // wedging the app, they can use `/?__reset=1` or the server `/reset` endpoint.
+      const url = new URL(window.location.href);
+      url.searchParams.set("__fresh", String(Date.now()));
+      window.location.replace(url.toString());
     };
 
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
