@@ -404,6 +404,9 @@ const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 
+const apiSlowLogMs = Number(process.env.API_SLOW_LOG_MS || 750);
+const logAllApiRequests = process.env.API_LOG_ALL === "true";
+
 app.use((req, res, next) => {
   const start = Date.now();
   const requestPath = req.path;
@@ -411,7 +414,11 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (requestPath.startsWith("/api")) {
-      log(`${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`);
+      const isError = res.statusCode >= 400;
+      const isSlow = Number.isFinite(apiSlowLogMs) ? duration >= apiSlowLogMs : duration >= 750;
+      if (logAllApiRequests || isError || isSlow) {
+        log(`${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`);
+      }
     }
   });
 

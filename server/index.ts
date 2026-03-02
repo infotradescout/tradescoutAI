@@ -439,6 +439,10 @@ if (fs.existsSync(uploadsPath)) {
   );
 }
 
+const apiSlowLogMs = Number(process.env.API_SLOW_LOG_MS || 750);
+const logAllApiRequests =
+  process.env.API_LOG_ALL === "true" || process.env.NODE_ENV !== "production";
+
 app.use((req, res, next) => {
   const start = Date.now();
   const requestPath = req.path;
@@ -450,7 +454,11 @@ app.use((req, res, next) => {
     emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
 
     if (requestPath.startsWith("/api")) {
-      log(`${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`);
+      const isError = res.statusCode >= 400;
+      const isSlow = Number.isFinite(apiSlowLogMs) ? duration >= apiSlowLogMs : duration >= 750;
+      if (logAllApiRequests || isError || isSlow) {
+        log(`${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`);
+      }
     }
   });
 
