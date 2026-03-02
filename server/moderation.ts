@@ -138,29 +138,6 @@ export function setupModerationRoutes(app: Express) {
     }
   );
 
-  // Get user's reputation
-  app.get("/api/moderation/reputation", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-
-      const [reputation] = await db
-        .select()
-        .from(userReputation)
-        .where(eq(userReputation.userId, userId));
-
-      if (!reputation) {
-        // Create initial reputation for new user
-        const [newRep] = await db.insert(userReputation).values({ userId }).returning();
-        return res.json(newRep);
-      }
-
-      res.json(reputation);
-    } catch (error) {
-      console.error("Error fetching user reputation:", error);
-      res.status(500).json({ error: "Failed to fetch reputation" });
-    }
-  });
-
   // Bulk get moderation scores for multiple content items
   app.post("/api/moderation/bulk-scores", async (req, res) => {
     try {

@@ -10,6 +10,10 @@ function readRepoFile(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
+function countMatches(haystack: string, pattern: RegExp): number {
+  return (haystack.match(pattern) ?? []).length;
+}
+
 describe("security regressions", () => {
   it("disables legacy emergency admin access backdoor", () => {
     const routes = readRepoFile("server/routes.ts");
@@ -38,5 +42,32 @@ describe("security regressions", () => {
     expect(service).toContain("IMPERSONATION_SECRET");
     expect(service).not.toContain("impersonation_secret");
     expect(service).not.toContain("|| '");
+  });
+
+  it("does not register duplicate professional verification routes", () => {
+    const routes = readRepoFile("server/routes.ts");
+    expect(countMatches(routes, /\/api\/admin\/professional\/pending/g)).toBe(1);
+    expect(countMatches(routes, /\/api\/admin\/realtor\/verify\/:profileId/g)).toBe(1);
+    expect(countMatches(routes, /\/api\/admin\/car-salesman\/verify\/:profileId/g)).toBe(1);
+  });
+
+  it("does not register duplicate affiliate settings routes", () => {
+    const routes = readRepoFile("server/routes.ts");
+    expect(countMatches(routes, /\/api\/affiliate\/settings/g)).toBe(1);
+  });
+
+  it("does not shadow moderation reputation routes across modules", () => {
+    const routes = readRepoFile("server/routes.ts");
+    const moderation = readRepoFile("server/moderation.ts");
+
+    expect(countMatches(routes, /\/api\/moderation\/reputation/g)).toBe(1);
+    expect(moderation).not.toContain('"/api/moderation/reputation"');
+  });
+
+  it("password reset request never returns debug artifacts", () => {
+    const routes = readRepoFile("server/routes.ts");
+    expect(routes).not.toContain("debugToken");
+    expect(routes).not.toContain("debugCode");
+    expect(routes).not.toContain("ALLOW_PASSWORD_RESET_DEBUG");
   });
 });

@@ -5438,12 +5438,6 @@ export async function registerRoutes(app: any) {
         }
 
         const user = await storage.getUserByEmail(String(email).toLowerCase());
-        const allowDebugArtifacts =
-          process.env.NODE_ENV !== "production" &&
-          process.env.APP_ENV !== "production" &&
-          process.env.ALLOW_PASSWORD_RESET_DEBUG === "true";
-        let debugToken: string | undefined;
-        let debugCode: string | undefined;
 
         if (user) {
           const { token, code, expiresAt } = passwordResetService.createToken(user.id);
@@ -5466,20 +5460,12 @@ export async function registerRoutes(app: any) {
             console.warn(
               `[password-reset] SendGrid not configured; token generated for ${user.email}`
             );
-            if (allowDebugArtifacts) {
-              debugToken = token;
-              debugCode = code;
-            }
           }
         }
 
-        const payload: any = {
+        const payload = {
           message: "If an account exists for that email, a reset link has been sent.",
         };
-        if (allowDebugArtifacts) {
-          payload.debugToken = debugToken;
-          payload.debugCode = debugCode;
-        }
         res.json(payload);
       } catch (error: any) {
         console.error("[REQUEST-PASSWORD-RESET] CRITICAL ERROR:", error);
@@ -10169,79 +10155,6 @@ export async function registerRoutes(app: any) {
       } catch (error: any) {
         console.error("Error marking messages as read:", error);
         res.status(500).json({ message: "Failed to mark messages as read" });
-      }
-    }
-  );
-
-  // Professional verification endpoints
-  app.get("/api/admin/professional/pending", isAuthenticated, async (req: any, res: any) => {
-    if (!["head_admin", "ops_admin", "moderator", "owner"].includes(req.user?.claims?.role)) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-
-    try {
-      const [realtors, carSalesmen] = await Promise.all([
-        storage.getPendingRealtorApplications(),
-        storage.getPendingCarSalesmanApplications(),
-      ]);
-
-      res.json({ realtors, carSalesmen });
-    } catch (error: any) {
-      console.error("Error fetching pending applications:", error);
-      res.status(500).json({ message: "Failed to fetch pending applications" });
-    }
-  });
-
-  // Realtor verification
-  app.post("/api/admin/realtor/verify/:profileId", isAuthenticated, async (req: any, res: any) => {
-    if (!["head_admin", "ops_admin", "moderator", "owner"].includes(req.user?.claims?.role)) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-
-    try {
-      const { profileId } = req.params;
-      const { approved, notes } = req.body;
-      const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-
-      const result = await storage.updateRealtorVerificationStatus(profileId, {
-        approved: !!approved,
-        notes: notes || "",
-        reviewedBy: adminId,
-        reviewedAt: new Date(),
-      });
-
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error updating realtor verification:", error);
-      res.status(500).json({ message: "Failed to update verification status" });
-    }
-  });
-
-  // Car salesman verification
-  app.post(
-    "/api/admin/car-salesman/verify/:profileId",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      if (!["head_admin", "ops_admin", "moderator", "owner"].includes(req.user?.claims?.role)) {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
-      try {
-        const { profileId } = req.params;
-        const { approved, notes } = req.body;
-        const adminId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-
-        const result = await storage.updateCarSalesmanVerificationStatus(profileId, {
-          approved: !!approved,
-          notes: notes || "",
-          reviewedBy: adminId,
-          reviewedAt: new Date(),
-        });
-
-        res.json(result);
-      } catch (error: any) {
-        console.error("Error updating car salesman verification:", error);
-        res.status(500).json({ message: "Failed to update verification status" });
       }
     }
   );
@@ -17747,24 +17660,21 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Get user's moderation reputation
   app.get("/api/moderation/reputation", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
       const reputation = await storage.getUserModerationReputation(userId);
 
       if (!reputation) {
-        // Create default reputation for new users
-        const defaultReputation = {
+        const newReputation = await storage.createUserModerationReputation({
           userId,
-          reputationScore: 100,
           canVote: true,
-          canReport: true,
-          isSuspended: false,
-          totalReportsSubmitted: 0,
-          totalVotesCast: 0,
-          accurateReports: 0,
-          inaccurateReports: 0,
-        };
-
-        const newReputation = await storage.createUserModerationReputation(defaultReputation);
+          votingPower: "1.0" as any,
+          primaryCounty: null as any,
+          primaryState: null as any,
+        });
         return res.json(newReputation);
       }
 
@@ -18743,34 +18653,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
     }
   );
-
-  // Update affiliate program settings
-  app.put("/api/affiliate/settings", isAuthenticated, async (req: AuthedRequest, res: Response) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const program = await storage.getAffiliateProgram(userId);
-      if (!program) {
-        return res.status(404).json({ message: "Affiliate program not found" });
-      }
-
-      const { payoutMethod, payoutDetails } = req.body;
-
-      const updatedProgram = await storage.updateAffiliateProgram(program.id, {});
-
-      res.json({
-        ...updatedProgram,
-        payoutMethod,
-        payoutDetails,
-      });
-    } catch (error: any) {
-      console.error("Error updating affiliate settings:", error);
-      res.status(500).json({ message: "Failed to update affiliate settings" });
-    }
-  });
 
   // Initialize WebSocket server
   // Tutorial Management Routes

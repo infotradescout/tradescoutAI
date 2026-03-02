@@ -1280,7 +1280,9 @@ export const AppRoutes = memo(function AppRoutes({
               <LazyPage Component={RealtorConnections} />
             </Route>
             <Route path="/connections">
-              <LazyPage Component={ConnectionsPage} />
+              <ProtectedRoute>
+                <LazyPage Component={ConnectionsPage} />
+              </ProtectedRoute>
             </Route>
             <Route path="/realtor-calculator">
               <LazyPage Component={RealtorCalculator} />

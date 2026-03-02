@@ -2,6 +2,7 @@ import React, { ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import {
   User,
+  Users,
   Settings,
   Bell,
   LayoutDashboard,
@@ -248,6 +249,15 @@ export function RightToolsPanel({ footer, onNavigate }: RightToolsPanelProps) {
               }
               label="Messages & quotes"
               description="Conversations, quotes, follow-ups."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/connections"
+              icon={
+                <Users className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Connections"
+              description="People you've approved contact with."
               onNavigate={handleNavigate}
             />
             <NavLink
