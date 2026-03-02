@@ -5927,6 +5927,11 @@ export const commercialProjectBids = pgTable(
 export type CommercialProjectBid = typeof commercialProjectBids.$inferSelect;
 export type InsertCommercialProjectBid = typeof commercialProjectBids.$inferInsert;
 
+export type MetalsPriceSnapshot = typeof metalsPriceSnapshots.$inferSelect;
+export type InsertMetalsPriceSnapshot = typeof metalsPriceSnapshots.$inferInsert;
+export type MetalsPortfolioTransaction = typeof metalsPortfolioTransactions.$inferSelect;
+export type InsertMetalsPortfolioTransaction = typeof metalsPortfolioTransactions.$inferInsert;
+
 export const marketplaceInquiries = pgTable("marketplace_inquiries", {
   id: varchar("id")
     .primaryKey()
@@ -6009,6 +6014,57 @@ export const marketplaceReports = pgTable("marketplace_reports", {
 
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Precious metals exchange (physical only, USD only)
+export const metalsPriceSnapshots = pgTable(
+  "metals_price_snapshots",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    asOf: timestamp("as_of").notNull().defaultNow(),
+    source: varchar("source", { length: 40 }).notNull().default("metals_api"),
+    baseCurrency: varchar("base_currency", { length: 3 }).notNull().default("USD"),
+
+    // USD per 1 troy ounce (XAU/XAG/XPT/XPD)
+    xauUsdPerOz: decimal("xau_usd_per_oz", { precision: 14, scale: 4 }),
+    xagUsdPerOz: decimal("xag_usd_per_oz", { precision: 14, scale: 4 }),
+    xptUsdPerOz: decimal("xpt_usd_per_oz", { precision: 14, scale: 4 }),
+    xpdUsdPerOz: decimal("xpd_usd_per_oz", { precision: 14, scale: 4 }),
+
+    raw: jsonb("raw").$type<Record<string, any>>(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [index("idx_metals_price_snapshots_as_of").on(table.asOf)]
+);
+
+export const metalsPortfolioTransactions = pgTable(
+  "metals_portfolio_transactions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id),
+    direction: varchar("direction", { enum: ["buy", "sell"] }).notNull(),
+
+    metalCode: varchar("metal_code", { length: 8 }).notNull(), // e.g. XAU, XAG, XPT, XPD, OTHER
+    metalName: varchar("metal_name", { length: 64 }), // optional label for non-standard metals
+
+    // Physical only: quantity is tracked in troy ounces (oz)
+    quantityOz: decimal("quantity_oz", { precision: 18, scale: 6 }).notNull(),
+    totalUsd: decimal("total_usd", { precision: 14, scale: 2 }).notNull(),
+    executedAt: timestamp("executed_at").notNull().defaultNow(),
+    notes: text("notes"),
+
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_metals_portfolio_transactions_user_executed_at").on(table.userId, table.executedAt),
+  ]
+);
 
 // Vendor verification for food marketplace and other regulated categories
 export const vendorVerifications = pgTable("vendor_verifications", {

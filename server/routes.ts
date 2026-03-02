@@ -13,6 +13,7 @@ import { profilesRouter } from "./routes/profiles";
 import { propertyProgramsRouter } from "./routes/property-programs";
 import { homesRouter } from "./routes/homes";
 import { vehiclesRouter } from "./routes/vehicles";
+import { metalsRouter } from "./routes/metals";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
@@ -22266,6 +22267,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Account-only Vehicle Vault routes ("Carfax for your vehicle")
   app.use(vehiclesRouter);
+
+  // Marketplace Metals Exchange (physical-only, USD-only)
+  app.use(metalsRouter);
 
   // Register contractor signup routes
   app.use(contractorSignupRouter);

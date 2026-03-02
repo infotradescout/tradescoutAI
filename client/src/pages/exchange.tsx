@@ -221,6 +221,12 @@ const EXCHANGE_CATEGORIES = [
     description: "Fine jewelry and luxury items",
   },
   {
+    id: "metals",
+    name: "Metals Exchange",
+    icon: Coins,
+    description: "Physical gold/silver and more (USD)",
+  },
+  {
     id: "local-food",
     name: "Local Food & Artisan",
     icon: Package,
@@ -681,7 +687,13 @@ export default function Exchange() {
                       className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
                         active ? "border-ts-orange/30" : ""
                       }`}
-                      onClick={() => setSelectedCategory(category.id)}
+                      onClick={() => {
+                        if (category.id === "metals") {
+                          navigate("/exchange/metals");
+                          return;
+                        }
+                        setSelectedCategory(category.id);
+                      }}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center gap-3">
