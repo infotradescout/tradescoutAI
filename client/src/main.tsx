@@ -185,33 +185,8 @@ async function maybeHandleBuildChangeReset(): Promise<boolean> {
 
   const storageKey = "ts:lastBuildId";
 
-  let lastBuildId: string | null = null;
-  try {
-    lastBuildId = window.localStorage.getItem(storageKey);
-  } catch {
-    lastBuildId = null;
-  }
-
-  // First run: persist build marker and continue boot normally.
-  if (!lastBuildId) {
-    try {
-      window.localStorage.setItem(storageKey, currentBuildId);
-    } catch {
-      // ignore
-    }
-    return false;
-  }
-
-  if (lastBuildId === currentBuildId) return false;
-
-  // Build changed since last load: record the new marker and proceed.
-  // Avoid blocking boot on cache clearing; cache/SW recovery is handled by:
-  // - server build mismatch detection
-  // - chunk-load recovery handlers below
-  // - manual `?__reset` when needed
-  //
-  // This keeps first-load after deploy fast, especially on mobile browsers.
-
+  // Best-effort build marker for diagnostics only.
+  // Do NOT block startup or trigger cache resets based on this value.
   try {
     window.localStorage.setItem(storageKey, currentBuildId);
   } catch {
@@ -219,82 +194,6 @@ async function maybeHandleBuildChangeReset(): Promise<boolean> {
   }
 
   return false;
-}
-
-async function fetchServerBuildId(timeoutMs = 2200): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const url = `/api/scout/health?_=${Date.now()}`;
-    const res = await fetch(url, {
-      method: "GET",
-      credentials: "omit",
-      headers: { Accept: "application/json", "Cache-Control": "no-cache" },
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    const payload = (await res.json()) as unknown;
-    const record =
-      payload && typeof payload === "object" ? (payload as Record<string, unknown>) : null;
-    const buildId = typeof record?.buildId === "string" ? record.buildId.trim() : "";
-    return buildId || null;
-  } catch {
-    return null;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-async function maybeHandleServerBuildMismatchReset(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-
-  const currentBuildId =
-    typeof __APP_BUILD_ID__ === "string" && __APP_BUILD_ID__.trim() ? __APP_BUILD_ID__.trim() : "";
-  if (!currentBuildId) return false;
-
-  const params = new URLSearchParams(window.location.search);
-  if (params.has("__reset")) return false;
-
-  // Prevent a reset loop if something about the network/API is flaky.
-  const guardKey = "ts:lastServerBuildMismatchResetAt";
-  try {
-    const last = Number(window.sessionStorage.getItem(guardKey) || "0");
-    if (Number.isFinite(last) && last > 0 && Date.now() - last < 60_000) return false;
-  } catch {
-    // ignore
-  }
-
-  const serverBuildId = await fetchServerBuildId();
-  if (!serverBuildId) return false;
-  if (serverBuildId === currentBuildId) return false;
-
-  try {
-    window.sessionStorage.setItem(guardKey, String(Date.now()));
-  } catch {
-    // ignore
-  }
-
-  showBootFallback(
-    "Updating TradeScout...",
-    "Your browser loaded an older cached version. Clearing caches now."
-  );
-
-  await resetClientCaches({ clearLocalStorage: false });
-
-  // Keep the build marker aligned to the server to avoid flip-flopping between versions.
-  try {
-    window.localStorage.setItem("ts:lastBuildId", serverBuildId);
-  } catch {
-    // ignore
-  }
-
-  const url = new URL(window.location.href);
-  url.searchParams.set("__fresh", String(Date.now()));
-  window.location.replace(url.toString());
-  return true;
 }
 
 function reportClientRuntimeError(source: "error" | "unhandledrejection", error: unknown) {
@@ -337,7 +236,6 @@ window.addEventListener("unhandledrejection", (event) => {
 async function bootstrap() {
   if (await maybeHandleManualReset()) return;
   if (await maybeHandleBuildChangeReset()) return;
-  if (await maybeHandleServerBuildMismatchReset()) return;
 
   enforceCanonicalHost();
   setViewportVars();
