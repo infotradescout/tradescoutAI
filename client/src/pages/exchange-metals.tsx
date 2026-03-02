@@ -398,7 +398,7 @@ export default function MetalsExchange() {
               </div>
 
               {listingsQuery.isLoading ? (
-                <div className="text-white/60 text-sm">Loading listingsâ€¦</div>
+                <div className="text-white/60 text-sm">Loading listings…</div>
               ) : listingsQuery.isError ? (
                 <div className="text-white/60 text-sm">Could not load listings.</div>
               ) : (listingsQuery.data?.length || 0) === 0 ? (
@@ -417,10 +417,8 @@ export default function MetalsExchange() {
                     {listingsQuery.data!.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="text-white">{item.title}</TableCell>
-                        <TableCell className="text-white/80">
-                          {item.seller?.name || "â€”"}
-                        </TableCell>
-                        <TableCell className="text-white/70">{item.location || "â€”"}</TableCell>
+                        <TableCell className="text-white/80">{item.seller?.name || "—"}</TableCell>
+                        <TableCell className="text-white/70">{item.location || "—"}</TableCell>
                         <TableCell className="text-right text-white">
                           {formatUsd(item.price)}
                         </TableCell>

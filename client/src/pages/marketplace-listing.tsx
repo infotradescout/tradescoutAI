@@ -52,15 +52,27 @@ const marketplaceListingSchema = z.object({
   description: z.string().min(20, "Description must be at least 20 characters"),
   price: z.string().min(1, "Price is required"),
   originalPrice: z.string().optional(),
-  priceType: z.enum(["fixed", "negotiable", "obo", "trade"]),
-  condition: z.enum(["new", "like_new", "good", "fair", "needs_repair"]),
-  category: z.string().min(1, "Category is required"),
+  priceType: z.enum(["fixed", "negotiable", "best_offer", "auction", "trade"]),
+  condition: z.enum(["new", "like_new", "excellent", "good", "fair", "poor", "parts_only"]),
+  categoryId: z.string().min(1, "Category is required"),
   subcategory: z.string().optional(),
   city: z.string().min(1, "City is required"),
   state: z.string().min(2, "State is required"),
   zipCode: z.string().min(5, "ZIP code is required"),
   locationVisibility: z.enum(["exact", "meetup_only"]),
   images: z.array(z.string()).optional(),
+
+  // Optional shipping controls (physical items only)
+  willShip: z.boolean().optional(),
+  shippingCost: z.string().optional(),
+
+  // Precious metals (physical only, USD only)
+  metalType: z.enum(["gold", "silver", "platinum", "palladium", "other"]).optional(),
+  metalForm: z.enum(["coin", "bar", "round", "junk", "grain", "shot", "scrap", "other"]).optional(),
+  purity: z.string().max(24).optional(),
+  weightOz: z.string().optional(), // troy ounces per unit
+  quantityUnits: z.string().optional(),
+  premiumOverSpotUsd: z.string().optional(),
 });
 
 type MarketplaceListingForm = z.infer<typeof marketplaceListingSchema>;
@@ -104,13 +116,21 @@ export default function MarketplaceListing() {
       originalPrice: "",
       priceType: "fixed",
       condition: "good",
-      category: "",
+      categoryId: "",
       subcategory: "",
       city: "",
       state: "",
       zipCode: "",
       locationVisibility: "exact",
       images: [],
+      willShip: false,
+      shippingCost: "",
+      metalType: "gold",
+      metalForm: "coin",
+      purity: "",
+      weightOz: "",
+      quantityUnits: "1",
+      premiumOverSpotUsd: "",
     },
   });
 
@@ -129,8 +149,8 @@ export default function MarketplaceListing() {
 
         if (prefill?.title) form.setValue("title", String(prefill.title));
         if (prefill?.description) form.setValue("description", String(prefill.description));
-        if (prefill?.categoryId) form.setValue("category", String(prefill.categoryId));
-      } catch (err) {
+        if (prefill?.categoryId) form.setValue("categoryId", String(prefill.categoryId));
+      } catch {
         // fail-soft: user can still create listing manually
       }
     })();
@@ -201,16 +221,35 @@ export default function MarketplaceListing() {
     if (!categoryNamePrefill) return;
     if (!Array.isArray(categories) || categories.length === 0) return;
 
-    const existing = String(form.getValues("category") || "").trim();
+    const existing = String(form.getValues("categoryId") || "").trim();
     if (existing) return;
 
     const match = categories.find(
       (c: any) => String(c?.name || "").toLowerCase() === categoryNamePrefill.toLowerCase()
     );
     if (match?.id) {
-      form.setValue("category", String(match.id), { shouldValidate: true, shouldDirty: true });
+      form.setValue("categoryId", String(match.id), { shouldValidate: true, shouldDirty: true });
     }
   }, [categories, categoryNamePrefill, form]);
+
+  const metalsCategoryId = useMemo(() => {
+    const match = (categories as any[]).find(
+      (c: any) => String(c?.name || "").toLowerCase() === "precious metals (physical)".toLowerCase()
+    );
+    return match?.id ? String(match.id) : null;
+  }, [categories]);
+
+  const selectedCategoryId = form.watch("categoryId");
+  const isMetalsListing = Boolean(metalsCategoryId && selectedCategoryId === metalsCategoryId);
+
+  useEffect(() => {
+    if (!isMetalsListing) return;
+    // For physical metals: default to meetup-only location visibility.
+    const current = String(form.getValues("locationVisibility") || "exact");
+    if (current === "exact") {
+      form.setValue("locationVisibility", "meetup_only", { shouldDirty: true });
+    }
+  }, [form, isMetalsListing]);
 
   const createListingMutation = useMutation({
     mutationFn: async (data: MarketplaceListingForm) => {
@@ -219,10 +258,46 @@ export default function MarketplaceListing() {
         (typeof (user as any)?.county === "string" && (user as any).county.trim()) ||
         "Unknown";
 
+      const tradeAccepted = data.priceType === "trade";
+      const normalizedPriceType =
+        data.priceType === "trade" ? "best_offer" : (data.priceType as any);
+
+      const specifications: any = {};
+      if (tradeAccepted) {
+        specifications.tradeAccepted = true;
+      }
+
+      if (isMetalsListing) {
+        specifications.metals = {
+          metalType: data.metalType,
+          formFactor: data.metalForm,
+          purity: data.purity || undefined,
+          weightOz: data.weightOz || undefined,
+          quantityUnits: data.quantityUnits || undefined,
+          premiumOverSpotUsd: data.premiumOverSpotUsd || undefined,
+        };
+      }
+
       return apiRequest("POST", "/api/marketplace/listings", {
-        ...data,
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        originalPrice: data.originalPrice || undefined,
+        priceType: normalizedPriceType,
+        condition: data.condition,
+        categoryId: data.categoryId,
+        subcategory: data.subcategory || undefined,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        locationVisibility: data.locationVisibility,
+        images: data.images,
+        willShip: Boolean(data.willShip),
+        shippingCost: data.shippingCost || undefined,
         sellerId: user?.id,
         county,
+        isLocalPickupOnly: true,
+        specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
         // If this listing is prefilled from a vehicle, enrich the payload with structured fields.
         ...(vehiclePrefill
           ? {
@@ -231,6 +306,7 @@ export default function MarketplaceListing() {
               year: vehiclePrefill.year ?? undefined,
               mileage: vehiclePrefill.mileage ?? undefined,
               specifications: {
+                ...specifications,
                 make: vehiclePrefill.make || undefined,
                 vin: vehiclePrefill.vin || undefined,
               },
@@ -427,7 +503,7 @@ export default function MarketplaceListing() {
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="categoryId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
@@ -442,7 +518,7 @@ export default function MarketplaceListing() {
                             <SelectItem value="loading">Loading...</SelectItem>
                           ) : (
                             (categories as any[]).map((category: any) => (
-                              <SelectItem key={category.id} value={category.slug}>
+                              <SelectItem key={category.id} value={category.id}>
                                 {category.name}
                               </SelectItem>
                             ))
@@ -453,6 +529,180 @@ export default function MarketplaceListing() {
                     </FormItem>
                   )}
                 />
+
+                {isMetalsListing ? (
+                  <div className="rounded-lg border border-white/10 bg-tsCard/95 p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Precious metals details</p>
+                        <p className="text-xs text-white/60">
+                          Physical only — list weight in troy ounces and price in USD.
+                        </p>
+                      </div>
+                      <Badge className="bg-ts-orange text-black">Physical</Badge>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="metalType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Metal</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="gold">Gold</SelectItem>
+                                <SelectItem value="silver">Silver</SelectItem>
+                                <SelectItem value="platinum">Platinum</SelectItem>
+                                <SelectItem value="palladium">Palladium</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="metalForm"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Form</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="coin">Coin</SelectItem>
+                                <SelectItem value="bar">Bar</SelectItem>
+                                <SelectItem value="round">Round</SelectItem>
+                                <SelectItem value="junk">Junk / Constitutional</SelectItem>
+                                <SelectItem value="grain">Grain</SelectItem>
+                                <SelectItem value="shot">Shot</SelectItem>
+                                <SelectItem value="scrap">Scrap</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="purity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Purity</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. .999, 90%, 22k" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="weightOz"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Weight (oz per unit)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. 1" type="number" step="0.0001" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="quantityUnits"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quantity (units)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. 10" type="number" step="1" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="premiumOverSpotUsd"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Premium over spot (USD)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="optional" type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="willShip"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Shipping</FormLabel>
+                            <FormControl>
+                              <ToggleGroup
+                                type="single"
+                                value={field.value ? "ship" : "pickup"}
+                                onValueChange={(value) => {
+                                  if (!value) return;
+                                  field.onChange(value === "ship");
+                                }}
+                                className="justify-start"
+                              >
+                                <ToggleGroupItem value="pickup">Meetup only</ToggleGroupItem>
+                                <ToggleGroupItem value="ship">Will ship</ToggleGroupItem>
+                              </ToggleGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="shippingCost"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Shipping cost (USD)</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="optional"
+                                type="number"
+                                step="0.01"
+                                disabled={!form.watch("willShip")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ) : null}
 
                 <FormField
                   control={form.control}
@@ -503,7 +753,8 @@ export default function MarketplaceListing() {
                           <SelectContent>
                             <SelectItem value="fixed">Fixed Price</SelectItem>
                             <SelectItem value="negotiable">Negotiable</SelectItem>
-                            <SelectItem value="obo">Or Best Offer</SelectItem>
+                            <SelectItem value="best_offer">Best Offer</SelectItem>
+                            <SelectItem value="auction">Auction</SelectItem>
                             <SelectItem value="trade">Open to Trade</SelectItem>
                           </SelectContent>
                         </Select>
@@ -527,9 +778,11 @@ export default function MarketplaceListing() {
                           <SelectContent>
                             <SelectItem value="new">New</SelectItem>
                             <SelectItem value="like_new">Like New</SelectItem>
+                            <SelectItem value="excellent">Excellent</SelectItem>
                             <SelectItem value="good">Good</SelectItem>
                             <SelectItem value="fair">Fair</SelectItem>
-                            <SelectItem value="needs_repair">Needs Repair</SelectItem>
+                            <SelectItem value="poor">Poor</SelectItem>
+                            <SelectItem value="parts_only">Needs Repair / Parts Only</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

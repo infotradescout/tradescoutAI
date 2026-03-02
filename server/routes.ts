@@ -14875,6 +14875,31 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   );
 
+  const marketplaceCategoryIdCache = new Map<string, { id: string | null; expiresAtMs: number }>();
+
+  async function getMarketplaceCategoryIdByName(name: string): Promise<string | null> {
+    const key = String(name || "")
+      .trim()
+      .toLowerCase();
+    if (!key) return null;
+
+    const cached = marketplaceCategoryIdCache.get(key);
+    if (cached && Date.now() < cached.expiresAtMs) {
+      return cached.id;
+    }
+
+    const categories = await storage.getMarketplaceCategories();
+    const match = (categories || []).find(
+      (c: any) =>
+        String(c?.name || "")
+          .trim()
+          .toLowerCase() === key
+    );
+    const id = match?.id ? String(match.id) : null;
+    marketplaceCategoryIdCache.set(key, { id, expiresAtMs: Date.now() + 5 * 60 * 1000 });
+    return id;
+  }
+
   // Marketplace routes
   // Categories
   app.get("/api/marketplace/categories", async (req: any, res: any) => {
@@ -15006,11 +15031,99 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       // All new listings require admin/moderator approval before going live
-      const listing = await storage.createMarketplaceListing({
+      const preciousMetalsCategoryId = await getMarketplaceCategoryIdByName(
+        "Precious Metals (Physical)"
+      );
+
+      const normalizedData: any = {
         ...validatedData,
         sellerId: user?.id,
         status: "pending_approval", // Require approval for all new listings
-      });
+      };
+
+      if (preciousMetalsCategoryId && validatedData.categoryId === preciousMetalsCategoryId) {
+        const metals = (validatedData as any)?.specifications?.metals ?? null;
+        const metalType = String(metals?.metalType || "")
+          .trim()
+          .toLowerCase();
+        const formFactor = String(metals?.formFactor || "")
+          .trim()
+          .toLowerCase();
+        const purity = String(metals?.purity || "").trim();
+
+        const weightOzRaw = metals?.weightOz;
+        const quantityRaw = metals?.quantityUnits ?? 1;
+        const premiumRaw = metals?.premiumOverSpotUsd;
+
+        const weightOz =
+          typeof weightOzRaw === "number" ? weightOzRaw : Number(String(weightOzRaw || ""));
+        const quantityUnits =
+          typeof quantityRaw === "number" ? quantityRaw : Number(String(quantityRaw || ""));
+        const premiumOverSpotUsd =
+          premiumRaw == null
+            ? null
+            : typeof premiumRaw === "number"
+              ? premiumRaw
+              : Number(String(premiumRaw || ""));
+
+        const allowedMetalTypes = new Set(["gold", "silver", "platinum", "palladium", "other"]);
+        const allowedForms = new Set([
+          "coin",
+          "bar",
+          "round",
+          "junk",
+          "grain",
+          "shot",
+          "scrap",
+          "other",
+        ]);
+
+        if (!allowedMetalTypes.has(metalType)) {
+          return res.status(400).json({
+            message: "Invalid precious metals listing: metalType is required.",
+          });
+        }
+
+        if (!allowedForms.has(formFactor)) {
+          return res.status(400).json({
+            message: "Invalid precious metals listing: formFactor is required.",
+          });
+        }
+
+        if (!Number.isFinite(weightOz) || weightOz <= 0) {
+          return res.status(400).json({
+            message: "Invalid precious metals listing: weightOz must be a positive number.",
+          });
+        }
+
+        if (!Number.isFinite(quantityUnits) || quantityUnits <= 0) {
+          return res.status(400).json({
+            message: "Invalid precious metals listing: quantityUnits must be a positive number.",
+          });
+        }
+
+        if (
+          premiumOverSpotUsd != null &&
+          (!Number.isFinite(premiumOverSpotUsd) || premiumOverSpotUsd < 0)
+        ) {
+          return res.status(400).json({
+            message:
+              "Invalid precious metals listing: premiumOverSpotUsd must be >= 0 when provided.",
+          });
+        }
+
+        if (purity.length > 24) {
+          return res.status(400).json({
+            message: "Invalid precious metals listing: purity must be 24 characters or less.",
+          });
+        }
+
+        // Physical-only norm: prefer meetup-only visibility and local pickup.
+        normalizedData.locationVisibility = "meetup_only";
+        normalizedData.isLocalPickupOnly = true;
+      }
+
+      const listing = await storage.createMarketplaceListing(normalizedData);
 
       res.status(201).json({
         ...listing,
