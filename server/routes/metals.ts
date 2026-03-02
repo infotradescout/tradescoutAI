@@ -39,7 +39,7 @@ metalsRouter.get("/api/metals/prices", async (req, res) => {
   if (!result.snapshot) {
     return res.status(503).json({
       message: "Metals prices are not available yet.",
-      hint: "Set METALS_API_KEY to enable automatic 15-minute price snapshots.",
+      hint: "Default provider is free (GoldPrice.org). Optionally set METALS_PRICE_PROVIDER=metals_api with METALS_API_KEY for an alternative source.",
     });
   }
 

@@ -5,12 +5,26 @@ import { metalsPriceSnapshots } from "../../shared/schema";
 const DEFAULT_MAX_AGE_MS = 15 * 60 * 1000;
 const DEFAULT_FETCH_TIMEOUT_MS = 7_000;
 
+type MetalsPriceProvider = "goldprice_org" | "metals_api";
+
 type LatestMetalsApiResponse = {
   success?: boolean;
   base?: string;
   timestamp?: number;
   rates?: Record<string, number>;
   error?: { code?: number | string; type?: string; info?: string };
+};
+
+type GoldPriceOrgResponse = {
+  ts?: number; // ms epoch
+  tsj?: number; // ms epoch (server-side)
+  items?: Array<{
+    curr?: string;
+    xauPrice?: number;
+    xagPrice?: number;
+    chgXau?: number;
+    chgXag?: number;
+  }>;
 };
 
 type SnapshotRow = typeof metalsPriceSnapshots.$inferSelect;
@@ -34,6 +48,15 @@ function formatDecimal(value: number | null, digits: number) {
   return value.toFixed(digits);
 }
 
+function getMetalsPriceProvider(): MetalsPriceProvider {
+  const raw = String(process.env.METALS_PRICE_PROVIDER || "")
+    .trim()
+    .toLowerCase();
+  if (raw === "metals_api" || raw === "metals-api") return "metals_api";
+  // Default to free source.
+  return "goldprice_org";
+}
+
 function getMetalsApiKey(): string | null {
   const key = String(process.env.METALS_API_KEY || "").trim();
   return key ? key : null;
@@ -41,6 +64,12 @@ function getMetalsApiKey(): string | null {
 
 function getMetalsApiUrl(): string {
   return String(process.env.METALS_API_URL || "https://metals-api.com/api/latest").trim();
+}
+
+function getGoldPriceOrgUrl(): string {
+  return String(
+    process.env.GOLDPRICE_ORG_URL || "https://data-asg.goldprice.org/dbXRates/USD"
+  ).trim();
 }
 
 export async function getLatestMetalsPriceSnapshot(): Promise<SnapshotRow | null> {
@@ -59,6 +88,50 @@ export function isSnapshotStale(snapshot: SnapshotRow, maxAgeMs = DEFAULT_MAX_AG
       : new Date(snapshot.asOf as any).getTime();
   if (!Number.isFinite(asOf)) return true;
   return nowMs() - asOf > maxAgeMs;
+}
+
+async function fetchGoldPriceOrgLatest(timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(getGoldPriceOrgUrl(), {
+      signal: controller.signal,
+      headers: {
+        // This endpoint blocks generic clients unless they resemble a browser.
+        "user-agent": "TradeScout/1.0 (+https://www.thetradescout.com)",
+        accept: "application/json,text/plain,*/*",
+        referer: "https://goldprice.org/",
+      },
+    });
+
+    if (!resp.ok) {
+      throw new Error(`GoldPrice.org fetch failed: HTTP ${resp.status}`);
+    }
+
+    const json = (await resp.json()) as GoldPriceOrgResponse;
+    const item = Array.isArray(json?.items) ? json.items[0] : undefined;
+    const curr = String(item?.curr || "").toUpperCase();
+    if (curr && curr !== "USD") {
+      throw new Error(`GoldPrice.org currency mismatch: expected USD, got ${curr}`);
+    }
+
+    const xauUsdPerOz = parseDecimal(item?.xauPrice);
+    const xagUsdPerOz = parseDecimal(item?.xagPrice);
+    const asOfMs = parseDecimal(json?.tsj ?? json?.ts);
+    const asOf = asOfMs != null ? new Date(asOfMs) : new Date();
+
+    return {
+      asOf,
+      xauUsdPerOz,
+      xagUsdPerOz,
+      xptUsdPerOz: null,
+      xpdUsdPerOz: null,
+      raw: json as any,
+      source: "goldprice_org" as const,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fetchMetalsApiLatest(timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
@@ -110,6 +183,7 @@ async function fetchMetalsApiLatest(timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
       xptUsdPerOz,
       xpdUsdPerOz,
       raw: json as any,
+      source: "metals_api" as const,
     };
   } finally {
     clearTimeout(timer);
@@ -117,14 +191,16 @@ async function fetchMetalsApiLatest(timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
 }
 
 async function refreshMetalsPriceSnapshot(): Promise<SnapshotRow | null> {
-  const fetched = await fetchMetalsApiLatest();
+  const provider = getMetalsPriceProvider();
+  const fetched =
+    provider === "metals_api" ? await fetchMetalsApiLatest() : await fetchGoldPriceOrgLatest();
   if (!fetched) return null;
 
   const [created] = await db
     .insert(metalsPriceSnapshots)
     .values({
       asOf: fetched.asOf,
-      source: "metals_api",
+      source: fetched.source,
       baseCurrency: "USD",
       xauUsdPerOz: formatDecimal(fetched.xauUsdPerOz, 4),
       xagUsdPerOz: formatDecimal(fetched.xagUsdPerOz, 4),
@@ -149,8 +225,8 @@ export async function ensureFreshMetalsPriceSnapshot(options?: {
     return { snapshot: latest, refreshed: false, refreshInFlight: false };
   }
 
-  const apiKey = getMetalsApiKey();
-  if (!apiKey) {
+  const provider = getMetalsPriceProvider();
+  if (provider === "metals_api" && !getMetalsApiKey()) {
     return { snapshot: latest, refreshed: false, refreshInFlight: false };
   }
 
