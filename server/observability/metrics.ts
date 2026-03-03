@@ -73,6 +73,8 @@ const httpMetricsHistory: Map<string, number> = new Map([
   ["5xx:unknown", 0],
 ]);
 
+const METRICS_STDOUT_ENABLED = process.env.OBS_METRICS_STDOUT === "true";
+
 // ============================================================================
 // SCHEDULER JOB METRICS
 // ============================================================================
@@ -94,13 +96,15 @@ export function emitJobStart(jobName: string): void {
     jobMetrics.get(jobName)!.push(metric);
 
     // Structured log (future: export to monitoring system)
-    console.log(
-      JSON.stringify({
-        metric: "scheduler_job_start_total",
-        job: jobName,
-        timestamp: new Date().toISOString(),
-      })
-    );
+    if (METRICS_STDOUT_ENABLED) {
+      console.log(
+        JSON.stringify({
+          metric: "scheduler_job_start_total",
+          job: jobName,
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
   } catch (error) {
     // Silent failure: never crash job execution
     console.error("Metrics emission failed (job start):", error);
@@ -133,33 +137,35 @@ export function emitJobEnd(jobName: string, rowsWritten: number, overlap: boolea
     recordJobSuccess(jobName);
 
     // Structured logs (future: export to monitoring system)
-    console.log(
-      JSON.stringify({
-        metric: "scheduler_job_duration_ms",
-        job: jobName,
-        value: durationMs,
-        timestamp: new Date().toISOString(),
-      })
-    );
-
-    console.log(
-      JSON.stringify({
-        metric: "scheduler_job_rows_written",
-        job: jobName,
-        value: rowsWritten,
-        timestamp: new Date().toISOString(),
-      })
-    );
-
-    if (overlap) {
+    if (METRICS_STDOUT_ENABLED) {
       console.log(
         JSON.stringify({
-          metric: "scheduler_job_overlap_total",
+          metric: "scheduler_job_duration_ms",
           job: jobName,
-          value: 1,
+          value: durationMs,
           timestamp: new Date().toISOString(),
         })
       );
+
+      console.log(
+        JSON.stringify({
+          metric: "scheduler_job_rows_written",
+          job: jobName,
+          value: rowsWritten,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
+      if (overlap) {
+        console.log(
+          JSON.stringify({
+            metric: "scheduler_job_overlap_total",
+            job: jobName,
+            value: 1,
+            timestamp: new Date().toISOString(),
+          })
+        );
+      }
     }
   } catch (error) {
     // Silent failure: never crash job execution
@@ -182,15 +188,17 @@ export function emitJobError(jobName: string, error: any): void {
     // Record error in alerts system
     recordJobError(jobName);
 
-    console.log(
-      JSON.stringify({
-        metric: "scheduler_job_error_total",
-        job: jobName,
-        value: 1,
-        error: error?.message || String(error),
-        timestamp: new Date().toISOString(),
-      })
-    );
+    if (METRICS_STDOUT_ENABLED) {
+      console.log(
+        JSON.stringify({
+          metric: "scheduler_job_error_total",
+          job: jobName,
+          value: 1,
+          error: error?.message || String(error),
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
   } catch (emitError) {
     // Silent failure: never crash job execution
     console.error("Metrics emission failed (job error):", emitError);
@@ -214,17 +222,19 @@ export function emitPoolMetrics(metrics: DbPoolMetrics): void {
       poolMetricsHistory.shift();
     }
 
-    console.log(
-      JSON.stringify({
-        metric: "db_pool_snapshot",
-        active: metrics.active,
-        idle: metrics.idle,
-        waiting: metrics.waiting,
-        acquireLatencyMs: metrics.acquireLatencyMs,
-        errors: metrics.errors,
-        timestamp: new Date().toISOString(),
-      })
-    );
+    if (METRICS_STDOUT_ENABLED) {
+      console.log(
+        JSON.stringify({
+          metric: "db_pool_snapshot",
+          active: metrics.active,
+          idle: metrics.idle,
+          waiting: metrics.waiting,
+          acquireLatencyMs: metrics.acquireLatencyMs,
+          errors: metrics.errors,
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
   } catch (error) {
     // Silent failure: never crash application
     console.error("Metrics emission failed (pool):", error);
@@ -265,19 +275,21 @@ export function emitHttpStatus(
     const actorCount = httpMetricsHistory.get(actorKey) || 0;
     httpMetricsHistory.set(actorKey, actorCount + 1);
 
-    console.log(
-      JSON.stringify({
-        metric: "http_requests_total",
-        status_class: statusClass,
-        value: currentCount + 1,
-        status_code: statusCode,
-        actor_type: actorType,
-        bot_name: actor.botName,
-        request_type: requestType,
-        path: opts?.path || null,
-        timestamp: new Date().toISOString(),
-      })
-    );
+    if (METRICS_STDOUT_ENABLED) {
+      console.log(
+        JSON.stringify({
+          metric: "http_requests_total",
+          status_class: statusClass,
+          value: currentCount + 1,
+          status_code: statusCode,
+          actor_type: actorType,
+          bot_name: actor.botName,
+          request_type: requestType,
+          path: opts?.path || null,
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
   } catch (error) {
     // Silent failure: never crash request handling
     console.error("Metrics emission failed (http):", error);
