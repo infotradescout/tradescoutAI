@@ -973,7 +973,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             label: formatContextTag(raw),
                           }))
                           .filter((t: { key: string; label: string }) => t.key && t.label)
-                          .slice(0, 8)
+                          .slice(0, 12)
                           .map((tag: { key: string; label: string }, index: number) => (
                             <button
                               key={`${tag.key}-${index}`}

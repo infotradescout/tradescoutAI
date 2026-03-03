@@ -628,7 +628,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                     label: formatContextTag(raw),
                   }))
                   .filter((t) => t.key && t.label)
-                  .slice(0, 8)
+                  .slice(0, 12)
                   .map((tag, idx) => {
                     return (
                       <button

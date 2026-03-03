@@ -16344,9 +16344,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           post?.content,
           post?.category
         );
-        const merged = Array.from(new Set([...cleaned, ...derivedFromContent]))
+        const roleTagRaw =
+          typeof post?.author?.role === "string"
+            ? String(post.author.role).trim().toLowerCase()
+            : "";
+        const roleTag = roleTagRaw
+          ? roleTagRaw.replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "")
+          : "";
+        const merged = Array.from(
+          new Set([...cleaned, ...derivedFromContent, roleTag].filter(Boolean))
+        )
           .filter(Boolean)
-          .slice(0, 8);
+          .slice(0, 12);
         return { ...post, tags: merged };
       });
 
@@ -16730,26 +16739,54 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     if (/drywall|sheetrock|mud\b|tape\b|texture|skim\s+coat/.test(text)) tags.add("drywall");
     if (/trim\b|finish\s+work|baseboard|crown\s+molding|door\s+trim|window\s+trim/.test(text))
       tags.add("trim");
+    if (/carpentry|framing|cabinet|cabinets|millwork/.test(text)) tags.add("carpentry");
+    if (/masonry|brick|block|stone|chimney/.test(text)) tags.add("masonry");
+    if (/insulation|spray\s+foam|attic\s+insulation/.test(text)) tags.add("insulation");
     if (/plumb|leak|pipe|drain/.test(text)) tags.add("plumbing");
     if (/electric|breaker|panel|outlet|switch/.test(text)) tags.add("electrical");
     if (/hvac|furnace|ac|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
     if (/concrete|foundation|slab|driveway/.test(text)) tags.add("concrete");
     if (/siding|stucco|fascia/.test(text)) tags.add("siding");
     if (/window|windows|door|doors|garage\s+door/.test(text)) tags.add("windows_doors");
+    if (/pest|termite|rodent|exterminator/.test(text)) tags.add("pest_control");
+    if (/pool|hot\s+tub|spa\b/.test(text)) tags.add("pool_spa");
+    if (/locksmith|rekey|lock\s+change/.test(text)) tags.add("locksmith");
+    if (/cleaning|maid\s+service|deep\s+clean/.test(text)) tags.add("cleaning");
+    if (/moving|movers|relocation/.test(text)) tags.add("moving");
+    if (/junk\s+removal|dumpster|haul\s+away/.test(text)) tags.add("junk_removal");
+    if (/fence|fencing|gate\b/.test(text)) tags.add("fencing");
     if (/landscap|lawn|sprinkler|irrigation|tree\s+service/.test(text)) tags.add("landscaping");
+    if (/pressure\s+wash|power\s+wash|soft\s+wash/.test(text)) tags.add("pressure_washing");
+    if (/solar|panel\s+install|pv\b/.test(text)) tags.add("solar");
+    if (/security\s+camera|alarm\s+system|cctv/.test(text)) tags.add("security");
+    if (/smart\s+home|home\s+automation|ring\b|nest\b/.test(text)) tags.add("smart_home");
+
+    // Real estate + finance + governance
+    if (/realtor|real\s+estate\s+agent|listing\s+agent|buyer'?s\s+agent|broker\b/.test(text))
+      tags.add("real_estate");
+    if (/mortgage|lender|loan|refinance|rate\b|apr\b/.test(text)) tags.add("mortgage");
+    if (/insurance|insured|claim\b|policy\b|adjuster/.test(text)) tags.add("insurance");
+    if (/title\s+company|escrow|closing\b/.test(text)) tags.add("title_escrow");
+    if (/appraisal|appraiser/.test(text)) tags.add("appraisal");
+    if (/inspection|home\s+inspector/.test(text)) tags.add("inspection");
+    if (/permit|permitting|code\s+enforcement|inspection\s+department/.test(text))
+      tags.add("permits_code");
+    if (/attorney|lawyer|legal\b|contract\b|lien\b/.test(text)) tags.add("legal");
+    if (/notary|notarize|notarized/.test(text)) tags.add("notary");
     if (/contractor|builder|remodel/.test(text)) tags.add("contractors");
     if (/marketplace|exchange|for sale|listing/.test(text)) tags.add("marketplace");
     if (/event|meetup|meeting|gathering/.test(text)) tags.add("events");
     if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text))
       tags.add("recommendations");
     if (/lead|leads|job|jobs|work\b|bid|estimate|quote/.test(text)) tags.add("work");
+    if (/diy|do\s+it\s+yourself|how\s+to\b|tutorial/.test(text)) tags.add("diy");
 
     if (category && typeof category === "string") {
       const cat = category.toLowerCase();
       if (cat && !["general"].includes(cat)) tags.add(cat);
     }
 
-    return Array.from(tags).slice(0, 8);
+    return Array.from(tags).slice(0, 12);
   }
 
   async function createAutomaticCommunityWelcomeForUser(
