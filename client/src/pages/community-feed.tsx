@@ -46,7 +46,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
-import { formatContextTag } from "@/utils/formatContextTag";
+import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { recordActivity } from "@/agent/activity";
@@ -359,6 +359,9 @@ const CommunityFeed = memo(function CommunityFeed() {
   const rawScopeParam = queryParams.get("scope");
   const rawGeoParam = queryParams.get("geo");
   const rawFeedParam = queryParams.get("feed");
+  const rawTagParam = queryParams.get("tag");
+  const activeTopicKey = toContextTagKey(rawTagParam);
+  const activeTopicLabel = activeTopicKey ? formatContextTag(activeTopicKey) : "";
 
   const normalizeFeed = (value?: string | null): FeedTab | null => {
     if (!value) return null;
@@ -421,6 +424,16 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (nextParams.get("scope") === "local" || nextParams.get("scope") === "global") {
       nextParams.delete("scope");
     }
+    const nextSearch = `?${nextParams.toString()}`;
+    setSearchState(nextSearch);
+    navigate(`${currentPath}${nextSearch}`);
+  };
+
+  const setActiveTopic = (topicKey: string) => {
+    const normalized = toContextTagKey(topicKey);
+    const nextParams = new URLSearchParams(queryParams);
+    if (normalized) nextParams.set("tag", normalized);
+    else nextParams.delete("tag");
     const nextSearch = `?${nextParams.toString()}`;
     setSearchState(nextSearch);
     navigate(`${currentPath}${nextSearch}`);
@@ -494,7 +507,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   // Fetch posts from the API scoped to the user's county and nav scope
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed],
+    queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed, activeTopicKey],
     // Phase 1: Global view doesn't require county commitment
     enabled: isGlobalView || countyCommitted,
     queryFn: async () => {
@@ -508,6 +521,10 @@ const CommunityFeed = memo(function CommunityFeed() {
       if (!isGlobalView && stateCode && countyFips) {
         params.set("stateCode", stateCode);
         params.set("countyFips", countyFips);
+      }
+
+      if (activeTopicKey) {
+        params.set("tag", activeTopicKey);
       }
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
@@ -921,16 +938,23 @@ const CommunityFeed = memo(function CommunityFeed() {
                     {Array.isArray(post.tags) && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {post.tags
-                          .map((tag: string) => formatContextTag(tag))
-                          .filter(Boolean)
+                          .map((raw: string) => ({
+                            key: toContextTagKey(raw),
+                            label: formatContextTag(raw),
+                          }))
+                          .filter((t: { key: string; label: string }) => t.key && t.label)
                           .slice(0, 8)
-                          .map((tag: string, index: number) => (
-                            <span
-                              key={`${tag}-${index}`}
-                              className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer"
+                          .map((tag: { key: string; label: string }, index: number) => (
+                            <button
+                              key={`${tag.key}-${index}`}
+                              type="button"
+                              onClick={() => setActiveTopic(tag.key)}
+                              className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer underline-offset-4 hover:underline"
+                              aria-label={`View topic ${tag.label}`}
+                              title={`View topic: ${tag.label}`}
                             >
-                              {tag}
-                            </span>
+                              {tag.label}
+                            </button>
                           ))}
                       </div>
                     )}
@@ -1313,6 +1337,20 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Active today: {communityStats.activeToday} | Posts today:{" "}
                     {communityStats.postsToday}
                   </p>
+                  {activeTopicKey && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-[11px] text-ts-orange">
+                        Topic: <span className="font-semibold">{activeTopicLabel}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTopic("")}
+                        className="text-[11px] text-white/70 hover:text-white underline-offset-4 hover:underline"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -6707,6 +6707,7 @@ export class DatabaseStorage implements IStorage {
     countyFips?: string;
     category?: typeof communityPosts.category.enumValues extends readonly (infer T)[] ? T : string;
     authorId?: string;
+    tag?: string;
     limit?: number;
     offset?: number;
     // Social feed tuning
@@ -6760,6 +6761,15 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters?.authorId) {
       conditions.push(eq(communityPosts.authorId, filters.authorId));
+    }
+    if (filters?.tag) {
+      const normalizedTag = String(filters.tag || "")
+        .trim()
+        .replace(/^#+/, "")
+        .toLowerCase();
+      if (normalizedTag) {
+        conditions.push(sql`${communityPosts.tags} @> ARRAY[${normalizedTag}]::text[]`);
+      }
     }
 
     // Following / recommendations selectors

@@ -38,7 +38,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { UserBadges } from "@/components/user-badges";
 import { CommunityCTA } from "./CommunityCTA";
 import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
-import { formatContextTag } from "@/utils/formatContextTag";
+import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 
 export interface CommunityPostCardAuthor {
   id?: string;
@@ -623,18 +623,31 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
                 {post.tags
-                  .map((tag) => formatContextTag(tag))
-                  .filter(Boolean)
+                  .map((raw) => ({
+                    key: toContextTagKey(raw),
+                    label: formatContextTag(raw),
+                  }))
+                  .filter((t) => t.key && t.label)
                   .slice(0, 8)
-                  .map((tag, idx) => (
-                    <Badge
-                      key={`${tag}-${idx}`}
-                      variant="secondary"
-                      className="text-[10px] bg-ts-orange/10 border border-ts-orange/30 text-ts-orange px-2 py-0.5"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
+                  .map((tag, idx) => {
+                    return (
+                      <button
+                        key={`${tag.key}-${idx}`}
+                        type="button"
+                        onClick={() => navigate(`/community?tag=${encodeURIComponent(tag.key)}`)}
+                        className="focus:outline-none"
+                        aria-label={`View topic ${tag.label}`}
+                        title={`View topic: ${tag.label}`}
+                      >
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] bg-ts-orange/10 border border-ts-orange/30 text-ts-orange px-2 py-0.5 hover:bg-ts-orange/20"
+                        >
+                          {tag.label}
+                        </Badge>
+                      </button>
+                    );
+                  })}
               </div>
             )}
           </div>

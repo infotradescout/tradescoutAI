@@ -16218,6 +16218,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             (user && !hasExplicitLocationFilters
               ? ((user as any).countyFips as string | undefined)
               : undefined),
+        tag: typeof req.query.tag === "string" ? (req.query.tag as string) : undefined,
         category: req.query.category as any,
         authorId: req.query.authorId as string,
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,

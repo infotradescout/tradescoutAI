@@ -14,3 +14,14 @@ export function formatContextTag(input: unknown): string {
 
   return cleaned.replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+export function toContextTagKey(input: unknown): string {
+  const cleaned = String(input ?? "")
+    .trim()
+    .replace(/^#+/, "")
+    .replace(/[_\s-]+/g, "_")
+    .replace(/[^a-zA-Z0-9_]/g, "")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+  return cleaned;
+}
