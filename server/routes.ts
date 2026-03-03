@@ -8317,18 +8317,24 @@ export async function registerRoutes(app: any) {
       const data = payload?.data ?? {};
       const sessionUser = (req as any)?.user ?? null;
 
-      await storage.logEvent(eventType, {
-        ...data,
-        userId: sessionUser?.id || data?.userId || null,
-        contractorId: sessionUser?.contractorId || data?.contractorId || null,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-      });
+      // Never block UX on telemetry writes.
+      res.status(204).end();
 
-      res.json({ message: "Event logged successfully" });
+      void storage
+        .logEvent(eventType, {
+          ...data,
+          userId: sessionUser?.id || data?.userId || null,
+          contractorId: sessionUser?.contractorId || data?.contractorId || null,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+        })
+        .catch((error: any) => {
+          console.error("Error persisting /api/events telemetry", error);
+        });
     } catch (error: any) {
       console.error("Error logging event:", error);
-      res.status(500).json({ message: "Failed to log event" });
+      // Fail-soft: telemetry should never block the client.
+      res.status(204).end();
     }
   });
 
