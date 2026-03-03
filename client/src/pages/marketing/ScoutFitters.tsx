@@ -165,6 +165,7 @@ export default function ScoutFitters() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canvasElRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fabricCanvasRef = useRef<any>(null);
   const fabricRef = useRef<any>(null);
   const logoObjectRef = useRef<any>(null);
@@ -234,6 +235,14 @@ export default function ScoutFitters() {
   };
 
   const removeLogo = () => {
+    try {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch {
+      // ignore
+    }
+
     const canvas = fabricCanvasRef.current;
     const logoObj = logoObjectRef.current;
     if (canvas && logoObj) {
@@ -787,11 +796,24 @@ export default function ScoutFitters() {
                 <div className="space-y-2">
                   <Label>Upload logo</Label>
                   <div className="flex items-center gap-2">
-                    <Input
+                    <input
+                      ref={fileInputRef}
                       type="file"
                       accept="image/png,image/jpeg,image/svg+xml"
+                      className="hidden"
                       onChange={(e) => void onLogoSelected(e.target.files?.[0] || null)}
                     />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="shrink-0"
+                    >
+                      Choose file
+                    </Button>
+                    <div className="min-w-0 flex-1 text-xs text-white/70 truncate">
+                      {logoFile ? logoFile.name : "No file chosen"}
+                    </div>
                     <Button variant="outline" onClick={removeLogo} disabled={!logoFile}>
                       Clear
                     </Button>
