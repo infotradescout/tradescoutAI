@@ -58,6 +58,7 @@ import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
 import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
 import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface Post {
   id: string;
@@ -360,8 +361,8 @@ const CommunityFeed = memo(function CommunityFeed() {
   const rawGeoParam = queryParams.get("geo");
   const rawFeedParam = queryParams.get("feed");
   const rawTagParam = queryParams.get("tag");
-  const activeTopicKey = toContextTagKey(rawTagParam);
-  const activeTopicLabel = activeTopicKey ? formatContextTag(activeTopicKey) : "";
+  const topicTagKey = toContextTagKey(rawTagParam);
+  const topicTagLabel = topicTagKey ? formatContextTag(topicTagKey) : "";
 
   const normalizeFeed = (value?: string | null): FeedTab | null => {
     if (!value) return null;
@@ -507,7 +508,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   // Fetch posts from the API scoped to the user's county and nav scope
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed, activeTopicKey],
+    queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed],
     // Phase 1: Global view doesn't require county commitment
     enabled: isGlobalView || countyCommitted,
     queryFn: async () => {
@@ -521,10 +522,6 @@ const CommunityFeed = memo(function CommunityFeed() {
       if (!isGlobalView && stateCode && countyFips) {
         params.set("stateCode", stateCode);
         params.set("countyFips", countyFips);
-      }
-
-      if (activeTopicKey) {
-        params.set("tag", activeTopicKey);
       }
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
@@ -549,6 +546,38 @@ const CommunityFeed = memo(function CommunityFeed() {
       }
 
       return json;
+    },
+  });
+
+  const topicScopeForThread =
+    serverScopeForFeed === "saved" ? (isGlobalView ? "global" : "county") : serverScopeForFeed;
+
+  const { data: topicPostsData, isLoading: topicPostsLoading } = useQuery<Post[]>({
+    queryKey: [
+      "/api/community/posts",
+      stateCode,
+      countyFips,
+      topicScopeForThread,
+      topicTagKey,
+      "topic",
+    ],
+    enabled: Boolean(topicTagKey) && (isGlobalView || countyCommitted),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        scope: topicScopeForThread,
+        limit: "50",
+        offset: "0",
+        tag: topicTagKey,
+      });
+
+      if (!isGlobalView && stateCode && countyFips) {
+        params.set("stateCode", stateCode);
+        params.set("countyFips", countyFips);
+      }
+
+      const response = await fetch(`/api/community/posts?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch topic posts");
+      return (await response.json()) as Post[];
     },
   });
 
@@ -835,6 +864,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     : "bg-[color:var(--surface-card)]"
                 }`}
                 data-testid={`card-post-${post.id}`}
+                data-post-id={post.id}
               >
                 <CardContent className="p-3 md:p-4">
                   {/* Post Header */}
@@ -1319,6 +1349,93 @@ const CommunityFeed = memo(function CommunityFeed() {
       <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
         <div className="mx-auto w-full max-w-[1024px] px-2.5 py-2 md:px-3 md:py-3 overflow-x-hidden">
           <CommunityTopNav />
+
+          <Dialog
+            open={Boolean(topicTagKey)}
+            onOpenChange={(open) => {
+              if (!open) setActiveTopic("");
+            }}
+          >
+            <DialogContent className="left-0 top-0 z-[1000] h-[100vh] w-[100vw] max-w-none translate-x-0 translate-y-0 rounded-none border border-white/10 bg-[color:var(--surface-app-bg)] p-0">
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[color:var(--surface-intermediate)] px-4 py-3">
+                  <div className="min-w-0">
+                    <DialogTitle className="text-base md:text-lg">
+                      Topic: {topicTagLabel || topicTagKey}
+                    </DialogTitle>
+                    <div className="mt-0.5 text-xs text-white/60">
+                      Showing posts that mention this topic in your current scope.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTopic("")}
+                    className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.7rem] font-semibold text-black hover:bg-ts-orange-dark"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-2.5 py-3 md:px-3">
+                  {topicPostsLoading ? (
+                    <div className="text-sm text-white/60">Loading topic…</div>
+                  ) : (topicPostsData || []).length === 0 ? (
+                    <div className="text-sm text-white/60">No posts found for this topic yet.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(topicPostsData || []).map((post) => (
+                        <Card
+                          key={`topic-${post.id}`}
+                          className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-xs text-white/60">
+                                  {post.author?.name || "Member"} •{" "}
+                                  {post.createdAt ? new Date(post.createdAt).toLocaleString() : ""}
+                                </div>
+                                {post.title ? (
+                                  <div className="mt-1 text-sm font-semibold text-white">
+                                    {post.title}
+                                  </div>
+                                ) : null}
+                                <div className="mt-1 text-sm text-white/70 whitespace-pre-line">
+                                  {String(post.content || "").slice(0, 300)}
+                                  {String(post.content || "").length > 300 ? "…" : ""}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTopic("");
+                                  setOpenCommentsForPostId(post.id);
+                                  try {
+                                    window.setTimeout(() => {
+                                      const el = document.querySelector(
+                                        `[data-post-id="${CSS.escape(post.id)}"]`
+                                      ) as HTMLElement | null;
+                                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                    }, 50);
+                                  } catch {
+                                    // ignore
+                                  }
+                                }}
+                                className="shrink-0 text-xs text-ts-orange hover:underline underline-offset-4"
+                              >
+                                Open
+                              </button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <ScoutContinueBanner className="mb-3" />
           <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
             <CardContent className="p-3 md:p-4">
@@ -1337,20 +1454,6 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Active today: {communityStats.activeToday} | Posts today:{" "}
                     {communityStats.postsToday}
                   </p>
-                  {activeTopicKey && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-[11px] text-ts-orange">
-                        Topic: <span className="font-semibold">{activeTopicLabel}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTopic("")}
-                        className="text-[11px] text-white/70 hover:text-white underline-offset-4 hover:underline"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
 

@@ -16334,15 +16334,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const cleaned = String(value ?? "")
           .trim()
           .replace(/^#+/, "");
-        return cleaned.trim();
+        return cleaned.trim().toLowerCase();
       };
       posts = posts.map((post: any) => {
         const rawTags = Array.isArray(post?.tags) ? post.tags : [];
         const cleaned = rawTags.map(normalizeTagValue).filter(Boolean);
-        const derived = cleaned.length
-          ? Array.from(new Set(cleaned)).slice(0, 8)
-          : deriveCommunityTagsFromContent(post?.title, post?.content, post?.category);
-        return { ...post, tags: derived };
+        const derivedFromContent = deriveCommunityTagsFromContent(
+          post?.title,
+          post?.content,
+          post?.category
+        );
+        const merged = Array.from(new Set([...cleaned, ...derivedFromContent]))
+          .filter(Boolean)
+          .slice(0, 8);
+        return { ...post, tags: merged };
       });
 
       // Phase 1: Fail-safe field stripping for global scope (posts-only)
@@ -16719,14 +16724,25 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     // Simple keyword-based tags derived from the content body.
     if (/hoa|homeowners'\s+association|board meeting/.test(text)) tags.add("hoa");
     if (/roof|roofing|shingle|soffit|gutter/.test(text)) tags.add("roofing");
+    if (/floor|flooring|tile|tiles|grout|laminate|vinyl\s+plank|lvp|hardwood/.test(text))
+      tags.add("flooring");
+    if (/paint|painting|painter|primer|caulk|stain\b/.test(text)) tags.add("painting");
+    if (/drywall|sheetrock|mud\b|tape\b|texture|skim\s+coat/.test(text)) tags.add("drywall");
+    if (/trim\b|finish\s+work|baseboard|crown\s+molding|door\s+trim|window\s+trim/.test(text))
+      tags.add("trim");
     if (/plumb|leak|pipe|drain/.test(text)) tags.add("plumbing");
     if (/electric|breaker|panel|outlet|switch/.test(text)) tags.add("electrical");
     if (/hvac|furnace|ac|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
+    if (/concrete|foundation|slab|driveway/.test(text)) tags.add("concrete");
+    if (/siding|stucco|fascia/.test(text)) tags.add("siding");
+    if (/window|windows|door|doors|garage\s+door/.test(text)) tags.add("windows_doors");
+    if (/landscap|lawn|sprinkler|irrigation|tree\s+service/.test(text)) tags.add("landscaping");
     if (/contractor|builder|remodel/.test(text)) tags.add("contractors");
     if (/marketplace|exchange|for sale|listing/.test(text)) tags.add("marketplace");
     if (/event|meetup|meeting|gathering/.test(text)) tags.add("events");
     if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text))
       tags.add("recommendations");
+    if (/lead|leads|job|jobs|work\b|bid|estimate|quote/.test(text)) tags.add("work");
 
     if (category && typeof category === "string") {
       const cat = category.toLowerCase();
