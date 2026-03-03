@@ -47,6 +47,7 @@ import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../sco
 import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
 import { recordScoutInteraction } from "../services/missionControl";
 import { logCompletedAction } from "../services/preferredSource";
+import { ensureFollowUpQuestion } from "../scout/responseShape";
 import {
   sanitizeScoutActionsForPolicy,
   sanitizeScoutMessageForPolicy,
@@ -1202,7 +1203,7 @@ function trimResponseToScreenFit(response: string, opts?: { mode?: "default" | "
       "\n\nI've summarized this to keep it readable. Use the actions below to go deeper where you need.";
   }
 
-  return result;
+  return ensureFollowUpQuestion(result);
 }
 
 /**

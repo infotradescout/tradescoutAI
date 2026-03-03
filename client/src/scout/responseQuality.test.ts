@@ -35,4 +35,27 @@ describe("enforceResponseQualityContract", () => {
     expect(result.toLowerCase()).not.toContain("can't help");
     expect(result).toContain("best available path");
   });
+
+  it("appends a follow-up question when response has no question", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "I need roof repair",
+      content: "I found vetted providers in your county.",
+      hasActionOptions: true,
+    });
+
+    expect(result).toContain("?");
+    expect(result).toContain("Which option should I run first?");
+  });
+
+  it("keeps existing follow-up questions without duplicating", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "What should I do now?",
+      content: "I found the fastest path for your request. Want me to open Direct Connect now?",
+      hasActionOptions: true,
+    });
+
+    const questionCount = (result.match(/\?/g) || []).length;
+    expect(questionCount).toBe(1);
+    expect(result).toContain("Want me to open Direct Connect now?");
+  });
 });

@@ -469,14 +469,37 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const user = req.user as User;
-    const userRole = normalizeLegacyRole(user.role);
+    const user = (req.user || {}) as any as User & {
+      activeRole?: unknown;
+      roles?: unknown;
+      isAdmin?: unknown;
+    };
 
-    if (!userRole) {
+    const primaryRole = normalizeLegacyRole((user as any).role);
+    const activeRole = normalizeLegacyRole((user as any).activeRole);
+    const roleListRaw = Array.isArray((user as any).roles)
+      ? ((user as any).roles as unknown[])
+      : [];
+    const roleList = roleListRaw
+      .map((role) => normalizeLegacyRole(role))
+      .filter(Boolean) as UserRole[];
+
+    const isAdminFlag = (user as any).isAdmin === true;
+
+    const candidateRoles = new Set<UserRole>();
+    if (primaryRole) candidateRoles.add(primaryRole);
+    if (activeRole) candidateRoles.add(activeRole);
+    roleList.forEach((role) => candidateRoles.add(role));
+    // Legacy / computed flags should still grant access through role gates when present.
+    if (isAdminFlag) candidateRoles.add("head_admin");
+
+    if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
     }
 
-    const userLevel = getRoleHierarchyLevel(userRole);
+    const userLevel = Math.max(
+      ...Array.from(candidateRoles).map((role) => getRoleHierarchyLevel(role))
+    );
     const hasPermission = allowedRoles.some((role) => {
       const requiredLevel = getRoleHierarchyLevel(role);
       return userLevel >= requiredLevel;

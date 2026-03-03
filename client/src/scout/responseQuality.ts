@@ -41,6 +41,18 @@ function hasActionableLanguage(input: string): boolean {
   return /\b(next|choose|open|start|use|tap|click|go to|continue)\b/i.test(input);
 }
 
+function hasQuestion(input: string): boolean {
+  return /\?/.test(input);
+}
+
+function appendFollowUpQuestion(input: string, hasActionOptions: boolean): string {
+  if (hasQuestion(input)) return input;
+  const followUp = hasActionOptions
+    ? "Which option should I run first?"
+    : "What should I help you with next?";
+  return `${input} ${followUp}`;
+}
+
 function forceConciseAnswer(userMessage: string, content: string): string {
   const lower = userMessage.trim().toLowerCase();
   const isShortPrompt = lower.length > 0 && lower.length <= 120;
@@ -77,6 +89,8 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
     // Keep this phrasing neutral and non-jargony. The UI already shows the buttons.
     output = `${output} Next: pick a button below.`;
   }
+
+  output = appendFollowUpQuestion(output, hasActionOptions);
 
   return collapseWhitespace(output);
 }

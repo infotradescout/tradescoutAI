@@ -105,6 +105,8 @@ describe("Scout Human Feel Acceptance", () => {
         ).toBe(true);
       }
 
+      expect(turn.message.content.includes("?")).toBe(true);
+
       expect(lower.includes("can't help")).toBe(false);
       expect(lower.includes("not sure what to do")).toBe(false);
       expect(lower.includes("no next step")).toBe(false);

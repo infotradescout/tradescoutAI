@@ -7,6 +7,8 @@ if [ -z "$STAGED_FILES" ]; then
   exit 0
 fi
 
+node scripts/guard-scout-response-contract.mjs || exit 1
+
 ESLINT_FILES="$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx)$' || true)"
 FORMAT_FILES="$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx|json|md)$' || true)"
 
