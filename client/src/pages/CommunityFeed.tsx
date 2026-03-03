@@ -13,6 +13,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Share2, MapPin, Clock, Plus, Filter, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { formatContextTag } from "@/utils/formatContextTag";
 
 interface CommunityPost {
   id: string;
@@ -309,11 +310,15 @@ export default function CommunityFeed() {
 
                 {(post.tags || []).length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {(post.tags || []).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        #{tag}
-                      </Badge>
-                    ))}
+                    {(post.tags || [])
+                      .map((tag) => formatContextTag(tag))
+                      .filter(Boolean)
+                      .slice(0, 8)
+                      .map((tag, idx) => (
+                        <Badge key={`${tag}-${idx}`} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
                   </div>
                 )}
 

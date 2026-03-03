@@ -16327,6 +16327,23 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         posts = await storage.getCommunityPosts(fallbackFilters);
       }
 
+      // Ensure posts have keyword tags for feed scanability (no leading '#').
+      // This is response-only; we do not mutate DB records here.
+      const normalizeTagValue = (value: unknown): string => {
+        const cleaned = String(value ?? "")
+          .trim()
+          .replace(/^#+/, "");
+        return cleaned.trim();
+      };
+      posts = posts.map((post: any) => {
+        const rawTags = Array.isArray(post?.tags) ? post.tags : [];
+        const cleaned = rawTags.map(normalizeTagValue).filter(Boolean);
+        const derived = cleaned.length
+          ? Array.from(new Set(cleaned)).slice(0, 8)
+          : deriveCommunityTagsFromContent(post?.title, post?.content, post?.category);
+        return { ...post, tags: derived };
+      });
+
       // Phase 1: Fail-safe field stripping for global scope (posts-only)
       // Strip contact fields, profile shortcuts, action-enabling metadata
       if (wantsGlobalScope && !isSuperAdminLike) {

@@ -46,6 +46,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
+import { formatContextTag } from "@/utils/formatContextTag";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { recordActivity } from "@/agent/activity";
@@ -919,14 +920,18 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                     {Array.isArray(post.tags) && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
-                        {post.tags.map((tag: string, index: number) => (
-                          <span
-                            key={index}
-                            className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
+                        {post.tags
+                          .map((tag: string) => formatContextTag(tag))
+                          .filter(Boolean)
+                          .slice(0, 8)
+                          .map((tag: string, index: number) => (
+                            <span
+                              key={`${tag}-${index}`}
+                              className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer"
+                            >
+                              {tag}
+                            </span>
+                          ))}
                       </div>
                     )}
 
