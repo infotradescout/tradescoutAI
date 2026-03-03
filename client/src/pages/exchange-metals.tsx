@@ -151,9 +151,30 @@ export default function MetalsExchange() {
   const pricesQuery = useQuery<PricesResponse>({
     queryKey: ["/api/metals/prices"],
     queryFn: async () => {
-      const res = await fetch("/api/metals/prices");
-      if (!res.ok) throw new Error("Failed to load metals prices");
-      return res.json();
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 10_000);
+      try {
+        const res = await fetch("/api/metals/prices", { signal: controller.signal });
+        const text = await res.text();
+        const json = text ? JSON.parse(text) : null;
+
+        if (!res.ok) {
+          const message =
+            typeof json?.message === "string" && json.message.trim()
+              ? json.message
+              : "Failed to load metals prices";
+          throw new Error(message);
+        }
+
+        return json;
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          throw new Error("Metals prices request timed out.");
+        }
+        throw err;
+      } finally {
+        window.clearTimeout(timeout);
+      }
     },
     refetchInterval: 15 * 60 * 1000,
     staleTime: 60 * 1000,
@@ -394,7 +415,13 @@ export default function MetalsExchange() {
                 <div className="text-white/60 text-sm">Loading prices…</div>
               ) : pricesQuery.isError ? (
                 <div className="text-white/60 text-sm">
-                  Prices unavailable. If you control the server, set `METALS_API_KEY`.
+                  {pricesQuery.error instanceof Error
+                    ? pricesQuery.error.message
+                    : "Prices unavailable right now."}
+                </div>
+              ) : !pricesQuery.data?.snapshot ? (
+                <div className="text-white/60 text-sm">
+                  {(pricesQuery.data as any)?.message || "Fetching spot prices…"}
                 </div>
               ) : (
                 <Table>

@@ -31,26 +31,59 @@ function toPublicSnapshot(snapshot: any) {
 metalsRouter.get("/api/metals/prices", async (req, res) => {
   const maxAgeMs = 15 * 60 * 1000;
 
-  const result = await ensureFreshMetalsPriceSnapshot({
-    maxAgeMs,
-    waitForFresh: true,
-  });
+  try {
+    // Never block page loads on upstream provider latency. Prefer cached snapshot,
+    // and trigger refresh in the background if stale/missing.
+    const result = await ensureFreshMetalsPriceSnapshot({
+      maxAgeMs,
+      waitForFresh: false,
+    });
 
-  if (!result.snapshot) {
+    // If we have no snapshot yet, allow a very short wait for the first refresh to land,
+    // but fail-soft quickly to avoid a "Loading…" hang.
+    let snapshot = result.snapshot;
+    let refreshed = result.refreshed;
+    let refreshInFlight = result.refreshInFlight;
+
+    if (!snapshot && refreshInFlight) {
+      const shortWaitMs = 1500;
+      const short = await Promise.race([
+        ensureFreshMetalsPriceSnapshot({ maxAgeMs, waitForFresh: true }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), shortWaitMs)),
+      ]);
+
+      if (short && short.snapshot) {
+        snapshot = short.snapshot;
+        refreshed = short.refreshed;
+        refreshInFlight = short.refreshInFlight;
+      }
+    }
+
+    if (!snapshot) {
+      return res.status(202).json({
+        snapshot: null,
+        stale: true,
+        refreshed: false,
+        refreshInFlight: true,
+        refreshCadenceMinutes: 15,
+        message: "Fetching metals spot prices…",
+      });
+    }
+
+    const stale = isSnapshotStale(snapshot, maxAgeMs);
+    return res.json({
+      snapshot: toPublicSnapshot(snapshot),
+      stale,
+      refreshed,
+      refreshInFlight,
+      refreshCadenceMinutes: 15,
+    });
+  } catch (error: any) {
+    console.error("[metals/prices] failed", error);
     return res.status(503).json({
-      message: "Metals prices are not available yet.",
-      hint: "Default provider is free (GoldPrice.org). Optionally set METALS_PRICE_PROVIDER=metals_api with METALS_API_KEY for an alternative source.",
+      message: "Metals prices are temporarily unavailable.",
     });
   }
-
-  const stale = isSnapshotStale(result.snapshot, maxAgeMs);
-  res.json({
-    snapshot: toPublicSnapshot(result.snapshot),
-    stale,
-    refreshed: result.refreshed,
-    refreshInFlight: result.refreshInFlight,
-    refreshCadenceMinutes: 15,
-  });
 });
 
 const createTransactionSchema = z.object({
