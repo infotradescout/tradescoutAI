@@ -9289,6 +9289,16 @@ export async function registerRoutes(app: any) {
           return res.status(401).json({ message: "Authentication required" });
         }
 
+        // Platform Support Inbox: ensure the official TradeScout support thread exists for every user.
+        // This is platform-to-user communication (help/safety/announcements), not peer-to-peer contact.
+        try {
+          const { ensurePlatformSupportThreadForUser } =
+            await import("./services/platformSupportInbox");
+          await ensurePlatformSupportThreadForUser(String(userId));
+        } catch (err) {
+          console.warn("[messages] support inbox ensure failed", err);
+        }
+
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
 
