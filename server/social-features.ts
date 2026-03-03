@@ -48,6 +48,21 @@ export function registerSocialFeatures(app: Express) {
   const isProductionEnv = process.env.NODE_ENV === "production";
   const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
 
+  const isSuperAdminLike = (req: any): boolean => {
+    const roleFromClaimsRaw = (req?.user as any)?.claims?.role;
+    const roleFromClaims =
+      typeof roleFromClaimsRaw === "string" && roleFromClaimsRaw.trim().toLowerCase() === "owner"
+        ? "head_admin"
+        : roleFromClaimsRaw;
+    const rawRoles = Array.isArray((req?.user as any)?.roles) ? (req.user as any).roles : [];
+    const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
+      (r): r is string => typeof r === "string"
+    );
+    return roles.some((r) =>
+      ["head_admin", "super_admin", "owner"].includes(String(r).toLowerCase())
+    );
+  };
+
   const limiterStore = (prefix: string) =>
     createPostgresRateLimitStore({
       pool,
@@ -1228,6 +1243,196 @@ export function registerSocialFeatures(app: Express) {
       } catch (error: any) {
         console.error("Error fetching contact connections:", error);
         res.status(500).json({ message: "Failed to load connections" });
+      }
+    }
+  );
+
+  /**
+   * CONTACT CONNECTIONS ACTIVITY
+   *
+   * Used by the community header to show:
+   * - connections active today
+   * - connections active now (recent events in the last N minutes)
+   *
+   * A connection is still defined by accepted first-contact permission.
+   * Super Admin is treated as connected to everyone (site-wide support role).
+   *
+   * GET /api/social/contact-connections/activity?limit=12&windowMinutes=5
+   */
+  app.get(
+    "/api/social/contact-connections/activity",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const limit = Math.max(1, Math.min(Number(req.query?.limit || 12), 48));
+        const windowMinutes = Math.max(1, Math.min(Number(req.query?.windowMinutes || 5), 60));
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const now = new Date();
+        const activeNowSince = new Date(now.getTime() - windowMinutes * 60 * 1000);
+
+        const isSuper = isSuperAdminLike(req);
+
+        if (isSuper) {
+          const totalMembersResult = (await db.execute(
+            sql`select count(*)::int as count from users`
+          )) as any;
+          const totalConnections = Math.max(
+            0,
+            Number(totalMembersResult?.rows?.[0]?.count ?? 0) - 1
+          );
+
+          const activeTodayCountResult = (await db.execute(sql`
+              select count(distinct e.user_id)::int as count
+              from events e
+              where e.user_id is not null
+                and e.user_id <> ${userId}
+                and e.created_at >= ${today}
+            `)) as any;
+          const activeTodayCount = Number(activeTodayCountResult?.rows?.[0]?.count ?? 0);
+
+          const activeNowCountResult = (await db.execute(sql`
+              select count(distinct e.user_id)::int as count
+              from events e
+              where e.user_id is not null
+                and e.user_id <> ${userId}
+                and e.created_at >= ${activeNowSince}
+            `)) as any;
+          const activeNowCount = Number(activeNowCountResult?.rows?.[0]?.count ?? 0);
+
+          const activeRows = (await db.execute(sql`
+              select
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.profile_image_url,
+                max(e.created_at) as last_seen_at
+              from events e
+              inner join users u on u.id = e.user_id
+              where e.user_id is not null
+                and e.user_id <> ${userId}
+                and e.created_at >= ${today}
+              group by u.id, u.first_name, u.last_name, u.profile_image_url
+              order by last_seen_at desc
+              limit ${limit}
+            `)) as any;
+
+          const activeToday = (activeRows?.rows ?? []).map((row: any) => {
+            const lastSeenAt = row.last_seen_at ? new Date(row.last_seen_at) : null;
+            return {
+              id: String(row.id),
+              firstName: row.first_name ? String(row.first_name) : null,
+              lastName: row.last_name ? String(row.last_name) : null,
+              profileImageUrl: row.profile_image_url ? String(row.profile_image_url) : null,
+              lastSeenAt: lastSeenAt ? lastSeenAt.toISOString() : null,
+              isActiveNow: Boolean(lastSeenAt && lastSeenAt >= activeNowSince),
+            };
+          });
+
+          return res.json({
+            totalConnections,
+            activeTodayCount,
+            activeNowCount,
+            windowMinutes,
+            activeToday,
+          });
+        }
+
+        const permissionRows = await db
+          .select({
+            requesterId: contactPermissions.requesterId,
+            targetUserId: contactPermissions.targetUserId,
+          })
+          .from(contactPermissions)
+          .where(
+            and(
+              eq(contactPermissions.status, "accepted"),
+              or(
+                eq(contactPermissions.requesterId, userId),
+                eq(contactPermissions.targetUserId, userId)
+              )
+            )
+          );
+
+        const partnerIds = Array.from(
+          new Set(
+            permissionRows
+              .map((row) => (row.requesterId === userId ? row.targetUserId : row.requesterId))
+              .filter((id): id is string => Boolean(id) && id !== userId)
+          )
+        );
+
+        const totalConnections = partnerIds.length;
+        if (!partnerIds.length) {
+          return res.json({
+            totalConnections: 0,
+            activeTodayCount: 0,
+            activeNowCount: 0,
+            windowMinutes,
+            activeToday: [],
+          });
+        }
+
+        const activeTodayCountResult = (await db.execute(sql`
+            select count(distinct e.user_id)::int as count
+            from events e
+            where e.user_id = any(${partnerIds}::text[])
+              and e.created_at >= ${today}
+          `)) as any;
+        const activeTodayCount = Number(activeTodayCountResult?.rows?.[0]?.count ?? 0);
+
+        const activeNowCountResult = (await db.execute(sql`
+            select count(distinct e.user_id)::int as count
+            from events e
+            where e.user_id = any(${partnerIds}::text[])
+              and e.created_at >= ${activeNowSince}
+          `)) as any;
+        const activeNowCount = Number(activeNowCountResult?.rows?.[0]?.count ?? 0);
+
+        const activeRows = (await db.execute(sql`
+            select
+              u.id,
+              u.first_name,
+              u.last_name,
+              u.profile_image_url,
+              max(e.created_at) as last_seen_at
+            from events e
+            inner join users u on u.id = e.user_id
+            where e.user_id = any(${partnerIds}::text[])
+              and e.created_at >= ${today}
+            group by u.id, u.first_name, u.last_name, u.profile_image_url
+            order by last_seen_at desc
+            limit ${limit}
+          `)) as any;
+
+        const activeToday = (activeRows?.rows ?? []).map((row: any) => {
+          const lastSeenAt = row.last_seen_at ? new Date(row.last_seen_at) : null;
+          return {
+            id: String(row.id),
+            firstName: row.first_name ? String(row.first_name) : null,
+            lastName: row.last_name ? String(row.last_name) : null,
+            profileImageUrl: row.profile_image_url ? String(row.profile_image_url) : null,
+            lastSeenAt: lastSeenAt ? lastSeenAt.toISOString() : null,
+            isActiveNow: Boolean(lastSeenAt && lastSeenAt >= activeNowSince),
+          };
+        });
+
+        res.json({
+          totalConnections,
+          activeTodayCount,
+          activeNowCount,
+          windowMinutes,
+          activeToday,
+        });
+      } catch (error: any) {
+        console.error("Error fetching contact connections activity:", error);
+        res.status(500).json({ message: "Failed to load connection activity" });
       }
     }
   );

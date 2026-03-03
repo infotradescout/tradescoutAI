@@ -302,6 +302,21 @@ type CommunityStats = {
   medianFirstReplyMinutes7d?: number | null;
 };
 
+type ConnectionActivitySummary = {
+  totalConnections: number;
+  activeTodayCount: number;
+  activeNowCount: number;
+  windowMinutes: number;
+  activeToday: Array<{
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    profileImageUrl: string | null;
+    lastSeenAt: string | null;
+    isActiveNow: boolean;
+  }>;
+};
+
 type TrendingTopic = {
   tag: string;
   posts?: number;
@@ -774,21 +789,32 @@ const CommunityFeed = memo(function CommunityFeed() {
       : name.slice(0, 2).toUpperCase();
   }
 
-  const activeNeighbors = useMemo(() => {
-    const seen = new Set<string>();
-    const neighbors: Array<{ id: string; name: string; avatar?: string }> = [];
-    (posts || []).forEach((post: any) => {
-      const id = String(post?.author?.id || "");
-      if (!id || seen.has(id)) return;
-      seen.add(id);
-      neighbors.push({
-        id,
-        name: getAuthorName(post),
-        avatar: getAuthorAvatar(post),
+  const { data: connectionActivityData } = useQuery<ConnectionActivitySummary>({
+    queryKey: ["/api/social/contact-connections/activity"],
+    enabled: Boolean(isAuthenticated),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        limit: "12",
+        windowMinutes: "5",
       });
-    });
-    return neighbors.slice(0, 6);
-  }, [posts]);
+      const response = await fetch(
+        `/api/social/contact-connections/activity?${params.toString()}`,
+        {
+          credentials: "include",
+        }
+      );
+      if (!response.ok) throw new Error("Failed to fetch connection activity");
+      return response.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const activeConnections = useMemo(() => {
+    const list = Array.isArray(connectionActivityData?.activeToday)
+      ? connectionActivityData!.activeToday
+      : [];
+    return list.slice(0, 12);
+  }, [connectionActivityData]);
 
   // Allow Scout to prefill the composer via /community?compose=1&prefill=...
   useEffect(() => {
@@ -1451,8 +1477,10 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Ask, recommend, and coordinate with people in your area.
                   </p>
                   <p className="mt-1 text-[11px] md:text-xs text-white/60">
-                    Active today: {communityStats.activeToday} | Posts today:{" "}
-                    {communityStats.postsToday}
+                    {isAuthenticated && connectionActivityData
+                      ? `Connections active today: ${connectionActivityData.activeTodayCount}`
+                      : `Active today: ${communityStats.activeToday}`}{" "}
+                    | Posts today: {communityStats.postsToday}
                   </p>
                 </div>
               </div>
@@ -1496,25 +1524,30 @@ const CommunityFeed = memo(function CommunityFeed() {
                 </div>
               </div>
 
-              {activeNeighbors.length > 0 && (
+              {activeConnections.length > 0 && (
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <div className="text-[10px] uppercase tracking-[0.18em] text-white/60">
                     Active now
                   </div>
-                  <div className="text-[11px] text-white/60">{activeNeighbors.length}</div>
+                  <div className="text-[11px] text-white/60">
+                    {connectionActivityData?.activeNowCount ?? activeConnections.length}
+                  </div>
                 </div>
               )}
-              {activeNeighbors.length > 0 && (
+              {activeConnections.length > 0 && (
                 <div className="mt-2 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
                   <div className="flex items-center gap-2 min-w-max pb-1">
-                    {activeNeighbors.slice(0, 12).map((neighbor) => {
+                    {activeConnections.slice(0, 12).map((neighbor) => {
+                      const name =
+                        [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||
+                        "Connection";
                       const stableId = String(neighbor.id || "")
                         .replace(/[^a-z0-9]/gi, "")
                         .slice(0, 2)
                         .toUpperCase();
                       const fallback =
                         stableId ||
-                        String(neighbor.name || "")
+                        String(name || "")
                           .trim()
                           .split(/\s+/)
                           .slice(0, 2)
@@ -1528,16 +1561,21 @@ const CommunityFeed = memo(function CommunityFeed() {
                         <div
                           key={neighbor.id}
                           className="shrink-0 flex flex-col items-center gap-1 w-[54px]"
-                          title={neighbor.name}
+                          title={name}
                         >
-                          <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70">
-                            <AvatarImage src={neighbor.avatar} />
-                            <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
-                              {fallback}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70">
+                              <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
+                              <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
+                                {fallback}
+                              </AvatarFallback>
+                            </Avatar>
+                            {neighbor.isActiveNow && (
+                              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[color:var(--surface-card)]" />
+                            )}
+                          </div>
                           <div className="w-full text-[10px] text-white/60 text-center truncate">
-                            {String(neighbor.name || "Neighbor")}
+                            {String(neighbor.firstName || name).split(" ")[0]}
                           </div>
                         </div>
                       );
