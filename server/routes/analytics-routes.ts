@@ -93,10 +93,29 @@ export function registerAnalyticsRoutes(app: Express) {
       const contractorId = user?.contractorId ?? null;
       const event = req.body as any;
 
-      console.log("[Analytics][Shell]", { userId, event });
+      // Avoid high-volume stdout logging in production.
+      // If you need diagnostics, enable sampling via ANALYTICS_SHELL_LOG_SAMPLE_RATE (0..1).
+      try {
+        const sampleRate = Number(process.env.ANALYTICS_SHELL_LOG_SAMPLE_RATE || 0);
+        if (
+          Number.isFinite(sampleRate) &&
+          sampleRate > 0 &&
+          Math.random() < Math.min(1, sampleRate)
+        ) {
+          console.log("[Analytics][Shell]", {
+            userId,
+            type: typeof event?.type === "string" ? event.type : null,
+            path: typeof (event as any)?.path === "string" ? (event as any).path : null,
+          });
+        }
+      } catch {
+        // ignore
+      }
+
+      res.status(204).end();
 
       // Best-effort persistence into the generic events table.
-      // This must never throw back to the client.
+      // Never block UX on analytics writes.
       try {
         const ipHeader = (req.headers["x-forwarded-for"] || req.headers["x-real-ip"]) as
           | string
@@ -117,12 +136,12 @@ export function registerAnalyticsRoutes(app: Express) {
             ? event.type
             : "shell.unknown";
 
-        await storage.logEvent(eventType, enrichedEvent);
+        void storage.logEvent(eventType, enrichedEvent).catch((persistError) => {
+          console.error("[Analytics][Shell] Failed to persist event", persistError);
+        });
       } catch (persistError) {
-        console.error("[Analytics][Shell] Failed to persist event", persistError);
+        console.error("[Analytics][Shell] Failed to schedule persist", persistError);
       }
-
-      res.status(204).end();
     } catch (error) {
       console.error("Error handling shell analytics event", error);
       res.status(204).end();
