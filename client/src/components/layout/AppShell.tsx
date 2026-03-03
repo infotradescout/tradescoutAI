@@ -139,6 +139,9 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isImpersonating = user?.isImpersonating || user?.impersonating;
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const RIGHT_TOOLS_COLLAPSED_KEY = "ts:rightToolsCollapsed";
+  const RIGHT_TOOLS_COLLAPSED_W = "56px";
+  const [isRightToolsCollapsed, setIsRightToolsCollapsed] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const { canPromptInstall, promptInstall } = useInstallPrompt();
@@ -197,6 +200,29 @@ export function AppShell({ children, footer }: AppShellProps) {
       document.body.classList.remove("ts-mobile-density");
     };
   }, [isMobile]);
+
+  // Desktop preference: allow collapsing the right tools panel to reclaim space.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isMobile) return;
+    try {
+      setIsRightToolsCollapsed(window.localStorage.getItem(RIGHT_TOOLS_COLLAPSED_KEY) === "1");
+    } catch {
+      // ignore
+    }
+  }, [isMobile]);
+
+  const toggleRightToolsCollapsed = () => {
+    setIsRightToolsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(RIGHT_TOOLS_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Mobile hero content for context/messaging/CTAs
   const renderMobileHero = () => (
@@ -533,7 +559,12 @@ export function AppShell({ children, footer }: AppShellProps) {
         style={{
           top: "var(--top-nav-h)",
           bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0,
-          paddingRight: !isMobile && !isScoutSurface ? "var(--right-nav-w)" : undefined,
+          paddingRight:
+            !isMobile && !isScoutSurface && !isAuthOrSetupSurface
+              ? isRightToolsCollapsed
+                ? RIGHT_TOOLS_COLLAPSED_W
+                : "var(--right-nav-w)"
+              : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
           color: "var(--text-primary)",
@@ -553,12 +584,16 @@ export function AppShell({ children, footer }: AppShellProps) {
             top: "var(--top-nav-h)",
             bottom: "var(--bottom-nav-h)",
             right: 0,
-            width: "var(--right-nav-w)",
+            width: isRightToolsCollapsed ? RIGHT_TOOLS_COLLAPSED_W : "var(--right-nav-w)",
             background: "var(--surface-intermediate)",
             color: "var(--text-primary)",
           }}
         >
-          <RightToolsPanel contactRequestCount={contactRequestCount} />
+          <RightToolsPanel
+            contactRequestCount={contactRequestCount}
+            collapsed={isRightToolsCollapsed}
+            onToggleCollapsed={toggleRightToolsCollapsed}
+          />
         </aside>
       )}
 

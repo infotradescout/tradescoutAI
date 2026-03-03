@@ -14,6 +14,8 @@ import {
   LogOut,
   StickyNote,
   Shield,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { openFloatingNote } from "@/lib/floatingNotes";
@@ -88,12 +90,16 @@ type RightToolsPanelProps = {
   footer?: ReactNode;
   onNavigate?: () => void;
   contactRequestCount?: number;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 export function RightToolsPanel({
   footer,
   onNavigate,
   contactRequestCount = 0,
+  collapsed = false,
+  onToggleCollapsed,
 }: RightToolsPanelProps) {
   const { user, isAuthenticated } = useAuth();
   const logout = useLogout();
@@ -112,6 +118,37 @@ export function RightToolsPanel({
       ? `${(user as any).county}, ${(user as any).state}`
       : undefined;
 
+  if (collapsed) {
+    return (
+      <div
+        className="h-full flex flex-col items-center gap-2 pt-2"
+        style={{
+          backgroundColor: "var(--surface-intermediate)",
+          borderLeft: "1px solid rgba(255,255,255,0.06)",
+          color: "var(--text-primary)",
+          zIndex: 60,
+        }}
+      >
+        <button
+          type="button"
+          aria-label="Expand tools panel"
+          title="Expand tools"
+          onClick={() => onToggleCollapsed?.()}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border transition hover:opacity-90 focus:outline-none"
+          style={{
+            borderColor: "var(--border-primary)",
+            backgroundColor: "var(--surface-card)",
+            color: "var(--theme-accent-primary)",
+          }}
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
+        <div className="mt-auto pb-2">{footer}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="h-full flex flex-col relative"
@@ -124,20 +161,41 @@ export function RightToolsPanel({
     >
       {/* Header */}
       <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border-secondary)" }}>
-        <div
-          className="text-[0.65rem] uppercase tracking-[0.3em]"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Your space
-        </div>
-        <div className="mt-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          {displayName}
-        </div>
-        {locationLabel && (
-          <div className="text-[0.7rem] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-            {locationLabel}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div
+              className="text-[0.65rem] uppercase tracking-[0.3em]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Your space
+            </div>
+            <div className="mt-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              {displayName}
+            </div>
+            {locationLabel && (
+              <div className="text-[0.7rem] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                {locationLabel}
+              </div>
+            )}
           </div>
-        )}
+
+          {onToggleCollapsed ? (
+            <button
+              type="button"
+              aria-label="Collapse tools panel"
+              title="Collapse tools"
+              onClick={() => onToggleCollapsed()}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border transition hover:opacity-90 focus:outline-none"
+              style={{
+                borderColor: "var(--border-primary)",
+                backgroundColor: "var(--surface-card)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* Sections */}
