@@ -688,6 +688,10 @@ export const businesses = pgTable(
         website?: string;
         phone?: string;
         email?: string;
+        address?: string;
+        city?: string;
+        stateCode?: string;
+        zipCode?: string;
         contactPreference?: "call" | "email" | "message";
         importExtras?: Record<string, string>;
       }>()

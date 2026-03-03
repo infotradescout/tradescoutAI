@@ -12207,7 +12207,7 @@ export async function registerRoutes(app: any) {
         );
         // Default to importing directory entries (unclaimed businesses). Creating real auth users
         // from an import is powerful and should be opt-in to avoid inflating "site user" counts.
-        const createOwnerAccounts = readBool(
+        const requestedCreateOwnerAccounts = readBool(
           body.createOwnerAccounts ??
             body.create_owner_accounts ??
             body.createUsers ??
@@ -12217,6 +12217,16 @@ export async function registerRoutes(app: any) {
             query.createUsers ??
             query.create_users
         );
+        // Safety: creating real auth users via bulk import must be explicitly confirmed.
+        // This prevents accidental inflation of user counts and unintended account creation.
+        const confirmCreateUsers = readStr(
+          body.confirmCreateUsers ??
+            body.confirm_create_users ??
+            query.confirmCreateUsers ??
+            query.confirm_create_users
+        );
+        const createOwnerAccounts =
+          requestedCreateOwnerAccounts && confirmCreateUsers === "CREATE_USERS";
         const createPublicProfiles = readBool(
           body.createPublicProfiles ?? query.createPublicProfiles ?? query.create_public_profiles
         );
@@ -12497,6 +12507,16 @@ export async function registerRoutes(app: any) {
           return match?.[1] || "";
         };
 
+        const inferCityFromLooseAddress = (input: unknown): string => {
+          const raw = String(input || "").trim();
+          if (!raw) return "";
+          const comma = raw.match(/^\s*([^,]+)\s*,\s*[A-Z]{2}\b/);
+          if (comma?.[1]) return comma[1].trim();
+          const space = raw.match(/^\s*(.+?)\s+[A-Z]{2}\s+\d{5}(?:-\d{4})?\b/);
+          if (space?.[1]) return space[1].trim();
+          return "";
+        };
+
         const ensureUniqueBusinessProfileSlug = async (base: string, userId: string) => {
           const baseSlug = slugify(base) || randomUUID();
           let candidate = baseSlug;
@@ -12587,6 +12607,38 @@ export async function registerRoutes(app: any) {
             defaultStateCode ||
             "";
           const muni = getFirstNonEmpty(rec, ["municipality", "city_state_zip", "city"]);
+          const cityRaw = getFirstNonEmpty(rec, ["city", "city_name", "town", "locality"]);
+          const zipRaw = getFirstNonEmpty(rec, [
+            "zip",
+            "zip_code",
+            "zipcode",
+            "postal_code",
+            "postcode",
+          ]);
+          const address1 = getFirstNonEmpty(rec, [
+            "address_1",
+            "address1",
+            "address_line_1",
+            "address_line1",
+            "street_address",
+            "street_address_1",
+            "street1",
+            "street_1",
+            "street",
+            "address",
+            "mailing_address",
+          ]);
+          const address2 = getFirstNonEmpty(rec, [
+            "address_2",
+            "address2",
+            "address_line_2",
+            "address_line2",
+            "street_address_2",
+            "street2",
+            "street_2",
+            "suite",
+            "unit",
+          ]);
           const fulladdr = getFirstNonEmpty(rec, [
             "fulladdress",
             "full_address",
@@ -12599,6 +12651,12 @@ export async function registerRoutes(app: any) {
             inferStateCodeFromLooseAddress(muni) ||
             inferStateCodeFromLooseAddress(fulladdr) ||
             "";
+          const city =
+            cityRaw || inferCityFromLooseAddress(muni) || inferCityFromLooseAddress(fulladdr) || "";
+          const zipCode =
+            zipRaw || inferZipFromLooseAddress(muni) || inferZipFromLooseAddress(fulladdr) || "";
+          const streetAddress =
+            [address1, address2].filter(Boolean).join(", ").trim() || address1 || "";
           const phone = getFirstNonEmpty(rec, [
             "phone",
             "phone_number",
@@ -12809,6 +12867,23 @@ export async function registerRoutes(app: any) {
               "last_name",
               "contact_last_name",
               "mailing_address",
+              "address_1",
+              "address1",
+              "address_line_1",
+              "address_line1",
+              "street_address",
+              "street_address_1",
+              "street1",
+              "street_1",
+              "address_2",
+              "address2",
+              "address_line_2",
+              "address_line2",
+              "street_address_2",
+              "street2",
+              "street_2",
+              "suite",
+              "unit",
               "fulladdress",
               "full_address",
               "address",
@@ -12818,6 +12893,8 @@ export async function registerRoutes(app: any) {
               "city",
               "zip",
               "zip_code",
+              "zipcode",
+              "postal_code",
               "postcode",
               "lat",
               "latitude",
@@ -12862,6 +12939,13 @@ export async function registerRoutes(app: any) {
               importExtras.owner_first_name = ownerFirstName;
             if (ownerLastName && !importExtras.owner_last_name)
               importExtras.owner_last_name = ownerLastName;
+            if (streetAddress && !importExtras.address) importExtras.address = streetAddress;
+            if (address1 && !importExtras.address_1) importExtras.address_1 = address1;
+            if (address2 && !importExtras.address_2) importExtras.address_2 = address2;
+            if (city && !importExtras.city) importExtras.city = city;
+            if (zipCode && !importExtras.zip_code) importExtras.zip_code = zipCode;
+            if (resolvedStateCode && !importExtras.state_code)
+              importExtras.state_code = resolvedStateCode;
 
             if (shouldCreateOwnerAccounts) {
               const existingUser = await storage.getUserByEmail(email);
@@ -12877,6 +12961,10 @@ export async function registerRoutes(app: any) {
                   userRecord = await storage.createUser({
                     email,
                     phone: phone || undefined,
+                    address: (streetAddress || fulladdr || "").trim() || undefined,
+                    city: city || undefined,
+                    stateCode: resolvedStateCode || undefined,
+                    zipCode: zipCode || undefined,
                     firstName: ownerFirstName || undefined,
                     lastName: ownerLastName || undefined,
                     role: "business_owner" as any,
@@ -12929,6 +13017,10 @@ export async function registerRoutes(app: any) {
                       website: website || undefined,
                       phone: phone || undefined,
                       email,
+                      address: (streetAddress || "").trim() || undefined,
+                      city: city || undefined,
+                      stateCode: resolvedStateCode || undefined,
+                      zipCode: zipCode || undefined,
                       importExtras: Object.keys(importExtras).length ? importExtras : undefined,
                     },
                     sources: [sourceLabel],
@@ -13080,6 +13172,11 @@ export async function registerRoutes(app: any) {
                   if (!nextProfile.phone && phone) nextProfile.phone = phone;
                   // Store owner email for later claim verification without creating a site user.
                   if (!nextProfile.email && email) nextProfile.email = email;
+                  if (!nextProfile.address && streetAddress) nextProfile.address = streetAddress;
+                  if (!nextProfile.city && city) nextProfile.city = city;
+                  if (!nextProfile.stateCode && resolvedStateCode)
+                    nextProfile.stateCode = resolvedStateCode;
+                  if (!nextProfile.zipCode && zipCode) nextProfile.zipCode = zipCode;
 
                   const nextExtras: any =
                     nextProfile.importExtras && typeof nextProfile.importExtras === "object"
@@ -13096,6 +13193,11 @@ export async function registerRoutes(app: any) {
                   // Always record the best known state code for safer future dedupe.
                   if (resolvedStateCode && !nextExtras.state_code)
                     nextExtras.state_code = resolvedStateCode;
+                  if (streetAddress && !nextExtras.address) nextExtras.address = streetAddress;
+                  if (address1 && !nextExtras.address_1) nextExtras.address_1 = address1;
+                  if (address2 && !nextExtras.address_2) nextExtras.address_2 = address2;
+                  if (city && !nextExtras.city) nextExtras.city = city;
+                  if (zipCode && !nextExtras.zip_code) nextExtras.zip_code = zipCode;
                   for (const [k, v] of Object.entries(importExtras)) {
                     if (!nextExtras[k] && v) nextExtras[k] = String(v);
                   }
@@ -13138,6 +13240,10 @@ export async function registerRoutes(app: any) {
                   if (resolvedStateCode && !importExtras.state_code) {
                     importExtras.state_code = resolvedStateCode;
                   }
+                  if (streetAddress && !importExtras.address) importExtras.address = streetAddress;
+                  if (address1 && !importExtras.address_1) importExtras.address_1 = address1;
+                  if (address2 && !importExtras.address_2) importExtras.address_2 = address2;
+                  if (city && !importExtras.city) importExtras.city = city;
                   if (dedupeKey && !importExtras.dedupe_key) {
                     importExtras.dedupe_key = dedupeKey;
                   }
@@ -13170,6 +13276,10 @@ export async function registerRoutes(app: any) {
                       website: website || undefined,
                       phone: phone || undefined,
                       email: email || undefined,
+                      address: (streetAddress || "").trim() || undefined,
+                      city: city || undefined,
+                      stateCode: resolvedStateCode || undefined,
+                      zipCode: zipCode || undefined,
                       importExtras: Object.keys(importExtras).length ? importExtras : undefined,
                     },
                     sources: [sourceLabel],
@@ -13238,6 +13348,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         res.json({
           dryRun,
           delimiter: delimiter === "\t" ? "tab" : delimiter === "|" ? "pipe" : "comma",
+          warnings:
+            requestedCreateOwnerAccounts && !createOwnerAccounts
+              ? [
+                  'createOwnerAccounts was requested but ignored. To create real user accounts, set confirmCreateUsers="CREATE_USERS".',
+                ]
+              : [],
           totals: {
             rows: records.length,
             createdUsers,

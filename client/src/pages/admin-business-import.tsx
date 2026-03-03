@@ -151,6 +151,7 @@ export default function AdminBusinessImport() {
   const [source, setSource] = useState("csv_manual");
   const [dryRun, setDryRun] = useState(false);
   const [createOwnerAccounts, setCreateOwnerAccounts] = useState(false);
+  const [confirmCreateUsers, setConfirmCreateUsers] = useState("");
   const [sendActivationEmails, setSendActivationEmails] = useState(false);
   const [includeActivationLinks, setIncludeActivationLinks] = useState(false);
   const [createPublicProfiles, setCreatePublicProfiles] = useState(false);
@@ -247,10 +248,15 @@ export default function AdminBusinessImport() {
     mutationFn: async () => {
       const { chunks, estimatedRows } = splitIntoImportChunks(content);
 
+      if (createOwnerAccounts && confirmCreateUsers.trim() !== "CREATE_USERS") {
+        throw new Error("To create real user accounts, type CREATE_USERS in the confirmation box.");
+      }
+
       const params = new URLSearchParams();
       params.set("source", source.trim() || "csv_manual");
       if (dryRun) params.set("dryRun", "true");
       if (createOwnerAccounts) params.set("createOwnerAccounts", "true");
+      if (createOwnerAccounts) params.set("confirmCreateUsers", confirmCreateUsers.trim());
       if (sendActivationEmails) params.set("sendActivationEmails", "true");
       if (includeActivationLinks) params.set("includeActivationLinks", "true");
       if (createPublicProfiles) params.set("createPublicProfiles", "true");
@@ -514,6 +520,7 @@ export default function AdminBusinessImport() {
                 onCheckedChange={(v) => {
                   const next = v === true;
                   setCreateOwnerAccounts(next);
+                  if (!next) setConfirmCreateUsers("");
                   if (!next) {
                     setSendActivationEmails(false);
                     setIncludeActivationLinks(false);
@@ -548,6 +555,25 @@ export default function AdminBusinessImport() {
               Create public profiles for owner-email rows
             </label>
           </div>
+
+          {createOwnerAccounts && (
+            <div className="flex items-start gap-2 rounded border border-red-500/30 bg-red-500/10 p-3 text-xs text-white/80">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-200" />
+              <div className="space-y-2">
+                <div className="font-semibold text-red-200">Confirm user creation</div>
+                <div className="text-white/70">
+                  Type <span className="font-mono">CREATE_USERS</span> to confirm. This prevents
+                  accidental imports creating real login accounts.
+                </div>
+                <Input
+                  value={confirmCreateUsers}
+                  onChange={(e) => setConfirmCreateUsers(e.target.value)}
+                  placeholder="CREATE_USERS"
+                  className="bg-black/30 border-red-500/30"
+                />
+              </div>
+            </div>
+          )}
 
           {includeActivationLinks && (
             <div className="flex items-start gap-2 rounded border border-ts-orange/30 bg-ts-orange/10 p-3 text-xs text-ts-orange">
