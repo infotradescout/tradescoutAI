@@ -38,3 +38,33 @@ npm run dev
 npm run test:release-gates
 npm run report:release-gates
 ```
+
+## Supplemental Evidence — 2026-03-04
+
+Scope of this supplement:
+- Records post-fix release-gate evidence for the Direct Connect lane.
+- Does not change product behavior, authority semantics, routing law, trust/CVS policy, or signup meaning.
+
+Psychological intent:
+- Target belief: gate status reflects real, rerunnable system truth.
+- Target behavior: ship only when all required gates execute and pass in a deterministic lane.
+- Principle: operational transparency and trust by evidence.
+- Risk prevented: false confidence from partial/ambiguous gate runs.
+
+Validation evidence:
+- `npx playwright test tests/direct-connect.e2e.spec.ts --project=chromium` (test lane) → **PASS** (1/1)
+- `npm run test:release-gates` (test lane) → **PASS** (18 passed, 0 failed, 0 skipped)
+- `npm run report:release-gates` → **PASS**
+- Artifact: `artifacts/release-gate-metrics.json` shows status `pass`, passRate `1`, failures `[]`
+
+What changed:
+- Hardened `tests/direct-connect.e2e.spec.ts` category/trade selection to avoid brittle option-index assumptions and preserve deterministic routing coverage.
+
+Law enforced:
+- Release-gates are blocking quality signals and must pass before release progression.
+
+Verification steps:
+1. Start deterministic test lane (test DB + auth env + app health green).
+2. Run `npm run test:release-gates`.
+3. Run `npm run report:release-gates`.
+4. Confirm `artifacts/release-gate-metrics.json` reports `status: pass` with no failures.
