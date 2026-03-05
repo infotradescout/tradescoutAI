@@ -1,4 +1,5 @@
 import { storage } from "./storage";
+import { formatTradeScoutTitle } from "@shared/brand";
 
 type PublicProfileHtmlOptions = {
   slug: string;
@@ -90,7 +91,9 @@ function buildJsonLd(profile: PublicProfileData, origin: string) {
 
 function buildMeta(profile: PublicProfileData, origin: string) {
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
-  const title = profile.profile.seoMeta?.title || `${displayName} | TradeScout`;
+  const title = formatTradeScoutTitle(
+    profile.profile.seoMeta?.title || `${displayName} | TradeScout`
+  );
   const description =
     profile.profile.seoMeta?.description ||
     profile.profile.headline ||

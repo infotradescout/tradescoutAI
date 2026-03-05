@@ -5,7 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
@@ -77,7 +84,9 @@ export default function FinancesInvoicesPage() {
   if (!isAuthenticated) {
     return (
       <Page className="py-16">
-        <div className="text-center text-sm text-white/60">Sign in to view and manage invoices.</div>
+        <div className="text-center text-sm text-white/60">
+          Sign in to view and manage invoices.
+        </div>
       </Page>
     );
   }
@@ -266,7 +275,9 @@ export default function FinancesInvoicesPage() {
 
       if (clientFilter) {
         const payload = inv.payload || {};
-        const invoiceClient = String(payload.clientName || "").trim().toLowerCase();
+        const invoiceClient = String(payload.clientName || "")
+          .trim()
+          .toLowerCase();
         if (!invoiceClient || invoiceClient !== clientFilter) {
           return false;
         }
@@ -328,12 +339,12 @@ export default function FinancesInvoicesPage() {
         cols
           .map((val) => {
             const s = String(val ?? "");
-            if (s.includes(",") || s.includes("\n") || s.includes("\"")) {
+            if (s.includes(",") || s.includes("\n") || s.includes('"')) {
               return '"' + s.replace(/"/g, '""') + '"';
             }
             return s;
           })
-          .join(","),
+          .join(",")
       ),
     ];
 
@@ -354,7 +365,7 @@ export default function FinancesInvoicesPage() {
   };
 
   useEffect(() => {
-    document.title = "Invoices • Finances | TradeScout";
+    document.title = "Invoices • Finances | TradeScout — Connection Without Compromise";
   }, []);
 
   return (
@@ -457,7 +468,8 @@ export default function FinancesInvoicesPage() {
         <CardHeader>
           <CardTitle className="text-tsText mb-1">New invoice / job record</CardTitle>
           <CardDescription>
-            Create a clean invoice record for work that ran off-platform so it still shows up in your ledger.
+            Create a clean invoice record for work that ran off-platform so it still shows up in
+            your ledger.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -488,7 +500,11 @@ export default function FinancesInvoicesPage() {
             className="bg-tsCard border-white/10 text-tsText text-sm"
           />
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => createInvoice.mutate()} disabled={createInvoice.isPending}>
+            <Button
+              size="sm"
+              onClick={() => createInvoice.mutate()}
+              disabled={createInvoice.isPending}
+            >
               {createInvoice.isPending ? "Creating..." : "Create invoice record"}
             </Button>
           </div>
@@ -627,7 +643,9 @@ export default function FinancesInvoicesPage() {
                     <TableHead className="w-[26%] text-white/60">Job / project</TableHead>
                     <TableHead className="w-[20%] text-white/60">Client</TableHead>
                     <TableHead className="w-[16%] text-right text-white/60">Amount</TableHead>
-                    <TableHead className="w-[20%] text-right text-white/60">Status / Actions</TableHead>
+                    <TableHead className="w-[20%] text-right text-white/60">
+                      Status / Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -675,12 +693,12 @@ export default function FinancesInvoicesPage() {
                                   isPaid
                                     ? "bg-tsSuccess text-tsSuccess border-tsSuccess"
                                     : isSent
-                                    ? "bg-ts-orange text-ts-orange border-ts-orange"
-                                    : status === "overdue"
-                                    ? "bg-tsWarning text-tsWarning border-tsWarning"
-                                    : status === "draft"
-                                    ? "bg-tsCard text-white/60 border-white/10"
-                                    : "bg-tsCard text-white/70 border-white/10"
+                                      ? "bg-ts-orange text-ts-orange border-ts-orange"
+                                      : status === "overdue"
+                                        ? "bg-tsWarning text-tsWarning border-tsWarning"
+                                        : status === "draft"
+                                          ? "bg-tsCard text-white/60 border-white/10"
+                                          : "bg-tsCard text-white/70 border-white/10"
                                 }`}
                               >
                                 {inv.status || "draft"}

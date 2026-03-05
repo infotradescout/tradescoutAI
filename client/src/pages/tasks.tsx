@@ -339,6 +339,8 @@ export default function TasksHub({
       setShowProviderInvites(false);
       setActiveTab("browse");
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
     },
     onError: (err: any) => {
       const message = String(err?.message || "Please try again.");

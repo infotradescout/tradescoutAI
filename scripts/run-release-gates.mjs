@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { runCommand } from "./lib/subprocess.mjs";
 
 const explicitBaseUrl = process.env.BASE_URL || process.env.E2E_BASE_URL || null;
 const defaultBaseUrl = "http://localhost:5000";
@@ -57,18 +57,14 @@ async function resolveBaseUrl() {
 }
 
 function runPlaywright(baseUrl) {
-  return new Promise((resolve) => {
-    const args = ["playwright", "test", ...releaseGateSpecs, "--project=chromium"];
-    const child = spawn("npx", args, {
-      stdio: "inherit",
-      shell: true,
-      env: {
-        ...process.env,
-        BASE_URL: baseUrl,
-        E2E_BASE_URL: baseUrl,
-      },
-    });
-    child.on("close", (code) => resolve(code ?? 1));
+  const args = ["playwright", "test", ...releaseGateSpecs, "--project=chromium"];
+  return runCommand("npx", args, {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      BASE_URL: baseUrl,
+      E2E_BASE_URL: baseUrl,
+    },
   });
 }
 

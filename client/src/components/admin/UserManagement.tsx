@@ -79,7 +79,7 @@ const AVAILABLE_ROLES = [
   { value: "food_truck_owner", label: "Food Truck Owner", icon: Truck, color: "bg-ts-orange" },
   { value: "bar_owner", label: "Bar / Lounge Owner", icon: Wine, color: "bg-purple-600" },
   { value: "helper", label: "Helper", icon: Users, color: "bg-cyan-500" },
-  { value: "moderator", label: "Moderator", icon: Shield, color: "bg-yellow-500" },
+  { value: "moderator", label: "Staff", icon: Shield, color: "bg-yellow-500" },
   { value: "ops_admin", label: "Admin", icon: Eye, color: "bg-red-500" },
   {
     value: "super_admin",

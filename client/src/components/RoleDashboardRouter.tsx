@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { trackShellEvent } from "@/lib/analytics";
 import { OrientationCard } from "@/components/orientation/OrientationCard";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 // Import dashboards
 const SimpleHome = lazy(() => import("@/pages/SimpleHome"));
@@ -113,7 +114,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   // and no longer routed here.
   const getDashboardComponent = () => {
     // Legacy admin roles still get their specific dashboards
-    if (user.role === "super_admin" || user.role === "head_admin") {
+    if (isSuperAdminLike(user.role)) {
       return AdminDashboard;
     }
 

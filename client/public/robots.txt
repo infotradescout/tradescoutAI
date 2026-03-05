@@ -4,6 +4,10 @@ Allow: /profile/
 Allow: /business/
 Allow: /community/
 Allow: /county/
+Allow: /trade/
+Allow: /city/
+Allow: /datasets/
+Allow: /best/
 Allow: /homescout/
 Allow: /homescout/listings/
 

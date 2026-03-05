@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -57,11 +58,7 @@ export function EmailPasswordAuth() {
 
       const anyUser: any = result?.user || result;
       const role: string | undefined = anyUser?.role;
-      const isSuperAdmin =
-        role === "super_admin" ||
-        role === "head_admin" ||
-        role === "owner" ||
-        anyUser?.isSuperAdmin === true;
+      const isSuperAdmin = isSuperAdminLike(role) || anyUser?.isSuperAdmin === true;
       if (safeNext) {
         window.location.href = safeNext;
         return;

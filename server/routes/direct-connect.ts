@@ -9,6 +9,7 @@ import {
   workRequestAssignments,
   contractors,
   conversations,
+  trades,
 } from "@shared/schema";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -146,7 +147,17 @@ export function registerDirectConnectRoutes(app: Express) {
 
         // Mirror the contractor ranking logic from /api/contractors/top
         const countyRecord = await storage.getCountyByFips(countyFips as string);
-        const tradeRecord = await storage.getTradeBySlug(tradeSlug as string);
+        let tradeRecord = await storage.getTradeBySlug(tradeSlug as string);
+
+        // Back-compat: some callers may store the DB trade id in work_requests.trade_id.
+        // Prefer slug, but allow resolving by id to avoid blocking routing.
+        if (!tradeRecord && tradeSlug) {
+          const [byId] = await db
+            .select()
+            .from(trades)
+            .where(eq(trades.id, String(tradeSlug)));
+          tradeRecord = byId;
+        }
 
         if (!countyRecord || !tradeRecord) {
           return res.status(400).json({ message: "Unable to resolve routing geography or trade" });

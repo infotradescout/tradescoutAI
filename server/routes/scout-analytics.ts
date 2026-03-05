@@ -15,11 +15,11 @@ router.get("/authority-diagnostics", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // Role-based access gate (normalize legacy owner -> head_admin)
+  // Role-based access gate (normalize legacy owner/head_admin -> super_admin)
   const rawRole = (req.user as any)?.role ?? (req.user as any)?.claims?.role;
   const role = typeof rawRole === "string" ? rawRole.trim().toLowerCase() : "";
-  const normalizedRole = role === "owner" ? "head_admin" : role;
-  if (!normalizedRole || (normalizedRole !== "super_admin" && normalizedRole !== "head_admin")) {
+  const normalizedRole = role === "owner" || role === "head_admin" ? "super_admin" : role;
+  if (!normalizedRole || normalizedRole !== "super_admin") {
     return res.status(403).json({ message: "Admin access required" });
   }
 

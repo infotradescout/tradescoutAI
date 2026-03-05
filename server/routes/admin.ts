@@ -20,6 +20,14 @@ import { getCountyCoverageSummary } from "../services/geographicCoverage";
 import { emailService } from "../services/emailService";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { getAdminAuditLog, logAdminAction } from "../services/adminAuditLogService";
+import { spawn } from "child_process";
+import {
+  businesses,
+  businessSeedRuns,
+  businessSeedRunLogs,
+  businessSuggestions,
+} from "../../shared/schema";
+import { and } from "drizzle-orm";
 
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
@@ -29,7 +37,7 @@ import { getAdminAuditLog, logAdminAction } from "../services/adminAuditLogServi
  */
 export function mountAdminRoutes(app: any) {
   // ---------------------------------------------------------------------------
-  // Tool Discovery Admin (super_admin / head_admin only)
+  // Tool Discovery Admin (super_admin only)
   // ---------------------------------------------------------------------------
   app.use("/api/admin", adminToolDiscoveryRouter);
 
@@ -48,10 +56,14 @@ export function mountAdminRoutes(app: any) {
 
         const rawRole = (user as any)?.role ?? null;
         const primaryRole =
-          typeof rawRole === "string" && rawRole.trim().toLowerCase() === "owner"
-            ? "head_admin"
+          typeof rawRole === "string"
+            ? (() => {
+                const token = rawRole.trim().toLowerCase();
+                if (token === "owner" || token === "head_admin") return "super_admin";
+                return token;
+              })()
             : rawRole;
-        const isSuperAdminRole = primaryRole === "super_admin" || primaryRole === "head_admin";
+        const isSuperAdminRole = primaryRole === "super_admin";
 
         res.json({
           ok: true,
@@ -100,6 +112,321 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
+  // Business directory ops (unclaimed seeding + suggestions queue)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/business-directory/suggestions",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const statusRaw = String(req.query.status ?? "open")
+          .trim()
+          .toLowerCase();
+        const status =
+          statusRaw === "resolved" || statusRaw === "rejected" || statusRaw === "open"
+            ? statusRaw
+            : "open";
+        const kindRaw = String(req.query.kind ?? "")
+          .trim()
+          .toLowerCase();
+        const kind = kindRaw === "removal" || kindRaw === "edit" ? kindRaw : null;
+        const limitRaw = Number(req.query.limit ?? 100);
+        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, limitRaw)) : 100;
+
+        const where = [eq(businessSuggestions.status, status as any)];
+        if (kind) where.push(eq(businessSuggestions.kind, kind as any));
+
+        const rows = await db
+          .select({
+            id: businessSuggestions.id,
+            businessId: businessSuggestions.businessId,
+            kind: businessSuggestions.kind,
+            status: businessSuggestions.status,
+            payload: businessSuggestions.payload,
+            createdByUserId: businessSuggestions.createdByUserId,
+            createdAt: businessSuggestions.createdAt,
+            updatedAt: businessSuggestions.updatedAt,
+            businessName: businesses.name,
+            businessSlug: businesses.slug,
+          })
+          .from(businessSuggestions)
+          .innerJoin(businesses, eq(businesses.id, businessSuggestions.businessId))
+          .where(and(...where))
+          .orderBy(desc(businessSuggestions.createdAt))
+          .limit(limit);
+
+        res.json({ items: rows, status, kind, limit });
+      } catch (error: any) {
+        console.error("Error listing business suggestions:", error);
+        res.status(500).json({ message: "Failed to list suggestions" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/business-directory/suggestions/:id/status",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const suggestionId = String(req.params.id || "").trim();
+        if (!suggestionId) return res.status(400).json({ message: "Invalid suggestion id" });
+
+        const statusRaw = String((req.body as any)?.status ?? "")
+          .trim()
+          .toLowerCase();
+        const nextStatus = statusRaw === "resolved" || statusRaw === "rejected" ? statusRaw : null;
+        if (!nextStatus)
+          return res.status(400).json({ message: "status must be resolved|rejected" });
+
+        const updated = await db
+          .update(businessSuggestions)
+          .set({ status: nextStatus as any, updatedAt: new Date() } as any)
+          .where(eq(businessSuggestions.id, suggestionId))
+          .returning({ id: businessSuggestions.id, status: businessSuggestions.status });
+
+        if (!updated.length) return res.status(404).json({ message: "Suggestion not found" });
+
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub || null;
+        if (userId) {
+          await logAdminAction({
+            type: "business_suggestion_status_updated",
+            adminId: String(userId),
+            suggestionId,
+            status: nextStatus,
+          });
+        }
+
+        res.json({ ok: true, suggestion: updated[0] });
+      } catch (error: any) {
+        console.error("Error updating suggestion status:", error);
+        res.status(500).json({ message: "Failed to update suggestion" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/business-seeding/runs",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const limitRaw = Number(req.query.limit ?? 50);
+        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
+
+        const rows = await db
+          .select({
+            id: businessSeedRuns.id,
+            source: businessSeedRuns.source,
+            locationText: businessSeedRuns.locationText,
+            countyFips: businessSeedRuns.countyFips,
+            stateCode: businessSeedRuns.stateCode,
+            terms: businessSeedRuns.terms,
+            requestedByUserId: businessSeedRuns.requestedByUserId,
+            status: businessSeedRuns.status,
+            insertedCount: businessSeedRuns.insertedCount,
+            duplicateCount: businessSeedRuns.duplicateCount,
+            errorCount: businessSeedRuns.errorCount,
+            errorMessage: businessSeedRuns.errorMessage,
+            startedAt: businessSeedRuns.startedAt,
+            finishedAt: businessSeedRuns.finishedAt,
+            updatedAt: businessSeedRuns.updatedAt,
+          })
+          .from(businessSeedRuns)
+          .orderBy(desc(businessSeedRuns.startedAt))
+          .limit(limit);
+
+        res.json({ items: rows, limit });
+      } catch (error: any) {
+        console.error("Error listing business seed runs:", error);
+        res.status(500).json({ message: "Failed to list seed runs" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/business-seeding/runs/:id/logs",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const seedRunId = String(req.params.id || "").trim();
+        if (!seedRunId) return res.status(400).json({ message: "Invalid run id" });
+
+        const limitRaw = Number(req.query.limit ?? 300);
+        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(2000, limitRaw)) : 300;
+
+        const logs = await db
+          .select({
+            id: businessSeedRunLogs.id,
+            level: businessSeedRunLogs.level,
+            message: businessSeedRunLogs.message,
+            createdAt: businessSeedRunLogs.createdAt,
+          })
+          .from(businessSeedRunLogs)
+          .where(eq(businessSeedRunLogs.seedRunId, seedRunId))
+          .orderBy(desc(businessSeedRunLogs.createdAt))
+          .limit(limit);
+
+        res.json({ seedRunId, items: logs, limit });
+      } catch (error: any) {
+        console.error("Error listing seed run logs:", error);
+        res.status(500).json({ message: "Failed to list seed run logs" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/business-seeding/places-textsearch/run",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub || null;
+
+        const apiKey = String(process.env.GOOGLE_PLACES_API_KEY || "").trim();
+        if (!apiKey) {
+          return res
+            .status(400)
+            .json({ message: "GOOGLE_PLACES_API_KEY is not configured on the server" });
+        }
+        const dbUrl = String(process.env.DATABASE_URL || "").trim();
+        if (!dbUrl) {
+          return res.status(400).json({ message: "DATABASE_URL is not configured on the server" });
+        }
+
+        const body = (req.body ?? {}) as any;
+        const locationText = typeof body.locationText === "string" ? body.locationText.trim() : "";
+        const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : "";
+        const stateCode =
+          typeof body.stateCode === "string" ? body.stateCode.trim().toUpperCase() : "";
+        const termsRaw =
+          typeof body.terms === "string"
+            ? body.terms
+            : Array.isArray(body.terms)
+              ? body.terms.join(",")
+              : "";
+        const terms = String(termsRaw || "")
+          .split(",")
+          .map((t) => String(t || "").trim())
+          .filter(Boolean)
+          .slice(0, 25);
+        const delayMsRaw = Number(body.delayMs ?? body.delay_ms ?? 1500);
+        const delayMs = Number.isFinite(delayMsRaw)
+          ? Math.max(250, Math.min(10_000, delayMsRaw))
+          : 1500;
+
+        if (!locationText) return res.status(400).json({ message: "locationText is required" });
+        if (!/^\d{5}$/.test(countyFips))
+          return res.status(400).json({ message: "countyFips must be a 5-digit FIPS" });
+        if (!/^[A-Z]{2}$/.test(stateCode))
+          return res.status(400).json({ message: "stateCode must be a 2-letter code" });
+        if (terms.length === 0)
+          return res.status(400).json({ message: "terms is required (comma-separated)" });
+
+        const inserted = await db
+          .insert(businessSeedRuns)
+          .values({
+            source: "google_places_new_textsearch",
+            locationText,
+            countyFips,
+            stateCode,
+            terms,
+            requestedByUserId: userId ? String(userId) : null,
+            status: "running" as any,
+            startedAt: new Date(),
+            updatedAt: new Date(),
+          } as any)
+          .returning({ id: businessSeedRuns.id });
+
+        const seedRunId = inserted[0]?.id as string;
+        await db.insert(businessSeedRunLogs).values({
+          seedRunId,
+          level: "info",
+          message: `Spawn requested by ${userId ? String(userId) : "unknown"} (delayMs=${delayMs})`,
+        } as any);
+
+        const repoRoot = process.cwd();
+        const child = spawn(process.execPath, ["scripts/seed_businesses_places_new.mjs"], {
+          cwd: repoRoot,
+          env: {
+            ...process.env,
+            DATABASE_URL: dbUrl,
+            GOOGLE_PLACES_API_KEY: apiKey,
+            SEED_LOCATION: locationText,
+            SEED_TERMS: terms.join(","),
+            SEED_COUNTY: countyFips,
+            SEED_STATE: stateCode,
+            SEED_DELAY_MS: String(delayMs),
+            SEED_RUN_ID: seedRunId,
+          },
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+
+        let logLines = 0;
+        const MAX_LOG_LINES = 200;
+        const writeLog = async (level: string, message: string) => {
+          if (logLines >= MAX_LOG_LINES) return;
+          logLines += 1;
+          await db.insert(businessSeedRunLogs).values({
+            seedRunId,
+            level: level.slice(0, 16),
+            message: String(message || "").slice(0, 20_000),
+          } as any);
+        };
+
+        child.stdout?.on("data", (buf) => {
+          void writeLog("info", String(buf || ""));
+        });
+        child.stderr?.on("data", (buf) => {
+          void writeLog("error", String(buf || ""));
+        });
+
+        child.on("error", (err) => {
+          void writeLog(
+            "error",
+            `spawn error: ${err instanceof Error ? err.message : String(err)}`
+          );
+        });
+
+        child.on("exit", (code) => {
+          void writeLog("info", `exit code: ${code ?? "null"}`);
+          if (typeof code === "number" && code !== 0) {
+            void db.execute(sql`
+              update business_seed_runs
+              set status = case when status = 'running' then 'failed' else status end,
+                  error_message = coalesce(error_message, ${`seed script exited with code ${code}`}),
+                  finished_at = coalesce(finished_at, now()),
+                  updated_at = now()
+              where id = ${seedRunId}
+            `);
+          }
+        });
+
+        if (userId) {
+          await logAdminAction({
+            type: "business_seed_run_spawned",
+            adminId: String(userId),
+            seedRunId,
+            source: "google_places_new_textsearch",
+            locationText,
+            countyFips,
+            stateCode,
+            terms,
+            delayMs,
+          });
+        }
+
+        res.status(202).json({ ok: true, seedRunId });
+      } catch (error: any) {
+        console.error("Error starting Places seeding job:", error);
+        res.status(500).json({ message: error?.message || "Failed to start seeding job" });
+      }
+    }
+  );
+
+  // ---------------------------------------------------------------------------
   // Admin locality heatmap (same behavior as legacy, with role checks)
   // ---------------------------------------------------------------------------
   app.get(
@@ -110,10 +437,7 @@ export function mountAdminRoutes(app: any) {
         const userId = (req.user as any)?.id;
         const user = await storage.getUser(userId);
 
-        if (
-          !user ||
-          !["head_admin", "moderator", "ops_admin", "super_admin"].includes(user.role || "")
-        ) {
+        if (!user || !["moderator", "ops_admin", "super_admin"].includes(user.role || "")) {
           return res.status(403).json({ message: "Admin access required" });
         }
 
@@ -146,7 +470,7 @@ export function mountAdminRoutes(app: any) {
         const user = await storage.getUser(userId);
         const role = user?.role || "";
 
-        if (role !== "super_admin" && role !== "head_admin") {
+        if (role !== "super_admin") {
           return res.status(403).json({
             reasonCode: "INSUFFICIENT_ROLE",
             message: "Admin-only analytics",
@@ -468,10 +792,10 @@ export function mountAdminRoutes(app: any) {
           return res.status(404).json({ message: "Note not found" });
         }
 
-        if (existing.authorUserId !== userId && role !== "head_admin") {
+        if (existing.authorUserId !== userId && role !== "super_admin") {
           return res
             .status(403)
-            .json({ message: "Only the author or head admin can edit this note" });
+            .json({ message: "Only the author or super admin can edit this note" });
         }
 
         const { category, content } = (req.body || {}) as { category?: string; content?: string };
@@ -526,10 +850,10 @@ export function mountAdminRoutes(app: any) {
           return res.status(404).json({ message: "Note not found" });
         }
 
-        if (existing.authorUserId !== userId && role !== "head_admin") {
+        if (existing.authorUserId !== userId && role !== "super_admin") {
           return res
             .status(403)
-            .json({ message: "Only the author or head admin can delete this note" });
+            .json({ message: "Only the author or super admin can delete this note" });
         }
 
         await storage.deleteCountyNote(noteId);
@@ -989,7 +1313,7 @@ export function mountAdminRoutes(app: any) {
         const adminRole = adminUser?.role || "";
 
         if (normalizedReason.length < 5) {
-          if (adminRole === "head_admin") {
+          if (adminRole === "super_admin") {
             normalizedReason = "unspecified (legacy)";
           } else {
             return res
@@ -1009,13 +1333,13 @@ export function mountAdminRoutes(app: any) {
           return res.status(404).json({ message: "User not found" });
         }
 
-        // Prevent deletion of other admins unless you're head_admin
+        // Prevent deletion of other admins unless you're super_admin
         const targetRole = targetUser.role || "";
-        const adminRoles = ["moderator", "ops_admin", "super_admin", "head_admin"];
+        const adminRoles = ["moderator", "ops_admin", "super_admin"];
 
-        if (adminRoles.includes(targetRole) && adminRole !== "head_admin") {
+        if (adminRoles.includes(targetRole) && adminRole !== "super_admin") {
           return res.status(403).json({
-            message: "Only head_admin can delete admin accounts",
+            message: "Only super_admin can delete admin accounts",
           });
         }
 
@@ -1064,7 +1388,7 @@ export function mountAdminRoutes(app: any) {
         let normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
         if (normalizedReason.length < 5) {
-          if (adminRole === "head_admin") {
+          if (adminRole === "super_admin") {
             normalizedReason = "unspecified (legacy)";
           } else {
             return res

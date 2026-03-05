@@ -9,9 +9,11 @@ async function checkHOAPermission(
 ) {
   const user = await storage.getUser(userId);
 
-  // Super/head admin can see everything for debugging and support
-  const platformRole = (user as any)?.role;
-  if (platformRole === "super_admin" || platformRole === "head_admin") {
+  // Super admin can see everything for debugging and support
+  const platformRole = String((user as any)?.role || "")
+    .trim()
+    .toLowerCase();
+  if (platformRole === "super_admin" || platformRole === "head_admin" || platformRole === "owner") {
     return { authorized: true, member: null };
   }
 
@@ -39,9 +41,11 @@ async function checkHOAPermission(
 async function requireHoaRole(userId: string, hoaId: string, allowedRoles: string[]) {
   const user = await storage.getUser(userId);
 
-  // Super/head admin can always perform HOA role operations when needed
-  const platformRole = (user as any)?.role;
-  if (platformRole === "super_admin" || platformRole === "head_admin") {
+  // Super admin can always perform HOA role operations when needed
+  const platformRole = String((user as any)?.role || "")
+    .trim()
+    .toLowerCase();
+  if (platformRole === "super_admin" || platformRole === "head_admin" || platformRole === "owner") {
     return { authorized: true, member: null };
   }
 

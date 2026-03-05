@@ -20,12 +20,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const ContentModeration = memo(function ContentModeration() {
   const [activeTab, setActiveTab] = useState("flagged");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [moderationNotes, setModerationNotes] = useState<{ [key: string]: string }>({});
+
+  const roleTokens = (() => {
+    const tokens: string[] = [];
+    const push = (v: any) => {
+      const r = String(v || "")
+        .trim()
+        .toLowerCase();
+      if (!r) return;
+      tokens.push(r === "owner" || r === "head_admin" ? "super_admin" : r);
+    };
+    push((user as any)?.role);
+    push((user as any)?.activeRole);
+    const roles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
+    for (const r of roles) push(r);
+    return Array.from(new Set(tokens));
+  })();
+  const isOpsOrAbove = roleTokens.includes("ops_admin") || roleTokens.includes("super_admin");
 
   // Fetch flagged content
   const { data: flaggedItems = [], isLoading: flaggedLoading } = useQuery({
@@ -60,6 +79,65 @@ const ContentModeration = memo(function ContentModeration() {
       } catch {
         return [];
       }
+    },
+  });
+
+  // Fetch community kick-vote queue (staff review)
+  const { data: kickQueue = [], isLoading: kickQueueLoading } = useQuery({
+    queryKey: ["/api/admin/moderation/kick-queue"],
+    queryFn: async () => {
+      try {
+        return await apiRequest("GET", "/api/admin/moderation/kick-queue");
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const staffDecisionMutation = useMutation({
+    mutationFn: async ({
+      reportId,
+      decision,
+      notes,
+    }: {
+      reportId: string;
+      decision: string;
+      notes?: string;
+    }) => {
+      return await apiRequest("POST", `/api/admin/moderation/kick-queue/${reportId}/decision`, {
+        decision,
+        notes,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Decision saved", description: "Updated staff review decision." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Decision failed",
+        description: error?.message || "Failed to save decision",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const opsBanMutation = useMutation({
+    mutationFn: async ({ reportId, notes }: { reportId: string; notes?: string }) => {
+      return await apiRequest("POST", `/api/admin/moderation/kick-queue/${reportId}/ops-ban`, {
+        notes,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Ops action complete", description: "User action applied." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Ops action failed",
+        description: error?.message || "Failed to apply ops action",
+        variant: "destructive",
+      });
     },
   });
 
@@ -225,6 +303,9 @@ const ContentModeration = memo(function ContentModeration() {
           <TabsList className="bg-muted">
             <TabsTrigger value="flagged">Flagged Content ({flaggedItems.length})</TabsTrigger>
             <TabsTrigger value="queue">Moderation Queue</TabsTrigger>
+            <TabsTrigger value="kick">
+              Kick Queue ({Array.isArray(kickQueue) ? kickQueue.length : 0})
+            </TabsTrigger>
           </TabsList>
 
           {/* Flagged Content Tab */}
@@ -358,6 +439,133 @@ const ContentModeration = memo(function ContentModeration() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Kick Queue Tab */}
+          <TabsContent value="kick" className="space-y-6">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">Community Kick-Vote Escalations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {kickQueueLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading kick queue...</div>
+                ) : !Array.isArray(kickQueue) || kickQueue.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No escalated kick votes.</div>
+                ) : (
+                  kickQueue.map((report: any) => {
+                    const reportId = String(report?.id || "");
+                    const targetUserId = String(report?.contentId || "");
+                    const ctx =
+                      report?.additionalContext && typeof report.additionalContext === "object"
+                        ? report.additionalContext
+                        : {};
+                    const voteCount = Number(ctx?.kickVoteCount || report?.totalVotes || 0);
+                    const notesKey = `kick:${reportId}`;
+                    return (
+                      <div
+                        key={reportId}
+                        className="rounded border border-border bg-muted/30 p-4 space-y-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="text-sm font-semibold text-foreground">
+                              User: <span className="font-mono">{targetUserId}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Votes: {voteCount} · Status: {String(report?.status || "")}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {report?.updatedAt ? new Date(report.updatedAt).toLocaleString() : "—"}
+                          </Badge>
+                        </div>
+
+                        <Textarea
+                          placeholder="Staff notes / decision rationale..."
+                          value={moderationNotes[notesKey] || ""}
+                          onChange={(e) =>
+                            setModerationNotes((prev) => ({ ...prev, [notesKey]: e.target.value }))
+                          }
+                          className="min-h-[90px]"
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            disabled={staffDecisionMutation.isPending}
+                            onClick={() =>
+                              staffDecisionMutation.mutate({
+                                reportId,
+                                decision: "dismiss",
+                                notes: moderationNotes[notesKey] || "",
+                              })
+                            }
+                          >
+                            Dismiss
+                          </Button>
+                          <Button
+                            className="bg-yellow-600 hover:bg-yellow-700"
+                            disabled={staffDecisionMutation.isPending}
+                            onClick={() =>
+                              staffDecisionMutation.mutate({
+                                reportId,
+                                decision: "warning",
+                                notes: moderationNotes[notesKey] || "",
+                              })
+                            }
+                          >
+                            Warning
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            disabled={staffDecisionMutation.isPending}
+                            onClick={() =>
+                              staffDecisionMutation.mutate({
+                                reportId,
+                                decision: "suspend",
+                                notes: moderationNotes[notesKey] || "",
+                              })
+                            }
+                          >
+                            Suspend
+                          </Button>
+                          <Button
+                            className="bg-ts-orange text-black hover:bg-ts-orange-dark"
+                            disabled={staffDecisionMutation.isPending}
+                            onClick={() =>
+                              staffDecisionMutation.mutate({
+                                reportId,
+                                decision: "recommend_ban",
+                                notes: moderationNotes[notesKey] || "",
+                              })
+                            }
+                            title="Escalates to ops for final action"
+                          >
+                            Recommend Ban → Ops
+                          </Button>
+                          {isOpsOrAbove ? (
+                            <Button
+                              className="bg-red-700 hover:bg-red-800 text-white"
+                              disabled={opsBanMutation.isPending}
+                              onClick={() =>
+                                opsBanMutation.mutate({
+                                  reportId,
+                                  notes: moderationNotes[notesKey] || "",
+                                })
+                              }
+                              title="Ops-only: applies a durable ban marker + hard suspension"
+                            >
+                              Ops Ban
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

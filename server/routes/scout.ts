@@ -2625,6 +2625,61 @@ router.post("/", async (req: Request, res: Response) => {
     const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
 
     // ==========================================================================
+    // AUTH PREFLIGHT (GUEST WRITE ACTIONS)
+    // ==========================================================================
+    // Enforce platform law: read-only global/community visibility is allowed, but write actions
+    // (posting/publishing) must be account-gated.
+    const isGuest = !userId;
+    const intentString = typeof intent === "string" ? intent : "";
+    const wantsCommunityWrite =
+      /^community_/i.test(intentString) ||
+      (/(post|publish|announce|share)/i.test(message) && /community/i.test(message));
+
+    if (isGuest && wantsCommunityWrite) {
+      const redirect = "/pre-scout-setup?mode=create";
+      const gated: ScoutResponse = {
+        message: trimResponseToScreenFit(
+          "To post or publish in Community, you'll need a TradeScout account.\n\nNext: create an account to continue."
+        ),
+        suggestedActions: ["Create account now", "Learn how TradeScout works", "Continue as guest"],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label: "Create account",
+            to: redirect,
+            path: redirect,
+            primary: true as any,
+            why: "Posting is account-gated to protect users and prevent abuse.",
+          },
+        ],
+        sponsored: null,
+        metadata: {
+          intent: "auth_required",
+          thought_flow: [
+            "User asked to post/publish",
+            "This requires authentication",
+            "Redirect to account creation",
+          ],
+          decision: `Directing user to create account at ${redirect}`,
+          redirect,
+        },
+      };
+
+      await syncObjectiveBestEffort({ intent: "auth_required" });
+      return res.json({
+        ...gated,
+        knowledge: {
+          layer: 0,
+          sources: ["Auth preflight"],
+          confidence: "high",
+        },
+        llmProvider: "governor",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // ==========================================================================
     // GOVERNOR MODE: Situation-driven intelligence
     // ==========================================================================
     // Scout assesses the situation and decides whether to comply, defer,
@@ -3149,6 +3204,34 @@ router.post("/", async (req: Request, res: Response) => {
       let actions: ScoutClientAction[] = Array.isArray(aiResponse.actions)
         ? aiResponse.actions.slice()
         : [];
+
+      // -----------------------------------------------------------------
+      // Routing explainer contract
+      // -----------------------------------------------------------------
+      // When the user asks why something isn't routed yet, ensure we provide a
+      // concrete help deep-link so the UI can render an actionable cluster.
+      const wantsRoutingExplainer =
+        /not\s+routed\s+yet/i.test(lower) ||
+        (lower.includes("why") && lower.includes("routed")) ||
+        (lower.includes("routing") && lower.includes("why"));
+
+      if (wantsRoutingExplainer) {
+        const helpPath = "/help/how-tradescout-works#direct-connect-workflow";
+        const alreadyHasHelp = actions.some(
+          (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.includes(helpPath)
+        );
+        if (!alreadyHasHelp) {
+          actions.unshift({
+            type: "NAVIGATE",
+            label: "See the Direct Connect routing workflow",
+            to: helpPath,
+            path: helpPath,
+            subtitle: "Why messaging stays gated",
+            why: "Explains how routing + decision cards unlock contact safely.",
+            primary: true as any,
+          });
+        }
+      }
 
       // -----------------------------------------------------------------
       // TradeDeals / Daily Deals CTA hints
@@ -4556,7 +4639,9 @@ router.post("/admin/cache-clear", (req: Request, res: Response) => {
 // Admin analytics routes remain for auditability
 router.get("/admin/analytics", (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) {
+  const rawRole = typeof user?.role === "string" ? user.role.trim().toLowerCase() : "";
+  const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
+  if (!user || role !== "super_admin") {
     return res.status(403).json({ error: "Super admin access required" });
   }
   res.json({ analytics: getAnalytics() });
@@ -4564,7 +4649,9 @@ router.get("/admin/analytics", (req: Request, res: Response) => {
 
 router.get("/admin/audit-log", (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) {
+  const rawRole = typeof user?.role === "string" ? user.role.trim().toLowerCase() : "";
+  const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
+  if (!user || role !== "super_admin") {
     return res.status(403).json({ error: "Super admin access required" });
   }
   res.json({ auditLog: getAuditLog(100) });

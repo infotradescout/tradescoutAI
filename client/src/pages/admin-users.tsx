@@ -53,6 +53,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 type User = {
   id: string;
@@ -86,12 +87,6 @@ type SavedView = {
 };
 
 const roleHierarchy = {
-  head_admin: {
-    level: 110,
-    label: "Head Admin",
-    icon: Crown,
-    color: "bg-primary text-primary-foreground",
-  },
   super_admin: {
     level: 100,
     label: "Super Admin",
@@ -99,8 +94,8 @@ const roleHierarchy = {
     color: "bg-primary text-primary-foreground",
   },
   moderator: {
-    level: 80,
-    label: "Moderator",
+    level: 50,
+    label: "Staff",
     icon: Shield,
     color: "bg-primary/90 text-primary-foreground",
   },
@@ -205,7 +200,11 @@ export default function AdminUsers() {
   const [pendingAction, setPendingAction] = useState<{ [key: string]: boolean }>({});
 
   // Super Admin is the highest role
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "head_admin";
+  const isSuperAdmin = isSuperAdminLike(user?.role);
+  const isOpsAdmin =
+    String(user?.role || "")
+      .trim()
+      .toLowerCase() === "ops_admin";
   const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
   const currentAdminId = String((user as any)?.id || "");
   const currentAdminRole = String((user as any)?.role || "");
@@ -480,7 +479,7 @@ export default function AdminUsers() {
       if (newRole === "super_admin" && !isSuperAdmin) {
         toast({
           title: "Access Denied",
-          description: "Only the head admin can promote users to head admin status.",
+          description: "Only Super Admin can promote users to Super Admin.",
           variant: "destructive",
         });
         return;
@@ -490,7 +489,7 @@ export default function AdminUsers() {
       if (userToEdit.role === "super_admin" && !isSuperAdmin) {
         toast({
           title: "Access Denied",
-          description: "Only the head admin can modify other head admin accounts.",
+          description: "Only Super Admin can modify other Super Admin accounts.",
           variant: "destructive",
         });
         return;
@@ -510,10 +509,10 @@ export default function AdminUsers() {
       return;
     }
 
-    if (userRole === "head_admin" && currentAdminRole !== "head_admin") {
+    if (isSuperAdminLike(userRole) && !isSuperAdminLike(currentAdminRole)) {
       toast({
         title: "Access Denied",
-        description: "Only head admin can delete head admin accounts.",
+        description: "Only Super Admin can delete Super Admin accounts.",
         variant: "destructive",
       });
       return;
@@ -523,7 +522,7 @@ export default function AdminUsers() {
     if (userRole === "super_admin" && !isSuperAdmin) {
       toast({
         title: "Access Denied",
-        description: "Only the head admin can delete other head admin accounts.",
+        description: "Only Super Admin can delete Super Admin accounts.",
         variant: "destructive",
       });
       return;
@@ -551,7 +550,7 @@ export default function AdminUsers() {
 
   const getAvailableRoles = () => {
     if (isSuperAdmin) {
-      // Head admin can assign any role
+      // Super admin can assign any role
       return Object.keys(roleHierarchy);
     } else if (currentUserLevel >= 80) {
       // Moderators can assign roles below their level, but not super_admin
@@ -852,13 +851,13 @@ export default function AdminUsers() {
               {isSuperAdmin && (
                 <Badge className="bg-primary text-primary-foreground">
                   <Crown className="w-3 h-3 mr-1" />
-                  {user?.role === "head_admin" ? "Head Admin" : "Super Admin"}
+                  Super Admin
                 </Badge>
               )}
               {user.role === "moderator" && (
                 <Badge className="bg-primary/90 text-primary-foreground">
                   <Shield className="w-3 h-3 mr-1" />
-                  Moderator
+                  Staff
                 </Badge>
               )}
             </div>
@@ -1145,6 +1144,14 @@ export default function AdminUsers() {
                 </span>
               </div>
             </div>
+            <div className="mt-2 text-xs text-white/60">
+              Imported companies showing up as users? Go to{" "}
+              <Link href="/admin/business-import">
+                <a className="text-blue-300 hover:underline">Business Import</a>
+              </Link>{" "}
+              and run the cleanup tool to archive import-created login accounts into unclaimed
+              directory businesses.
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -1157,7 +1164,9 @@ export default function AdminUsers() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-muted-foreground min-w-[280px]">User</TableHead>
+                      <TableHead className="text-muted-foreground min-w-[280px] sticky left-0 z-20 bg-[color:var(--surface-card)]">
+                        User
+                      </TableHead>
                       <TableHead className="text-muted-foreground min-w-[140px]">Role</TableHead>
                       <TableHead className="text-muted-foreground min-w-[200px]">Status</TableHead>
                       <TableHead className="text-muted-foreground min-w-[120px]">Joined</TableHead>
@@ -1171,11 +1180,11 @@ export default function AdminUsers() {
 
                       return (
                         <TableRow key={user.id} className="hover:bg-muted/50">
-                          <TableCell className="py-3 min-w-[280px]">
+                          <TableCell className="py-3 min-w-[280px] sticky left-0 z-10 bg-[color:var(--surface-card)]">
                             <div className="text-foreground space-y-1">
                               <div className="font-medium truncate">
-                                {user.firstName && user.lastName
-                                  ? `${user.firstName} ${user.lastName}`
+                                {user.firstName
+                                  ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
                                   : user.email}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">
@@ -1248,11 +1257,15 @@ export default function AdminUsers() {
                                 isSuperAdmin &&
                                 user.id !== (userToEdit?.id || "") &&
                                 user.role !== "super_admin";
+                              const canRunOpsActions =
+                                (isSuperAdmin || isOpsAdmin) &&
+                                user.id !== (userToEdit?.id || "") &&
+                                user.role !== "super_admin";
 
                               const canDeleteUser =
                                 isSuperAdmin &&
                                 String(user.id) !== currentAdminId &&
-                                (user.role !== "head_admin" || currentAdminRole === "head_admin");
+                                user.role !== "super_admin";
 
                               return (
                                 <DropdownMenu>
@@ -1459,6 +1472,69 @@ export default function AdminUsers() {
                                             </DropdownMenuItem>
                                           </>
                                         )}
+                                      </>
+                                    )}
+                                    {!canRunSuperActions && canRunOpsActions && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => handleUserControl("suspend", user.id)}
+                                          disabled={
+                                            pendingAction[`${user.id}:suspend`] ||
+                                            user.verificationStatus === "suspended"
+                                          }
+                                          className="cursor-pointer text-destructive"
+                                        >
+                                          Suspend
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUserControl("unsuspend", user.id)}
+                                          disabled={pendingAction[`${user.id}:unsuspend`]}
+                                          className="cursor-pointer"
+                                        >
+                                          Unsuspend
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleUserControl("verify", user.id)}
+                                          disabled={
+                                            pendingAction[`${user.id}:verify`] ||
+                                            user.verificationStatus === "approved"
+                                          }
+                                          className="cursor-pointer"
+                                        >
+                                          Verify
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleUserControl("revoke_verify", user.id)
+                                          }
+                                          disabled={pendingAction[`${user.id}:revoke_verify`]}
+                                          className="cursor-pointer"
+                                        >
+                                          Revoke verify
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleUserControl("role", user.id, "contractor_user")
+                                          }
+                                          disabled={
+                                            pendingAction[`${user.id}:role:contractor_user`]
+                                          }
+                                          className="cursor-pointer"
+                                        >
+                                          Set Contractor
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleUserControl("role", user.id, "homeowner")
+                                          }
+                                          disabled={pendingAction[`${user.id}:role:homeowner`]}
+                                          className="cursor-pointer"
+                                        >
+                                          Set Homeowner
+                                        </DropdownMenuItem>
                                       </>
                                     )}
                                   </DropdownMenuContent>

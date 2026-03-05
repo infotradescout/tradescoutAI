@@ -1,18 +1,22 @@
-import { memo } from 'react';
+import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const TestPage = memo(function TestPage() {
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-primary">
-          Test Page
-        </h1>
-        
+    <div className="text-foreground">
+      <div>
+        <h1 className="text-3xl font-bold mb-8 text-primary">Test Page</h1>
+
         {/* Component Testing */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-6">Component Testing</h2>
@@ -29,7 +33,7 @@ const TestPage = memo(function TestPage() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-card border-border">
               <CardHeader>
                 <CardTitle className="text-primary">Form Elements</CardTitle>
@@ -89,9 +93,7 @@ const TestPage = memo(function TestPage() {
                 <div className="text-blue-500">GET /api/daily-deals - Daily contractor deals</div>
                 <div className="text-blue-500">GET /api/stats - Platform statistics</div>
               </div>
-              <Button className="mt-4">
-                Test API Connection
-              </Button>
+              <Button className="mt-4">Test API Connection</Button>
             </CardContent>
           </Card>
         </section>

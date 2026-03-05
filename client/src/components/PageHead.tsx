@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME, TRADESCOUT_TAGLINE } from "@shared/brand";
 
 interface PageHeadProps {
   title?: string;
@@ -18,23 +19,25 @@ export function PageHead({
   const currentUrl = normalizePublicUrl(window.location.href);
   const resolvedCanonical = normalizePublicUrl(canonicalUrl || currentUrl);
   const imageUrl = resolveAssetUrl(ogImage, resolvedCanonical);
+  const formattedTitle = formatTradeScoutTitle(title);
 
   useEffect(() => {
     // Update document title
-    document.title = title;
+    document.title = formattedTitle;
 
     // Update meta tags
     updateMetaTag("description", description);
-    updateMetaTag("og:title", title, "property");
+    updateMetaTag("og:title", formattedTitle, "property");
     updateMetaTag("og:description", description, "property");
     updateMetaTag("og:url", resolvedCanonical, "property");
     updateMetaTag("og:image", imageUrl, "property");
-    updateMetaTag("twitter:title", title);
+    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} — ${TRADESCOUT_TAGLINE}`, "property");
+    updateMetaTag("twitter:title", formattedTitle);
     updateMetaTag("twitter:description", description);
     updateMetaTag("twitter:image", imageUrl);
 
     updateLinkTag("canonical", resolvedCanonical);
-  }, [title, description, keywords, resolvedCanonical, imageUrl]);
+  }, [formattedTitle, description, keywords, resolvedCanonical, imageUrl]);
 
   return null;
 }

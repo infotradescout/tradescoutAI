@@ -48,7 +48,6 @@ const STAFF_ALLOWED_ROLES = [
   "moderator",
   "ops_admin",
   "super_admin",
-  "head_admin",
 ] as const;
 
 const STAFF_ROLE_SET = new Set<string>(STAFF_ALLOWED_ROLES);
@@ -153,9 +152,7 @@ export default function StaffHardrockDirectory() {
                 <CardHeader className="flex flex-col gap-1">
                   <CardTitle className="text-lg flex flex-wrap items-center gap-2">
                     <span>{app.companyName}</span>
-                    <span className="text-xs text-white/60 font-normal">
-                      ({app.primaryTrade})
-                    </span>
+                    <span className="text-xs text-white/60 font-normal">({app.primaryTrade})</span>
                     <span className="ml-auto text-xs text-white/60 font-normal">
                       {app.submittedAt ? new Date(app.submittedAt).toLocaleString() : ""}
                     </span>
@@ -190,9 +187,7 @@ export default function StaffHardrockDirectory() {
                     </div>
                     <div className="md:col-span-2">
                       <Label>Specialties</Label>
-                      <div className="text-sm text-white">
-                        {(app.specialties || []).join(", ")}
-                      </div>
+                      <div className="text-sm text-white">{(app.specialties || []).join(", ")}</div>
                     </div>
                   </div>
 

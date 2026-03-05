@@ -1,21 +1,16 @@
-import { spawn } from "node:child_process";
 import dotenv from "dotenv";
 import pg from "pg";
+import { runCommand } from "./lib/subprocess.mjs";
 
 dotenv.config();
 
 const { Client } = pg;
 
 function run(commandLine, options = {}) {
-  return new Promise((resolve) => {
-    const child = spawn(commandLine, {
-      stdio: "inherit",
-      shell: true,
-      ...options,
-    });
-
-    child.on("close", (code) => resolve(code ?? 1));
-  });
+  const parts = String(commandLine || "").trim().split(/\s+/).filter(Boolean);
+  const cmd = parts[0];
+  const args = parts.slice(1);
+  return runCommand(cmd, args, { stdio: "inherit", ...options });
 }
 
 async function migrationCount() {
@@ -46,7 +41,7 @@ async function main() {
   const args = process.argv.slice(2);
   const autoRepair = !args.includes("--no-repair");
 
-  const first = await run("drizzle-kit migrate");
+  const first = await run("npx drizzle-kit migrate");
   if (first === 0) {
     process.exit(0);
   }
@@ -73,7 +68,7 @@ async function main() {
     process.exit(first);
   }
 
-  const retry = await run("drizzle-kit migrate");
+  const retry = await run("npx drizzle-kit migrate");
   process.exit(retry);
 }
 

@@ -51,7 +51,7 @@ const SUBTYPE_CATALOG: Record<PrimaryUserType, string[]> = {
   notary: ["mobile_notary", "remote_notary"],
   business_owner: ["local_retail", "restaurant", "service_firm", "ecommerce"],
   community_builder: ["county_builder", "nonprofit_builder", "cause_builder"],
-  platform_admin: ["ops_admin", "super_admin", "head_admin"],
+  platform_admin: ["ops_admin", "super_admin"],
 };
 
 const CAPABILITY_MAP: Record<PrimaryUserType, string[]> = {
@@ -86,7 +86,10 @@ const VERIFICATION_MAP: Record<PrimaryUserType, VerificationCheck[]> = {
 };
 
 const PRIMARY_ROLE_HINTS: Array<{ type: PrimaryUserType; roles: string[] }> = [
-  { type: "platform_admin", roles: ["head_admin", "super_admin", "ops_admin", "moderator"] },
+  {
+    type: "platform_admin",
+    roles: ["super_admin", "ops_admin", "moderator", "head_admin", "owner"],
+  },
   { type: "notary", roles: ["notary", "mobile_notary", "remote_notary"] },
   { type: "realtor", roles: ["realtor"] },
   { type: "contractor", roles: ["contractor", "contractor_user"] },
@@ -100,7 +103,16 @@ function dedupe<T>(items: T[]): T[] {
 }
 
 function inferPrimaryTypeFromRoles(roles: string[]): PrimaryUserType {
-  const normalizedRoles = roles.map((role) => String(role || "").toLowerCase());
+  const normalizeRole = (role: unknown): string => {
+    const raw = String(role || "")
+      .trim()
+      .toLowerCase();
+    if (!raw) return "";
+    if (raw === "owner" || raw === "head_admin") return "super_admin";
+    return raw;
+  };
+
+  const normalizedRoles = roles.map((role) => normalizeRole(role)).filter(Boolean);
   for (const hint of PRIMARY_ROLE_HINTS) {
     if (normalizedRoles.some((role) => hint.roles.includes(role))) return hint.type;
   }

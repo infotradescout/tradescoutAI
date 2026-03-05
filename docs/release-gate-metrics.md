@@ -2,6 +2,25 @@
 
 This checklist tracks the 4 core success metrics in production-like testing.
 
+## How to run (required ship evidence)
+
+Local, self-contained lane (recommended):
+
+```powershell
+npm run test:release-gates:local
+```
+
+This writes `artifacts/release-gate-metrics.json` and prints a summary.
+The gate status is `fail` if any required lane has zero executed tests (skips count as "not executed").
+
+Manual lane (when testing against an already-running instance):
+
+```powershell
+npm run dev
+npm run test:release-gates
+npm run report:release-gates
+```
+
 ## 1) Account creation + login
 - Pass when:
   - New user can register from `/create-account`.

@@ -47,7 +47,11 @@ Required environment variables:
 
 If TEST_DATABASE_URL is not set:
 - `npm run check` will still pass
-- `npm run verify` will fail intentionally
+- `npm run verify` will still pass (deterministic lane; DB/integration suites are skipped)
+- DB-backed strict lanes will skip/fail (by design)
 
-This is by design. Database-backed tests do not run without an explicit
-infrastructure configuration.
+Strict confidence lanes:
+- `npm run test:run:no-skips` (DB-backed; fails on skip increase)
+- `npm run verify:db` (runs `verify` with DB enabled)
+- `npm run test:release-gates:local` (starts a local test server + runs release gates)
+- `npm run verify:release` (DB verify + release gates)

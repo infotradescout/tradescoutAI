@@ -4,6 +4,7 @@
  * Handles city, county, and state-specific SEO to improve local search rankings
  * and help users find contractors in their specific geographic areas.
  */
+import { formatTradeScoutTitle } from "@shared/brand";
 
 interface GeographicSEOProps {
   state?: string;
@@ -58,9 +59,7 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
       title += ` in ${state}`;
     }
 
-    title += " | TradeScout";
-
-    return title;
+    return formatTradeScoutTitle(`${title} | TradeScout`);
   };
 
   const generateLocationDescription = () => {

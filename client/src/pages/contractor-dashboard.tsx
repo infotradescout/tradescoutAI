@@ -9,8 +9,8 @@ export default function ContractorDashboard() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
-      <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+    <div className="text-foreground">
+      <div className="space-y-8">
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-primary">Contractor workspace</p>
           <h1 className="text-3xl font-bold text-foreground">
@@ -18,7 +18,8 @@ export default function ContractorDashboard() {
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
             Scout keeps your jobs, documents, and finances in one place. As you start responding to
-            Direct Connect requests, sending quotes, and working jobs, this dashboard will reflect your real pipeline.
+            Direct Connect requests, sending quotes, and working jobs, this dashboard will reflect
+            your real pipeline.
           </p>
         </header>
 
@@ -31,8 +32,8 @@ export default function ContractorDashboard() {
               </div>
               <CardTitle className="text-sm text-foreground">Create your first invoice</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Record work you&apos;ve already done or bill a new job. Your invoices will show up in
-                the Finances workspace.
+                Record work you&apos;ve already done or bill a new job. Your invoices will show up
+                in the Finances workspace.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -54,7 +55,11 @@ export default function ContractorDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <Button variant="outline" className="w-full" onClick={() => setLocation("/contractor-board")}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setLocation("/contractor-board")}
+              >
                 Go to contractor board
               </Button>
             </CardContent>
@@ -68,8 +73,8 @@ export default function ContractorDashboard() {
               </div>
               <CardTitle className="text-sm text-foreground">Coordinate crew and helpers</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Use Helpers to post crew and helper opportunities for your business. Homeowners still
-                start coordination in Direct Connect – this space is for responders.
+                Use Helpers to post crew and helper opportunities for your business. Homeowners
+                still start coordination in Direct Connect – this space is for responders.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">

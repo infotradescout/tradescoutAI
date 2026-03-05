@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import dotenv from "dotenv";
 import pg from "pg";
+import { runCommand } from "./lib/subprocess.mjs";
 
 const { Client } = pg;
 
@@ -22,16 +23,7 @@ if (!testDatabaseUrl) {
 }
 
 function run(command, args, env = process.env) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: repoRoot,
-      stdio: "inherit",
-      shell: true,
-      env,
-    });
-    child.on("error", reject);
-    child.on("exit", (code) => resolve(code ?? 1));
-  });
+  return runCommand(command, args, { cwd: repoRoot, stdio: "inherit", env });
 }
 
 async function ensureCriticalSchema() {
@@ -164,9 +156,252 @@ async function ensureCriticalSchema() {
       ADD COLUMN IF NOT EXISTS sources jsonb NOT NULL DEFAULT '[]'::jsonb
     `);
 
+    // SEO discovery "new & true only" scaffolding (publication rules + prune log + safe public activity).
+    await client.query(`
+      DO $$
+      BEGIN
+        CREATE TYPE ts_public_activity_type AS ENUM (
+          'listing_added',
+          'listing_updated',
+          'claimed',
+          'verified',
+          'proof_added',
+          'request_created_public_summary',
+          'connection_made_public_summary'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$
+      BEGIN
+        CREATE TYPE ts_seo_prune_action AS ENUM (
+          'noindex',
+          'removed_from_sitemap',
+          'deactivated',
+          'deleted'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ts_publication_rules (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        listing_stale_days_unclaimed integer NOT NULL,
+        listing_stale_days_claimed_unverified integer NOT NULL,
+        listing_stale_days_verified integer NOT NULL,
+        request_public_summary_ttl_hours integer NOT NULL,
+        category_page_recency_window_days integer NOT NULL,
+        proof_media_ttl_days integer,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      INSERT INTO ts_publication_rules (
+        id,
+        listing_stale_days_unclaimed,
+        listing_stale_days_claimed_unverified,
+        listing_stale_days_verified,
+        request_public_summary_ttl_hours,
+        category_page_recency_window_days,
+        proof_media_ttl_days
+      )
+      SELECT
+        'default',
+        365,
+        180,
+        730,
+        72,
+        90,
+        NULL
+      WHERE NOT EXISTS (SELECT 1 FROM ts_publication_rules WHERE id = 'default')
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ts_seo_prune_log (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        entity_type varchar(64) NOT NULL,
+        entity_id varchar(255) NOT NULL,
+        action ts_seo_prune_action NOT NULL,
+        reason text NOT NULL,
+        happened_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS ts_seo_prune_log_entity_idx
+        ON ts_seo_prune_log(entity_type, entity_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ts_public_activity (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        county_id varchar REFERENCES counties(id) ON DELETE SET NULL,
+        city_slug varchar(128),
+        state_code varchar(2),
+        trade_slug varchar(128),
+        business_id varchar REFERENCES businesses(id) ON DELETE SET NULL,
+        activity_type ts_public_activity_type NOT NULL,
+        occurred_at timestamptz NOT NULL,
+        expires_at timestamptz NOT NULL,
+        public_text text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        active_status boolean NOT NULL DEFAULT true
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS ts_public_activity_expires_idx
+        ON ts_public_activity(expires_at)
+    `);
+
+    await client.query(`
+      ALTER TABLE businesses
+      ADD COLUMN IF NOT EXISTS public_discovery_enabled boolean NOT NULL DEFAULT true
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ts_seo_trade_county_pages (
+        trade_slug varchar(128) NOT NULL,
+        county_id varchar REFERENCES counties(id) ON DELETE CASCADE,
+        state_code varchar(2) NOT NULL,
+        county_slug varchar(128) NOT NULL,
+        lastmod timestamptz NOT NULL,
+        business_count integer NOT NULL DEFAULT 0,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (trade_slug, county_id)
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ts_seo_trade_city_pages (
+        trade_slug varchar(128) NOT NULL,
+        state_code varchar(2) NOT NULL,
+        city_slug varchar(128) NOT NULL,
+        lastmod timestamptz NOT NULL,
+        business_count integer NOT NULL DEFAULT 0,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (trade_slug, state_code, city_slug)
+      )
+    `);
+
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS uidx_contact_permissions_pair
       ON contact_permissions (requester_id, target_user_id)
+    `);
+
+    // Directory ingestion + safety queues (used by seeded "unclaimed" business listings).
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE business_suggestion_kind AS ENUM ('edit', 'removal');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE business_suggestion_status AS ENUM ('open', 'resolved', 'rejected');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE business_seed_run_status AS ENUM ('running', 'succeeded', 'failed');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS business_external_refs (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        business_id varchar NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+        source varchar(64) NOT NULL,
+        external_id varchar(255) NOT NULL,
+        created_at timestamp DEFAULT now(),
+        CONSTRAINT business_external_refs_source_external_unique UNIQUE (source, external_id)
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS business_external_refs_business_idx
+      ON business_external_refs(business_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS business_suggestions (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        business_id varchar NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+        kind business_suggestion_kind NOT NULL,
+        status business_suggestion_status NOT NULL DEFAULT 'open',
+        payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS business_suggestions_business_idx
+      ON business_suggestions(business_id)
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS business_suggestions_status_idx
+      ON business_suggestions(status)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS business_seed_runs (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        source varchar(64) NOT NULL,
+        location_text text,
+        county_fips varchar(5),
+        state_code varchar(2),
+        terms jsonb NOT NULL DEFAULT '[]'::jsonb,
+        requested_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        status business_seed_run_status NOT NULL DEFAULT 'running',
+        inserted_count integer NOT NULL DEFAULT 0,
+        duplicate_count integer NOT NULL DEFAULT 0,
+        error_count integer NOT NULL DEFAULT 0,
+        error_message text,
+        started_at timestamp NOT NULL DEFAULT now(),
+        finished_at timestamp,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS business_seed_runs_status_idx
+      ON business_seed_runs(status)
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS business_seed_runs_county_idx
+      ON business_seed_runs(county_fips, state_code)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS business_seed_run_logs (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        seed_run_id varchar NOT NULL REFERENCES business_seed_runs(id) ON DELETE CASCADE,
+        level varchar(16) NOT NULL DEFAULT 'info',
+        message text NOT NULL,
+        created_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS business_seed_run_logs_run_idx
+      ON business_seed_run_logs(seed_run_id)
     `);
 
     await client.query(`
@@ -201,6 +436,108 @@ async function ensureCriticalSchema() {
         ('messaging:reconnect', 'test-messaging-seed-user', 'test-messaging-seed-category', 'Messaging Reconnect Seed', 'Seed listing for messaging reconnect', 1.00, 'Test', 'TS', 'good', 'active')
       ON CONFLICT (id) DO NOTHING
     `);
+
+    // Minimal Direct Connect routing seeds for E2E release gates.
+    // Release-gate suites assume at least one resolvable county + trade + matching contractor exists.
+    const withSeedContext = async (label, fn) => {
+      try {
+        return await fn();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`[bootstrap-test-db] direct-connect seed failed (${label}): ${message}`);
+      }
+    };
+
+    const seedStateId = "test-state-az";
+    const seedCountyFips = "04013"; // Maricopa, AZ
+    const seedCountyId = "test-county-04013";
+    const seedTradeSlug = "moving-help";
+    const seedTradeId = "test-trade-moving-help";
+    const seedContractorSlug = "test-moving-pro";
+    const seedContractorId = "test-contractor-moving-pro";
+
+    await withSeedContext("state", async () => {
+      await client.query(
+        `
+          INSERT INTO states (id, name, code)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name
+        `,
+        [seedStateId, "Arizona", "AZ"]
+      );
+    });
+
+    const countyUpsert = await withSeedContext("county", async () => {
+      return await client.query(
+        `
+          INSERT INTO counties (id, name, fips, state_code, population)
+          VALUES ($1, $2, $3, $4, $5)
+          ON CONFLICT (fips) DO UPDATE
+          SET name = EXCLUDED.name, state_code = EXCLUDED.state_code
+          RETURNING id
+        `,
+        [seedCountyId, "Maricopa County", seedCountyFips, "AZ", 0]
+      );
+    });
+    const resolvedCountyId = String(countyUpsert.rows?.[0]?.id || seedCountyId);
+
+    const tradeUpsert = await withSeedContext("trade", async () => {
+      return await client.query(
+        `
+          INSERT INTO trades (id, name, slug)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
+          RETURNING id
+        `,
+        [seedTradeId, "Moving help", seedTradeSlug]
+      );
+    });
+    const resolvedTradeId = String(tradeUpsert.rows?.[0]?.id || seedTradeId);
+
+    const contractorUpsert = await withSeedContext("contractor", async () => {
+      return await client.query(
+        `
+          INSERT INTO contractors (id, company_name, slug, is_active)
+          VALUES ($1, $2, $3, true)
+          ON CONFLICT (slug) DO UPDATE
+          SET company_name = EXCLUDED.company_name, is_active = true
+          RETURNING id
+        `,
+        [seedContractorId, "Test Moving Pro", seedContractorSlug]
+      );
+    });
+    const resolvedContractorId = String(contractorUpsert.rows?.[0]?.id || seedContractorId);
+
+    await withSeedContext("contractor_trades", async () => {
+      await client.query(
+        `
+          INSERT INTO contractor_trades (id, contractor_id, trade_id)
+          SELECT $1::varchar, $2::varchar, $3::varchar
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM contractor_trades
+            WHERE contractor_id = $2::varchar AND trade_id = $3::varchar
+          )
+        `,
+        ["test-ct-moving-pro", resolvedContractorId, resolvedTradeId]
+      );
+    });
+
+    await withSeedContext("contractor_counties", async () => {
+      await client.query(
+        `
+          INSERT INTO contractor_counties (id, contractor_id, county_id)
+          SELECT $1::varchar, $2::varchar, $3::varchar
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM contractor_counties
+            WHERE contractor_id = $2::varchar AND county_id = $3::varchar
+          )
+        `,
+        ["test-cc-moving-pro", resolvedContractorId, resolvedCountyId]
+      );
+    });
+
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS xp_daily_counters (

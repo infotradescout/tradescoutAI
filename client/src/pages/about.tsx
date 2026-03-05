@@ -2,6 +2,7 @@ import { memo, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Hammer, Heart, Users, Shield, Target, Award, Building, Globe } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
 
 function Reveal({
   children,
@@ -56,17 +57,34 @@ const About = memo(function About() {
   ];
 
   const stats = [
-    { number: "3,112", label: "Counties Covered", description: "Nationwide coverage across all 50 states" },
-    { number: "15,000+", label: "Verified Contractors", description: "Licensed and insured professionals" },
-    { number: "250,000+", label: "Projects Completed", description: "Successful home improvements" },
-    { number: "$50M+", label: "Community Investment", description: "Economic impact in local communities" },
+    {
+      number: "3,112",
+      label: "Counties Covered",
+      description: "Nationwide coverage across all 50 states",
+    },
+    {
+      number: "15,000+",
+      label: "Verified Contractors",
+      description: "Licensed and insured professionals",
+    },
+    {
+      number: "250,000+",
+      label: "Projects Completed",
+      description: "Successful home improvements",
+    },
+    {
+      number: "$50M+",
+      label: "Community Investment",
+      description: "Economic impact in local communities",
+    },
   ];
 
   const timeline = [
     {
       year: "2023",
       title: "Launch",
-      description: "TradeScout founded with a mission to connect local people, pros, and organizations around real projects and decisions",
+      description:
+        "TradeScout founded with a mission to connect local people, pros, and organizations around real projects and decisions",
     },
     {
       year: "2024",
@@ -89,22 +107,26 @@ const About = memo(function About() {
     {
       icon: Target,
       title: "Quality First",
-      description: "We prioritize quality contractors and workmanship above all else. Every contractor goes through our rigorous verification process.",
+      description:
+        "We prioritize quality contractors and workmanship above all else. Every contractor goes through our rigorous verification process.",
     },
     {
       icon: Users,
       title: "Community-Centered",
-      description: "Local communities are at the heart of everything we do. We organize by local areas — counties, cities, and towns — to strengthen connections.",
+      description:
+        "Local communities are at the heart of everything we do. We organize by local areas — counties, cities, and towns — to strengthen connections.",
     },
     {
       icon: Shield,
       title: "Trust & Transparency",
-      description: "Open feedback systems, verified recommendations, and transparent pricing help build trust across neighbors, pros, and community stakeholders.",
+      description:
+        "Open feedback systems, verified recommendations, and transparent pricing help build trust across neighbors, pros, and community stakeholders.",
     },
     {
       icon: Heart,
       title: "Giving Back",
-      description: "We donate 10% of profits to support trade education and community development programs.",
+      description:
+        "We donate 10% of profits to support trade education and community development programs.",
     },
   ];
 
@@ -134,8 +156,7 @@ const About = memo(function About() {
               transition={{ duration: 0.7, delay: 0.1 }}
               className="font-display text-4xl md:text-6xl font-extrabold text-white leading-tight tracking-tight mb-4"
             >
-              Building America's{" "}
-              <span className="text-ts-orange">Home Improvement Future</span>
+              Building America's <span className="text-ts-orange">Home Improvement Future</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -180,8 +201,8 @@ const About = memo(function About() {
               <h2 className="font-display text-3xl font-extrabold text-white mb-3">Why We Exist</h2>
               <p className="text-white/60 max-w-2xl mx-auto">
                 To create the most trusted community operating system for real-world work by
-                connecting local residents, professionals, and organizations while supporting skilled
-                trades and local communities.
+                connecting local residents, professionals, and organizations while supporting
+                skilled trades and local communities.
               </p>
             </Reveal>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -213,14 +234,20 @@ const About = memo(function About() {
                 <Award className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Impact</span>
               </div>
-              <h2 className="font-display text-3xl font-extrabold text-white mb-3">Impact by the Numbers</h2>
-              <p className="text-white/60">See how TradeScout is transforming the home improvement industry</p>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">
+                Impact by the Numbers
+              </h2>
+              <p className="text-white/60">
+                See how TradeScout is transforming the home improvement industry
+              </p>
             </Reveal>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {stats.map((stat, index) => (
                 <Reveal key={index} delay={index * 0.08}>
                   <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
-                    <div className="font-display text-3xl font-extrabold text-ts-orange mb-1">{stat.number}</div>
+                    <div className="font-display text-3xl font-extrabold text-ts-orange mb-1">
+                      {stat.number}
+                    </div>
                     <h3 className="font-semibold text-white mb-1 text-sm">{stat.label}</h3>
                     <p className="text-xs text-white/50">{stat.description}</p>
                   </div>
@@ -236,7 +263,9 @@ const About = memo(function About() {
                 <Heart className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Our Values</span>
               </div>
-              <h2 className="font-display text-3xl font-extrabold text-white mb-3">The Principles That Guide Us</h2>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">
+                The Principles That Guide Us
+              </h2>
               <p className="text-white/60">The principles that guide everything we do</p>
             </Reveal>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -259,6 +288,10 @@ const About = memo(function About() {
             </div>
           </section>
 
+          <Reveal>
+            <RevenueDisclosureSection />
+          </Reveal>
+
           {/* Timeline Section */}
           <section>
             <Reveal className="text-center mb-8">
@@ -266,7 +299,9 @@ const About = memo(function About() {
                 <Building className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Our Story</span>
               </div>
-              <h2 className="font-display text-3xl font-extrabold text-white mb-3">How We Got Here</h2>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">
+                How We Got Here
+              </h2>
             </Reveal>
             <div className="space-y-3">
               {timeline.map((event, index) => (
@@ -294,13 +329,15 @@ const About = memo(function About() {
                     <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
                       <Award className="w-5 h-5 text-ts-orange" />
                     </div>
-                    <h2 className="font-display text-2xl font-extrabold text-white">Mike Rowe Works Foundation</h2>
+                    <h2 className="font-display text-2xl font-extrabold text-white">
+                      Mike Rowe Works Foundation
+                    </h2>
                   </div>
                   <p className="text-white/70 mb-5 text-sm leading-relaxed">
                     We're proud to partner with the Mike Rowe Works Foundation, donating 10% of our
                     profits to support skilled trades education and workforce development. This
-                    partnership helps ensure the next generation of skilled workers has the tools and
-                    training they need to succeed.
+                    partnership helps ensure the next generation of skilled workers has the tools
+                    and training they need to succeed.
                   </p>
                   <a
                     href="/scout"
@@ -318,7 +355,10 @@ const About = memo(function About() {
                   ].map((item, i) => {
                     const Icon = item.icon;
                     return (
-                      <div key={i} className="bg-tsCard border border-white/10 rounded-xl p-4 text-center">
+                      <div
+                        key={i}
+                        className="bg-tsCard border border-white/10 rounded-xl p-4 text-center"
+                      >
                         <Icon className="w-6 h-6 text-ts-orange mx-auto mb-2" />
                         <p className="font-semibold text-white text-sm">{item.label}</p>
                         <p className="text-xs text-white/50">{item.sub}</p>
@@ -333,7 +373,9 @@ const About = memo(function About() {
           {/* Call to Action */}
           <Reveal>
             <div className="bg-tsCard border border-white/10 rounded-xl p-8 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
-              <h2 className="font-display text-3xl font-extrabold text-white mb-3">Join the TradeScout Community</h2>
+              <h2 className="font-display text-3xl font-extrabold text-white mb-3">
+                Join the TradeScout Community
+              </h2>
               <p className="text-white/60 mb-6 max-w-xl mx-auto">
                 Whether you're a resident, contractor, local business, organizer, or civic leader,
                 TradeScout is here to help you and your community succeed.

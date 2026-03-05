@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 interface DiagnosticData {
   summary: {
@@ -41,7 +42,7 @@ export default function AdminAuthorityDiagnostics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) return;
+    if (!user || !isSuperAdminLike(user.role)) return;
 
     fetch("/api/scout-analytics/authority-diagnostics")
       .then((res) => {
@@ -61,7 +62,7 @@ export default function AdminAuthorityDiagnostics() {
     );
   }
 
-  if (!user || (user.role !== "super_admin" && user.role !== "head_admin")) {
+  if (!user || !isSuperAdminLike(user.role)) {
     return <div className="p-8 text-center">Admin access required</div>;
   }
 

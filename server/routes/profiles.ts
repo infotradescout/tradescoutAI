@@ -2,8 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
+import { db } from "../db";
 import { COMPREHENSIVE_TRADES } from "../../shared/trades-data";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
+import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
+import { US_STATES_COUNTIES } from "../../shared/states-counties";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -51,6 +55,11 @@ const CORE_STATIC_PATHS = [
   "/resource-center",
   "/membership-portal",
   "/training-center",
+  "/trade",
+  "/datasets",
+  "/datasets/trades",
+  "/datasets/counties",
+  "/datasets/cities",
   "/affiliate",
   "/vehicle-marketplace",
   "/real-estate-marketplace",
@@ -636,6 +645,10 @@ router.get("/robots.txt", async (req, res) => {
       "Allow: /business/",
       "Allow: /community/",
       "Allow: /county/",
+      "Allow: /trade/",
+      "Allow: /city/",
+      "Allow: /datasets/",
+      "Allow: /best/",
       "Allow: /tradepartners/",
       "Allow: /homescout/",
       "Allow: /homescout/listings/",
@@ -705,6 +718,34 @@ router.get("/sitemap.xml", async (req, res) => {
   </sitemap>
   <sitemap>
     <loc>${baseUrl}/sitemap-tradepartners.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-counties.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-trade-navigation.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-trades.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-cities.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-trade-cities.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-best-pages.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-recent-activity.xml</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
 </sitemapindex>`;
@@ -915,6 +956,619 @@ router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => 
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating directory businesses sitemap page:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+const DIRECTORY_TRADE_SITEMAP_PAGE_SIZE = 40_000;
+const DIRECTORY_CITY_SITEMAP_PAGE_SIZE = 40_000;
+let directoryCountiesCache: {
+  expiresAt: number;
+  rows: Array<{ fips: string; name: string; stateCode: string; updatedAt: Date | null }>;
+} | null = null;
+let directoryCitiesCache: {
+  expiresAt: number;
+  rows: Array<{ stateCode: string; citySlug: string; updatedAt: Date | null }>;
+} | null = null;
+
+export function invalidateDirectorySitemapCaches() {
+  directoryCountiesCache = null;
+  directoryCitiesCache = null;
+}
+
+async function getDirectoryCountiesForSitemapCached(): Promise<
+  Array<{ fips: string; name: string; stateCode: string; updatedAt: Date | null }>
+> {
+  const now = Date.now();
+  if (directoryCountiesCache && directoryCountiesCache.expiresAt > now) {
+    return directoryCountiesCache.rows;
+  }
+  const rows = await storage.listDirectoryCountiesForSitemap({ limit: 50_000, offset: 0 });
+  const normalized = Array.isArray(rows) ? rows : [];
+  directoryCountiesCache = {
+    expiresAt: now + 30 * 60 * 1000,
+    rows: normalized,
+  };
+  return normalized;
+}
+
+async function getDirectoryCitiesForSitemapCached(): Promise<
+  Array<{ stateCode: string; citySlug: string; updatedAt: Date | null }>
+> {
+  const now = Date.now();
+  if (directoryCitiesCache && directoryCitiesCache.expiresAt > now) {
+    return directoryCitiesCache.rows;
+  }
+  // City slugs are derived from directory businesses; keep a generous cap to avoid memory blow-ups.
+  const rows = await storage.listDirectoryCitiesForSitemap({ limit: 100_000, offset: 0 });
+  const normalized = Array.isArray(rows) ? rows : [];
+  directoryCitiesCache = {
+    expiresAt: now + 30 * 60 * 1000,
+    rows: normalized,
+  };
+  return normalized;
+}
+
+router.get("/sitemap-directory-counties.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const countiesRows = await getDirectoryCountiesForSitemapCached();
+
+    const urls = countiesRows.map((row) => {
+      const stateCode = String(row.stateCode || "").toUpperCase();
+      const countySlug = slugifyCountyName(
+        String(row.name || "")
+          .replace(/\s+County$/i, "")
+          .trim()
+      );
+      return {
+        loc: `${baseUrl}/county/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
+          countySlug
+        )}`,
+        lastmod: toYmd(row.updatedAt, today),
+      };
+    });
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating directory counties sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    const urls = [
+      { loc: `${baseUrl}/trade`, lastmod: today },
+      ...PRIMARY_TRADE_SLUGS.map((tradeSlug) => ({
+        loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
+        lastmod: today,
+      })),
+      ...PRIMARY_TRADE_SLUGS.flatMap((tradeSlug) =>
+        US_STATES_COUNTIES.map((state) => ({
+          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+            String(state.code || "").toLowerCase()
+          )}`,
+          lastmod: today,
+        }))
+      ),
+    ];
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating trade navigation sitemap:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-trades.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    // Only include trade+county pages that have at least one recent, public business (snapshot job writes these).
+    const countResult = (await db.execute(sql`
+      select count(*)::int as count from ts_seo_trade_county_pages;
+    `)) as any;
+    const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
+    const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: pages })
+  .map((_, idx) => {
+    return `  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-trades-${idx}.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>`;
+  })
+  .join("\n")}
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating directory trades sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const page = Number(req.params.page || 0);
+    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+
+    const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
+    const result = (await db.execute(sql`
+      select trade_slug, state_code, county_slug, lastmod
+      from ts_seo_trade_county_pages
+      order by trade_slug asc, state_code asc, county_slug asc
+      limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
+    `)) as any;
+
+    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
+      .map((row: any) => {
+        const tradeSlug = String(row.trade_slug || "").trim();
+        const stateCode = String(row.state_code || "")
+          .trim()
+          .toLowerCase();
+        const countySlug = String(row.county_slug || "")
+          .trim()
+          .toLowerCase();
+        if (!tradeSlug || !stateCode || !countySlug) return null;
+        return {
+          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+            stateCode
+          )}/${encodeURIComponent(countySlug)}`,
+          lastmod: toYmd(row.lastmod, today),
+        };
+      })
+      .filter((entry: any) => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating directory trades sitemap page:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-cities.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    let total = 0;
+    try {
+      total = await storage.countDirectoryCitiesForSitemap();
+    } catch (error) {
+      console.warn("Directory cities sitemap fallback: failed to count cities", error);
+      total = 0;
+    }
+
+    const pages = Math.max(1, Math.ceil(total / DIRECTORY_CITY_SITEMAP_PAGE_SIZE));
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: pages })
+  .map((_, idx) => {
+    return `  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-cities-${idx}.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>`;
+  })
+  .join("\n")}
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating directory cities sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const page = Number(req.params.page || 0);
+    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const offset = safePage * DIRECTORY_CITY_SITEMAP_PAGE_SIZE;
+
+    let cities: any[] = [];
+    try {
+      const maybe = await storage.listDirectoryCitiesForSitemap({
+        limit: DIRECTORY_CITY_SITEMAP_PAGE_SIZE,
+        offset,
+      });
+      cities = Array.isArray(maybe) ? maybe : [];
+    } catch (error) {
+      console.warn("Directory cities sitemap fallback: failed to load cities", error);
+      cities = [];
+    }
+
+    const urls = cities
+      .filter((row) => row && typeof row === "object")
+      .map((row) => {
+        const stateCode = String((row as any).stateCode || "").toUpperCase();
+        const citySlug = String((row as any).citySlug || "")
+          .trim()
+          .toLowerCase();
+        if (!stateCode || !citySlug) return null;
+        return {
+          loc: `${baseUrl}/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
+            citySlug
+          )}`,
+          lastmod: toYmd((row as any).updatedAt, today),
+        };
+      })
+      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating directory cities sitemap page:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-trade-cities.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    // Only include trade+city pages that have at least one recent, public business (snapshot job writes these).
+    const countResult = (await db.execute(sql`
+      select count(*)::int as count from ts_seo_trade_city_pages;
+    `)) as any;
+    const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
+    const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: pages })
+  .map((_, idx) => {
+    return `  <sitemap>
+    <loc>${baseUrl}/sitemap-directory-trade-cities-${idx}.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>`;
+  })
+  .join("\n")}
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating trade-cities sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-directory-trade-cities-:page(\\d+).xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const page = Number(req.params.page || 0);
+    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+
+    const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
+    const result = (await db.execute(sql`
+      select trade_slug, state_code, city_slug, lastmod
+      from ts_seo_trade_city_pages
+      order by trade_slug asc, state_code asc, city_slug asc
+      limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
+    `)) as any;
+
+    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
+      .map((row: any) => {
+        const tradeSlug = String(row.trade_slug || "").trim();
+        const stateCode = String(row.state_code || "")
+          .trim()
+          .toLowerCase();
+        const citySlug = String(row.city_slug || "")
+          .trim()
+          .toLowerCase();
+        if (!tradeSlug || !stateCode || !citySlug) return null;
+        return {
+          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+            stateCode
+          )}/city/${encodeURIComponent(citySlug)}`,
+          lastmod: toYmd(row.lastmod, today),
+        };
+      })
+      .filter((entry: any) => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating trade-cities sitemap page:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-best-pages.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-best-trade-counties.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-best-trade-cities.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating best pages sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-best-trade-counties.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const countResult = (await db.execute(sql`
+      select count(*)::int as count from ts_seo_trade_county_pages;
+    `)) as any;
+    const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
+    const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: pages })
+  .map((_, idx) => {
+    return `  <sitemap>
+    <loc>${baseUrl}/sitemap-best-trade-counties-${idx}.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>`;
+  })
+  .join("\n")}
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating best trade counties sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-best-trade-counties-:page(\\d+).xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const page = Number(req.params.page || 0);
+    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
+
+    const result = (await db.execute(sql`
+      select trade_slug, state_code, county_slug, lastmod
+      from ts_seo_trade_county_pages
+      order by trade_slug asc, state_code asc, county_slug asc
+      limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
+    `)) as any;
+
+    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
+      .map((row: any) => {
+        const tradeSlug = String(row.trade_slug || "").trim();
+        const stateCode = String(row.state_code || "")
+          .trim()
+          .toLowerCase();
+        const countySlug = String(row.county_slug || "")
+          .trim()
+          .toLowerCase();
+        if (!tradeSlug || !stateCode || !countySlug) return null;
+        return {
+          loc: `${baseUrl}/best/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+            stateCode
+          )}/${encodeURIComponent(countySlug)}`,
+          lastmod: toYmd(row.lastmod, today),
+        };
+      })
+      .filter((entry: any) => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating best trade counties sitemap page:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-best-trade-cities.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const countResult = (await db.execute(sql`
+      select count(*)::int as count from ts_seo_trade_city_pages;
+    `)) as any;
+    const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
+    const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${Array.from({ length: pages })
+  .map((_, idx) => {
+    return `  <sitemap>
+    <loc>${baseUrl}/sitemap-best-trade-cities-${idx}.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>`;
+  })
+  .join("\n")}
+</sitemapindex>`;
+
+    res.type("application/xml");
+    res.send(xml);
+  } catch (error: any) {
+    console.error("Error generating best trade cities sitemap index:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-best-trade-cities-:page(\\d+).xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    const page = Number(req.params.page || 0);
+    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
+
+    const result = (await db.execute(sql`
+      select trade_slug, state_code, city_slug, lastmod
+      from ts_seo_trade_city_pages
+      order by trade_slug asc, state_code asc, city_slug asc
+      limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
+    `)) as any;
+
+    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
+      .map((row: any) => {
+        const tradeSlug = String(row.trade_slug || "").trim();
+        const stateCode = String(row.state_code || "")
+          .trim()
+          .toLowerCase();
+        const citySlug = String(row.city_slug || "")
+          .trim()
+          .toLowerCase();
+        if (!tradeSlug || !stateCode || !citySlug) return null;
+        return {
+          loc: `${baseUrl}/best/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+            stateCode
+          )}/city/${encodeURIComponent(citySlug)}`,
+          lastmod: toYmd(row.lastmod, today),
+        };
+      })
+      .filter((entry: any) => Boolean(entry));
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating best trade cities sitemap page:", error);
+    res.status(500).send("Failed to generate sitemap");
+  }
+});
+
+router.get("/sitemap-recent-activity.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+
+    const countyRows = (await db.execute(sql`
+      select c.name as county_name, c.state_code as state_code, max(pa.occurred_at) as lastmod
+      from ts_public_activity pa
+      join counties c on c.id = pa.county_id
+      where pa.active_status = true and pa.expires_at > now()
+      group by c.name, c.state_code;
+    `)) as any;
+
+    const cityRows = (await db.execute(sql`
+      select pa.state_code as state_code, pa.city_slug as city_slug, max(pa.occurred_at) as lastmod
+      from ts_public_activity pa
+      where pa.active_status = true and pa.expires_at > now() and coalesce(pa.city_slug, '') <> ''
+      group by pa.state_code, pa.city_slug;
+    `)) as any;
+
+    const tradeCountyRows = (await db.execute(sql`
+      select pa.trade_slug as trade_slug, c.name as county_name, c.state_code as state_code, max(pa.occurred_at) as lastmod
+      from ts_public_activity pa
+      join counties c on c.id = pa.county_id
+      where pa.active_status = true and pa.expires_at > now() and coalesce(pa.trade_slug, '') <> ''
+      group by pa.trade_slug, c.name, c.state_code;
+    `)) as any;
+
+    const tradeCityRows = (await db.execute(sql`
+      select pa.trade_slug as trade_slug, pa.state_code as state_code, pa.city_slug as city_slug, max(pa.occurred_at) as lastmod
+      from ts_public_activity pa
+      where pa.active_status = true and pa.expires_at > now()
+        and coalesce(pa.trade_slug, '') <> ''
+        and coalesce(pa.city_slug, '') <> ''
+      group by pa.trade_slug, pa.state_code, pa.city_slug;
+    `)) as any;
+
+    const urls: Array<{ loc: string; lastmod: string }> = [];
+
+    for (const row of countyRows?.rows || []) {
+      const stateCode = String(row.state_code || "")
+        .trim()
+        .toLowerCase();
+      const countyName = String(row.county_name || "").trim();
+      if (!stateCode || !countyName) continue;
+      const countySlug = slugifyCountyName(
+        countyName.replace(/\s+County$/i, "").trim() || countyName
+      );
+      urls.push({
+        loc: `${baseUrl}/county/${encodeURIComponent(stateCode)}/${encodeURIComponent(countySlug)}/recent`,
+        lastmod: toYmd(row.lastmod, today),
+      });
+    }
+
+    for (const row of cityRows?.rows || []) {
+      const stateCode = String(row.state_code || "")
+        .trim()
+        .toLowerCase();
+      const citySlug = String(row.city_slug || "")
+        .trim()
+        .toLowerCase();
+      if (!stateCode || !citySlug) continue;
+      urls.push({
+        loc: `${baseUrl}/city/${encodeURIComponent(stateCode)}/${encodeURIComponent(citySlug)}/recent`,
+        lastmod: toYmd(row.lastmod, today),
+      });
+    }
+
+    for (const row of tradeCountyRows?.rows || []) {
+      const tradeSlug = String(row.trade_slug || "").trim();
+      const stateCode = String(row.state_code || "")
+        .trim()
+        .toLowerCase();
+      const countyName = String(row.county_name || "").trim();
+      if (!tradeSlug || !stateCode || !countyName) continue;
+      const countySlug = slugifyCountyName(
+        countyName.replace(/\s+County$/i, "").trim() || countyName
+      );
+      urls.push({
+        loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+          stateCode
+        )}/${encodeURIComponent(countySlug)}/recent`,
+        lastmod: toYmd(row.lastmod, today),
+      });
+    }
+
+    for (const row of tradeCityRows?.rows || []) {
+      const tradeSlug = String(row.trade_slug || "").trim();
+      const stateCode = String(row.state_code || "")
+        .trim()
+        .toLowerCase();
+      const citySlug = String(row.city_slug || "")
+        .trim()
+        .toLowerCase();
+      if (!tradeSlug || !stateCode || !citySlug) continue;
+      urls.push({
+        loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+          stateCode
+        )}/city/${encodeURIComponent(citySlug)}/recent`,
+        lastmod: toYmd(row.lastmod, today),
+      });
+    }
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating recent activity sitemap:", error);
     res.status(500).send("Failed to generate sitemap");
   }
 });

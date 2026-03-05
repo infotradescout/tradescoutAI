@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 export default function Login() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -26,8 +27,7 @@ export default function Login() {
         return;
       }
       const role = String((user as any)?.role || "");
-      const isSuperAdmin =
-        role === "super_admin" || role === "head_admin" || (user as any)?.isSuperAdmin === true;
+      const isSuperAdmin = isSuperAdminLike(role) || (user as any)?.isSuperAdmin === true;
       window.location.href = isSuperAdmin ? "/admin" : "/scout";
     }
   }, [isAuthenticated, user, safeNext]);
@@ -38,7 +38,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[calc(var(--app-height)-var(--top-nav-h)-var(--bottom-nav-h))] flex items-center justify-center px-4 py-8 font-body">
+    <div className="flex justify-center font-body">
       <SEOHelmet
         title="TradeScout Login"
         description="Sign in to continue using TradeScout."
@@ -86,9 +86,7 @@ export default function Login() {
                 Facebook
               </Button>
             </div>
-            {isLoading && (
-              <div className="mt-2 text-xs text-white/40">Checking session...</div>
-            )}
+            {isLoading && <div className="mt-2 text-xs text-white/40">Checking session...</div>}
           </div>
 
           {/* Email/Password */}

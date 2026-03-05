@@ -234,7 +234,7 @@ export default function AdminCreateAccount() {
                 </SelectTrigger>
                 <SelectContent className="bg-tsBg border-[color:var(--border-subtle)]">
                   <SelectItem value="moderator" className="text-white">
-                    Moderator - Content moderation and user management
+                    Staff - Employee moderation and support access
                   </SelectItem>
                   <SelectItem value="ops_admin" className="text-white">
                     Operations Admin - Platform operations and configuration

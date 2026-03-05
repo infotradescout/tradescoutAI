@@ -205,9 +205,14 @@ async function validateHOAAdmin(userId: number, hoaId: number): Promise<boolean>
       return false;
     }
 
-    // Platform failsafe: super/head admin can always act for debugging
-    const platformRole = (user as any).role;
-    if (platformRole === "super_admin" || platformRole === "head_admin") {
+    // Platform failsafe: super admin can always act for debugging
+    const rawRole = typeof (user as any).role === "string" ? String((user as any).role) : "";
+    const platformRole = rawRole.trim().toLowerCase();
+    if (
+      platformRole === "super_admin" ||
+      platformRole === "head_admin" ||
+      platformRole === "owner"
+    ) {
       return true;
     }
 

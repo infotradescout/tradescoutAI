@@ -7,6 +7,7 @@ import { getUserColorScheme } from "@shared/colorPresets";
 import { ThemeScope } from "@/components/theme/ThemeScope";
 import { UserBadges } from "@/components/user-badges";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { USER_TYPES } from "@shared/userTypes";
 import {
   MapPin,
@@ -110,6 +113,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 
 export default function PublicProfileView() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, params] = useRoute("/profile/:userId");
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +122,9 @@ export default function PublicProfileView() {
   const [sellerRatings, setSellerRatings] = useState<SellerRatingsSummary | null>(null);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostSummary[]>([]);
   const profileThemeIdRef = useRef<string | null>(null);
+  const [kickDialogOpen, setKickDialogOpen] = useState(false);
+  const [kickReason, setKickReason] = useState("");
+  const [kicking, setKicking] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -160,6 +167,72 @@ export default function PublicProfileView() {
   }, [params?.userId]);
 
   const profileThemeId = profileThemeIdRef.current;
+
+  const roleTokens = (() => {
+    const tokens: string[] = [];
+    const push = (v: any) => {
+      const r = String(v || "")
+        .trim()
+        .toLowerCase();
+      if (!r) return;
+      tokens.push(r === "owner" || r === "head_admin" ? "super_admin" : r);
+    };
+    push((user as any)?.role);
+    push((user as any)?.activeRole);
+    const roles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
+    for (const r of roles) push(r);
+    return Array.from(new Set(tokens));
+  })();
+  const viewerIsCommunityModerator =
+    roleTokens.includes("community_moderator") || roleTokens.includes("community_leader");
+  const viewerIsSelf = Boolean(user?.id && profile?.id && String(user.id) === String(profile.id));
+
+  const submitKickVote = async () => {
+    if (!profile?.id) return;
+    const reason = kickReason.trim();
+    if (reason.length < 10) {
+      toast({
+        title: "Reason required",
+        description: "Add a short reason (at least 10 characters).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setKicking(true);
+    try {
+      const resp = await fetch("/api/moderation/kick-vote", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: profile.id, reason }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.error || data?.message || "Kick vote failed");
+      }
+
+      const voteCount = Number(data?.voteCount || 0);
+      const threshold = Number(data?.threshold || 3);
+      toast({
+        title: "Kick vote recorded",
+        description:
+          voteCount >= threshold
+            ? `Threshold reached (${voteCount}/${threshold}). Sent to staff review.`
+            : `Recorded (${voteCount}/${threshold}).`,
+      });
+      setKickReason("");
+      setKickDialogOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "Kick vote failed",
+        description: err?.message || "Failed to submit kick vote",
+        variant: "destructive",
+      });
+    } finally {
+      setKicking(false);
+    }
+  };
 
   // Load additional public data tied to this user: handmade offerings, trust summary, community posts
   useEffect(() => {
@@ -598,6 +671,56 @@ export default function PublicProfileView() {
                     </div>
                   </div>
                 )}
+
+                {viewerIsCommunityModerator && !viewerIsSelf ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="border-red-500/40 text-red-200 hover:bg-red-500/10"
+                      onClick={() => setKickDialogOpen(true)}
+                      title="Community moderator action: after 3 distinct votes, this escalates to staff review. No automatic removal."
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Kick vote (staff review)
+                    </Button>
+                    <Dialog open={kickDialogOpen} onOpenChange={setKickDialogOpen}>
+                      <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>Community kick vote</DialogTitle>
+                          <DialogDescription>
+                            This does not remove the user automatically. After 3 distinct community
+                            moderator votes, it is routed to staff review.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-2">
+                          <Label htmlFor="kick-reason">Reason</Label>
+                          <Textarea
+                            id="kick-reason"
+                            value={kickReason}
+                            onChange={(e) => setKickReason(e.target.value)}
+                            placeholder="Explain what happened (min 10 characters)."
+                            className="min-h-[120px]"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setKickDialogOpen(false);
+                              setKickReason("");
+                            }}
+                            disabled={kicking}
+                          >
+                            Cancel
+                          </Button>
+                          <Button onClick={submitKickVote} disabled={kicking}>
+                            {kicking ? "Submitting..." : "Submit vote"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                ) : null}
 
                 {/* Connection counts */}
                 {profile.connections && (

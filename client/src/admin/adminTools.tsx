@@ -14,6 +14,7 @@ import {
   Wrench,
   BarChart3,
   FileUp,
+  Building2,
   Briefcase,
   Home,
   Link2,
@@ -22,7 +23,7 @@ import {
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 
-export type AdminRole = "moderator" | "ops_admin" | "super_admin" | "head_admin" | "owner";
+export type AdminRole = "moderator" | "ops_admin" | "super_admin" | "owner";
 
 export type AdminToolVisibility = {
   roles?: AdminRole[];
@@ -83,23 +84,16 @@ function normalizePathname(raw: string): string {
 }
 
 function normalizeAdminRole(role: string | null | undefined): Exclude<AdminRole, "owner"> {
-  if (role === "owner") return "head_admin";
-  if (
-    role === "head_admin" ||
-    role === "super_admin" ||
-    role === "ops_admin" ||
-    role === "moderator"
-  ) {
-    return role;
-  }
+  const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+  if (!raw) return "ops_admin";
+  if (raw === "owner" || raw === "head_admin") return "super_admin";
+  if (raw === "super_admin" || raw === "ops_admin" || raw === "moderator") return raw;
   return "ops_admin";
 }
 
 function isSuperAdminLike(role: string | null | undefined, isSuperAdminFlag?: boolean): boolean {
   const normalizedRole = normalizeAdminRole(role);
-  return Boolean(
-    isSuperAdminFlag === true || normalizedRole === "super_admin" || normalizedRole === "head_admin"
-  );
+  return Boolean(isSuperAdminFlag === true || normalizedRole === "super_admin");
 }
 
 export function canSeeAdminTool(tool: AdminTool, role: AdminRole, isSuperAdminFlag?: boolean) {
@@ -192,6 +186,7 @@ function RedirectToAdminPanelTab({ tab }: { tab: string }) {
 const MissionControlV0 = React.lazy(() => import("@/pages/MissionControlV0"));
 const AdminUsers = React.lazy(() => import("@/pages/admin-users"));
 const AdminBusinessImport = React.lazy(() => import("@/pages/admin-business-import"));
+const AdminBusinessDirectoryOps = React.lazy(() => import("@/pages/admin-business-directory-ops"));
 const AdminCreateAccount = React.lazy(() => import("@/pages/admin-create-account"));
 const AdminProvisionUser = React.lazy(() => import("@/pages/admin-provision-user"));
 const AdminErrorReports = React.lazy(() => import("@/pages/admin-error-reports"));
@@ -253,10 +248,8 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Mission Control",
         path: "/admin",
         icon: Brain,
-        // /admin lands super admins on Mission Control; keep a visible nav entry for it.
         visibleIf: {
-          superOnly: true,
-          roles: ["moderator", "ops_admin", "super_admin", "head_admin"],
+          roles: ["ops_admin", "super_admin"],
         },
         render: () => <MissionControlV0 />,
       }),
@@ -265,7 +258,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Users",
         path: "/admin/users",
         icon: Users,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminUsers />,
       }),
       tool({
@@ -273,7 +266,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Provision User",
         path: "/admin/provision-user",
         icon: Users,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminProvisionUser />,
       }),
       tool({
@@ -281,7 +274,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Verification",
         path: "/admin/verification",
         icon: ShieldCheck,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminAddressVerifications />,
       }),
       tool({
@@ -289,7 +282,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Address Verifications (Legacy)",
         path: "/admin/address-verifications",
         icon: ShieldCheck,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/verification" />,
       }),
@@ -298,7 +291,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Moderation",
         path: "/admin/moderation",
         icon: AlertTriangle,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <ContentModeration />,
       }),
       tool({
@@ -306,7 +299,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Impersonation",
         path: "/admin/impersonate",
         icon: Users,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RoleImpersonation />,
       }),
       tool({
@@ -314,15 +307,23 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Business Import",
         path: "/admin/business-import",
         icon: FileUp,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminBusinessImport />,
+      }),
+      tool({
+        id: "business-directory-ops",
+        label: "Business Directory Ops",
+        path: "/admin/business-directory",
+        icon: Building2,
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <AdminBusinessDirectoryOps />,
       }),
       tool({
         id: "create-admin",
         label: "Create Admin",
         path: "/admin/create-admin",
         icon: ShieldCheck,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
         render: () => <AdminCreateAccount />,
       }),
       // Legacy aliases (kept so old buttons/links still work)
@@ -331,7 +332,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Workspace (Legacy)",
         path: "/admin/workspace",
         icon: Wrench,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/control" />,
       }),
@@ -340,7 +341,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Dashboard (Legacy)",
         path: "/admin/dashboard",
         icon: ShieldCheck,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin" />,
       }),
@@ -349,7 +350,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Users (Legacy)",
         path: "/admin-users",
         icon: Users,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/users" />,
       }),
@@ -358,7 +359,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "User Management (Legacy)",
         path: "/admin/user-management",
         icon: Users,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/users" />,
       }),
@@ -373,7 +374,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         path: "/admin/geo/counties",
         icon: MapIcon,
         match: "prefix",
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <UserHeatmap />,
       }),
       tool({
@@ -382,7 +383,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         path: "/admin/geo/coverage",
         match: "prefix",
         icon: MapIcon,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminGeoCoverageConsole />,
       }),
     ],
@@ -395,7 +396,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Listings Approval",
         path: "/admin/listings",
         icon: Briefcase,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminListings />,
       }),
       tool({
@@ -403,7 +404,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "HomeScout Listings",
         path: "/admin/homescout/listings",
         icon: Home,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminHomeScoutListings />,
       }),
       tool({
@@ -411,7 +412,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "HomeScout Sources",
         path: "/admin/homescout/sources",
         icon: Home,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminHomeScoutSources />,
       }),
       tool({
@@ -419,7 +420,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Ads",
         path: "/admin/ads",
         icon: Megaphone,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="advertisements" />,
       }),
       tool({
@@ -427,7 +428,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Prizes",
         path: "/admin/prizes",
         icon: Megaphone,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="prizes" />,
       }),
       tool({
@@ -435,7 +436,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "TradeDeals Ops",
         path: "/admin/tradedeals",
         icon: Briefcase,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="tradedeals" />,
       }),
       tool({
@@ -443,7 +444,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Partner Interest",
         path: "/admin/tradepartner-interest",
         icon: Briefcase,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminTradePartnerInterest />,
       }),
       tool({
@@ -451,7 +452,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Share Links",
         path: "/admin/share-links",
         icon: Link2,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <StaffShareLinksPage />,
       }),
     ],
@@ -465,7 +466,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         path: "/admin/panel",
         icon: Settings,
         match: "prefix",
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminPanelContent />,
       }),
       tool({
@@ -473,7 +474,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Site Settings",
         path: "/admin/site-settings",
         icon: Settings,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="site-settings" />,
       }),
       tool({
@@ -481,7 +482,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Controls Hub",
         path: "/admin/control",
         icon: ShieldCheck,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
         render: () => <AdminControl />,
       }),
       tool({
@@ -489,7 +490,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Contractor Settings",
         path: "/admin/contractors",
         icon: Settings,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="contractor-settings" />,
       }),
       tool({
@@ -497,7 +498,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Notification Ops",
         path: "/admin/notifications",
         icon: Bell,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="notification-ops" />,
       }),
       tool({
@@ -505,7 +506,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Error Reports",
         path: "/admin/errors",
         icon: AlertTriangle,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminErrorReports />,
       }),
       tool({
@@ -513,7 +514,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Error Reports (Legacy)",
         path: "/admin/error-reports",
         icon: AlertTriangle,
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/errors" />,
       }),
@@ -522,7 +523,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Attachments",
         path: "/admin/attachments",
         icon: FileUp,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminAttachments />,
       }),
       tool({
@@ -530,7 +531,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Affiliates",
         path: "/admin/affiliates",
         icon: Users,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminAffiliates />,
       }),
       tool({
@@ -538,7 +539,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Promotions",
         path: "/admin/promotions",
         icon: Megaphone,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminPromotions />,
       }),
       tool({
@@ -546,7 +547,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Platform Analytics",
         path: "/admin/platform-analytics",
         icon: BarChart3,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <PlatformAnalytics />,
       }),
       tool({
@@ -554,7 +555,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Audit Log",
         path: "/admin/audit-log",
         icon: ShieldCheck,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
         render: () => <AdminAuditLog />,
       }),
       tool({
@@ -562,7 +563,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Pro Verification",
         path: "/admin/professional-verification",
         icon: ShieldCheck,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminProfessionalVerification />,
       }),
     ],
@@ -575,7 +576,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Mission Control",
         path: "/admin/mission-control",
         icon: Brain,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         // /admin already lands super admins on Mission Control; keep this route working but hide it from nav.
         navHidden: true,
         render: () => <MissionControlV0 />,
@@ -585,7 +586,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "AI Monitoring",
         path: "/admin/ai-monitoring",
         icon: Brain,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <UIMonitoringDashboard />,
       }),
       tool({
@@ -593,7 +594,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "AI Fixes",
         path: "/admin/ai-fixes",
         icon: Wrench,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AICodeFixingDashboard />,
       }),
       tool({
@@ -601,7 +602,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Pricing Analytics",
         path: "/admin/pricing",
         icon: BarChart3,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminPricingAnalytics />,
       }),
       tool({
@@ -609,7 +610,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Pricing Analytics (Legacy)",
         path: "/admin/pricing-analytics",
         icon: BarChart3,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/pricing" />,
       }),
@@ -618,7 +619,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Observability",
         path: "/admin/observability",
         icon: Brain,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminObservability />,
       }),
       tool({
@@ -626,7 +627,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Tool Discovery",
         path: "/admin/tool-discovery",
         icon: Wrench,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
         render: () => <AdminToolDiscovery />,
       }),
       tool({
@@ -634,7 +635,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "System Prompt",
         path: "/admin/system-prompt",
         icon: Bot,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
         render: () => <PromptAdminPage />,
       }),
       tool({
@@ -642,7 +643,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "LLM Admin",
         path: "/admin/llm",
         icon: Bot,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="llm-admin" />,
       }),
       tool({
@@ -650,7 +651,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Knowledge Upload",
         path: "/admin/knowledge",
         icon: FileUp,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="llm-admin" />,
       }),
     ],
@@ -663,7 +664,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Finance / Ledger",
         path: "/admin/finance",
         icon: DollarSign,
-        visibleIf: { roles: ["super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <FinanceLedgerPanel />,
       }),
       tool({
@@ -671,7 +672,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         label: "Vault Contributions",
         path: "/admin/vault-contributions",
         icon: Wallet,
-        visibleIf: { roles: ["ops_admin", "super_admin", "head_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminVaultContributions />,
       }),
     ],

@@ -9,6 +9,7 @@ import {
   createBreadcrumbStructuredData,
 } from "@/components/SEOHelmet";
 import { US_STATES_COUNTIES, getStateByCode, getCountiesByState } from "@shared/states-counties";
+import { getTradeBySlug } from "@shared/tradeSeo";
 import { ChevronRight, MapPin, Users, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -206,7 +207,28 @@ const CountyPage = memo(function CountyPage() {
   const faqSchema = createFAQStructuredData(faqs);
   const breadcrumbSchema = createBreadcrumbStructuredData(breadcrumbs);
 
-  const seoTitle = `${county.name}, ${state.code} | TradeScout Local`;
+  const seoTitle = `${county.name}, ${state.code} | TradeScout`;
+  const featuredTradeSlugs = [
+    "plumbing",
+    "electrical",
+    "roofing",
+    "hvac",
+    "concrete-contractor",
+    "landscaping",
+    "painting",
+    "flooring",
+    "pest-control",
+    "general-contractor",
+    "tree-service",
+    "handyman",
+  ];
+  const featuredTrades = featuredTradeSlugs
+    .map((slug) => getTradeBySlug(slug))
+    .filter(Boolean)
+    .map((t) => ({ slug: (t as any).slug as string, name: (t as any).name as string }));
+  const countySlugForTradeLinks = nameToSlug(
+    county.name.replace(/\s+County$/i, "").trim() || county.name
+  );
 
   return (
     <>
@@ -245,6 +267,29 @@ const CountyPage = memo(function CountyPage() {
             {state.name}
           </p>
         </div>
+
+        {/* Trade landing links (crawl paths) */}
+        <Card className="bg-white/5 border-white/10 mb-8">
+          <CardContent className="p-6">
+            <h2 className="text-xl font-semibold text-white mb-3">
+              Browse trades in {county.name}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {featuredTrades.map((trade) => (
+                <Link
+                  key={trade.slug}
+                  href={`/trade/${encodeURIComponent(trade.slug)}/${encodeURIComponent(
+                    state.code.toLowerCase()
+                  )}/${encodeURIComponent(countySlugForTradeLinks)}`}
+                >
+                  <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                    {trade.name}
+                  </a>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Coverage Status Banner */}
         {coverageLoading ? (

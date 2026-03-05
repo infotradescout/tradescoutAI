@@ -51,16 +51,20 @@ export function registerSocialFeatures(app: Express) {
   const isSuperAdminLike = (req: any): boolean => {
     const roleFromClaimsRaw = (req?.user as any)?.claims?.role;
     const roleFromClaims =
-      typeof roleFromClaimsRaw === "string" && roleFromClaimsRaw.trim().toLowerCase() === "owner"
-        ? "head_admin"
+      typeof roleFromClaimsRaw === "string"
+        ? (() => {
+            const token = roleFromClaimsRaw.trim().toLowerCase();
+            return token === "owner" || token === "head_admin" ? "super_admin" : token;
+          })()
         : roleFromClaimsRaw;
     const rawRoles = Array.isArray((req?.user as any)?.roles) ? (req.user as any).roles : [];
     const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
       (r): r is string => typeof r === "string"
     );
-    return roles.some((r) =>
-      ["head_admin", "super_admin", "owner"].includes(String(r).toLowerCase())
-    );
+    return roles.some((r) => {
+      const token = String(r).toLowerCase();
+      return token === "super_admin" || token === "owner" || token === "head_admin";
+    });
   };
 
   const limiterStore = (prefix: string) =>

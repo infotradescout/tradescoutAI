@@ -1141,8 +1141,11 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const userId = toUserId(req);
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        const role = String(req.user?.role || "");
-        const isAdminRole = role === "ops_admin" || role === "super_admin" || role === "head_admin";
+        const role = String(req.user?.role || "")
+          .trim()
+          .toLowerCase();
+        const normalizedRole = role === "owner" || role === "head_admin" ? "super_admin" : role;
+        const isAdminRole = normalizedRole === "ops_admin" || normalizedRole === "super_admin";
 
         if (!isAdminRole) {
           const contractor = await getVerifiedContractorForUser(userId);
@@ -1215,8 +1218,11 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const projectId = String(req.params.id || "");
         if (!projectId) return res.status(400).json({ message: "Project ID required" });
 
-        const role = String(req.user?.role || "");
-        const isAdminRole = role === "ops_admin" || role === "super_admin" || role === "head_admin";
+        const role = String(req.user?.role || "")
+          .trim()
+          .toLowerCase();
+        const normalizedRole = role === "owner" || role === "head_admin" ? "super_admin" : role;
+        const isAdminRole = normalizedRole === "ops_admin" || normalizedRole === "super_admin";
 
         let contractorId: string | null = null;
         if (!isAdminRole) {

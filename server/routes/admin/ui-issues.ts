@@ -37,12 +37,13 @@ const uiIssuesStore: UIIssuesStore = {
   },
 };
 
-const UI_MONITORING_ALLOWED_ROLES = new Set(["head_admin", "super_admin", "ops_admin"]);
+const UI_MONITORING_ALLOWED_ROLES = new Set(["super_admin", "ops_admin"]);
 
 function normalizeRole(role: unknown): string {
   const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
   if (!raw) return "";
-  return raw === "owner" ? "head_admin" : raw;
+  if (raw === "owner" || raw === "head_admin") return "super_admin";
+  return raw;
 }
 
 function canAccessUIMonitoring(user: any): boolean {

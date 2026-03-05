@@ -1,8 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
 import http from "node:http";
 import dotenv from "dotenv";
+import { runCommand, spawnCommand } from "./lib/subprocess.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,16 +20,7 @@ if (!testDatabaseUrl) {
 }
 
 function run(command, args, env = process.env) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: repoRoot,
-      stdio: "inherit",
-      shell: true,
-      env,
-    });
-    child.on("error", reject);
-    child.on("exit", (code) => resolve(code ?? 1));
-  });
+  return runCommand(command, args, { cwd: repoRoot, stdio: "inherit", env });
 }
 
 function stopProcessTree(child) {
@@ -95,12 +86,11 @@ async function main() {
     process.exit(bootstrapCode);
   }
 
-  const server = spawn("npx", ["tsx", "-r", "dotenv/config", "server/index.ts"], {
-    cwd: repoRoot,
-    shell: true,
-    stdio: "inherit",
-    env,
-  });
+  const server = await spawnCommand(
+    "npx",
+    ["tsx", "-r", "dotenv/config", "server/index.ts"],
+    { cwd: repoRoot, stdio: "inherit", env }
+  );
 
   let testExitCode = 1;
   try {

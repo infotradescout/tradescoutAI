@@ -4,14 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Building2, MapPin, Globe, Edit, MessageSquare, Loader2, Shield } from "lucide-react";
 import type { BusinessProfile } from "@/../../shared/businessProfile";
 import type { MarketplaceListing } from "@shared/schema";
 import { recordActivity } from "@/agent/activity";
 import { useAuth } from "@/hooks/useAuth";
-import { SEOHelmet } from "@/components/SEOHelmet";
+import { SEOHelmet, createLocalBusinessStructuredData } from "@/components/SEOHelmet";
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "@/components/community/DecisionCard";
+import { apiRequest } from "@/lib/queryClient";
 
 /**
  * PublicBusinessProfileView
@@ -29,12 +46,15 @@ import { DecisionCard } from "@/components/community/DecisionCard";
 export default function BusinessProfileView() {
   const { slug } = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [profileSource, setProfileSource] = useState<"published" | "directory" | null>(null);
   const [directoryBusinessId, setDirectoryBusinessId] = useState<string | null>(null);
+  const [directoryClaimStatus, setDirectoryClaimStatus] = useState<"unclaimed" | "claimed" | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +67,18 @@ export default function BusinessProfileView() {
 
   const [showCallDecisionCard, setShowCallDecisionCard] = useState(false);
   const [callBusy, setCallBusy] = useState(false);
+
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestKind, setSuggestKind] = useState<"edit" | "removal">("edit");
+  const [suggestMessage, setSuggestMessage] = useState("");
+  const [suggestBusy, setSuggestBusy] = useState(false);
+
+  const slugifyCity = (value: string) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
 
   function formatListingPrice(price: MarketplaceListing["price"]): string {
     const numeric = typeof price === "number" ? price : Number((price as any) ?? 0);
@@ -111,6 +143,11 @@ export default function BusinessProfileView() {
           } as any;
 
           setDirectoryBusinessId(String(directoryData?.id || ""));
+          setDirectoryClaimStatus(
+            String(directoryData?.claimStatus || "").toLowerCase() === "claimed"
+              ? "claimed"
+              : "unclaimed"
+          );
           setProfileSource("directory");
           setProfile(directoryProfile);
           setLoading(false);
@@ -120,6 +157,7 @@ export default function BusinessProfileView() {
         const data = await response.json();
         setProfileSource("published");
         setDirectoryBusinessId(null);
+        setDirectoryClaimStatus(null);
         setProfile(data);
 
         // Show marketplace catalog without introducing contact bypass.
@@ -228,6 +266,10 @@ export default function BusinessProfileView() {
     return "Verification Pending";
   })();
 
+  // Decision-layer visibility: internal scoring and detailed trust signals should not be public/crawler-visible.
+  // Keep discovery signals public (location, trade/category, unclaimed/claimed, basic verification label).
+  const canShowDecisionSignals = Boolean(isAuthenticated);
+
   // SEO metadata
   const pageTitle =
     profile.countyName && profile.stateCode
@@ -240,6 +282,18 @@ export default function BusinessProfileView() {
 
   const canonicalUrl = `${window.location.origin}/business/${profile.slug}`;
   const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
+  const showUnclaimedBadge = profileSource === "directory" && directoryClaimStatus === "unclaimed";
+  const showSuggestCta = profileSource === "directory" && Boolean(directoryBusinessId);
+  const structuredData = createLocalBusinessStructuredData({
+    slug: profile.slug,
+    name: profile.name,
+    description: pageDescription,
+    countyName: profile.countyName || null,
+    stateCode: profile.stateCode || null,
+    website: profile.website || null,
+    category: null,
+    verifiedLabel: verificationLabel || null,
+  });
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -249,6 +303,7 @@ export default function BusinessProfileView() {
         description={pageDescription}
         canonical={canonicalUrl}
         ogType="profile"
+        structuredData={structuredData}
       />
       {/* Header Card */}
       <Card className="mb-6">
@@ -267,7 +322,19 @@ export default function BusinessProfileView() {
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <MapPin className="h-4 w-4" />
                 <span>
-                  {profile.city && `${profile.city}, `}
+                  {profile.city && profile.stateCode ? (
+                    <>
+                      <a
+                        href={`/city/${profile.stateCode.toLowerCase()}/${slugifyCity(profile.city)}`}
+                        className="text-primary hover:underline"
+                      >
+                        {profile.city}
+                      </a>
+                      {", "}
+                    </>
+                  ) : profile.city ? (
+                    `${profile.city}, `
+                  ) : null}
                   {profile.countyName && profile.stateCode ? (
                     <a
                       href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, "-")}`}
@@ -297,16 +364,25 @@ export default function BusinessProfileView() {
               )}
 
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                {showUnclaimedBadge ? <Badge variant="secondary">Unclaimed</Badge> : null}
                 <Badge className={verificationTone}>
                   <Shield className="h-3 w-3 mr-1" />
                   {verificationLabel}
                 </Badge>
-                <Badge variant="outline" className="border-[color:var(--border-subtle)]">
-                  {addressVerified ? "Address Verified" : "Address Verification Required"}
-                </Badge>
-                <Badge variant="outline" className="border-[color:var(--border-subtle)]">
-                  {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Pending"}
-                </Badge>
+                {canShowDecisionSignals ? (
+                  <>
+                    <Badge variant="outline" className="border-[color:var(--border-subtle)]">
+                      {addressVerified ? "Address Verified" : "Address Verification Required"}
+                    </Badge>
+                    <Badge variant="outline" className="border-[color:var(--border-subtle)]">
+                      {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Available"}
+                    </Badge>
+                  </>
+                ) : (
+                  <Badge variant="outline" className="border-[color:var(--border-subtle)]">
+                    Member details available
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -320,20 +396,37 @@ export default function BusinessProfileView() {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
-            ) : showClaimCta ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setLocation(
-                    `/claim-my-business?businessId=${encodeURIComponent(String(directoryBusinessId))}`
-                  )
-                }
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                Claim This Business
-              </Button>
-            ) : null}
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-2">
+                {!isAuthenticated ? (
+                  <Button variant="secondary" size="sm" onClick={() => setLocation("/auth")}>
+                    View member details
+                  </Button>
+                ) : null}
+                {showClaimCta ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setLocation(
+                        `/claim-my-business?businessId=${encodeURIComponent(
+                          String(directoryBusinessId)
+                        )}`
+                      )
+                    }
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Claim This Business
+                  </Button>
+                ) : null}
+                {showSuggestCta ? (
+                  <Button variant="outline" size="sm" onClick={() => setSuggestOpen(true)}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Suggest Edit
+                  </Button>
+                ) : null}
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -626,6 +719,78 @@ export default function BusinessProfileView() {
           />
         </div>
       )}
+
+      <Dialog open={suggestOpen} onOpenChange={(o) => (!suggestBusy ? setSuggestOpen(o) : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report an issue</DialogTitle>
+            <DialogDescription>
+              Seeded listings are unclaimed. Use this to suggest an edit or request removal. This
+              creates an admin queue item.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <div>
+              <div className="text-xs text-white/70 mb-1">Type</div>
+              <Select value={suggestKind} onValueChange={(v) => setSuggestKind(v as any)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="edit">Suggest an edit</SelectItem>
+                  <SelectItem value="removal">Request removal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="text-xs text-white/70 mb-1">Message</div>
+              <Textarea
+                value={suggestMessage}
+                onChange={(e) => setSuggestMessage(e.target.value)}
+                placeholder="What’s incorrect? Include the corrected name/category/service area, or explain why removal is needed."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuggestOpen(false)} disabled={suggestBusy}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!directoryBusinessId) return;
+                setSuggestBusy(true);
+                try {
+                  await apiRequest(
+                    "POST",
+                    `/api/businesses/${encodeURIComponent(directoryBusinessId)}/suggest-edit`,
+                    {
+                      kind: suggestKind,
+                      message: suggestMessage,
+                    }
+                  );
+                  toast({ title: "Submitted", description: "Thanks — we queued this for review." });
+                  setSuggestMessage("");
+                  setSuggestKind("edit");
+                  setSuggestOpen(false);
+                } catch (err: any) {
+                  toast({
+                    title: "Failed",
+                    description: err?.message || "Could not submit suggestion.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSuggestBusy(false);
+                }
+              }}
+              disabled={suggestBusy || !directoryBusinessId}
+            >
+              {suggestBusy ? "Submitting…" : "Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer: Explore more in county */}
       {profile.countyName && profile.stateCode && (

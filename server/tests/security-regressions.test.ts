@@ -25,7 +25,7 @@ describe("security regressions", () => {
   it("does not allow unauth master-admin binding via connect-master-admin", () => {
     const routes = readRepoFile("server/routes.ts");
     expect(routes).toContain('"/api/auth/connect-master-admin"');
-    expect(routes).toContain('requireRole(["head_admin"])');
+    expect(routes).toContain('requireRole(["super_admin"])');
     expect(routes).not.toContain("mrplatypus4777@gmail.com");
   });
 

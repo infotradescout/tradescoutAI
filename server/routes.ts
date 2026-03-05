@@ -7,9 +7,14 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
+import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { businessesRouter } from "./routes/businesses";
+import { businessDirectoryPublicRouter } from "./routes/business-directory-public";
+import { cityPublicRouter } from "./routes/city-public";
 import { profilesRouter } from "./routes/profiles";
+import { datasetsPublicRouter } from "./routes/datasets-public";
 import { propertyProgramsRouter } from "./routes/property-programs";
 import { homesRouter } from "./routes/homes";
 import { vehiclesRouter } from "./routes/vehicles";
@@ -999,7 +1004,7 @@ export async function registerRoutes(app: any) {
     const normalizeRole = (role: unknown): string => {
       const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
       if (!raw) return "";
-      return raw === "owner" ? "head_admin" : raw;
+      return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
     };
 
     const rolesRaw =
@@ -1018,18 +1023,17 @@ export async function registerRoutes(app: any) {
 
     const computedIsAdmin =
       user.isAdmin === true ||
-      ["super_admin", "head_admin", "moderator", "ops_admin"].includes(normalizedPrimaryRole) ||
+      ["super_admin", "moderator", "ops_admin"].includes(normalizedPrimaryRole) ||
       Boolean(
         basePermissions?.canAccessAdminPanel ||
         basePermissions?.canAccessSuperAdmin ||
-        (primaryRole &&
-          ["moderator", "ops_admin", "super_admin", "head_admin"].includes(primaryRole))
+        (primaryRole && ["moderator", "ops_admin", "super_admin"].includes(primaryRole))
       );
 
     const computedIsSuperAdmin =
       user.isSuperAdmin === true ||
-      ["super_admin", "head_admin"].includes(normalizedPrimaryRole) ||
-      Boolean(primaryRole && ["super_admin", "head_admin"].includes(primaryRole));
+      normalizedPrimaryRole === "super_admin" ||
+      Boolean(primaryRole && primaryRole === "super_admin");
 
     const hasCanonicalLocation =
       typeof (user as any).stateCode === "string" &&
@@ -1071,7 +1075,6 @@ export async function registerRoutes(app: any) {
     "moderator",
     "ops_admin",
     "super_admin",
-    "head_admin",
     // Internal/system roles (not selectable)
     "content_seo",
     "analytics_specialist",
@@ -2573,15 +2576,15 @@ export async function registerRoutes(app: any) {
   // Check if platform setup is needed
   app.get("/api/auth/setup-status", async (req: AuthedRequest, res: Response) => {
     try {
-      const existingHeadAdmin = await storage.getUserByRole("head_admin");
-      res.json({ needsSetup: !existingHeadAdmin });
+      const existingSuperAdmin = await storage.getUserByRole("super_admin");
+      res.json({ needsSetup: !existingSuperAdmin });
     } catch (error: any) {
       console.error("Setup status check error:", error);
       res.status(500).json({ message: "Failed to check setup status" });
     }
   });
 
-  // Master admin setup route (only works if no head_admin exists)
+  // Super admin setup route (only works if no super_admin exists)
   app.post("/api/auth/setup-master", async (req: AuthedRequest, res: Response) => {
     try {
       const { email, password, firstName, lastName } = (req.body ?? {}) as any;
@@ -2603,9 +2606,9 @@ export async function registerRoutes(app: any) {
         );
       };
 
-      // Check if any head_admin already exists
-      const existingHeadAdmin = await storage.getUserByRole("head_admin");
-      if (existingHeadAdmin) {
+      // Check if any super_admin already exists
+      const existingSuperAdmin = await storage.getUserByRole("super_admin");
+      if (existingSuperAdmin) {
         return res.status(403).json({ message: "Master admin already exists" });
       }
 
@@ -2661,7 +2664,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/auth/connect-master-admin",
     isAuthenticated,
-    requireRole(["head_admin"]),
+    requireRole(["super_admin"]),
     async (req: AuthedRequest, res: Response) => {
       try {
         const currentUser = req.user as any;
@@ -2679,7 +2682,7 @@ export async function registerRoutes(app: any) {
         }
 
         const masterAdmin = await storage.getUser(userId);
-        if (!masterAdmin || masterAdmin.role !== "head_admin") {
+        if (!masterAdmin || masterAdmin.role !== "super_admin") {
           return res.status(403).json({ message: "Admin access required" });
         }
 
@@ -2731,7 +2734,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/devices",
     isAuthenticated,
-    requireRole(["head_admin"]),
+    requireRole(["super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const user = req.user as any;
@@ -2750,7 +2753,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/pending-devices",
     isAuthenticated,
-    requireRole(["head_admin"]),
+    requireRole(["super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const { DeviceAuthService } = await import("./deviceAuth");
@@ -2766,7 +2769,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/approve-device",
     isAuthenticated,
-    requireRole(["head_admin"]),
+    requireRole(["super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const user = req.user as any;
@@ -2792,7 +2795,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/revoke-device",
     isAuthenticated,
-    requireRole(["head_admin"]),
+    requireRole(["super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const user = req.user as any;
@@ -2819,15 +2822,22 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/create-account",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const { email, password, firstName, lastName, role, address } = (req.body ?? {}) as any;
 
         // Validate role assignment permissions
         const currentUser = req.user as any;
-        if (role === "head_admin" && currentUser.role !== "head_admin") {
-          return res.status(403).json({ message: "Only head admins can create other head admins" });
+        const normalizedActorRole = normalizeAdminRoleToken(currentUser?.role);
+        const requestedRole = normalizeAdminRoleToken(role);
+        if (!requestedRole) {
+          return res.status(400).json({ message: "role is required" });
+        }
+        if (requestedRole === "super_admin" && normalizedActorRole !== "super_admin") {
+          return res
+            .status(403)
+            .json({ message: "Only super admins can create other super admins" });
         }
 
         // Check if user already exists
@@ -2848,7 +2858,7 @@ export async function registerRoutes(app: any) {
           firstName,
           lastName,
           address,
-          role: role as any,
+          role: requestedRole as any,
           emailVerified: true, // Admins are pre-verified
           addressVerified: true, // Admins are pre-verified
         });
@@ -2859,7 +2869,7 @@ export async function registerRoutes(app: any) {
 
         res.json({
           user: userResponse,
-          message: `${role} account created successfully`,
+          message: `${requestedRole} account created successfully`,
         });
       } catch (error: any) {
         console.error("Admin account creation error:", error);
@@ -3557,7 +3567,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/impersonate",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin", "super_admin"]),
+    requireRole(["ops_admin", "super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const { role, reason } = (req.body ?? {}) as any;
@@ -3619,7 +3629,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/impersonate/start/:userId",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin", "super_admin"]),
+    requireRole(["ops_admin", "super_admin"]),
     async (req: Request, res: Response) => {
       try {
         const { userId } = req.params as any;
@@ -4000,7 +4010,7 @@ export async function registerRoutes(app: any) {
 
       // Prevent privilege escalation: no admin/back-office roles here.
       const blocked = new Set([
-        "head_admin",
+        "super_admin",
         "ops_admin",
         "moderator",
         "startup_founder",
@@ -6485,7 +6495,12 @@ export async function registerRoutes(app: any) {
 
       if (
         !user ||
-        !["head_admin", "super_admin", "moderator", "ops_admin"].includes(user.role || "")
+        !(() => {
+          const raw = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
+          const token = raw.trim().toLowerCase();
+          const normalized = token === "owner" || token === "head_admin" ? "super_admin" : token;
+          return ["super_admin", "moderator", "ops_admin"].includes(normalized);
+        })()
       ) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -6512,7 +6527,12 @@ export async function registerRoutes(app: any) {
       const user = await storage.getUser(userId);
       if (
         !user ||
-        !["head_admin", "super_admin", "moderator", "ops_admin"].includes(user.role || "")
+        !(() => {
+          const raw = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
+          const token = raw.trim().toLowerCase();
+          const normalized = token === "owner" || token === "head_admin" ? "super_admin" : token;
+          return ["super_admin", "moderator", "ops_admin"].includes(normalized);
+        })()
       ) {
         return res.status(403).json({ message: "Admin access required" });
       }
@@ -6633,7 +6653,7 @@ export async function registerRoutes(app: any) {
             "auto_service",
           ];
         } else if (effectiveSegment === "admins") {
-          roleFilter = ["admin", "moderator", "ops_admin", "super_admin", "head_admin"];
+          roleFilter = ["admin", "moderator", "ops_admin", "super_admin"];
         }
 
         // Fetch target users
@@ -7336,12 +7356,16 @@ export async function registerRoutes(app: any) {
 
   // Admin user management endpoints
   const ADMIN_WRITE_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
-  const PROTECTED_ADMIN_ROLE_SET = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+  const PROTECTED_ADMIN_ROLE_SET = new Set(["moderator", "ops_admin", "super_admin"]);
 
-  const normalizeAdminRoleToken = (role: unknown): string =>
-    String(role || "")
+  const normalizeAdminRoleToken = (role: unknown): string => {
+    const raw = String(role || "")
       .trim()
       .toLowerCase();
+    if (!raw) return "";
+    if (raw === "owner" || raw === "head_admin") return "super_admin";
+    return raw;
+  };
 
   const hasRole = (user: any, role: string): boolean => {
     const target = normalizeAdminRoleToken(role);
@@ -7356,8 +7380,10 @@ export async function registerRoutes(app: any) {
     return new Set(roles).has(target);
   };
 
-  const isHeadOrSuperAdminUser = (user: any): boolean =>
-    hasRole(user, "head_admin") || hasRole(user, "super_admin");
+  const isSuperAdminUser = (user: any): boolean => hasRole(user, "super_admin");
+  const isOpsAdminUser = (user: any): boolean => hasRole(user, "ops_admin");
+  const canRunOpsUserControls = (user: any): boolean =>
+    isSuperAdminUser(user) || isOpsAdminUser(user);
 
   const isProtectedAdminUser = (user: any): boolean => {
     if (!user) return false;
@@ -7419,16 +7445,16 @@ export async function registerRoutes(app: any) {
       const dbRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
       const dbActiveRole =
         typeof (user as any)?.activeRole === "string" ? String((user as any).activeRole) : "";
-      const adminRoles = new Set(["head_admin", "super_admin", "moderator", "ops_admin"]);
+      const adminRoles = new Set(["super_admin", "moderator", "ops_admin"]);
       const hasAdminAccess =
         reqUser.isSuperAdmin === true ||
         reqUser.isAdmin === true ||
-        adminRoles.has(reqRole) ||
-        adminRoles.has(reqActiveRole) ||
-        reqRoles.some((role: string) => adminRoles.has(role)) ||
-        adminRoles.has(dbRole) ||
-        adminRoles.has(dbActiveRole) ||
-        dbRoles.some((role: string) => adminRoles.has(role));
+        adminRoles.has(normalizeAdminRoleToken(reqRole)) ||
+        adminRoles.has(normalizeAdminRoleToken(reqActiveRole)) ||
+        reqRoles.some((role: string) => adminRoles.has(normalizeAdminRoleToken(role))) ||
+        adminRoles.has(normalizeAdminRoleToken(dbRole)) ||
+        adminRoles.has(normalizeAdminRoleToken(dbActiveRole)) ||
+        dbRoles.some((role: string) => adminRoles.has(normalizeAdminRoleToken(role)));
 
       if (!hasAdminAccess) {
         return res.status(403).json({ message: "Admin access required" });
@@ -7449,11 +7475,9 @@ export async function registerRoutes(app: any) {
       const { userId } = req.params;
       const { role } = (req.body ?? {}) as any;
       const requestedRoleToken = normalizeAdminRoleToken(role);
+      const actorRole = normalizeAdminRoleToken(adminUser?.role);
 
-      if (
-        !adminUser ||
-        !["head_admin", "super_admin", "moderator", "ops_admin"].includes(adminUser.role || "")
-      ) {
+      if (!adminUser || !["super_admin", "moderator", "ops_admin"].includes(actorRole)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -7467,29 +7491,24 @@ export async function registerRoutes(app: any) {
 
       const requestedRole = requestedRoleToken as UserRoleEnumValue;
 
-      // Only head_admin can promote to head_admin or modify other head_admins
-      if (requestedRole === "head_admin" && adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Only head admin can promote to head admin" });
-      }
-
       const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "Target user not found" });
       }
 
       const targetProtected = isProtectedAdminUser(targetUser);
-      const actorHeadOrSuper = isHeadOrSuperAdminUser(adminUser);
+      const actorIsSuperAdmin = isSuperAdminUser(adminUser);
 
-      if (targetProtected && !actorHeadOrSuper) {
+      if (targetProtected && !actorIsSuperAdmin) {
         return res
           .status(403)
-          .json({ message: "Only head/super admins can modify protected admin users" });
+          .json({ message: "Only super admins can modify protected admin users" });
       }
 
-      if (PROTECTED_ADMIN_ROLE_SET.has(requestedRole) && !actorHeadOrSuper) {
+      if (PROTECTED_ADMIN_ROLE_SET.has(requestedRole) && !actorIsSuperAdmin) {
         return res
           .status(403)
-          .json({ message: "Only head/super admins can assign protected admin roles" });
+          .json({ message: "Only super admins can assign protected admin roles" });
       }
 
       const safety = validateAdminWriteSafety(req.body ?? {}, req.headers as any, {
@@ -7499,8 +7518,9 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: safety.message });
       }
 
-      if (targetUser?.role === "head_admin" && adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Only head admin can modify other head admins" });
+      const normalizedTargetRole = normalizeAdminRoleToken(targetUser?.role);
+      if (normalizedTargetRole === "super_admin" && actorRole !== "super_admin") {
+        return res.status(403).json({ message: "Only super admins can modify super admins" });
       }
 
       const updatedUser = await storage.updateUser(userId, { role: requestedRole });
@@ -7526,11 +7546,9 @@ export async function registerRoutes(app: any) {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
       const { userId } = req.params;
+      const actorRole = normalizeAdminRoleToken(adminUser?.role);
 
-      if (
-        !adminUser ||
-        !["head_admin", "super_admin", "moderator"].includes(adminUser.role || "")
-      ) {
+      if (!adminUser || !["super_admin", "moderator"].includes(actorRole)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -7540,12 +7558,12 @@ export async function registerRoutes(app: any) {
       }
 
       const targetProtected = isProtectedAdminUser(targetUser);
-      const actorHeadOrSuper = isHeadOrSuperAdminUser(adminUser);
+      const actorIsSuperAdmin = isSuperAdminUser(adminUser);
 
-      if (targetProtected && !actorHeadOrSuper) {
+      if (targetProtected && !actorIsSuperAdmin) {
         return res
           .status(403)
-          .json({ message: "Only head/super admins can delete protected admin users" });
+          .json({ message: "Only super admins can delete protected admin users" });
       }
 
       const safety = validateAdminWriteSafety(req.body ?? {}, req.headers as any, {
@@ -7555,8 +7573,9 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: safety.message });
       }
 
-      if (targetUser?.role === "head_admin" && adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Only head admin can delete other head admins" });
+      const normalizedTargetRole = normalizeAdminRoleToken(targetUser?.role);
+      if (normalizedTargetRole === "super_admin" && actorRole !== "super_admin") {
+        return res.status(403).json({ message: "Only super admins can delete super admins" });
       }
 
       // Prevent self-deletion
@@ -7590,8 +7609,8 @@ export async function registerRoutes(app: any) {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
 
-        if (!adminUser || adminUser.role !== "head_admin") {
-          return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || !canRunOpsUserControls(adminUser)) {
+          return res.status(403).json({ message: "Ops admin access required" });
         }
 
         const { userId } = req.params;
@@ -7604,8 +7623,8 @@ export async function registerRoutes(app: any) {
           return res.status(404).json({ message: "User not found" });
         }
 
-        if (targetUser.role === "head_admin") {
-          return res.status(403).json({ message: "Cannot suspend another head admin" });
+        if (hasRole(targetUser, "super_admin")) {
+          return res.status(403).json({ message: "Cannot suspend a super admin" });
         }
 
         const updated = await storage.updateUser(userId, {
@@ -7632,8 +7651,8 @@ export async function registerRoutes(app: any) {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
 
-        if (!adminUser || adminUser.role !== "head_admin") {
-          return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || !canRunOpsUserControls(adminUser)) {
+          return res.status(403).json({ message: "Ops admin access required" });
         }
 
         const { userId } = req.params;
@@ -7643,9 +7662,12 @@ export async function registerRoutes(app: any) {
           return res.status(404).json({ message: "User not found" });
         }
 
-        if (targetUser.role === "head_admin" && adminUser.id !== targetUser.id) {
-          // Only the same head admin account owner should manage their status
-          return res.status(403).json({ message: "Cannot modify another head admin" });
+        if (
+          hasRole(targetUser, "super_admin") &&
+          !hasRole(adminUser, "super_admin") &&
+          adminUser.id !== targetUser.id
+        ) {
+          return res.status(403).json({ message: "Cannot modify a super admin account" });
         }
 
         const updated = await storage.updateUser(userId, {
@@ -7672,8 +7694,8 @@ export async function registerRoutes(app: any) {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
 
-        if (!adminUser || adminUser.role !== "head_admin") {
-          return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || !canRunOpsUserControls(adminUser)) {
+          return res.status(403).json({ message: "Ops admin access required" });
         }
 
         const { userId } = req.params;
@@ -7681,6 +7703,9 @@ export async function registerRoutes(app: any) {
         const targetUser = await storage.getUser(userId);
         if (!targetUser) {
           return res.status(404).json({ message: "User not found" });
+        }
+        if (hasRole(targetUser, "super_admin") && !hasRole(adminUser, "super_admin")) {
+          return res.status(403).json({ message: "Cannot modify a super admin account" });
         }
 
         const updated = await storage.updateUser(userId, {
@@ -7709,8 +7734,8 @@ export async function registerRoutes(app: any) {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
 
-        if (!adminUser || adminUser.role !== "head_admin") {
-          return res.status(403).json({ message: "Head admin access required" });
+        if (!adminUser || !canRunOpsUserControls(adminUser)) {
+          return res.status(403).json({ message: "Ops admin access required" });
         }
 
         const { userId } = req.params;
@@ -7718,6 +7743,9 @@ export async function registerRoutes(app: any) {
         const targetUser = await storage.getUser(userId);
         if (!targetUser) {
           return res.status(404).json({ message: "User not found" });
+        }
+        if (hasRole(targetUser, "super_admin") && !hasRole(adminUser, "super_admin")) {
+          return res.status(403).json({ message: "Cannot modify a super admin account" });
         }
 
         const updated = await storage.updateUser(userId, {
@@ -7741,8 +7769,10 @@ export async function registerRoutes(app: any) {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
 
-      if (!adminUser || adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Head admin access required" });
+      const actorIsSuper = Boolean(adminUser && hasRole(adminUser, "super_admin"));
+      const actorIsOps = Boolean(adminUser && hasRole(adminUser, "ops_admin"));
+      if (!adminUser || (!actorIsSuper && !actorIsOps)) {
+        return res.status(403).json({ message: "Ops admin access required" });
       }
 
       const { userId } = req.params;
@@ -7757,6 +7787,9 @@ export async function registerRoutes(app: any) {
       if (newRole === "contractor_user") {
         newRole = "contractor";
       }
+
+      // Enforce canonical admin tier: no head_admin role in product model.
+      newRole = normalizeAdminRoleToken(newRole);
 
       const allowedRoles = [
         "homeowner",
@@ -7792,7 +7825,6 @@ export async function registerRoutes(app: any) {
         "moderator",
         "ops_admin",
         "super_admin",
-        "head_admin",
       ];
 
       if (!allowedRoles.includes(newRole)) {
@@ -7804,13 +7836,15 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Only head_admin can promote to head_admin or modify other head_admins
-      if (newRole === "head_admin" && adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Only head admin can promote to head admin" });
+      if (hasRole(targetUser, "super_admin") && !actorIsSuper) {
+        return res.status(403).json({ message: "Only super admins can modify super admins" });
       }
 
-      if (targetUser.role === "head_admin" && adminUser.role !== "head_admin") {
-        return res.status(403).json({ message: "Only head admin can modify other head admins" });
+      if (!actorIsSuper) {
+        const blocked = new Set(["super_admin", "ops_admin", "moderator", "admin"]);
+        if (blocked.has(newRole)) {
+          return res.status(403).json({ message: "Ops admins cannot assign admin/staff roles" });
+        }
       }
 
       const updated = await storage.updateUser(userId, { role: newRole as any });
@@ -8093,7 +8127,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/pricing-analytics",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin", "ops_admin"]),
     async (req: any, res: any) => {
       try {
         const { timeframe = "30d" } = req.query;
@@ -8111,7 +8145,7 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/pricing-analytics/update-calculator",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin", "ops_admin"]),
     async (req: any, res: any) => {
       try {
         const { threshold = 10 } = (req.body ?? {}) as any;
@@ -8137,7 +8171,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/pricing-analytics/export",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin", "ops_admin"]),
     async (req: any, res: any) => {
       try {
         const { timeframe = "30d" } = req.query;
@@ -8194,7 +8228,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/pricing-analytics/recommendations",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin", "ops_admin"]),
     async (req: any, res: any) => {
       try {
         const { stateCode } = req.query;
@@ -8265,9 +8299,13 @@ export async function registerRoutes(app: any) {
       const roles: string[] = [primaryRole, ...(rolesRaw || [])].filter(
         (r): r is string => typeof r === "string"
       );
-      const isAdminLike = roles.some((r) =>
-        ["admin", "moderator", "ops_admin", "super_admin", "head_admin"].includes(r)
-      );
+      const isAdminLike = roles.some((r) => {
+        const token = String(r || "")
+          .trim()
+          .toLowerCase();
+        const normalized = token === "owner" || token === "head_admin" ? "super_admin" : token;
+        return ["admin", "moderator", "ops_admin", "super_admin"].includes(normalized);
+      });
 
       const isHomeownerOwner = typeof lead.userId === "string" && lead.userId === userId;
       const isAssignedContractor =
@@ -8475,17 +8513,24 @@ export async function registerRoutes(app: any) {
     try {
       const roleFromClaimsRaw = req.user?.claims?.role;
       const roleFromClaims =
-        typeof roleFromClaimsRaw === "string" && roleFromClaimsRaw.trim().toLowerCase() === "owner"
-          ? "head_admin"
+        typeof roleFromClaimsRaw === "string"
+          ? (() => {
+              const token = roleFromClaimsRaw.trim().toLowerCase();
+              return token === "owner" || token === "head_admin" ? "super_admin" : token;
+            })()
           : roleFromClaimsRaw;
       const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
       const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
         (r): r is string => typeof r === "string"
       );
 
-      const isSuperAdminLike = roles.some((r) =>
-        ["head_admin", "super_admin", "ops_admin", "analytics_read", "owner"].includes(r)
-      );
+      const isSuperAdminLike = roles.some((r) => {
+        const token = String(r || "")
+          .trim()
+          .toLowerCase();
+        const normalized = token === "owner" || token === "head_admin" ? "super_admin" : token;
+        return ["super_admin", "ops_admin", "analytics_read"].includes(normalized);
+      });
       if (!isSuperAdminLike) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -8672,7 +8717,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/contractor-applications",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin", "ops_admin"]),
     async (req: any, res: any) => {
       try {
         const { status, limit = 50 } = req.query;
@@ -8693,7 +8738,7 @@ export async function registerRoutes(app: any) {
   app.patch(
     "/api/admin/contractor-applications/:id",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin"]),
+    requireRole(["super_admin", "ops_admin"]),
     async (req: any, res: any) => {
       try {
         const { id } = req.params;
@@ -8808,7 +8853,7 @@ export async function registerRoutes(app: any) {
   app.get(
     "/api/admin/recommendations/pending",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin", "moderator"]),
+    requireRole(["super_admin", "ops_admin", "moderator"]),
     async (req: any, res: any) => {
       try {
         const { limit = 50 } = req.query;
@@ -8844,7 +8889,7 @@ export async function registerRoutes(app: any) {
   app.patch(
     "/api/admin/recommendations/:id/moderate",
     isAuthenticated,
-    requireRole(["head_admin", "ops_admin", "moderator"]),
+    requireRole(["super_admin", "ops_admin", "moderator"]),
     async (req: any, res: any) => {
       try {
         const { id } = req.params;
@@ -10017,7 +10062,7 @@ export async function registerRoutes(app: any) {
     const normalizeRole = (role: unknown): string => {
       const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
       if (!raw) return "";
-      return raw === "owner" ? "head_admin" : raw;
+      return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
     };
 
     const activeRole = normalizeRole(req.user.activeRole);
@@ -10025,7 +10070,7 @@ export async function registerRoutes(app: any) {
     const roles = Array.isArray(req.user.roles)
       ? req.user.roles.map((r: any) => normalizeRole(r)).filter(Boolean)
       : [];
-    const adminRoles = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+    const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
     const hasAdmin =
       req.user.isAdmin === true ||
       adminRoles.has(activeRole) ||
@@ -11495,9 +11540,9 @@ export async function registerRoutes(app: any) {
         }
 
         const targetProtected = isProtectedAdminUser(target);
-        if (targetProtected && !isHeadOrSuperAdminUser(actor)) {
+        if (targetProtected && !isSuperAdminUser(actor)) {
           return res.status(403).json({
-            error: "Only head/super admins can reset passwords for protected admin users",
+            error: "Only super admins can reset passwords for protected admin users",
           });
         }
 
@@ -11556,10 +11601,10 @@ export async function registerRoutes(app: any) {
         }
 
         const targetProtected = isProtectedAdminUser(existing);
-        if (targetProtected && !isHeadOrSuperAdminUser(actor)) {
+        if (targetProtected && !isSuperAdminUser(actor)) {
           return res
             .status(403)
-            .json({ message: "Only head/super admins can edit protected admin users" });
+            .json({ message: "Only super admins can edit protected admin users" });
         }
 
         const safety = validateAdminWriteSafety(req.body ?? {}, (req as any).headers ?? {}, {
@@ -11676,12 +11721,16 @@ export async function registerRoutes(app: any) {
   );
 
   const ADMIN_SUPPORT_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
-  const PROTECTED_ADMIN_ROLES = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+  const PROTECTED_ADMIN_ROLES = new Set(["moderator", "ops_admin", "super_admin"]);
 
-  const normalizeRoleForProtection = (role: unknown): string =>
-    String(role || "")
+  const normalizeRoleForProtection = (role: unknown): string => {
+    const raw = String(role || "")
       .trim()
       .toLowerCase();
+    if (!raw) return "";
+    if (raw === "owner" || raw === "head_admin") return "super_admin";
+    return raw;
+  };
 
   const userHasProtectedAdminRole = (user: any): boolean => {
     if (!user) return false;
@@ -11697,7 +11746,7 @@ export async function registerRoutes(app: any) {
     return false;
   };
 
-  const userIsHeadOrSuperAdmin = (user: any): boolean => {
+  const userIsSuperAdmin = (user: any): boolean => {
     if (!user) return false;
     const primaryRole = normalizeRoleForProtection(user.role);
     const activeRole = normalizeRoleForProtection(user.activeRole);
@@ -11705,7 +11754,7 @@ export async function registerRoutes(app: any) {
       ? user.roles.map((r: unknown) => normalizeRoleForProtection(r))
       : [];
     const roles = new Set([primaryRole, activeRole, ...roleList].filter(Boolean));
-    return roles.has("head_admin") || roles.has("super_admin");
+    return roles.has("super_admin");
   };
 
   // Admin Support Edit: safeguarded "edit user for them" endpoint.
@@ -11771,10 +11820,10 @@ export async function registerRoutes(app: any) {
 
         const targetProtected = userHasProtectedAdminRole(target);
         if (targetProtected) {
-          if (!userIsHeadOrSuperAdmin(actor)) {
+          if (!userIsSuperAdmin(actor)) {
             return res
               .status(403)
-              .json({ message: "Only head/super admins can edit protected admin users" });
+              .json({ message: "Only super admins can edit protected admin users" });
           }
           if (adminSafety.allowPrivilegedTargetEdit !== true) {
             return res.status(400).json({
@@ -12165,10 +12214,29 @@ export async function registerRoutes(app: any) {
   });
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
+  const multer = (await import("multer")).default;
+  const businessImportUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: Number(process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 25 * 1024 * 1024),
+    },
+  });
+  const businessImportMaybeUploadFile = (req: any, res: any, next: any) => {
+    const contentType = String(req.headers?.["content-type"] || "");
+    if (!contentType.toLowerCase().includes("multipart/form-data")) return next();
+    return businessImportUpload.single("file")(req, res, (err: any) => {
+      if (err) {
+        return res.status(400).json({ message: err?.message || "File upload failed" });
+      }
+      next();
+    });
+  };
+
   app.post(
     "/api/admin/businesses/import",
     isAuthenticated,
     isAdmin,
+    businessImportMaybeUploadFile,
     // Accept text/csv uploads directly to avoid JSON body-size limits (413) in production.
     express.text({
       type: ["text/plain", "text/csv", "text/tab-separated-values"],
@@ -12176,6 +12244,14 @@ export async function registerRoutes(app: any) {
     }),
     async (req: any, res: any) => {
       try {
+        const uploadedFile = (req as any).file as
+          | { originalname?: string; mimetype?: string; buffer?: Buffer }
+          | undefined;
+        const uploadName = String(uploadedFile?.originalname || "")
+          .trim()
+          .toLowerCase();
+        const isXlsxUpload = Boolean(uploadedFile?.buffer) && uploadName.endsWith(".xlsx");
+
         const rawBody = req.body;
         const body = rawBody && typeof rawBody === "object" ? (rawBody as any) : {};
         const content =
@@ -12239,8 +12315,8 @@ export async function registerRoutes(app: any) {
         const sourceLabelRaw = readStr(body.source ?? query.source);
         const sourceLabel = (sourceLabelRaw || "admin_import").toLowerCase().slice(0, 64);
 
-        if (!content.trim()) {
-          return res.status(400).json({ message: "content is required" });
+        if (!isXlsxUpload && !content.trim()) {
+          return res.status(400).json({ message: "content is required (or upload an .xlsx file)" });
         }
 
         const isProductionEnv =
@@ -12253,6 +12329,12 @@ export async function registerRoutes(app: any) {
         const sendActivationEmailsEffective = sendActivationEmails && createOwnerAccounts;
         const includeActivationLinksEffective = includeActivationLinks && createOwnerAccounts;
         const createPublicProfilesEffective = createPublicProfiles && createOwnerAccounts;
+
+        let lastParseMeta: {
+          looksLikeHeader: boolean;
+          headers: string[];
+          delimiter: string;
+        } | null = null;
 
         const parseDelimited = (
           input: string,
@@ -12324,19 +12406,88 @@ export async function registerRoutes(app: any) {
 
           const headerRowRaw = rows[0];
           const headerRow = headerRowRaw.map((h) => normalizeHeaderKey(h));
-          const looksLikeHeader =
-            headerRow.length >= 2 &&
-            headerRow.some((h) =>
-              [
-                "email",
-                "business_name",
-                "name",
-                "company",
-                "phone",
-                "county_fips",
-                "fips",
-              ].includes(h)
-            );
+
+          // Header detection is intentionally conservative to avoid dropping the first data row.
+          // We only treat row[0] as a header if the "header-looking" keys align with the
+          // shape of row[1] (e.g., an email column whose next row contains '@').
+          const looksLikeHeader = (() => {
+            if (headerRow.length < 2) return false;
+
+            const nextRow = rows.length > 1 ? rows[1] : [];
+            const peek = (idx: number) =>
+              typeof nextRow[idx] === "string"
+                ? nextRow[idx].trim()
+                : String(nextRow[idx] ?? "").trim();
+
+            const isEmailValue = (value: string) => value.includes("@") && value.includes(".");
+            const isFipsValue = (value: string) => /^[0-9]{5}$/.test(value);
+            const isPhoneValue = (value: string) => value.replace(/\D/g, "").length >= 10;
+
+            let score = 0;
+            let hasStrongSignal = false;
+
+            for (let i = 0; i < headerRow.length; i++) {
+              const key = headerRow[i] || "";
+              const sample = peek(i);
+              if (!key) continue;
+
+              const keyIsEmail =
+                key === "email" ||
+                key.endsWith("_email") ||
+                key.includes("email") ||
+                key === "invitee_email";
+              const keyIsName =
+                key === "business_name" ||
+                key === "company_name" ||
+                key === "company" ||
+                key === "trade_name" ||
+                key === "dba" ||
+                key === "legal_name" ||
+                key === "name";
+              const keyIsFips =
+                key === "county_fips" || key === "fips" || key.includes("county_fips");
+              const keyIsPhone =
+                key === "phone" || key.endsWith("_phone") || key.includes("phone") || key === "tel";
+
+              if (keyIsEmail) {
+                hasStrongSignal = true;
+                if (sample && isEmailValue(sample)) score += 2;
+                continue;
+              }
+              if (keyIsFips) {
+                hasStrongSignal = true;
+                if (sample && isFipsValue(sample)) score += 1;
+                continue;
+              }
+              if (keyIsPhone) {
+                if (sample && isPhoneValue(sample)) score += 1;
+                continue;
+              }
+              if (keyIsName) {
+                if (sample && !isEmailValue(sample)) score += 1;
+              }
+            }
+
+            // If we only have one row, fall back to legacy hint matching (still conservative).
+            if (rows.length === 1) {
+              return headerRow.some((h) =>
+                [
+                  "email",
+                  "business_name",
+                  "company_name",
+                  "name",
+                  "company",
+                  "phone",
+                  "county_fips",
+                  "fips",
+                  "state_code",
+                  "website",
+                ].includes(h)
+              );
+            }
+
+            return hasStrongSignal && score >= 2;
+          })();
 
           const headers = looksLikeHeader
             ? headerRow
@@ -12354,6 +12505,12 @@ export async function registerRoutes(app: any) {
               ];
 
           const dataRows = looksLikeHeader ? rows.slice(1) : rows;
+
+          lastParseMeta = {
+            looksLikeHeader,
+            headers,
+            delimiter,
+          };
 
           return dataRows
             .map((cols) => {
@@ -12380,8 +12537,22 @@ export async function registerRoutes(app: any) {
           return ",";
         };
 
-        const delimiter = detectDelimiter(content);
-        const records = parseDelimited(content, delimiter);
+        let delimiter = detectImportDelimiter(content);
+        let records: Array<Record<string, string>> = [];
+        let parseFile: any = null;
+
+        if (isXlsxUpload) {
+          const parsedXlsx = parseXlsxImport(uploadedFile!.buffer as Buffer);
+          records = parsedXlsx.records;
+          parseFile = parsedXlsx.meta;
+          // Keep response delimiter stable for the existing client UI.
+          delimiter = ",";
+          lastParseMeta = null;
+        } else {
+          const parsed = parseDelimitedImport(content, delimiter);
+          records = parsed.records;
+          lastParseMeta = parsed.meta;
+        }
         if (!records.length) {
           return res.status(400).json({ message: "No rows found to import" });
         }
@@ -12574,6 +12745,10 @@ export async function registerRoutes(app: any) {
               "invitee_email",
               "business_email",
               "contact_email",
+              "email_address",
+              "emailaddress",
+              "primary_email",
+              "primaryemail",
             ])
           );
           const businessName = getFirstNonEmpty(rec, [
@@ -12590,8 +12765,14 @@ export async function registerRoutes(app: any) {
             "legal_name",
             "legalname",
             "organization",
+            "organization_name",
+            "organizationname",
             "org_name",
             "orgname",
+            "listing_name",
+            "listingname",
+            "provider_name",
+            "providername",
           ]);
           const countyFips =
             getFirstNonEmpty(rec, [
@@ -12599,11 +12780,19 @@ export async function registerRoutes(app: any) {
               "countyfips",
               "fips",
               "county_fips_code",
+              "fips_code",
+              "fipscode",
             ]).trim() ||
             defaultCountyFips ||
             "";
           const stateCodeRaw =
-            getFirstNonEmpty(rec, ["state_code", "state", "st", "sourcestate"]).trim() ||
+            getFirstNonEmpty(rec, [
+              "state_code",
+              "statecode",
+              "state",
+              "st",
+              "sourcestate",
+            ]).trim() ||
             defaultStateCode ||
             "";
           const muni = getFirstNonEmpty(rec, ["municipality", "city_state_zip", "city"]);
@@ -12664,8 +12853,27 @@ export async function registerRoutes(app: any) {
             "contact_phone",
             "telephone",
             "tel",
+            "mobile",
+            "mobile_phone",
+            "mobilephone",
+            "cell",
+            "cell_phone",
+            "cellphone",
+            "primary_phone",
+            "primaryphone",
+            "main_phone",
+            "mainphone",
           ]);
-          const website = getFirstNonEmpty(rec, ["website", "url", "web", "site"]);
+          const website = getFirstNonEmpty(rec, [
+            "website",
+            "website_url",
+            "websiteurl",
+            "homepage",
+            "domain",
+            "url",
+            "web",
+            "site",
+          ]);
           const category = getFirstNonEmpty(rec, [
             "category",
             "categories",
@@ -12965,7 +13173,7 @@ export async function registerRoutes(app: any) {
                     city: city || undefined,
                     stateCode: resolvedStateCode || undefined,
                     zipCode: zipCode || undefined,
-                    firstName: ownerFirstName || undefined,
+                    firstName: ownerFirstName || businessName || undefined,
                     lastName: ownerLastName || undefined,
                     role: "business_owner" as any,
                     roles: ["business_owner"],
@@ -13348,6 +13556,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         res.json({
           dryRun,
           delimiter: delimiter === "\t" ? "tab" : delimiter === "|" ? "pipe" : "comma",
+          parse: lastParseMeta,
+          parseFile,
           warnings:
             requestedCreateOwnerAccounts && !createOwnerAccounts
               ? [
@@ -13385,12 +13595,209 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Admin: find "import-created" directory owner accounts so they can be archived into unclaimed businesses.
   // These accounts were created before we defaulted imports to "directory entries only" (no auth users).
+  const archiveImportedDirectoryUserToDirectory = async (userId: string) => {
+    const id = String(userId || "").trim();
+    if (!id) throw { status: 400, message: "userId is required" };
+
+    const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    const user = rows[0] as any;
+    if (!user) throw { status: 404, message: "User not found" };
+
+    const roles: string[] = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
+    const isCandidate =
+      user.onboardingCompleted === false &&
+      (user.password == null || user.password === "") &&
+      (roles.includes("business_owner") || String(user.role || "") === "business_owner");
+
+    if (!isCandidate) {
+      throw {
+        status: 400,
+        message:
+          "User does not match import-cleanup heuristics (must be an unclaimed import-style business_owner account).",
+      };
+    }
+
+    const originalEmail = String(user.email || "").trim();
+    const originalPhone = typeof user.phone === "string" ? user.phone : null;
+    const archivedEmail = `archived+${id}@thetradescout.invalid`;
+
+    const slugify = (text: string): string =>
+      String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80);
+
+    const now = new Date();
+    return db.transaction(async (tx) => {
+      // Prefer to detach an existing owned business (created during the old import flow)
+      // so we don't duplicate directory entries.
+      const ownedBizRows = await tx
+        .select({
+          id: businesses.id,
+          name: businesses.name,
+          slug: businesses.slug,
+          profileData: businesses.profileData,
+          sources: businesses.sources,
+          status: businesses.status,
+          roleContext: businesses.roleContext,
+          type: businesses.type,
+          createdAt: businesses.createdAt,
+        })
+        .from(businesses)
+        .where(eq(businesses.ownerUserId, id))
+        .orderBy(desc(businesses.createdAt))
+        .limit(1);
+
+      let directoryBusinessId: string | null = null;
+      let directoryBusinessSlug: string | null = null;
+      let directoryBusinessName: string | null = null;
+
+      if (ownedBizRows.length > 0) {
+        const biz = ownedBizRows[0] as any;
+        directoryBusinessId = String(biz.id);
+        directoryBusinessSlug = String(biz.slug);
+        directoryBusinessName = String(biz.name);
+
+        const existingProfile: any = biz.profileData || {};
+        const existingExtras: any =
+          existingProfile && typeof existingProfile === "object"
+            ? existingProfile.importExtras
+            : null;
+
+        const nextExtras: Record<string, string> = {
+          ...(existingExtras && typeof existingExtras === "object" ? existingExtras : {}),
+          archived_from_user_id: id,
+          archived_from_user_email: originalEmail,
+          ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
+        };
+
+        const nextProfileData: any = {
+          ...existingProfile,
+          // Preserve original contact fields so verified TradeScout users can reach this business
+          // via the intent-gated reveal flow even before it is claimed.
+          ...(originalEmail ? { email: originalEmail } : {}),
+          ...(originalPhone ? { phone: originalPhone } : {}),
+          importExtras: nextExtras,
+        };
+
+        const currentSources: string[] = Array.isArray(biz.sources)
+          ? biz.sources.map((s: any) => String(s)).filter(Boolean)
+          : [];
+        const nextSources = Array.from(new Set([...currentSources, "admin_import_cleanup"]));
+
+        await tx
+          .update(businesses)
+          .set({
+            ownerUserId: null,
+            claimStatus: "unclaimed" as any,
+            profileData: nextProfileData,
+            sources: nextSources as any,
+            updatedAt: now,
+          } as any)
+          .where(eq(businesses.id, directoryBusinessId));
+      } else {
+        // Fallback: create a directory business if the import-created user has no owned business.
+        const baseName =
+          String(user.businessSlug || "").trim() ||
+          String(user.firstName || "").trim() ||
+          (originalEmail.includes("@") ? originalEmail.split("@")[0] : "") ||
+          `business-${id.slice(0, 8)}`;
+
+        const baseSlug = slugify(baseName) || `business-${id.slice(0, 8)}`;
+        let candidateSlug = baseSlug;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const existing = await tx
+            .select({ id: businesses.id })
+            .from(businesses)
+            .where(eq(businesses.slug, candidateSlug))
+            .limit(1);
+          if (!existing.length) break;
+          candidateSlug = `${baseSlug}-${attempt + 2}`;
+        }
+
+        const inserted = await tx
+          .insert(businesses)
+          .values({
+            name: String(baseName).slice(0, 255),
+            slug: candidateSlug,
+            type: "other" as any,
+            ownerUserId: null,
+            roleContext: "business_owner" as any,
+            claimStatus: "unclaimed" as any,
+            sources: ["admin_import_cleanup"] as any,
+            status: "draft" as any,
+            profileData: {
+              ...(originalEmail ? { email: originalEmail } : {}),
+              ...(originalPhone ? { phone: originalPhone } : {}),
+              importExtras: {
+                archived_from_user_id: id,
+                archived_from_user_email: originalEmail,
+                ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
+              },
+            } as any,
+            createdAt: now,
+            updatedAt: now,
+          } as any)
+          .returning();
+
+        const createdBiz = inserted[0] as any;
+        directoryBusinessId = createdBiz?.id ? String(createdBiz.id) : null;
+        directoryBusinessSlug = createdBiz?.slug ? String(createdBiz.slug) : null;
+        directoryBusinessName = createdBiz?.name ? String(createdBiz.name) : null;
+      }
+
+      const nextPreferences: any =
+        user.preferences && typeof user.preferences === "object" ? { ...user.preferences } : {};
+      nextPreferences.archivedEmail = originalEmail || null;
+      nextPreferences.archivedAt = now.toISOString();
+      nextPreferences.archivedReason = "admin_import_cleanup";
+      nextPreferences.archivedDirectoryBusinessId = directoryBusinessId;
+
+      const nextRoles = roles.filter((r) => r !== "business_owner");
+
+      await tx
+        .update(users)
+        .set({
+          email: archivedEmail,
+          password: null,
+          phone: null,
+          roles: nextRoles as any,
+          role: "homeowner" as any,
+          activeRole: "homeowner",
+          activeBusinessId: null,
+          activeProfileId: null,
+          businessSlug: null,
+          preferences: nextPreferences,
+          updatedAt: now,
+        } as any)
+        .where(eq(users.id, id));
+
+      return {
+        userId: id,
+        archivedEmail,
+        directoryBusinessId,
+        directoryBusinessSlug,
+        directoryBusinessName,
+      };
+    });
+  };
+
   app.get(
     "/api/admin/imported-directory-users",
     isAuthenticated,
     isAdmin,
-    async (_req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
+        const limitRaw =
+          typeof (req.query as any)?.limit === "string" ? String((req.query as any).limit) : "";
+        const parsedLimit = limitRaw ? parseInt(limitRaw, 10) : 200;
+        const limit = Number.isFinite(parsedLimit)
+          ? Math.max(50, Math.min(2000, parsedLimit))
+          : 200;
+
         const result = (await db.execute(sql`
           select
             u.id,
@@ -13429,7 +13836,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               or u.role = 'business_owner'
             )
           order by u.created_at desc
-          limit 200
+          limit ${limit}
         `)) as any;
 
         const users = Array.isArray(result?.rows) ? result.rows : [];
@@ -13450,204 +13857,77 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     async (req: Request, res: Response) => {
       try {
         const userId = String(req.params.userId || "").trim();
-        if (!userId) return res.status(400).json({ message: "userId is required" });
-
-        const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        const user = rows[0] as any;
-        if (!user) return res.status(404).json({ message: "User not found" });
-
-        const roles: string[] = Array.isArray(user.roles)
-          ? user.roles.map((r: any) => String(r))
-          : [];
-        const isCandidate =
-          user.onboardingCompleted === false &&
-          (user.password == null || user.password === "") &&
-          (roles.includes("business_owner") || String(user.role || "") === "business_owner");
-
-        if (!isCandidate) {
-          return res.status(400).json({
-            message:
-              "User does not match import-cleanup heuristics (must be an unclaimed import-style business_owner account).",
-          });
-        }
-
-        const originalEmail = String(user.email || "").trim();
-        const originalPhone = typeof user.phone === "string" ? user.phone : null;
-        const archivedEmail = `archived+${userId}@thetradescout.invalid`;
-
-        const slugify = (text: string): string =>
-          String(text || "")
-            .toLowerCase()
-            .trim()
-            .replace(/[^\w\s-]/g, "")
-            .replace(/[\s_-]+/g, "-")
-            .replace(/^-+|-+$/g, "")
-            .slice(0, 80);
-
-        const now = new Date();
-        const outcome = await db.transaction(async (tx) => {
-          // Prefer to detach an existing owned business (created during the old import flow)
-          // so we don't duplicate directory entries.
-          const ownedBizRows = await tx
-            .select({
-              id: businesses.id,
-              name: businesses.name,
-              slug: businesses.slug,
-              profileData: businesses.profileData,
-              sources: businesses.sources,
-              status: businesses.status,
-              roleContext: businesses.roleContext,
-              type: businesses.type,
-              createdAt: businesses.createdAt,
-            })
-            .from(businesses)
-            .where(eq(businesses.ownerUserId, userId))
-            .orderBy(desc(businesses.createdAt))
-            .limit(1);
-
-          let directoryBusinessId: string | null = null;
-          let directoryBusinessSlug: string | null = null;
-          let directoryBusinessName: string | null = null;
-
-          if (ownedBizRows.length > 0) {
-            const biz = ownedBizRows[0] as any;
-            directoryBusinessId = String(biz.id);
-            directoryBusinessSlug = String(biz.slug);
-            directoryBusinessName = String(biz.name);
-
-            const existingProfile: any = biz.profileData || {};
-            const existingExtras: any =
-              existingProfile && typeof existingProfile === "object"
-                ? existingProfile.importExtras
-                : null;
-
-            const nextExtras: Record<string, string> = {
-              ...(existingExtras && typeof existingExtras === "object" ? existingExtras : {}),
-              archived_from_user_id: userId,
-              archived_from_user_email: originalEmail,
-              ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
-            };
-
-            const nextProfileData: any = {
-              ...existingProfile,
-              // Preserve original contact fields so verified TradeScout users can reach this business
-              // via the intent-gated reveal flow even before it is claimed.
-              ...(originalEmail ? { email: originalEmail } : {}),
-              ...(originalPhone ? { phone: originalPhone } : {}),
-              importExtras: nextExtras,
-            };
-
-            const currentSources: string[] = Array.isArray(biz.sources)
-              ? biz.sources.map((s: any) => String(s)).filter(Boolean)
-              : [];
-            const nextSources = Array.from(new Set([...currentSources, "admin_import_cleanup"]));
-
-            await tx
-              .update(businesses)
-              .set({
-                ownerUserId: null,
-                claimStatus: "unclaimed" as any,
-                profileData: nextProfileData,
-                sources: nextSources as any,
-                updatedAt: now,
-              } as any)
-              .where(eq(businesses.id, directoryBusinessId));
-          } else {
-            // Fallback: create a directory business if the import-created user has no owned business.
-            const baseName =
-              String(user.businessSlug || "").trim() ||
-              String(user.firstName || "").trim() ||
-              (originalEmail.includes("@") ? originalEmail.split("@")[0] : "") ||
-              `business-${userId.slice(0, 8)}`;
-
-            const baseSlug = slugify(baseName) || `business-${userId.slice(0, 8)}`;
-            let candidateSlug = baseSlug;
-            for (let attempt = 0; attempt < 50; attempt++) {
-              const existing = await tx
-                .select({ id: businesses.id })
-                .from(businesses)
-                .where(eq(businesses.slug, candidateSlug))
-                .limit(1);
-              if (!existing.length) break;
-              candidateSlug = `${baseSlug}-${attempt + 2}`;
-            }
-
-            const inserted = await tx
-              .insert(businesses)
-              .values({
-                name: String(baseName).slice(0, 255),
-                slug: candidateSlug,
-                type: "other" as any,
-                ownerUserId: null,
-                roleContext: "business_owner" as any,
-                claimStatus: "unclaimed" as any,
-                sources: ["admin_import_cleanup"] as any,
-                status: "draft" as any,
-                profileData: {
-                  ...(originalEmail ? { email: originalEmail } : {}),
-                  ...(originalPhone ? { phone: originalPhone } : {}),
-                  importExtras: {
-                    archived_from_user_id: userId,
-                    archived_from_user_email: originalEmail,
-                    ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
-                  },
-                } as any,
-                createdAt: now,
-                updatedAt: now,
-              } as any)
-              .returning();
-
-            const createdBiz = inserted[0] as any;
-            directoryBusinessId = createdBiz?.id ? String(createdBiz.id) : null;
-            directoryBusinessSlug = createdBiz?.slug ? String(createdBiz.slug) : null;
-            directoryBusinessName = createdBiz?.name ? String(createdBiz.name) : null;
-          }
-
-          const nextPreferences: any =
-            user.preferences && typeof user.preferences === "object" ? { ...user.preferences } : {};
-          nextPreferences.archivedEmail = originalEmail || null;
-          nextPreferences.archivedAt = now.toISOString();
-          nextPreferences.archivedReason = "admin_import_cleanup";
-          nextPreferences.archivedDirectoryBusinessId = directoryBusinessId;
-
-          const nextRoles = roles.filter((r) => r !== "business_owner");
-
-          await tx
-            .update(users)
-            .set({
-              email: archivedEmail,
-              password: null,
-              phone: null,
-              roles: nextRoles as any,
-              role: "homeowner" as any,
-              activeRole: "homeowner",
-              activeBusinessId: null,
-              activeProfileId: null,
-              businessSlug: null,
-              preferences: nextPreferences,
-              updatedAt: now,
-            } as any)
-            .where(eq(users.id, userId));
-
-          return {
-            archivedEmail,
-            directoryBusinessId,
-            directoryBusinessSlug,
-            directoryBusinessName,
-          };
-        });
-
-        return res.json({
-          ok: true,
-          userId,
-          archivedEmail: outcome.archivedEmail,
-          directoryBusinessId: outcome.directoryBusinessId,
-          directoryBusinessSlug: outcome.directoryBusinessSlug,
-          directoryBusinessName: outcome.directoryBusinessName,
-        });
+        const outcome = await archiveImportedDirectoryUserToDirectory(userId);
+        return res.json({ ok: true, ...outcome });
       } catch (error: any) {
         console.error("Error archiving imported directory user:", error);
-        return res.status(500).json({ message: error?.message || "Failed to archive user" });
+        const status = typeof error?.status === "number" ? error.status : 500;
+        return res.status(status).json({ message: error?.message || "Failed to archive user" });
+      }
+    }
+  );
+
+  // Admin: bulk archive import-created directory owner accounts (with safety confirmation).
+  app.post(
+    "/api/admin/imported-directory-users/archive-all",
+    isAuthenticated,
+    isAdmin,
+    express.json({ limit: "1mb" }),
+    async (req: Request, res: Response) => {
+      try {
+        const confirm = String(
+          (req.body as any)?.confirm || (req.body as any)?.confirmPhrase || ""
+        ).trim();
+        if (confirm !== "ARCHIVE_ALL") {
+          return res.status(400).json({ message: 'Type "ARCHIVE_ALL" to confirm bulk archiving.' });
+        }
+
+        const limitRaw = String((req.body as any)?.limit ?? "").trim();
+        const parsedLimit = limitRaw ? parseInt(limitRaw, 10) : 500;
+        const limit = Number.isFinite(parsedLimit) ? Math.max(1, Math.min(5000, parsedLimit)) : 500;
+
+        const result = (await db.execute(sql`
+          select u.id
+          from users u
+          where u.onboarding_completed = false
+            and u.password_hash is null
+            and (
+              'business_owner' = any(u.roles)
+              or u.role = 'business_owner'
+            )
+            and lower(u.email) not like 'archived+%@thetradescout.invalid'
+          order by u.created_at desc
+          limit ${limit}
+        `)) as any;
+
+        const ids: string[] = Array.isArray(result?.rows)
+          ? result.rows.map((r: any) => String(r?.id || "")).filter(Boolean)
+          : [];
+
+        let archived = 0;
+        const errors: Array<{ userId: string; message: string }> = [];
+        for (const id of ids) {
+          try {
+            await archiveImportedDirectoryUserToDirectory(id);
+            archived += 1;
+          } catch (err: any) {
+            errors.push({
+              userId: id,
+              message: typeof err?.message === "string" ? err.message : "archive failed",
+            });
+          }
+        }
+
+        return res.json({
+          requestedLimit: limit,
+          matched: ids.length,
+          archived,
+          failed: errors.length,
+          errors,
+        });
+      } catch (error: any) {
+        console.error("Error bulk archiving imported directory users:", error);
+        return res.status(500).json({ message: error?.message || "Failed to bulk-archive users" });
       }
     }
   );
@@ -14700,16 +14980,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const normalizeRole = (role: unknown): string => {
         const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
         if (!raw) return "";
-        return raw === "owner" ? "head_admin" : raw;
+        return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
       };
 
-      const allowedRoles = new Set([
-        "head_admin",
-        "super_admin",
-        "moderator",
-        "ops_admin",
-        "support_agent",
-      ]);
+      const allowedRoles = new Set(["super_admin", "moderator", "ops_admin", "support_agent"]);
 
       const primaryRole = normalizeRole((user as any)?.role);
       const activeRole = normalizeRole((user as any)?.activeRole);
@@ -14744,16 +15018,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const normalizeRole = (role: unknown): string => {
         const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
         if (!raw) return "";
-        return raw === "owner" ? "head_admin" : raw;
+        return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
       };
 
-      const allowedRoles = new Set([
-        "head_admin",
-        "super_admin",
-        "moderator",
-        "ops_admin",
-        "support_agent",
-      ]);
+      const allowedRoles = new Set(["super_admin", "moderator", "ops_admin", "support_agent"]);
 
       const primaryRole = normalizeRole((user as any)?.role);
       const activeRole = normalizeRole((user as any)?.activeRole);
@@ -14876,16 +15144,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const normalizeRole = (role: unknown): string => {
         const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
         if (!raw) return "";
-        return raw === "owner" ? "head_admin" : raw;
+        return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
       };
 
-      const allowedRoles = new Set([
-        "head_admin",
-        "super_admin",
-        "moderator",
-        "ops_admin",
-        "support_agent",
-      ]);
+      const allowedRoles = new Set(["super_admin", "moderator", "ops_admin", "support_agent"]);
 
       const primaryRole = normalizeRole((user as any)?.role);
       const activeRole = normalizeRole((user as any)?.activeRole);
@@ -22714,6 +22976,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   registerBusinessContactRoutes(app);
 
   // Register business profile routes
+  app.use(businessDirectoryPublicRouter);
+  app.use(cityPublicRouter);
+  app.use(datasetsPublicRouter);
   app.use(businessesRouter);
 
   // Register Profile website routes

@@ -1,106 +1,105 @@
 // Role hierarchy and permission system for TradeScout
 
-export type UserRole = 
+export type UserRole =
   // Customer & business roles
-  | 'homeowner'
-  | 'property_manager'
-  | 'business_owner'
-  | 'restaurant_owner'
-  | 'food_truck_owner'
-  | 'bar_owner'
-  
-  // Service provider roles  
-  | 'contractor_user'
-  | 'helper'             // New role for workers/helpers
-  | 'accelerator_member'
-  | 'realtor'
-  | 'car_salesman'
-  | 'insurance_agent'
-  | 'mortgage_broker'
-  
-  // Community roles
-  | 'community_member'
-  | 'community_moderator'
-  | 'community_leader'
-  
-  // Platform staff roles
-  | 'support_agent'
-  | 'content_moderator'
-  | 'territory_manager'
-  | 'contractor_success'
-  | 'content_seo'
-  | 'analytics_specialist'
-  | 'marketing_specialist'
-  
-  // Admin roles
-  | 'moderator'
-  | 'ops_admin'
-  | 'super_admin'
-  | 'head_admin';
+  | "homeowner"
+  | "property_manager"
+  | "business_owner"
+  | "restaurant_owner"
+  | "food_truck_owner"
+  | "bar_owner"
 
-export type TradeCategory = 
+  // Service provider roles
+  | "contractor_user"
+  | "helper" // New role for workers/helpers
+  | "accelerator_member"
+  | "realtor"
+  | "car_salesman"
+  | "insurance_agent"
+  | "mortgage_broker"
+
+  // Community roles
+  | "community_member"
+  | "community_moderator"
+  | "community_leader"
+
+  // Platform staff roles
+  | "support_agent"
+  | "content_moderator"
+  | "territory_manager"
+  | "contractor_success"
+  | "content_seo"
+  | "analytics_specialist"
+  | "marketing_specialist"
+
+  // Admin roles
+  | "moderator"
+  | "ops_admin"
+  | "super_admin";
+
+export type TradeCategory =
   // Construction & General
-  | 'general_contractor'
-  | 'construction_manager'
-  | 'project_manager'
-  
+  | "general_contractor"
+  | "construction_manager"
+  | "project_manager"
+
   // Structural & Foundation
-  | 'concrete_contractor'
-  | 'foundation_specialist'
-  | 'masonry_contractor'
-  | 'structural_engineer'
-  
+  | "concrete_contractor"
+  | "foundation_specialist"
+  | "masonry_contractor"
+  | "structural_engineer"
+
   // Building Envelope
-  | 'roofing_contractor'
-  | 'siding_contractor'
-  | 'window_installer'
-  | 'door_installer'
-  | 'insulation_contractor'
-  
+  | "roofing_contractor"
+  | "siding_contractor"
+  | "window_installer"
+  | "door_installer"
+  | "insulation_contractor"
+
   // Electrical & Technology
-  | 'electrician'
-  | 'low_voltage_technician'
-  | 'solar_installer'
-  | 'security_system_installer'
-  | 'smart_home_specialist'
-  
+  | "electrician"
+  | "low_voltage_technician"
+  | "solar_installer"
+  | "security_system_installer"
+  | "smart_home_specialist"
+
   // Plumbing & HVAC
-  | 'plumber'
-  | 'hvac_contractor'
-  | 'refrigeration_technician'
-  | 'water_heater_specialist'
-  | 'septic_contractor'
-  
+  | "plumber"
+  | "hvac_contractor"
+  | "refrigeration_technician"
+  | "water_heater_specialist"
+  | "septic_contractor"
+
   // Interior Finishing
-  | 'flooring_contractor'
-  | 'tile_contractor'
-  | 'carpet_installer'
-  | 'painter'
-  | 'drywall_contractor'
-  | 'cabinet_maker'
-  | 'countertop_installer'
-  
+  | "flooring_contractor"
+  | "tile_contractor"
+  | "carpet_installer"
+  | "painter"
+  | "drywall_contractor"
+  | "cabinet_maker"
+  | "countertop_installer"
+
   // Kitchen & Bath
-  | 'kitchen_remodeler'
-  | 'bathroom_remodeler'
-  | 'appliance_installer'
-  
+  | "kitchen_remodeler"
+  | "bathroom_remodeler"
+  | "appliance_installer"
+
   // Outdoor & Landscaping
-  | 'landscaper'
-  | 'hardscape_contractor'
-  | 'pool_contractor'
-  | 'fence_contractor'
-  | 'deck_builder'
-  | 'outdoor_lighting'
-  
+  | "landscaper"
+  | "hardscape_contractor"
+  | "pool_contractor"
+  | "fence_contractor"
+  | "deck_builder"
+  | "outdoor_lighting"
+
   // Specialty Services
-  | 'home_inspector'
-  | 'mold_remediation'
-  | 'water_damage_restoration'
-  | 'pest_control'
-  | 'cleaning_service'
-  | 'handyman'
-  | 'maintenance_contractor';
+  | "home_inspector"
+  | "mold_remediation"
+  | "water_damage_restoration"
+  | "pest_control"
+  | "cleaning_service"
+  | "handyman"
+  | "maintenance_contractor";
 
 export interface RolePermissions {
   // Content permissions
@@ -108,25 +107,25 @@ export interface RolePermissions {
   canEditContent: boolean;
   canDeleteContent: boolean;
   canModerateContent: boolean;
-  
+
   // User permissions
   canViewUsers: boolean;
   canEditUsers: boolean;
   canDeleteUsers: boolean;
   canBanUsers: boolean;
-  
+
   // Admin permissions
   canAccessAdminPanel: boolean;
   canManageSettings: boolean;
   canViewAnalytics: boolean;
   canManagePayments: boolean;
-  
+
   // Platform permissions
   canManageContractors: boolean;
   canManageListings: boolean;
   canManageReports: boolean;
   canManageModeration: boolean;
-  
+
   // Special permissions
   canPromoteUsers: boolean;
   canManageRoles: boolean;
@@ -143,21 +142,21 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   restaurant_owner: 2,
   food_truck_owner: 2,
   bar_owner: 2,
-  
+
   // Service provider roles (10-19)
   contractor_user: 10,
-  helper: 11,                 // New role for workers/helpers
+  helper: 11, // New role for workers/helpers
   accelerator_member: 15,
   realtor: 12,
   car_salesman: 12,
   insurance_agent: 12,
   mortgage_broker: 12,
-  
+
   // Community roles (20-29)
   community_member: 20,
   community_moderator: 25,
   community_leader: 28,
-  
+
   // Platform staff roles (30-49)
   support_agent: 30,
   content_moderator: 35,
@@ -166,12 +165,11 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   content_seo: 42,
   analytics_specialist: 45,
   marketing_specialist: 45,
-  
+
   // Admin roles (50+)
   moderator: 50,
   ops_admin: 70,
-  super_admin: 90,
-  head_admin: 100,
+  super_admin: 100,
 };
 
 // Role permissions matrix
@@ -199,7 +197,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   property_manager: {
     canCreateContent: true,
     canEditContent: true,
@@ -222,7 +220,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   business_owner: {
     canCreateContent: true,
     canEditContent: true,
@@ -311,7 +309,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   // Service provider roles
   contractor_user: {
     canCreateContent: true,
@@ -335,22 +333,22 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   helper: {
-    canCreateContent: true,        // Can create worker profile content
-    canEditContent: true,          // Can edit own profile and applications
-    canDeleteContent: true,        // Can delete own applications
+    canCreateContent: true, // Can create worker profile content
+    canEditContent: true, // Can edit own profile and applications
+    canDeleteContent: true, // Can delete own applications
     canModerateContent: false,
-    canViewUsers: false,           // Only see relevant task posters
+    canViewUsers: false, // Only see relevant task posters
     canEditUsers: false,
     canDeleteUsers: false,
     canBanUsers: false,
     canAccessAdminPanel: false,
     canManageSettings: false,
-    canViewAnalytics: true,        // Can view own job history and earnings
-    canManagePayments: false,      // Cannot manage payments, only receive them
+    canViewAnalytics: true, // Can view own job history and earnings
+    canManagePayments: false, // Cannot manage payments, only receive them
     canManageContractors: false,
-    canManageListings: false,      // Cannot manage other listings, only applications
+    canManageListings: false, // Cannot manage other listings, only applications
     canManageReports: false,
     canManageModeration: false,
     canPromoteUsers: false,
@@ -358,7 +356,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   accelerator_member: {
     canCreateContent: true,
     canEditContent: true,
@@ -381,7 +379,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   realtor: {
     canCreateContent: true,
     canEditContent: true,
@@ -404,7 +402,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   car_salesman: {
     canCreateContent: true,
     canEditContent: true,
@@ -427,7 +425,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   insurance_agent: {
     canCreateContent: true,
     canEditContent: true,
@@ -450,7 +448,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   mortgage_broker: {
     canCreateContent: true,
     canEditContent: true,
@@ -473,7 +471,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   // Community roles
   community_member: {
     canCreateContent: true,
@@ -497,7 +495,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   community_moderator: {
     canCreateContent: true,
     canEditContent: true,
@@ -520,7 +518,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   community_leader: {
     canCreateContent: true,
     canEditContent: true,
@@ -543,7 +541,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   // Platform staff roles
   support_agent: {
     canCreateContent: true,
@@ -567,7 +565,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   content_moderator: {
     canCreateContent: true,
     canEditContent: true,
@@ -590,7 +588,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   territory_manager: {
     canCreateContent: true,
     canEditContent: true,
@@ -613,7 +611,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   contractor_success: {
     canCreateContent: true,
     canEditContent: true,
@@ -636,7 +634,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   content_seo: {
     canCreateContent: true,
     canEditContent: true,
@@ -659,7 +657,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   analytics_specialist: {
     canCreateContent: true,
     canEditContent: true,
@@ -682,7 +680,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   marketing_specialist: {
     canCreateContent: true,
     canEditContent: true,
@@ -705,7 +703,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   // Admin roles
   moderator: {
     canCreateContent: true,
@@ -729,7 +727,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   ops_admin: {
     canCreateContent: true,
     canEditContent: true,
@@ -752,31 +750,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canAccessSuperAdmin: false,
     canManageAdmins: false,
   },
-  
+
   super_admin: {
-    canCreateContent: true,
-    canEditContent: true,
-    canDeleteContent: true,
-    canModerateContent: true,
-    canViewUsers: true,
-    canEditUsers: true,
-    canDeleteUsers: true,
-    canBanUsers: true,
-    canAccessAdminPanel: true,
-    canManageSettings: true,
-    canViewAnalytics: true,
-    canManagePayments: true,
-    canManageContractors: true,
-    canManageListings: true,
-    canManageReports: true,
-    canManageModeration: true,
-    canPromoteUsers: true,
-    canManageRoles: true,
-    canAccessSuperAdmin: true,
-    canManageAdmins: false,
-  },
-  
-  head_admin: {
     canCreateContent: true,
     canEditContent: true,
     canDeleteContent: true,
@@ -809,11 +784,15 @@ export function getRolePermissions(role: UserRole): RolePermissions {
   return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.homeowner;
 }
 
-export function canUserPerformAction(userRole: UserRole, targetRole: UserRole, action: keyof RolePermissions): boolean {
+export function canUserPerformAction(
+  userRole: UserRole,
+  targetRole: UserRole,
+  action: keyof RolePermissions
+): boolean {
   const userLevel = getRoleHierarchyLevel(userRole);
   const targetLevel = getRoleHierarchyLevel(targetRole);
   const permissions = getRolePermissions(userRole);
-  
+
   // User must have the permission and sufficient hierarchy level
   return permissions[action] && userLevel >= targetLevel;
 }
@@ -821,133 +800,193 @@ export function canUserPerformAction(userRole: UserRole, targetRole: UserRole, a
 export function getRoleDisplayName(role: UserRole): string {
   const roleNames: Record<UserRole, string> = {
     // Customer roles
-    homeowner: 'Homeowner',
-    property_manager: 'Property Manager',
-    business_owner: 'Business Owner',
-    restaurant_owner: 'Restaurant Owner',
-    food_truck_owner: 'Food Truck Owner',
-    bar_owner: 'Bar Owner',
-    
+    homeowner: "Homeowner",
+    property_manager: "Property Manager",
+    business_owner: "Business Owner",
+    restaurant_owner: "Restaurant Owner",
+    food_truck_owner: "Food Truck Owner",
+    bar_owner: "Bar Owner",
+
     // Service provider roles
-    contractor_user: 'Contractor',
-    accelerator_member: 'Accelerator Member',
-    realtor: 'Realtor',
-    car_salesman: 'Car Salesman',
-    insurance_agent: 'Insurance Agent',
-    mortgage_broker: 'Mortgage Broker',
-    helper: 'Helper',
-    
+    contractor_user: "Contractor",
+    accelerator_member: "Accelerator Member",
+    realtor: "Realtor",
+    car_salesman: "Car Salesman",
+    insurance_agent: "Insurance Agent",
+    mortgage_broker: "Mortgage Broker",
+    helper: "Helper",
+
     // Community roles
-    community_member: 'Community Member',
-    community_moderator: 'Community Moderator',
-    community_leader: 'Community Leader',
-    
+    community_member: "Community Member",
+    community_moderator: "Community Moderator",
+    community_leader: "Community Leader",
+
     // Platform staff roles
-    support_agent: 'Support Agent',
-    content_moderator: 'Content Moderator',
-    territory_manager: 'Territory Manager',
-    contractor_success: 'Contractor Success Manager',
-    content_seo: 'Content & SEO Specialist',
-    analytics_specialist: 'Analytics Specialist',
-    marketing_specialist: 'Marketing Specialist',
-    
+    support_agent: "Support Agent",
+    content_moderator: "Content Moderator",
+    territory_manager: "Territory Manager",
+    contractor_success: "Contractor Success Manager",
+    content_seo: "Content & SEO Specialist",
+    analytics_specialist: "Analytics Specialist",
+    marketing_specialist: "Marketing Specialist",
+
     // Admin roles
-    moderator: 'Moderator',
-    ops_admin: 'Operations Admin',
-    super_admin: 'Super Admin',
-    head_admin: 'Head Admin',
+    moderator: "Staff",
+    ops_admin: "Operations Admin",
+    super_admin: "Super Admin",
   };
-  
+
   return roleNames[role] || role;
 }
 
 export function getTradeDisplayName(trade: TradeCategory): string {
   const tradeNames: Record<TradeCategory, string> = {
     // Construction & General
-    general_contractor: 'General Contractor',
-    construction_manager: 'Construction Manager',
-    project_manager: 'Project Manager',
-    
+    general_contractor: "General Contractor",
+    construction_manager: "Construction Manager",
+    project_manager: "Project Manager",
+
     // Structural & Foundation
-    concrete_contractor: 'Concrete Contractor',
-    foundation_specialist: 'Foundation Specialist',
-    masonry_contractor: 'Masonry Contractor',
-    structural_engineer: 'Structural Engineer',
-    
+    concrete_contractor: "Concrete Contractor",
+    foundation_specialist: "Foundation Specialist",
+    masonry_contractor: "Masonry Contractor",
+    structural_engineer: "Structural Engineer",
+
     // Building Envelope
-    roofing_contractor: 'Roofing Contractor',
-    siding_contractor: 'Siding Contractor',
-    window_installer: 'Window Installer',
-    door_installer: 'Door Installer',
-    insulation_contractor: 'Insulation Contractor',
-    
+    roofing_contractor: "Roofing Contractor",
+    siding_contractor: "Siding Contractor",
+    window_installer: "Window Installer",
+    door_installer: "Door Installer",
+    insulation_contractor: "Insulation Contractor",
+
     // Electrical & Technology
-    electrician: 'Electrician',
-    low_voltage_technician: 'Low Voltage Technician',
-    solar_installer: 'Solar Installer',
-    security_system_installer: 'Security System Installer',
-    smart_home_specialist: 'Smart Home Specialist',
-    
+    electrician: "Electrician",
+    low_voltage_technician: "Low Voltage Technician",
+    solar_installer: "Solar Installer",
+    security_system_installer: "Security System Installer",
+    smart_home_specialist: "Smart Home Specialist",
+
     // Plumbing & HVAC
-    plumber: 'Plumber',
-    hvac_contractor: 'HVAC Contractor',
-    refrigeration_technician: 'Refrigeration Technician',
-    water_heater_specialist: 'Water Heater Specialist',
-    septic_contractor: 'Septic Contractor',
-    
+    plumber: "Plumber",
+    hvac_contractor: "HVAC Contractor",
+    refrigeration_technician: "Refrigeration Technician",
+    water_heater_specialist: "Water Heater Specialist",
+    septic_contractor: "Septic Contractor",
+
     // Interior Finishing
-    flooring_contractor: 'Flooring Contractor',
-    tile_contractor: 'Tile Contractor',
-    carpet_installer: 'Carpet Installer',
-    painter: 'Painter',
-    drywall_contractor: 'Drywall Contractor',
-    cabinet_maker: 'Cabinet Maker',
-    countertop_installer: 'Countertop Installer',
-    
+    flooring_contractor: "Flooring Contractor",
+    tile_contractor: "Tile Contractor",
+    carpet_installer: "Carpet Installer",
+    painter: "Painter",
+    drywall_contractor: "Drywall Contractor",
+    cabinet_maker: "Cabinet Maker",
+    countertop_installer: "Countertop Installer",
+
     // Kitchen & Bath
-    kitchen_remodeler: 'Kitchen Remodeler',
-    bathroom_remodeler: 'Bathroom Remodeler',
-    appliance_installer: 'Appliance Installer',
-    
+    kitchen_remodeler: "Kitchen Remodeler",
+    bathroom_remodeler: "Bathroom Remodeler",
+    appliance_installer: "Appliance Installer",
+
     // Outdoor & Landscaping
-    landscaper: 'Landscaper',
-    hardscape_contractor: 'Hardscape Contractor',
-    pool_contractor: 'Pool Contractor',
-    fence_contractor: 'Fence Contractor',
-    deck_builder: 'Deck Builder',
-    outdoor_lighting: 'Outdoor Lighting Specialist',
-    
+    landscaper: "Landscaper",
+    hardscape_contractor: "Hardscape Contractor",
+    pool_contractor: "Pool Contractor",
+    fence_contractor: "Fence Contractor",
+    deck_builder: "Deck Builder",
+    outdoor_lighting: "Outdoor Lighting Specialist",
+
     // Specialty Services
-    home_inspector: 'Home Inspector',
-    mold_remediation: 'Mold Remediation Specialist',
-    water_damage_restoration: 'Water Damage Restoration',
-    pest_control: 'Pest Control',
-    cleaning_service: 'Cleaning Service',
-    handyman: 'Handyman',
-    maintenance_contractor: 'Maintenance Contractor',
+    home_inspector: "Home Inspector",
+    mold_remediation: "Mold Remediation Specialist",
+    water_damage_restoration: "Water Damage Restoration",
+    pest_control: "Pest Control",
+    cleaning_service: "Cleaning Service",
+    handyman: "Handyman",
+    maintenance_contractor: "Maintenance Contractor",
   };
-  
+
   return tradeNames[trade] || trade;
 }
 
 // Role categories for UI organization
 export const ROLE_CATEGORIES = {
-  customer: ['homeowner', 'property_manager', 'business_owner'],
-  service_provider: ['contractor_user', 'accelerator_member', 'realtor', 'car_salesman', 'insurance_agent', 'mortgage_broker'],
-  community: ['community_member', 'community_moderator', 'community_leader'],
-  staff: ['support_agent', 'content_moderator', 'territory_manager', 'contractor_success', 'content_seo', 'analytics_specialist', 'marketing_specialist'],
-  admin: ['moderator', 'ops_admin', 'super_admin', 'head_admin'],
+  customer: ["homeowner", "property_manager", "business_owner"],
+  service_provider: [
+    "contractor_user",
+    "accelerator_member",
+    "realtor",
+    "car_salesman",
+    "insurance_agent",
+    "mortgage_broker",
+  ],
+  community: ["community_member", "community_moderator", "community_leader"],
+  staff: [
+    "support_agent",
+    "content_moderator",
+    "territory_manager",
+    "contractor_success",
+    "content_seo",
+    "analytics_specialist",
+    "marketing_specialist",
+  ],
+  admin: ["moderator", "ops_admin", "super_admin"],
 } as const;
 
 // Trade categories for UI organization
 export const TRADE_CATEGORIES = {
-  construction: ['general_contractor', 'construction_manager', 'project_manager'],
-  structural: ['concrete_contractor', 'foundation_specialist', 'masonry_contractor', 'structural_engineer'],
-  building_envelope: ['roofing_contractor', 'siding_contractor', 'window_installer', 'door_installer', 'insulation_contractor'],
-  electrical: ['electrician', 'low_voltage_technician', 'solar_installer', 'security_system_installer', 'smart_home_specialist'],
-  plumbing_hvac: ['plumber', 'hvac_contractor', 'refrigeration_technician', 'water_heater_specialist', 'septic_contractor'],
-  interior: ['flooring_contractor', 'tile_contractor', 'carpet_installer', 'painter', 'drywall_contractor', 'cabinet_maker', 'countertop_installer'],
-  kitchen_bath: ['kitchen_remodeler', 'bathroom_remodeler', 'appliance_installer'],
-  outdoor: ['landscaper', 'hardscape_contractor', 'pool_contractor', 'fence_contractor', 'deck_builder', 'outdoor_lighting'],
-  specialty: ['home_inspector', 'mold_remediation', 'water_damage_restoration', 'pest_control', 'cleaning_service', 'handyman', 'maintenance_contractor'],
+  construction: ["general_contractor", "construction_manager", "project_manager"],
+  structural: [
+    "concrete_contractor",
+    "foundation_specialist",
+    "masonry_contractor",
+    "structural_engineer",
+  ],
+  building_envelope: [
+    "roofing_contractor",
+    "siding_contractor",
+    "window_installer",
+    "door_installer",
+    "insulation_contractor",
+  ],
+  electrical: [
+    "electrician",
+    "low_voltage_technician",
+    "solar_installer",
+    "security_system_installer",
+    "smart_home_specialist",
+  ],
+  plumbing_hvac: [
+    "plumber",
+    "hvac_contractor",
+    "refrigeration_technician",
+    "water_heater_specialist",
+    "septic_contractor",
+  ],
+  interior: [
+    "flooring_contractor",
+    "tile_contractor",
+    "carpet_installer",
+    "painter",
+    "drywall_contractor",
+    "cabinet_maker",
+    "countertop_installer",
+  ],
+  kitchen_bath: ["kitchen_remodeler", "bathroom_remodeler", "appliance_installer"],
+  outdoor: [
+    "landscaper",
+    "hardscape_contractor",
+    "pool_contractor",
+    "fence_contractor",
+    "deck_builder",
+    "outdoor_lighting",
+  ],
+  specialty: [
+    "home_inspector",
+    "mold_remediation",
+    "water_damage_restoration",
+    "pest_control",
+    "cleaning_service",
+    "handyman",
+    "maintenance_contractor",
+  ],
 } as const;

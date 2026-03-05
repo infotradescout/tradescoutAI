@@ -17,6 +17,9 @@ async function expectBootFallbackHidden(page: any) {
 }
 
 test.describe("Pre-Scout auth integrity", () => {
+  // These checks validate guest auth routing and must run with a clean session.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test("legacy auth routes resolve to explicit pre-scout modes", async ({ page }) => {
     await page.goto(`${env.BASE_URL}/login`);
     await expectBootFallbackHidden(page);

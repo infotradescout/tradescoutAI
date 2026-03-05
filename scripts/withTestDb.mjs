@@ -1,7 +1,7 @@
-import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
+import { spawnCommand } from "./lib/subprocess.mjs";
 
 // Allow TEST_DATABASE_URL to come from a local .env.test file in the
 // repo root, in addition to the ambient environment. This keeps CI
@@ -25,11 +25,7 @@ if (!testDatabaseUrl) {
 
 const env = { ...process.env, DATABASE_URL: testDatabaseUrl };
 
-const child = spawn(command[0], command.slice(1), {
-  stdio: "inherit",
-  shell: true,
-  env,
-});
+const child = await spawnCommand(command[0], command.slice(1), { stdio: "inherit", env });
 
 child.on("exit", (code) => {
   process.exit(code ?? 1);

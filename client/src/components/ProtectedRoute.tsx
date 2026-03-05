@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { SkeletonBlock } from "@/components/ui/states";
+import { isAdminTier, isSuperAdminLike as isSuperAdminRoleLike } from "@/lib/roleChecks";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,13 +16,14 @@ interface ProtectedRouteProps {
 function isAdminLikeUser(user: any): boolean {
   if (!user) return false;
   if (user.isAdmin === true || user.isSuperAdmin === true) return true;
-  if (user.role === "super_admin" || user.role === "head_admin" || user.role === "owner")
-    return true;
+  if (isAdminTier(user.role) || isSuperAdminRoleLike(user.role)) return true;
 
   const roles: string[] = Array.isArray(user.roles)
     ? user.roles.filter((r: unknown): r is string => typeof r === "string")
     : [];
-  return roles.some((r) => r.includes("admin") || r === "owner");
+  return roles.some(
+    (r) => isAdminTier(r) || isSuperAdminRoleLike(r) || String(r).includes("admin")
+  );
 }
 
 /**
@@ -30,7 +32,7 @@ function isAdminLikeUser(user: any): boolean {
  * Requires at least one role match (OR logic)
  *
  * @example
- * <ProtectedRoute requiredRoles={['super_admin', 'head_admin']}>
+ * <ProtectedRoute requiredRoles={['super_admin']}>
  *   <PromptAdminPage />
  * </ProtectedRoute>
  */
@@ -76,7 +78,7 @@ export function ProtectedRoute({
     // Check profile normalization needs
     const isAdmin = isAdminLikeUser(user);
     const role = (user as any)?.role as string | undefined;
-    const isSuperAdminLike = role === "super_admin" || role === "head_admin";
+    const isSuperAdminLike = isSuperAdminRoleLike(role);
     const profileVersion =
       typeof (user as any)?.profileVersion === "number" ? (user as any).profileVersion : 0;
 

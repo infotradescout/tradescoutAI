@@ -1,6 +1,7 @@
 import { memo, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { CheckCircle, PartyPopper, Shield, Sparkles, AlertTriangle } from "lucide-react";
+import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
 
 function Reveal({
   children,
@@ -151,6 +152,10 @@ const Pricing = memo(function Pricing() {
           </div>
         </Reveal>
 
+        <Reveal>
+          <RevenueDisclosureSection className="" />
+        </Reveal>
+
         {/* No credit card CTA */}
         <Reveal>
           <div className="bg-tsCard border border-white/10 rounded-xl p-6 shadow-[0_18px_52px_rgba(0,0,0,0.36)] text-center">
@@ -158,8 +163,8 @@ const Pricing = memo(function Pricing() {
               Start building without a credit card
             </h2>
             <p className="text-white/60 text-sm max-w-xl mx-auto">
-              Jump in, invite your team, and explore every feature. No payment is used to alter trust
-              authority, ranking, or connection access.
+              Jump in, invite your team, and explore every feature. No payment is used to alter
+              trust authority, ranking, or connection access.
             </p>
           </div>
         </Reveal>

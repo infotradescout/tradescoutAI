@@ -18,7 +18,8 @@ If the removed secrets were ever committed/pushed, rewrite history and force-pus
 # Install once (Python required)
 python -m pip install git-filter-repo
 
-cd c:\Users\trob4\TradeScout\tradescoutAI
+# Run from your repo root
+# e.g. cd C:\path\to\TradeScoutPro
 
 # Rewrite history to remove secret paths
 git filter-repo --force ^
@@ -31,6 +32,12 @@ git filter-repo --force ^
 # Force-push rewritten history
 git push --force --all
 git push --force --tags
+```
+
+After rewriting history, re-run the repo’s secrets history audit to confirm there are no remaining matches:
+
+```powershell
+npm run audit:secrets-history
 ```
 
 ### Option B: BFG Repo-Cleaner

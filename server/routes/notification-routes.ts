@@ -25,9 +25,9 @@ export function registerNotificationRoutes(app: Express) {
       }
 
       const { unread_only, limit = 50, offset = 0, type } = req.query;
-      
+
       const notifications = await notificationService.getUserNotifications(userId, {
-        unreadOnly: unread_only === 'true',
+        unreadOnly: unread_only === "true",
         limit: parseInt(limit as string) || 50,
         offset: parseInt(offset as string) || 0,
         type: type as string,
@@ -118,12 +118,12 @@ export function registerNotificationRoutes(app: Express) {
 
       const testNotification = await notificationService.createNotification({
         userId,
-        type: 'system_update',
-        title: 'Test Notification',
-        message: 'This is a test notification to verify the system is working correctly.',
-        iconName: 'bell',
-        iconColor: 'blue',
-        deliveryMethods: ['in_app'],
+        type: "system_update",
+        title: "Test Notification",
+        message: "This is a test notification to verify the system is working correctly.",
+        iconName: "bell",
+        iconColor: "blue",
+        deliveryMethods: ["in_app"],
       });
 
       res.json(testNotification);
@@ -146,7 +146,7 @@ export function registerNotificationRoutes(app: Express) {
       }
 
       let preferences = await notificationService.getUserPreferences(userId);
-      
+
       // Create default preferences if none exist
       if (!preferences) {
         preferences = await notificationService.createDefaultPreferences(userId);
@@ -171,17 +171,14 @@ export function registerNotificationRoutes(app: Express) {
       const updateSchema = insertNotificationPreferencesSchema.partial();
       const validatedData = updateSchema.parse(req.body);
 
-      const preferences = await notificationService.updateUserPreferences(
-        userId, 
-        validatedData
-      );
+      const preferences = await notificationService.updateUserPreferences(userId, validatedData);
 
       res.json(preferences);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
         });
       }
 
@@ -262,9 +259,7 @@ export function registerNotificationRoutes(app: Express) {
         return res.status(400).json({ message: "Missing endpoint" });
       }
 
-      await db
-        .delete(pushSubscriptions)
-        .where(eq(pushSubscriptions.endpoint, endpoint));
+      await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
 
       res.json({ success: true });
     } catch (error) {
@@ -311,9 +306,9 @@ export function registerNotificationRoutes(app: Express) {
       res.json(event);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
         });
       }
 
@@ -336,11 +331,7 @@ export function registerNotificationRoutes(app: Express) {
       const updateSchema = insertUserPersonalEventSchema.partial().omit({ userId: true });
       const validatedData = updateSchema.parse(req.body);
 
-      const event = await notificationService.updatePersonalEvent(
-        eventId, 
-        userId, 
-        validatedData
-      );
+      const event = await notificationService.updatePersonalEvent(eventId, userId, validatedData);
 
       if (!event) {
         return res.status(404).json({ message: "Personal event not found" });
@@ -349,9 +340,9 @@ export function registerNotificationRoutes(app: Express) {
       res.json(event);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors,
         });
       }
 
@@ -392,7 +383,7 @@ export function registerNotificationRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      await notificationService.sendWelcomeNotification(userId, userRole || 'homeowner');
+      await notificationService.sendWelcomeNotification(userId, userRole || "homeowner");
       res.json({ success: true });
     } catch (error) {
       console.error("Error sending welcome notification:", error);
@@ -411,17 +402,12 @@ export function registerNotificationRoutes(app: Express) {
       const { milestone, description, metadata } = (req.body ?? {}) as any;
 
       if (!milestone || !description) {
-        return res.status(400).json({ 
-          message: "Milestone and description are required" 
+        return res.status(400).json({
+          message: "Milestone and description are required",
         });
       }
 
-      await notificationService.sendMilestoneNotification(
-        userId, 
-        milestone, 
-        description, 
-        metadata
-      );
+      await notificationService.sendMilestoneNotification(userId, milestone, description, metadata);
 
       res.json({ success: true });
     } catch (error) {
@@ -437,7 +423,9 @@ export function registerNotificationRoutes(app: Express) {
   // Process birthday notifications (admin only)
   app.post("/api/admin/notifications/process-birthdays", isAuthenticated, async (req: any, res) => {
     try {
-      if (req.user?.role !== 'head_admin' && req.user?.role !== 'ops_admin') {
+      const rawRole = typeof req.user?.role === "string" ? req.user.role.trim().toLowerCase() : "";
+      const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
+      if (role !== "super_admin" && role !== "ops_admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -452,7 +440,9 @@ export function registerNotificationRoutes(app: Express) {
   // Process scheduled notifications (admin only)
   app.post("/api/admin/notifications/process-scheduled", isAuthenticated, async (req: any, res) => {
     try {
-      if (req.user?.role !== 'head_admin' && req.user?.role !== 'ops_admin') {
+      const rawRole = typeof req.user?.role === "string" ? req.user.role.trim().toLowerCase() : "";
+      const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
+      if (role !== "super_admin" && role !== "ops_admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
 

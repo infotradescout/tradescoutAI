@@ -3,8 +3,15 @@ import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
 import { db } from "../db";
-import { counties } from "@shared/schema";
-import { inArray } from "drizzle-orm";
+import { counties, users } from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
+import { getPublicationRules } from "../publicationRules";
+import { isPublicAndCrawlableBusiness } from "@shared/publication";
+import {
+  buildPublicBusinessSignals,
+  derivePublicationTier,
+  deriveTradeSlugFromProfileData,
+} from "../publicationBusiness";
 
 const router = Router();
 
@@ -188,6 +195,10 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
       return res.status(404).json({ message: "Business not found" });
     }
 
+    const profileData: any = business.profileData || {};
+    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+    const city = typeof profileData.city === "string" ? profileData.city : null;
+
     const countyIdRows = await storage.getBusinessCountyIds(business.id);
     const countyRows = countyIdRows.length
       ? await db
@@ -201,9 +212,60 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
           .where(inArray(counties.id, countyIdRows))
       : [];
 
+    const ownerUserId = (business as any).ownerUserId
+      ? String((business as any).ownerUserId)
+      : null;
+    let ownerVerificationStatus: string | null = null;
+    let ownerAddressVerified: boolean | null = null;
+    if (ownerUserId) {
+      const ownerRows = await db
+        .select({
+          verificationStatus: users.verificationStatus,
+          addressVerified: users.addressVerified,
+        })
+        .from(users)
+        .where(eq(users.id, ownerUserId))
+        .limit(1);
+      ownerVerificationStatus = ownerRows[0]?.verificationStatus
+        ? String(ownerRows[0].verificationStatus)
+        : null;
+      ownerAddressVerified =
+        typeof ownerRows[0]?.addressVerified === "boolean" ? ownerRows[0].addressVerified : null;
+    }
+
+    const tier = derivePublicationTier({
+      ownerUserId,
+      claimStatus: String((business as any).claimStatus || ""),
+      ownerVerificationStatus,
+      ownerAddressVerified,
+    });
+
+    const countyPrimary = countyRows[0] || null;
+    const rules = await getPublicationRules();
+    const pub = isPublicAndCrawlableBusiness(
+      buildPublicBusinessSignals({
+        id: String(business.id),
+        name: String(business.name || ""),
+        slug: String(business.slug || ""),
+        updatedAt:
+          (business as any).updatedAt instanceof Date ? (business as any).updatedAt : new Date(),
+        publicDiscoveryEnabled: Boolean((business as any).publicDiscoveryEnabled),
+        stateCode: countyPrimary?.stateCode ? String(countyPrimary.stateCode) : null,
+        countyName: countyPrimary?.name ? String(countyPrimary.name) : null,
+        city,
+        tradeSlug,
+        tier,
+      }),
+      rules,
+      new Date()
+    );
+
+    if (!pub.ok) {
+      return res.status(410).json({ message: "Listing inactive/out of date" });
+    }
+
     // Public-safe profile payload (do not expose ownerUserId or any direct-contact vectors).
     // All contact must remain intent-gated through Scout.
-    const profileData: any = business.profileData || {};
     const publicProfile = {
       tagline: profileData.tagline,
       description: profileData.description,

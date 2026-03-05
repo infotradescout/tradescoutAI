@@ -937,14 +937,14 @@ export default function ScoutOS() {
   const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
     if (!roles || roles.length === 0) return "default";
 
-    const normalized = roles.map((r) => r.toLowerCase());
+    const normalized = roles.map((r) => {
+      const raw = String(r || "").toLowerCase();
+      if (raw === "owner" || raw === "head_admin") return "super_admin";
+      return raw;
+    });
 
     // Super-admins and operators get an admin-focused Scout persona.
-    if (
-      normalized.some((r) =>
-        ["admin", "ops_admin", "super_admin", "head_admin", "owner"].includes(r)
-      )
-    ) {
+    if (normalized.some((r) => ["admin", "ops_admin", "super_admin"].includes(r))) {
       return "admin";
     }
 

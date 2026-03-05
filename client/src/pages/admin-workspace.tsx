@@ -174,7 +174,7 @@ export default function AdminWorkspace() {
     onError: (error: any) => {
       toast({
         title: "Seed failed",
-        description: error?.message || "You may need super admin access (super_admin/head_admin).",
+        description: error?.message || "You may need super admin access (super_admin).",
         variant: "destructive",
       });
     },

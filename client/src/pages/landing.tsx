@@ -48,6 +48,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
 import { resolveLandingVariant } from "./landingVariants";
 import {
   bootstrapDemandAttribution,
@@ -753,6 +754,12 @@ function PricingSection() {
             community vault.
           </p>
         </Reveal>
+
+        <div className="mt-3">
+          <Reveal>
+            <RevenueDisclosureSection title="How we make money (without selling leads)" />
+          </Reveal>
+        </div>
       </div>
     </section>
   );

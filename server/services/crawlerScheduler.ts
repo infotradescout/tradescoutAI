@@ -12,6 +12,8 @@ import { runHomeScoutBucketMetricsJob } from "./homeScoutBucketMetricsJob";
 import { runHomeScoutAlertsJob } from "./homeScoutAlertsJob";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
+import { runSeoPublicationPruneJob } from "./seoPublicationPruneJob";
+import { runSeoDirectoryScopeSnapshotJob } from "./seoDirectoryScopeSnapshotJob";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -30,6 +32,8 @@ let homeScoutMarketMetricsTask: any = null;
 let homeScoutIngestionTask: any = null;
 let homeScoutBucketMetricsTask: any = null;
 let homeScoutAlertsTask: any = null;
+let seoPublicationPruneTask: any = null;
+let seoDirectoryScopeSnapshotTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -53,6 +57,8 @@ export function startCrawlerScheduler() {
   startHomeScoutBucketMetricsScheduler();
   startHomeScoutAlertsScheduler();
   startTrustSnapshotsScheduler();
+  startSeoPublicationPruneScheduler();
+  startSeoDirectoryScopeSnapshotScheduler();
 }
 
 function startCrawlerJobs() {
@@ -78,6 +84,86 @@ function startCrawlerJobs() {
   });
 
   console.log("✅ Crawler scheduler started\n");
+}
+
+/**
+ * Start SEO publication prune job (New & True enforcement)
+ * Runs hourly by default (configurable via env)
+ */
+function startSeoPublicationPruneScheduler() {
+  if (process.env.DISABLE_SEO_PUBLICATION_PRUNE === "true") {
+    console.log("SEO publication prune job disabled via DISABLE_SEO_PUBLICATION_PRUNE env flag");
+    return;
+  }
+
+  const schedule = process.env.SEO_PUBLICATION_PRUNE_SCHEDULE || "12 * * * *"; // hourly
+  const jobName = "seo_publication_prune";
+
+  console.log(`\n🧹 Starting SEO publication prune scheduler with schedule: "${schedule}"`);
+
+  seoPublicationPruneTask = cron.schedule(schedule, async () => {
+    console.log(`\n🧹 [${new Date().toISOString()}] Running SEO publication prune job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runSeoPublicationPruneJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      const count = (result as any).businessesDeactivated || 0;
+      console.log("✅ SEO publication prune job completed", result);
+      emitJobEnd(jobName, count, false);
+    } catch (error) {
+      console.error("❌ SEO publication prune job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ SEO publication prune scheduler started\n");
+}
+
+/**
+ * Snapshot SEO scope pages (trade+county, trade+city) for sitemaps.
+ * Runs every 6 hours by default (configurable via env).
+ */
+function startSeoDirectoryScopeSnapshotScheduler() {
+  if (process.env.DISABLE_SEO_DIRECTORY_SCOPE_SNAPSHOT === "true") {
+    console.log(
+      "SEO directory scope snapshot job disabled via DISABLE_SEO_DIRECTORY_SCOPE_SNAPSHOT env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.SEO_DIRECTORY_SCOPE_SNAPSHOT_SCHEDULE || "30 */6 * * *";
+  const jobName = "seo_directory_scope_snapshot";
+
+  console.log(`\n🗺️ Starting SEO directory scope snapshot scheduler with schedule: "${schedule}"`);
+
+  seoDirectoryScopeSnapshotTask = cron.schedule(schedule, async () => {
+    console.log(`\n🗺️ [${new Date().toISOString()}] Running SEO directory scope snapshot job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runSeoDirectoryScopeSnapshotJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      const count = ((result as any).tradeCountyPages || 0) + ((result as any).tradeCityPages || 0);
+      console.log("✅ SEO directory scope snapshot job completed", result);
+      emitJobEnd(jobName, count, false);
+    } catch (error) {
+      console.error("❌ SEO directory scope snapshot job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ SEO directory scope snapshot scheduler started\n");
 }
 
 /**
@@ -497,6 +583,20 @@ export function stopCrawlerScheduler() {
     homeScoutAlertsTask = null;
     console.log("🛑 HomeScout alerts scheduler stopped");
   }
+
+  if (seoPublicationPruneTask) {
+    seoPublicationPruneTask.stop();
+    seoPublicationPruneTask.destroy();
+    seoPublicationPruneTask = null;
+    console.log("🛑 SEO publication prune scheduler stopped");
+  }
+
+  if (seoDirectoryScopeSnapshotTask) {
+    seoDirectoryScopeSnapshotTask.stop();
+    seoDirectoryScopeSnapshotTask.destroy();
+    seoDirectoryScopeSnapshotTask = null;
+    console.log("🛑 SEO directory scope snapshot scheduler stopped");
+  }
 }
 
 /**
@@ -543,6 +643,14 @@ export function getCrawlerSchedulerStatus() {
     trustSnapshots: {
       active: trustSnapshotsTask !== null,
       schedule: process.env.TRUST_SNAPSHOTS_SCHEDULE || "0 2 * * *",
+    },
+    seoPublicationPrune: {
+      active: seoPublicationPruneTask !== null,
+      schedule: process.env.SEO_PUBLICATION_PRUNE_SCHEDULE || "12 * * * *",
+    },
+    seoDirectoryScopeSnapshot: {
+      active: seoDirectoryScopeSnapshotTask !== null,
+      schedule: process.env.SEO_DIRECTORY_SCOPE_SNAPSHOT_SCHEDULE || "30 */6 * * *",
     },
   };
 }

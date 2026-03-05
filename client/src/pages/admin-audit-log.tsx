@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 type AdminHealth = {
   role?: string | null;
@@ -36,8 +37,7 @@ export default function AdminAuditLogPage() {
 
         const health = (await healthRes.json()) as AdminHealth;
         const role = String(health?.role || "");
-        const superAllowed =
-          health?.isSuperAdmin === true || role === "super_admin" || role === "head_admin";
+        const superAllowed = health?.isSuperAdmin === true || isSuperAdminLike(role);
 
         if (!superAllowed) {
           setAllowed(false);

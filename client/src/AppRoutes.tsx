@@ -7,6 +7,7 @@ import { AppShell } from "./components/layout/AppShell";
 import ScoutOS from "./scout";
 import SmartHome from "./SmartHome";
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
+import { isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
@@ -15,11 +16,7 @@ const PageLoader = memo(function PageLoader() {
 function getPostLandingRoute(user: unknown): string {
   const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
   const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
-  const isSuperAdmin =
-    role === "super_admin" ||
-    role === "head_admin" ||
-    role === "owner" ||
-    record?.isSuperAdmin === true;
+  const isSuperAdmin = isSuperAdminLike(role) || record?.isSuperAdmin === true;
 
   const rolesValue = record?.roles;
   const roles: string[] = Array.isArray(rolesValue)
@@ -27,8 +24,8 @@ function getPostLandingRoute(user: unknown): string {
     : [];
   const isAdmin =
     record?.isAdmin === true ||
-    role === "owner" ||
-    roles.some((r) => r.includes("admin") || r === "owner");
+    isAdminTier(role) ||
+    roles.some((r) => isAdminTier(r) || String(r).includes("admin"));
 
   if (isSuperAdmin || isAdmin) return "/admin";
   return "/scout";
@@ -159,6 +156,7 @@ const OnboardingIntent = React.lazy(() => import("./pages/onboarding-intent"));
 const OnboardingProfile = React.lazy(() => import("./pages/onboarding-profile"));
 const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
+const BusinessDirectoryPage = React.lazy(() => import("./pages/business-directory"));
 
 // Contractor Features
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
@@ -303,6 +301,22 @@ const ProjectTracker = React.lazy(() => import("./pages/lead-management"));
 // Additional Missing Pages
 const CountyHub = React.lazy(() => import("./pages/county-hub"));
 const CountyPage = React.lazy(() => import("./pages/county/CountyPage"));
+const TradeDirectoryPage = React.lazy(() => import("./pages/trade/TradeDirectoryPage"));
+const TradeOverviewPage = React.lazy(() => import("./pages/trade/TradeOverviewPage"));
+const TradeStatePage = React.lazy(() => import("./pages/trade/TradeStatePage"));
+const TradeCountyPage = React.lazy(() => import("./pages/trade/TradeCountyPage"));
+const TradeCityPage = React.lazy(() => import("./pages/trade/TradeCityPage"));
+const CityPage = React.lazy(() => import("./pages/city/CityPage"));
+const BestTradeCountyPage = React.lazy(() => import("./pages/best/BestTradeCountyPage"));
+const BestTradeCityPage = React.lazy(() => import("./pages/best/BestTradeCityPage"));
+const CountyRecentPage = React.lazy(() => import("./pages/recent/CountyRecentPage"));
+const CityRecentPage = React.lazy(() => import("./pages/recent/CityRecentPage"));
+const TradeCountyRecentPage = React.lazy(() => import("./pages/recent/TradeCountyRecentPage"));
+const TradeCityRecentPage = React.lazy(() => import("./pages/recent/TradeCityRecentPage"));
+const DatasetsLandingPage = React.lazy(() => import("./pages/datasets/DatasetsLandingPage"));
+const DatasetsTradesPage = React.lazy(() => import("./pages/datasets/DatasetsTradesPage"));
+const DatasetsCountiesPage = React.lazy(() => import("./pages/datasets/DatasetsCountiesPage"));
+const DatasetsCitiesPage = React.lazy(() => import("./pages/datasets/DatasetsCitiesPage"));
 const MapsPage = React.lazy(() => import("./pages/maps"));
 const Verification = React.lazy(() => import("./pages/verification"));
 const IdentityVerification = React.lazy(() => import("./pages/identity-verification"));
@@ -689,6 +703,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={BusinessProfileEditor} />
               </ProtectedRoute>
             </Route>
+            <Route path="/directory/businesses">
+              <LazyPage Component={BusinessDirectoryPage} />
+            </Route>
 
             {/* Business routes */}
             <Route path="/contractor-board">
@@ -950,7 +967,6 @@ export const AppRoutes = memo(function AppRoutes({
                   "moderator",
                   "ops_admin",
                   "super_admin",
-                  "head_admin",
                 ]}
               >
                 <LazyPage Component={StaffHardrockDirectory} />
@@ -969,7 +985,6 @@ export const AppRoutes = memo(function AppRoutes({
                   "moderator",
                   "ops_admin",
                   "super_admin",
-                  "head_admin",
                 ]}
               >
                 <LazyPage Component={StaffShareLinks} />
@@ -1169,6 +1184,54 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
 
             {/* Community & Geographic */}
+            <Route path="/datasets">
+              <LazyPage Component={DatasetsLandingPage} />
+            </Route>
+            <Route path="/datasets/trades">
+              <LazyPage Component={DatasetsTradesPage} />
+            </Route>
+            <Route path="/datasets/counties">
+              <LazyPage Component={DatasetsCountiesPage} />
+            </Route>
+            <Route path="/datasets/cities">
+              <LazyPage Component={DatasetsCitiesPage} />
+            </Route>
+            <Route path="/best/:tradeSlug/:stateCode/city/:citySlug">
+              <LazyPage Component={BestTradeCityPage} />
+            </Route>
+            <Route path="/best/:tradeSlug/:stateCode/:countySlug">
+              <LazyPage Component={BestTradeCountyPage} />
+            </Route>
+            <Route path="/trade">
+              <LazyPage Component={TradeDirectoryPage} />
+            </Route>
+            <Route path="/trade/:tradeSlug/:stateCode/city/:citySlug/recent">
+              <LazyPage Component={TradeCityRecentPage} />
+            </Route>
+            <Route path="/trade/:tradeSlug/:stateCode/city/:citySlug">
+              <LazyPage Component={TradeCityPage} />
+            </Route>
+            <Route path="/trade/:tradeSlug/:stateCode/:countySlug/recent">
+              <LazyPage Component={TradeCountyRecentPage} />
+            </Route>
+            <Route path="/trade/:tradeSlug/:stateCode/:countySlug">
+              <LazyPage Component={TradeCountyPage} />
+            </Route>
+            <Route path="/trade/:tradeSlug/:stateCode">
+              <LazyPage Component={TradeStatePage} />
+            </Route>
+            <Route path="/trade/:tradeSlug">
+              <LazyPage Component={TradeOverviewPage} />
+            </Route>
+            <Route path="/city/:stateCode/:citySlug/recent">
+              <LazyPage Component={CityRecentPage} />
+            </Route>
+            <Route path="/city/:stateCode/:citySlug">
+              <LazyPage Component={CityPage} />
+            </Route>
+            <Route path="/county/:stateCode/:countySlug/recent">
+              <LazyPage Component={CountyRecentPage} />
+            </Route>
             <Route path="/county/:stateCode/:countySlug">
               <LazyPage Component={CountyPage} />
             </Route>

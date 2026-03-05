@@ -603,6 +603,16 @@ export interface IStorage {
     limit?: number;
     offset?: number;
   }): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
+  countDirectoryCountiesForSitemap(): Promise<number>;
+  listDirectoryCountiesForSitemap(args?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{ fips: string; name: string; stateCode: string; updatedAt: Date | null }>>;
+  countDirectoryCitiesForSitemap(): Promise<number>;
+  listDirectoryCitiesForSitemap(args?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{ stateCode: string; citySlug: string; updatedAt: Date | null }>>;
   listActiveHomeScoutListingsForSitemap(args?: {
     limit?: number;
   }): Promise<Array<{ id: string; updatedAt: Date | null }>>;
@@ -1505,11 +1515,11 @@ export class DatabaseStorage implements IStorage {
     const existingRoles = Array.isArray((user as any).roles)
       ? (user as any).roles.map((r: any) => String(r))
       : [];
-    const normalizedRoles = Array.from(new Set(["head_admin", ...existingRoles]));
+    const normalizedRoles = Array.from(new Set(["super_admin", ...existingRoles]));
 
     const normalizedUser = {
       ...user,
-      role: "head_admin" as any,
+      role: "super_admin" as any,
       roles: normalizedRoles as any,
       isAdmin: true as any,
       isSuperAdmin: true as any,
@@ -2009,9 +2019,15 @@ export class DatabaseStorage implements IStorage {
 
   async countActiveDirectoryBusinessesForSitemap(): Promise<number> {
     const rows = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(DISTINCT ${businesses.id})` })
       .from(businesses)
-      .where(eq(businesses.status, "active" as any));
+      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any)
+        )
+      );
     const count = Number((rows[0] as any)?.count ?? 0);
     return Number.isFinite(count) && count >= 0 ? count : 0;
   }
@@ -2031,9 +2047,16 @@ export class DatabaseStorage implements IStorage {
         updatedAt: businesses.updatedAt,
       })
       .from(businesses)
-      .where(eq(businesses.status, "active" as any))
+      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any)
+        )
+      )
       // Stable ordering is important when paging large sitemaps.
       .orderBy(asc(businesses.slug))
+      .groupBy(businesses.slug, businesses.updatedAt)
       .limit(limit)
       .offset(offset);
 
@@ -2043,6 +2066,135 @@ export class DatabaseStorage implements IStorage {
         updatedAt: row.updatedAt ?? null,
       }))
       .filter((row) => row.slug.length > 0);
+  }
+
+  async countDirectoryCountiesForSitemap(): Promise<number> {
+    const rows = await db
+      .select({ count: sql<number>`count(DISTINCT ${counties.fips})` })
+      .from(counties)
+      .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
+      .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any)
+        )
+      );
+    const count = Number((rows[0] as any)?.count ?? 0);
+    return Number.isFinite(count) && count >= 0 ? count : 0;
+  }
+
+  async listDirectoryCountiesForSitemap(args?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{ fips: string; name: string; stateCode: string; updatedAt: Date | null }>> {
+    const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
+    const limit = Math.max(1, Math.min(50_000, limitRequested));
+    const offsetRequested = Number(args?.offset ?? 0) || 0;
+    const offset = Math.max(0, offsetRequested);
+
+    const rows = await db
+      .select({
+        fips: counties.fips,
+        name: counties.name,
+        stateCode: counties.stateCode,
+        updatedAt: sql<Date | null>`max(${businesses.updatedAt})`,
+      })
+      .from(counties)
+      .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
+      .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any)
+        )
+      )
+      .groupBy(counties.fips, counties.name, counties.stateCode)
+      .orderBy(asc(counties.fips))
+      .limit(limit)
+      .offset(offset);
+
+    return rows
+      .map((row) => ({
+        fips: String((row as any).fips || "").trim(),
+        name: String((row as any).name || "").trim(),
+        stateCode: String((row as any).stateCode || "")
+          .trim()
+          .toUpperCase(),
+        updatedAt: (row as any).updatedAt ?? null,
+      }))
+      .filter((row) => row.fips.length === 5 && row.stateCode.length === 2 && row.name.length > 0);
+  }
+
+  async countDirectoryCitiesForSitemap(): Promise<number> {
+    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+
+    const rows = await db
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(
+        sql`(
+          select
+            ${counties.stateCode} as state_code,
+            ${citySlugExpr} as city_slug
+          from ${businesses}
+          inner join ${businessCounties} on ${businessCounties.businessId} = ${businesses.id}
+          inner join ${counties} on ${counties.id} = ${businessCounties.countyId}
+          where ${businesses.status} = 'active'
+            and ${businesses.publicDiscoveryEnabled} = true
+            and coalesce(${businesses.profileData} ->> 'city', '') <> ''
+          group by ${counties.stateCode}, ${citySlugExpr}
+        ) as city_groups`
+      );
+
+    const count = Number((rows[0] as any)?.count ?? 0);
+    return Number.isFinite(count) && count >= 0 ? count : 0;
+  }
+
+  async listDirectoryCitiesForSitemap(args?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Array<{ stateCode: string; citySlug: string; updatedAt: Date | null }>> {
+    const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
+    const limit = Math.max(1, Math.min(50_000, limitRequested));
+    const offsetRequested = Number(args?.offset ?? 0) || 0;
+    const offset = Math.max(0, offsetRequested);
+
+    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+
+    const rows = await db
+      .select({
+        stateCode: counties.stateCode,
+        citySlug: citySlugExpr,
+        updatedAt: sql<Date | null>`max(${businesses.updatedAt})`,
+      })
+      .from(businesses)
+      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          sql`coalesce(${businesses.profileData} ->> 'city', '') <> ''`
+        )
+      )
+      .groupBy(counties.stateCode, citySlugExpr)
+      .orderBy(asc(counties.stateCode), asc(citySlugExpr))
+      .limit(limit)
+      .offset(offset);
+
+    return rows
+      .map((row) => ({
+        stateCode: String((row as any).stateCode || "")
+          .trim()
+          .toUpperCase(),
+        citySlug: String((row as any).citySlug || "")
+          .trim()
+          .toLowerCase(),
+        updatedAt: (row as any).updatedAt ?? null,
+      }))
+      .filter((row) => row.stateCode.length === 2 && row.citySlug.length > 0);
   }
 
   async listActiveHomeScoutListingsForSitemap(args?: {
@@ -2397,18 +2549,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByRole(role: string): Promise<User | undefined> {
-    const normalizedRole = String(role || "")
+    let normalizedRole = String(role || "")
       .trim()
       .toLowerCase();
     if (!normalizedRole) return undefined;
 
+    // Backward-compat: treat "head_admin" as "super_admin" (super_admin is the highest).
+    if (normalizedRole === "head_admin") normalizedRole = "super_admin";
+
     const [user] =
-      normalizedRole === "head_admin"
+      normalizedRole === "super_admin"
         ? await db
             .select()
             .from(users)
             .where(
-              sql`${users.role}::text = ${normalizedRole} OR lower(${users.role}::text) = 'owner'`
+              sql`${users.role}::text = ${normalizedRole} OR lower(${users.role}::text) in ('owner','head_admin')`
             )
             .limit(1)
         : await db
@@ -2579,7 +2734,7 @@ export class DatabaseStorage implements IStorage {
         password: hashedPassword,
         firstName,
         lastName,
-        role: "head_admin",
+        role: "super_admin",
         emailVerified: true, // Master admin is pre-verified
         addressVerified: true,
         address: "Platform Administrator", // Default address for master admin

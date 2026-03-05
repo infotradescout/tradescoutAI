@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Map as MapIcon, Users, TrendingUp, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { geoAlbersUsa, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
@@ -368,7 +369,7 @@ export function UserHeatmap() {
   const [countyLens, setCountyLens] = useState<"coverage" | "metric">("coverage");
   const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "head_admin";
+  const isSuperAdmin = isSuperAdminLike(user?.role);
 
   const { data: heatmapData = [], isLoading } = useQuery({
     queryKey: ["/api/heatmap", timeframe],
@@ -1027,7 +1028,7 @@ export function UserHeatmap() {
                                 <div className="p-3 space-y-3">
                                   {countyNotes.map((note) => {
                                     const isOwner = note.authorUserId === user?.id;
-                                    const canDelete = isOwner || user?.role === "head_admin";
+                                    const canDelete = isOwner || isSuperAdminLike(user?.role);
 
                                     const categoryLabel =
                                       note.category.charAt(0).toUpperCase() +

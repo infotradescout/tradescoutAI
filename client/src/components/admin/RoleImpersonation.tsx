@@ -15,6 +15,7 @@ import { UserCog, Eye, ArrowLeft, Shield, AlertTriangle, Info } from "lucide-rea
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 interface ImpersonationState {
   isImpersonating: boolean;
@@ -31,7 +32,7 @@ const AVAILABLE_ROLES = [
     name: "Startup Founder",
     description: "Entrepreneur account for startup flows",
   },
-  { id: "moderator", name: "Moderator", description: "Community moderation permissions" },
+  { id: "moderator", name: "Staff", description: "Employee moderation permissions" },
   { id: "ops_admin", name: "Operations Admin", description: "Operational admin access" },
 ];
 
@@ -49,9 +50,7 @@ export function RoleImpersonation() {
   // Check if user has admin permissions
   const effectiveAdminRole = (user?.originalRole || user?.role || "").toString();
   const canImpersonate =
-    effectiveAdminRole === "head_admin" ||
-    effectiveAdminRole === "super_admin" ||
-    effectiveAdminRole === "ops_admin";
+    isSuperAdminLike(effectiveAdminRole) || effectiveAdminRole.trim().toLowerCase() === "ops_admin";
 
   useEffect(() => {
     const isImpersonatingNow = Boolean(user?.isImpersonating || (user as any)?.impersonating);

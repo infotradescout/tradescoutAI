@@ -22,7 +22,7 @@ const createCauseSchema = z.object({
   description: z.string().max(5000).optional(),
 });
 
-const PLATFORM_CAUSE_CURATOR_ROLES = new Set(["head_admin", "super_admin", "ops_admin"]);
+const PLATFORM_CAUSE_CURATOR_ROLES = new Set(["super_admin", "ops_admin"]);
 
 router.post("/", isAuthenticated, async (req: any, res: Response) => {
   try {

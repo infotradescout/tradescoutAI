@@ -2,11 +2,13 @@ import fs from "fs";
 import path from "path";
 
 const ROOT = process.cwd();
-const PAGES_DIR = path.join(ROOT, "client", "src");
+const PAGES_DIR = path.join(ROOT, "client", "src", "pages");
 
 const TARGET_EXTS = new Set([".ts", ".tsx"]);
 const PATTERNS = [
-  { id: "min-h-screen", re: /\bmin-h-screen\b/g },
+  // Viewport-claiming height utilities are forbidden at FeatureSurface level.
+  // (AppSurface/AppFrame own viewport height; features must not recreate it.)
+  { id: "min-h-viewport", re: /min-h-(?:screen|\[(?:calc\([^\]]+\)|100vh)\])/g },
   { id: "h-screen", re: /\bh-screen\b/g },
   { id: "w-screen", re: /\bw-screen\b/g },
   { id: "bg-*", re: /\bbg-[a-z0-9\-\/\[\]\(\)\.\%]+/gi },
@@ -47,7 +49,9 @@ function scanFile(filePath) {
     }
   }
 
-  const isRootViolation = hits.some((h) => h.pattern === "min-h-screen") && hits.some((h) => h.pattern === "bg-*");
+  const claimsViewportHeight =
+    hits.some((h) => h.pattern === "min-h-viewport") || hits.some((h) => h.pattern === "h-screen");
+  const isRootViolation = claimsViewportHeight && hits.some((h) => h.pattern === "bg-*");
 
   return { file: rel, isRootViolation, hits };
 }
@@ -65,7 +69,7 @@ results.sort((a, b) => {
 const summary = {
   scannedFiles: results.length,
   rootViolations: results.filter((r) => r.isRootViolation).length,
-  filesWithMinH: results.filter((r) => r.hits.some((h) => h.pattern === "min-h-screen")).length,
+  filesWithViewportHeight: results.filter((r) => r.hits.some((h) => h.pattern === "min-h-viewport" || h.pattern === "h-screen")).length,
   filesWithBg: results.filter((r) => r.hits.some((h) => h.pattern === "bg-*")).length,
 };
 
@@ -76,8 +80,8 @@ const md = [
   `# UI Surface Audit`,
   ``,
   `Scanned files: **${summary.scannedFiles}**`,
-  `Root violations (min-h-screen + bg-*): **${summary.rootViolations}**`,
-  `Files with min-h-screen: **${summary.filesWithMinH}**`,
+  `Root violations (viewport-height + bg-*): **${summary.rootViolations}**`,
+  `Files claiming viewport height: **${summary.filesWithViewportHeight}**`,
   `Files with bg-* classes: **${summary.filesWithBg}**`,
   ``,
   `## Top offenders`,

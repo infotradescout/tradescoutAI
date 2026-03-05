@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 interface ModerationButtonsProps {
-  targetType: 'post' | 'comment';
+  targetType: "post" | "comment";
   targetId: string;
   className?: string;
   compact?: boolean; // For comment threads where space is limited
@@ -34,16 +34,38 @@ interface ModerationScore {
 }
 
 interface UserVote {
-  voteType: 'upvote' | 'downvote' | 'flag' | 'hide';
+  voteType: "upvote" | "downvote" | "flag" | "hide";
   reason?: string;
 }
 
-export function ModerationButtons({ targetType, targetId, className = "", compact = false }: ModerationButtonsProps) {
-  const { isAuthenticated } = useAuth();
+export function ModerationButtons({
+  targetType,
+  targetId,
+  className = "",
+  compact = false,
+}: ModerationButtonsProps) {
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [reportReason, setReportReason] = useState("");
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  const roleTokens = (() => {
+    const tokens: string[] = [];
+    const push = (v: any) => {
+      const r = String(v || "")
+        .trim()
+        .toLowerCase();
+      if (r) tokens.push(r === "owner" || r === "head_admin" ? "super_admin" : r);
+    };
+    push((user as any)?.role);
+    push((user as any)?.activeRole);
+    const roles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
+    for (const r of roles) push(r);
+    return Array.from(new Set(tokens));
+  })();
+  const isCommunityModerator =
+    roleTokens.includes("community_moderator") || roleTokens.includes("community_leader");
 
   // Fetch moderation score
   const { data: score, isLoading: scoreLoading } = useQuery({
@@ -64,14 +86,18 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
         targetType,
         targetId,
         voteType,
-        reason
+        reason,
       });
     },
     onSuccess: () => {
       // Invalidate both score and user vote queries
-      queryClient.invalidateQueries({ queryKey: [`/api/moderation/score/${targetType}/${targetId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/moderation/user-vote/${targetType}/${targetId}`] });
-      
+      queryClient.invalidateQueries({
+        queryKey: [`/api/moderation/score/${targetType}/${targetId}`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/moderation/user-vote/${targetType}/${targetId}`],
+      });
+
       toast({
         title: "Vote submitted",
         description: "Thank you for helping moderate the community!",
@@ -122,14 +148,14 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
     );
   }
 
-  const moderationScore = score as ModerationScore || {
+  const moderationScore = (score as ModerationScore) || {
     upvoteCount: 0,
     downvoteCount: 0,
     flagCount: 0,
     hideCount: 0,
     communityScore: 0,
     isHidden: false,
-    isFlagged: false
+    isFlagged: false,
   };
 
   const currentVote = userVote as UserVote | null;
@@ -138,32 +164,32 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
     return (
       <div className={`flex items-center gap-1 ${className}`}>
         <Button
-          variant={currentVote?.voteType === 'upvote' ? 'default' : 'ghost'}
+          variant={currentVote?.voteType === "upvote" ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleVote('upvote')}
+          onClick={() => handleVote("upvote")}
           disabled={voteMutation.isPending}
           className="h-6 w-6 p-1"
         >
           <ChevronUp className="h-3 w-3" />
         </Button>
-        
+
         <span className="text-xs font-medium min-w-[20px] text-center">
-          {moderationScore.communityScore > 0 ? `+${moderationScore.communityScore}` : moderationScore.communityScore}
+          {moderationScore.communityScore > 0
+            ? `+${moderationScore.communityScore}`
+            : moderationScore.communityScore}
         </span>
-        
+
         <Button
-          variant={currentVote?.voteType === 'downvote' ? 'default' : 'ghost'}
+          variant={currentVote?.voteType === "downvote" ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleVote('downvote')}
+          onClick={() => handleVote("downvote")}
           disabled={voteMutation.isPending}
           className="h-6 w-6 p-1"
         >
           <ChevronDown className="h-3 w-3" />
         </Button>
-        
-        {moderationScore.isFlagged && (
-          <Flag className="h-3 w-3 text-red-500 ml-1" />
-        )}
+
+        {moderationScore.isFlagged && <Flag className="h-3 w-3 text-red-500 ml-1" />}
       </div>
     );
   }
@@ -173,26 +199,28 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
       {/* Upvote/Downvote Section */}
       <div className="flex items-center gap-1">
         <Button
-          variant={currentVote?.voteType === 'upvote' ? 'default' : 'ghost'}
+          variant={currentVote?.voteType === "upvote" ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleVote('upvote')}
+          onClick={() => handleVote("upvote")}
           disabled={voteMutation.isPending}
           className="h-8 w-8 p-1"
         >
           <ChevronUp className="h-4 w-4" />
         </Button>
-        
+
         <div className="text-center min-w-[40px]">
           <div className="text-sm font-semibold">
-            {moderationScore.communityScore > 0 ? `+${moderationScore.communityScore}` : moderationScore.communityScore}
+            {moderationScore.communityScore > 0
+              ? `+${moderationScore.communityScore}`
+              : moderationScore.communityScore}
           </div>
           <div className="text-xs text-white/60">score</div>
         </div>
-        
+
         <Button
-          variant={currentVote?.voteType === 'downvote' ? 'default' : 'ghost'}
+          variant={currentVote?.voteType === "downvote" ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleVote('downvote')}
+          onClick={() => handleVote("downvote")}
           disabled={voteMutation.isPending}
           className="h-8 w-8 p-1"
         >
@@ -222,7 +250,7 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
         <DialogTrigger asChild>
           <Button
-            variant={currentVote?.voteType === 'flag' ? 'destructive' : 'ghost'}
+            variant={currentVote?.voteType === "flag" ? "destructive" : "ghost"}
             size="sm"
             className="h-8"
           >
@@ -270,16 +298,19 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
       </Dialog>
 
       {/* Hide Button (for trusted moderators) */}
-      <Button
-        variant={currentVote?.voteType === 'hide' ? 'destructive' : 'ghost'}
-        size="sm"
-        onClick={() => handleVote('hide')}
-        disabled={voteMutation.isPending}
-        className="h-8"
-      >
-        <EyeOff className="h-3 w-3 mr-1" />
-        Hide
-      </Button>
+      {isCommunityModerator ? (
+        <Button
+          variant={currentVote?.voteType === "hide" ? "destructive" : "ghost"}
+          size="sm"
+          onClick={() => handleVote("hide")}
+          disabled={voteMutation.isPending}
+          className="h-8"
+          title="Community moderator confirmation: hides content after 3 distinct confirmations"
+        >
+          <EyeOff className="h-3 w-3 mr-1" />
+          Hide
+        </Button>
+      ) : null}
 
       {/* Status Indicators */}
       {moderationScore.isHidden && (
@@ -288,7 +319,7 @@ export function ModerationButtons({ targetType, targetId, className = "", compac
           Hidden by community
         </div>
       )}
-      
+
       {moderationScore.isFlagged && (
         <div className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
           <Flag className="h-3 w-3" />

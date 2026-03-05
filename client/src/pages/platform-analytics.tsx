@@ -23,14 +23,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminTier } from "@/lib/roleChecks";
 
 const PlatformAnalytics = memo(function PlatformAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
   const [activeTab, setActiveTab] = useState("overview");
 
   const { user } = useAuth();
-  const adminRolesAllowed =
-    !!user && ["moderator", "ops_admin", "super_admin", "head_admin"].includes(user.role || "");
+  const adminRolesAllowed = !!user && (isAdminTier(user.role || "") || user.role === "moderator");
 
   type ScoutDraftArtifactSummary = {
     draftKind: "promo" | "community";
@@ -99,7 +99,6 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
       "moderator",
       "ops_admin",
       "super_admin",
-      "head_admin",
     ].includes(user.role || "");
 
   const { data: scoutDraftSummary } = useQuery<ScoutDraftSummaryResponse>({

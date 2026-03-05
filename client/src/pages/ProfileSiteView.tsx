@@ -164,7 +164,7 @@ export default function ProfileSiteView() {
   const seoTitle =
     typeof profile.seoMeta?.title === "string" && profile.seoMeta.title.trim().length > 0
       ? profile.seoMeta.title
-      : `${displayName} | TradeScout Public Profile`;
+      : `${displayName} | TradeScout`;
   const seoDescription =
     typeof profile.seoMeta?.description === "string" &&
     profile.seoMeta.description.trim().length > 0

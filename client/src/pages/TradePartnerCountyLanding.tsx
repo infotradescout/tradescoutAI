@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { formatTradeScoutTitle } from "@shared/brand";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import "./trade-partner-county.css";
 
@@ -323,7 +324,7 @@ export default function TradePartnerCountyLanding({
   }, [countySlug]);
 
   useEffect(() => {
-    document.title = title;
+    document.title = formatTradeScoutTitle(`${title} | TradeScout`);
   }, [title]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

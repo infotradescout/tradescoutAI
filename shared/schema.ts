@@ -81,8 +81,8 @@ export const userRoleEnum = pgEnum("user_role", [
   // Admin roles (ascending hierarchy)
   "moderator", // Basic moderation powers
   "ops_admin", // Operations and platform management
-  "super_admin", // Full platform control except user management
-  "head_admin", // Ultimate authority - can manage all users and admins
+  "super_admin", // Ultimate platform authority (admin management included)
+  "head_admin", // LEGACY: treat as super_admin (do not assign)
 ]);
 
 // Story template categories for professional story generation
@@ -697,6 +697,7 @@ export const businesses = pgTable(
       }>()
       .default(sql`'{}'::jsonb`),
     claimStatus: varchar("claim_status", { length: 32 }).notNull().default("unclaimed"),
+    publicDiscoveryEnabled: boolean("public_discovery_enabled").notNull().default(true),
     sources: jsonb("sources")
       .$type<string[]>()
       .notNull()
@@ -710,6 +711,194 @@ export const businesses = pgTable(
     index("business_role_ctx_idx").on(table.roleContext),
     index("business_status_idx").on(table.status),
     index("business_claim_status_idx").on(table.claimStatus),
+    index("business_public_discovery_idx").on(table.publicDiscoveryEnabled),
+  ]
+);
+
+export const tsPublicActivityTypeEnum = pgEnum("ts_public_activity_type", [
+  "listing_added",
+  "listing_updated",
+  "claimed",
+  "verified",
+  "proof_added",
+  "request_created_public_summary",
+  "connection_made_public_summary",
+]);
+
+export const tsSeoPruneActionEnum = pgEnum("ts_seo_prune_action", [
+  "noindex",
+  "removed_from_sitemap",
+  "deactivated",
+  "deleted",
+]);
+
+export const tsPublicationRules = pgTable("ts_publication_rules", {
+  id: varchar("id").primaryKey(),
+  listingStaleDaysUnclaimed: integer("listing_stale_days_unclaimed").notNull(),
+  listingStaleDaysClaimedUnverified: integer("listing_stale_days_claimed_unverified").notNull(),
+  listingStaleDaysVerified: integer("listing_stale_days_verified").notNull(),
+  requestPublicSummaryTtlHours: integer("request_public_summary_ttl_hours").notNull(),
+  categoryPageRecencyWindowDays: integer("category_page_recency_window_days").notNull(),
+  proofMediaTtlDays: integer("proof_media_ttl_days"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const tsSeoPruneLog = pgTable(
+  "ts_seo_prune_log",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    entityType: varchar("entity_type", { length: 64 }).notNull(),
+    entityId: varchar("entity_id", { length: 255 }).notNull(),
+    action: tsSeoPruneActionEnum("action").notNull(),
+    reason: text("reason").notNull(),
+    happenedAt: timestamp("happened_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("ts_seo_prune_log_entity_idx").on(table.entityType, table.entityId),
+    index("ts_seo_prune_log_happened_at_idx").on(table.happenedAt),
+  ]
+);
+
+export const tsPublicActivity = pgTable(
+  "ts_public_activity",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    countyId: varchar("county_id").references(() => counties.id, { onDelete: "set null" }),
+    citySlug: varchar("city_slug", { length: 128 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    tradeSlug: varchar("trade_slug", { length: 128 }),
+    businessId: varchar("business_id").references(() => businesses.id, { onDelete: "set null" }),
+    activityType: tsPublicActivityTypeEnum("activity_type").notNull(),
+    occurredAt: timestamp("occurred_at").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    publicText: text("public_text"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    activeStatus: boolean("active_status").notNull().default(true),
+  },
+  (table) => [
+    index("ts_public_activity_county_occurred_idx").on(table.countyId, table.occurredAt),
+    index("ts_public_activity_city_occurred_idx").on(table.citySlug, table.occurredAt),
+    index("ts_public_activity_trade_occurred_idx").on(table.tradeSlug, table.occurredAt),
+    index("ts_public_activity_expires_idx").on(table.expiresAt),
+  ]
+);
+
+// External source references for unclaimed directory imports (dedupe + provenance).
+export const businessExternalRefs = pgTable(
+  "business_external_refs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    source: varchar("source", { length: 64 }).notNull(),
+    externalId: varchar("external_id", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("business_external_refs_source_external_unique").on(table.source, table.externalId),
+    index("business_external_refs_business_idx").on(table.businessId),
+  ]
+);
+
+export const businessSuggestionKindEnum = pgEnum("business_suggestion_kind", ["edit", "removal"]);
+export const businessSuggestionStatusEnum = pgEnum("business_suggestion_status", [
+  "open",
+  "resolved",
+  "rejected",
+]);
+
+export const businessSuggestions = pgTable(
+  "business_suggestions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    kind: businessSuggestionKindEnum("kind").notNull(),
+    status: businessSuggestionStatusEnum("status").notNull().default("open"),
+    payload: jsonb("payload")
+      .$type<Record<string, any>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdByUserId: varchar("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("business_suggestions_business_idx").on(table.businessId),
+    index("business_suggestions_status_idx").on(table.status),
+    index("business_suggestions_kind_idx").on(table.kind),
+  ]
+);
+
+export const businessSeedRunStatusEnum = pgEnum("business_seed_run_status", [
+  "running",
+  "succeeded",
+  "failed",
+]);
+
+export const businessSeedRuns = pgTable(
+  "business_seed_runs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    source: varchar("source", { length: 64 }).notNull(),
+    locationText: text("location_text"),
+    countyFips: varchar("county_fips", { length: 5 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    terms: jsonb("terms")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    requestedByUserId: varchar("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: businessSeedRunStatusEnum("status").notNull().default("running"),
+    insertedCount: integer("inserted_count").notNull().default(0),
+    duplicateCount: integer("duplicate_count").notNull().default(0),
+    errorCount: integer("error_count").notNull().default(0),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at").notNull().defaultNow(),
+    finishedAt: timestamp("finished_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("business_seed_runs_status_idx").on(table.status),
+    index("business_seed_runs_county_idx").on(table.countyFips, table.stateCode),
+    index("business_seed_runs_source_idx").on(table.source),
+  ]
+);
+
+export const businessSeedRunLogs = pgTable(
+  "business_seed_run_logs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    seedRunId: varchar("seed_run_id")
+      .notNull()
+      .references(() => businessSeedRuns.id, { onDelete: "cascade" }),
+    level: varchar("level", { length: 16 }).notNull().default("info"),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("business_seed_run_logs_run_idx").on(table.seedRunId),
+    index("business_seed_run_logs_created_idx").on(table.createdAt),
   ]
 );
 
@@ -1528,6 +1717,14 @@ export const businessVerifications = pgTable("business_verifications", {
 
 export type InsertBusiness = typeof businesses.$inferInsert;
 export type Business = typeof businesses.$inferSelect;
+export type InsertBusinessExternalRef = typeof businessExternalRefs.$inferInsert;
+export type BusinessExternalRef = typeof businessExternalRefs.$inferSelect;
+export type InsertBusinessSuggestion = typeof businessSuggestions.$inferInsert;
+export type BusinessSuggestion = typeof businessSuggestions.$inferSelect;
+export type InsertBusinessSeedRun = typeof businessSeedRuns.$inferInsert;
+export type BusinessSeedRun = typeof businessSeedRuns.$inferSelect;
+export type InsertBusinessSeedRunLog = typeof businessSeedRunLogs.$inferInsert;
+export type BusinessSeedRunLog = typeof businessSeedRunLogs.$inferSelect;
 export type InsertListingImportStaging = typeof listingImportStaging.$inferInsert;
 export type ListingImportStaging = typeof listingImportStaging.$inferSelect;
 export type InsertBusinessCounty = typeof businessCounties.$inferInsert;

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { workRequests } from "@shared/schema";
 import { storage } from "./storage";
+import { formatTradeScoutTitle } from "@shared/brand";
 import {
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
@@ -71,7 +72,7 @@ export async function buildWorkRequestShareHtml({
   const budgetLabel = formatBudgetRange(requestRow.budgetMin, requestRow.budgetMax);
 
   const previewTitle = buildWorkRequestPreviewTitle(String(requestRow.title || ""), tradeLabel);
-  const title = `${previewTitle} | TradeScout request`;
+  const title = formatTradeScoutTitle(`${previewTitle} request | TradeScout`);
   const descriptionParts = [
     `${tradeLabel} scope in ${locationLabel}.`,
     scopeSummary || "Shared project scope available.",

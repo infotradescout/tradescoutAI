@@ -1,6 +1,6 @@
 /**
  * Authentication Buttons Journey
- * 
+ *
  * Tests that:
  * 1. /login page shows Google and Facebook login buttons
  * 2. /create-account page shows Google and Facebook signup buttons
@@ -8,19 +8,23 @@
  * 4. OAuth flows are accessible (not stubbed)
  */
 
-import { test, expect } from '../fixtures/botArmy';
-import { env } from '../utils/env';
-import { selectors, hasStubContent } from '../utils/selectors';
-import { NetworkWatcher } from '../utils/networkWatch';
+import { test, expect } from "../fixtures/botArmy";
+import { env } from "../utils/env";
+import { selectors, hasStubContent } from "../utils/selectors";
+import { NetworkWatcher } from "../utils/networkWatch";
 
-test.describe('Authentication Buttons', () => {
+test.describe("Authentication Buttons", () => {
+  // These journeys validate guest-facing auth entrypoints. They must not inherit the
+  // authenticated storageState created by global-setup for DB-backed E2E suites.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   let networkWatcher: NetworkWatcher;
 
   test.beforeEach(async ({ page }) => {
     networkWatcher = new NetworkWatcher(page);
   });
 
-  test('should display Google and Facebook buttons on login page', async ({ page }, testInfo) => {
+  test("should display Google and Facebook buttons on login page", async ({ page }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/login`);
 
@@ -31,8 +35,8 @@ test.describe('Authentication Buttons', () => {
 
       const googleText = await googleButton.textContent();
       expect(googleText).toBeTruthy();
-      expect(googleText?.toLowerCase()).toContain('google');
-      expect(hasStubContent(googleText || '')).toBe(false);
+      expect(googleText?.toLowerCase()).toContain("google");
+      expect(hasStubContent(googleText || "")).toBe(false);
 
       // Facebook login button should be visible and enabled
       const facebookButton = page.locator(selectors.auth.loginFacebookButton);
@@ -41,14 +45,16 @@ test.describe('Authentication Buttons', () => {
 
       const facebookText = await facebookButton.textContent();
       expect(facebookText).toBeTruthy();
-      expect(facebookText?.toLowerCase()).toContain('facebook');
-      expect(hasStubContent(facebookText || '')).toBe(false);
+      expect(facebookText?.toLowerCase()).toContain("facebook");
+      expect(hasStubContent(facebookText || "")).toBe(false);
     } finally {
       networkWatcher.attachToTestInfo(testInfo);
     }
   });
 
-  test('should display Google and Facebook buttons on create-account page', async ({ page }, testInfo) => {
+  test("should display Google and Facebook buttons on create-account page", async ({
+    page,
+  }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/create-account`);
 
@@ -59,7 +65,7 @@ test.describe('Authentication Buttons', () => {
 
       const googleText = await googleButton.textContent();
       expect(googleText).toBeTruthy();
-      expect(googleText?.toLowerCase()).toContain('google');
+      expect(googleText?.toLowerCase()).toContain("google");
 
       // Facebook signup button should be visible
       const facebookButton = page.locator(selectors.auth.createAccountFacebookButton);
@@ -68,35 +74,37 @@ test.describe('Authentication Buttons', () => {
 
       const facebookText = await facebookButton.textContent();
       expect(facebookText).toBeTruthy();
-      expect(facebookText?.toLowerCase()).toContain('facebook');
+      expect(facebookText?.toLowerCase()).toContain("facebook");
     } finally {
       networkWatcher.attachToTestInfo(testInfo);
     }
   });
 
-  test('should have proper href/onclick attributes on OAuth buttons', async ({ page }, testInfo) => {
+  test("should have proper href/onclick attributes on OAuth buttons", async ({
+    page,
+  }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/login`);
 
       const googleButton = page.locator(selectors.auth.loginGoogleButton);
-      
+
       // Should have either href or onclick (not stub)
-      const href = await googleButton.getAttribute('href');
-      const onclick = await googleButton.getAttribute('onclick');
-      
+      const href = await googleButton.getAttribute("href");
+      const onclick = await googleButton.getAttribute("onclick");
+
       expect(href || onclick).toBeTruthy();
-      
+
       // Should not be a dead link
       if (href) {
         expect(href.length).toBeGreaterThan(0);
-        expect(href).not.toBe('#');
+        expect(href).not.toBe("#");
       }
     } finally {
       networkWatcher.attachToTestInfo(testInfo);
     }
   });
 
-  test('should display email login form on login page', async ({ page }, testInfo) => {
+  test("should display email login form on login page", async ({ page }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/login`);
 
@@ -117,7 +125,7 @@ test.describe('Authentication Buttons', () => {
     }
   });
 
-  test('should display email signup form on create-account page', async ({ page }, testInfo) => {
+  test("should display email signup form on create-account page", async ({ page }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/create-account`);
 
@@ -150,13 +158,15 @@ test.describe('Authentication Buttons', () => {
       await expect(forgotLink).toBeVisible();
 
       const linkText = await forgotLink.textContent();
-      expect(linkText?.toLowerCase()).toContain('forgot');
+      expect(linkText?.toLowerCase()).toContain("forgot");
     } finally {
       networkWatcher.attachToTestInfo(testInfo);
     }
   });
 
-  test('should show "already have an account" link on create-account page', async ({ page }, testInfo) => {
+  test('should show "already have an account" link on create-account page', async ({
+    page,
+  }, testInfo) => {
     try {
       await page.goto(`${env.BASE_URL}/create-account`);
 
@@ -164,14 +174,14 @@ test.describe('Authentication Buttons', () => {
       await expect(loginLink).toBeVisible();
 
       const linkText = await loginLink.textContent();
-      expect(linkText?.toLowerCase()).toContain('sign in');
+      expect(linkText?.toLowerCase()).toContain("sign in");
     } finally {
       networkWatcher.attachToTestInfo(testInfo);
     }
   });
 
   test.afterEach(async ({}, testInfo) => {
-    if (testInfo.status !== 'passed') {
+    if (testInfo.status !== "passed") {
       networkWatcher.logErrors();
     }
   });

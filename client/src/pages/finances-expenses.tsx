@@ -4,7 +4,14 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Page } from "@/components/layout/PagePrimitives";
 
@@ -109,7 +116,7 @@ export default function FinancesExpensesPage() {
   };
 
   useEffect(() => {
-    document.title = "Expenses • Finances | TradeScout";
+    document.title = "Expenses • Finances | TradeScout — Connection Without Compromise";
   }, []);
 
   return (
@@ -194,7 +201,8 @@ export default function FinancesExpensesPage() {
             <p className="text-[11px] text-white/60 py-4">Loading expenses...</p>
           ) : expenses.length === 0 ? (
             <p className="text-[11px] text-white/60">
-              Once you start recording expenses, you'll see a simple ledger here alongside your invoices.
+              Once you start recording expenses, you'll see a simple ledger here alongside your
+              invoices.
             </p>
           ) : (
             <div className="overflow-x-auto -mx-2">
@@ -219,10 +227,7 @@ export default function FinancesExpensesPage() {
                     const createdLabel = new Date(exp.created_at).toLocaleDateString();
 
                     return (
-                      <TableRow
-                        key={exp.id}
-                        className="border-white/10 hover:bg-tsCard/95"
-                      >
+                      <TableRow key={exp.id} className="border-white/10 hover:bg-tsCard/95">
                         <TableCell className="py-2 text-[11px] text-white/70">
                           {createdLabel}
                         </TableCell>
@@ -236,9 +241,7 @@ export default function FinancesExpensesPage() {
                           {category || "—"}
                         </TableCell>
                         <TableCell className="py-2 text-right text-[11px] text-white">
-                          {totalVal !== null
-                            ? formatCurrency(totalVal)
-                            : "—"}
+                          {totalVal !== null ? formatCurrency(totalVal) : "—"}
                         </TableCell>
                       </TableRow>
                     );

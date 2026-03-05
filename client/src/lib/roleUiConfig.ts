@@ -113,6 +113,7 @@ const BASE_ROLE_UI_CONFIG: Record<string, RoleUiConfig> = {
   // Admin / staff roles
   moderator: {
     userTypeId: "admin",
+    label: "Staff",
     icon: Shield,
     color: "bg-yellow-500",
     dashboard: "/admin/moderation",

@@ -8,6 +8,7 @@ import { AuthorityOperations } from "@/components/admin/AuthorityOperations";
 import FeatureTogglePanel from "@/components/admin/FeatureTogglePanel";
 import AdminTestingControls from "@/pages/admin-testing-controls";
 import { apiRequest } from "@/lib/queryClient";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 type DecisionCardMetrics = {
   totalShown: number;
@@ -33,8 +34,7 @@ type EmailDiagnostics = {
 
 export default function AdminControl() {
   const { user } = useAuth();
-  const isSuperAdmin =
-    !!user && ["super_admin", "head_admin", "owner", "ops_admin"].includes(user.role || "");
+  const isSuperAdmin = !!user && isSuperAdminLike(user.role || "");
 
   const { data: authorityMetrics } = useQuery<DecisionCardMetrics>({
     queryKey: ["/api/admin/authority/decision-card-metrics"],

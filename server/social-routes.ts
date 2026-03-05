@@ -641,16 +641,19 @@ export function registerSocialRoutes(app: Express) {
       // Check permissions
       const user = req.user as User;
       const isAuthor = post.authorId === userId;
+      const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
+      const roleToken = rawRole.trim().toLowerCase();
+      const normalizedRole =
+        roleToken === "head_admin" || roleToken === "owner" ? "super_admin" : roleToken;
       const canModerate =
-        user.role &&
+        normalizedRole &&
         [
           "moderator",
           "ops_admin",
           "super_admin",
-          "head_admin",
           "community_moderator",
           "community_leader",
-        ].includes(user.role);
+        ].includes(normalizedRole);
 
       if (!isAuthor && !canModerate) {
         return res.status(403).json({ message: "Not authorized to delete this post" });

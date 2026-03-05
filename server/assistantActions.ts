@@ -24,7 +24,7 @@ export interface User {
   state?: string;
 }
 
-type AdminRole = "admin" | "super_admin" | "head_admin";
+type AdminRole = "admin" | "super_admin";
 
 export interface AssistantAction {
   type: string;
@@ -239,7 +239,12 @@ function isAuthenticationRequired(actionType: string): boolean {
 }
 
 function isAdminUser(user?: User): boolean {
-  return !!user && ["admin", "super_admin", "head_admin"].includes(user.role as AdminRole);
+  if (!user) return false;
+  const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
+  const normalizedRole = rawRole.trim().toLowerCase();
+  const resolvedRole =
+    normalizedRole === "owner" || normalizedRole === "head_admin" ? "super_admin" : normalizedRole;
+  return ["admin", "super_admin"].includes(resolvedRole as AdminRole);
 }
 
 // ============================================================================

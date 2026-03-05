@@ -12,6 +12,12 @@ import { Upload, Building2, AlertTriangle } from "lucide-react";
 type ImportResponse = {
   dryRun: boolean;
   delimiter: "comma" | "tab" | "pipe";
+  parse?: {
+    looksLikeHeader: boolean;
+    headers: string[];
+    delimiter: string;
+  } | null;
+  warnings?: string[];
   totals: {
     rows: number;
     createdUsers: number;
@@ -167,6 +173,7 @@ export default function AdminBusinessImport() {
   const [loadedFileMeta, setLoadedFileMeta] = useState<{ name: string; sizeBytes: number } | null>(
     null
   );
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   const {
     data: batchData,
@@ -189,12 +196,18 @@ export default function AdminBusinessImport() {
   } = useQuery({
     queryKey: ["/api/admin/imported-directory-users"],
     queryFn: async () =>
-      ((await apiRequest("GET", "/api/admin/imported-directory-users")) as {
+      ((await apiRequest("GET", "/api/admin/imported-directory-users?limit=2000")) as {
         users?: ImportedDirectoryUserCandidate[];
       }) || { users: [] },
     retry: false,
   });
   const cleanupUsers = cleanupUsersData?.users || [];
+  const [bulkArchiveConfirm, setBulkArchiveConfirm] = useState("");
+  const [bulkArchiving, setBulkArchiving] = useState<{
+    running: boolean;
+    done: number;
+    total: number;
+  }>({ running: false, done: 0, total: 0 });
 
   const archiveCleanupUserMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -214,6 +227,76 @@ export default function AdminBusinessImport() {
       toast({
         title: "Archive failed",
         description: error?.message || "Failed to archive user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkArchiveImportedUsers = async (userIds: string[]) => {
+    if (bulkArchiving.running) return;
+    const ids = Array.isArray(userIds) ? userIds.filter(Boolean) : [];
+    if (ids.length === 0) return;
+
+    if (bulkArchiveConfirm.trim() !== "ARCHIVE_ALL") {
+      toast({
+        title: "Confirmation required",
+        description: 'Type "ARCHIVE_ALL" to bulk-archive imported users.',
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setBulkArchiving({ running: true, done: 0, total: ids.length });
+    let done = 0;
+    try {
+      for (const userId of ids) {
+        await apiRequest(
+          "POST",
+          `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`
+        );
+        done += 1;
+        setBulkArchiving({ running: true, done, total: ids.length });
+      }
+      toast({
+        title: "Bulk archive complete",
+        description: `Archived ${done} users into unclaimed directory businesses.`,
+      });
+      setBulkArchiveConfirm("");
+      void refetchCleanupUsers();
+    } catch (error: any) {
+      toast({
+        title: "Bulk archive failed",
+        description: error?.message || "Failed while archiving users.",
+        variant: "destructive",
+      });
+      void refetchCleanupUsers();
+    } finally {
+      setBulkArchiving((prev) => ({ ...prev, running: false }));
+    }
+  };
+
+  const bulkArchiveAllMutation = useMutation({
+    mutationFn: async () => {
+      if (bulkArchiveConfirm.trim() !== "ARCHIVE_ALL") {
+        throw new Error('Type "ARCHIVE_ALL" to bulk-archive imported users.');
+      }
+      return apiRequest("POST", "/api/admin/imported-directory-users/archive-all", {
+        confirm: bulkArchiveConfirm.trim(),
+        limit: 5000,
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Bulk archive complete",
+        description: `Archived ${data?.archived ?? 0}/${data?.matched ?? 0} users into directory businesses.`,
+      });
+      setBulkArchiveConfirm("");
+      void refetchCleanupUsers();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Bulk archive failed",
+        description: error?.message || "Failed to bulk-archive users",
         variant: "destructive",
       });
     },
@@ -246,8 +329,6 @@ export default function AdminBusinessImport() {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const { chunks, estimatedRows } = splitIntoImportChunks(content);
-
       if (createOwnerAccounts && confirmCreateUsers.trim() !== "CREATE_USERS") {
         throw new Error("To create real user accounts, type CREATE_USERS in the confirmation box.");
       }
@@ -265,6 +346,18 @@ export default function AdminBusinessImport() {
 
       const importUrl = `/api/admin/businesses/import?${params.toString()}`;
 
+      if (uploadFile) {
+        const form = new FormData();
+        form.append("file", uploadFile);
+        const res = await apiRequest(importUrl, {
+          method: "POST",
+          timeoutMs: 300_000,
+          body: form,
+        });
+        return res as ImportResponse;
+      }
+
+      const { chunks, estimatedRows } = splitIntoImportChunks(content);
       if (chunks.length <= 1) {
         const res = await apiRequest(importUrl, {
           method: "POST",
@@ -403,17 +496,25 @@ export default function AdminBusinessImport() {
 
   const onFileSelected = async (file: File | null) => {
     if (!file) return;
-    const text = await file.text();
-    setContent(text);
+    const name = String(file.name || "").toLowerCase();
+    if (name.endsWith(".xlsx")) {
+      setUploadFile(file);
+      setContent("");
+    } else {
+      const text = await file.text();
+      setUploadFile(null);
+      setContent(text);
+    }
     setLoadedFileMeta({ name: file.name, sizeBytes: file.size });
     toast({ title: "Loaded file", description: file.name });
   };
 
   const chunkPreview = useMemo(() => {
+    if (uploadFile) return { chunks: 1, estimatedRows: null as any };
     if (!content.trim()) return null;
     const { chunks, estimatedRows } = splitIntoImportChunks(content);
     return { chunks: chunks.length, estimatedRows };
-  }, [content]);
+  }, [content, uploadFile]);
 
   const errorCount = useMemo(
     () => (result?.results || []).filter((r) => r.status === "error").length,
@@ -433,9 +534,9 @@ export default function AdminBusinessImport() {
             Business Import (Admin)
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
-            Upload CSV/TSV/text to create claimable business directory entries and (optionally)
+            Upload CSV/TSV/XLSX to create claimable business directory entries and (optionally)
             pre-create business owner accounts. Imported businesses still must finish their profile
-            and pass verification.
+            and pass verification. Phone numbers are imported when present.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -444,14 +545,14 @@ export default function AdminBusinessImport() {
               <label className="text-xs text-white/60">Upload file</label>
               <Input
                 type="file"
-                accept=".csv,.tsv,.txt,text/csv,text/plain"
+                accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 onChange={(e) => onFileSelected(e.target.files?.[0] || null)}
                 className="bg-black/30 border-[color:var(--border-subtle)]"
               />
             </div>
             <Button
               onClick={() => importMutation.mutate()}
-              disabled={importMutation.isPending || !content.trim()}
+              disabled={importMutation.isPending || (!content.trim() && !uploadFile)}
               className="bg-ts-orange text-black hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25"
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -472,10 +573,16 @@ export default function AdminBusinessImport() {
                   {(loadedFileMeta.sizeBytes / (1024 * 1024)).toFixed(1)} MB).{" "}
                 </>
               ) : null}
-              Estimated rows: <span className="text-white/70">{chunkPreview.estimatedRows}</span>.{" "}
-              This import will upload in{" "}
-              <span className="text-white/70">{chunkPreview.chunks}</span> parts to avoid
-              per-request payload limits. No row cap.
+              {uploadFile ? (
+                <>Excel upload (all sheets will be imported in one request).</>
+              ) : (
+                <>
+                  Estimated rows:{" "}
+                  <span className="text-white/70">{chunkPreview.estimatedRows}</span>. This import
+                  will upload in <span className="text-white/70">{chunkPreview.chunks}</span> parts
+                  to avoid per-request payload limits. No row cap.
+                </>
+              )}
             </div>
           ) : null}
 
@@ -668,6 +775,50 @@ export default function AdminBusinessImport() {
             </Button>
           </div>
 
+          {cleanupUsers.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div className="md:col-span-2">
+                <label className="text-xs text-white/60">
+                  Bulk archive confirmation (type <span className="font-mono">ARCHIVE_ALL</span>)
+                </label>
+                <Input
+                  value={bulkArchiveConfirm}
+                  onChange={(e) => setBulkArchiveConfirm(e.target.value)}
+                  placeholder="ARCHIVE_ALL"
+                  className="bg-black/30 border-red-500/30"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  disabled={
+                    cleanupUsersLoading || bulkArchiving.running || bulkArchiveAllMutation.isPending
+                  }
+                  onClick={() =>
+                    void bulkArchiveImportedUsers(cleanupUsers.slice(0, 25).map((u) => u.id))
+                  }
+                  title="Archives up to the first 25 candidates shown"
+                >
+                  {bulkArchiving.running
+                    ? `Archiving ${bulkArchiving.done}/${bulkArchiving.total}...`
+                    : "Archive 25 to directory"}
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-red-700 hover:bg-red-800 text-white"
+                  disabled={
+                    cleanupUsersLoading || bulkArchiving.running || bulkArchiveAllMutation.isPending
+                  }
+                  onClick={() => bulkArchiveAllMutation.mutate()}
+                  title="Archives up to 5000 candidates server-side (requires ARCHIVE_ALL)"
+                >
+                  {bulkArchiveAllMutation.isPending ? "Archiving all..." : "Archive ALL (server)"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           {cleanupUsersLoading ? (
             <div className="text-xs text-white/60">Loading candidates...</div>
           ) : cleanupUsers.length === 0 ? (
@@ -846,6 +997,28 @@ export default function AdminBusinessImport() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {Array.isArray(result.warnings) && result.warnings.length > 0 ? (
+              <div className="rounded border border-[color:var(--border-subtle)] bg-black/30 p-3 text-xs text-ts-orange">
+                {result.warnings.map((w, idx) => (
+                  <div key={idx}>{w}</div>
+                ))}
+              </div>
+            ) : null}
+
+            {result.parse && result.parse.looksLikeHeader === false ? (
+              <div className="rounded border border-[color:var(--border-subtle)] bg-black/30 p-3 text-xs text-amber-200">
+                Header row was not detected; the importer assumed default column order. If your file
+                has headers like “Company Name” / “Business Email”, make sure the header row is
+                included (row 1) so columns map correctly.
+                {Array.isArray(result.parse.headers) && result.parse.headers.length ? (
+                  <div className="mt-2 text-white/70">
+                    Assumed headers:{" "}
+                    <span className="font-mono">{result.parse.headers.join(", ")}</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {result.activationLinkExport?.requested &&
             result.activationLinkExport.allowed === false ? (
               <div className="text-xs text-ts-orange">

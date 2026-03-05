@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { isAdminTier } from "@/lib/roleChecks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -184,10 +185,14 @@ export default function AdminPanel() {
   }, []);
 
   // Check admin access
-  const isSuperAdmin = ["owner", "ops_admin", "admin", "super_admin", "head_admin"].includes(
-    user?.role || ""
-  );
-  if (!isAuthenticated || !user || !isSuperAdmin) {
+  const rawRole = String(user?.role || "");
+  const hasAdminAccess =
+    (user as any)?.isAdmin === true ||
+    (user as any)?.isSuperAdmin === true ||
+    isAdminTier(rawRole) ||
+    rawRole.trim().toLowerCase() === "moderator" ||
+    rawRole.trim().toLowerCase() === "admin";
+  if (!isAuthenticated || !user || !hasAdminAccess) {
     return (
       <div className="bg-tsBg flex items-center justify-center py-24">
         <Card className="max-w-md">

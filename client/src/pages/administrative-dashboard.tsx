@@ -94,8 +94,8 @@ const AdministrativeDashboard = memo(function AdministrativeDashboard() {
   });
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8">
+    <div className="text-foreground">
+      <div>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">

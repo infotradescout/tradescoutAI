@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { isAuthenticated, isSuperAdmin } from "../auth";
+import { isAuthenticated, requireRole } from "../auth";
 import {
   getMissionControlCompromises,
   getMissionControlFailures,
@@ -28,46 +28,72 @@ function isMissionControlIngestAuthorized(req: Request): boolean {
 
   const rawRole = (req as any)?.user?.role || (req as any)?.user?.claims?.role;
   const normalizedRole =
-    typeof rawRole === "string" && rawRole.trim().toLowerCase() === "owner"
-      ? "head_admin"
-      : typeof rawRole === "string"
-        ? rawRole.trim().toLowerCase()
-        : "";
-  return normalizedRole === "super_admin" || normalizedRole === "head_admin";
+    typeof rawRole === "string"
+      ? rawRole.trim().toLowerCase() === "owner" || rawRole.trim().toLowerCase() === "head_admin"
+        ? "super_admin"
+        : rawRole.trim().toLowerCase()
+      : "";
+  return normalizedRole === "super_admin";
 }
 
-router.get("/summary", isAuthenticated, isSuperAdmin, async (_req: Request, res: Response) => {
-  const summary = await getMissionControlSummary();
-  res.json(summary);
-});
-
-router.get("/failures", isAuthenticated, isSuperAdmin, async (_req: Request, res: Response) => {
-  const failures = await getMissionControlFailures();
-  res.json(failures);
-});
-
-router.get("/compromises", isAuthenticated, isSuperAdmin, async (_req: Request, res: Response) => {
-  const compromises = await getMissionControlCompromises();
-  res.json(compromises);
-});
-
-router.get("/scout-health", isAuthenticated, isSuperAdmin, async (_req: Request, res: Response) => {
-  const summary = await getScoutHealthSummary();
-  res.json({ summary });
-});
-
-router.get("/one-fix", isAuthenticated, isSuperAdmin, async (_req: Request, res: Response) => {
-  const result = await getOrCreateOneFix();
-  if (!result) {
-    return res.status(204).end();
+// Summary is read-heavy and useful to ops. Keep it accessible to ops_admin.
+router.get(
+  "/summary",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (_req: Request, res: Response) => {
+    const summary = await getMissionControlSummary();
+    res.json(summary);
   }
-  res.json(result);
-});
+);
+
+router.get(
+  "/failures",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (_req: Request, res: Response) => {
+    const failures = await getMissionControlFailures();
+    res.json(failures);
+  }
+);
+
+router.get(
+  "/compromises",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (_req: Request, res: Response) => {
+    const compromises = await getMissionControlCompromises();
+    res.json(compromises);
+  }
+);
+
+router.get(
+  "/scout-health",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (_req: Request, res: Response) => {
+    const summary = await getScoutHealthSummary();
+    res.json({ summary });
+  }
+);
+
+router.get(
+  "/one-fix",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (_req: Request, res: Response) => {
+    const result = await getOrCreateOneFix();
+    if (!result) {
+      return res.status(204).end();
+    }
+    res.json(result);
+  }
+);
 
 router.post(
   "/one-fix/:id/done",
   isAuthenticated,
-  isSuperAdmin,
+  requireRole(["ops_admin", "super_admin"]),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const action = await updateOneFixStatus(id, "done", undefined, (req as any)?.user?.id);
@@ -90,7 +116,7 @@ router.post(
 router.post(
   "/one-fix/:id/defer",
   isAuthenticated,
-  isSuperAdmin,
+  requireRole(["ops_admin", "super_admin"]),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const { reason } = (req.body || {}) as { reason?: string };
@@ -118,7 +144,7 @@ router.post(
 router.get(
   "/today-decisions",
   isAuthenticated,
-  isSuperAdmin,
+  requireRole(["ops_admin", "super_admin"]),
   async (_req: Request, res: Response) => {
     const decisions = await getTodayDecisions();
     res.json(decisions);
@@ -128,7 +154,7 @@ router.get(
 router.get(
   "/preferred-source-metrics",
   isAuthenticated,
-  isSuperAdmin,
+  requireRole(["ops_admin", "super_admin"]),
   async (req: Request, res: Response) => {
     const sinceParam = req.query.since as string | undefined;
     const since = sinceParam

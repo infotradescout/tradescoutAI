@@ -27,10 +27,10 @@ function requireSuperAdmin(req: Request, res: Response, next: () => void) {
   const normalizeRole = (role: unknown): string => {
     const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
     if (!raw) return "";
-    return raw === "owner" ? "head_admin" : raw;
+    return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
   };
 
-  const allowed = new Set(["super_admin", "head_admin"]);
+  const allowed = new Set(["super_admin"]);
   const primaryRole = normalizeRole((user as any).role);
   const activeRole = normalizeRole((user as any).activeRole);
   const roles = Array.isArray((user as any).roles)

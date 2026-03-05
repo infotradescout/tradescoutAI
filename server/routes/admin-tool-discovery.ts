@@ -14,7 +14,7 @@ const router = Router();
 router.use(isAuthenticated);
 router.use((req: Request, res: Response, next) => {
   const role = (req as any).user?.role;
-  if (role === "super_admin" || role === "head_admin") {
+  if (role === "super_admin" || role === "head_admin" || role === "owner") {
     return next();
   }
   return res.status(403).json({ error: "Super admin access required" });

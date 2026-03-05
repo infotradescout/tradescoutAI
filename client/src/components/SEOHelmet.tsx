@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME, TRADESCOUT_TAGLINE } from "@shared/brand";
 
 interface SEOHelmetProps {
   title?: string;
@@ -26,10 +27,11 @@ export function SEOHelmet({
   const currentUrl = normalizePublicUrl(new URL(location, window.location.origin).toString());
   const finalCanonical = normalizePublicUrl(canonical || currentUrl);
   const ogImageUrl = resolveAssetUrl(ogImage, finalCanonical);
+  const formattedTitle = formatTradeScoutTitle(title);
 
   useEffect(() => {
     // Update document title
-    document.title = title;
+    document.title = formattedTitle;
 
     // Update meta tags
     updateMetaTag("description", description);
@@ -37,16 +39,16 @@ export function SEOHelmet({
     updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
 
     // Open Graph
-    updateMetaTag("og:title", title, "property");
+    updateMetaTag("og:title", formattedTitle, "property");
     updateMetaTag("og:description", description, "property");
     updateMetaTag("og:type", ogType, "property");
     updateMetaTag("og:url", finalCanonical, "property");
     updateMetaTag("og:image", ogImageUrl, "property");
-    updateMetaTag("og:site_name", "TradeScout", "property");
+    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} — ${TRADESCOUT_TAGLINE}`, "property");
 
     // Twitter Card
     updateMetaTag("twitter:card", "summary_large_image", "name");
-    updateMetaTag("twitter:title", title, "name");
+    updateMetaTag("twitter:title", formattedTitle, "name");
     updateMetaTag("twitter:description", description, "name");
     updateMetaTag("twitter:image", ogImageUrl, "name");
     updateMetaTag("twitter:site", "@TradeScout", "name");
@@ -61,7 +63,7 @@ export function SEOHelmet({
             .trim() || "black"
         : "black";
     updateMetaTag("theme-color", themeColor, "name");
-    updateMetaTag("apple-mobile-web-app-title", "TradeScout", "name");
+    updateMetaTag("apple-mobile-web-app-title", TRADESCOUT_BRAND_NAME, "name");
 
     // Canonical link
     updateCanonicalLink(finalCanonical);
@@ -82,7 +84,7 @@ export function SEOHelmet({
       }
     };
   }, [
-    title,
+    formattedTitle,
     description,
     keywords,
     currentUrl,
@@ -308,6 +310,47 @@ export const createContractorStructuredData = (contractor: {
   serviceType: contractor.trades || [],
   areaServed: contractor.location || "Local Area",
 });
+
+export const createLocalBusinessStructuredData = (biz: {
+  slug: string;
+  name: string;
+  description?: string | null;
+  countyName?: string | null;
+  stateCode?: string | null;
+  website?: string | null;
+  category?: string | null;
+  verifiedLabel?: string | null;
+}) => {
+  const origin = getCanonicalOrigin();
+  const url = `${origin}/business/${encodeURIComponent(String(biz.slug || ""))}`;
+  const hasPlace = Boolean(biz.countyName && biz.stateCode);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: biz.name,
+    description: biz.description || undefined,
+    url,
+    category: biz.category || undefined,
+    areaServed: hasPlace ? [`${biz.countyName}, ${biz.stateCode}`] : undefined,
+    address: hasPlace
+      ? {
+          "@type": "PostalAddress",
+          addressLocality: biz.countyName || undefined,
+          addressRegion: biz.stateCode || undefined,
+          addressCountry: "US",
+        }
+      : undefined,
+    sameAs: biz.website ? [biz.website] : undefined,
+    hasCredential: biz.verifiedLabel
+      ? {
+          "@type": "EducationalOccupationalCredential",
+          credentialCategory: "Verification",
+          name: biz.verifiedLabel,
+        }
+      : undefined,
+  };
+};
 
 export const createBreadcrumbStructuredData = (items: Array<{ name: string; url: string }>) => ({
   "@context": "https://schema.org",

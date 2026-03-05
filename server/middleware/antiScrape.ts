@@ -67,6 +67,22 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
     return next();
   }
 
+  // Public discovery surfaces should remain fetchable by crawlers/tools.
+  // We still apply rate limiting below, but we do not hard-block on UA here.
+  const publicDiscoveryPaths = [
+    /^\/$/,
+    /^\/robots\.txt$/i,
+    /^\/llms\.txt$/i,
+    /^\/sitemap.*\.xml$/i,
+    /^\/business\//i,
+    /^\/trade\//i,
+    /^\/city\//i,
+    /^\/county\//i,
+    /^\/datasets\//i,
+    /^\/best\//i,
+  ];
+  const isPublicDiscoveryPath = publicDiscoveryPaths.some((p) => p.test(path));
+
   // Allow configured scraper agents or header token to bypass UA blocks (for LLM/bot crawlers)
   const allowedAgents = (process.env.SCRAPE_ALLOW_AGENTS || "scout-crawler")
     .split(",")
@@ -86,7 +102,13 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   const isProduction = process.env.NODE_ENV === "production";
 
   // Block known scraping user agents early (only in production)
-  if (isProduction && blockedUserAgents.some((pattern) => pattern.test(ua))) {
+  const isApiPath = /^\/api\//i.test(path);
+  if (
+    isProduction &&
+    !isPublicDiscoveryPath &&
+    (isApiPath || isSensitivePath(path)) &&
+    blockedUserAgents.some((pattern) => pattern.test(ua))
+  ) {
     return res.status(403).json({ error: "Automated scraping is blocked." });
   }
 

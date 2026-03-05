@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { useLocation } from "wouter";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 export function ProfileSetupRedirect({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -17,10 +18,9 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
       const anyUser: any = user;
       const profileVersion: number =
         typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-      const isSuperAdminLike =
-        anyUser.role === "super_admin" || anyUser.role === "head_admin" || anyUser.role === "owner";
+      const isSuperAdminSession = isSuperAdminLike(anyUser.role);
 
-      if (!isAdmin && !isSuperAdminLike && profileVersion < CURRENT_PROFILE_VERSION) {
+      if (!isAdmin && !isSuperAdminSession && profileVersion < CURRENT_PROFILE_VERSION) {
         setLocation("/pre-scout-setup");
       }
     }
@@ -31,15 +31,14 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
   const anyUser: any = user || {};
   const profileVersion: number =
     typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-  const isSuperAdminLike =
-    anyUser.role === "super_admin" || anyUser.role === "head_admin" || anyUser.role === "owner";
+  const isSuperAdminSession = isSuperAdminLike(anyUser.role);
 
   if (
     isLoading ||
     !user ||
     profileVersion >= CURRENT_PROFILE_VERSION ||
     isAdmin ||
-    isSuperAdminLike
+    isSuperAdminSession
   ) {
     return <>{children}</>;
   }

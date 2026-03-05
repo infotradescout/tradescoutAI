@@ -11,8 +11,7 @@ type Role =
   | "community_moderator"
   | "moderator"
   | "ops_admin"
-  | "super_admin"
-  | "head_admin";
+  | "super_admin";
 
 export type TestLoginResult = {
   agent: ReturnType<typeof request.agent>;

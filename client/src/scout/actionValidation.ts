@@ -94,7 +94,8 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
       /^\/profile\/[a-zA-Z0-9_-]+/.test(basePath) ||
       /^\/deal-room\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/community\/[a-zA-Z0-9_-]+$/.test(basePath) ||
-      /^\/groups\/[a-zA-Z0-9_-]+$/.test(basePath);
+      /^\/groups\/[a-zA-Z0-9_-]+$/.test(basePath) ||
+      /^\/help\/[a-zA-Z0-9_-]+$/.test(basePath);
 
     if (!isAllowedStatic && !isAllowedDynamic) {
       console.warn("[Scout] Navigation path not allowlisted:", basePath);

@@ -26,8 +26,8 @@ async function resolveSupportUserId(): Promise<string | null> {
   if (explicit) return explicit;
 
   try {
-    const head = await storage.getUserByRole("head_admin");
-    return normalizeId((head as any)?.id);
+    const superAdmin = await storage.getUserByRole("super_admin");
+    return normalizeId((superAdmin as any)?.id);
   } catch {
     return null;
   }

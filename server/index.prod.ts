@@ -24,6 +24,28 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
+import {
+  buildPublicTradeCountyHtml,
+  buildPublicTradeDirectoryHtml,
+  buildPublicTradeOverviewHtml,
+  buildPublicTradeStateHtml,
+} from "./publicTradeHtml";
+import { buildPublicCityHtml } from "./publicCityHtml";
+import { buildPublicTradeCityHtml } from "./publicTradeCityHtml";
+import { buildPublicCountyHtml } from "./publicCountyHtml";
+import { buildPublicBestTradeCityHtml, buildPublicBestTradeCountyHtml } from "./publicBestHtml";
+import {
+  buildPublicCityRecentHtml,
+  buildPublicCountyRecentHtml,
+  buildPublicTradeCityRecentHtml,
+  buildPublicTradeCountyRecentHtml,
+} from "./publicRecentHtml";
+import {
+  buildPublicDatasetsCitiesHtml,
+  buildPublicDatasetsCountiesHtml,
+  buildPublicDatasetsLandingHtml,
+  buildPublicDatasetsTradesHtml,
+} from "./publicDatasetsHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -163,6 +185,8 @@ app.use(
           "https://*.stripe.com",
           "https://maps.gstatic.com",
           "https://maps.googleapis.com",
+          "https://platform-lookaside.fbsbx.com",
+          "https://*.fbcdn.net",
         ],
       },
     },
@@ -459,8 +483,8 @@ app.use((req, res, next) => {
         return;
       }
 
-      const existingHeadAdmin = await storage.getUserByRole("head_admin");
-      if (existingHeadAdmin) {
+      const existingSuperAdmin = await storage.getUserByRole("super_admin");
+      if (existingSuperAdmin) {
         return;
       }
 
@@ -469,7 +493,7 @@ app.use((req, res, next) => {
 
       try {
         await storage.createMasterAdmin(email, password, firstName, lastName);
-        console.log(`[Bootstrap] Created head_admin account for ${email}`);
+        console.log(`[Bootstrap] Created super_admin account for ${email}`);
       } catch (err) {
         console.error("FATAL: Failed to create master admin in production:", err);
         throw err;
@@ -768,6 +792,409 @@ app.use((req, res, next) => {
               } catch (err) {
                 console.error("Error rendering public business HTML:", err);
                 res.status(500).send("Failed to render business");
+              }
+            });
+
+            // Public trade directory pages: server-rendered HTML for crawlability
+            app.get("/trade", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const html = await buildPublicTradeDirectoryHtml({ origin, templateHtml });
+                if (!html) return res.status(404).send("Trade page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade directory HTML:", err);
+                res.status(500).send("Failed to render trade page");
+              }
+            });
+
+            // Best pages: verified-only within the "new & true" recency window (transparent definition)
+            app.get("/best/:tradeSlug/:stateCode/city/:citySlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+                const citySlug = String(req.params.citySlug || "");
+
+                const html = await buildPublicBestTradeCityHtml({
+                  tradeSlug,
+                  stateCode,
+                  citySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Best page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering best trade city HTML:", err);
+                res.status(500).send("Failed to render best page");
+              }
+            });
+
+            app.get("/best/:tradeSlug/:stateCode/:countySlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+                const countySlug = String(req.params.countySlug || "");
+
+                const html = await buildPublicBestTradeCountyHtml({
+                  tradeSlug,
+                  stateCode,
+                  countySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Best page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering best trade county HTML:", err);
+                res.status(500).send("Failed to render best page");
+              }
+            });
+
+            app.get("/trade/:tradeSlug/:stateCode/city/:citySlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+                const citySlug = String(req.params.citySlug || "");
+
+                const html = await buildPublicTradeCityHtml({
+                  tradeSlug,
+                  stateCode,
+                  citySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Trade page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade city HTML:", err);
+                res.status(500).send("Failed to render trade page");
+              }
+            });
+
+            // Recent activity pages (safe public summaries)
+            app.get("/trade/:tradeSlug/:stateCode/city/:citySlug/recent", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+                const citySlug = String(req.params.citySlug || "");
+
+                const html = await buildPublicTradeCityRecentHtml({
+                  tradeSlug,
+                  stateCode,
+                  citySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Recent page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade city recent HTML:", err);
+                res.status(500).send("Failed to render recent page");
+              }
+            });
+
+            app.get("/trade/:tradeSlug/:stateCode/:countySlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+                const countySlug = String(req.params.countySlug || "");
+
+                const html = await buildPublicTradeCountyHtml({
+                  tradeSlug,
+                  stateCode,
+                  countySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Trade page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade county HTML:", err);
+                res.status(500).send("Failed to render trade page");
+              }
+            });
+
+            app.get("/trade/:tradeSlug/:stateCode/:countySlug/recent", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+                const countySlug = String(req.params.countySlug || "");
+
+                const html = await buildPublicTradeCountyRecentHtml({
+                  tradeSlug,
+                  stateCode,
+                  countySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Recent page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade county recent HTML:", err);
+                res.status(500).send("Failed to render recent page");
+              }
+            });
+
+            app.get("/trade/:tradeSlug/:stateCode", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+                const stateCode = String(req.params.stateCode || "");
+
+                const html = await buildPublicTradeStateHtml({
+                  tradeSlug,
+                  stateCode,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Trade page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade state HTML:", err);
+                res.status(500).send("Failed to render trade page");
+              }
+            });
+
+            app.get("/trade/:tradeSlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const tradeSlug = String(req.params.tradeSlug || "");
+
+                const html = await buildPublicTradeOverviewHtml({
+                  tradeSlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Trade page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering trade overview HTML:", err);
+                res.status(500).send("Failed to render trade page");
+              }
+            });
+
+            app.get("/city/:stateCode/:citySlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const stateCode = String(req.params.stateCode || "");
+                const citySlug = String(req.params.citySlug || "");
+
+                const html = await buildPublicCityHtml({
+                  stateCode,
+                  citySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("City page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering city HTML:", err);
+                res.status(500).send("Failed to render city");
+              }
+            });
+
+            app.get("/city/:stateCode/:citySlug/recent", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const stateCode = String(req.params.stateCode || "");
+                const citySlug = String(req.params.citySlug || "");
+
+                const html = await buildPublicCityRecentHtml({
+                  stateCode,
+                  citySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Recent page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering city recent HTML:", err);
+                res.status(500).send("Failed to render recent page");
+              }
+            });
+
+            app.get("/county/:stateCode/:countySlug", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const stateCode = String(req.params.stateCode || "");
+                const countySlug = String(req.params.countySlug || "");
+
+                const html = await buildPublicCountyHtml({
+                  stateCode,
+                  countySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("County page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering county HTML:", err);
+                res.status(500).send("Failed to render county");
+              }
+            });
+
+            app.get("/county/:stateCode/:countySlug/recent", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+
+                const origin = resolvePublicOrigin(req);
+                const stateCode = String(req.params.stateCode || "");
+                const countySlug = String(req.params.countySlug || "");
+
+                const html = await buildPublicCountyRecentHtml({
+                  stateCode,
+                  countySlug,
+                  origin,
+                  templateHtml,
+                });
+                if (!html) return res.status(404).send("Recent page not found");
+
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering county recent HTML:", err);
+                res.status(500).send("Failed to render recent page");
+              }
+            });
+
+            app.get("/datasets", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+                const origin = resolvePublicOrigin(req);
+                const html = await buildPublicDatasetsLandingHtml({ origin, templateHtml });
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering datasets landing HTML:", err);
+                res.status(500).send("Failed to render datasets");
+              }
+            });
+
+            app.get("/datasets/trades", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+                const origin = resolvePublicOrigin(req);
+                const html = await buildPublicDatasetsTradesHtml({ origin, templateHtml });
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering datasets trades HTML:", err);
+                res.status(500).send("Failed to render datasets");
+              }
+            });
+
+            app.get("/datasets/counties", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+                const origin = resolvePublicOrigin(req);
+                const html = await buildPublicDatasetsCountiesHtml({ origin, templateHtml });
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering datasets counties HTML:", err);
+                res.status(500).send("Failed to render datasets");
+              }
+            });
+
+            app.get("/datasets/cities", async (req, res) => {
+              try {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) return res.status(404).send("Application files not found");
+                const origin = resolvePublicOrigin(req);
+                const html = await buildPublicDatasetsCitiesHtml({ origin, templateHtml });
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              } catch (err) {
+                console.error("Error rendering datasets cities HTML:", err);
+                res.status(500).send("Failed to render datasets");
               }
             });
 

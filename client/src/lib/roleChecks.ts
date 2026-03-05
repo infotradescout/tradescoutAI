@@ -13,7 +13,8 @@ export type UserRole = string | undefined;
 const normalizeRole = (role: UserRole): string => {
   const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
   if (!raw) return "";
-  return raw === "owner" ? "head_admin" : raw;
+  if (raw === "owner" || raw === "head_admin") return "super_admin";
+  return raw;
 };
 
 /**
@@ -24,7 +25,7 @@ const normalizeRole = (role: UserRole): string => {
  */
 export const isSuperAdminLike = (role: UserRole): boolean => {
   const normalized = normalizeRole(role);
-  return normalized === "super_admin" || normalized === "head_admin";
+  return normalized === "super_admin";
 };
 
 /**
@@ -46,7 +47,7 @@ export const isAdminTier = (role: UserRole): boolean => {
 };
 
 /**
- * Moderator check (content moderation only)
+ * Staff check (employee moderation access)
  *
  * NOT admin tier. Should not see admin navigation.
  */

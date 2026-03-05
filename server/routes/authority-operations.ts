@@ -10,7 +10,7 @@ const router = Router();
 router.get(
   "/observation-lock",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
       const [setting] = await db
@@ -33,7 +33,7 @@ router.get(
 router.post(
   "/observation-lock",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (req: Request, res: Response) => {
     try {
       const { enabled } = req.body;
@@ -65,7 +65,7 @@ router.post(
 router.get(
   "/decision-card-metrics",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
       return res.status(503).json({ error: "Decision card analytics are not yet available" });
@@ -79,7 +79,7 @@ router.get(
 router.get(
   "/override-legitimacy",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
       const overrides = await db
@@ -147,7 +147,7 @@ router.get(
 router.get(
   "/cancel-signals",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
       const [totals] = await db
@@ -186,7 +186,7 @@ router.get(
 router.get(
   "/unlock-ledger",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
       const conditions = await db
@@ -220,7 +220,7 @@ router.get(
 router.post(
   "/unlock-condition",
   isAuthenticated,
-  requireRole(["head_admin", "ops_admin"]),
+  requireRole(["super_admin", "ops_admin"]),
   async (req: Request, res: Response) => {
     try {
       const { phase, condition } = req.body;

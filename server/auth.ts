@@ -17,8 +17,8 @@ import { desc, sql } from "drizzle-orm";
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
   const normalized = role.trim().toLowerCase();
-  // Legacy bootstrap accounts can still carry "owner"; treat it as top-level admin.
-  if (normalized === "owner") return "head_admin";
+  // Legacy bootstrap accounts can still carry "owner" or "head_admin"; treat as top-level admin.
+  if (normalized === "owner" || normalized === "head_admin") return "super_admin";
   return normalized as UserRole;
 }
 
@@ -262,9 +262,9 @@ export async function setupAuth(app: Express) {
           if (matchesConfiguredMasterPassword) {
             const masterCandidates = [user, ...duplicateEmailCandidates];
             const healedUser = masterCandidates.find((candidateUser) => {
-              const isHeadAdminLikeRole =
-                candidateUser?.role === "head_admin" || candidateUser?.role === "super_admin";
-              if (!isHeadAdminLikeRole) return false;
+              const isSuperAdminLikeRole =
+                candidateUser?.role === "super_admin" || candidateUser?.role === "head_admin";
+              if (!isSuperAdminLikeRole) return false;
               if (!configuredMasterAdminEmail) return true;
               return (
                 String(candidateUser?.email || "")
@@ -446,9 +446,9 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
   const profileVersion: number =
     typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
-  // Super admins and head admins always bypass onboarding gates.
+  // Super admins always bypass onboarding gates.
   const normalizedRole = normalizeLegacyRole(anyUser.role);
-  if (normalizedRole === "super_admin" || normalizedRole === "head_admin") {
+  if (normalizedRole === "super_admin") {
     return next();
   }
 
@@ -491,7 +491,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
     if (activeRole) candidateRoles.add(activeRole);
     roleList.forEach((role) => candidateRoles.add(role));
     // Legacy / computed flags should still grant access through role gates when present.
-    if (isAdminFlag) candidateRoles.add("head_admin");
+    if (isAdminFlag) candidateRoles.add("super_admin");
 
     if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
@@ -539,20 +539,11 @@ export const requirePermission = (
 };
 
 // Specific role middleware with hierarchy
-export const isAdmin: RequestHandler = requireRole([
-  "moderator",
-  "ops_admin",
-  "super_admin",
-  "head_admin",
-]);
-export const isHeadAdmin: RequestHandler = requireRole(["head_admin"]);
-export const isSuperAdmin: RequestHandler = requireRole(["super_admin", "head_admin"]);
-export const isModerator: RequestHandler = requireRole([
-  "moderator",
-  "ops_admin",
-  "super_admin",
-  "head_admin",
-]);
+export const isAdmin: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
+// Backward-compat: some legacy routes imported `isHeadAdmin`; it now matches `super_admin`.
+export const isHeadAdmin: RequestHandler = requireRole(["super_admin"]);
+export const isSuperAdmin: RequestHandler = requireRole(["super_admin"]);
+export const isModerator: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
 export const isStaff: RequestHandler = requireRole([
   "support_agent",
   "content_moderator",
@@ -564,7 +555,6 @@ export const isStaff: RequestHandler = requireRole([
   "moderator",
   "ops_admin",
   "super_admin",
-  "head_admin",
 ]);
 export const isContractor: RequestHandler = requireRole(["contractor_user", "accelerator_member"]);
 export const isCommunityModerator: RequestHandler = requireRole([
@@ -573,7 +563,6 @@ export const isCommunityModerator: RequestHandler = requireRole([
   "moderator",
   "ops_admin",
   "super_admin",
-  "head_admin",
 ]);
 
 // Password hashing utilities
@@ -607,7 +596,7 @@ export const requireAdmin = (req: any, res: any, next: any) => {
   const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
   const isAdminFlag = user.isAdmin === true;
 
-  const adminRoles = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+  const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
   const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
   const normalizedActiveRole = normalizeLegacyRole(activeRole) || activeRole;
   const normalizedRoles = roles.map((role: string) => normalizeLegacyRole(role) || role);
@@ -636,7 +625,7 @@ export async function createMasterAdmin(
     password: passwordHash,
     firstName,
     lastName,
-    role: "head_admin",
+    role: "super_admin",
     emailVerified: true,
     addressVerified: true, // Master admin bypasses verification
     onboardingCompleted: true,

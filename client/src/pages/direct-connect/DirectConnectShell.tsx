@@ -991,6 +991,7 @@ function MyDirectConnectRequests() {
         return (
           <Card
             key={r.id}
+            data-testid={`dc-request-${r.id}`}
             className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
           >
             <CardContent className="space-y-3 p-3 md:p-5">

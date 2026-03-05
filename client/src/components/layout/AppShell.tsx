@@ -37,6 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 export type NavItem = {
   label: string;
@@ -167,11 +168,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           .trim()
           .toLowerCase()
       : "";
-  const isSuperAdmin =
-    (user as any)?.isSuperAdmin === true ||
-    role === "super_admin" ||
-    role === "head_admin" ||
-    role === "owner";
+  const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,

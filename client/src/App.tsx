@@ -26,6 +26,7 @@ import SimpleSubtleHints from "./components/onboarding/SimpleSubtleHints";
 import ProfileCompletionBanner from "./components/onboarding/ProfileCompletionBanner";
 import SimpleBugReportTool from "./components/SimpleBugReportTool";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { isSuperAdminLike } from "./lib/roleChecks";
 
 // Loading component for lazy-loaded pages
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -114,9 +115,9 @@ const AppLayout = memo(function AppLayout() {
 
     const profileVersion: number =
       typeof user?.profileVersion === "number" ? user.profileVersion : 0;
-    const isSuperAdminLike =
-      user?.role === "super_admin" || user?.role === "head_admin" || user?.role === "owner";
-    const hasCompletedProfileBasics = isSuperAdminLike || profileVersion >= CURRENT_PROFILE_VERSION;
+    const isSuperAdminSession = isSuperAdminLike(user?.role);
+    const hasCompletedProfileBasics =
+      isSuperAdminSession || profileVersion >= CURRENT_PROFILE_VERSION;
 
     trackShellEvent({
       type: "identity_session",

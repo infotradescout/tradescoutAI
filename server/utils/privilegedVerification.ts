@@ -1,4 +1,4 @@
-const ADMIN_ROLES = new Set(["moderator", "ops_admin", "super_admin", "head_admin"]);
+const ADMIN_ROLES = new Set(["moderator", "ops_admin", "super_admin"]);
 const STAFF_OR_ADMIN_ROLES = new Set([
   "support_agent",
   "content_moderator",
@@ -10,13 +10,13 @@ const STAFF_OR_ADMIN_ROLES = new Set([
   "moderator",
   "ops_admin",
   "super_admin",
-  "head_admin",
 ]);
 
 function normalizeRole(role: unknown): string {
   const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
   if (!raw) return "";
-  return raw === "owner" ? "head_admin" : raw;
+  if (raw === "owner" || raw === "head_admin") return "super_admin";
+  return raw;
 }
 
 function normalizedRolesForUser(user: any): string[] {
@@ -45,9 +45,7 @@ export function applyPrivilegedVerificationBypass<T extends Record<string, any> 
   const normalizedRoles = normalizedRolesForUser(user);
   const primaryRole = normalizedRoles[0] || normalizeRole(user.role) || user.role;
   const isAdminLike = normalizedRoles.some((role) => ADMIN_ROLES.has(role));
-  const isSuperAdminLike = normalizedRoles.some(
-    (role) => role === "super_admin" || role === "head_admin"
-  );
+  const isSuperAdminLike = normalizedRoles.some((role) => role === "super_admin");
 
   return {
     ...user,

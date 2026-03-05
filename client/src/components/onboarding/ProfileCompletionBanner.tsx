@@ -5,14 +5,16 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 type BannerMode = "local_setup" | "onboarding";
 
 function isAdminLike(user: any): boolean {
   if (!user) return false;
   if (user.isAdmin === true || user.isSuperAdmin === true) return true;
-  const role = String(user.role || "");
-  return role === "super_admin" || role === "head_admin" || role === "owner";
+  return (
+    isSuperAdminLike((user as any)?.role) || String((user as any)?.role || "").includes("admin")
+  );
 }
 
 export default function ProfileCompletionBanner() {
