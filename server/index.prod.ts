@@ -19,6 +19,7 @@ import { ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
 import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
+import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -448,6 +449,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Bot actors are read-only by policy. Default mode is report-only for safe rollout.
+app.use(botReadOnlyGuard);
 
 (async () => {
   try {
