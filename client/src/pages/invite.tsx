@@ -4,19 +4,28 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Mail, Users, Gift, Copy, Check } from "lucide-react";
 
 type ReferralCodeResponse = { referralCode?: string } | undefined;
-type ReferralStats = {
-  totalInvitationsSent?: number;
-  totalInvitationsAccepted?: number;
-  contractorReferrals?: number;
-  homeownerReferrals?: number;
-} | undefined;
+type ReferralStats =
+  | {
+      totalInvitationsSent?: number;
+      totalInvitationsAccepted?: number;
+      contractorReferrals?: number;
+      homeownerReferrals?: number;
+    }
+  | undefined;
 
 type Invitation = {
   id: string;
@@ -91,7 +100,7 @@ export default function InvitePage() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to send invitation",
+        description: formatUserFacingErrorMessage(error, "Failed to send invitation."),
         variant: "destructive",
       });
     },
@@ -150,9 +159,7 @@ export default function InvitePage() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-ts-orange mb-2">
-          Invite Friends to TradeScout
-        </h1>
+        <h1 className="text-3xl font-bold text-ts-orange mb-2">Invite Friends to TradeScout</h1>
         <p className="text-white/60 dark:text-white/70">
           Help grow our community by inviting contractors and homeowners you know
         </p>
@@ -235,16 +242,8 @@ export default function InvitePage() {
                     readOnly
                     className="font-mono text-lg"
                   />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={copyReferralCode}
-                  >
-                    {copySuccess ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
+                  <Button variant="outline" size="icon" onClick={copyReferralCode}>
+                    {copySuccess ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
               ) : (
@@ -274,33 +273,25 @@ export default function InvitePage() {
                     <div className="text-2xl font-bold text-blue-600">
                       {stats.totalInvitationsSent}
                     </div>
-                    <div className="text-sm text-white/60 dark:text-white/60">
-                      Invitations Sent
-                    </div>
+                    <div className="text-sm text-white/60 dark:text-white/60">Invitations Sent</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">
                       {stats.totalInvitationsAccepted}
                     </div>
-                    <div className="text-sm text-white/60 dark:text-white/60">
-                      Accepted
-                    </div>
+                    <div className="text-sm text-white/60 dark:text-white/60">Accepted</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-ts-orange">
                       {stats.contractorReferrals}
                     </div>
-                    <div className="text-sm text-white/60 dark:text-white/60">
-                      Contractors
-                    </div>
+                    <div className="text-sm text-white/60 dark:text-white/60">Contractors</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-purple-600">
                       {stats.homeownerReferrals}
                     </div>
-                    <div className="text-sm text-white/60 dark:text-white/60">
-                      Homeowners
-                    </div>
+                    <div className="text-sm text-white/60 dark:text-white/60">Homeowners</div>
                   </div>
                 </div>
               </CardContent>
@@ -313,9 +304,7 @@ export default function InvitePage() {
       <Card>
         <CardHeader>
           <CardTitle>Your Invitations</CardTitle>
-          <CardDescription>
-            Track the status of invitations you've sent
-          </CardDescription>
+          <CardDescription>Track the status of invitations you've sent</CardDescription>
         </CardHeader>
         <CardContent>
           {invitationsLoading ? (

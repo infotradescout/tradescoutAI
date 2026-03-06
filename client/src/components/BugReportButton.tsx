@@ -1,14 +1,27 @@
-import React, { useState, useRef, useContext } from 'react';
+import React, { useState, useRef, useContext } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Bug, Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface BugReportData {
   type: string;
@@ -86,7 +99,7 @@ export function BugReportButton() {
       onError: (error) => {
         toast({
           title: "Error Sending Bug Report",
-          description: error.message || "Please try again later.",
+          description: formatUserFacingErrorMessage(error, "Please try again later."),
           variant: "destructive",
         });
       },
@@ -111,7 +124,10 @@ export function BugReportButton() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="type">Type of Issue</Label>
-                <Select onValueChange={(value) => handleSelectChange(value, "type")} value={bugData.type}>
+                <Select
+                  onValueChange={(value) => handleSelectChange(value, "type")}
+                  value={bugData.type}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select issue type" />
                   </SelectTrigger>
@@ -193,7 +209,7 @@ export function BugReportButton() {
       </>
     );
   } catch (error) {
-    console.error('BugReportButton error:', error);
+    console.error("BugReportButton error:", error);
     return (
       <div className="fixed bottom-4 left-4 z-50">
         <Button variant="outline" size="sm" disabled>

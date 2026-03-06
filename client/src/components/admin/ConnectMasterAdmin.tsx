@@ -5,6 +5,7 @@ import { Shield, Facebook, UserCheck } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export default function ConnectMasterAdmin() {
   const { toast } = useToast();
@@ -26,7 +27,7 @@ export default function ConnectMasterAdmin() {
     onError: (error: Error) => {
       toast({
         title: "Connection Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to connect admin account."),
         variant: "destructive",
       });
     },

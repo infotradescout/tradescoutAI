@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { isSuperAdminLike } from "@/lib/roleChecks";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface DiagnosticData {
   summary: {
@@ -50,7 +51,7 @@ export default function AdminAuthorityDiagnostics() {
         return res.json();
       })
       .then(setData)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(formatUserFacingErrorMessage(err, "Failed to load diagnostics.")))
       .finally(() => setLoading(false));
   }, [user]);
 

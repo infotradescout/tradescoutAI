@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -103,7 +104,7 @@ export default function AddressVerification() {
     onError: (error) => {
       toast({
         title: "Submission Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to submit verification."),
         variant: "destructive",
       });
     },
@@ -123,7 +124,7 @@ export default function AddressVerification() {
     onError: (error) => {
       toast({
         title: "Request Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to request postcard."),
         variant: "destructive",
       });
     },
@@ -145,7 +146,7 @@ export default function AddressVerification() {
     onError: (error) => {
       toast({
         title: "Verification Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to verify code."),
         variant: "destructive",
       });
     },
@@ -379,9 +380,7 @@ export default function AddressVerification() {
                   >
                     <Upload className="w-5 h-5 text-white/60 mt-1" />
                     <div>
-                      <h4 className="font-medium text-white dark:text-white">
-                        Document Upload
-                      </h4>
+                      <h4 className="font-medium text-white dark:text-white">Document Upload</h4>
                       <p className="text-sm text-white/70 dark:text-white/70">
                         Upload a document that shows your name and address (utility bill, bank
                         statement, etc.).

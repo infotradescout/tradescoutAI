@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Plus, Filter, MapPin, Image as ImageIcon, Link2, CheckCircle2 } from "lucide-react";
 
 type Promotion = {
@@ -50,7 +51,11 @@ export default function AdminPromotionsPage() {
       toast({ title: "Promotion created", description: "New promotion is now available." });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: formatUserFacingErrorMessage(error, "Action failed."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -63,7 +68,11 @@ export default function AdminPromotionsPage() {
       toast({ title: "Promotion updated", description: "Changes saved successfully." });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: formatUserFacingErrorMessage(error, "Action failed."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -238,23 +247,31 @@ export default function AdminPromotionsPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-white/70 max-w-xl">
-                          {promo.shortDescription}
-                        </p>
+                        <p className="text-xs text-white/70 max-w-xl">{promo.shortDescription}</p>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                           <Badge variant="outline" className="border-white/15 text-white/70">
                             Status: {promo.status}
                           </Badge>
-                          <Badge variant="outline" className="border-white/15 text-white/70 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" /> {promo.countyFips.join(", ") || "No counties"}
+                          <Badge
+                            variant="outline"
+                            className="border-white/15 text-white/70 flex items-center gap-1"
+                          >
+                            <MapPin className="w-3 h-3" />{" "}
+                            {promo.countyFips.join(", ") || "No counties"}
                           </Badge>
                           {promo.ctaUrl && (
-                            <Badge variant="outline" className="border-white/15 text-white/70 flex items-center gap-1">
+                            <Badge
+                              variant="outline"
+                              className="border-white/15 text-white/70 flex items-center gap-1"
+                            >
                               <Link2 className="w-3 h-3" /> CTA
                             </Badge>
                           )}
                           {promo.imageAttachmentId && (
-                            <Badge variant="outline" className="border-white/15 text-white/70 flex items-center gap-1">
+                            <Badge
+                              variant="outline"
+                              className="border-white/15 text-white/70 flex items-center gap-1"
+                            >
                               <ImageIcon className="w-3 h-3" /> Image
                             </Badge>
                           )}

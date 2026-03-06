@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { useParams } from "wouter";
 import { Users, UserCheck, UserPlus, Shield, Edit } from "lucide-react";
@@ -138,7 +139,7 @@ const HOAResidents = memo(function HOAResidents() {
     onError: (error: Error) => {
       toast({
         title: "Failed to Add Member",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to add member."),
         variant: "destructive",
       });
     },
@@ -169,7 +170,7 @@ const HOAResidents = memo(function HOAResidents() {
     onError: (error: Error) => {
       toast({
         title: "Unable to leave HOA",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Unable to leave HOA."),
         variant: "destructive",
       });
     },
@@ -204,7 +205,7 @@ const HOAResidents = memo(function HOAResidents() {
     onError: (error: Error) => {
       toast({
         title: "Unable to create vote",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Unable to create vote."),
         variant: "destructive",
       });
     },

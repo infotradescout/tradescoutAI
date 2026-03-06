@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { ChevronUp, ChevronDown, Flag, EyeOff, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -106,7 +107,7 @@ export function ModerationButtons({
     onError: (error) => {
       toast({
         title: "Vote failed",
-        description: error.message || "Failed to submit vote",
+        description: formatUserFacingErrorMessage(error, "Failed to submit vote."),
         variant: "destructive",
       });
     },

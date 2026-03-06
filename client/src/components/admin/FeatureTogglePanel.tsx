@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Settings, Plus, Eye, EyeOff, Save } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Settings, Plus, Eye, EyeOff, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface FeatureFlag {
   id: string;
@@ -27,27 +28,27 @@ export default function FeatureTogglePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newFeature, setNewFeature] = useState({
-    name: '',
-    key: '',
-    description: '',
-    category: 'general',
-    userRoles: ['homeowner', 'contractor_user']
+    name: "",
+    key: "",
+    description: "",
+    category: "general",
+    userRoles: ["homeowner", "contractor_user"],
   });
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Fetch feature flags
   const { data: features = [], isLoading } = useQuery<FeatureFlag[]>({
-    queryKey: ['/api/admin/feature-flags'],
+    queryKey: ["/api/admin/feature-flags"],
     retry: false,
   });
 
   // Toggle feature mutation
   const toggleFeatureMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      return apiRequest('PATCH', `/api/admin/feature-flags/${id}`, { enabled });
+      return apiRequest("PATCH", `/api/admin/feature-flags/${id}`, { enabled });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/feature-flags'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/feature-flags"] });
       toast({
         title: "Feature Updated",
         description: "Feature flag updated successfully",
@@ -56,7 +57,7 @@ export default function FeatureTogglePanel() {
     onError: (error) => {
       toast({
         title: "Update Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to update feature flag."),
         variant: "destructive",
       });
     },
@@ -65,16 +66,16 @@ export default function FeatureTogglePanel() {
   // Create feature mutation
   const createFeatureMutation = useMutation({
     mutationFn: async (featureData: any) => {
-      return apiRequest('POST', '/api/admin/feature-flags', featureData);
+      return apiRequest("POST", "/api/admin/feature-flags", featureData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/feature-flags'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/feature-flags"] });
       setNewFeature({
-        name: '',
-        key: '',
-        description: '',
-        category: 'general',
-        userRoles: ['homeowner', 'contractor_user']
+        name: "",
+        key: "",
+        description: "",
+        category: "general",
+        userRoles: ["homeowner", "contractor_user"],
       });
       setShowAddForm(false);
       toast({
@@ -85,7 +86,7 @@ export default function FeatureTogglePanel() {
     onError: (error) => {
       toast({
         title: "Creation Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to create feature flag."),
         variant: "destructive",
       });
     },
@@ -163,7 +164,7 @@ export default function FeatureTogglePanel() {
                     <Input
                       id="feature-name"
                       value={newFeature.name}
-                      onChange={(e) => setNewFeature({...newFeature, name: e.target.value})}
+                      onChange={(e) => setNewFeature({ ...newFeature, name: e.target.value })}
                       placeholder="e.g., Advanced Calculator"
                       data-testid="input-feature-name"
                     />
@@ -173,7 +174,12 @@ export default function FeatureTogglePanel() {
                     <Input
                       id="feature-key"
                       value={newFeature.key}
-                      onChange={(e) => setNewFeature({...newFeature, key: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                      onChange={(e) =>
+                        setNewFeature({
+                          ...newFeature,
+                          key: e.target.value.toLowerCase().replace(/\s+/g, "_"),
+                        })
+                      }
                       placeholder="e.g., advanced_calculator"
                       data-testid="input-feature-key"
                     />
@@ -183,22 +189,24 @@ export default function FeatureTogglePanel() {
                     <Textarea
                       id="feature-description"
                       value={newFeature.description}
-                      onChange={(e) => setNewFeature({...newFeature, description: e.target.value})}
+                      onChange={(e) =>
+                        setNewFeature({ ...newFeature, description: e.target.value })
+                      }
                       placeholder="Describe what this feature does..."
                       data-testid="textarea-feature-description"
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      onClick={handleCreateFeature} 
+                    <Button
+                      onClick={handleCreateFeature}
                       disabled={createFeatureMutation.isPending}
                       data-testid="button-save-feature"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       Save Feature
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setShowAddForm(false)}
                       data-testid="button-cancel-feature"
                     >
@@ -220,30 +228,32 @@ export default function FeatureTogglePanel() {
               </div>
             ) : (
               features.map((feature) => (
-                <Card key={feature.id} className={`transition-all duration-200 ${
-                  feature.enabled ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                }`}>
+                <Card
+                  key={feature.id}
+                  className={`transition-all duration-200 ${
+                    feature.enabled ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+                  }`}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold">{feature.name}</h3>
-                          <Badge variant={feature.enabled ? 'default' : 'secondary'}>
+                          <Badge variant={feature.enabled ? "default" : "secondary"}>
                             {feature.category}
                           </Badge>
-                          <Badge variant={feature.enabled ? 'default' : 'outline'} className="text-xs">
-                            {feature.enabled ? 'Enabled' : 'Disabled'}
+                          <Badge
+                            variant={feature.enabled ? "default" : "outline"}
+                            className="text-xs"
+                          >
+                            {feature.enabled ? "Enabled" : "Disabled"}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {feature.description}
-                        </p>
+                        <p className="text-sm text-muted-foreground mb-2">{feature.description}</p>
                         <div className="text-xs text-muted-foreground">
                           Key: <code className="bg-muted px-1 rounded">{feature.key}</code>
                           {feature.userRoles && (
-                            <span className="ml-4">
-                              Roles: {feature.userRoles.join(', ')}
-                            </span>
+                            <span className="ml-4">Roles: {feature.userRoles.join(", ")}</span>
                           )}
                         </div>
                       </div>
@@ -272,17 +282,15 @@ export default function FeatureTogglePanel() {
       <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common feature management tasks
-          </CardDescription>
+          <CardDescription>Common feature management tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => {
-                features.forEach(feature => {
+                features.forEach((feature) => {
                   if (!feature.enabled) {
                     handleToggle(feature.id, true);
                   }
@@ -292,11 +300,11 @@ export default function FeatureTogglePanel() {
             >
               Enable All
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => {
-                features.forEach(feature => {
+                features.forEach((feature) => {
                   if (feature.enabled) {
                     handleToggle(feature.id, false);
                   }
@@ -306,25 +314,25 @@ export default function FeatureTogglePanel() {
             >
               Disable All
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['/api/admin/feature-flags'] });
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/feature-flags"] });
                 toast({ title: "Refreshed", description: "Feature flags reloaded" });
               }}
               data-testid="button-refresh"
             >
               Refresh
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => {
-                const enabledCount = features.filter(f => f.enabled).length;
-                toast({ 
-                  title: "Feature Status", 
-                  description: `${enabledCount} of ${features.length} features enabled` 
+                const enabledCount = features.filter((f) => f.enabled).length;
+                toast({
+                  title: "Feature Status",
+                  description: `${enabledCount} of ${features.length} features enabled`,
                 });
               }}
               data-testid="button-status"

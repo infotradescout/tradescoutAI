@@ -4,13 +4,44 @@ import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, FileText, Mail, Phone, UserCheck, Calendar } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  Mail,
+  Phone,
+  UserCheck,
+  Calendar,
+} from "lucide-react";
 
 interface AddressVerification {
   id: string;
@@ -20,7 +51,7 @@ interface AddressVerification {
   state: string;
   zipCode: string;
   verificationMethod: string;
-  status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'expired';
+  status: "pending" | "submitted" | "approved" | "rejected" | "expired";
   submittedAt?: string;
   reviewedAt?: string;
   approvedAt?: string;
@@ -46,7 +77,9 @@ interface VerificationWithUser {
 
 export default function AdminAddressVerifications() {
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedVerification, setSelectedVerification] = useState<VerificationWithUser | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<VerificationWithUser | null>(
+    null
+  );
   const [reviewStatus, setReviewStatus] = useState<string>("");
   const [adminNotes, setAdminNotes] = useState("");
   const { toast } = useToast();
@@ -54,21 +87,32 @@ export default function AdminAddressVerifications() {
 
   // Get address verifications
   const { data: verifications, isLoading } = useQuery({
-    queryKey: ['/api/admin/address-verifications', statusFilter],
+    queryKey: ["/api/admin/address-verifications", statusFilter],
     queryFn: () => apiRequest(`/api/admin/address-verifications?status=${statusFilter}`),
   });
 
   // Update verification mutation
   const updateVerificationMutation = useMutation({
-    mutationFn: async ({ id, status, adminNotes }: { id: string; status: string; adminNotes: string }) => {
-      return await apiRequest(`/api/admin/address-verifications/${id}`, 'PUT', { status, adminNotes });
+    mutationFn: async ({
+      id,
+      status,
+      adminNotes,
+    }: {
+      id: string;
+      status: string;
+      adminNotes: string;
+    }) => {
+      return await apiRequest(`/api/admin/address-verifications/${id}`, "PUT", {
+        status,
+        adminNotes,
+      });
     },
     onSuccess: () => {
       toast({
         title: "Verification Updated",
         description: "The address verification has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/address-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/address-verifications"] });
       setSelectedVerification(null);
       setReviewStatus("");
       setAdminNotes("");
@@ -76,7 +120,7 @@ export default function AdminAddressVerifications() {
     onError: (error: any) => {
       toast({
         title: "Update Failed",
-        description: error.message || "Failed to update verification",
+        description: formatUserFacingErrorMessage(error, "Failed to update verification."),
         variant: "destructive",
       });
     },
@@ -84,11 +128,11 @@ export default function AdminAddressVerifications() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved':
+      case "approved":
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'rejected':
+      case "rejected":
         return <XCircle className="w-4 h-4 text-red-600" />;
-      case 'expired':
+      case "expired":
         return <XCircle className="w-4 h-4 text-ts-orange" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-600" />;
@@ -121,9 +165,9 @@ export default function AdminAddressVerifications() {
 
   const getMethodIcon = (method: string) => {
     switch (method) {
-      case 'postcard':
+      case "postcard":
         return <Mail className="w-4 h-4" />;
-      case 'phone_verification':
+      case "phone_verification":
         return <Phone className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
@@ -131,25 +175,27 @@ export default function AdminAddressVerifications() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getDaysRemaining = (deadline: string) => {
     const now = new Date();
     const deadlineDate = new Date(deadline);
-    const daysRemaining = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.ceil(
+      (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
     return daysRemaining;
   };
 
   const handleReview = () => {
     if (!selectedVerification || !reviewStatus) return;
-    
+
     updateVerificationMutation.mutate({
       id: selectedVerification.verification.id,
       status: reviewStatus,
@@ -180,8 +226,10 @@ export default function AdminAddressVerifications() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {['pending', 'submitted', 'approved', 'rejected'].map((status) => {
-          const count = verifications?.filter((v: VerificationWithUser) => v.verification.status === status).length || 0;
+        {["pending", "submitted", "approved", "rejected"].map((status) => {
+          const count =
+            verifications?.filter((v: VerificationWithUser) => v.verification.status === status)
+              .length || 0;
           return (
             <Card key={status}>
               <CardContent className="p-4">
@@ -249,14 +297,16 @@ export default function AdminAddressVerifications() {
                   const { verification, user } = item;
                   const daysRemaining = getDaysRemaining(verification.deadline);
                   const isOverdue = daysRemaining < 0;
-                  
+
                   return (
                     <TableRow key={verification.id}>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <UserCheck className="w-4 h-4 text-white/60" />
                           <div>
-                            <p className="font-medium">{user.firstName} {user.lastName}</p>
+                            <p className="font-medium">
+                              {user.firstName} {user.lastName}
+                            </p>
                             <p className="text-sm text-white/60">{user.email}</p>
                           </div>
                         </div>
@@ -273,32 +323,34 @@ export default function AdminAddressVerifications() {
                         <div className="flex items-center space-x-2">
                           {getMethodIcon(verification.verificationMethod)}
                           <span className="capitalize">
-                            {verification.verificationMethod?.replace('_', ' ')}
+                            {verification.verificationMethod?.replace("_", " ")}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {getStatusBadge(verification.status)}
-                      </TableCell>
+                      <TableCell>{getStatusBadge(verification.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4 text-white/60" />
                           <div>
                             <p className="text-sm">{formatDate(verification.deadline)}</p>
-                            <p className={`text-xs ${isOverdue ? 'text-red-600' : daysRemaining <= 3 ? 'text-ts-orange' : 'text-white/60'}`}>
-                              {isOverdue ? `${Math.abs(daysRemaining)} days overdue` : `${daysRemaining} days left`}
+                            <p
+                              className={`text-xs ${isOverdue ? "text-red-600" : daysRemaining <= 3 ? "text-ts-orange" : "text-white/60"}`}
+                            >
+                              {isOverdue
+                                ? `${Math.abs(daysRemaining)} days overdue`
+                                : `${daysRemaining} days left`}
                             </p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {verification.submittedAt ? formatDate(verification.submittedAt) : '-'}
+                        {verification.submittedAt ? formatDate(verification.submittedAt) : "-"}
                       </TableCell>
                       <TableCell>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => {
                                 setSelectedVerification(item);
@@ -316,7 +368,7 @@ export default function AdminAddressVerifications() {
                                 Review and update the status of this address verification request.
                               </DialogDescription>
                             </DialogHeader>
-                            
+
                             {selectedVerification && (
                               <div className="space-y-4">
                                 {/* User Info */}
@@ -324,9 +376,12 @@ export default function AdminAddressVerifications() {
                                   <div>
                                     <Label className="text-sm font-medium">User</Label>
                                     <p className="text-sm">
-                                      {selectedVerification.user.firstName} {selectedVerification.user.lastName}
+                                      {selectedVerification.user.firstName}{" "}
+                                      {selectedVerification.user.lastName}
                                     </p>
-                                    <p className="text-sm text-white/60">{selectedVerification.user.email}</p>
+                                    <p className="text-sm text-white/60">
+                                      {selectedVerification.user.email}
+                                    </p>
                                   </div>
                                   <div>
                                     <Label className="text-sm font-medium">Current Status</Label>
@@ -335,7 +390,7 @@ export default function AdminAddressVerifications() {
                                     </div>
                                   </div>
                                 </div>
-                                
+
                                 {/* Address Info */}
                                 <div>
                                   <Label className="text-sm font-medium">Address</Label>
@@ -345,25 +400,32 @@ export default function AdminAddressVerifications() {
                                   >
                                     <p>{selectedVerification.verification.fullAddress}</p>
                                     <p className="text-sm text-white/60">
-                                      {selectedVerification.verification.city}, {selectedVerification.verification.state} {selectedVerification.verification.zipCode}
+                                      {selectedVerification.verification.city},{" "}
+                                      {selectedVerification.verification.state}{" "}
+                                      {selectedVerification.verification.zipCode}
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* Verification Details */}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <Label className="text-sm font-medium">Method</Label>
                                     <p className="text-sm capitalize">
-                                      {selectedVerification.verification.verificationMethod?.replace('_', ' ')}
+                                      {selectedVerification.verification.verificationMethod?.replace(
+                                        "_",
+                                        " "
+                                      )}
                                     </p>
                                   </div>
                                   <div>
                                     <Label className="text-sm font-medium">Deadline</Label>
-                                    <p className="text-sm">{formatDate(selectedVerification.verification.deadline)}</p>
+                                    <p className="text-sm">
+                                      {formatDate(selectedVerification.verification.deadline)}
+                                    </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* Review Form */}
                                 <div className="space-y-4">
                                   <div>
@@ -379,7 +441,7 @@ export default function AdminAddressVerifications() {
                                       </SelectContent>
                                     </Select>
                                   </div>
-                                  
+
                                   <div>
                                     <Label htmlFor="notes">Admin Notes</Label>
                                     <Textarea
@@ -392,13 +454,15 @@ export default function AdminAddressVerifications() {
                                 </div>
                               </div>
                             )}
-                            
+
                             <DialogFooter>
-                              <Button 
+                              <Button
                                 onClick={handleReview}
                                 disabled={updateVerificationMutation.isPending || !reviewStatus}
                               >
-                                {updateVerificationMutation.isPending ? 'Updating...' : 'Update Verification'}
+                                {updateVerificationMutation.isPending
+                                  ? "Updating..."
+                                  : "Update Verification"}
                               </Button>
                             </DialogFooter>
                           </DialogContent>
@@ -409,7 +473,7 @@ export default function AdminAddressVerifications() {
                 })}
               </TableBody>
             </Table>
-            
+
             {(!verifications || verifications.length === 0) && (
               <div className="text-center py-8">
                 <p className="text-white/60 dark:text-white/60">No address verifications found.</p>

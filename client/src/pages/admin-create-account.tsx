@@ -18,6 +18,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const createAdminSchema = z
   .object({
@@ -61,12 +62,7 @@ export default function AdminCreateAccount() {
 
   const createAdminMutation = useMutation({
     mutationFn: async (data: Omit<CreateAdminFormData, "confirmPassword">) => {
-      const response = await apiRequest("POST", "/api/admin/create-account", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Account creation failed");
-      }
-      return response.json();
+      return await apiRequest("POST", "/api/admin/create-account", data);
     },
     onSuccess: (data) => {
       toast({
@@ -78,7 +74,7 @@ export default function AdminCreateAccount() {
     onError: (error: Error) => {
       toast({
         title: "Account Creation Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Account creation failed."),
         variant: "destructive",
       });
     },

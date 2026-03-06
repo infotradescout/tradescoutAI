@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Shield } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const masterAdminSchema = z
   .object({
@@ -93,7 +94,7 @@ export function MasterAdminSetup({ onSuccess }: MasterAdminSetupProps) {
     onError: (error: any) => {
       toast({
         title: "Setup Failed",
-        description: error.message || "Unable to create master admin",
+        description: formatUserFacingErrorMessage(error, "Unable to create master admin."),
         variant: "destructive",
       });
     },

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { isAdminTier } from "@/lib/roleChecks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -243,7 +244,7 @@ export default function AdminPanel() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to create item."),
         variant: "destructive",
       });
     },
@@ -265,7 +266,7 @@ export default function AdminPanel() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to update item."),
         variant: "destructive",
       });
     },
@@ -285,7 +286,7 @@ export default function AdminPanel() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to delete item."),
         variant: "destructive",
       });
     },
@@ -304,7 +305,7 @@ export default function AdminPanel() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to send test notification."),
         variant: "destructive",
       });
     },
@@ -359,7 +360,7 @@ export default function AdminPanel() {
     onError: (error: any) => {
       toast({
         title: "Broadcast failed",
-        description: error?.message || "Unable to send announcement.",
+        description: formatUserFacingErrorMessage(error, "Unable to send announcement."),
         variant: "destructive",
       });
     },
@@ -1234,7 +1235,11 @@ function LLMAdminPanel() {
       toast({ title: "Upload complete", description: "Files sorted into knowledge cache" });
     },
     onError: (error: any) => {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description: formatUserFacingErrorMessage(error, "Upload failed."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -1251,7 +1256,11 @@ function LLMAdminPanel() {
       toast({ title: "User loaded", description: data.user?.email });
     },
     onError: (error: any) => {
-      toast({ title: "Lookup failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Lookup failed",
+        description: formatUserFacingErrorMessage(error, "Lookup failed."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -1279,7 +1288,11 @@ function LLMAdminPanel() {
       toast({ title: "Password reset", description: data.email || data.userId });
     },
     onError: (error: any) => {
-      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Reset failed",
+        description: formatUserFacingErrorMessage(error, "Reset failed."),
+        variant: "destructive",
+      });
     },
   });
 

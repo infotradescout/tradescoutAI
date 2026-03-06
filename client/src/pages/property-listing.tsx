@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { uploadObject } from "@/lib/objectUpload";
 import { Home, MapPin, DollarSign, Building, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -159,7 +160,7 @@ export default function PropertyListing() {
       } catch (err: any) {
         toast({
           title: "Could not prefill from Home Vault",
-          description: err?.message || "You can still list manually.",
+          description: formatUserFacingErrorMessage(err, "You can still list manually."),
           variant: "destructive",
         });
       }
@@ -217,7 +218,10 @@ export default function PropertyListing() {
           } catch (err: any) {
             toast({
               title: "Listing created, but report upload failed",
-              description: err?.message || "You can upload it later from the listing page.",
+              description: formatUserFacingErrorMessage(
+                err,
+                "You can upload it later from the listing page."
+              ),
               variant: "destructive",
             });
           }
@@ -233,7 +237,7 @@ export default function PropertyListing() {
     onError: (error: any) => {
       toast({
         title: "Error Creating Listing",
-        description: error.message || "Something went wrong. Please try again.",
+        description: formatUserFacingErrorMessage(error, "Something went wrong. Please try again."),
         variant: "destructive",
       });
     },
@@ -266,7 +270,7 @@ export default function PropertyListing() {
     onError: (err: any) => {
       toast({
         title: "Could not generate suggestions",
-        description: err?.message || "Try again.",
+        description: formatUserFacingErrorMessage(err, "Try again."),
         variant: "destructive",
       });
     },

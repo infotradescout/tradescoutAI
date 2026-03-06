@@ -1,19 +1,28 @@
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Shield, Smartphone, Monitor, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import React from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Shield,
+  Smartphone,
+  Monitor,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock,
+} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface TrustedDevice {
   id: string;
   deviceName: string;
   userAgent: string;
   ipAddress: string;
-  status: 'pending' | 'approved' | 'denied' | 'revoked';
+  status: "pending" | "approved" | "denied" | "revoked";
   lastUsedAt: string;
   createdAt: string;
   expiresAt: string;
@@ -32,59 +41,67 @@ export default function DeviceManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: devicesData = { devices: [] as TrustedDevice[] }, isLoading: devicesLoading } = useQuery<{ devices: TrustedDevice[]}>({
-    queryKey: ['/api/admin/devices'],
-    retry: false,
-  });
+  const { data: devicesData = { devices: [] as TrustedDevice[] }, isLoading: devicesLoading } =
+    useQuery<{ devices: TrustedDevice[] }>({
+      queryKey: ["/api/admin/devices"],
+      retry: false,
+    });
 
-  const { data: pendingData = { pendingDevices: [] as PendingDevice[] }, isLoading: pendingLoading } = useQuery<{ pendingDevices: PendingDevice[]}>({
-    queryKey: ['/api/admin/pending-devices'],
+  const {
+    data: pendingData = { pendingDevices: [] as PendingDevice[] },
+    isLoading: pendingLoading,
+  } = useQuery<{ pendingDevices: PendingDevice[] }>({
+    queryKey: ["/api/admin/pending-devices"],
     retry: false,
   });
 
   const approveMutation = useMutation({
     mutationFn: async (deviceId: string) => {
-      return apiRequest('POST', '/api/admin/approve-device', { deviceId });
+      return apiRequest("POST", "/api/admin/approve-device", { deviceId });
     },
     onSuccess: () => {
       toast({
         title: "Device Approved",
         description: "Device has been approved for admin access.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/devices'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/pending-devices'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/devices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-devices"] });
     },
     onError: (error: Error) => {
       toast({
         title: "Approval Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to approve device."),
         variant: "destructive",
       });
-    }
+    },
   });
 
   const revokeMutation = useMutation({
     mutationFn: async (deviceId: string) => {
-      return apiRequest('POST', '/api/admin/revoke-device', { deviceId });
+      return apiRequest("POST", "/api/admin/revoke-device", { deviceId });
     },
     onSuccess: () => {
       toast({
         title: "Device Revoked",
         description: "Device access has been revoked.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/devices'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/devices"] });
     },
     onError: (error: Error) => {
       toast({
         title: "Revoke Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to revoke device."),
         variant: "destructive",
       });
-    }
+    },
   });
 
   const getDeviceIcon = (userAgent: string) => {
-    if (userAgent.includes('Mobile') || userAgent.includes('iPhone') || userAgent.includes('Android')) {
+    if (
+      userAgent.includes("Mobile") ||
+      userAgent.includes("iPhone") ||
+      userAgent.includes("Android")
+    ) {
       return <Smartphone className="w-5 h-5" />;
     }
     return <Monitor className="w-5 h-5" />;
@@ -92,13 +109,13 @@ export default function DeviceManagement() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved':
+      case "approved":
         return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'pending':
+      case "pending":
         return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'denied':
+      case "denied":
         return <XCircle className="w-4 h-4 text-red-500" />;
-      case 'revoked':
+      case "revoked":
         return <AlertTriangle className="w-4 h-4 text-red-500" />;
       default:
         return null;
@@ -107,14 +124,17 @@ export default function DeviceManagement() {
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      approved: 'default',
-      pending: 'secondary',
-      denied: 'error',
-      revoked: 'error'
+      approved: "default",
+      pending: "secondary",
+      denied: "error",
+      revoked: "error",
     } as const;
 
     return (
-      <Badge variant={variants[status as keyof typeof variants] || 'secondary'} className="capitalize">
+      <Badge
+        variant={variants[status as keyof typeof variants] || "secondary"}
+        className="capitalize"
+      >
         {getStatusIcon(status)}
         <span className="ml-1">{status}</span>
       </Badge>
@@ -159,7 +179,7 @@ export default function DeviceManagement() {
                       <p className="text-sm text-white/60">{device.ipAddress}</p>
                       <p className="text-xs text-white/60 truncate max-w-md">{device.userAgent}</p>
                       <p className="text-xs text-white/60 mt-1">
-                        Requested: {format(new Date(device.createdAt), 'MMM dd, yyyy HH:mm')}
+                        Requested: {format(new Date(device.createdAt), "MMM dd, yyyy HH:mm")}
                       </p>
                     </div>
                   </div>
@@ -214,12 +234,14 @@ export default function DeviceManagement() {
                       <p className="text-sm text-white/60">{device.ipAddress}</p>
                       <p className="text-xs text-white/60 truncate max-w-md">{device.userAgent}</p>
                       <div className="flex gap-4 mt-2 text-xs text-white/60">
-                        <span>Last used: {format(new Date(device.lastUsedAt), 'MMM dd, yyyy HH:mm')}</span>
-                        <span>Expires: {format(new Date(device.expiresAt), 'MMM dd, yyyy')}</span>
+                        <span>
+                          Last used: {format(new Date(device.lastUsedAt), "MMM dd, yyyy HH:mm")}
+                        </span>
+                        <span>Expires: {format(new Date(device.expiresAt), "MMM dd, yyyy")}</span>
                       </div>
                     </div>
                   </div>
-                  {device.status === 'approved' && (
+                  {device.status === "approved" && (
                     <Button
                       size="sm"
                       variant="destructive"

@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Search,
   UserPlus,
@@ -163,7 +164,7 @@ export default function UserManagement() {
     onError: (error) => {
       toast({
         title: "Update Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to update user roles."),
         variant: "destructive",
       });
     },
@@ -192,7 +193,7 @@ export default function UserManagement() {
     onError: (error) => {
       toast({
         title: "Impersonation Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Impersonation failed."),
         variant: "destructive",
       });
     },
@@ -231,7 +232,7 @@ export default function UserManagement() {
     onError: (error) => {
       toast({
         title: "Create User Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to create user."),
         variant: "destructive",
       });
     },

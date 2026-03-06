@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Activity,
   Database,
@@ -138,7 +139,7 @@ export default function ObservabilityDashboard() {
         setLastUpdated(new Date().toLocaleTimeString());
         setError("");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        setError(formatUserFacingErrorMessage(err, "Failed to fetch metrics."));
       }
     };
 

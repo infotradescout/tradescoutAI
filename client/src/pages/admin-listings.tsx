@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { CheckCircle, XCircle, Clock, User, MapPin, DollarSign, Calendar } from "lucide-react";
 
 export default function AdminListings() {
@@ -47,7 +48,7 @@ export default function AdminListings() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to approve listing",
+        description: formatUserFacingErrorMessage(error, "Failed to approve listing."),
         variant: "destructive",
       });
     },
@@ -71,7 +72,7 @@ export default function AdminListings() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to reject listing",
+        description: formatUserFacingErrorMessage(error, "Failed to reject listing."),
         variant: "destructive",
       });
     },
@@ -90,10 +91,10 @@ export default function AdminListings() {
       });
       return;
     }
-    rejectMutation.mutate({ 
-      id: listing.id, 
-      reason: rejectionReason, 
-      notes 
+    rejectMutation.mutate({
+      id: listing.id,
+      reason: rejectionReason,
+      notes,
     });
   };
 
@@ -115,9 +116,7 @@ export default function AdminListings() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-ts-orange mb-2">
-          Pending Listings Approval
-        </h1>
+        <h1 className="text-3xl font-bold text-ts-orange mb-2">Pending Listings Approval</h1>
         <p className="text-white/60 dark:text-white/60">
           Review and approve marketplace listings before they go live
         </p>
@@ -127,9 +126,7 @@ export default function AdminListings() {
         <Card>
           <CardContent className="text-center py-12">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-ts-orange mb-2">
-              No Pending Listings
-            </h3>
+            <h3 className="text-lg font-medium text-ts-orange mb-2">No Pending Listings</h3>
             <p className="text-white/60 dark:text-white/60">
               All marketplace listings have been reviewed and approved.
             </p>
@@ -142,32 +139,30 @@ export default function AdminListings() {
             <h2 className="text-xl font-semibold text-ts-orange">
               Pending Approval ({pendingListings.length})
             </h2>
-            
+
             {pendingListings.map((listing: any) => (
-              <Card 
-                key={listing.id} 
+              <Card
+                key={listing.id}
                 className={`cursor-pointer transition-all ${
-                  selectedListing?.id === listing.id 
-                    ? 'ring-2 ring-blue-500 border-blue-500' 
-                    : 'hover:shadow-md'
+                  selectedListing?.id === listing.id
+                    ? "ring-2 ring-blue-500 border-blue-500"
+                    : "hover:shadow-md"
                 }`}
                 onClick={() => setSelectedListing(listing)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-medium text-ts-orange line-clamp-2">
-                      {listing.title}
-                    </h3>
+                    <h3 className="font-medium text-ts-orange line-clamp-2">{listing.title}</h3>
                     <Badge variant="outline" className="ml-2">
                       <Clock className="h-3 w-3 mr-1" />
                       Pending
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-2 text-sm text-white/60 dark:text-white/60">
                     <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      ${parseFloat(listing.price).toLocaleString()}
+                      <DollarSign className="h-4 w-4 mr-2" />$
+                      {parseFloat(listing.price).toLocaleString()}
                     </div>
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-2" />
@@ -199,9 +194,7 @@ export default function AdminListings() {
                 <CardContent className="space-y-6">
                   {/* Listing Details */}
                   <div>
-                    <h3 className="font-medium text-ts-orange mb-2">
-                      {selectedListing.title}
-                    </h3>
+                    <h3 className="font-medium text-ts-orange mb-2">{selectedListing.title}</h3>
                     <p className="text-sm text-white/60 dark:text-white/60 line-clamp-3">
                       {selectedListing.description}
                     </p>
@@ -217,7 +210,7 @@ export default function AdminListings() {
                     <div>
                       <span className="font-medium">Condition:</span>
                       <p className="text-white/60 dark:text-white/60 capitalize">
-                        {selectedListing.condition?.replace('_', ' ')}
+                        {selectedListing.condition?.replace("_", " ")}
                       </p>
                     </div>
                     <div>
@@ -236,9 +229,7 @@ export default function AdminListings() {
 
                   {/* Admin Notes */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Admin Notes (Optional)
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Admin Notes (Optional)</label>
                     <Textarea
                       placeholder="Add any notes about this approval/rejection..."
                       value={notes}
@@ -287,9 +278,7 @@ export default function AdminListings() {
               <Card>
                 <CardContent className="text-center py-12">
                   <User className="h-12 w-12 text-white/60 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-ts-orange mb-2">
-                    Select a Listing
-                  </h3>
+                  <h3 className="text-lg font-medium text-ts-orange mb-2">Select a Listing</h3>
                   <p className="text-white/60 dark:text-white/60">
                     Choose a listing from the left to review and approve or reject it.
                   </p>

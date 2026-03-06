@@ -7,6 +7,7 @@ import { Shield, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export default function AdminLogin() {
   const [facebookId, setFacebookId] = useState("");
@@ -49,7 +50,7 @@ export default function AdminLogin() {
     } catch (error: any) {
       toast({
         title: "Access Denied",
-        description: error.message || "Emergency admin access failed",
+        description: formatUserFacingErrorMessage(error, "Emergency admin access failed."),
         variant: "destructive",
       });
     } finally {

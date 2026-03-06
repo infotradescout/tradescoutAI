@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -238,7 +239,7 @@ export default function AdminUsers() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update user role.",
+        description: formatUserFacingErrorMessage(error, "Failed to update user role."),
         variant: "destructive",
       });
     },
@@ -261,7 +262,7 @@ export default function AdminUsers() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete user.",
+        description: formatUserFacingErrorMessage(error, "Failed to delete user."),
         variant: "destructive",
       });
     },
@@ -326,7 +327,7 @@ export default function AdminUsers() {
     onError: (error: any) => {
       toast({
         title: "Update failed",
-        description: error?.message || "Failed to update profile.",
+        description: formatUserFacingErrorMessage(error, "Failed to update profile."),
         variant: "destructive",
       });
     },
@@ -380,7 +381,7 @@ export default function AdminUsers() {
     } catch (error: any) {
       toast({
         title: "Failed to load user profile",
-        description: error?.message || "Could not load profile details.",
+        description: formatUserFacingErrorMessage(error, "Could not load profile details."),
         variant: "destructive",
       });
     }
@@ -436,7 +437,7 @@ export default function AdminUsers() {
     } catch (err: any) {
       toast({
         title: "Error",
-        description: err.message || "Action failed",
+        description: formatUserFacingErrorMessage(err, "Action failed."),
         variant: "destructive",
       });
       setPendingAction((prev) => ({ ...prev, [key]: false }));
@@ -463,7 +464,7 @@ export default function AdminUsers() {
     } catch (err: any) {
       toast({
         title: "Resend failed",
-        description: err?.message || "Failed to request verification email.",
+        description: formatUserFacingErrorMessage(err, "Failed to request verification email."),
         variant: "destructive",
       });
     } finally {
@@ -912,7 +913,10 @@ export default function AdminUsers() {
                       } catch (err: any) {
                         toast({
                           title: "Resend failed",
-                          description: err?.message || "Failed to request verification email.",
+                          description: formatUserFacingErrorMessage(
+                            err,
+                            "Failed to request verification email."
+                          ),
                           variant: "destructive",
                         });
                       } finally {
@@ -1368,7 +1372,10 @@ export default function AdminUsers() {
                                             } catch (err: any) {
                                               toast({
                                                 title: "Error",
-                                                description: err.message || "Impersonation failed",
+                                                description: formatUserFacingErrorMessage(
+                                                  err,
+                                                  "Impersonation failed."
+                                                ),
                                                 variant: "destructive",
                                               });
                                               setPendingAction((prev) => ({

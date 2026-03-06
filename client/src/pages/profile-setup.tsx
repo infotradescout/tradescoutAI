@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,7 +110,10 @@ export default function ProfileSetup() {
     onError: (error: any) => {
       toast({
         title: "Setup Failed",
-        description: error.message || "Failed to complete profile setup. Please try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Failed to complete profile setup. Please try again."
+        ),
         variant: "destructive",
       });
     },

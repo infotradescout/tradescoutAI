@@ -4,13 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -33,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Building2, DollarSign, Users, TrendingUp, FileText, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -42,7 +37,17 @@ const businessListingSchema = z.object({
   description: z.string().min(100, "Description must be at least 100 characters"),
   price: z.string().min(1, "Price is required"),
   priceType: z.enum(["fixed", "negotiable", "best_offer"]),
-  businessType: z.enum(["restaurant", "retail", "service", "manufacturing", "technology", "franchise", "online", "business_package", "other"]),
+  businessType: z.enum([
+    "restaurant",
+    "retail",
+    "service",
+    "manufacturing",
+    "technology",
+    "franchise",
+    "online",
+    "business_package",
+    "other",
+  ]),
   offeringType: z.enum(["complete_business", "business_package", "franchise_opportunity"]),
   industry: z.string().min(2, "Industry is required"),
   location: z.string().min(5, "Location is required"),
@@ -129,7 +134,7 @@ export default function BusinessListing() {
       // First get the Sell Your Business category ID
       const categories = await apiRequest("GET", "/api/marketplace/categories");
       const businessCategory = categories.find((cat: any) => cat.name === "Sell Your Business");
-      
+
       if (!businessCategory) {
         throw new Error("Business category not found");
       }
@@ -171,7 +176,8 @@ export default function BusinessListing() {
     onSuccess: () => {
       toast({
         title: "Business Submitted Successfully!",
-        description: "Your business has been submitted for admin review. It will appear in the marketplace once approved.",
+        description:
+          "Your business has been submitted for admin review. It will appear in the marketplace once approved.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
       form.reset();
@@ -179,7 +185,7 @@ export default function BusinessListing() {
     onError: (error: any) => {
       toast({
         title: "Error Creating Listing",
-        description: error.message || "Something went wrong. Please try again.",
+        description: formatUserFacingErrorMessage(error, "Something went wrong. Please try again."),
         variant: "destructive",
       });
     },
@@ -191,10 +197,8 @@ export default function BusinessListing() {
   };
 
   const handleFeatureToggle = (feature: string) => {
-    setSelectedFeatures(prev => 
-      prev.includes(feature) 
-        ? prev.filter(f => f !== feature)
-        : [...prev, feature]
+    setSelectedFeatures((prev) =>
+      prev.includes(feature) ? prev.filter((f) => f !== feature) : [...prev, feature]
     );
   };
 
@@ -204,11 +208,10 @@ export default function BusinessListing() {
         <div className="flex items-center gap-3 mb-4">
           <Building2 className="h-8 w-8 text-emerald-600" />
           <div>
-            <h1 className="text-3xl font-bold text-ts-orange">
-              List Your Business Opportunity
-            </h1>
+            <h1 className="text-3xl font-bold text-ts-orange">List Your Business Opportunity</h1>
             <p className="text-white/60 dark:text-white/60">
-              Sell complete businesses, business packages, or franchise opportunities to qualified buyers
+              Sell complete businesses, business packages, or franchise opportunities to qualified
+              buyers
             </p>
           </div>
         </div>
@@ -218,9 +221,9 @@ export default function BusinessListing() {
       <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
         <Info className="h-4 w-4 text-blue-400" />
         <AlertDescription className="text-blue-100">
-          <strong>Approval Process:</strong> All business listings require admin approval before going live. 
-          This ensures authenticity and helps maintain our trusted marketplace environment. 
-          You'll be notified once your listing is reviewed.
+          <strong>Approval Process:</strong> All business listings require admin approval before
+          going live. This ensures authenticity and helps maintain our trusted marketplace
+          environment. You'll be notified once your listing is reviewed.
         </AlertDescription>
       </Alert>
 
@@ -231,7 +234,8 @@ export default function BusinessListing() {
             Business Details
           </CardTitle>
           <CardDescription>
-            Provide comprehensive information to help buyers understand your business's value and potential
+            Provide comprehensive information to help buyers understand your business's value and
+            potential
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -239,10 +243,8 @@ export default function BusinessListing() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ts-orange">
-                  Basic Information
-                </h3>
-                
+                <h3 className="text-lg font-semibold text-ts-orange">Basic Information</h3>
+
                 <FormField
                   control={form.control}
                   name="title"
@@ -250,9 +252,9 @@ export default function BusinessListing() {
                     <FormItem>
                       <FormLabel>Business Title</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g., Established Pizza Restaurant in Prime Location" 
-                          {...field} 
+                        <Input
+                          placeholder="e.g., Established Pizza Restaurant in Prime Location"
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -267,10 +269,10 @@ export default function BusinessListing() {
                     <FormItem>
                       <FormLabel>Business Description</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Describe your business operations, customer base, competitive advantages, growth potential, and what makes it a valuable opportunity..."
                           className="min-h-40"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -299,7 +301,8 @@ export default function BusinessListing() {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Choose between selling an existing business, proven business model/package, or franchise opportunity
+                        Choose between selling an existing business, proven business model/package,
+                        or franchise opportunity
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -339,7 +342,10 @@ export default function BusinessListing() {
                       <FormItem>
                         <FormLabel>Industry</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Food & Beverage, Construction, Healthcare" {...field} />
+                          <Input
+                            placeholder="e.g., Food & Beverage, Construction, Healthcare"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -350,10 +356,8 @@ export default function BusinessListing() {
 
               {/* Location */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ts-orange">
-                  Location
-                </h3>
-                
+                <h3 className="text-lg font-semibold text-ts-orange">Location</h3>
+
                 <FormField
                   control={form.control}
                   name="location"
@@ -364,7 +368,8 @@ export default function BusinessListing() {
                         <Input placeholder="123 Main Street or General Area" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Provide general location - specific address can be shared with qualified buyers
+                        Provide general location - specific address can be shared with qualified
+                        buyers
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -422,7 +427,7 @@ export default function BusinessListing() {
                   <TrendingUp className="h-5 w-5 text-emerald-600" />
                   Business Performance
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -480,9 +485,7 @@ export default function BusinessListing() {
                         <FormControl>
                           <Input type="number" placeholder="600000" {...field} />
                         </FormControl>
-                        <FormDescription>
-                          Optional - provide if comfortable sharing
-                        </FormDescription>
+                        <FormDescription>Optional - provide if comfortable sharing</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -496,7 +499,7 @@ export default function BusinessListing() {
                   <DollarSign className="h-5 w-5 text-emerald-600" />
                   Pricing & Terms
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -543,10 +546,10 @@ export default function BusinessListing() {
                     <FormItem>
                       <FormLabel>Reason for Selling</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="e.g., Retirement, relocation, pursuing other opportunities..."
                           className="min-h-24"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormDescription>
@@ -564,7 +567,7 @@ export default function BusinessListing() {
                   <FileText className="h-5 w-5 text-emerald-600" />
                   What's Included in Sale
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
@@ -572,10 +575,7 @@ export default function BusinessListing() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <FormLabel>Training & Support</FormLabel>
                       </FormItem>
@@ -588,10 +588,7 @@ export default function BusinessListing() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <FormLabel>Current Inventory</FormLabel>
                       </FormItem>
@@ -604,10 +601,7 @@ export default function BusinessListing() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <FormLabel>Equipment & Assets</FormLabel>
                       </FormItem>
@@ -620,10 +614,7 @@ export default function BusinessListing() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <FormLabel>Lease Agreement</FormLabel>
                       </FormItem>
@@ -636,10 +627,7 @@ export default function BusinessListing() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <FormLabel>Customer Database</FormLabel>
                       </FormItem>
@@ -650,13 +638,11 @@ export default function BusinessListing() {
 
               {/* Business Features */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-ts-orange">
-                  Key Business Strengths
-                </h3>
+                <h3 className="text-lg font-semibold text-ts-orange">Key Business Strengths</h3>
                 <p className="text-sm text-white/60 dark:text-white/60">
                   Select features that highlight your business's competitive advantages
                 </p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {businessFeatures.map((feature) => (
                     <div key={feature} className="flex items-center space-x-2">
@@ -677,15 +663,11 @@ export default function BusinessListing() {
               </div>
 
               <div className="flex justify-between pt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setLocation("/marketplace")}
-                >
+                <Button type="button" variant="outline" onClick={() => setLocation("/marketplace")}>
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={createListingMutation.isPending}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >

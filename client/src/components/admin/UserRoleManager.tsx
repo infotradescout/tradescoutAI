@@ -24,6 +24,7 @@ import { TradeBadge, TradeCategoryHeader } from "@/components/ui/TradeBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   getRoleDisplayName,
   getTradeDisplayName,
@@ -73,7 +74,7 @@ export function UserRoleManager({ user, canEdit = false }: UserRoleManagerProps)
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update user role",
+        description: formatUserFacingErrorMessage(error, "Failed to update user role."),
         variant: "destructive",
       });
     },

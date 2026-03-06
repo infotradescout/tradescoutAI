@@ -3,6 +3,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -113,7 +114,10 @@ const CheckoutForm = ({
       } catch (error: any) {
         toast({
           title: "Confirmation Failed",
-          description: error?.message || "Unable to confirm off-platform payment.",
+          description: formatUserFacingErrorMessage(
+            error,
+            "Unable to confirm off-platform payment."
+          ),
           variant: "destructive",
         });
       }
@@ -136,7 +140,7 @@ const CheckoutForm = ({
     if (error) {
       toast({
         title: "Payment Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Payment failed."),
         variant: "destructive",
       });
     } else {
@@ -167,7 +171,7 @@ const CheckoutForm = ({
     } catch (error: any) {
       toast({
         title: "Wallet Payment Failed",
-        description: error?.message || "Unable to pay with wallet balance.",
+        description: formatUserFacingErrorMessage(error, "Unable to pay with wallet balance."),
         variant: "destructive",
       });
     } finally {

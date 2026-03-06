@@ -25,6 +25,7 @@ import {
 import { useState } from "react";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { HOAManagementShell } from "@/shells/HOAManagementShell";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { HOANextStepsCard } from "@/components/hoa/HOANextStepsCard";
@@ -201,7 +202,7 @@ export default function HOAManagement() {
     onError: (error: Error) => {
       toast({
         title: "Unable to leave HOA",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Unable to leave HOA."),
         variant: "destructive",
       });
     },
@@ -240,7 +241,7 @@ export default function HOAManagement() {
     onError: (error: Error) => {
       toast({
         title: "Unable to create vote",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Unable to create vote."),
         variant: "destructive",
       });
     },
@@ -540,15 +541,10 @@ export default function HOAManagement() {
   if (countyCommitted && !activeHoaId && !membershipLoading) {
     return (
       <HOAManagementShell locationOverride={location}>
-        <Card
-          className="bg-white/5 border-white/10 text-center p-12"
-          data-testid="hoa-not-member"
-        >
+        <Card className="bg-white/5 border-white/10 text-center p-12" data-testid="hoa-not-member">
           <Building className="w-16 h-16 text-ts-orange mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Not an HOA Member</h2>
-          <p className="text-white/60 mb-6">
-            You're not currently linked to an HOA in TradeScout.
-          </p>
+          <p className="text-white/60 mb-6">You're not currently linked to an HOA in TradeScout.</p>
           <Button
             data-testid="button-back-home"
             onClick={() => navigate("/")}

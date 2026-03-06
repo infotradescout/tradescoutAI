@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Home,
   Car,
@@ -123,7 +124,7 @@ export default function AdminProfessionalVerification() {
     onError: (error) => {
       toast({
         title: "Verification Failed",
-        description: error.message || "Failed to update verification status",
+        description: formatUserFacingErrorMessage(error, "Failed to update verification status."),
         variant: "destructive",
       });
     },
@@ -152,7 +153,7 @@ export default function AdminProfessionalVerification() {
     onError: (error) => {
       toast({
         title: "Verification Failed",
-        description: error.message || "Failed to update verification status",
+        description: formatUserFacingErrorMessage(error, "Failed to update verification status."),
         variant: "destructive",
       });
     },
@@ -564,9 +565,7 @@ export default function AdminProfessionalVerification() {
                             </div>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-ts-orange mb-2">
-                              Brand Specialties
-                            </h4>
+                            <h4 className="font-semibold text-ts-orange mb-2">Brand Specialties</h4>
                             <div className="flex flex-wrap gap-2">
                               {salesman.brandsSpecialty.map((brand, index) => (
                                 <Badge key={index} variant="outline">

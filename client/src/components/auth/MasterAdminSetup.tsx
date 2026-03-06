@@ -1,27 +1,30 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Shield, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'wouter';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Shield, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
-const masterAdminSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const masterAdminSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Valid email is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type MasterAdminFormData = z.infer<typeof masterAdminSchema>;
 
@@ -34,22 +37,17 @@ export default function MasterAdminSetup() {
   const form = useForm<MasterAdminFormData>({
     resolver: zodResolver(masterAdminSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    }
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const setupMasterMutation = useMutation({
-    mutationFn: async (data: Omit<MasterAdminFormData, 'confirmPassword'>) => {
-      const response = await apiRequest('POST', '/api/auth/setup-master', data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Setup failed');
-      }
-      return response.json();
+    mutationFn: async (data: Omit<MasterAdminFormData, "confirmPassword">) => {
+      return await apiRequest("POST", "/api/auth/setup-master", data);
     },
     onSuccess: (data) => {
       toast({
@@ -58,16 +56,16 @@ export default function MasterAdminSetup() {
       });
       // Force page refresh to update auth state and routing
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 1000);
     },
     onError: (error: Error) => {
       toast({
         title: "Setup Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Setup failed."),
         variant: "destructive",
       });
-    }
+    },
   });
 
   const onSubmit = (data: MasterAdminFormData) => {
@@ -83,19 +81,18 @@ export default function MasterAdminSetup() {
             <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
               <Shield className="h-8 w-8 text-primary-foreground" />
             </div>
-            <CardTitle className="text-3xl font-bold text-primary">
-              Platform Setup
-            </CardTitle>
+            <CardTitle className="text-3xl font-bold text-primary">Platform Setup</CardTitle>
             <p className="text-muted-foreground mt-2">
               Create the master administrator account to initialize TradeScout
             </p>
             <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
               <p className="text-sm text-yellow-600">
-                <strong>Important:</strong> This is a one-time setup. The master admin will have full platform control.
+                <strong>Important:</strong> This is a one-time setup. The master admin will have
+                full platform control.
               </p>
             </div>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -111,10 +108,12 @@ export default function MasterAdminSetup() {
                     placeholder="John"
                   />
                   {form.formState.errors.firstName && (
-                    <p className="text-destructive text-sm mt-1">{form.formState.errors.firstName.message}</p>
+                    <p className="text-destructive text-sm mt-1">
+                      {form.formState.errors.firstName.message}
+                    </p>
                   )}
                 </div>
-                
+
                 <div>
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input
@@ -124,7 +123,9 @@ export default function MasterAdminSetup() {
                     placeholder="Smith"
                   />
                   {form.formState.errors.lastName && (
-                    <p className="text-destructive text-sm mt-1">{form.formState.errors.lastName.message}</p>
+                    <p className="text-destructive text-sm mt-1">
+                      {form.formState.errors.lastName.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -142,7 +143,9 @@ export default function MasterAdminSetup() {
                   placeholder="admin@tradescout.com"
                 />
                 {form.formState.errors.email && (
-                  <p className="text-destructive text-sm mt-1">{form.formState.errors.email.message}</p>
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -172,7 +175,9 @@ export default function MasterAdminSetup() {
                   </button>
                 </div>
                 {form.formState.errors.password && (
-                  <p className="text-destructive text-sm mt-1">{form.formState.errors.password.message}</p>
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -199,12 +204,14 @@ export default function MasterAdminSetup() {
                   </button>
                 </div>
                 {form.formState.errors.confirmPassword && (
-                  <p className="text-destructive text-sm mt-1">{form.formState.errors.confirmPassword.message}</p>
+                  <p className="text-destructive text-sm mt-1">
+                    {form.formState.errors.confirmPassword.message}
+                  </p>
                 )}
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 mt-6"
                 disabled={setupMasterMutation.isPending}
               >

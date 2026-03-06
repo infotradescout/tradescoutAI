@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { RefreshCw, User } from "lucide-react";
 import { getRoleUiConfig, getRoleDashboardPath } from "@/lib/roleUiConfig";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export default function RoleSwitcher() {
   const { user } = useAuth();
@@ -50,7 +51,7 @@ export default function RoleSwitcher() {
     onError: (error) => {
       toast({
         title: "Switch Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to switch role."),
         variant: "destructive",
       });
     },

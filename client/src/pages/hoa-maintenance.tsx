@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { useParams } from "wouter";
 import { Wrench, Phone, Mail, Star, CheckCircle, XCircle } from "lucide-react";
@@ -155,7 +156,7 @@ const HOAMaintenance = memo(function HOAMaintenance() {
     onError: (error: Error) => {
       toast({
         title: "Request Failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to request service."),
         variant: "destructive",
       });
     },

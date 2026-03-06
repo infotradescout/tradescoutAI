@@ -19,6 +19,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { share } from "@/utils/share";
@@ -123,7 +124,7 @@ export default function AffiliatePage() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update settings",
+        description: formatUserFacingErrorMessage(error, "Failed to update settings."),
         variant: "destructive",
       });
     },
@@ -147,7 +148,7 @@ export default function AffiliatePage() {
     onError: (error: any) => {
       toast({
         title: "Could not create link",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -588,8 +589,8 @@ export default function AffiliatePage() {
                       <p className="text-white font-semibold">Custom referral links</p>
                       <p className="text-xs text-white/60">
                         Create clean, memorable links like{" "}
-                        <span className="font-mono text-ts-orange">/r/your-slug</span> that
-                        redirect to any page with your referral attribution baked in.
+                        <span className="font-mono text-ts-orange">/r/your-slug</span> that redirect
+                        to any page with your referral attribution baked in.
                       </p>
                     </div>
                   </div>

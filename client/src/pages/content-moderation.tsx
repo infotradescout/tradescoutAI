@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const ContentModeration = memo(function ContentModeration() {
   const [activeTab, setActiveTab] = useState("flagged");
@@ -116,7 +117,7 @@ const ContentModeration = memo(function ContentModeration() {
     onError: (error: any) => {
       toast({
         title: "Decision failed",
-        description: error?.message || "Failed to save decision",
+        description: formatUserFacingErrorMessage(error, "Failed to save decision."),
         variant: "destructive",
       });
     },
@@ -135,7 +136,7 @@ const ContentModeration = memo(function ContentModeration() {
     onError: (error: any) => {
       toast({
         title: "Ops action failed",
-        description: error?.message || "Failed to apply ops action",
+        description: formatUserFacingErrorMessage(error, "Failed to apply ops action."),
         variant: "destructive",
       });
     },
@@ -160,7 +161,7 @@ const ContentModeration = memo(function ContentModeration() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to approve content",
+        description: formatUserFacingErrorMessage(error, "Failed to approve content."),
         variant: "destructive",
       });
     },
@@ -195,7 +196,7 @@ const ContentModeration = memo(function ContentModeration() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to remove content",
+        description: formatUserFacingErrorMessage(error, "Failed to remove content."),
         variant: "destructive",
       });
     },

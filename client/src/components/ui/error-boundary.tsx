@@ -133,7 +133,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               {showDebugDetails && this.state.error && (
                 <details className="text-left bg-tsCard border border-white/10 p-4 rounded-xl">
                   <summary className="cursor-pointer">Error details</summary>
-                  <pre className="mt-2 text-sm overflow-auto">{this.state.error.toString()}</pre>
+                  <pre className="mt-2 text-sm overflow-auto">
+                    {this.state.error.stack || this.state.error.message || String(this.state.error)}
+                  </pre>
                 </details>
               )}
               <button

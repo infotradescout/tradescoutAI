@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiRequest, ApiError } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface PromptStatus {
   cached: boolean;
@@ -38,7 +39,7 @@ export function PromptAdminPage() {
       } else if (err instanceof ApiError && err.status === 403) {
         setError("Access denied. Super admin access required.");
       } else {
-        setError(err instanceof Error ? err.message : "Failed to load system prompt");
+        setError(formatUserFacingErrorMessage(err, "Failed to load system prompt."));
       }
       setContent("");
     } finally {
@@ -64,7 +65,7 @@ export function PromptAdminPage() {
       if (err instanceof ApiError && err.status === 403) {
         setError("Access denied. Super admin access required.");
       } else {
-        setError(err instanceof Error ? err.message : "Failed to save system prompt");
+        setError(formatUserFacingErrorMessage(err, "Failed to save system prompt."));
       }
     } finally {
       setSaving(false);
@@ -81,7 +82,7 @@ export function PromptAdminPage() {
       setSuccess(data?.message || "Prompt reloaded from disk");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reload system prompt");
+      setError(formatUserFacingErrorMessage(err, "Failed to reload system prompt."));
     } finally {
       setSaving(false);
     }

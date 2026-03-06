@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { StateCountySelector } from "@/components/state-county-selector";
 import DragDropNavigationPreferences from "@/components/navigation/DragDropNavigationPreferences";
 import { NotificationPreferences as NotificationPreferencesDialog } from "@/components/ui/notification-preferences";
@@ -477,7 +478,7 @@ export default function Settings() {
     onError: (err: any) => {
       toast({
         title: "Error",
-        description: err?.message || "Failed to update profile.",
+        description: formatUserFacingErrorMessage(err, "Failed to update profile."),
         variant: "destructive",
       });
     },
@@ -506,7 +507,7 @@ export default function Settings() {
     onError: (err: any) => {
       toast({
         title: "Error",
-        description: err?.message || "Failed to save notifications.",
+        description: formatUserFacingErrorMessage(err, "Failed to save notifications."),
         variant: "destructive",
       });
     },
@@ -533,7 +534,7 @@ export default function Settings() {
     onError: (err: any) => {
       toast({
         title: "Error",
-        description: err?.message || "Failed to save privacy preferences.",
+        description: formatUserFacingErrorMessage(err, "Failed to save privacy preferences."),
         variant: "destructive",
       });
     },
@@ -561,7 +562,7 @@ export default function Settings() {
     onError: (err: any) => {
       toast({
         title: "Error",
-        description: err?.message || "Failed to save handedness preference.",
+        description: formatUserFacingErrorMessage(err, "Failed to save handedness preference."),
         variant: "destructive",
       });
     },
@@ -581,7 +582,7 @@ export default function Settings() {
     onError: (err: any) => {
       toast({
         title: "Error",
-        description: err?.message || "Failed to change password.",
+        description: formatUserFacingErrorMessage(err, "Failed to change password."),
         variant: "destructive",
       });
     },
@@ -615,7 +616,7 @@ export default function Settings() {
     onError: (error: Error) => {
       toast({
         title: "Unable to leave HOA",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Unable to leave HOA."),
         variant: "destructive",
       });
     },
@@ -634,7 +635,7 @@ export default function Settings() {
     } catch (error: any) {
       toast({
         title: "Upload failed",
-        description: error?.message || "Could not upload photo.",
+        description: formatUserFacingErrorMessage(error, "Could not upload photo."),
         variant: "destructive",
       });
     } finally {
