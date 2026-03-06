@@ -204,11 +204,17 @@ export default function AdminBusinessImport() {
   });
   const cleanupUsers = cleanupUsersData?.users || [];
   const [bulkArchiveConfirm, setBulkArchiveConfirm] = useState("");
+  const bulkConfirmOk = bulkArchiveConfirm.trim() === "ARCHIVE_ALL";
   const [bulkArchiving, setBulkArchiving] = useState<{
     running: boolean;
     done: number;
     total: number;
   }>({ running: false, done: 0, total: 0 });
+  const [archivingCleanupUserId, setArchivingCleanupUserId] = useState<string | null>(null);
+  const [optimisticallyArchivedCleanupUsers, setOptimisticallyArchivedCleanupUsers] = useState<
+    Record<string, true>
+  >({});
+  const visibleCleanupUsers = cleanupUsers.filter((u) => !optimisticallyArchivedCleanupUsers[u.id]);
 
   const archiveCleanupUserMutation = useMutation({
     mutationFn: async (userId: string) => {
@@ -217,19 +223,32 @@ export default function AdminBusinessImport() {
         `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`
       );
     },
-    onSuccess: (data: any) => {
+    onMutate: (userId: string) => {
+      setArchivingCleanupUserId(userId);
+    },
+    onSuccess: (data: any, userId: string) => {
+      setOptimisticallyArchivedCleanupUsers((prev) => ({ ...prev, [userId]: true }));
       toast({
         title: "Archived",
         description: `Archived user and preserved directory business: ${data?.directoryBusinessSlug || data?.directoryBusinessId || ""}`,
       });
       void refetchCleanupUsers();
     },
-    onError: (error: any) => {
+    onError: (error: any, userId: string) => {
+      setOptimisticallyArchivedCleanupUsers((prev) => {
+        if (!prev[userId]) return prev;
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
       toast({
         title: "Archive failed",
         description: formatUserFacingErrorMessage(error, "Failed to archive user"),
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      setArchivingCleanupUserId(null);
     },
   });
 
@@ -763,7 +782,7 @@ export default function AdminBusinessImport() {
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-white/60">
-              Candidates: <span className="text-white">{cleanupUsers.length}</span>
+              Candidates: <span className="text-white">{visibleCleanupUsers.length}</span>
             </div>
             <Button
               type="button"
@@ -776,7 +795,7 @@ export default function AdminBusinessImport() {
             </Button>
           </div>
 
-          {cleanupUsers.length > 0 ? (
+          {visibleCleanupUsers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
               <div className="md:col-span-2">
                 <label className="text-xs text-white/60">
@@ -786,20 +805,42 @@ export default function AdminBusinessImport() {
                   value={bulkArchiveConfirm}
                   onChange={(e) => setBulkArchiveConfirm(e.target.value)}
                   placeholder="ARCHIVE_ALL"
-                  className="bg-black/30 border-red-500/30"
+                  className={
+                    bulkConfirmOk
+                      ? "bg-black/30 border-emerald-500/40"
+                      : "bg-black/30 border-red-500/30"
+                  }
                 />
+                <div
+                  className={
+                    bulkConfirmOk
+                      ? "mt-1 text-[11px] text-emerald-300"
+                      : "mt-1 text-[11px] text-red-300"
+                  }
+                >
+                  {bulkConfirmOk
+                    ? "Confirmed. Bulk archive actions enabled."
+                    : 'Bulk archive is disabled until you type \"ARCHIVE_ALL\".'}
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
                   className="bg-red-500 hover:bg-red-600 text-white"
                   disabled={
-                    cleanupUsersLoading || bulkArchiving.running || bulkArchiveAllMutation.isPending
+                    !bulkConfirmOk ||
+                    cleanupUsersLoading ||
+                    bulkArchiving.running ||
+                    bulkArchiveAllMutation.isPending
                   }
                   onClick={() =>
-                    void bulkArchiveImportedUsers(cleanupUsers.slice(0, 25).map((u) => u.id))
+                    void bulkArchiveImportedUsers(visibleCleanupUsers.slice(0, 25).map((u) => u.id))
                   }
-                  title="Archives up to the first 25 candidates shown"
+                  title={
+                    bulkConfirmOk
+                      ? "Archives up to the first 25 candidates shown"
+                      : 'Type \"ARCHIVE_ALL\" to enable bulk archive'
+                  }
                 >
                   {bulkArchiving.running
                     ? `Archiving ${bulkArchiving.done}/${bulkArchiving.total}...`
@@ -809,7 +850,10 @@ export default function AdminBusinessImport() {
                   type="button"
                   className="bg-red-700 hover:bg-red-800 text-white"
                   disabled={
-                    cleanupUsersLoading || bulkArchiving.running || bulkArchiveAllMutation.isPending
+                    !bulkConfirmOk ||
+                    cleanupUsersLoading ||
+                    bulkArchiving.running ||
+                    bulkArchiveAllMutation.isPending
                   }
                   onClick={() => bulkArchiveAllMutation.mutate()}
                   title="Archives up to 5000 candidates server-side (requires ARCHIVE_ALL)"
@@ -822,14 +866,16 @@ export default function AdminBusinessImport() {
 
           {cleanupUsersLoading ? (
             <div className="text-xs text-white/60">Loading candidates...</div>
-          ) : cleanupUsers.length === 0 ? (
+          ) : visibleCleanupUsers.length === 0 ? (
             <div className="text-xs text-white/60">
               No import-created business_owner accounts detected.
             </div>
           ) : (
             <div className="space-y-2">
-              {cleanupUsers.slice(0, 25).map((u) => {
+              {visibleCleanupUsers.slice(0, 25).map((u) => {
                 const name = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
+                const isRowPending =
+                  archiveCleanupUserMutation.isPending && archivingCleanupUserId === u.id;
                 return (
                   <div
                     key={u.id}
@@ -854,21 +900,19 @@ export default function AdminBusinessImport() {
                         <Button
                           type="button"
                           className="bg-ts-orange hover:bg-ts-orange-dark text-white"
-                          disabled={archiveCleanupUserMutation.isPending}
+                          disabled={isRowPending}
                           onClick={() => archiveCleanupUserMutation.mutate(u.id)}
                         >
-                          {archiveCleanupUserMutation.isPending
-                            ? "Archiving..."
-                            : "Archive to directory"}
+                          {isRowPending ? "Archiving..." : "Archive to directory"}
                         </Button>
                       </div>
                     </div>
                   </div>
                 );
               })}
-              {cleanupUsers.length > 25 ? (
+              {visibleCleanupUsers.length > 25 ? (
                 <div className="text-xs text-white/60">
-                  Showing 25 of {cleanupUsers.length}. Use Refresh after archiving.
+                  Showing 25 of {visibleCleanupUsers.length}. Use Refresh after archiving.
                 </div>
               ) : null}
             </div>
