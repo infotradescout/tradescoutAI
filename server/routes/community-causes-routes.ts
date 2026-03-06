@@ -49,7 +49,10 @@ router.post("/", isAuthenticated, async (req: any, res: Response) => {
       return res.status(400).json({ error: "Invalid request", details: error.errors });
     }
     console.error("Error creating community cause:", error);
-    res.status(500).json({ error: error?.message || "Failed to create cause" });
+    res.status(500).json({
+      error: "Failed to create cause",
+      requestId: (req as any).requestId || null,
+    });
   }
 });
 
@@ -77,7 +80,7 @@ router.post("/:causeId/vote", isAuthenticated, async (req: any, res: Response) =
     });
   } catch (error: any) {
     console.error("Error voting for community cause:", error);
-    res.status(500).json({ error: error?.message || "Failed to vote" });
+    res.status(500).json({ error: "Failed to vote", requestId: (req as any).requestId || null });
   }
 });
 

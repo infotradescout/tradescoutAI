@@ -1128,11 +1128,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
     // Even errors must follow the contract
     return {
       intent: "system_error",
-      thought_flow: [
-        "System error occurred during synthesis",
-        "Error: " + (error as Error).message,
-        "Returning safe fallback",
-      ],
+      thought_flow: ["System error occurred during synthesis", "Returning safe fallback"],
       decision: "System error fallback",
       message: buildSafeSynthesisFallbackMessage(),
       suggestedActions: DEFAULT_ACTIONS,
@@ -4484,7 +4480,7 @@ router.post("/execute-action", async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Failed to execute action. Let's try a different approach.",
-      error: err instanceof Error ? err.message : "Unknown error",
+      requestId: (req as any).requestId || null,
     });
   }
 });
@@ -4631,7 +4627,7 @@ router.post("/admin/cache-clear", (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       error: "Failed to clear cache",
-      details: error instanceof Error ? error.message : "Unknown error",
+      requestId: (req as any).requestId || null,
     });
   }
 });

@@ -42,7 +42,8 @@ router.get("/search", (req: Request, res: Response) => {
     console.error("[Scout Platform Discovery] Search error:", error);
     return res.status(500).json({
       error: "Failed to search features",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });

@@ -401,7 +401,8 @@ router.post("/message-v5", async (req: Request, res: Response) => {
     console.error("[Scout Enhanced v5] Error:", error);
     return res.status(500).json({
       error: "Failed to process message with deep tool integration",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });

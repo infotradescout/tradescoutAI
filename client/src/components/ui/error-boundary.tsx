@@ -122,6 +122,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render() {
     if (this.state.hasError) {
+      const showDebugDetails = import.meta.env.DEV;
       // Return fallback UI with error details
       return (
         this.props.fallback || (
@@ -129,7 +130,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="text-center">
               <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
               <p className="mb-4">The application encountered an error.</p>
-              {this.state.error && (
+              {showDebugDetails && this.state.error && (
                 <details className="text-left bg-tsCard border border-white/10 p-4 rounded-xl">
                   <summary className="cursor-pointer">Error details</summary>
                   <pre className="mt-2 text-sm overflow-auto">{this.state.error.toString()}</pre>

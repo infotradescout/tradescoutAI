@@ -195,7 +195,10 @@ export function registerBusinessProfileRoutes(app: Express) {
         });
       } catch (error: any) {
         console.error("Error publishing business profile:", error);
-        res.status(500).json({ message: error?.message || "Failed to publish profile" });
+        res.status(500).json({
+          message: "Failed to publish profile",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -231,7 +234,9 @@ export function registerBusinessProfileRoutes(app: Express) {
       });
     } catch (error: any) {
       console.error("Error fetching business profile by slug:", error);
-      res.status(500).json({ message: error?.message || "Failed to fetch profile" });
+      res
+        .status(500)
+        .json({ message: "Failed to fetch profile", requestId: (req as any).requestId || null });
     }
   });
 
@@ -255,7 +260,9 @@ export function registerBusinessProfileRoutes(app: Express) {
       res.json(profile);
     } catch (error: any) {
       console.error("Error fetching user business profile:", error);
-      res.status(500).json({ message: error?.message || "Failed to fetch profile" });
+      res
+        .status(500)
+        .json({ message: "Failed to fetch profile", requestId: (req as any).requestId || null });
     }
   });
 
@@ -296,7 +303,9 @@ export function registerBusinessProfileRoutes(app: Express) {
       });
     } catch (error: any) {
       console.error("Error updating business profile:", error);
-      res.status(500).json({ message: error?.message || "Failed to update profile" });
+      res
+        .status(500)
+        .json({ message: "Failed to update profile", requestId: (req as any).requestId || null });
     }
   });
 
@@ -359,7 +368,10 @@ export function registerBusinessProfileRoutes(app: Express) {
         });
       } catch (error: any) {
         console.error("Error starting custom domain verification:", error);
-        return res.status(500).json({ message: error?.message || "Failed to start verification" });
+        return res.status(500).json({
+          message: "Failed to start verification",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -433,7 +445,10 @@ export function registerBusinessProfileRoutes(app: Express) {
         });
       } catch (error: any) {
         console.error("Error verifying custom domain:", error);
-        return res.status(500).json({ message: error?.message || "Failed to verify domain" });
+        return res.status(500).json({
+          message: "Failed to verify domain",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -641,7 +656,10 @@ Generate 2 variants for this business description.`;
       });
     } catch (error: any) {
       console.error("Error in copy assist:", error);
-      res.status(500).json({ message: error?.message || "Failed to generate variants" });
+      res.status(500).json({
+        message: "Failed to generate variants",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 }

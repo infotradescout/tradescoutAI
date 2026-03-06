@@ -50,6 +50,13 @@ function formatErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function formatUserFacingBootDetail(error: unknown, fallback: string): string {
+  // In production we intentionally avoid showing raw exception text to users.
+  // Errors are still logged via `trackShellEvent` and `console.error`.
+  if (import.meta.env.DEV) return formatErrorMessage(error, fallback);
+  return fallback;
+}
+
 function showBootFallback(message: string, detail?: string) {
   const fallback = document.getElementById(BOOT_FALLBACK_ID);
   if (!fallback) return;
@@ -217,7 +224,7 @@ window.addEventListener("error", (event) => {
   if (document.body.getAttribute(APP_READY_ATTR) !== "true") {
     showBootFallback(
       "TradeScout failed to initialize.",
-      formatErrorMessage(event.error || event.message, "A startup error occurred.")
+      formatUserFacingBootDetail(event.error || event.message, "A startup error occurred.")
     );
   }
 });
@@ -228,7 +235,7 @@ window.addEventListener("unhandledrejection", (event) => {
   if (document.body.getAttribute(APP_READY_ATTR) !== "true") {
     showBootFallback(
       "TradeScout could not complete startup.",
-      formatErrorMessage(event.reason, "A startup promise failed.")
+      formatUserFacingBootDetail(event.reason, "A startup promise failed.")
     );
   }
 });
@@ -365,7 +372,7 @@ async function bootstrap() {
     reportClientRuntimeError("error", error);
     showBootFallback(
       "TradeScout failed to load.",
-      formatErrorMessage(error, "Unexpected startup error.")
+      formatUserFacingBootDetail(error, "Unexpected startup error.")
     );
   }
 

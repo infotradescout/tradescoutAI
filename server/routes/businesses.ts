@@ -95,7 +95,9 @@ router.post("/api/businesses", isAuthenticated, async (req, res) => {
       return res.status(400).json({ message: "Invalid request", errors: error.errors });
     }
     console.error("Error creating business:", error);
-    res.status(500).json({ message: error?.message || "Failed to create business" });
+    res
+      .status(500)
+      .json({ message: "Failed to create business", requestId: (req as any).requestId || null });
   }
 });
 
@@ -141,7 +143,9 @@ router.put("/api/businesses/:id", isAuthenticated, async (req, res) => {
       return res.status(400).json({ message: "Invalid request", errors: error.errors });
     }
     console.error("Error updating business:", error);
-    res.status(500).json({ message: error?.message || "Failed to update business" });
+    res
+      .status(500)
+      .json({ message: "Failed to update business", requestId: (req as any).requestId || null });
   }
 });
 
@@ -163,7 +167,9 @@ router.delete("/api/businesses/:id", isAuthenticated, async (req, res) => {
     res.json({ success: true, business: deleted });
   } catch (error: any) {
     console.error("Error deleting business:", error);
-    res.status(500).json({ message: error?.message || "Failed to delete business" });
+    res
+      .status(500)
+      .json({ message: "Failed to delete business", requestId: (req as any).requestId || null });
   }
 });
 

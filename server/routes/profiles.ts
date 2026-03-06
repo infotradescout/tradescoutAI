@@ -444,7 +444,9 @@ router.post("/api/profiles", isAuthenticated, async (req, res) => {
       return res.status(400).json({ message: "Invalid request", errors: error.errors });
     }
     console.error("Error creating profile:", error);
-    res.status(500).json({ message: error?.message || "Failed to create profile" });
+    res
+      .status(500)
+      .json({ message: "Failed to create profile", requestId: (req as any).requestId || null });
   }
 });
 
@@ -498,7 +500,9 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
       return res.status(400).json({ message: "Invalid request", errors: error.errors });
     }
     console.error("Error updating profile:", error);
-    res.status(500).json({ message: error?.message || "Failed to update profile" });
+    res
+      .status(500)
+      .json({ message: "Failed to update profile", requestId: (req as any).requestId || null });
   }
 });
 

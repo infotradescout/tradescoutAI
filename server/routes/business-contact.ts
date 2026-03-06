@@ -192,7 +192,10 @@ export function registerBusinessContactRoutes(app: Express) {
           return res.status(400).json({ message: "Invalid request", errors: error.errors });
         }
         console.error("Error revealing business contact:", error);
-        return res.status(500).json({ message: error?.message || "Failed to reveal contact" });
+        return res.status(500).json({
+          message: "Failed to reveal contact",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );

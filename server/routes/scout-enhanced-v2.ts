@@ -372,7 +372,8 @@ ${context.reasoning_turns > 1 ? "You have already executed some tools. Based on 
     console.error("[Scout Enhanced v2] Error:", error);
     return res.status(500).json({
       error: "Failed to process message",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });
@@ -452,7 +453,8 @@ router.post("/test-multi-turn", async (req: Request, res: Response) => {
     console.error("[Scout Enhanced v2] Test error:", error);
     return res.status(500).json({
       error: "Failed to run test",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });

@@ -432,7 +432,9 @@ export function registerObjectivesRoutes(app: Express) {
         res.json(result);
       } catch (error) {
         console.error("Error promoting objective:", error);
-        res.status(500).json({ error: (error as Error).message || "Internal server error" });
+        res
+          .status(500)
+          .json({ error: "Internal server error", requestId: (req as any).requestId || null });
       }
     }
   );

@@ -350,7 +350,8 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
     console.error("[Scout Enhanced v3] Error:", error);
     return res.status(500).json({
       error: "Failed to process message",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });

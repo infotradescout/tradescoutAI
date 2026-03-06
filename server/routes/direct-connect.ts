@@ -406,7 +406,9 @@ export function registerDirectConnectRoutes(app: Express) {
         res.status(200).json({ assignments: insertedAssignments, routed: true });
       } catch (error: any) {
         console.error("Error routing direct connect request:", error);
-        res.status(500).json({ message: error?.message || "Failed to route request" });
+        res
+          .status(500)
+          .json({ message: "Failed to route request", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -579,7 +581,9 @@ export function registerDirectConnectRoutes(app: Express) {
         res.json(enriched);
       } catch (error: any) {
         console.error("Error fetching direct connect requests:", error);
-        res.status(500).json({ message: error?.message || "Failed to fetch requests" });
+        res
+          .status(500)
+          .json({ message: "Failed to fetch requests", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -645,7 +649,10 @@ export function registerDirectConnectRoutes(app: Express) {
         });
       } catch (error: any) {
         console.error("Error creating direct connect share link:", error);
-        return res.status(500).json({ message: error?.message || "Failed to create share link" });
+        return res.status(500).json({
+          message: "Failed to create share link",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -703,7 +710,10 @@ export function registerDirectConnectRoutes(app: Express) {
       });
     } catch (error: any) {
       console.error("Error fetching shared direct connect request:", error);
-      return res.status(500).json({ message: error?.message || "Failed to load shared request" });
+      return res.status(500).json({
+        message: "Failed to load shared request",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 
@@ -799,7 +809,9 @@ export function registerDirectConnectRoutes(app: Express) {
         res.status(200).json({ status: "cancelled" });
       } catch (error: any) {
         console.error("Error cancelling direct connect request:", error);
-        res.status(500).json({ message: error?.message || "Failed to cancel request" });
+        res
+          .status(500)
+          .json({ message: "Failed to cancel request", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -863,7 +875,9 @@ export function registerDirectConnectRoutes(app: Express) {
         res.status(200).json({ status: "open" });
       } catch (error: any) {
         console.error("Error reopening direct connect request:", error);
-        res.status(500).json({ message: error?.message || "Failed to reopen request" });
+        res
+          .status(500)
+          .json({ message: "Failed to reopen request", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -1074,7 +1088,9 @@ export function registerDirectConnectRoutes(app: Express) {
             code: "DIRECT_CONNECT_SCHEMA_MISMATCH",
           });
         }
-        res.status(500).json({ message: error?.message || "Failed to create request" });
+        res
+          .status(500)
+          .json({ message: "Failed to create request", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -1266,7 +1282,10 @@ export function registerDirectConnectRoutes(app: Express) {
         });
       } catch (error: any) {
         console.error("Error creating admin direct connect request:", error);
-        return res.status(500).json({ message: error?.message || "Failed to create request" });
+        return res.status(500).json({
+          message: "Failed to create request",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -1345,7 +1364,9 @@ export function registerDirectConnectRoutes(app: Express) {
         res.json(enriched);
       } catch (error: any) {
         console.error("Error fetching direct connect inbox:", error);
-        res.status(500).json({ message: error?.message || "Failed to fetch inbox" });
+        res
+          .status(500)
+          .json({ message: "Failed to fetch inbox", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -1529,7 +1550,10 @@ export function registerDirectConnectRoutes(app: Express) {
         res.json(result.body);
       } catch (error: any) {
         console.error("Error responding to direct connect assignment:", error);
-        res.status(500).json({ message: error?.message || "Failed to respond to assignment" });
+        res.status(500).json({
+          message: "Failed to respond to assignment",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );

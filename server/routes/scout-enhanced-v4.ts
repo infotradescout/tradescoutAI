@@ -229,7 +229,8 @@ router.post("/message-v4", async (req: Request, res: Response) => {
     console.error("[Scout Enhanced v4] Error:", error);
     return res.status(500).json({
       error: "Failed to process message with agent council",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });
@@ -294,7 +295,8 @@ router.post("/test-delegation", async (req: Request, res: Response) => {
     console.error("[Scout Enhanced v4] Delegation test error:", error);
     return res.status(500).json({
       error: "Failed to test delegation",
-      message: error instanceof Error ? error.message : "Unknown error",
+      message: "Internal Server Error",
+      requestId: (req as any).requestId || null,
     });
   }
 });

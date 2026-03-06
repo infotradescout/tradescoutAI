@@ -421,7 +421,10 @@ export function mountAdminRoutes(app: any) {
         res.status(202).json({ ok: true, seedRunId });
       } catch (error: any) {
         console.error("Error starting Places seeding job:", error);
-        res.status(500).json({ message: error?.message || "Failed to start seeding job" });
+        res.status(500).json({
+          message: "Failed to start seeding job",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
