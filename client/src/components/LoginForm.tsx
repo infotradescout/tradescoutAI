@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -73,7 +74,10 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             ? "Incorrect password. Please try again."
             : code === "AUTH_SOCIAL_ONLY"
               ? "This account uses Google/Facebook sign-in."
-              : error.message || "Unable to sign in. Please check your credentials and try again.";
+              : formatUserFacingErrorMessage(
+                  error,
+                  "Unable to sign in. Please check your credentials and try again."
+                );
       toast({
         title: "Login Failed",
         description,

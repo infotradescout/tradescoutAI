@@ -4,11 +4,18 @@ import { buildApiUrl } from "@/lib/apiBaseUrl";
 export class ApiError extends Error {
   code?: string;
   status?: number;
-  constructor(message: string, opts?: { code?: string; status?: number }) {
+  errorId?: string;
+  requestId?: string;
+  constructor(
+    message: string,
+    opts?: { code?: string; status?: number; requestId?: string; errorId?: string }
+  ) {
     super(message);
     this.name = "ApiError";
     this.code = opts?.code;
     this.status = opts?.status;
+    this.requestId = opts?.requestId;
+    this.errorId = opts?.errorId;
   }
 }
 
@@ -124,11 +131,21 @@ export async function apiRequest(
       const errorText = await response.text();
       let errorMessage = `Request failed with status ${response.status}`;
       let errorCode: string | undefined;
+      let requestId: string | undefined = response.headers.get("X-Request-Id") || undefined;
+      let errorId: string | undefined;
 
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.message || errorMessage;
         errorCode = errorJson.code;
+        errorId =
+          typeof errorJson.errorId === "string" && errorJson.errorId.trim()
+            ? errorJson.errorId.trim()
+            : undefined;
+        requestId =
+          typeof errorJson.requestId === "string" && errorJson.requestId.trim()
+            ? errorJson.requestId.trim()
+            : requestId;
       } catch {
         // Use the raw text as error message
         errorMessage = errorText || errorMessage;
@@ -140,10 +157,17 @@ export async function apiRequest(
         throw new ApiError("Please finish updating your profile before continuing.", {
           code: errorCode,
           status: response.status,
+          requestId,
+          errorId,
         });
       }
 
-      throw new ApiError(errorMessage, { code: errorCode, status: response.status });
+      throw new ApiError(errorMessage, {
+        code: errorCode,
+        status: response.status,
+        requestId,
+        errorId,
+      });
     }
 
     // Handle empty responses
@@ -199,10 +223,20 @@ export const queryClient = new QueryClient({
         if (!response.ok) {
           let message = `Request failed with status ${response.status}`;
           let code: string | undefined;
+          let requestId: string | undefined = response.headers.get("X-Request-Id") || undefined;
+          let errorId: string | undefined;
           try {
             const errorJson = await response.json();
             message = errorJson?.message || message;
             code = errorJson?.code;
+            errorId =
+              typeof errorJson?.errorId === "string" && errorJson.errorId.trim()
+                ? errorJson.errorId.trim()
+                : undefined;
+            requestId =
+              typeof errorJson?.requestId === "string" && errorJson.requestId.trim()
+                ? errorJson.requestId.trim()
+                : requestId;
           } catch {
             // fall through with default message
           }
@@ -212,10 +246,12 @@ export const queryClient = new QueryClient({
             throw new ApiError("Please finish updating your profile before continuing.", {
               code,
               status: response.status,
+              requestId,
+              errorId,
             });
           }
 
-          throw new ApiError(message, { code, status: response.status });
+          throw new ApiError(message, { code, status: response.status, requestId, errorId });
         }
 
         return response.json();

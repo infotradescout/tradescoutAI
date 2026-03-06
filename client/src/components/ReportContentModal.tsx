@@ -1,15 +1,36 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Flag, AlertTriangle } from "lucide-react";
 
 const reportSchema = z.object({
@@ -65,12 +86,12 @@ const reasonOptions = {
   ],
 };
 
-export function ReportContentModal({ 
-  contentType, 
-  contentId, 
-  contentOwnerId, 
-  triggerClassName, 
-  children 
+export function ReportContentModal({
+  contentType,
+  contentId,
+  contentOwnerId,
+  triggerClassName,
+  children,
 }: ReportContentModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
@@ -106,7 +127,7 @@ export function ReportContentModal({
     onError: (error: Error) => {
       toast({
         title: "Report Failed",
-        description: error.message || "Failed to submit report",
+        description: formatUserFacingErrorMessage(error, "Failed to submit report"),
         variant: "destructive",
       });
     },
@@ -139,8 +160,8 @@ export function ReportContentModal({
             Report Content
           </DialogTitle>
           <DialogDescription>
-            Help us keep the community safe by reporting inappropriate content.
-            Reports will be reviewed by community members.
+            Help us keep the community safe by reporting inappropriate content. Reports will be
+            reviewed by community members.
           </DialogDescription>
         </DialogHeader>
 

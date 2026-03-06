@@ -3,13 +3,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { US_STATES } from "@shared/us-states-counties";
 
 const quoteFormSchema = z.object({
@@ -117,7 +131,10 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to submit quote request. Please try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Failed to submit quote request. Please try again."
+        ),
         variant: "destructive",
       });
     },
@@ -131,7 +148,12 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
     return (
       <div className="text-center py-8">
         <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-8 h-8 text-green-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -153,7 +175,9 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className={compact ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+        <div
+          className={compact ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}
+        >
           <FormField
             control={form.control}
             name="firstName"
@@ -190,7 +214,9 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
           />
         </div>
 
-        <div className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+        <div
+          className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}
+        >
           <FormField
             control={form.control}
             name="email"
@@ -229,7 +255,9 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
           />
         </div>
 
-        <div className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+        <div
+          className={compact ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}
+        >
           <FormField
             control={form.control}
             name="state"
@@ -279,15 +307,17 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
                   <FormControl>
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue
-                        placeholder={
-                          selectedState ? "Select your area" : "Select state first"
-                        }
+                        placeholder={selectedState ? "Select your area" : "Select state first"}
                       />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-tsCard border-white/10">
                     {counties.map((county: any) => (
-                      <SelectItem key={county.id} value={county.id} className="text-white hover:bg-white/10">
+                      <SelectItem
+                        key={county.id}
+                        value={county.id}
+                        className="text-white hover:bg-white/10"
+                      >
                         {county.name}
                       </SelectItem>
                     ))}
@@ -310,11 +340,16 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="bg-tsCard border-white/10">
-                    {Array.isArray(trades) && trades.map((trade: any) => (
-                      <SelectItem key={trade.id} value={trade.id} className="text-white hover:bg-white/10">
-                        {trade.name}
-                      </SelectItem>
-                    ))}
+                    {Array.isArray(trades) &&
+                      trades.map((trade: any) => (
+                        <SelectItem
+                          key={trade.id}
+                          value={trade.id}
+                          className="text-white hover:bg-white/10"
+                        >
+                          {trade.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -336,11 +371,21 @@ export default function QuoteForm({ onSuccess, compact = false }: QuoteFormProps
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent className="bg-tsCard border-white/10">
-                  <SelectItem value="asap" className="text-white hover:bg-white/10">As soon as possible</SelectItem>
-                  <SelectItem value="1-month" className="text-white hover:bg-white/10">Within 1 month</SelectItem>
-                  <SelectItem value="3-months" className="text-white hover:bg-white/10">Within 3 months</SelectItem>
-                  <SelectItem value="6-months" className="text-white hover:bg-white/10">Within 6 months</SelectItem>
-                  <SelectItem value="planning" className="text-white hover:bg-white/10">Just planning/getting quotes</SelectItem>
+                  <SelectItem value="asap" className="text-white hover:bg-white/10">
+                    As soon as possible
+                  </SelectItem>
+                  <SelectItem value="1-month" className="text-white hover:bg-white/10">
+                    Within 1 month
+                  </SelectItem>
+                  <SelectItem value="3-months" className="text-white hover:bg-white/10">
+                    Within 3 months
+                  </SelectItem>
+                  <SelectItem value="6-months" className="text-white hover:bg-white/10">
+                    Within 6 months
+                  </SelectItem>
+                  <SelectItem value="planning" className="text-white hover:bg-white/10">
+                    Just planning/getting quotes
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

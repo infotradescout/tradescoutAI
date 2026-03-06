@@ -85,6 +85,7 @@ import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messa
 import ObjectiveChip from "./ObjectiveChip";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
@@ -2891,7 +2892,7 @@ export default function ScoutOS() {
           meta: { sessionId },
         });
       } catch (err: any) {
-        setError(err.message || "Failed to process onboarding");
+        setError(formatUserFacingErrorMessage(err, "Failed to process onboarding"));
         console.error("[Onboarding Error]", err);
       } finally {
         await refreshObjective();
@@ -3000,7 +3001,7 @@ export default function ScoutOS() {
           },
         });
       } catch (err: any) {
-        setError(err?.message || "Action failed to execute.");
+        setError(formatUserFacingErrorMessage(err, "Action failed to execute."));
       } finally {
         setStatus("idle");
       }
@@ -3040,7 +3041,7 @@ export default function ScoutOS() {
         };
         applyServerResponse(ack, []);
       } catch (err: any) {
-        setError(err?.message || "Failed to record override");
+        setError(formatUserFacingErrorMessage(err, "Failed to record override"));
       } finally {
         setOverridePendingScope(null);
       }
@@ -4169,7 +4170,10 @@ export default function ScoutOS() {
                     meta: { workRequestId: createdId || undefined },
                   } as any);
                 } catch (err: any) {
-                  const message = err?.message || "Failed to create Direct Connect request.";
+                  const message = formatUserFacingErrorMessage(
+                    err,
+                    "Failed to create Direct Connect request."
+                  );
                   setError(message);
                 } finally {
                   setDcBusy(false);

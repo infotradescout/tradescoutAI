@@ -10580,7 +10580,9 @@ export async function registerRoutes(app: any) {
       res.json(normalized);
     } catch (error: any) {
       console.error("Error fetching tasks:", error);
-      res.status(500).json({ message: error?.message || "Failed to fetch tasks" });
+      res
+        .status(500)
+        .json({ message: "Failed to fetch tasks", requestId: (req as any).requestId || null });
     }
   });
 
@@ -10611,7 +10613,10 @@ export async function registerRoutes(app: any) {
       res.json(rows);
     } catch (error: any) {
       console.error("Error fetching work requests:", error);
-      res.status(500).json({ message: error?.message || "Failed to fetch work requests" });
+      res.status(500).json({
+        message: "Failed to fetch work requests",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 
@@ -10741,7 +10746,10 @@ export async function registerRoutes(app: any) {
       res.status(201).json(created ?? null);
     } catch (error: any) {
       console.error("Error creating work request:", error);
-      res.status(500).json({ message: error?.message || "Failed to create work request" });
+      res.status(500).json({
+        message: "Failed to create work request",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 
@@ -10866,7 +10874,10 @@ export async function registerRoutes(app: any) {
       return res.status(201).json(createdWorker);
     } catch (error: any) {
       console.error("Error registering worker:", error);
-      res.status(500).json({ message: error?.message || "Failed to register worker" });
+      res.status(500).json({
+        message: "Failed to register worker",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 
@@ -10932,7 +10943,9 @@ export async function registerRoutes(app: any) {
       res.status(201).json(created?.[0] ?? null);
     } catch (error: any) {
       console.error("Error creating task:", error);
-      res.status(500).json({ message: error?.message || "Failed to create task" });
+      res
+        .status(500)
+        .json({ message: "Failed to create task", requestId: (req as any).requestId || null });
     }
   });
 
@@ -10961,7 +10974,9 @@ export async function registerRoutes(app: any) {
       res.status(201).json(inserted?.[0] ?? null);
     } catch (error: any) {
       console.error("Error applying to task:", error);
-      res.status(500).json({ message: error?.message || "Failed to apply to task" });
+      res
+        .status(500)
+        .json({ message: "Failed to apply to task", requestId: (req as any).requestId || null });
     }
   });
 
@@ -11036,7 +11051,10 @@ export async function registerRoutes(app: any) {
         return res.json(updatedWorker);
       } catch (error: any) {
         console.error("Error verifying worker:", error);
-        res.status(500).json({ message: error?.message || "Failed to verify worker" });
+        res.status(500).json({
+          message: "Failed to verify worker",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -11416,7 +11434,9 @@ export async function registerRoutes(app: any) {
         res.json({ message: "Knowledge folder ingested", summary });
       } catch (error: any) {
         console.error("Error ingesting knowledge folder:", error);
-        res.status(500).json({ error: error?.message || "Failed to ingest folder" });
+        res
+          .status(500)
+          .json({ error: "Failed to ingest folder", requestId: (req as any).requestId || null });
       }
     }
   );
@@ -11451,7 +11471,9 @@ export async function registerRoutes(app: any) {
       });
     } catch (error: any) {
       console.error("Error uploading knowledge files:", error);
-      res.status(500).json({ error: error?.message || "Failed to upload files" });
+      res
+        .status(500)
+        .json({ error: "Failed to upload files", requestId: (req as any).requestId || null });
     }
   });
 
@@ -11501,7 +11523,10 @@ export async function registerRoutes(app: any) {
       res.json({ user: sanitized });
     } catch (error: any) {
       console.error("Error fetching user info:", error);
-      res.status(500).json({ error: error?.message || "Failed to fetch user info" });
+      res.status(500).json({
+        error: "Failed to fetch user info",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 
@@ -11574,7 +11599,10 @@ export async function registerRoutes(app: any) {
         });
       } catch (error: any) {
         console.error("Error resetting user password:", error);
-        res.status(500).json({ error: error?.message || "Failed to reset password" });
+        res.status(500).json({
+          error: "Failed to reset password",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -11939,7 +11967,10 @@ export async function registerRoutes(app: any) {
         });
       } catch (error: any) {
         console.error("Error in admin support-edit:", error);
-        return res.status(500).json({ message: error?.message || "Failed to edit user" });
+        return res.status(500).json({
+          message: "Failed to edit user",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -12209,7 +12240,10 @@ export async function registerRoutes(app: any) {
       });
     } catch (error: any) {
       console.error("Error provisioning user:", error);
-      return res.status(500).json({ message: error?.message || "Failed to provision user" });
+      return res.status(500).json({
+        message: "Failed to provision user",
+        requestId: (req as any).requestId || null,
+      });
     }
   });
 
@@ -13588,7 +13622,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       } catch (error: any) {
         console.error("Error importing businesses:", error);
-        res.status(500).json({ message: error?.message || "Failed to import businesses" });
+        res.status(500).json({
+          message: "Failed to import businesses",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -13927,7 +13964,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       } catch (error: any) {
         console.error("Error bulk archiving imported directory users:", error);
-        return res.status(500).json({ message: error?.message || "Failed to bulk-archive users" });
+        return res.status(500).json({
+          message: "Failed to bulk-archive users",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -14192,7 +14232,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         return res.json({ summary, details: details.slice(0, 50) });
       } catch (error: any) {
         console.error("Error enriching business counties:", error);
-        return res.status(500).json({ message: error?.message || "Failed to enrich counties" });
+        return res.status(500).json({
+          message: "Failed to enrich counties",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -17573,7 +17616,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         res.status(201).json(created ?? null);
       } catch (error: any) {
         console.error("Error sending community post to Work Board:", error);
-        res.status(500).json({ message: error?.message || "Failed to send post to Work Board" });
+        res.status(500).json({
+          message: "Failed to send post to Work Board",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );

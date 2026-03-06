@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Reply, MoreHorizontal, Flag, MessageCircle, Send, Loader2 } from "lucide-react";
 
@@ -76,7 +77,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update like",
+        description: formatUserFacingErrorMessage(error, "Failed to update like"),
         variant: "destructive",
       });
     },
@@ -102,7 +103,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to post reply",
+        description: formatUserFacingErrorMessage(error, "Failed to post reply"),
         variant: "destructive",
       });
     },
@@ -352,7 +353,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to post comment",
+        description: formatUserFacingErrorMessage(error, "Failed to post comment"),
         variant: "destructive",
       });
     },

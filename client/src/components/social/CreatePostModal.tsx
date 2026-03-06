@@ -33,6 +33,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
 import {
   Image,
@@ -105,7 +106,7 @@ export function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create post",
+        description: formatUserFacingErrorMessage(error, "Failed to create post"),
         variant: "destructive",
       });
     },

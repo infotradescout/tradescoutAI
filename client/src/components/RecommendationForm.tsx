@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { ThumbsUp, ThumbsDown, Clock, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 
@@ -110,7 +111,10 @@ export function RecommendationForm({
     onError: (error: any) => {
       toast({
         title: "Submission Failed",
-        description: error.message || "Failed to submit recommendation. Please try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Failed to submit recommendation. Please try again."
+        ),
         variant: "destructive",
       });
     },

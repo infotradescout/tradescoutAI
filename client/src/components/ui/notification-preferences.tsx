@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -160,7 +161,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
     onError: (error) => {
       toast({
         title: "Update Failed",
-        description: error.message || "Failed to update preferences",
+        description: formatUserFacingErrorMessage(error, "Failed to update preferences"),
         variant: "destructive",
       });
     },

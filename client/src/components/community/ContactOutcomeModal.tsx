@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type Intent = "hire" | "advise" | "collaborate" | "reconnect";
 
@@ -113,7 +114,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
     onError: (error: Error) => {
       toast({
         title: "Contact failed",
-        description: error.message,
+        description: formatUserFacingErrorMessage(error, "Failed to start contact"),
         variant: "destructive",
       });
     },

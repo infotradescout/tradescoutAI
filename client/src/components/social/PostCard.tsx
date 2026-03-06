@@ -15,6 +15,7 @@ import { ShareModal } from "./ShareModal";
 import { ReportModal } from "./ReportModal";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
 import {
   Heart,
@@ -67,7 +68,7 @@ export function PostCard({ post }: PostCardProps) {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update like",
+        description: formatUserFacingErrorMessage(error, "Failed to update like"),
         variant: "destructive",
       });
     },
@@ -85,7 +86,7 @@ export function PostCard({ post }: PostCardProps) {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to save post",
+        description: formatUserFacingErrorMessage(error, "Failed to save post"),
         variant: "destructive",
       });
     },

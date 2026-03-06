@@ -32,30 +32,27 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Flag,
-  AlertTriangle,
-  Shield,
-  Eye,
-  Ban,
-  FileText,
-} from "lucide-react";
+import { Flag, AlertTriangle, Shield, Eye, Ban, FileText } from "lucide-react";
 
 const reportSchema = z.object({
   reason: z.enum([
-    'spam',
-    'harassment',
-    'inappropriate_content',
-    'misinformation',
-    'hate_speech',
-    'violence',
-    'scam_fraud',
-    'copyright_violation',
-    'privacy_violation',
-    'other'
+    "spam",
+    "harassment",
+    "inappropriate_content",
+    "misinformation",
+    "hate_speech",
+    "violence",
+    "scam_fraud",
+    "copyright_violation",
+    "privacy_violation",
+    "other",
   ]),
-  description: z.string().min(10, "Please provide more details (at least 10 characters)").max(500, "Description must be less than 500 characters"),
+  description: z
+    .string()
+    .min(10, "Please provide more details (at least 10 characters)")
+    .max(500, "Description must be less than 500 characters"),
 });
 
 type ReportFormData = z.infer<typeof reportSchema>;
@@ -64,7 +61,7 @@ interface ReportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contentId: string;
-  contentType: 'community_post' | 'post_comment' | 'marketplace_listing' | 'user_profile';
+  contentType: "community_post" | "post_comment" | "marketplace_listing" | "user_profile";
 }
 
 export function ReportModal({ open, onOpenChange, contentId, contentType }: ReportModalProps) {
@@ -81,7 +78,7 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
 
   const reportMutation = useMutation({
     mutationFn: (data: ReportFormData) =>
-      apiRequest('POST', '/api/social/reports', {
+      apiRequest("POST", "/api/social/reports", {
         ...data,
         contentId,
         contentType,
@@ -98,7 +95,7 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to submit report",
+        description: formatUserFacingErrorMessage(error, "Failed to submit report"),
         variant: "destructive",
       });
     },
@@ -118,75 +115,75 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
 
   const reportReasons = [
     {
-      value: 'spam',
-      label: 'Spam',
-      description: 'Unwanted commercial content or repetitive posts',
+      value: "spam",
+      label: "Spam",
+      description: "Unwanted commercial content or repetitive posts",
       icon: Flag,
     },
     {
-      value: 'harassment',
-      label: 'Harassment',
-      description: 'Bullying, threatening, or targeting individuals',
+      value: "harassment",
+      label: "Harassment",
+      description: "Bullying, threatening, or targeting individuals",
       icon: Shield,
     },
     {
-      value: 'inappropriate_content',
-      label: 'Inappropriate Content',
-      description: 'Content that violates community standards',
+      value: "inappropriate_content",
+      label: "Inappropriate Content",
+      description: "Content that violates community standards",
       icon: Eye,
     },
     {
-      value: 'misinformation',
-      label: 'Misinformation',
-      description: 'False or misleading information',
+      value: "misinformation",
+      label: "Misinformation",
+      description: "False or misleading information",
       icon: AlertTriangle,
     },
     {
-      value: 'hate_speech',
-      label: 'Hate Speech',
-      description: 'Content that attacks or demeans a group',
+      value: "hate_speech",
+      label: "Hate Speech",
+      description: "Content that attacks or demeans a group",
       icon: Ban,
     },
     {
-      value: 'violence',
-      label: 'Violence',
-      description: 'Threats, graphic content, or incitement to violence',
+      value: "violence",
+      label: "Violence",
+      description: "Threats, graphic content, or incitement to violence",
       icon: AlertTriangle,
     },
     {
-      value: 'scam_fraud',
-      label: 'Scam or Fraud',
-      description: 'Deceptive practices or fraudulent content',
+      value: "scam_fraud",
+      label: "Scam or Fraud",
+      description: "Deceptive practices or fraudulent content",
       icon: Shield,
     },
     {
-      value: 'copyright_violation',
-      label: 'Copyright Violation',
-      description: 'Unauthorized use of copyrighted material',
+      value: "copyright_violation",
+      label: "Copyright Violation",
+      description: "Unauthorized use of copyrighted material",
       icon: FileText,
     },
     {
-      value: 'privacy_violation',
-      label: 'Privacy Violation',
-      description: 'Sharing private information without permission',
+      value: "privacy_violation",
+      label: "Privacy Violation",
+      description: "Sharing private information without permission",
       icon: Eye,
     },
     {
-      value: 'other',
-      label: 'Other',
-      description: 'A reason not listed above',
+      value: "other",
+      label: "Other",
+      description: "A reason not listed above",
       icon: Flag,
     },
   ];
 
   const getContentTypeLabel = () => {
     const labels = {
-      community_post: 'post',
-      post_comment: 'comment',
-      marketplace_listing: 'listing',
-      user_profile: 'profile',
+      community_post: "post",
+      post_comment: "comment",
+      marketplace_listing: "listing",
+      user_profile: "profile",
     };
-    return labels[contentType] || 'content';
+    return labels[contentType] || "content";
   };
 
   return (
@@ -212,18 +209,18 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
             </div>
 
             <RadioGroup
-              value={form.watch('reason')}
-              onValueChange={(value) => form.setValue('reason', value as any)}
+              value={form.watch("reason")}
+              onValueChange={(value) => form.setValue("reason", value as any)}
               className="space-y-2"
             >
               {reportReasons.map((reason) => (
                 <Card
                   key={reason.value}
                   className={`cursor-pointer transition-all hover:bg-accent ${
-                    form.watch('reason') === reason.value ? 'ring-2 ring-primary bg-primary/5' : ''
+                    form.watch("reason") === reason.value ? "ring-2 ring-primary bg-primary/5" : ""
                   }`}
                   onClick={() => {
-                    form.setValue('reason', reason.value as any);
+                    form.setValue("reason", reason.value as any);
                   }}
                 >
                   <CardContent className="p-4">
@@ -231,12 +228,8 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
                       <RadioGroupItem value={reason.value} />
                       <reason.icon className="h-5 w-5 text-muted-foreground" />
                       <div className="flex-1">
-                        <Label className="font-medium cursor-pointer">
-                          {reason.label}
-                        </Label>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {reason.description}
-                        </p>
+                        <Label className="font-medium cursor-pointer">{reason.label}</Label>
+                        <p className="text-sm text-muted-foreground mt-1">{reason.description}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -245,17 +238,10 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
             </RadioGroup>
 
             <div className="flex justify-end space-x-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={() => setStep(2)}
-                disabled={!form.watch('reason')}
-              >
+              <Button onClick={() => setStep(2)} disabled={!form.watch("reason")}>
                 Next
               </Button>
             </div>
@@ -268,7 +254,9 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-3">
                     {(() => {
-                      const selectedReason = reportReasons.find(r => r.value === form.watch('reason'));
+                      const selectedReason = reportReasons.find(
+                        (r) => r.value === form.watch("reason")
+                      );
                       const IconComponent = selectedReason?.icon || Flag;
                       return (
                         <>
@@ -331,11 +319,7 @@ export function ReportModal({ open, onOpenChange, contentId, contentType }: Repo
 
               {/* Actions */}
               <div className="flex justify-end space-x-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                >
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
                 <Button

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { ContactOutcomeModal, ContactOutcome } from "./ContactOutcomeModal";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export interface ScoutRecommendation {
   recommendationId: string;
@@ -84,7 +85,11 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         onDismiss?.();
       },
       onError: (error: Error) => {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        toast({
+          title: "Error",
+          description: formatUserFacingErrorMessage(error, "Failed to update recommendation"),
+          variant: "destructive",
+        });
       },
     });
   };
@@ -253,13 +258,13 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
           )}
 
           <Button
-      onClick={handleDismiss}
-      variant="ghost"
-      className="text-white/60 hover:bg-white/5"
-      disabled={actionMutation.isPending}
-    >
-      Dismiss
-    </Button>
+            onClick={handleDismiss}
+            variant="ghost"
+            className="text-white/60 hover:bg-white/5"
+            disabled={actionMutation.isPending}
+          >
+            Dismiss
+          </Button>
         </div>
       </div>
 

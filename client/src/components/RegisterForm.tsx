@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { SiFacebook } from "react-icons/si";
+import { formatUserFacingErrorMessage, getRawErrorMessage } from "@/lib/userFacingError";
 
 const roleOptions = ["homeowner", "contractor", "realtor", "car_dealer"] as const;
 type RoleOption = (typeof roleOptions)[number];
@@ -131,21 +132,23 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         error: error,
       });
 
-      // Extract more specific error message if available
-      let errorDescription = error.message || "Unable to create account. Please try again.";
+      const rawMessage = getRawErrorMessage(error).toLowerCase();
+      let errorDescription = formatUserFacingErrorMessage(
+        error,
+        "Unable to create account. Please try again."
+      );
 
       // Check for common validation errors
-      if (errorDescription.includes("email")) {
-        errorDescription = error.message || "Please check your email address.";
-      } else if (errorDescription.includes("password")) {
+      if (rawMessage.includes("email")) {
+        errorDescription = "Please check your email address.";
+      } else if (rawMessage.includes("password")) {
         errorDescription =
-          error.message ||
           "Password must be at least 8 characters with uppercase, lowercase, and number.";
-      } else if (errorDescription.includes("phone")) {
-        errorDescription = error.message || "Please enter a valid phone number.";
-      } else if (errorDescription.includes("terms") || errorDescription.includes("Terms")) {
-        errorDescription = error.message || "You must accept the Terms of Service.";
-      } else if (errorDescription.includes("already exists")) {
+      } else if (rawMessage.includes("phone")) {
+        errorDescription = "Please enter a valid phone number.";
+      } else if (rawMessage.includes("terms")) {
+        errorDescription = "You must accept the Terms of Service.";
+      } else if (rawMessage.includes("already exists")) {
         errorDescription = "An account with this email already exists. Try logging in instead.";
       }
 

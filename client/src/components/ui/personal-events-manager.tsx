@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -20,31 +21,22 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Calendar,
-  Gift,
-  Award,
-  Plus,
-  Edit,
-  Trash2,
-  Bell,
-  BellOff,
-} from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Calendar, Gift, Award, Plus, Edit, Trash2, Bell, BellOff } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 interface PersonalEvent {
   id: string;
@@ -61,9 +53,9 @@ interface PersonalEvent {
 }
 
 const eventSchema = z.object({
-  eventType: z.string().min(1, 'Event type is required'),
+  eventType: z.string().min(1, "Event type is required"),
   eventName: z.string().optional(),
-  eventDate: z.string().min(1, 'Event date is required'),
+  eventDate: z.string().min(1, "Event date is required"),
   eventYear: z.number().optional(),
   enableNotifications: z.boolean(),
   notifyDaysBefore: z.array(z.number()),
@@ -75,18 +67,23 @@ const eventSchema = z.object({
 type EventForm = z.infer<typeof eventSchema>;
 
 const eventTypes = [
-  { value: 'birthday', label: 'Birthday', icon: Gift, color: 'text-pink-500' },
-  { value: 'work_anniversary', label: 'Work Anniversary', icon: Award, color: 'text-blue-500' },
-  { value: 'business_anniversary', label: 'Business Anniversary', icon: Award, color: 'text-green-500' },
-  { value: 'custom', label: 'Custom Event', icon: Calendar, color: 'text-purple-500' },
+  { value: "birthday", label: "Birthday", icon: Gift, color: "text-pink-500" },
+  { value: "work_anniversary", label: "Work Anniversary", icon: Award, color: "text-blue-500" },
+  {
+    value: "business_anniversary",
+    label: "Business Anniversary",
+    icon: Award,
+    color: "text-green-500",
+  },
+  { value: "custom", label: "Custom Event", icon: Calendar, color: "text-purple-500" },
 ];
 
 const reminderOptions = [
-  { value: 0, label: 'On the day' },
-  { value: 1, label: '1 day before' },
-  { value: 7, label: '1 week before' },
-  { value: 14, label: '2 weeks before' },
-  { value: 30, label: '1 month before' },
+  { value: 0, label: "On the day" },
+  { value: 1, label: "1 day before" },
+  { value: 7, label: "1 week before" },
+  { value: 14, label: "2 weeks before" },
+  { value: 30, label: "1 month before" },
 ];
 
 export function PersonalEventsManager() {
@@ -97,14 +94,14 @@ export function PersonalEventsManager() {
 
   // Fetch events
   const { data: events = [], isLoading } = useQuery<PersonalEvent[]>({
-    queryKey: ['/api/notifications/personal-events'],
+    queryKey: ["/api/notifications/personal-events"],
     placeholderData: [] as PersonalEvent[],
   });
 
   const form = useForm<EventForm>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      eventType: 'birthday',
+      eventType: "birthday",
       enableNotifications: true,
       notifyDaysBefore: [0, 1, 7],
       isPublic: false,
@@ -114,41 +111,41 @@ export function PersonalEventsManager() {
 
   // Create event mutation
   const createEventMutation = useMutation({
-    mutationFn: (data: EventForm) => 
-      apiRequest('/api/notifications/personal-events', {
-        method: 'POST',
+    mutationFn: (data: EventForm) =>
+      apiRequest("/api/notifications/personal-events", {
+        method: "POST",
         body: data,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/personal-events'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/personal-events"] });
       toast({
-        title: 'Event Added',
-        description: 'Your personal event has been saved.',
+        title: "Event Added",
+        description: "Your personal event has been saved.",
       });
       setIsDialogOpen(false);
       form.reset();
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to add event',
-        variant: 'destructive',
+        title: "Error",
+        description: formatUserFacingErrorMessage(error, "Failed to add event"),
+        variant: "destructive",
       });
     },
   });
 
   // Update event mutation
   const updateEventMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<EventForm> }) => 
+    mutationFn: ({ id, data }: { id: string; data: Partial<EventForm> }) =>
       apiRequest(`/api/notifications/personal-events/${id}`, {
-        method: 'PUT',
+        method: "PUT",
         body: data,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/personal-events'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/personal-events"] });
       toast({
-        title: 'Event Updated',
-        description: 'Your personal event has been updated.',
+        title: "Event Updated",
+        description: "Your personal event has been updated.",
       });
       setEditingEvent(null);
       setIsDialogOpen(false);
@@ -156,31 +153,31 @@ export function PersonalEventsManager() {
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update event',
-        variant: 'destructive',
+        title: "Error",
+        description: formatUserFacingErrorMessage(error, "Failed to update event"),
+        variant: "destructive",
       });
     },
   });
 
   // Delete event mutation
   const deleteEventMutation = useMutation({
-    mutationFn: (id: string) => 
+    mutationFn: (id: string) =>
       apiRequest(`/api/notifications/personal-events/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/personal-events'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/personal-events"] });
       toast({
-        title: 'Event Deleted',
-        description: 'Your personal event has been deleted.',
+        title: "Event Deleted",
+        description: "Your personal event has been deleted.",
       });
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete event',
-        variant: 'destructive',
+        title: "Error",
+        description: formatUserFacingErrorMessage(error, "Failed to delete event"),
+        variant: "destructive",
       });
     },
   });
@@ -190,12 +187,12 @@ export function PersonalEventsManager() {
       setEditingEvent(event);
       form.reset({
         eventType: event.eventType,
-        eventName: event.eventName || '',
+        eventName: event.eventName || "",
         eventDate: event.eventDate,
         eventYear: event.eventYear || undefined,
         enableNotifications: event.enableNotifications,
         notifyDaysBefore: event.notifyDaysBefore ?? [],
-        customMessage: event.customMessage || '',
+        customMessage: event.customMessage || "",
         isPublic: event.isPublic,
         shareWithTeam: event.shareWithTeam,
       });
@@ -215,14 +212,14 @@ export function PersonalEventsManager() {
   };
 
   const formatEventDate = (dateStr: string, year?: number) => {
-    const [month, day] = dateStr.split('-');
+    const [month, day] = dateStr.split("-");
     const currentYear = year || new Date().getFullYear();
     const date = new Date(currentYear, parseInt(month) - 1, parseInt(day));
-    return format(date, year ? 'MMMM d, yyyy' : 'MMMM d');
+    return format(date, year ? "MMMM d, yyyy" : "MMMM d");
   };
 
   const getEventTypeInfo = (type: string) => {
-    return eventTypes.find(t => t.value === type) || eventTypes[0];
+    return eventTypes.find((t) => t.value === type) || eventTypes[0];
   };
 
   return (
@@ -234,10 +231,10 @@ export function PersonalEventsManager() {
             Manage your birthdays, anniversaries, and other important dates.
           </p>
         </div>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               onClick={() => handleOpenDialog()}
               className="bg-ts-orange text-white hover:bg-ts-orange-dark"
             >
@@ -245,11 +242,11 @@ export function PersonalEventsManager() {
               Add Event
             </Button>
           </DialogTrigger>
-          
+
           <DialogContent className="sm:max-w-[500px] bg-tsCard border-white/10">
             <DialogHeader>
               <DialogTitle className="text-white">
-                {editingEvent ? 'Edit Event' : 'Add Personal Event'}
+                {editingEvent ? "Edit Event" : "Add Personal Event"}
               </DialogTitle>
               <DialogDescription className="text-white/60">
                 Add important dates you'd like to be reminded about.
@@ -286,7 +283,7 @@ export function PersonalEventsManager() {
                   )}
                 />
 
-                {form.watch('eventType') === 'custom' && (
+                {form.watch("eventType") === "custom" && (
                   <FormField
                     control={form.control}
                     name="eventName"
@@ -340,7 +337,9 @@ export function PersonalEventsManager() {
                             {...field}
                             type="number"
                             placeholder="2023"
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            onChange={(e) =>
+                              field.onChange(e.target.value ? parseInt(e.target.value) : undefined)
+                            }
                             className="bg-tsCard border-white/10 text-white"
                           />
                         </FormControl>
@@ -371,7 +370,7 @@ export function PersonalEventsManager() {
                   )}
                 />
 
-                {form.watch('enableNotifications') && (
+                {form.watch("enableNotifications") && (
                   <FormField
                     control={form.control}
                     name="notifyDaysBefore"
@@ -387,14 +386,14 @@ export function PersonalEventsManager() {
                                 type="button"
                                 onClick={() => {
                                   const newValue = isSelected
-                                    ? field.value.filter(v => v !== option.value)
+                                    ? field.value.filter((v) => v !== option.value)
                                     : [...field.value, option.value].sort((a, b) => a - b);
                                   field.onChange(newValue);
                                 }}
                                 className={`px-3 py-1 rounded-full text-xs transition-colors ${
                                   isSelected
-                                    ? 'bg-ts-orange text-black'
-                                    : 'bg-tsCard text-white/70 border border-white/10'
+                                    ? "bg-ts-orange text-black"
+                                    : "bg-tsCard text-white/70 border border-white/10"
                                 }`}
                               >
                                 {option.label}
@@ -446,7 +445,7 @@ export function PersonalEventsManager() {
                     disabled={createEventMutation.isPending || updateEventMutation.isPending}
                     className="bg-ts-orange text-white hover:bg-ts-orange-dark"
                   >
-                    {editingEvent ? 'Update Event' : 'Add Event'}
+                    {editingEvent ? "Update Event" : "Add Event"}
                   </Button>
                 </div>
               </form>
@@ -474,17 +473,14 @@ export function PersonalEventsManager() {
               Add Your First Event
             </Button>
           </div>
-        ) : (
-          Array.isArray(events) ? events.map((event: PersonalEvent) => {
+        ) : Array.isArray(events) ? (
+          events.map((event: PersonalEvent) => {
             const typeInfo = getEventTypeInfo(event.eventType);
             const TypeIcon = typeInfo.icon;
             const reminders = event.notifyDaysBefore ?? [];
-            
+
             return (
-              <div
-                key={event.id}
-                className="bg-tsCard/50 rounded-lg border border-white/10 p-4"
-              >
+              <div key={event.id} className="bg-tsCard/50 rounded-lg border border-white/10 p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <TypeIcon className={`h-5 w-5 mt-0.5 ${typeInfo.color}`} />
@@ -495,7 +491,7 @@ export function PersonalEventsManager() {
                       <p className="text-white/60 text-sm">
                         {formatEventDate(event.eventDate, event.eventYear)}
                       </p>
-                      
+
                       <div className="flex items-center gap-2 mt-2">
                         {event.enableNotifications ? (
                           <Badge variant="outline" className="text-green-400 border-green-400">
@@ -508,22 +504,20 @@ export function PersonalEventsManager() {
                             No Notifications
                           </Badge>
                         )}
-                        
+
                         {reminders.length > 0 && (
                           <Badge variant="secondary" className="text-xs">
-                            {reminders.length} reminder{reminders.length > 1 ? 's' : ''}
+                            {reminders.length} reminder{reminders.length > 1 ? "s" : ""}
                           </Badge>
                         )}
                       </div>
-                      
+
                       {event.customMessage && (
-                        <p className="text-sm text-white/70 mt-2 italic">
-                          "{event.customMessage}"
-                        </p>
+                        <p className="text-sm text-white/70 mt-2 italic">"{event.customMessage}"</p>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="ghost"
@@ -545,8 +539,8 @@ export function PersonalEventsManager() {
                 </div>
               </div>
             );
-          }) : null
-        )}
+          })
+        ) : null}
       </div>
     </div>
   );
