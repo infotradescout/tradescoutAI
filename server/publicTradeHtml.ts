@@ -1,5 +1,5 @@
 import { and, asc, eq, sql } from "drizzle-orm";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import {
   getTradeBySlug,
@@ -18,6 +18,36 @@ type PublicTradeHtmlOptions = {
   origin: string;
   templateHtml: string;
 };
+
+let cachedHasPublicDiscoveryEnabledColumn: boolean | null = null;
+let loggedMissingPublicDiscoveryEnabledColumn = false;
+
+async function hasPublicDiscoveryEnabledColumn(): Promise<boolean> {
+  if (cachedHasPublicDiscoveryEnabledColumn !== null) return cachedHasPublicDiscoveryEnabledColumn;
+  try {
+    const result = await pool.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'businesses'
+           AND column_name = 'public_discovery_enabled'
+       ) as exists`
+    );
+    cachedHasPublicDiscoveryEnabledColumn = Boolean(result.rows?.[0]?.exists);
+    return cachedHasPublicDiscoveryEnabledColumn;
+  } catch (err) {
+    cachedHasPublicDiscoveryEnabledColumn = false;
+    return false;
+  }
+}
+
+function isMissingColumnError(error: unknown, columnName: string): boolean {
+  const err = error as any;
+  const code = String(err?.code || "");
+  const message = String(err?.message || "");
+  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
+}
 
 function escapeHtml(value: string) {
   return String(value || "")
@@ -378,25 +408,55 @@ export async function buildPublicTradeCountyHtml(
   ];
   if (tradeClause) whereClauses.push(tradeClause);
 
-  const rows = await db
-    .select({
-      id: businesses.id,
-      slug: businesses.slug,
-      name: businesses.name,
-      claimStatus: businesses.claimStatus,
-      ownerUserId: businesses.ownerUserId,
-      updatedAt: businesses.updatedAt,
-      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-      ownerVerificationStatus: users.verificationStatus,
-      ownerAddressVerified: users.addressVerified,
-    })
-    .from(businesses)
-    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-    .leftJoin(users, eq(users.id, businesses.ownerUserId))
-    .where(and(...whereClauses))
-    .orderBy(asc(businesses.name))
-    .limit(200);
+  const includePublicDiscoveryEnabled = await hasPublicDiscoveryEnabledColumn();
+  if (!includePublicDiscoveryEnabled && !loggedMissingPublicDiscoveryEnabledColumn) {
+    loggedMissingPublicDiscoveryEnabledColumn = true;
+    console.error(
+      "[SEO] Missing businesses.public_discovery_enabled; treating discovery as disabled. Run migrations to restore full SEO listings."
+    );
+  }
+
+  const runQuery = async (includeDiscovery: boolean) =>
+    db
+      .select({
+        id: businesses.id,
+        slug: businesses.slug,
+        name: businesses.name,
+        claimStatus: businesses.claimStatus,
+        ownerUserId: businesses.ownerUserId,
+        updatedAt: businesses.updatedAt,
+        publicDiscoveryEnabled: includeDiscovery
+          ? businesses.publicDiscoveryEnabled
+          : sql<boolean>`false`,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerAddressVerified: users.addressVerified,
+      })
+      .from(businesses)
+      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
+      .where(and(...whereClauses))
+      .orderBy(asc(businesses.name))
+      .limit(200);
+
+  let rows: any[];
+  try {
+    rows = await runQuery(includePublicDiscoveryEnabled);
+  } catch (error) {
+    // Defensive: some environments have drift and will error even if our introspection cache is stale.
+    if (includePublicDiscoveryEnabled && isMissingColumnError(error, "public_discovery_enabled")) {
+      cachedHasPublicDiscoveryEnabledColumn = false;
+      if (!loggedMissingPublicDiscoveryEnabledColumn) {
+        loggedMissingPublicDiscoveryEnabledColumn = true;
+        console.error(
+          "[SEO] Missing businesses.public_discovery_enabled (runtime); retrying without discovery filter. Run migrations to restore full SEO listings."
+        );
+      }
+      rows = await runQuery(false);
+    } else {
+      throw error;
+    }
+  }
 
   const rules = await getPublicationRules();
   const now = new Date();

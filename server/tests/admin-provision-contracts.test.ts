@@ -33,6 +33,21 @@ describe("admin provisioning contract guards", () => {
     expect(adminProvisionUserSource).toContain("profile:");
     expect(adminProvisionUserSource).toContain("create: true");
     expect(adminProvisionUserSource).toContain("createBusinessRecord");
+    expect(adminProvisionUserSource).toContain("profileAbout");
+    expect(adminProvisionUserSource).toContain("businessWebsite");
+    expect(adminProvisionUserSource).toContain("provisionUserTypes");
+    expect(adminProvisionUserSource).toContain("businessTags");
+  });
+
+  it("provision route persists extended contact/location payload", () => {
+    const routesSource = read("server/routes.ts");
+
+    expect(routesSource).toContain("const stateCodeRaw");
+    expect(routesSource).toContain("countyFips must be 5 characters");
+    expect(routesSource).toContain("profile.about must be 5000 characters or fewer");
+    expect(routesSource).toContain("contentBlocks: profileAbout");
+    expect(routesSource).toContain("provisionUserTypes");
+    expect(routesSource).toContain("services: businessTags.length > 0 ? businessTags : undefined");
   });
 
   it("bulk import keeps optional public profile toggle", () => {

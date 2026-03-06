@@ -5,6 +5,29 @@ function toSqlIdentifier(value: string) {
   return value.replace(/[^a-zA-Z0-9_]/g, "");
 }
 
+export async function ensureBusinessPublicDiscoveryEnabledColumn(): Promise<void> {
+  // SEO/public discovery relies on businesses.public_discovery_enabled. Some environments may skip
+  // migrations; we fail-safe by adding the column + index if missing.
+  try {
+    const reg = await pool.query<{ reg: string | null }>(
+      `SELECT to_regclass('public.businesses') as reg`
+    );
+    if (!reg.rows[0]?.reg) return;
+
+    await pool.query(`
+      ALTER TABLE businesses
+        ADD COLUMN IF NOT EXISTS public_discovery_enabled boolean NOT NULL DEFAULT true;
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS businesses_public_discovery_idx
+        ON businesses(public_discovery_enabled);
+    `);
+  } catch (error) {
+    console.error("[DB] Failed ensuring businesses.public_discovery_enabled:", error);
+  }
+}
+
 async function getColumnTypeSql(tableName: string, columnName: string): Promise<string | null> {
   const result = await pool.query<{
     data_type: string;

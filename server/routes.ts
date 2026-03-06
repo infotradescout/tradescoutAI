@@ -11987,6 +11987,11 @@ export async function registerRoutes(app: any) {
       const email = rawEmail.toLowerCase();
       const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
       const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
+      const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+      const city = typeof body.city === "string" ? body.city.trim() : "";
+      const stateCodeRaw = typeof body.stateCode === "string" ? body.stateCode.trim() : "";
+      const stateCode = stateCodeRaw ? stateCodeRaw.toUpperCase() : "";
+      const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : "";
       const role = typeof body.role === "string" ? body.role.trim() : "";
       const password = typeof body.password === "string" ? body.password : "";
       const sendEmail = body.sendEmail !== false;
@@ -12003,6 +12008,42 @@ export async function registerRoutes(app: any) {
         body && typeof body.profile === "object" && body.profile ? (body.profile as any) : null;
       const legacyBusinessInput =
         body && typeof body.business === "object" && body.business ? (body.business as any) : null;
+      const normalizeRoleTag = (value: string) => {
+        const roleTag = String(value || "").trim();
+        if (roleTag === "contractor_user") return "contractor";
+        if (roleTag === "vehicle_dealer" || roleTag === "car_salesman") return "car_dealer";
+        if (roleTag === "hoa_admin") return "hoa_board";
+        if (roleTag === "helper") return "handyman";
+        return roleTag;
+      };
+      const rawProvisionUserTypes = Array.isArray(body.userTypes)
+        ? body.userTypes
+        : Array.isArray(profileInput?.userTypes)
+          ? profileInput.userTypes
+          : [];
+      const provisionUserTypes = Array.from(
+        new Set(
+          rawProvisionUserTypes
+            .map((value: any) => normalizeRoleTag(String(value || "")))
+            .filter((typeId: string) => {
+              if (!typeId) return false;
+              if (typeId === "admin" || BLOCKED_SELF_ASSIGN_ROLES.has(typeId)) return false;
+              return Boolean(getUserTypeMetadata(typeId));
+            })
+        )
+      );
+      const rawBusinessTags = Array.isArray(body.businessTags)
+        ? body.businessTags
+        : Array.isArray(profileInput?.businessTags)
+          ? profileInput.businessTags
+          : [];
+      const businessTags = Array.from(
+        new Set(
+          rawBusinessTags
+            .map((value: any) => String(value || "").trim())
+            .filter((value: string) => value.length > 0 && value.length <= 48)
+        )
+      );
 
       const legacyBusinessName =
         typeof legacyBusinessInput?.name === "string" ? legacyBusinessInput.name.trim() : "";
@@ -12020,12 +12061,23 @@ export async function registerRoutes(app: any) {
         typeof profileInput?.roleContext === "string" ? profileInput.roleContext.trim() : "";
       const profileHeadline =
         typeof profileInput?.headline === "string" ? profileInput.headline.trim() : "";
+      const profileAbout = typeof profileInput?.about === "string" ? profileInput.about.trim() : "";
       const createBusinessRecord =
         profileInput?.createBusinessRecord === true || legacyBusinessName.length >= 2;
       const businessNameInput =
         typeof profileInput?.businessName === "string"
           ? profileInput.businessName.trim()
           : legacyBusinessName;
+      const businessPhone =
+        typeof profileInput?.businessPhone === "string"
+          ? profileInput.businessPhone.trim()
+          : legacyBusinessPhone;
+      const businessWebsite =
+        typeof profileInput?.businessWebsite === "string"
+          ? profileInput.businessWebsite.trim()
+          : legacyBusinessWebsite;
+      const businessEmail =
+        typeof profileInput?.businessEmail === "string" ? profileInput.businessEmail.trim() : "";
 
       const resolvedProvisionRole = (
         role || (createBusinessProfile ? "business_owner" : "")
@@ -12040,6 +12092,26 @@ export async function registerRoutes(app: any) {
       if (profileHeadline && profileHeadline.length > 160) {
         return res.status(400).json({
           message: "profile.headline must be 160 characters or fewer",
+        });
+      }
+      if (profileAbout && profileAbout.length > 5000) {
+        return res.status(400).json({
+          message: "profile.about must be 5000 characters or fewer",
+        });
+      }
+      if (stateCode && stateCode.length !== 2) {
+        return res.status(400).json({
+          message: "stateCode must be 2 characters",
+        });
+      }
+      if (countyFips && countyFips.length !== 5) {
+        return res.status(400).json({
+          message: "countyFips must be 5 characters",
+        });
+      }
+      if (businessTags.length > 24) {
+        return res.status(400).json({
+          message: "businessTags supports up to 24 entries",
         });
       }
 
@@ -12061,6 +12133,19 @@ export async function registerRoutes(app: any) {
           password: passwordHash,
           firstName,
           lastName,
+          phone: phone || undefined,
+          city: city || undefined,
+          stateCode: stateCode || undefined,
+          countyFips: countyFips || undefined,
+          preferences:
+            provisionUserTypes.length > 0
+              ? {
+                  provisional: {
+                    userTypes: provisionUserTypes,
+                    capturedAt: new Date().toISOString(),
+                  },
+                }
+              : undefined,
           role: (resolvedProvisionRole || null) as any,
           roles: resolvedProvisionRole ? [resolvedProvisionRole] : undefined,
           activeRole: resolvedProvisionRole || undefined,
@@ -12071,6 +12156,25 @@ export async function registerRoutes(app: any) {
         const patch: any = {};
         if (firstName) patch.firstName = firstName;
         if (lastName) patch.lastName = lastName;
+        if (phone) patch.phone = phone;
+        if (city) patch.city = city;
+        if (stateCode) patch.stateCode = stateCode;
+        if (countyFips) patch.countyFips = countyFips;
+        if (provisionUserTypes.length > 0) {
+          const currentPreferences = ((user as any).preferences || {}) as Record<string, any>;
+          const currentProvisional = (currentPreferences.provisional || {}) as Record<string, any>;
+          const existingUserTypes = Array.isArray(currentProvisional.userTypes)
+            ? currentProvisional.userTypes
+            : [];
+          patch.preferences = {
+            ...currentPreferences,
+            provisional: {
+              ...currentProvisional,
+              userTypes: dedupeStrings([...existingUserTypes, ...provisionUserTypes]),
+              capturedAt: new Date().toISOString(),
+            },
+          };
+        }
         if (resolvedProvisionRole) {
           const currentRoles: string[] = Array.isArray((user as any).roles)
             ? ((user as any).roles as string[]).filter(Boolean)
@@ -12132,10 +12236,14 @@ export async function registerRoutes(app: any) {
               type: "other" as any,
               roleContext: resolvedRoleContext as any,
               profileData: {
-                description: profileHeadline || undefined,
-                email: user.email,
-                phone: legacyBusinessPhone || undefined,
-                website: legacyBusinessWebsite || undefined,
+                description: profileAbout || profileHeadline || undefined,
+                phone: businessPhone || undefined,
+                website: businessWebsite || undefined,
+                email: businessEmail || user.email,
+                city: city || undefined,
+                stateCode: stateCode || undefined,
+                services: businessTags.length > 0 ? businessTags : undefined,
+                category: businessTags[0] || undefined,
               } as any,
               status: "active" as any,
               countyIds: [],
@@ -12150,9 +12258,20 @@ export async function registerRoutes(app: any) {
             slug: resolvedDisplayName,
             displayName: resolvedDisplayName,
             headline: profileHeadline || null,
-            contentBlocks: [],
+            contentBlocks: profileAbout
+              ? [
+                  {
+                    type: "about",
+                    data: { text: profileAbout },
+                  },
+                ]
+              : [],
             ctaConfig: {},
-            seoMeta: {},
+            seoMeta: profileAbout
+              ? {
+                  description: profileAbout.slice(0, 300),
+                }
+              : {},
             status: "published" as any,
           } as any);
 
@@ -12236,6 +12355,8 @@ export async function registerRoutes(app: any) {
         profileSlug: provisionedProfile?.slug || null,
         businessId: provisionedBusiness?.id || null,
         businessSlug: provisionedBusiness?.slug || null,
+        provisionUserTypes,
+        businessTags,
         ...debug,
       });
     } catch (error: any) {

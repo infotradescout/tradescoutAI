@@ -15,7 +15,7 @@ import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
-import { ensureProfilesTable } from "./ensureDb";
+import { ensureBusinessPublicDiscoveryEnabledColumn, ensureProfilesTable } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
 import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
@@ -461,6 +461,7 @@ app.use(botReadOnlyGuard);
     try {
       console.log("[Startup] Verifying database connection...");
       await ensureProfilesTable();
+      await ensureBusinessPublicDiscoveryEnabledColumn();
       console.log("[Startup] Database connection verified.");
     } catch (err) {
       console.error("FATAL: ensureProfilesTable failed in production:", err);

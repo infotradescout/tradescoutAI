@@ -18,6 +18,8 @@ const EXPECTED_USER_COLUMNS = [
   "longitude",
 ];
 
+const EXPECTED_BUSINESS_COLUMNS = ["public_discovery_enabled"];
+
 async function tableHasColumn(table: string, column: string): Promise<boolean> {
   try {
     const result = await pool.query<{ exists: boolean }>(
@@ -28,7 +30,7 @@ async function tableHasColumn(table: string, column: string): Promise<boolean> {
            AND table_name = $1
            AND column_name = $2
        ) as exists`,
-      [table, column],
+      [table, column]
     );
     return Boolean(result.rows[0]?.exists);
   } catch (err) {
@@ -52,6 +54,18 @@ export async function runSchemaPreflight(): Promise<void> {
     }
   }
 
+  for (const column of EXPECTED_BUSINESS_COLUMNS) {
+    const exists = await tableHasColumn("businesses", column);
+    if (!exists) {
+      issues.push({
+        scope: "businesses",
+        code: `missing_column:${column}`,
+        message: `Expected column businesses.${column} is missing. Run migrations (e.g. npm run db:migrate) against this database.`,
+        severity: "error",
+      });
+    }
+  }
+
   if (issues.length === 0) {
     console.log("[SchemaPreflight] OK - no drift detected for critical tables.");
     return;
@@ -66,7 +80,7 @@ export async function runSchemaPreflight(): Promise<void> {
         code: issue.code,
         severity: issue.severity,
         message: issue.message,
-      }),
+      })
     );
   }
 }

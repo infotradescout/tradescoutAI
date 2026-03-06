@@ -31,14 +31,24 @@ export default function AdminProvisionUser() {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [stateCode, setStateCode] = useState("");
+  const [countyFips, setCountyFips] = useState("");
   const [password, setPassword] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
   const [createBusinessProfile, setCreateBusinessProfile] = useState(false);
   const [profileDisplayName, setProfileDisplayName] = useState("");
   const [profileRoleContext, setProfileRoleContext] = useState("business_owner");
   const [profileHeadline, setProfileHeadline] = useState("");
+  const [profileAbout, setProfileAbout] = useState("");
+  const [provisionUserTypes, setProvisionUserTypes] = useState("");
   const [createBusinessRecord, setCreateBusinessRecord] = useState(false);
   const [businessName, setBusinessName] = useState("");
+  const [businessTags, setBusinessTags] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [businessWebsite, setBusinessWebsite] = useState("");
   const [result, setResult] = useState<ProvisionResponse | null>(null);
   const [targetUserEmail, setTargetUserEmail] = useState("");
   const [targetUserId, setTargetUserId] = useState("");
@@ -69,10 +79,23 @@ export default function AdminProvisionUser() {
 
   const provision = useMutation({
     mutationFn: async () => {
+      const parseCsv = (value: string) =>
+        value
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean);
+      const userTypes = parseCsv(provisionUserTypes);
+      const normalizedBusinessTags = parseCsv(businessTags);
       const payload = {
         email: email.trim(),
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
+        phone: phone.trim() || undefined,
+        city: city.trim() || undefined,
+        stateCode: stateCode.trim().toUpperCase() || undefined,
+        countyFips: countyFips.trim() || undefined,
+        userTypes: userTypes.length > 0 ? userTypes : undefined,
+        businessTags: normalizedBusinessTags.length > 0 ? normalizedBusinessTags : undefined,
         password: password || undefined,
         sendEmail,
         profile: createBusinessProfile
@@ -81,6 +104,11 @@ export default function AdminProvisionUser() {
               displayName: profileDisplayName.trim() || undefined,
               roleContext: profileRoleContext.trim() || undefined,
               headline: profileHeadline.trim() || undefined,
+              about: profileAbout.trim() || undefined,
+              businessPhone: businessPhone.trim() || undefined,
+              businessEmail: businessEmail.trim() || undefined,
+              businessWebsite: businessWebsite.trim() || undefined,
+              businessTags: normalizedBusinessTags.length > 0 ? normalizedBusinessTags : undefined,
               createBusinessRecord,
               businessName: businessName.trim() || undefined,
             }
@@ -261,6 +289,50 @@ export default function AdminProvisionUser() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">Phone (optional)</label>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 555-5555"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">City (optional)</label>
+                <Input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">State code (optional)</label>
+                <Input
+                  value={stateCode}
+                  onChange={(e) => setStateCode(e.target.value)}
+                  placeholder="LA"
+                  maxLength={2}
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">County FIPS (optional)</label>
+                <Input
+                  value={countyFips}
+                  onChange={(e) => setCountyFips(e.target.value)}
+                  placeholder="22105"
+                  maxLength={5}
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
             <label className="flex items-center gap-2 text-xs text-white/70">
               <Checkbox checked={sendEmail} onCheckedChange={(v) => setSendEmail(v === true)} />
               Send setup email (recommended)
@@ -307,6 +379,29 @@ export default function AdminProvisionUser() {
                   />
                 </div>
 
+                <div>
+                  <label className="text-xs text-white/60">Profile about (optional)</label>
+                  <Textarea
+                    value={profileAbout}
+                    onChange={(e) => setProfileAbout(e.target.value)}
+                    placeholder="Longer profile summary shown in About section"
+                    rows={3}
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/60">
+                    User types (comma separated, optional)
+                  </label>
+                  <Input
+                    value={provisionUserTypes}
+                    onChange={(e) => setProvisionUserTypes(e.target.value)}
+                    placeholder="business_owner, contractor"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
                 <label className="flex items-center gap-2 text-xs text-white/70">
                   <Checkbox
                     checked={createBusinessRecord}
@@ -316,14 +411,59 @@ export default function AdminProvisionUser() {
                 </label>
 
                 {createBusinessRecord ? (
-                  <div>
-                    <label className="text-xs text-white/60">Business name</label>
-                    <Input
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder="Acme Services LLC"
-                      className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                    />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-white/60">Business name</label>
+                      <Input
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="Acme Services LLC"
+                        className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-white/60">
+                        Business tags (comma separated, optional)
+                      </label>
+                      <Input
+                        value={businessTags}
+                        onChange={(e) => setBusinessTags(e.target.value)}
+                        placeholder="pest-control, commercial, residential"
+                        className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-white/60">Business phone (optional)</label>
+                        <Input
+                          value={businessPhone}
+                          onChange={(e) => setBusinessPhone(e.target.value)}
+                          placeholder="(555) 555-5555"
+                          className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/60">Business email (optional)</label>
+                        <Input
+                          value={businessEmail}
+                          onChange={(e) => setBusinessEmail(e.target.value)}
+                          placeholder="office@acme.com"
+                          className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-white/60">Business website (optional)</label>
+                      <Input
+                        value={businessWebsite}
+                        onChange={(e) => setBusinessWebsite(e.target.value)}
+                        placeholder="https://acme.example"
+                        className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>

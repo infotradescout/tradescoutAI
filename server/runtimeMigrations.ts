@@ -16,6 +16,48 @@ function sha256(text: string): string {
   return crypto.createHash("sha256").update(text).digest("hex");
 }
 
+async function functionExists(name: string): Promise<boolean> {
+  const result = await pool.query<{ exists: boolean }>(
+    `select exists(select 1 from pg_proc where proname = $1) as exists`,
+    [name]
+  );
+  return Boolean(result.rows?.[0]?.exists);
+}
+
+async function ensureGenRandomUuid(): Promise<void> {
+  // Several migrations use gen_random_uuid(). In some hosted Postgres environments, pgcrypto may not
+  // be installed yet. Best-effort: enable pgcrypto, fall back to uuid-ossp, or create a shim.
+  try {
+    if (await functionExists("gen_random_uuid")) return;
+
+    try {
+      await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
+    } catch {
+      // ignore
+    }
+    if (await functionExists("gen_random_uuid")) return;
+
+    try {
+      await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
+    } catch {
+      // ignore
+    }
+
+    const hasUuidOssp = await functionExists("uuid_generate_v4");
+    if (!hasUuidOssp) return;
+
+    // Shim: provide gen_random_uuid() using uuid-ossp so id defaults in migrations work.
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION gen_random_uuid()
+      RETURNS uuid
+      LANGUAGE sql
+      AS $$ SELECT uuid_generate_v4(); $$;
+    `);
+  } catch (err) {
+    console.error("[RuntimeMigrations] Failed ensuring gen_random_uuid (non-fatal):", err);
+  }
+}
+
 function getRepoRoot(): string {
   // Runtime containers run with WORKDIR=/app (see Dockerfile). In dev, process.cwd() is repo root.
   return process.cwd();
@@ -119,6 +161,7 @@ export async function runRuntimeMigrations(options?: { log?: (msg: string) => vo
     return;
   }
 
+  await ensureGenRandomUuid();
   await ensureDrizzleMigrationsTable();
 
   let applied = 0;

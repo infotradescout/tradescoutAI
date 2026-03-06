@@ -15,7 +15,11 @@ import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
-import { ensureDocumentsTables, ensureProfilesTable } from "./ensureDb";
+import {
+  ensureBusinessPublicDiscoveryEnabledColumn,
+  ensureDocumentsTables,
+  ensureProfilesTable,
+} from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
 import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
@@ -510,6 +514,9 @@ app.use(botReadOnlyGuard);
         );
       }
     }
+
+    // Keep SEO discovery routes resilient even if migrations were skipped.
+    await ensureBusinessPublicDiscoveryEnabledColumn();
 
     // In development, keep this opt-in to avoid surprising local DB changes.
     // Production uses index.prod.ts which runs migrations by default.
