@@ -13846,16 +13846,35 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           : [];
         const nextSources = Array.from(new Set([...currentSources, "admin_import_cleanup"]));
 
-        await tx
-          .update(businesses)
-          .set({
-            ownerUserId: null,
-            claimStatus: "unclaimed" as any,
-            profileData: nextProfileData,
-            sources: nextSources as any,
-            updatedAt: now,
-          } as any)
-          .where(eq(businesses.id, directoryBusinessId));
+        try {
+          await tx
+            .update(businesses)
+            .set({
+              ownerUserId: null,
+              claimStatus: "unclaimed" as any,
+              profileData: nextProfileData,
+              sources: nextSources as any,
+              updatedAt: now,
+            } as any)
+            .where(eq(businesses.id, directoryBusinessId));
+        } catch (error: any) {
+          const isMissingClaimStatusColumn =
+            String(error?.code || "") === "42703" &&
+            String(error?.message || "")
+              .toLowerCase()
+              .includes("claim_status");
+          if (!isMissingClaimStatusColumn) throw error;
+
+          await tx
+            .update(businesses)
+            .set({
+              ownerUserId: null,
+              profileData: nextProfileData,
+              sources: nextSources as any,
+              updatedAt: now,
+            } as any)
+            .where(eq(businesses.id, directoryBusinessId));
+        }
       } else {
         // Fallback: create a directory business if the import-created user has no owned business.
         const baseName =
@@ -14022,7 +14041,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const status = typeof error?.status === "number" ? error.status : 500;
         return res.status(status).json({
           message:
-            status >= 500 ? "Failed to archive user" : error?.message || "Failed to archive user",
+            status >= 500
+              ? error?.message || "Failed to archive user"
+              : error?.message || "Failed to archive user",
+          code: error?.code || null,
           requestId: (req as any).requestId || null,
         });
       }

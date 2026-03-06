@@ -1580,11 +1580,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listBusinessesByOwner(ownerUserId: string): Promise<Business[]> {
-    return db
-      .select()
-      .from(businesses)
-      .where(eq(businesses.ownerUserId, ownerUserId))
-      .orderBy(desc(businesses.updatedAt));
+    try {
+      return await db
+        .select()
+        .from(businesses)
+        .where(eq(businesses.ownerUserId, ownerUserId))
+        .orderBy(desc(businesses.updatedAt));
+    } catch (error: any) {
+      const isMissingDiscoveryColumn =
+        String(error?.code || "") === "42703" &&
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("public_discovery_enabled");
+      if (!isMissingDiscoveryColumn) throw error;
+
+      const fallback = (await db.execute(sql`
+        select
+          b.id,
+          b.name,
+          b.slug,
+          b.type,
+          b.owner_user_id as "ownerUserId",
+          b.role_context as "roleContext",
+          b.profile_data as "profileData",
+          b.claim_status as "claimStatus",
+          true as "publicDiscoveryEnabled",
+          b.sources,
+          b.status,
+          b.created_at as "createdAt",
+          b.updated_at as "updatedAt"
+        from businesses b
+        where b.owner_user_id = ${ownerUserId}
+        order by b.updated_at desc
+      `)) as any;
+
+      return Array.isArray(fallback?.rows) ? (fallback.rows as Business[]) : [];
+    }
   }
 
   async getBusinessByIdForOwner(
