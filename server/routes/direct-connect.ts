@@ -15,6 +15,9 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { storage } from "../storage";
 import { notificationService } from "../notification-service";
+import { emailService } from "../services/emailService";
+import { passwordResetService } from "../services/passwordResetService";
+import { emailVerificationService } from "../services/emailVerificationService";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import {
   redactContactDetails,
@@ -1121,10 +1124,84 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
         let targetUser = null as any;
+        let targetUserProvisioned = false;
+        let setupEmailSent = false;
+        let activationLinkIncluded = false;
+        let verifyLinkIncluded = false;
+        let activationLink: string | undefined;
+        let verifyLink: string | undefined;
         if (body.targetUserId) {
           targetUser = await storage.getUser(body.targetUserId);
         } else if (body.targetEmail) {
-          targetUser = await storage.getUserByEmail(body.targetEmail.toLowerCase());
+          const normalizedEmail = body.targetEmail.toLowerCase();
+          targetUser = await storage.getUserByEmail(normalizedEmail);
+          if (!targetUser) {
+            targetUser = await storage.createUser({
+              email: normalizedEmail,
+              role: "homeowner" as any,
+              roles: ["homeowner"],
+              activeRole: "homeowner",
+              emailVerified: false,
+              addressVerified: false,
+              preferences: {
+                provisional: {
+                  userTypes: ["homeowner"],
+                  source: "admin_direct_connect_request",
+                  capturedAt: new Date().toISOString(),
+                },
+              },
+            } as any);
+            targetUserProvisioned = true;
+          }
+
+          const publicBase = resolveOrigin(req).replace(/\/$/, "");
+          const shouldSendActivation = !targetUser.password;
+          const shouldSendVerification = targetUser.emailVerified !== true;
+          activationLinkIncluded = shouldSendActivation;
+          verifyLinkIncluded = shouldSendVerification;
+
+          if (shouldSendActivation) {
+            const reset = passwordResetService.createToken(String(targetUser.id));
+            activationLink = `${publicBase}/reset-password?token=${reset.token}`;
+          }
+          if (shouldSendVerification) {
+            const verify = emailVerificationService.createToken(String(targetUser.id));
+            verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
+          }
+
+          if (shouldSendActivation || shouldSendVerification) {
+            const canSendEmail = emailService.isConfigured();
+            if (canSendEmail) {
+              const htmlParts: string[] = [
+                "<p>Your TradeScout Direct Connect request is ready.</p>",
+                "<p>Finish account setup to view and manage your request.</p>",
+              ];
+              if (activationLink && shouldSendActivation) {
+                htmlParts.push(`<p><a href="${activationLink}">Set your password</a>.</p>`);
+              }
+              if (verifyLink && shouldSendVerification) {
+                htmlParts.push(`<p><a href="${verifyLink}">Verify your email</a>.</p>`);
+              }
+              htmlParts.push("<p>If you did not expect this, you can ignore this email.</p>");
+
+              await emailService.sendEmail({
+                to: normalizedEmail,
+                subject: "Your TradeScout Direct Connect request is ready",
+                html: htmlParts.join("\n"),
+                text: [
+                  shouldSendActivation && activationLink ? `Set password: ${activationLink}` : null,
+                  shouldSendVerification && verifyLink ? `Verify email: ${verifyLink}` : null,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                purpose: "account_creation",
+              });
+              setupEmailSent = true;
+            } else if (process.env.NODE_ENV !== "production") {
+              // In local/dev environments return links for manual testing.
+              setupEmailSent = false;
+            }
+          }
         }
 
         if (!targetUser) {
@@ -1278,6 +1355,12 @@ export function registerDirectConnectRoutes(app: Express) {
             id: String(targetUser.id),
             email: String(targetUser.email || ""),
           },
+          targetUserProvisioned,
+          setupEmailSent,
+          activationLinkIncluded,
+          verifyLinkIncluded,
+          ...(process.env.NODE_ENV !== "production" && activationLink ? { activationLink } : {}),
+          ...(process.env.NODE_ENV !== "production" && verifyLink ? { verifyLink } : {}),
           createdByStaffUserId: String(actorUserId),
         });
       } catch (error: any) {
