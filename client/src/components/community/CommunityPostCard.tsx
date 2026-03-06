@@ -41,6 +41,23 @@ import { CommunityCTA } from "./CommunityCTA";
 import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 
+const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
+const UPLOAD_FALLBACK_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"] as const;
+
+function handleCommunityImageError(image: HTMLImageElement) {
+  const currentSrc = image.currentSrc || image.src || "";
+  const attempt = Number.parseInt(image.dataset.fallbackAttempt || "0", 10) || 0;
+  if (attempt < UPLOAD_FALLBACK_EXTENSIONS.length && UPLOAD_ID_PATH_PATTERN.test(currentSrc)) {
+    const base = currentSrc.replace(/([?#].*)$/, "");
+    const suffix = currentSrc.slice(base.length);
+    image.dataset.fallbackAttempt = String(attempt + 1);
+    image.src = `${base}${UPLOAD_FALLBACK_EXTENSIONS[attempt]}${suffix}`;
+    return;
+  }
+
+  image.style.display = "none";
+}
+
 export interface CommunityPostCardAuthor {
   id?: string;
   name?: string;
@@ -625,6 +642,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       src={url}
                       alt="Post image"
                       className="absolute inset-0 h-full w-full object-cover"
+                      onError={(event) => handleCommunityImageError(event.currentTarget)}
                     />
                   </div>
                 ))}

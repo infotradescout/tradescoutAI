@@ -16,5 +16,10 @@ describe("admin direct-connect provisioning contract", () => {
     expect(source).toContain("passwordResetService.createToken");
     expect(source).toContain("emailVerificationService.createToken");
     expect(source).toContain("setupEmailSent");
+    expect(source).toContain(
+      "const shouldSendActivation = targetUserProvisioned && !targetUser.password"
+    );
+    expect(source).toContain("targetUserExisted");
+    expect(source).toContain("requestEmailSent");
   });
 });

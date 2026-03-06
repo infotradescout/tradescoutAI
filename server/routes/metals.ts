@@ -80,8 +80,13 @@ metalsRouter.get("/api/metals/prices", async (req, res) => {
     });
   } catch (error: any) {
     console.error("[metals/prices] failed", error);
-    return res.status(503).json({
-      message: "Metals prices are temporarily unavailable.",
+    return res.status(200).json({
+      snapshot: null,
+      stale: true,
+      refreshed: false,
+      refreshInFlight: false,
+      refreshCadenceMinutes: 15,
+      message: "Prices unavailable right now. Retry in a moment.",
     });
   }
 });

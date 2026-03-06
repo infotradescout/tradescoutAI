@@ -1125,7 +1125,9 @@ export function registerDirectConnectRoutes(app: Express) {
         }
         let targetUser = null as any;
         let targetUserProvisioned = false;
+        let targetUserExisted = false;
         let setupEmailSent = false;
+        let requestEmailSent = false;
         let activationLinkIncluded = false;
         let verifyLinkIncluded = false;
         let activationLink: string | undefined;
@@ -1133,7 +1135,7 @@ export function registerDirectConnectRoutes(app: Express) {
         if (body.targetUserId) {
           targetUser = await storage.getUser(body.targetUserId);
         } else if (body.targetEmail) {
-          const normalizedEmail = body.targetEmail.toLowerCase();
+          const normalizedEmail = body.targetEmail.trim().toLowerCase();
           targetUser = await storage.getUserByEmail(normalizedEmail);
           if (!targetUser) {
             targetUser = await storage.createUser({
@@ -1152,11 +1154,13 @@ export function registerDirectConnectRoutes(app: Express) {
               },
             } as any);
             targetUserProvisioned = true;
+          } else {
+            targetUserExisted = true;
           }
 
           const publicBase = resolveOrigin(req).replace(/\/$/, "");
-          const shouldSendActivation = !targetUser.password;
-          const shouldSendVerification = targetUser.emailVerified !== true;
+          const shouldSendActivation = targetUserProvisioned && !targetUser.password;
+          const shouldSendVerification = targetUserProvisioned && targetUser.emailVerified !== true;
           activationLinkIncluded = shouldSendActivation;
           verifyLinkIncluded = shouldSendVerification;
 
@@ -1169,9 +1173,9 @@ export function registerDirectConnectRoutes(app: Express) {
             verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
           }
 
-          if (shouldSendActivation || shouldSendVerification) {
-            const canSendEmail = emailService.isConfigured();
-            if (canSendEmail) {
+          const canSendEmail = emailService.isConfigured();
+          if (canSendEmail) {
+            if (shouldSendActivation || shouldSendVerification) {
               const htmlParts: string[] = [
                 "<p>Your TradeScout Direct Connect request is ready.</p>",
                 "<p>Finish account setup to view and manage your request.</p>",
@@ -1197,10 +1201,23 @@ export function registerDirectConnectRoutes(app: Express) {
                 purpose: "account_creation",
               });
               setupEmailSent = true;
-            } else if (process.env.NODE_ENV !== "production") {
-              // In local/dev environments return links for manual testing.
-              setupEmailSent = false;
+            } else {
+              await emailService.sendEmail({
+                to: normalizedEmail,
+                subject: "You have a new TradeScout Direct Connect request",
+                html: [
+                  "<p>A Direct Connect request was created for your account.</p>",
+                  `<p><a href="${publicBase}/direct-connect">Open Direct Connect</a>.</p>`,
+                  "<p>If you did not expect this, you can ignore this email.</p>",
+                ].join("\n"),
+                text: `Open Direct Connect: ${publicBase}/direct-connect`,
+                purpose: "notification",
+              });
+              requestEmailSent = true;
             }
+          } else if (process.env.NODE_ENV !== "production") {
+            // In local/dev environments return links for manual testing.
+            setupEmailSent = false;
           }
         }
 
@@ -1356,7 +1373,9 @@ export function registerDirectConnectRoutes(app: Express) {
             email: String(targetUser.email || ""),
           },
           targetUserProvisioned,
+          targetUserExisted,
           setupEmailSent,
+          requestEmailSent,
           activationLinkIncluded,
           verifyLinkIncluded,
           ...(process.env.NODE_ENV !== "production" && activationLink ? { activationLink } : {}),
@@ -1373,7 +1392,9 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Provider-facing inbox: assignments for the current contractor user
+  // Inbox for any user:
+  // - Providers see assignments (opportunities to respond)
+  // - Requesters see status updates for their own Direct Connect requests
   app.get(
     "/api/direct-connect/inbox",
     isAuthenticated,
@@ -1382,69 +1403,146 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+        const inboxItems: any[] = [];
         const contractor = await storage.getContractorByUserId(String(userId));
-        if (!contractor) {
-          return res.json([]);
+
+        if (contractor) {
+          const assignments = await db
+            .select()
+            .from(workRequestAssignments)
+            .where(eq(workRequestAssignments.contractorId, contractor.id))
+            .orderBy(desc(workRequestAssignments.createdAt));
+
+          if (assignments.length) {
+            const workRequestIds = assignments.map((a) => a.workRequestId);
+            const requests = await db
+              .select()
+              .from(workRequests)
+              .where(inArray(workRequests.id, workRequestIds));
+
+            const requestById = new Map(requests.map((r: any) => [r.id, r]));
+
+            const homeownerIds = Array.from(
+              new Set(
+                (requests as any[])
+                  .map((r: any) => String(r.createdByUserId || ""))
+                  .filter((id: string) => id.length > 0)
+              )
+            );
+
+            const candidateConversations =
+              homeownerIds.length > 0
+                ? await db
+                    .select()
+                    .from(conversations)
+                    .where(
+                      and(
+                        eq(conversations.contractorId, contractor.id),
+                        inArray(conversations.homeownerId, homeownerIds)
+                      )
+                    )
+                    .orderBy(desc(conversations.createdAt))
+                : [];
+
+            const conversationByHomeowner = new Map<string, string>();
+            for (const convo of candidateConversations as any[]) {
+              const homeownerId = String((convo as any).homeownerId || "");
+              if (!homeownerId || conversationByHomeowner.has(homeownerId)) continue;
+              conversationByHomeowner.set(homeownerId, String((convo as any).id));
+            }
+
+            const providerItems = assignments.map((a: any) => ({
+              assignment: a,
+              request: requestById.get(a.workRequestId) || null,
+              conversationThreadId: (() => {
+                const reqRow = requestById.get(a.workRequestId) as any;
+                if (!reqRow?.createdByUserId) return null;
+                return conversationByHomeowner.get(String(reqRow.createdByUserId)) || null;
+              })(),
+            }));
+            inboxItems.push(...providerItems);
+          }
         }
 
-        const assignments = await db
-          .select()
-          .from(workRequestAssignments)
-          .where(eq(workRequestAssignments.contractorId, contractor.id))
-          .orderBy(desc(workRequestAssignments.createdAt));
-
-        if (!assignments.length) {
-          return res.json([]);
-        }
-
-        const workRequestIds = assignments.map((a) => a.workRequestId);
-        const requests = await db
+        const ownRequests = await db
           .select()
           .from(workRequests)
-          .where(inArray(workRequests.id, workRequestIds));
-
-        const requestById = new Map(requests.map((r: any) => [r.id, r]));
-
-        const homeownerIds = Array.from(
-          new Set(
-            (requests as any[])
-              .map((r: any) => String(r.createdByUserId || ""))
-              .filter((id: string) => id.length > 0)
+          .where(
+            and(
+              eq(workRequests.createdByUserId, String(userId)),
+              eq(workRequests.source, "direct_connect" as any)
+            )
           )
-        );
+          .orderBy(desc(workRequests.updatedAt), desc(workRequests.createdAt));
 
-        const candidateConversations =
-          homeownerIds.length > 0
-            ? await db
-                .select()
-                .from(conversations)
-                .where(
-                  and(
-                    eq(conversations.contractorId, contractor.id),
-                    inArray(conversations.homeownerId, homeownerIds)
-                  )
-                )
-                .orderBy(desc(conversations.createdAt))
-            : [];
+        const mapRequesterStatusToInbox = (
+          status: string
+        ): "suggested" | "accepted" | "declined" => {
+          const normalized = String(status || "").toLowerCase();
+          if (normalized === "cancelled" || normalized === "closed") return "declined";
+          if (
+            normalized === "in_progress" ||
+            normalized === "accepted" ||
+            normalized === "completed"
+          ) {
+            return "accepted";
+          }
+          return "suggested";
+        };
 
-        const conversationByHomeowner = new Map<string, string>();
-        for (const convo of candidateConversations as any[]) {
-          const homeownerId = String((convo as any).homeownerId || "");
-          if (!homeownerId || conversationByHomeowner.has(homeownerId)) continue;
-          conversationByHomeowner.set(homeownerId, String((convo as any).id));
-        }
-
-        const enriched = assignments.map((a: any) => ({
-          assignment: a,
-          request: requestById.get(a.workRequestId) || null,
-          conversationThreadId: (() => {
-            const reqRow = requestById.get(a.workRequestId) as any;
-            if (!reqRow?.createdByUserId) return null;
-            return conversationByHomeowner.get(String(reqRow.createdByUserId)) || null;
-          })(),
+        const requesterItems = ownRequests.map((requestRow: any) => ({
+          assignment: {
+            id: `request-${String(requestRow.id)}`,
+            workRequestId: String(requestRow.id),
+            status: mapRequesterStatusToInbox(String(requestRow.status || "open")),
+            scoreSnapshot: null,
+            createdAt: requestRow.updatedAt || requestRow.createdAt,
+            updatedAt: requestRow.updatedAt || requestRow.createdAt,
+          },
+          request: {
+            id: String(requestRow.id),
+            title: String(requestRow.title || "Direct Connect request"),
+            description: String(requestRow.description || ""),
+            status: String(requestRow.status || "open"),
+            tradeId: requestRow.tradeId ?? null,
+            countyFips: requestRow.countyFips ?? null,
+            createdAt: requestRow.createdAt ?? null,
+          },
+          conversationThreadId: null,
         }));
 
-        res.json(enriched);
+        inboxItems.push(...requesterItems);
+
+        const dedupedByRequest = new Map<string, any>();
+        for (const item of inboxItems) {
+          const key = String(item?.assignment?.workRequestId || "");
+          const existing = dedupedByRequest.get(key);
+          if (!existing) {
+            dedupedByRequest.set(key, item);
+            continue;
+          }
+          const existingTs = new Date(
+            String(existing?.assignment?.updatedAt || existing?.assignment?.createdAt || 0)
+          ).getTime();
+          const nextTs = new Date(
+            String(item?.assignment?.updatedAt || item?.assignment?.createdAt || 0)
+          ).getTime();
+          if (Number.isFinite(nextTs) && (!Number.isFinite(existingTs) || nextTs > existingTs)) {
+            dedupedByRequest.set(key, item);
+          }
+        }
+
+        const sorted = Array.from(dedupedByRequest.values()).sort((left: any, right: any) => {
+          const leftTs = new Date(
+            String(left?.assignment?.updatedAt || left?.assignment?.createdAt || 0)
+          ).getTime();
+          const rightTs = new Date(
+            String(right?.assignment?.updatedAt || right?.assignment?.createdAt || 0)
+          ).getTime();
+          return rightTs - leftTs;
+        });
+
+        res.json(sorted);
       } catch (error: any) {
         console.error("Error fetching direct connect inbox:", error);
         res

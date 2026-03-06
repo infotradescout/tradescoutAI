@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -40,13 +40,31 @@ export default function DirectConnectPros() {
     queryFn: async () => apiRequest("GET", "/api/trades"),
   });
 
+  const inferredTradeSlug = useMemo(() => {
+    if (tradeSlug) return "";
+    const raw = searchQuery.trim().toLowerCase();
+    if (!raw) return "";
+
+    const exact = trades.find(
+      (trade) => trade.slug.toLowerCase() === raw || trade.name.toLowerCase() === raw
+    );
+    if (exact) return exact.slug;
+
+    const partial = trades.find(
+      (trade) => trade.slug.toLowerCase().includes(raw) || trade.name.toLowerCase().includes(raw)
+    );
+    return partial?.slug || "";
+  }, [tradeSlug, searchQuery, trades]);
+
+  const effectiveTradeSlug = tradeSlug || inferredTradeSlug;
+
   const { data: contractors = [], isLoading } = useQuery({
-    queryKey: ["/api/contractors/search", countyFips, tradeSlug, searchQuery],
+    queryKey: ["/api/contractors/search", countyFips, effectiveTradeSlug, searchQuery],
     enabled: countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (countyFips) params.set("county", countyFips);
-      if (tradeSlug) params.set("trade", tradeSlug);
+      if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
       if (searchQuery) params.set("query", searchQuery.trim());
       params.set("limit", "40");
       return apiRequest("GET", `/api/contractors/search?${params.toString()}`);
@@ -131,6 +149,11 @@ export default function DirectConnectPros() {
               )}
             </div>
           </div>
+          {!tradeSlug && inferredTradeSlug && (
+            <p className="text-[11px] text-[color:var(--text-secondary)]">
+              Inferred trade from search: <span className="text-white">{inferredTradeSlug}</span>
+            </p>
+          )}
         </CardContent>
       </Card>
 

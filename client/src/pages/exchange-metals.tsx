@@ -179,6 +179,7 @@ export default function MetalsExchange() {
     },
     refetchInterval: 15 * 60 * 1000,
     staleTime: 60 * 1000,
+    retry: false,
   });
 
   const listingsQuery = useQuery<ExchangeItem[]>({

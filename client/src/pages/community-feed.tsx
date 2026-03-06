@@ -61,6 +61,23 @@ import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotR
 import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
+const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
+const UPLOAD_FALLBACK_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"] as const;
+
+function handleCommunityImageError(image: HTMLImageElement) {
+  const currentSrc = image.currentSrc || image.src || "";
+  const attempt = Number.parseInt(image.dataset.fallbackAttempt || "0", 10) || 0;
+  if (attempt < UPLOAD_FALLBACK_EXTENSIONS.length && UPLOAD_ID_PATH_PATTERN.test(currentSrc)) {
+    const base = currentSrc.replace(/([?#].*)$/, "");
+    const suffix = currentSrc.slice(base.length);
+    image.dataset.fallbackAttempt = String(attempt + 1);
+    image.src = `${base}${UPLOAD_FALLBACK_EXTENSIONS[attempt]}${suffix}`;
+    return;
+  }
+
+  image.style.display = "none";
+}
+
 interface Post {
   id: string;
   title?: string;
@@ -1024,6 +1041,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             src={image}
                             alt={`Post image ${index + 1}`}
                             className="rounded-lg w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onError={(event) => handleCommunityImageError(event.currentTarget)}
                           />
                         ))}
                       </div>

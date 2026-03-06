@@ -37,12 +37,12 @@ const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"]
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "Post Odd Job",
+  post: "Start Project",
   board: "Odd Jobs",
   employment: "Employment",
   inbox: "Inbox",
   pros: "Pros",
-  engagements: "My Requests",
+  engagements: "My Projects",
 };
 
 const SECTION_META: Record<
@@ -55,9 +55,9 @@ const SECTION_META: Record<
   }
 > = {
   post: {
-    title: "Post a request",
-    description: "Post once. Track status in one place.",
-    actionLabel: "Go to My Requests",
+    title: "Start a project",
+    description: "Pick what you need, then submit the right project form.",
+    actionLabel: "Go to My Projects",
     actionTarget: "engagements",
   },
   board: {
@@ -73,9 +73,9 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   inbox: {
-    title: "Provider inbox",
-    description: "Review opportunities and respond.",
-    actionLabel: "View My Requests",
+    title: "Request inbox",
+    description: "Review request updates and opportunities.",
+    actionLabel: "View My Projects",
     actionTarget: "engagements",
   },
   pros: {
@@ -85,7 +85,7 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   engagements: {
-    title: "My requests",
+    title: "My projects",
     description: "Track status and next steps.",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
@@ -192,16 +192,108 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const [requestType, setRequestType] = useState<
+    | "service_request"
+    | "business_request"
+    | "customer_support"
+    | "employment"
+    | "buy_sell"
+    | "other"
+  >("service_request");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
+  const [showOptional, setShowOptional] = useState(false);
+
+  const requestTypeMeta: Record<
+    | "service_request"
+    | "business_request"
+    | "customer_support"
+    | "employment"
+    | "buy_sell"
+    | "other",
+    {
+      label: string;
+      category: string;
+      titlePlaceholder: string;
+      descriptionPlaceholder: string;
+      budgetLabelMin: string;
+      budgetLabelMax: string;
+      budgetPlaceholderMin: string;
+      budgetPlaceholderMax: string;
+    }
+  > = {
+    service_request: {
+      label: "Service request",
+      category: "service_request",
+      titlePlaceholder: "Need a provider for...",
+      descriptionPlaceholder: "What needs to be done, timeline, and requirements.",
+      budgetLabelMin: "Budget min (optional)",
+      budgetLabelMax: "Budget max (optional)",
+      budgetPlaceholderMin: "500",
+      budgetPlaceholderMax: "2500",
+    },
+    business_request: {
+      label: "Business request",
+      category: "business_request",
+      titlePlaceholder: "Need another business for...",
+      descriptionPlaceholder: "Scope, timing, and business requirements.",
+      budgetLabelMin: "Budget min (optional)",
+      budgetLabelMax: "Budget max (optional)",
+      budgetPlaceholderMin: "300",
+      budgetPlaceholderMax: "5000",
+    },
+    customer_support: {
+      label: "Customer support",
+      category: "customer_support",
+      titlePlaceholder: "Need help for a customer with...",
+      descriptionPlaceholder: "Customer need, location context, and urgency.",
+      budgetLabelMin: "Budget min (optional)",
+      budgetLabelMax: "Budget max (optional)",
+      budgetPlaceholderMin: "100",
+      budgetPlaceholderMax: "1500",
+    },
+    employment: {
+      label: "Employment",
+      category: "employment",
+      titlePlaceholder: "Hiring for role / contract...",
+      descriptionPlaceholder: "Role, schedule, skills needed, and start date.",
+      budgetLabelMin: "Pay min (optional)",
+      budgetLabelMax: "Pay max (optional)",
+      budgetPlaceholderMin: "18",
+      budgetPlaceholderMax: "35",
+    },
+    buy_sell: {
+      label: "Buy / sell / source",
+      category: "buy_sell",
+      titlePlaceholder: "Need source for materials...",
+      descriptionPlaceholder: "What item/material, quantity, and deadline?",
+      budgetLabelMin: "Budget min (optional)",
+      budgetLabelMax: "Budget max (optional)",
+      budgetPlaceholderMin: "100",
+      budgetPlaceholderMax: "1500",
+    },
+    other: {
+      label: "Other",
+      category: "other",
+      titlePlaceholder: "What do you need help with?",
+      descriptionPlaceholder: "Add details so Scout can route this correctly.",
+      budgetLabelMin: "Budget min (optional)",
+      budgetLabelMax: "Budget max (optional)",
+      budgetPlaceholderMin: "100",
+      budgetPlaceholderMax: "1000",
+    },
+  };
+
+  const activeRequestMeta = requestTypeMeta[requestType];
 
   const createMutation = useMutation({
     mutationFn: async () => {
       const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim(),
+        category: activeRequestMeta.category,
       };
 
       if (defaultCountyFips) payload.countyFips = defaultCountyFips;
@@ -218,20 +310,21 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     },
     onSuccess: () => {
       toast({
-        title: "Request posted",
-        description: "Your Direct Connect request is live.",
+        title: "Project posted",
+        description: "Your project is live in Direct Connect.",
       });
       setTitle("");
       setDescription("");
       setBudgetMin("");
       setBudgetMax("");
+      setShowOptional(false);
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
       navigate("/direct-connect/engagements");
     },
     onError: (error: any) => {
       toast({
-        title: "Could not post request",
+        title: "Could not post project",
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
@@ -242,16 +335,48 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
 
   return (
     <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-      <CardHeader>
-        <CardTitle className="text-base">Create request</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Start project</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="space-y-1.5">
+          <label className="text-xs text-[color:var(--text-secondary)]">
+            What are you trying to do?
+          </label>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            {(
+              Object.entries(requestTypeMeta) as Array<
+                [
+                  keyof typeof requestTypeMeta,
+                  (typeof requestTypeMeta)[keyof typeof requestTypeMeta],
+                ]
+              >
+            ).map(([key, meta]) => {
+              const active = requestType === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setRequestType(key)}
+                  className={cn(
+                    "rounded-md border px-2 py-1.5 text-xs text-left transition-colors",
+                    active
+                      ? "border-ts-orange bg-ts-orange/20 text-white"
+                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="space-y-1.5">
           <label className="text-xs text-[color:var(--text-secondary)]">Title</label>
           <Input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Need help with..."
+            placeholder={activeRequestMeta.titlePlaceholder}
             className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
           />
         </div>
@@ -260,43 +385,57 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
           <Textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="What needs to be done, timing, and details."
-            rows={4}
+            placeholder={activeRequestMeta.descriptionPlaceholder}
+            rows={3}
             className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
           />
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">
-              Budget min (optional)
-            </label>
-            <Input
-              value={budgetMin}
-              onChange={(event) => setBudgetMin(event.target.value)}
-              inputMode="numeric"
-              placeholder="500"
-              className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">
-              Budget max (optional)
-            </label>
-            <Input
-              value={budgetMax}
-              onChange={(event) => setBudgetMax(event.target.value)}
-              inputMode="numeric"
-              placeholder="2500"
-              className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
-            />
-          </div>
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-1 text-xs text-[color:var(--text-secondary)]"
+            onClick={() => setShowOptional((current) => !current)}
+          >
+            {showOptional ? "Hide optional budget" : "Add optional budget"}
+          </Button>
+          {showOptional && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs text-[color:var(--text-secondary)]">
+                  {activeRequestMeta.budgetLabelMin}
+                </label>
+                <Input
+                  value={budgetMin}
+                  onChange={(event) => setBudgetMin(event.target.value)}
+                  inputMode="numeric"
+                  placeholder={activeRequestMeta.budgetPlaceholderMin}
+                  className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-[color:var(--text-secondary)]">
+                  {activeRequestMeta.budgetLabelMax}
+                </label>
+                <Input
+                  value={budgetMax}
+                  onChange={(event) => setBudgetMax(event.target.value)}
+                  inputMode="numeric"
+                  placeholder={activeRequestMeta.budgetPlaceholderMax}
+                  className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                />
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex justify-end">
           <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending || !canSubmit}
+            className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
-            {createMutation.isPending ? "Posting..." : "Post request"}
+            {createMutation.isPending ? "Posting..." : "Start project"}
           </Button>
         </div>
       </CardContent>
@@ -564,7 +703,11 @@ function DirectConnectInbox() {
 
               <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
                 <span className="truncate">
-                  {[request?.tradeId ? `Trade ${request.tradeId}` : null, request?.countyFips]
+                  {[
+                    request?.status ? `Request ${String(request.status).replace("_", " ")}` : null,
+                    request?.tradeId ? `Trade ${request.tradeId}` : null,
+                    request?.countyFips,
+                  ]
                     .filter(Boolean)
                     .join(" • ") || "Local match"}
                 </span>
@@ -943,6 +1086,7 @@ export default function DirectConnectShell() {
   );
 
   const sectionMeta = SECTION_META[activeSection];
+  const showMobileNavAboveContent = activeSection !== "post";
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -981,7 +1125,9 @@ export default function DirectConnectShell() {
           </div>
 
           {/* Status Pills */}
-          <div className="flex flex-wrap gap-2">
+          <div
+            className={cn("flex flex-wrap gap-2", activeSection === "post" ? "hidden sm:flex" : "")}
+          >
             <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
               <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
               <span className="text-[color:var(--text-secondary)]">Inbox</span>
@@ -1018,27 +1164,29 @@ export default function DirectConnectShell() {
           </div>
 
           {/* Mobile Navigation */}
-          <div className="lg:hidden">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {SECTION_GROUPS.flatMap((group) =>
-                group.sections.map((section) => {
-                  const count = navCounts[section] ?? 0;
-                  return (
-                    <QuickActionCard
-                      key={section}
-                      section={section}
-                      label={SECTION_LABELS[section]}
-                      description={SECTION_META[section].description}
-                      icon={SECTION_ICONS[section]}
-                      count={count}
-                      isActive={section === activeSection}
-                      onClick={() => navigateSection(section)}
-                    />
-                  );
-                })
-              )}
+          {showMobileNavAboveContent && (
+            <div className="lg:hidden">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {SECTION_GROUPS.flatMap((group) =>
+                  group.sections.map((section) => {
+                    const count = navCounts[section] ?? 0;
+                    return (
+                      <QuickActionCard
+                        key={section}
+                        section={section}
+                        label={SECTION_LABELS[section]}
+                        description={SECTION_META[section].description}
+                        icon={SECTION_ICONS[section]}
+                        count={count}
+                        isActive={section === activeSection}
+                        onClick={() => navigateSection(section)}
+                      />
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Main Content Area */}
           <div className="min-w-0 space-y-4">
@@ -1064,6 +1212,29 @@ export default function DirectConnectShell() {
               </CardContent>
             </Card>
             {centerContent}
+            {!showMobileNavAboveContent && (
+              <div className="lg:hidden">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {SECTION_GROUPS.flatMap((group) =>
+                    group.sections.map((section) => {
+                      const count = navCounts[section] ?? 0;
+                      return (
+                        <QuickActionCard
+                          key={section}
+                          section={section}
+                          label={SECTION_LABELS[section]}
+                          description={SECTION_META[section].description}
+                          icon={SECTION_ICONS[section]}
+                          count={count}
+                          isActive={section === activeSection}
+                          onClick={() => navigateSection(section)}
+                        />
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
