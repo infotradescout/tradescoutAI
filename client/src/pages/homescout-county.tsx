@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RealEstateMarketplaceShell } from "@/shells/RealEstateMarketplaceShell";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type HomeScoutListing = {
   id: string;
@@ -246,7 +247,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             </div>
             {isError && (
               <div className="mt-2 text-xs text-red-300">
-                {error instanceof Error ? error.message : "Search failed"}
+                {formatUserFacingErrorMessage(error, "Search failed")}
               </div>
             )}
           </CardContent>

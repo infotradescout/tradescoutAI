@@ -31,6 +31,27 @@ const patterns = [
     re: /setError\s*\(\s*(?:err|error)\s+instanceof\s+Error\s*\?\s*(?:err|error)\.message\b/gi,
   },
   {
+    id: "jsx_error_message_textnode",
+    description:
+      "Rendering error.message in JSX text nodes should use formatUserFacingErrorMessage (raw errors may leak internal details)",
+    re: />\s*\{\s*[^}]{0,220}\b(?:err|error)\??\.message\b[^}]{0,220}\}\s*</gi,
+    onlyExtensions: new Set([".tsx", ".jsx"]),
+  },
+  {
+    id: "jsx_query_error_message_textnode",
+    description:
+      "Rendering query.error.message in JSX text nodes should use formatUserFacingErrorMessage (raw errors may leak internal details)",
+    re: />\s*\{\s*[^}]{0,260}\b\w+Query\.error\.message\b[^}]{0,260}\}\s*</gi,
+    onlyExtensions: new Set([".tsx", ".jsx"]),
+  },
+  {
+    id: "jsx_description_prop_error_message",
+    description:
+      "Passing error.message to a JSX prop (ex: description={error.message}) should use formatUserFacingErrorMessage",
+    re: /\bdescription\s*=\s*\{\s*[^}]{0,220}\b(?:err|error)\??\.message\b[^}]{0,220}\}/gi,
+    onlyExtensions: new Set([".tsx", ".jsx"]),
+  },
+  {
     id: "error_tostring",
     description: "error.toString() should not be used in user surfaces",
     re: /\berror\.toString\s*\(\s*\)/gi,
@@ -83,8 +104,10 @@ for (const relRoot of scanRoots) {
     const content = fs.readFileSync(filePath, "utf8");
     const lineStarts = buildLineIndex(content);
     const lines = content.split(/\r?\n/);
+    const ext = path.extname(filePath).toLowerCase();
 
     for (const p of patterns) {
+      if (p.onlyExtensions && !p.onlyExtensions.has(ext)) continue;
       for (const match of content.matchAll(p.re)) {
         const matchIndex = match.index ?? 0;
         const lineNo = indexToLine(lineStarts, matchIndex);
@@ -112,4 +135,3 @@ if (failures.length > 0) {
 }
 
 console.log("[user-facing-errors] pass");
-

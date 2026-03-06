@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { trackShellEvent } from "@/lib/analytics";
+import { getRawErrorMessage } from "@/lib/userFacingError";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -134,7 +135,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <details className="text-left bg-tsCard border border-white/10 p-4 rounded-xl">
                   <summary className="cursor-pointer">Error details</summary>
                   <pre className="mt-2 text-sm overflow-auto">
-                    {this.state.error.stack || this.state.error.message || String(this.state.error)}
+                    {this.state.error.stack ||
+                      getRawErrorMessage(this.state.error) ||
+                      String(this.state.error)}
                   </pre>
                 </details>
               )}

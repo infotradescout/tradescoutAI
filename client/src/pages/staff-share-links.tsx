@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ShareableLink = {
   id: string;
@@ -152,16 +153,14 @@ export default function StaffShareLinksPage() {
 
         {isLoading ? (
           <Card className="bg-tsCard border-white/10">
-            <CardContent className="py-8 text-sm text-white/60">
-              Loading share links...
-            </CardContent>
+            <CardContent className="py-8 text-sm text-white/60">Loading share links...</CardContent>
           </Card>
         ) : null}
 
         {isError ? (
           <Card className="bg-tsCard border-destructive/50">
             <CardContent className="py-8 text-sm text-destructive">
-              {error instanceof Error ? error.message : "Failed to load share links."}
+              {formatUserFacingErrorMessage(error, "Failed to load share links.")}
             </CardContent>
           </Card>
         ) : null}
