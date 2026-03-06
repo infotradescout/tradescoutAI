@@ -11,6 +11,7 @@ import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { StateCountySelector } from "@/components/state-county-selector";
 import { apiRequest } from "@/lib/queryClient";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 function sanitizeNext(next: string) {
   if (!next.startsWith("/")) return "/scout?onboarding=true";
@@ -110,7 +111,7 @@ export default function OnboardingProfile() {
     onError: (error: any) => {
       toast({
         title: "Couldn't save profile",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },

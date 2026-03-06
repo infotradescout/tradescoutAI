@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import UserTypeSelect from "@/components/UserTypeSelect";
 import { StateCountySelector } from "@/components/state-county-selector";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const registerSchema = z
   .object({
@@ -134,7 +135,7 @@ export default function Register() {
     onError: (error: any) => {
       toast({
         title: "Registration failed",
-        description: error?.message ?? "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -161,7 +162,9 @@ export default function Register() {
 
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1">
-              <span className="text-sm font-medium text-ts-orange uppercase tracking-[0.18em]">PROFILE OS</span>
+              <span className="text-sm font-medium text-ts-orange uppercase tracking-[0.18em]">
+                PROFILE OS
+              </span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               One account. Every role you play in the community.
@@ -207,7 +210,9 @@ export default function Register() {
             <div className="mx-auto w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center">
               <UserPlus className="h-6 w-6 text-white" />
             </div>
-            <CardTitle className="font-display text-2xl font-extrabold text-white">Join TradeScout</CardTitle>
+            <CardTitle className="font-display text-2xl font-extrabold text-white">
+              Join TradeScout
+            </CardTitle>
             <p className="text-sm text-white/60">
               Create your account and choose your user types to personalize your experience.
             </p>
@@ -494,11 +499,10 @@ export default function Register() {
 
               <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-xl">
                 <p className="text-xs text-white/60">
-                  <strong className="text-white">Why join TradeScout?</strong> Your profile
-                  replaces a website: colors, roles, and your area are all baked in. Scout uses this
-                  to tune marketplace matches, community visibility, and future tools for whatever
-                  roles you pick - homeowner, pro, organizer, affiliate, or any new roles we add
-                  later.
+                  <strong className="text-white">Why join TradeScout?</strong> Your profile replaces
+                  a website: colors, roles, and your area are all baked in. Scout uses this to tune
+                  marketplace matches, community visibility, and future tools for whatever roles you
+                  pick - homeowner, pro, organizer, affiliate, or any new roles we add later.
                 </p>
               </div>
             </form>

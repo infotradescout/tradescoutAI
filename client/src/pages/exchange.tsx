@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -494,7 +495,7 @@ export default function Exchange() {
     onError: (error: any) => {
       toast({
         title: "Could not update saved listings",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -516,7 +517,7 @@ export default function Exchange() {
     onError: (error: any) => {
       toast({
         title: "Could not send request",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },

@@ -17,6 +17,7 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { share, shareToPlatform } from "@/utils/share";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   ClipboardPlus,
   LayoutList,
@@ -785,7 +786,7 @@ function MyDirectConnectRequests() {
     onError: (err: any) => {
       toast({
         title: "Couldn't send request",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -898,7 +899,7 @@ function MyDirectConnectRequests() {
     } catch (err: any) {
       toast({
         title: "Share failed",
-        description: err?.message || "Could not create share link right now.",
+        description: formatUserFacingErrorMessage(err, "Could not create share link right now."),
         variant: "destructive",
       });
     }

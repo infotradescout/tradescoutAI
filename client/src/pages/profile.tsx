@@ -11,6 +11,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { User, Mail, Phone, MapPin, Bell, Camera } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 function Profile() {
   const { user } = useAuth();
@@ -54,7 +55,10 @@ function Profile() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error?.message || "Failed to update profile. Please try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Failed to update profile. Please try again."
+        ),
         variant: "destructive",
       });
     },

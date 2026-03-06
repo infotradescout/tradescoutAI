@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type VaultData = {
   profile: { id: string; slug: string; displayName: string; roleContext: string } | null;
@@ -136,7 +137,7 @@ export default function ProfileCommunityPage() {
     onError: (err: any) => {
       toast({
         title: "Donation failed",
-        description: err?.message || "Unable to start donation checkout.",
+        description: formatUserFacingErrorMessage(err, "Unable to start donation checkout."),
         variant: "destructive",
       });
     },
@@ -167,7 +168,7 @@ export default function ProfileCommunityPage() {
     onError: (err: any) => {
       toast({
         title: "Platform support failed",
-        description: err?.message || "Unable to start checkout.",
+        description: formatUserFacingErrorMessage(err, "Unable to start checkout."),
         variant: "destructive",
       });
     },
@@ -197,7 +198,7 @@ export default function ProfileCommunityPage() {
     onError: (err: any) => {
       toast({
         title: "Vote failed",
-        description: err?.message || "Unable to record vote.",
+        description: formatUserFacingErrorMessage(err, "Unable to record vote."),
         variant: "destructive",
       });
     },

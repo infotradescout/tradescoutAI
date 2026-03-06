@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { BusinessProfile, UpdateProfilePayload } from "@/../../shared/businessProfile";
 import { recordActivity } from "@/agent/activity";
 import { ScoutCopyAssistModal } from "@/components/business/ScoutCopyAssistModal";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   generateCopyVariants,
   recordCopyAssistTelemetry,
@@ -267,7 +268,7 @@ export default function BusinessProfileEditor() {
       console.error("Error starting domain verification:", err);
       toast({
         title: "Could not start verification",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -309,7 +310,10 @@ export default function BusinessProfileEditor() {
       console.error("Error verifying domain:", err);
       toast({
         title: "Verification failed",
-        description: err?.message || "DNS may still be propagating. Try again soon.",
+        description: formatUserFacingErrorMessage(
+          err,
+          "DNS may still be propagating. Try again soon."
+        ),
         variant: "destructive",
       });
     } finally {

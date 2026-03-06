@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { UserPlus, Mail, ShieldCheck, Building2 } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ProvisionResponse = {
   user: { id: string; email: string; emailVerified?: boolean };
@@ -81,7 +82,7 @@ export default function AdminProvisioning() {
     onError: (error: any) => {
       toast({
         title: "Provision failed",
-        description: error?.message || "Unable to provision user",
+        description: formatUserFacingErrorMessage(error, "Unable to provision user"),
         variant: "destructive",
       });
     },

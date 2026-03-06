@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -261,7 +262,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     } catch (error: any) {
       toast({
         title: "Unable to update pin state",
-        description: error?.message || "Something went wrong while updating the post.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Something went wrong while updating the post."
+        ),
         variant: "destructive",
       });
     }
@@ -279,7 +283,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     } catch (error: any) {
       toast({
         title: "Unable to hide post",
-        description: error?.message || "Something went wrong while hiding the post.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Something went wrong while hiding the post."
+        ),
         variant: "destructive",
       });
     }
@@ -300,7 +307,10 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     } catch (error: any) {
       toast({
         title: "Unable to remove post",
-        description: error?.message || "Something went wrong while removing the post.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Something went wrong while removing the post."
+        ),
         variant: "destructive",
       });
     }
@@ -318,7 +328,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
     } catch (error: any) {
       toast({
         title: "Unable to send to Direct Connect",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     }

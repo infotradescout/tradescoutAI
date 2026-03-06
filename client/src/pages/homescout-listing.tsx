@@ -9,6 +9,7 @@ import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { uploadObject } from "@/lib/objectUpload";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -219,7 +220,7 @@ export default function HomeScoutListingPage() {
     onError: (err: any) => {
       toast({
         title: "Request failed",
-        description: err?.message || "Could not create inspection request",
+        description: formatUserFacingErrorMessage(err, "Could not create inspection request"),
         variant: "destructive",
       });
     },
@@ -280,7 +281,7 @@ export default function HomeScoutListingPage() {
     onError: (err: any) => {
       toast({
         title: "Upload failed",
-        description: err?.message || "Could not upload inspection report",
+        description: formatUserFacingErrorMessage(err, "Could not upload inspection report"),
         variant: "destructive",
       });
     },
@@ -303,7 +304,7 @@ export default function HomeScoutListingPage() {
     onError: (err: any) => {
       toast({
         title: "Publish failed",
-        description: err?.message || "Could not publish report",
+        description: formatUserFacingErrorMessage(err, "Could not publish report"),
         variant: "destructive",
       });
     },
@@ -326,7 +327,7 @@ export default function HomeScoutListingPage() {
     onError: (err: any) => {
       toast({
         title: "Remove failed",
-        description: err?.message || "Could not remove report",
+        description: formatUserFacingErrorMessage(err, "Could not remove report"),
         variant: "destructive",
       });
     },
@@ -348,7 +349,7 @@ export default function HomeScoutListingPage() {
     onError: (err: any) => {
       toast({
         title: "Could not load takeaways",
-        description: err?.message || "Try again.",
+        description: formatUserFacingErrorMessage(err, "Try again."),
         variant: "destructive",
       });
     },
@@ -382,7 +383,7 @@ export default function HomeScoutListingPage() {
     onError: (err: any) => {
       toast({
         title: "Service request failed",
-        description: err?.message || "Could not create service request",
+        description: formatUserFacingErrorMessage(err, "Could not create service request"),
         variant: "destructive",
       });
     },
@@ -632,10 +633,7 @@ export default function HomeScoutListingPage() {
                 ) : (
                   <div className="space-y-2">
                     {openInspectionRequests.slice(0, 6).map((r) => (
-                      <div
-                        key={r.id}
-                        className="rounded-md border border-white/10 p-3 bg-black/30"
-                      >
+                      <div key={r.id} className="rounded-md border border-white/10 p-3 bg-black/30">
                         <div className="text-white/70">{r.requestMessage}</div>
                         {r.preferredWindow ? (
                           <div className="text-xs text-white/60 mt-1">
@@ -922,9 +920,7 @@ export default function HomeScoutListingPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-white font-semibold text-sm">
-                      Upload inspection report
-                    </div>
+                    <div className="text-white font-semibold text-sm">Upload inspection report</div>
                     <select
                       value={uploadReportType}
                       onChange={(e) => setUploadReportType(e.target.value)}
@@ -1122,9 +1118,7 @@ export default function HomeScoutListingPage() {
                   <div className="text-xs text-white/60">Similar homes snapshot</div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/60">Count</span>
-                    <span className="font-medium text-white">
-                      {marketBucket.activeCount ?? 0}
-                    </span>
+                    <span className="font-medium text-white">{marketBucket.activeCount ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/60">Median price</span>
@@ -1180,9 +1174,7 @@ export default function HomeScoutListingPage() {
             <CardContent className="space-y-3 text-sm text-white/70">
               <div className="space-y-1">
                 <div className="text-white font-semibold">{targetName}</div>
-                <div className="text-xs text-white/60">
-                  {String(targetRole).replace(/_/g, " ")}
-                </div>
+                <div className="text-xs text-white/60">{String(targetRole).replace(/_/g, " ")}</div>
                 <div className="text-xs text-white/60">
                   HomeScout never exposes direct contact without intent gating.
                 </div>

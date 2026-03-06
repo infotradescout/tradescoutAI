@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -175,7 +176,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to add home",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -205,7 +206,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to add record",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -243,7 +244,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to save appliance",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -278,7 +279,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Upload failed",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -320,7 +321,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to create schedule",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -349,7 +350,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to complete schedule",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -410,7 +411,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Failed to start project",
-        description: err?.message || "Try again",
+        description: formatUserFacingErrorMessage(err, "Try again"),
         variant: "destructive",
       });
     },
@@ -431,7 +432,7 @@ export default function HomesVault() {
     onError: (err: any) => {
       toast({
         title: "Could not start sale flow",
-        description: err?.message || "Try again.",
+        description: formatUserFacingErrorMessage(err, "Try again."),
         variant: "destructive",
       });
     },

@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ContractorApplication = {
   id: string;
@@ -93,7 +94,7 @@ export default function StaffHardrockDirectory() {
     onError: (err: unknown) => {
       toast({
         title: "Update failed",
-        description: err instanceof Error ? err.message : "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -140,7 +141,7 @@ export default function StaffHardrockDirectory() {
         {isLoading && <div className="text-sm text-white/60">Loading…</div>}
         {error && (
           <div className="text-sm text-destructive">
-            {error instanceof Error ? error.message : "Failed to load"}
+            {formatUserFacingErrorMessage(error, "Failed to load")}
           </div>
         )}
 

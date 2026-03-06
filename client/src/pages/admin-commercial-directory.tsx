@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { BriefcaseBusiness, ClipboardCheck, FileStack, Gavel } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type AdminProjectRow = {
   project: {
@@ -254,7 +255,7 @@ export default function AdminCommercialDirectoryPage() {
     onError: (err: any) => {
       toast({
         title: "Create failed",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -281,7 +282,7 @@ export default function AdminCommercialDirectoryPage() {
     onError: (err: any) => {
       toast({
         title: "Update failed",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -318,7 +319,7 @@ export default function AdminCommercialDirectoryPage() {
     onError: (err: any) => {
       toast({
         title: "Upload failed",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -352,7 +353,7 @@ export default function AdminCommercialDirectoryPage() {
     onError: (err: any) => {
       toast({
         title: "Bid action failed",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -389,7 +390,7 @@ export default function AdminCommercialDirectoryPage() {
     onError: (err: any) => {
       toast({
         title: "Review failed",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },

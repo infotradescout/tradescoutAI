@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Play, RefreshCw } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type SeedRun = {
   id: string;
@@ -114,7 +115,7 @@ export default function AdminBusinessDirectoryOpsPage() {
     onError: (err: any) => {
       toast({
         title: "Failed to start seed",
-        description: err?.message || "Could not start seeding job",
+        description: formatUserFacingErrorMessage(err, "Could not start seeding job"),
         variant: "destructive",
       });
     },
@@ -135,7 +136,7 @@ export default function AdminBusinessDirectoryOpsPage() {
     onError: (err: any) => {
       toast({
         title: "Failed",
-        description: err?.message || "Could not update suggestion.",
+        description: formatUserFacingErrorMessage(err, "Could not update suggestion."),
         variant: "destructive",
       });
     },

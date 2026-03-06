@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +75,7 @@ export default function IdentityVerificationPage() {
     onError: (err: any) => {
       toast({
         title: "Couldn't submit",
-        description: String(err?.message || "Please try again."),
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },

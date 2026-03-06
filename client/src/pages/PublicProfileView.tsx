@@ -8,6 +8,7 @@ import { ThemeScope } from "@/components/theme/ThemeScope";
 import { UserBadges } from "@/components/user-badges";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Dialog,
   DialogContent,
@@ -226,7 +227,7 @@ export default function PublicProfileView() {
     } catch (err: any) {
       toast({
         title: "Kick vote failed",
-        description: err?.message || "Failed to submit kick vote",
+        description: formatUserFacingErrorMessage(err, "Failed to submit kick vote"),
         variant: "destructive",
       });
     } finally {

@@ -20,6 +20,7 @@ import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPr
 import { Palette, Home, Eye, EyeOff, LayoutTemplate, Calendar } from "lucide-react";
 import { applyTheme, type Theme } from "@/lib/themes";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface UserPreferences {
   defaultHomePage?: string;
@@ -299,7 +300,7 @@ export default function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update color scheme",
+        description: formatUserFacingErrorMessage(error, "Failed to update color scheme"),
         variant: "destructive",
       });
     } finally {
@@ -352,7 +353,7 @@ export default function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update color scheme",
+        description: formatUserFacingErrorMessage(error, "Failed to update color scheme"),
         variant: "destructive",
       });
     } finally {
@@ -497,7 +498,7 @@ export default function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update visibility",
+        description: formatUserFacingErrorMessage(error, "Failed to update visibility"),
         variant: "destructive",
       });
     } finally {

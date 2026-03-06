@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Search, Inbox, MessageCircle, UserCheck, UserX, Send, CornerDownLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type Thread = {
   id: string;
@@ -227,7 +228,7 @@ export default function MessagesPanel() {
     onError: (err: any) => {
       toast({
         title: "Share failed",
-        description: err?.message || "Could not share your home report.",
+        description: formatUserFacingErrorMessage(err, "Could not share your home report."),
         variant: "destructive",
       });
     },

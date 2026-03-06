@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, CheckCircle, Clock, FileText, Upload, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface Contribution {
   id: string;
@@ -169,7 +170,7 @@ export default function ContributionDetail() {
     onError: (error: any) => {
       toast({
         title: "Checkout failed",
-        description: error?.message || "Unable to create checkout session",
+        description: formatUserFacingErrorMessage(error, "Unable to create checkout session"),
         variant: "destructive",
       });
     },

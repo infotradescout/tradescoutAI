@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { apiRequest } from "@/lib/queryClient";
 import { MessageCircle, Users, Briefcase, SlidersHorizontal } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type StartIntent = "community" | "services" | "business" | "tools";
 
@@ -42,7 +43,7 @@ export default function OnboardingIntent() {
     onError: (error: any) => {
       toast({
         title: "Couldn't save preference",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -82,9 +83,7 @@ export default function OnboardingIntent() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TradeScoutLogo size="xs" />
-                <span className="text-xs uppercase tracking-[0.2em] text-white/60">
-                  TRADESCOUT
-                </span>
+                <span className="text-xs uppercase tracking-[0.2em] text-white/60">TRADESCOUT</span>
               </div>
             </div>
             <CardTitle className="text-lg font-semibold text-white">Pick your start</CardTitle>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Dialog,
   DialogContent,
@@ -777,7 +778,7 @@ export default function BusinessProfileView() {
                 } catch (err: any) {
                   toast({
                     title: "Failed",
-                    description: err?.message || "Could not submit suggestion.",
+                    description: formatUserFacingErrorMessage(err, "Could not submit suggestion."),
                     variant: "destructive",
                   });
                 } finally {

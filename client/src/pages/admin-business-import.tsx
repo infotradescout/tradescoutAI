@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Upload, Building2, AlertTriangle } from "lucide-react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ImportResponse = {
   dryRun: boolean;
@@ -226,7 +227,7 @@ export default function AdminBusinessImport() {
     onError: (error: any) => {
       toast({
         title: "Archive failed",
-        description: error?.message || "Failed to archive user",
+        description: formatUserFacingErrorMessage(error, "Failed to archive user"),
         variant: "destructive",
       });
     },
@@ -266,7 +267,7 @@ export default function AdminBusinessImport() {
     } catch (error: any) {
       toast({
         title: "Bulk archive failed",
-        description: error?.message || "Failed while archiving users.",
+        description: formatUserFacingErrorMessage(error, "Failed while archiving users."),
         variant: "destructive",
       });
       void refetchCleanupUsers();
@@ -296,7 +297,7 @@ export default function AdminBusinessImport() {
     onError: (error: any) => {
       toast({
         title: "Bulk archive failed",
-        description: error?.message || "Failed to bulk-archive users",
+        description: formatUserFacingErrorMessage(error, "Failed to bulk-archive users"),
         variant: "destructive",
       });
     },
@@ -459,7 +460,7 @@ export default function AdminBusinessImport() {
       setImportProgress(null);
       toast({
         title: "Import failed",
-        description: error?.message || "Failed to import",
+        description: formatUserFacingErrorMessage(error, "Failed to import"),
         variant: "destructive",
       });
     },
@@ -488,7 +489,7 @@ export default function AdminBusinessImport() {
     onError: (error: any) => {
       toast({
         title: "Enrichment failed",
-        description: error?.message || "Failed to enrich counties",
+        description: formatUserFacingErrorMessage(error, "Failed to enrich counties"),
         variant: "destructive",
       });
     },

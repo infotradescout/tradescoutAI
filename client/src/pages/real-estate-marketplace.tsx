@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -215,7 +216,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
     onError: (err: any) => {
       toast({
         title: "Save failed",
-        description: err?.message || "Could not save search",
+        description: formatUserFacingErrorMessage(err, "Could not save search"),
         variant: "destructive",
       });
     },
@@ -396,7 +397,9 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                         </div>
                       )}
                       <div className="absolute top-3 md:top-4 left-3 md:left-4">
-                        <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">For Sale</Badge>
+                        <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">
+                          For Sale
+                        </Badge>
                       </div>
                       <div className="absolute top-3 md:top-4 right-3 md:right-4">
                         <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-md">

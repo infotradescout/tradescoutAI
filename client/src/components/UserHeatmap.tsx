@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -524,8 +525,10 @@ export function UserHeatmap() {
     onError: (error: any) => {
       toast({
         title: "Refresh failed",
-        description:
-          error?.message ?? "Unable to refresh county metrics. Please try again in a minute.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Unable to refresh county metrics. Please try again in a minute."
+        ),
         variant: "destructive",
       });
     },

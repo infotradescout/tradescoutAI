@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type HomeScoutListing = {
   id: string;
@@ -80,7 +81,7 @@ export default function AdminHomeScoutListings() {
     onError: (err: any) => {
       toast({
         title: "Approval failed",
-        description: err instanceof Error ? err.message : "Failed to approve listing",
+        description: formatUserFacingErrorMessage(err, "Failed to approve listing"),
         variant: "destructive",
       });
     },

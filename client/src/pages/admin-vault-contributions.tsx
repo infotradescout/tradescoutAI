@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type VaultAdjustmentRow = {
   id: string;
@@ -85,7 +86,7 @@ export default function AdminVaultContributionsPage() {
     onError: (error: any) => {
       toast({
         title: "Save failed",
-        description: error?.message || "Unable to save adjustment",
+        description: formatUserFacingErrorMessage(error, "Unable to save adjustment"),
         variant: "destructive",
       });
     },

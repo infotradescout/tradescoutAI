@@ -9,6 +9,7 @@ import { DollarSign, ArrowUpRight, Shield, ArrowDownLeft, Clock } from "lucide-r
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface WalletBalanceResponse {
   balance: string;
@@ -136,7 +137,7 @@ export default function WalletPage() {
     onError: (error: any) => {
       toast({
         title: "Transfer Failed",
-        description: error?.message || "Unable to complete transfer.",
+        description: formatUserFacingErrorMessage(error, "Unable to complete transfer."),
         variant: "destructive",
       });
     },

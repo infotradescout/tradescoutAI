@@ -1,5 +1,6 @@
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   MessageSquare,
   Zap,
@@ -175,7 +176,7 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
     onError: (error: any) => {
       toast({
         title: "Could not post comment",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },

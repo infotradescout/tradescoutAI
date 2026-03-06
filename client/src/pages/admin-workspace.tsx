@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -174,7 +175,10 @@ export default function AdminWorkspace() {
     onError: (error: any) => {
       toast({
         title: "Seed failed",
-        description: error?.message || "You may need super admin access (super_admin).",
+        description: formatUserFacingErrorMessage(
+          error,
+          "You may need super admin access (super_admin)."
+        ),
         variant: "destructive",
       });
     },

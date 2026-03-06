@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { formatUserFacingErrorMessage, getRawErrorMessage } from "@/lib/userFacingError";
 import {
   Table,
   TableBody,
@@ -167,7 +168,7 @@ export default function FinancesInvoicesPage() {
     onError: (error: any) => {
       toast({
         title: "Could not create invoice",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -197,7 +198,7 @@ export default function FinancesInvoicesPage() {
     onError: (error: any) => {
       toast({
         title: "Could not send invoice",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -229,12 +230,13 @@ export default function FinancesInvoicesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/accounting/reports/summary"] });
     },
     onError: (error: any) => {
+      const raw = getRawErrorMessage(error);
       toast({
         title: "Could not record payment",
         description:
-          error?.message === "INVOICE_NOT_READY_FOR_PAYMENT"
+          raw === "INVOICE_NOT_READY_FOR_PAYMENT"
             ? "Send the invoice first, then record payment."
-            : error?.message || "Please try again.",
+            : formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },

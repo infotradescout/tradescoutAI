@@ -1,4 +1,5 @@
 import { memo, useEffect, useState } from "react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Settings2,
   Save,
@@ -90,7 +91,7 @@ const SystemSettings = memo(function SystemSettings() {
       } catch (error: any) {
         toast({
           title: "Failed to load settings",
-          description: error?.message ?? "Unable to fetch system settings.",
+          description: formatUserFacingErrorMessage(error, "Unable to fetch system settings."),
           variant: "destructive",
         });
       } finally {
@@ -159,7 +160,7 @@ const SystemSettings = memo(function SystemSettings() {
     } catch (error: any) {
       toast({
         title: "Save failed",
-        description: error?.message ?? "Unable to save system settings.",
+        description: formatUserFacingErrorMessage(error, "Unable to save system settings."),
         variant: "destructive",
       });
     } finally {

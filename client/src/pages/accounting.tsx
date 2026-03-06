@@ -11,6 +11,7 @@ import type { DealRoomRole } from "@/lib/dealRoomState";
 import { DealRoomPanel } from "@/components/jobs/DealRoomPanel";
 import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { formatUserFacingErrorMessage, getRawErrorMessage } from "@/lib/userFacingError";
 import {
   Table,
   TableBody,
@@ -221,7 +222,7 @@ export default function AccountingWorkspace() {
     onError: (error: any) => {
       toast({
         title: "Could not create invoice",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -251,7 +252,7 @@ export default function AccountingWorkspace() {
     onError: (error: any) => {
       toast({
         title: "Could not send invoice",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -283,12 +284,13 @@ export default function AccountingWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["/api/accounting/reports/summary"] });
     },
     onError: (error: any) => {
+      const raw = getRawErrorMessage(error);
       toast({
         title: "Could not record payment",
         description:
-          error?.message === "INVOICE_NOT_READY_FOR_PAYMENT"
+          raw === "INVOICE_NOT_READY_FOR_PAYMENT"
             ? "Send the invoice first, then record payment."
-            : error?.message || "Please try again.",
+            : formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -337,7 +339,7 @@ export default function AccountingWorkspace() {
     onError: (error: any) => {
       toast({
         title: "Could not record expense",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -887,12 +889,8 @@ export default function AccountingWorkspace() {
                         <TableRow className="border-white/10">
                           <TableHead className="w-[22%] text-white/60">Invoice</TableHead>
                           <TableHead className="w-[30%] text-white/60">Customer</TableHead>
-                          <TableHead className="w-[22%] text-right text-white/60">
-                            Amount
-                          </TableHead>
-                          <TableHead className="w-[26%] text-right text-white/60">
-                            Status
-                          </TableHead>
+                          <TableHead className="w-[22%] text-right text-white/60">Amount</TableHead>
+                          <TableHead className="w-[26%] text-right text-white/60">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -910,10 +908,7 @@ export default function AccountingWorkspace() {
                           const isOverdue = status === "overdue" || status === "late";
 
                           return (
-                            <TableRow
-                              key={inv.id}
-                              className="border-white/10 hover:bg-tsCard/95"
-                            >
+                            <TableRow key={inv.id} className="border-white/10 hover:bg-tsCard/95">
                               <TableCell className="align-top py-2">
                                 <div className="flex flex-col">
                                   <span className="text-[11px] font-semibold text-white truncate max-w-[150px]">
@@ -1343,10 +1338,7 @@ export default function AccountingWorkspace() {
                             : createdLabel;
 
                           return (
-                            <TableRow
-                              key={inv.id}
-                              className="border-white/10 hover:bg-tsCard/95"
-                            >
+                            <TableRow key={inv.id} className="border-white/10 hover:bg-tsCard/95">
                               <TableCell className="py-2 text-white/70 text-[11px]">
                                 {createdLabel}
                               </TableCell>
@@ -1758,9 +1750,7 @@ export default function AccountingWorkspace() {
           <Card className="bg-tsCard border-white/10">
             <CardHeader className="pb-3 flex flex-row items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-semibold text-white">
-                  Bank accounts
-                </CardTitle>
+                <CardTitle className="text-sm font-semibold text-white">Bank accounts</CardTitle>
                 <CardDescription className="text-xs text-white/60">
                   Connection status
                 </CardDescription>
@@ -1879,9 +1869,7 @@ export default function AccountingWorkspace() {
         <section id="finances-settings">
           <Card className="bg-tsCard border-white/10">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-white">
-                Financial settings
-              </CardTitle>
+              <CardTitle className="text-sm font-semibold text-white">Financial settings</CardTitle>
               <CardDescription className="text-xs text-white/60">Preferences</CardDescription>
             </CardHeader>
             <CardContent>

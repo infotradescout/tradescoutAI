@@ -14,6 +14,7 @@ import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type AuthMode = "create" | "signin";
 
@@ -537,7 +538,7 @@ export default function PreScoutSetup() {
     } catch (error: any) {
       toast({
         title: "Couldn't save",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     } finally {

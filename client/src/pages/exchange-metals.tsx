@@ -28,6 +28,7 @@ import { Trash2, ArrowLeft, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type MetalChoice = "XAU" | "XAG" | "XPT" | "XPD" | "OTHER";
 
@@ -313,7 +314,7 @@ export default function MetalsExchange() {
     onError: (err: any) => {
       toast({
         title: "Could not save",
-        description: String(err?.message || err),
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -332,7 +333,7 @@ export default function MetalsExchange() {
     onError: (err: any) => {
       toast({
         title: "Could not delete",
-        description: String(err?.message || err),
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -415,14 +416,10 @@ export default function MetalsExchange() {
                 <div className="text-white/60 text-sm">Loading prices…</div>
               ) : pricesQuery.isError ? (
                 <div className="text-white/60 text-sm">
-                  {pricesQuery.error instanceof Error
-                    ? pricesQuery.error.message
-                    : "Prices unavailable right now."}
+                  {formatUserFacingErrorMessage(pricesQuery.error, "Prices unavailable right now.")}
                 </div>
               ) : !pricesQuery.data?.snapshot ? (
-                <div className="text-white/60 text-sm">
-                  {(pricesQuery.data as any)?.message || "Fetching spot prices…"}
-                </div>
+                <div className="text-white/60 text-sm">{"Fetching spot prices…"}</div>
               ) : (
                 <Table>
                   <TableHeader>

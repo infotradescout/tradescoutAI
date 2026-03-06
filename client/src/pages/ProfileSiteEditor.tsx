@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type OwnedProfile = {
   id: string;
@@ -73,7 +74,7 @@ export default function ProfileSiteEditor() {
         console.error("Error loading profile:", error);
         toast({
           title: "Could not load profile",
-          description: error?.message || "Please try again.",
+          description: formatUserFacingErrorMessage(error, "Please try again."),
           variant: "destructive",
         });
       } finally {
@@ -194,7 +195,7 @@ export default function ProfileSiteEditor() {
     } catch (error: any) {
       toast({
         title: "Save failed",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     }
@@ -213,7 +214,7 @@ export default function ProfileSiteEditor() {
     } catch (error: any) {
       toast({
         title: "Publish failed",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     }
@@ -229,7 +230,7 @@ export default function ProfileSiteEditor() {
     } catch (error: any) {
       toast({
         title: "Unpublish failed",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     }
@@ -262,7 +263,7 @@ export default function ProfileSiteEditor() {
     } catch (error: any) {
       toast({
         title: "Update failed",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     }

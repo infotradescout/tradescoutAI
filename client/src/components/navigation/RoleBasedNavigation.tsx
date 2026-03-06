@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -343,7 +344,7 @@ export function UserMenu() {
     } catch (err: any) {
       toast({
         title: "Resend failed",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     }

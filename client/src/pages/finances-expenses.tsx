@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Table,
   TableBody,
@@ -102,7 +103,7 @@ export default function FinancesExpensesPage() {
     onError: (error: any) => {
       toast({
         title: "Could not record expense",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },

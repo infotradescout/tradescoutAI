@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { KeyRound } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
@@ -55,7 +56,7 @@ export default function ResetPasswordPage() {
     onError: (error: any) => {
       toast({
         title: "Unable to send reset email",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -88,7 +89,7 @@ export default function ResetPasswordPage() {
     onError: (error: any) => {
       toast({
         title: "Invalid code",
-        description: error?.message || "Please request a new code.",
+        description: formatUserFacingErrorMessage(error, "Please request a new code."),
         variant: "destructive",
       });
     },
@@ -108,7 +109,7 @@ export default function ResetPasswordPage() {
     onError: (error: any) => {
       toast({
         title: "Reset failed",
-        description: error?.message || "Please request a new link.",
+        description: formatUserFacingErrorMessage(error, "Please request a new link."),
         variant: "destructive",
       });
     },

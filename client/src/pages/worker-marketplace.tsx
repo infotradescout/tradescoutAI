@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -141,7 +142,7 @@ export default function WorkerMarketplace() {
     onError: (err: any) => {
       toast({
         title: "Couldn't post task",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },
@@ -159,7 +160,7 @@ export default function WorkerMarketplace() {
     onError: (err: any) => {
       toast({
         title: "Couldn't apply",
-        description: err?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     },

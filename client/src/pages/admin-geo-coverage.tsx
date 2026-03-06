@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -140,7 +141,7 @@ export default function AdminGeoCoverageConsole() {
     onError: (err: any) => {
       toast({
         title: "Seed failed",
-        description: err?.message ?? "Unable to seed counties.",
+        description: formatUserFacingErrorMessage(err, "Unable to seed counties."),
         variant: "destructive",
       });
     },
@@ -202,7 +203,7 @@ export default function AdminGeoCoverageConsole() {
     onError: (err: any) => {
       toast({
         title: "Assignment failed",
-        description: err?.message ?? "Unable to assign territory manager.",
+        description: formatUserFacingErrorMessage(err, "Unable to assign territory manager."),
         variant: "destructive",
       });
     },
@@ -261,7 +262,7 @@ export default function AdminGeoCoverageConsole() {
     onError: (err: any) => {
       toast({
         title: "Assignment failed",
-        description: err?.message ?? "Unable to assign affiliate or partner.",
+        description: formatUserFacingErrorMessage(err, "Unable to assign affiliate or partner."),
         variant: "destructive",
       });
     },

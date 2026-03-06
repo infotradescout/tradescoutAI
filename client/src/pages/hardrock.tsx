@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const formSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
@@ -114,7 +115,7 @@ export default function HardrockLanding() {
     } catch (err: unknown) {
       toast({
         title: "Couldn’t submit",
-        description: err instanceof Error ? err.message : "Please try again.",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -175,14 +176,10 @@ export default function HardrockLanding() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="text-white/60">
-              If you’re a subcontractor/supplier in{" "}
-              <span className="text-white">Escambia</span> or{" "}
-              <span className="text-white">Santa Rosa</span> County, the last in-person
-              information session is{" "}
-              <span className="text-white font-medium">
-                today (Feb. 2, 2026) 8:00–10:00 a.m.
-              </span>
-              .
+              If you’re a subcontractor/supplier in <span className="text-white">Escambia</span> or{" "}
+              <span className="text-white">Santa Rosa</span> County, the last in-person information
+              session is{" "}
+              <span className="text-white font-medium">today (Feb. 2, 2026) 8:00–10:00 a.m.</span>.
             </p>
             <p className="text-white/60">
               Location: <span className="text-white">Maritime Place</span>, first floor,{" "}

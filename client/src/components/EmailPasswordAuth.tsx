@@ -7,6 +7,7 @@ import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { isSuperAdminLike } from "@/lib/roleChecks";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -111,7 +112,7 @@ export function EmailPasswordAuth() {
     } catch (error: any) {
       toast({
         title: "Resend failed",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     } finally {
