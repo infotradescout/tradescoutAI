@@ -13899,7 +13899,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } catch (error: any) {
         console.error("Error archiving imported directory user:", error);
         const status = typeof error?.status === "number" ? error.status : 500;
-        return res.status(status).json({ message: error?.message || "Failed to archive user" });
+        return res.status(status).json({
+          message:
+            status >= 500 ? "Failed to archive user" : error?.message || "Failed to archive user",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );

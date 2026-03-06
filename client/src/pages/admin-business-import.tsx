@@ -274,6 +274,7 @@ export default function AdminBusinessImport() {
           "POST",
           `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`
         );
+        setOptimisticallyArchivedCleanupUsers((prev) => ({ ...prev, [userId]: true }));
         done += 1;
         setBulkArchiving({ running: true, done, total: ids.length });
       }
@@ -306,6 +307,12 @@ export default function AdminBusinessImport() {
       });
     },
     onSuccess: (data: any) => {
+      // Best-effort: immediately hide the currently visible candidates while the refetch loads.
+      setOptimisticallyArchivedCleanupUsers((prev) => {
+        const next = { ...prev };
+        for (const u of visibleCleanupUsers) next[u.id] = true;
+        return next;
+      });
       toast({
         title: "Bulk archive complete",
         description: `Archived ${data?.archived ?? 0}/${data?.matched ?? 0} users into directory businesses.`,
