@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
+import { uploadObject } from "@/lib/objectUpload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,6 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPresets";
 import { Palette, Home, Eye, EyeOff, LayoutTemplate, Calendar } from "lucide-react";
-import { applyTheme, type Theme } from "@/lib/themes";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -81,10 +81,15 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
-  const { updateCustomColors, setTheme } = useTheme();
+  const { updateCustomColors } = useTheme();
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
+  const [profileBasics, setProfileBasics] = useState({
+    firstName: "",
+    lastName: "",
+    profileImageUrl: "",
+  });
   const [preferences, setPreferences] = useState<UserPreferences>({
     defaultHomePage: "llm",
     profileVisibility: "public",
@@ -220,6 +225,14 @@ export default function ProfileSettings() {
   }, [user]);
 
   useEffect(() => {
+    setProfileBasics({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      profileImageUrl: user?.profileImageUrl || "",
+    });
+  }, [user?.firstName, user?.lastName, user?.profileImageUrl]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadProfileSlug = async () => {
@@ -293,10 +306,6 @@ export default function ProfileSettings() {
         title: "Color scheme updated",
         description: "Your profile colors have been saved.",
       });
-
-      // Apply colors to current page
-      applyColorScheme(preset);
-      applyThemeFromScheme(preset);
     } catch (error) {
       toast({
         title: "Error",
@@ -334,22 +343,6 @@ export default function ProfileSettings() {
         title: "Color scheme updated",
         description: "Your profile colors have been saved.",
       });
-
-      if (
-        data.colorScheme?.primary &&
-        data.colorScheme?.secondary &&
-        data.colorScheme?.background &&
-        data.colorScheme?.text
-      ) {
-        applyCustomColors({
-          primary: data.colorScheme.primary,
-          secondary: data.colorScheme.secondary,
-          background: data.colorScheme.background,
-          text: data.colorScheme.text,
-          accent: data.colorScheme.accent,
-          border: data.colorScheme.border,
-        });
-      }
     } catch (error) {
       toast({
         title: "Error",
@@ -406,6 +399,60 @@ export default function ProfileSettings() {
       toast({
         title: "Error",
         description: "Failed to update palette",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProfilePhotoSelected = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { publicUrl } = await uploadObject(file);
+      setProfileBasics((prev) => ({ ...prev, profileImageUrl: publicUrl }));
+      toast({
+        title: "Photo uploaded",
+        description: "Click Save profile to apply your new photo.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: formatUserFacingErrorMessage(error, "Could not upload photo"),
+        variant: "destructive",
+      });
+    } finally {
+      e.currentTarget.value = "";
+    }
+  };
+
+  const saveProfileBasics = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          firstName: profileBasics.firstName,
+          lastName: profileBasics.lastName,
+          profileImageUrl: profileBasics.profileImageUrl,
+          preferences: (user?.preferences || {}) as Record<string, any>,
+        }),
+      });
+
+      if (!response.ok) throw new Error(await readApiError(response));
+      await refetch();
+      toast({
+        title: "Profile updated",
+        description: "Your profile photo and name were saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: formatUserFacingErrorMessage(error, "Failed to update profile"),
         variant: "destructive",
       });
     } finally {
@@ -541,110 +588,6 @@ export default function ProfileSettings() {
       setLoading(false);
     }
   };
-
-  const applyColorValues = (colors: ColorScheme) => {
-    const root = document.documentElement;
-
-    root.style.setProperty("--user-primary", colors.primary);
-    root.style.setProperty("--user-secondary", colors.secondary);
-    root.style.setProperty("--user-background", colors.background);
-    root.style.setProperty("--user-text", colors.text);
-    root.style.setProperty("--user-accent", colors.accent || colors.primary);
-    root.style.setProperty("--user-border", colors.border || colors.background);
-  };
-
-  const applyColorScheme = (preset: string) => {
-    const colors = COLOR_PRESETS[preset] || COLOR_PRESETS.default;
-    applyColorValues(colors);
-  };
-
-  const applyCustomColors = (colors: ColorScheme) => {
-    applyColorValues(colors);
-    const themeFromScheme: Theme = {
-      id: "profile-custom",
-      name: "Profile Color Scheme",
-      description: "Synced from profile settings",
-      colors: {
-        bgPrimary: colors.background,
-        bgSecondary: colors.background,
-        bgTertiary: colors.secondary || colors.background,
-        textPrimary: colors.text,
-        textSecondary: colors.text,
-        accentPrimary: colors.primary,
-        accentSecondary: colors.secondary || colors.primary,
-        borderPrimary: colors.border || colors.background,
-        borderSecondary: colors.secondary || colors.background,
-      },
-    };
-
-    applyTheme(themeFromScheme);
-    // Keep global theme context in sync so the rest of the app
-    // immediately reflects these custom colors.
-    updateCustomColors(themeFromScheme.colors);
-  };
-
-  const applyThemeFromScheme = (preset: string) => {
-    const colors = COLOR_PRESETS[preset] || COLOR_PRESETS.default;
-    const themeFromScheme: Theme = {
-      id: `profile-${preset}`,
-      name: "Profile Color Scheme",
-      description: "Synced from profile settings",
-      colors: {
-        bgPrimary: colors.background,
-        bgSecondary: colors.background,
-        bgTertiary: colors.secondary || colors.background,
-        textPrimary: colors.text,
-        textSecondary: colors.text,
-        accentPrimary: colors.primary,
-        accentSecondary: colors.secondary || colors.primary,
-        borderPrimary: colors.border || colors.background,
-        borderSecondary: colors.secondary || colors.background,
-      },
-    };
-
-    applyTheme(themeFromScheme);
-    // IMPORTANT:
-    // - Do NOT call ThemeContext.setTheme() with synthetic IDs like "profile-*".
-    //   Those IDs are not part of the preset theme registry and will fall back to default,
-    //   while also persisting confusing values to storage.
-    // - Do NOT persist preset-based profile schemes as "customColors" in localStorage.
-    //   That creates "blue flicker" (default theme flashes, then storage overrides).
-    // ThemeContext already derives the active app theme from `user.preferences.colorScheme`.
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("customColors");
-        // Keep themeId untouched; user's chosen base theme is separate from profile color scheme.
-      }
-    } catch {
-      // ignore storage errors
-    }
-  };
-
-  // Apply color scheme on mount
-  useEffect(() => {
-    const scheme = preferences.colorScheme;
-    if (!scheme) return;
-
-    if (
-      scheme.preset === "custom" &&
-      scheme.primary &&
-      scheme.secondary &&
-      scheme.background &&
-      scheme.text
-    ) {
-      applyCustomColors({
-        primary: scheme.primary,
-        secondary: scheme.secondary,
-        background: scheme.background,
-        text: scheme.text,
-        accent: scheme.accent,
-        border: scheme.border,
-      });
-    } else if (scheme.preset) {
-      applyColorScheme(scheme.preset);
-      applyThemeFromScheme(scheme.preset);
-    }
-  }, [preferences.colorScheme]);
 
   const updateProfileSection = async (section: keyof ProfileSections, enabled: boolean) => {
     setLoading(true);
@@ -855,6 +798,72 @@ export default function ProfileSettings() {
           </p>
         )}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Basics</CardTitle>
+          <CardDescription>Update your profile photo and display name.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-white/10 overflow-hidden flex items-center justify-center text-sm font-semibold">
+              {profileBasics.profileImageUrl ? (
+                <img
+                  src={profileBasics.profileImageUrl}
+                  alt="Profile"
+                  className="h-16 w-16 object-cover"
+                />
+              ) : (
+                <span>
+                  {(profileBasics.firstName?.[0] || user?.firstName?.[0] || "").toUpperCase()}
+                  {(profileBasics.lastName?.[0] || user?.lastName?.[0] || "").toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="profile-photo-upload">Profile photo</Label>
+              <div className="mt-1">
+                <Input
+                  id="profile-photo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePhotoSelected}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label>First name</Label>
+              <Input
+                value={profileBasics.firstName}
+                onChange={(e) =>
+                  setProfileBasics((prev) => ({ ...prev, firstName: e.target.value }))
+                }
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Last name</Label>
+              <Input
+                value={profileBasics.lastName}
+                onChange={(e) =>
+                  setProfileBasics((prev) => ({ ...prev, lastName: e.target.value }))
+                }
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveProfileBasics} disabled={loading}>
+              {loading ? "Saving..." : "Save profile"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Public Pages */}
       <Card>

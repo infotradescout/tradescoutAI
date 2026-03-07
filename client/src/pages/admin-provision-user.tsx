@@ -314,6 +314,7 @@ export default function AdminProvisionUser() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="user@example.com"
+                  autoComplete="email"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
@@ -324,6 +325,8 @@ export default function AdminProvisionUser() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Leave blank to send set-password link"
                   type="password"
+                  name="provision-password"
+                  autoComplete="new-password"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
@@ -626,6 +629,7 @@ export default function AdminProvisionUser() {
                   value={editTargetEmail}
                   onChange={(e) => setEditTargetEmail(e.target.value)}
                   placeholder="user@example.com"
+                  autoComplete="email"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
@@ -745,6 +749,8 @@ export default function AdminProvisionUser() {
                   onChange={(e) => setEditSafetyKey(e.target.value)}
                   placeholder="Enter key if server requires it"
                   type="password"
+                  name="admin-safety-key"
+                  autoComplete="current-password"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
