@@ -31,6 +31,9 @@ export default function ProfileCompletionBanner() {
       path.startsWith("/pre-scout-setup") ||
       path.startsWith("/onboarding/profile") ||
       path.startsWith("/onboarding/intent") ||
+      path.startsWith("/profile-settings") ||
+      path.startsWith("/settings") ||
+      path.startsWith("/profile") ||
       path.startsWith("/profile-setup");
     if (isSetupRoute) return null;
 

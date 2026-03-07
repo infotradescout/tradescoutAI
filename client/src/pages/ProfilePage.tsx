@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { UserBadges } from "@/components/user-badges";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { USER_TYPES } from "@shared/userTypes";
-import { getUserColorScheme } from "@shared/colorPresets";
 import {
   MapPin,
   Calendar,
@@ -112,15 +111,15 @@ export default function ProfilePage() {
   const showBadges = user.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (user.roles || []).includes("community_builder");
 
-  const colorScheme = getUserColorScheme(user.preferences);
   const profileThemeVars = {
-    // Scope these to the profile page so we don't globally override the app.
-    ["--user-primary" as any]: colorScheme.primary,
-    ["--user-secondary" as any]: colorScheme.secondary,
-    ["--user-background" as any]: colorScheme.background,
-    ["--user-text" as any]: colorScheme.text,
-    ["--user-accent" as any]: colorScheme.accent || colorScheme.primary,
-    ["--user-border" as any]: colorScheme.border || colorScheme.background,
+    // Keep the in-app "My Profile" surface aligned with the active site theme.
+    // Public profile pages still use user-controlled profile palette settings.
+    ["--user-primary" as any]: "var(--theme-accent-primary)",
+    ["--user-secondary" as any]: "var(--theme-accent-secondary)",
+    ["--user-background" as any]: "var(--surface-app-bg)",
+    ["--user-text" as any]: "var(--text-primary)",
+    ["--user-accent" as any]: "var(--theme-accent-primary)",
+    ["--user-border" as any]: "var(--border-primary)",
   } as React.CSSProperties;
 
   const profileUrl = profileSlug

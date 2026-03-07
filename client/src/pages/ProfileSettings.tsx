@@ -90,6 +90,13 @@ export default function ProfileSettings() {
     lastName: "",
     profileImageUrl: "",
   });
+
+  // Safety valve: if a network request hangs, do not leave the page locked forever.
+  useEffect(() => {
+    if (!loading) return;
+    const watchdog = window.setTimeout(() => setLoading(false), 15000);
+    return () => window.clearTimeout(watchdog);
+  }, [loading]);
   const [preferences, setPreferences] = useState<UserPreferences>({
     defaultHomePage: "llm",
     profileVisibility: "public",

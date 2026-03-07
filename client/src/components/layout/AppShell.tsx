@@ -209,6 +209,13 @@ export function AppShell({ children, footer }: AppShellProps) {
     }
   }, [isMobile]);
 
+  // Never keep stale tool overlays open across navigation changes.
+  // This prevents transparent/full-height drawers from blocking clicks
+  // when the user moves between settings/profile surfaces.
+  useEffect(() => {
+    setIsToolsOpen(false);
+  }, [location]);
+
   const toggleRightToolsCollapsed = () => {
     setIsRightToolsCollapsed((prev) => {
       const next = !prev;
