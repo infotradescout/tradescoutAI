@@ -1,5 +1,5 @@
 // Minimal user controls for super admin
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -146,6 +146,7 @@ export default function AdminUsers() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<"all" | "24h" | "7d" | "30d">("all");
+  const [showArchivedPlaceholders, setShowArchivedPlaceholders] = useState(false);
   const [adminSafetyKey, setAdminSafetyKey] = useState("");
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
@@ -705,7 +706,25 @@ export default function AdminUsers() {
     return "other";
   };
 
-  const filteredUsers = users.filter((u) => {
+  const isArchivedPlaceholderUser = (email: string): boolean => {
+    const normalized = String(email || "")
+      .trim()
+      .toLowerCase();
+    if (!normalized) return false;
+    return normalized.startsWith("archived+") && normalized.endsWith("@thetradescout.invalid");
+  };
+
+  const archivedPlaceholderCount = useMemo(
+    () => users.filter((u) => isArchivedPlaceholderUser(u.email)).length,
+    [users]
+  );
+  const usersBase = useMemo(
+    () =>
+      showArchivedPlaceholders ? users : users.filter((u) => !isArchivedPlaceholderUser(u.email)),
+    [users, showArchivedPlaceholders]
+  );
+
+  const filteredUsers = usersBase.filter((u) => {
     const name = u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : "";
     const searchLower = searchTerm.trim().toLowerCase();
     const matchesSearch =
@@ -1101,6 +1120,16 @@ export default function AdminUsers() {
                     </SelectContent>
                   </Select>
                 </div>
+                {archivedPlaceholderCount > 0 && (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={showArchivedPlaceholders}
+                      onChange={(e) => setShowArchivedPlaceholders(e.target.checked)}
+                    />
+                    <span>Show archived placeholders ({archivedPlaceholderCount})</span>
+                  </label>
+                )}
               </div>
             </div>
           </CardContent>
@@ -1113,7 +1142,7 @@ export default function AdminUsers() {
               <div className="flex items-center gap-3">
                 <CardTitle className="text-foreground">
                   Users ({filteredUsers.length}
-                  {users.length !== filteredUsers.length ? ` of ${users.length}` : ""})
+                  {usersBase.length !== filteredUsers.length ? ` of ${usersBase.length}` : ""})
                 </CardTitle>
                 <Button
                   size="sm"
