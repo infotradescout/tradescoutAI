@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { StateCountySelector } from "@/components/state-county-selector";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -23,6 +31,8 @@ type ProvisionResponse = {
   businessSlug?: string | null;
   activationLink?: string;
   verifyLink?: string;
+  resolvedTradeTags?: string[];
+  createdTradeTags?: string[];
   message?: string;
 };
 
@@ -30,6 +40,8 @@ type DirectConnectAdminResult = {
   request?: { id?: string | null; status?: string | null } | null;
   requesterIntent?: string | null;
   resolvedCategory?: string | null;
+  resolvedTradeId?: string | null;
+  createdTradeId?: boolean;
   createdForUser?: { id?: string; email?: string } | null;
   targetUserProvisioned?: boolean;
   targetUserExisted?: boolean;
@@ -88,6 +100,7 @@ export default function AdminProvisionUser() {
     contactCard: true,
   });
   const [provisionUserTypes, setProvisionUserTypes] = useState("");
+  const [provisionTradeTags, setProvisionTradeTags] = useState("");
   const [createBusinessRecord, setCreateBusinessRecord] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [businessTags, setBusinessTags] = useState("");
@@ -122,6 +135,7 @@ export default function AdminProvisionUser() {
   const [editProfileVisibility, setEditProfileVisibility] = useState<"public" | "private">(
     "public"
   );
+  const [editTradeTags, setEditTradeTags] = useState("");
   const [editReason, setEditReason] = useState("");
   const [editSafetyKey, setEditSafetyKey] = useState("");
   const [editAllowPrivilegedTarget, setEditAllowPrivilegedTarget] = useState(false);
@@ -135,6 +149,7 @@ export default function AdminProvisionUser() {
           .filter(Boolean);
       const userTypes = parseCsv(provisionUserTypes);
       const normalizedBusinessTags = parseCsv(businessTags);
+      const normalizedTradeTags = parseCsv(provisionTradeTags);
       const payload = {
         email: email.trim(),
         firstName: firstName.trim() || undefined,
@@ -144,6 +159,7 @@ export default function AdminProvisionUser() {
         stateCode: stateCode.trim().toUpperCase() || undefined,
         countyFips: countyFips.trim() || undefined,
         userTypes: userTypes.length > 0 ? userTypes : undefined,
+        tradeTags: normalizedTradeTags.length > 0 ? normalizedTradeTags : undefined,
         businessTags: normalizedBusinessTags.length > 0 ? normalizedBusinessTags : undefined,
         password: password || undefined,
         sendEmail,
@@ -160,6 +176,7 @@ export default function AdminProvisionUser() {
               profileVisibility: provisionProfileVisibility,
               servicesDescription: provisionServicesDescription.trim() || undefined,
               profileSections: provisionProfileSections,
+              tradeTags: normalizedTradeTags.length > 0 ? normalizedTradeTags : undefined,
               businessPhone: businessPhone.trim() || undefined,
               businessEmail: businessEmail.trim() || undefined,
               businessWebsite: businessWebsite.trim() || undefined,
@@ -245,6 +262,11 @@ export default function AdminProvisionUser() {
 
   const supportEditUser = useMutation({
     mutationFn: async () => {
+      const parseCsv = (value: string) =>
+        value
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean);
       const patch: Record<string, unknown> = {};
       const preferencesPatch: Record<string, unknown> = {};
 
@@ -254,6 +276,10 @@ export default function AdminProvisionUser() {
       if (editCity.trim()) patch.city = editCity.trim();
       if (editStateCode.trim()) patch.stateCode = editStateCode.trim().toUpperCase();
       if (editCountyFips.trim()) patch.countyFips = editCountyFips.trim();
+      const normalizedEditTradeTags = parseCsv(editTradeTags);
+      if (normalizedEditTradeTags.length > 0) {
+        patch.tradeTags = normalizedEditTradeTags;
+      }
       if (editBio.trim()) preferencesPatch.bio = editBio.trim();
       preferencesPatch.profileVisibility = editProfileVisibility;
 
@@ -374,27 +400,18 @@ export default function AdminProvisionUser() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-white/60">State code (optional)</label>
-                <Input
-                  value={stateCode}
-                  onChange={(e) => setStateCode(e.target.value)}
-                  placeholder="LA"
-                  maxLength={2}
-                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/60">County FIPS (optional)</label>
-                <Input
-                  value={countyFips}
-                  onChange={(e) => setCountyFips(e.target.value)}
-                  placeholder="22105"
-                  maxLength={5}
-                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs text-white/60">Location (optional)</label>
+              <StateCountySelector
+                selectedState={stateCode}
+                selectedCounty={countyFips}
+                onStateChange={(value) => setStateCode(value)}
+                onCountyChange={(value) => setCountyFips(value)}
+                className="!grid-cols-1 md:!grid-cols-2"
+              />
+              <p className="text-[11px] text-white/50">
+                Selected state: {stateCode || "none"} | County FIPS: {countyFips || "none"}
+              </p>
             </div>
 
             <label className="flex items-center gap-2 text-xs text-white/70">
@@ -404,18 +421,20 @@ export default function AdminProvisionUser() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-white/60">Profile visibility</label>
-                <select
+                <Select
                   value={provisionProfileVisibility}
-                  onChange={(e) =>
-                    setProvisionProfileVisibility(
-                      e.target.value === "private" ? "private" : "public"
-                    )
+                  onValueChange={(value) =>
+                    setProvisionProfileVisibility(value === "private" ? "private" : "public")
                   }
-                  className="w-full rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-white"
                 >
-                  <option value="public">public</option>
-                  <option value="private">private</option>
-                </select>
+                  <SelectTrigger className="w-full border-[color:var(--border-subtle)] bg-black/30 text-white">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">public</SelectItem>
+                    <SelectItem value="private">private</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs text-white/60">
@@ -437,6 +456,17 @@ export default function AdminProvisionUser() {
                 onChange={(e) => setProvisionServicesDescription(e.target.value)}
                 placeholder="What they do, service area, and specialties."
                 rows={3}
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/60">
+                Trade tags for routing (comma separated, optional)
+              </label>
+              <Input
+                value={provisionTradeTags}
+                onChange={(e) => setProvisionTradeTags(e.target.value)}
+                placeholder="roofing, pressure-washing, hvac"
                 className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
             </div>
@@ -595,7 +625,7 @@ export default function AdminProvisionUser() {
             <Button
               type="submit"
               disabled={provision.isPending || !email.trim()}
-              className="bg-ts-orange hover:bg-ts-orange-dark"
+              className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
             >
               {provision.isPending ? "Provisioning..." : "Provision user"}
             </Button>
@@ -665,7 +695,7 @@ export default function AdminProvisionUser() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-white/60">Phone (optional)</label>
                 <Input
@@ -684,39 +714,39 @@ export default function AdminProvisionUser() {
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
-              <div>
-                <label className="text-xs text-white/60">State code (optional)</label>
-                <Input
-                  value={editStateCode}
-                  onChange={(e) => setEditStateCode(e.target.value)}
-                  placeholder="FL"
-                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                />
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-white/60">County FIPS (optional)</label>
-                <Input
-                  value={editCountyFips}
-                  onChange={(e) => setEditCountyFips(e.target.value)}
-                  placeholder="12033"
-                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+              <div className="space-y-2">
+                <label className="text-xs text-white/60">Location (optional)</label>
+                <StateCountySelector
+                  selectedState={editStateCode}
+                  selectedCounty={editCountyFips}
+                  onStateChange={(value) => setEditStateCode(value)}
+                  onCountyChange={(value) => setEditCountyFips(value)}
+                  className="!grid-cols-1"
                 />
+                <p className="text-[11px] text-white/50">
+                  Selected state: {editStateCode || "none"} | County FIPS:{" "}
+                  {editCountyFips || "none"}
+                </p>
               </div>
               <div>
                 <label className="text-xs text-white/60">Profile visibility</label>
-                <select
+                <Select
                   value={editProfileVisibility}
-                  onChange={(e) =>
-                    setEditProfileVisibility(e.target.value === "private" ? "private" : "public")
+                  onValueChange={(value) =>
+                    setEditProfileVisibility(value === "private" ? "private" : "public")
                   }
-                  className="w-full rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-white"
                 >
-                  <option value="public">public</option>
-                  <option value="private">private</option>
-                </select>
+                  <SelectTrigger className="w-full border-[color:var(--border-subtle)] bg-black/30 text-white">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">public</SelectItem>
+                    <SelectItem value="private">private</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -727,6 +757,17 @@ export default function AdminProvisionUser() {
                 onChange={(e) => setEditBio(e.target.value)}
                 placeholder="Support note or user-provided profile text"
                 className="bg-black/30 border-[color:var(--border-subtle)] text-white min-h-20"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-white/60">
+                Trade tags for routing (comma separated, optional)
+              </label>
+              <Input
+                value={editTradeTags}
+                onChange={(e) => setEditTradeTags(e.target.value)}
+                placeholder="roofing, pressure-washing, hvac"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
             </div>
 
@@ -771,7 +812,7 @@ export default function AdminProvisionUser() {
                 (!editTargetEmail.trim() && !editTargetUserId.trim()) ||
                 editReason.trim().length < 12
               }
-              className="bg-ts-orange hover:bg-ts-orange-dark"
+              className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
             >
               {supportEditUser.isPending ? "Applying edit..." : "Apply safeguarded support edit"}
             </Button>
@@ -789,7 +830,7 @@ export default function AdminProvisionUser() {
               {String(result.verifyLinkIncluded)}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-white/70">
+          <CardContent className="space-y-2 break-words text-xs text-white/70">
             <div>User: {result.user.email}</div>
             <div>Business profile provisioned: {String(result.profileProvisioned === true)}</div>
             {result.profileId ? <div>Profile ID: {result.profileId}</div> : null}
@@ -801,6 +842,18 @@ export default function AdminProvisionUser() {
             {result.verifyLink ? (
               <div className="break-all">Verify: {result.verifyLink}</div>
             ) : null}
+            <div>
+              Resolved trade tags:{" "}
+              {Array.isArray(result.resolvedTradeTags) && result.resolvedTradeTags.length > 0
+                ? result.resolvedTradeTags.join(", ")
+                : "none"}
+            </div>
+            <div>
+              Newly created trade tags:{" "}
+              {Array.isArray(result.createdTradeTags) && result.createdTradeTags.length > 0
+                ? result.createdTradeTags.join(", ")
+                : "none"}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -847,21 +900,25 @@ export default function AdminProvisionUser() {
             </div>
             <div>
               <label className="text-xs text-white/60">Request type</label>
-              <select
+              <Select
                 value={requestCategory}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   setRequestCategory(
-                    e.target.value as (typeof adminDirectConnectRequestTypes)[number]["value"]
+                    value as (typeof adminDirectConnectRequestTypes)[number]["value"]
                   )
                 }
-                className="flex h-10 w-full rounded-xl border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)]/70"
               >
-                {adminDirectConnectRequestTypes.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="flex h-10 w-full rounded-xl border-[color:var(--border-subtle)] bg-black/30 text-sm text-white">
+                  <SelectValue placeholder="Select request type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {adminDirectConnectRequestTypes.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="mt-1 text-[11px] text-white/50">
                 {
                   adminDirectConnectRequestTypes.find((option) => option.value === requestCategory)
@@ -881,33 +938,32 @@ export default function AdminProvisionUser() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-white/60">Trade ID (optional)</label>
+              <label className="text-xs text-white/60">Trade ID / tag (optional)</label>
               <Input
                 value={requestTradeId}
                 onChange={(e) => setRequestTradeId(e.target.value)}
-                placeholder="roofing"
+                placeholder="roofing, driveway-repair, etc."
                 className="bg-black/30 border-[color:var(--border-subtle)] text-white"
               />
+              <p className="mt-1 text-[11px] text-white/50">
+                If this trade tag does not exist yet, it will be created automatically.
+              </p>
             </div>
-            <div>
-              <label className="text-xs text-white/60">County FIPS (optional)</label>
-              <Input
-                value={requestCountyFips}
-                onChange={(e) => setRequestCountyFips(e.target.value)}
-                placeholder="22105"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+            <div className="space-y-2">
+              <label className="text-xs text-white/60">Location (optional)</label>
+              <StateCountySelector
+                selectedState={requestStateCode}
+                selectedCounty={requestCountyFips}
+                onStateChange={(value) => setRequestStateCode(value)}
+                onCountyChange={(value) => setRequestCountyFips(value)}
+                className="!grid-cols-1"
               />
-            </div>
-            <div>
-              <label className="text-xs text-white/60">State code (optional)</label>
-              <Input
-                value={requestStateCode}
-                onChange={(e) => setRequestStateCode(e.target.value)}
-                placeholder="LA"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
+              <p className="text-[11px] text-white/50">
+                Selected state: {requestStateCode || "none"} | County FIPS:{" "}
+                {requestCountyFips || "none"}
+              </p>
             </div>
           </div>
 
@@ -947,6 +1003,7 @@ export default function AdminProvisionUser() {
           </div>
 
           <Button
+            type="button"
             onClick={() => createDirectConnectRequest.mutate()}
             disabled={
               createDirectConnectRequest.isPending ||
@@ -954,19 +1011,23 @@ export default function AdminProvisionUser() {
               !requestDescription.trim() ||
               (!targetUserEmail.trim() && !targetUserId.trim())
             }
-            className="bg-ts-orange hover:bg-ts-orange-dark"
+            className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
           >
             {createDirectConnectRequest.isPending ? "Creating request..." : "Create request"}
           </Button>
 
           {directConnectResult ? (
-            <div className="rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-white/80 space-y-1">
+            <div className="rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-white/80 space-y-1 break-words">
               <div>
                 Request ID:{" "}
                 <span className="font-mono">{directConnectResult.request?.id || "n/a"}</span>
               </div>
               <div>Requester intent: {directConnectResult.requesterIntent || "hire_provider"}</div>
               <div>Request type: {directConnectResult.resolvedCategory || "service_request"}</div>
+              <div>Trade tag: {directConnectResult.resolvedTradeId || "none"}</div>
+              <div>
+                Created new trade tag: {String(directConnectResult.createdTradeId === true)}
+              </div>
               <div>Target user: {directConnectResult.createdForUser?.email || "n/a"}</div>
               <div>
                 Provisioned new user: {String(directConnectResult.targetUserProvisioned === true)}

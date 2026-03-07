@@ -39,5 +39,24 @@ describe("runtime no-mock and profile settings contracts", () => {
     expect(source).toContain("handleProfilePhotoSelected");
     expect(source).toContain("saveProfileBasics");
     expect(source).toContain('fetch("/api/user/profile"');
+    expect(source).toContain("profileImageUrl: profileBasics.profileImageUrl");
+    expect(source).not.toContain("preferences: (user?.preferences || {})");
+    expect(source).toContain('type="button" onClick={saveProfileBasics}');
+    expect(source).toContain('type="button" onClick={savePalette}');
+    expect(source).toContain('type="button" onClick={saveCustomColors}');
+    expect(source).toContain('type="button" onClick={saveServicesDescription}');
+    expect(source).toContain('type="button" onClick={saveProfileBooking}');
+  });
+
+  it("settings page profile editor does not overwrite unrelated preferences", () => {
+    const source = read("client/src/pages/settings.tsx");
+    expect(source).toContain('apiRequest("PUT", "/api/user/profile"');
+    expect(source).toContain('apiRequest("PATCH", "/api/users/preferences"');
+    expect(source).toContain("bio: profileForm.bio");
+    expect(source).toContain('Link href="/profile-settings"');
+    expect(source).toContain("profileImageUrl: profileForm.profileImageUrl");
+    expect(source).not.toContain(
+      "profileImageUrl: profileForm.profileImageUrl,\n        preferences:"
+    );
   });
 });

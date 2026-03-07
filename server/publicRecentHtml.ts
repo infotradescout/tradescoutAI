@@ -167,19 +167,32 @@ async function loadRecentActivities(where: any[]) {
   const rules = await getPublicationRules();
   const now = new Date();
 
-  const rows = await db
-    .select({
-      id: tsPublicActivity.id,
-      activityType: tsPublicActivity.activityType,
-      occurredAt: tsPublicActivity.occurredAt,
-      expiresAt: tsPublicActivity.expiresAt,
-      publicText: tsPublicActivity.publicText,
-      activeStatus: tsPublicActivity.activeStatus,
-    })
-    .from(tsPublicActivity)
-    .where(and(...where))
-    .orderBy(desc(tsPublicActivity.occurredAt))
-    .limit(80);
+  let rows: Array<{
+    id: string;
+    activityType: string | null;
+    occurredAt: Date | null;
+    expiresAt: Date | null;
+    publicText: string | null;
+    activeStatus: boolean | null;
+  }> = [];
+  try {
+    rows = await db
+      .select({
+        id: tsPublicActivity.id,
+        activityType: tsPublicActivity.activityType,
+        occurredAt: tsPublicActivity.occurredAt,
+        expiresAt: tsPublicActivity.expiresAt,
+        publicText: tsPublicActivity.publicText,
+        activeStatus: tsPublicActivity.activeStatus,
+      })
+      .from(tsPublicActivity)
+      .where(and(...where))
+      .orderBy(desc(tsPublicActivity.occurredAt))
+      .limit(80);
+  } catch (error) {
+    console.error("[SEO] Recent activity query failed; serving fallback page without items", error);
+    rows = [];
+  }
 
   const items = rows
     .map((r) => {

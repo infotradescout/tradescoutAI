@@ -455,17 +455,17 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
-      const mergedPreferences = {
-        ...existingPrefs,
-        bio: profileForm.bio,
-      };
-      return apiRequest("PUT", "/api/user/profile", {
-        firstName: profileForm.firstName,
-        lastName: profileForm.lastName,
-        profileImageUrl: profileForm.profileImageUrl,
-        preferences: mergedPreferences,
-      });
+      const [profileResult] = await Promise.all([
+        apiRequest("PUT", "/api/user/profile", {
+          firstName: profileForm.firstName,
+          lastName: profileForm.lastName,
+          profileImageUrl: profileForm.profileImageUrl,
+        }),
+        apiRequest("PATCH", "/api/users/preferences", {
+          bio: profileForm.bio,
+        }),
+      ]);
+      return profileResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -796,6 +796,7 @@ export default function Settings() {
                         <h3 className="text-white font-medium mb-1">Profile Photo</h3>
                         <p className="text-sm text-white/60 mb-3">Update your profile picture</p>
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
                           className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
@@ -890,11 +891,20 @@ export default function Settings() {
                     {/* Action Buttons */}
                     <div className="flex items-center gap-3 pt-4 border-t border-white/10">
                       <Button
+                        type="button"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                         onClick={() => updateProfileMutation.mutate()}
                         disabled={updateProfileMutation.isPending}
                       >
                         {updateProfileMutation.isPending ? "Saving…" : "Save Changes"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
+                        asChild
+                      >
+                        <Link href="/profile-settings">Open Full Profile Settings</Link>
                       </Button>
                       <Button
                         type="button"
@@ -959,6 +969,7 @@ export default function Settings() {
                         your saved location here is what unlocks local experiences.
                       </p>
                       <Button
+                        type="button"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                         disabled={
                           updateLocationMutation.isPending ||
@@ -1141,6 +1152,7 @@ export default function Settings() {
                     />
                     <div className="flex justify-end pt-4 border-t border-white/10 mt-2">
                       <Button
+                        type="button"
                         onClick={saveUserTypes}
                         disabled={
                           updateUserTypesMutation.isPending || selectedUserTypes.length === 0
@@ -1218,6 +1230,7 @@ export default function Settings() {
                       </p>
                     </div>
                     <Button
+                      type="button"
                       onClick={saveRoles}
                       disabled={updateRolesMutation.isPending || selectedRoles.length === 0}
                       className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
@@ -1262,6 +1275,7 @@ export default function Settings() {
                         <Link href="/profile-settings">Open Profile Settings</Link>
                       </Button>
                       <Button
+                        type="button"
                         variant="outline"
                         className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
                         onClick={async () => {

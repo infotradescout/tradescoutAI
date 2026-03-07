@@ -37,6 +37,10 @@ describe("admin provisioning contract guards", () => {
     expect(adminProvisionUserSource).toContain("businessWebsite");
     expect(adminProvisionUserSource).toContain("provisionUserTypes");
     expect(adminProvisionUserSource).toContain("businessTags");
+    expect(adminProvisionUserSource).toContain("SelectTrigger");
+    expect(adminProvisionUserSource).toContain(
+      'className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"'
+    );
   });
 
   it("provision route persists extended contact/location payload", () => {
@@ -48,6 +52,29 @@ describe("admin provisioning contract guards", () => {
     expect(routesSource).toContain("contentBlocks: profileAbout");
     expect(routesSource).toContain("provisionUserTypes");
     expect(routesSource).toContain("services: businessTags.length > 0 ? businessTags : undefined");
+  });
+
+  it("provision and support edit wire trade tags into routing declarations", () => {
+    const routesSource = read("server/routes.ts");
+    const adminProvisionUserSource = read("client/src/pages/admin-provision-user.tsx");
+
+    expect(routesSource).toContain("const rawProvisionTradeTags");
+    expect(routesSource).toContain("resolveOrCreateTradeTagSlugs(provisionTradeTags)");
+    expect(routesSource).toContain("resolvedTradeTags: resolvedProvisionTradeTags.slugs");
+    expect(routesSource).toContain("upsertProviderDeclarationForUser");
+    expect(routesSource).toContain("const rawSupportTradeTags");
+    expect(routesSource).toContain("const supportTradeTagsProvided");
+    expect(routesSource).toContain("resolveOrCreateTradeTagSlugs(supportTradeTags)");
+    expect(routesSource).toContain("safePrefs[key] = resolvedSupportTradeTags?.slugs || []");
+    expect(routesSource).toContain("const mergedTradeIds = Array.from");
+    expect(adminProvisionUserSource).toContain(
+      "tradeTags: normalizedTradeTags.length > 0 ? normalizedTradeTags : undefined"
+    );
+    expect(adminProvisionUserSource).toContain("patch.tradeTags = normalizedEditTradeTags");
+    expect(adminProvisionUserSource).toContain(
+      "Trade tags for routing (comma separated, optional)"
+    );
+    expect(adminProvisionUserSource).toContain("Resolved trade tags:");
   });
 
   it("bulk import keeps optional public profile toggle", () => {

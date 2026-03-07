@@ -439,7 +439,6 @@ export default function ProfileSettings() {
           firstName: profileBasics.firstName,
           lastName: profileBasics.lastName,
           profileImageUrl: profileBasics.profileImageUrl,
-          preferences: (user?.preferences || {}) as Record<string, any>,
         }),
       });
 
@@ -858,7 +857,7 @@ export default function ProfileSettings() {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={saveProfileBasics} disabled={loading}>
+            <Button type="button" onClick={saveProfileBasics} disabled={loading}>
               {loading ? "Saving..." : "Save profile"}
             </Button>
           </div>
@@ -886,6 +885,7 @@ export default function ProfileSettings() {
             </div>
             <div className="flex gap-2">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 disabled={!profileSlug}
@@ -894,6 +894,7 @@ export default function ProfileSettings() {
                 View
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 disabled={!profileSlug}
@@ -915,6 +916,7 @@ export default function ProfileSettings() {
             </div>
             <div className="flex gap-2">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 disabled={!(user as any)?.businessSlug}
@@ -926,6 +928,7 @@ export default function ProfileSettings() {
                 View
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 disabled={!(user as any)?.businessSlug}
@@ -983,7 +986,7 @@ export default function ProfileSettings() {
           </div>
 
           <div className="flex justify-end pt-2 border-t border-white/10">
-            <Button onClick={savePalette} disabled={loading}>
+            <Button type="button" onClick={savePalette} disabled={loading}>
               {loading ? "Saving…" : "Save Palette"}
             </Button>
           </div>
@@ -1171,7 +1174,7 @@ export default function ProfileSettings() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button onClick={saveCustomColors} disabled={loading}>
+              <Button type="button" onClick={saveCustomColors} disabled={loading}>
                 {loading ? "Saving…" : "Save Custom Colors"}
               </Button>
             </div>
@@ -1299,7 +1302,7 @@ export default function ProfileSettings() {
             placeholder="Example: I specialize in small residential plumbing repairs, water heater replacements, and leak detection for single-family homes and small multi-unit buildings. I do not offer new construction rough-in work."
           />
           <div className="flex justify-end">
-            <Button onClick={saveServicesDescription} disabled={loading}>
+            <Button type="button" onClick={saveServicesDescription} disabled={loading}>
               Save services
             </Button>
           </div>
@@ -1531,7 +1534,7 @@ export default function ProfileSettings() {
           )}
 
           <div className="flex justify-end">
-            <Button onClick={saveProfileBooking} disabled={loading}>
+            <Button type="button" onClick={saveProfileBooking} disabled={loading}>
               Save booking setup
             </Button>
           </div>

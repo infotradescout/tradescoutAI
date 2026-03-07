@@ -16,10 +16,14 @@ describe("admin direct-connect provisioning contract", () => {
     expect(source).toContain("passwordResetService.createToken");
     expect(source).toContain("emailVerificationService.createToken");
     expect(source).toContain("setupEmailSent");
+    expect(source).toContain("const shouldSendSetupFlow =");
     expect(source).toContain(
-      "const shouldSendActivation = targetUserProvisioned && !targetUser.password"
+      "const shouldSendActivation = shouldSendSetupFlow && !targetUser.password"
     );
     expect(source).toContain("targetUserExisted");
     expect(source).toContain("requestEmailSent");
+    expect(source).toContain("resolveOrCreateAdminTrade");
+    expect(source).toContain("resolvedTradeId");
+    expect(source).toContain("createdTradeId");
   });
 });

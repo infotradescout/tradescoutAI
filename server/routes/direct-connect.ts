@@ -69,6 +69,27 @@ const assignmentResponseSchema = z.object({
   reason: z.string().min(1).max(200).optional(),
 });
 
+const normalizeTradeSlugInput = (value: string): string =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+
+const toTradeDisplayName = (value: string): string => {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+  if (!cleaned) return "Custom Trade";
+  return cleaned
+    .split(" ")
+    .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+    .join(" ")
+    .slice(0, 120);
+};
+
 export function registerDirectConnectRoutes(app: Express) {
   const makeShareToken = () => randomBytes(16).toString("hex");
   const isSchemaMismatchError = (error: unknown): boolean => {
@@ -87,6 +108,39 @@ export function registerDirectConnectRoutes(app: Express) {
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, maxLength);
+
+  const resolveOrCreateAdminTrade = async (
+    rawTradeId: string | undefined
+  ): Promise<{ slug: string; created: boolean } | null> => {
+    const raw = String(rawTradeId || "").trim();
+    if (!raw) return null;
+
+    const existingBySlug = await storage.getTradeBySlug(raw);
+    if (existingBySlug) return { slug: existingBySlug.slug, created: false };
+
+    const [existingById] = await db.select().from(trades).where(eq(trades.id, raw)).limit(1);
+    if (existingById) return { slug: String(existingById.slug), created: false };
+
+    const normalizedSlug = normalizeTradeSlugInput(raw);
+    if (!normalizedSlug) return null;
+
+    const existingByNormalizedSlug = await storage.getTradeBySlug(normalizedSlug);
+    if (existingByNormalizedSlug) return { slug: existingByNormalizedSlug.slug, created: false };
+
+    try {
+      const createdTrade = await storage.createTrade({
+        name: toTradeDisplayName(raw),
+        slug: normalizedSlug,
+      } as any);
+      return { slug: String(createdTrade.slug), created: true };
+    } catch (error: any) {
+      if (String(error?.code || "") === "23505") {
+        const existing = await storage.getTradeBySlug(normalizedSlug);
+        if (existing) return { slug: existing.slug, created: false };
+      }
+      throw error;
+    }
+  };
 
   const resolveOrigin = (req: Request) => {
     const protoHeader = String(req.headers["x-forwarded-proto"] || "")
@@ -1280,6 +1334,8 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
+        const resolvedTrade = await resolveOrCreateAdminTrade(body.tradeId);
+
         const [created] = await db
           .insert(workRequests)
           .values({
@@ -1297,7 +1353,7 @@ export function registerDirectConnectRoutes(app: Express) {
             competitionMode: "none",
             budgetMin,
             budgetMax,
-            tradeId: body.tradeId,
+            tradeId: resolvedTrade?.slug,
           })
           .returning();
 
@@ -1411,6 +1467,8 @@ export function registerDirectConnectRoutes(app: Express) {
           requestEmailSent,
           activationLinkIncluded,
           verifyLinkIncluded,
+          resolvedTradeId: resolvedTrade?.slug ?? null,
+          createdTradeId: resolvedTrade?.created === true,
           ...(process.env.NODE_ENV !== "production" && activationLink ? { activationLink } : {}),
           ...(process.env.NODE_ENV !== "production" && verifyLink ? { verifyLink } : {}),
           createdByStaffUserId: String(actorUserId),

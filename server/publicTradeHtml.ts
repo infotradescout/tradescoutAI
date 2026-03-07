@@ -454,7 +454,16 @@ export async function buildPublicTradeCountyHtml(
       }
       rows = await runQuery(false);
     } else {
-      throw error;
+      console.error(
+        "[SEO] Trade county listing query failed; serving fallback page without listings",
+        {
+          tradeSlug: canonicalSlug,
+          stateCode,
+          countySlug,
+          error,
+        }
+      );
+      rows = [];
     }
   }
 

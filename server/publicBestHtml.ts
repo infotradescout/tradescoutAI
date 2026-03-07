@@ -135,6 +135,13 @@ function sqlCitySlugExpr() {
   return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
+function isMissingColumnError(error: unknown, columnName: string): boolean {
+  const err = error as any;
+  const code = String(err?.code || "");
+  const message = String(err?.message || "");
+  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
+}
+
 export async function buildPublicBestTradeCountyHtml(
   opts: PublicBestTradeCountyHtmlOptions
 ): Promise<string | null> {
@@ -175,40 +182,55 @@ export async function buildPublicBestTradeCountyHtml(
     .slice(0, 8)
     .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
 
-  const rows = await db
-    .select({
-      id: businesses.id,
-      slug: businesses.slug,
-      name: businesses.name,
-      claimStatus: businesses.claimStatus,
-      ownerUserId: businesses.ownerUserId,
-      updatedAt: businesses.updatedAt,
-      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-      ownerVerificationStatus: users.verificationStatus,
-      ownerAddressVerified: users.addressVerified,
-      countyName: counties.name,
-    })
-    .from(businesses)
-    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-    .leftJoin(users, eq(users.id, businesses.ownerUserId))
-    .where(
-      and(
-        eq(businesses.status, "active" as any),
-        eq(businesses.publicDiscoveryEnabled, true as any),
-        eq(counties.fips, String((county as any).fipsCode || "")),
-        sql`${businesses.updatedAt} >= ${recencyCutoff}`,
-        keywordPatterns.length
-          ? or(
-              ...keywordPatterns.map(
-                (pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`
+  const runCountyQuery = (includeDiscovery: boolean) =>
+    db
+      .select({
+        id: businesses.id,
+        slug: businesses.slug,
+        name: businesses.name,
+        claimStatus: businesses.claimStatus,
+        ownerUserId: businesses.ownerUserId,
+        updatedAt: businesses.updatedAt,
+        publicDiscoveryEnabled: includeDiscovery
+          ? businesses.publicDiscoveryEnabled
+          : sql<boolean>`false`,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerAddressVerified: users.addressVerified,
+        countyName: counties.name,
+      })
+      .from(businesses)
+      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
+          eq(counties.fips, String((county as any).fipsCode || "")),
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`,
+          keywordPatterns.length
+            ? or(
+                ...keywordPatterns.map(
+                  (pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`
+                )
               )
-            )
-          : sql`true`
+            : sql`true`
+        )
       )
-    )
-    .orderBy(desc(businesses.updatedAt), asc(businesses.name))
-    .limit(200);
+      .orderBy(desc(businesses.updatedAt), asc(businesses.name))
+      .limit(200);
+
+  let rows: any[] = [];
+  try {
+    rows = await runCountyQuery(true);
+  } catch (error) {
+    if (isMissingColumnError(error, "public_discovery_enabled")) {
+      rows = await runCountyQuery(false);
+    } else {
+      console.error("[SEO] Best trade county query failed; serving page without listings", error);
+      rows = [];
+    }
+  }
 
   const items = rows
     .map((r) => {

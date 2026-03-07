@@ -11810,6 +11810,78 @@ export async function registerRoutes(app: any) {
     return roles.has("super_admin");
   };
 
+  const normalizeAdminTradeTagInput = (value: string): string =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
+
+  const toAdminTradeDisplayName = (value: string): string => {
+    const cleaned = String(value || "")
+      .trim()
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ");
+    if (!cleaned) return "Custom Trade";
+    return cleaned
+      .split(" ")
+      .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+      .join(" ")
+      .slice(0, 120);
+  };
+
+  const resolveOrCreateTradeTagSlugs = async (
+    rawTags: string[]
+  ): Promise<{ slugs: string[]; created: string[] }> => {
+    const normalizedInputs = Array.from(
+      new Set(rawTags.map((tag) => normalizeAdminTradeTagInput(tag)).filter(Boolean))
+    );
+
+    const resolvedSlugs: string[] = [];
+    const createdSlugs: string[] = [];
+
+    for (const input of normalizedInputs) {
+      const bySlug = await storage.getTradeBySlug(input);
+      if (bySlug?.slug) {
+        resolvedSlugs.push(String(bySlug.slug));
+        continue;
+      }
+
+      const [byId] = await db.select().from(trades).where(eq(trades.id, input)).limit(1);
+      if (byId?.slug) {
+        resolvedSlugs.push(String(byId.slug));
+        continue;
+      }
+
+      try {
+        const created = await storage.createTrade({
+          name: toAdminTradeDisplayName(input),
+          slug: input,
+        } as any);
+        if (created?.slug) {
+          const slug = String(created.slug);
+          resolvedSlugs.push(slug);
+          createdSlugs.push(slug);
+        }
+      } catch (error: any) {
+        if (String(error?.code || "") === "23505") {
+          const existing = await storage.getTradeBySlug(input);
+          if (existing?.slug) {
+            resolvedSlugs.push(String(existing.slug));
+            continue;
+          }
+        }
+        throw error;
+      }
+    }
+
+    return {
+      slugs: Array.from(new Set(resolvedSlugs)),
+      created: Array.from(new Set(createdSlugs)),
+    };
+  };
+
   // Admin Support Edit: safeguarded "edit user for them" endpoint.
   // Requires explicit reason + confirm phrase. Optionally requires ADMIN_SAFETY_KEY if configured.
   app.post(
@@ -11892,6 +11964,29 @@ export async function registerRoutes(app: any) {
             ? patch.preferencesPatch
             : {};
 
+        const rawSupportTradeTags = Array.isArray(patch.tradeTags)
+          ? patch.tradeTags
+          : Array.isArray(preferencesPatch.tradeTags)
+            ? preferencesPatch.tradeTags
+            : typeof patch.tradeTags === "string"
+              ? String(patch.tradeTags)
+                  .split(",")
+                  .map((v) => v.trim())
+              : typeof preferencesPatch.tradeTags === "string"
+                ? String(preferencesPatch.tradeTags)
+                    .split(",")
+                    .map((v) => v.trim())
+                : [];
+        const supportTradeTagsProvided =
+          patch.tradeTags !== undefined || preferencesPatch.tradeTags !== undefined;
+        const supportTradeTags: string[] = Array.from(
+          new Set(
+            rawSupportTradeTags
+              .map((value: any) => String(value || "").trim())
+              .filter((value: string) => value.length > 0)
+          )
+        );
+
         const allowedUserFields = [
           "firstName",
           "lastName",
@@ -11916,12 +12011,19 @@ export async function registerRoutes(app: any) {
           "profileVisibility",
           "profileSections",
           "colorScheme",
+          "tradeTags",
         ] as const;
 
         const changedUserKeys = allowedUserFields.filter((key) => patch[key] !== undefined);
         const changedPreferenceKeys = allowedPreferenceFields.filter(
           (key) => preferencesPatch[key] !== undefined
         );
+        if (
+          supportTradeTagsProvided &&
+          !changedPreferenceKeys.includes("tradeTags" as (typeof allowedPreferenceFields)[number])
+        ) {
+          changedPreferenceKeys.push("tradeTags");
+        }
         const totalChanged = changedUserKeys.length + changedPreferenceKeys.length;
 
         if (totalChanged === 0) {
@@ -11941,6 +12043,19 @@ export async function registerRoutes(app: any) {
           }
           patch.countyFips = trimmed || undefined;
         }
+
+        if (supportTradeTags.length > 40) {
+          return res.status(400).json({ message: "tradeTags supports up to 40 entries" });
+        }
+        if (supportTradeTags.some((tag) => String(tag).length > 80)) {
+          return res.status(400).json({ message: "Each trade tag must be 80 characters or fewer" });
+        }
+
+        const resolvedSupportTradeTags = supportTradeTagsProvided
+          ? await resolveOrCreateTradeTagSlugs(supportTradeTags)
+          : null;
+        // Never treat tradeTags as direct user table patch field.
+        delete (patch as any).tradeTags;
 
         const existingPreferences: any =
           target && typeof (target as any).preferences === "object" && (target as any).preferences
@@ -11965,12 +12080,52 @@ export async function registerRoutes(app: any) {
         if (changedPreferenceKeys.length > 0) {
           const safePrefs: Record<string, unknown> = {};
           for (const key of changedPreferenceKeys) {
-            safePrefs[key] = preferencesPatch[key];
+            if (key === "tradeTags") {
+              safePrefs[key] = resolvedSupportTradeTags?.slugs || [];
+            } else {
+              safePrefs[key] = preferencesPatch[key];
+            }
           }
           safeUserPatch.preferences = { ...existingPreferences, ...safePrefs };
         }
 
         const updated = await storage.updateUser(target.id, safeUserPatch as any);
+
+        if (resolvedSupportTradeTags) {
+          const existingDeclaration = await storage.getProviderDeclarationForUser(target.id);
+          const existingTradeIds = Array.isArray((existingDeclaration as any)?.tradeIds)
+            ? ((existingDeclaration as any).tradeIds as string[]).filter(Boolean)
+            : [];
+          const mergedTradeIds =
+            resolvedSupportTradeTags.slugs.length > 0
+              ? Array.from(new Set([...existingTradeIds, ...resolvedSupportTradeTags.slugs]))
+              : [];
+
+          const existingAreasRaw = Array.isArray((existingDeclaration as any)?.serviceAreas)
+            ? ((existingDeclaration as any).serviceAreas as Array<{ countyFips?: string }>)
+            : [];
+          const existingCountyFips = existingAreasRaw
+            .map((area) => String(area?.countyFips || "").trim())
+            .filter((v) => /^\d{5}$/.test(v));
+          const patchCountyFips = String(patch.countyFips || "").trim();
+          const mergedCountyFips = Array.from(
+            new Set([
+              ...existingCountyFips,
+              ...(patchCountyFips && /^\d{5}$/.test(patchCountyFips) ? [patchCountyFips] : []),
+            ])
+          );
+
+          await storage.upsertProviderDeclarationForUser({
+            userId: target.id,
+            tradeIds: mergedTradeIds,
+            serviceAreas: mergedCountyFips.map((county) => ({ countyFips: county })),
+            availabilityFlags:
+              (existingDeclaration as any)?.availabilityFlags &&
+              typeof (existingDeclaration as any).availabilityFlags === "object"
+                ? ((existingDeclaration as any).availabilityFlags as any)
+                : undefined,
+          });
+        }
 
         await logAdminAction({
           action: "admin_support_user_edit",
@@ -12067,6 +12222,26 @@ export async function registerRoutes(app: any) {
           rawBusinessTags
             .map((value: any) => String(value || "").trim())
             .filter((value: string) => value.length > 0 && value.length <= 48)
+        )
+      );
+      const rawProvisionTradeTags = Array.isArray(body.tradeTags)
+        ? body.tradeTags
+        : Array.isArray(profileInput?.tradeTags)
+          ? profileInput.tradeTags
+          : typeof body.tradeTags === "string"
+            ? String(body.tradeTags)
+                .split(",")
+                .map((value) => value.trim())
+            : typeof profileInput?.tradeTags === "string"
+              ? String(profileInput.tradeTags)
+                  .split(",")
+                  .map((value) => value.trim())
+              : [];
+      const provisionTradeTags: string[] = Array.from(
+        new Set(
+          rawProvisionTradeTags
+            .map((value: any) => String(value || "").trim())
+            .filter((value: string) => value.length > 0)
         )
       );
 
@@ -12184,6 +12359,16 @@ export async function registerRoutes(app: any) {
           message: "servicesDescription must be 5000 characters or fewer",
         });
       }
+      if (provisionTradeTags.length > 40) {
+        return res.status(400).json({
+          message: "tradeTags supports up to 40 entries",
+        });
+      }
+      if (provisionTradeTags.some((tag) => tag.length > 80)) {
+        return res.status(400).json({
+          message: "Each trade tag must be 80 characters or fewer",
+        });
+      }
 
       // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
       if (["moderator", "ops_admin", "super_admin"].includes(resolvedProvisionRole)) {
@@ -12192,6 +12377,11 @@ export async function registerRoutes(app: any) {
             "Admin roles must be created via the dedicated admin creation flow (not user provisioning).",
         });
       }
+
+      const resolvedProvisionTradeTags =
+        provisionTradeTags.length > 0
+          ? await resolveOrCreateTradeTagSlugs(provisionTradeTags)
+          : { slugs: [], created: [] };
 
       let user = await storage.getUserByEmail(email);
       const created = !user;
@@ -12213,6 +12403,9 @@ export async function registerRoutes(app: any) {
         }
         if (Object.keys(normalizedProfileSections).length > 0) {
           initialPreferences.profileSections = normalizedProfileSections;
+        }
+        if (resolvedProvisionTradeTags.slugs.length > 0) {
+          initialPreferences.tradeTags = resolvedProvisionTradeTags.slugs;
         }
 
         user = await storage.createUser({
@@ -12292,6 +12485,19 @@ export async function registerRoutes(app: any) {
             },
           };
         }
+        if (resolvedProvisionTradeTags.slugs.length > 0) {
+          const currentPreferences = (patch.preferences ||
+            (user as any).preferences ||
+            {} ||
+            {}) as Record<string, any>;
+          const existingTradeTags = Array.isArray(currentPreferences.tradeTags)
+            ? (currentPreferences.tradeTags as string[]).map((value) => String(value || ""))
+            : [];
+          patch.preferences = {
+            ...currentPreferences,
+            tradeTags: dedupeStrings([...existingTradeTags, ...resolvedProvisionTradeTags.slugs]),
+          };
+        }
         if (resolvedProvisionRole) {
           const currentRoles: string[] = Array.isArray((user as any).roles)
             ? ((user as any).roles as string[]).filter(Boolean)
@@ -12312,6 +12518,40 @@ export async function registerRoutes(app: any) {
           patch.updatedAt = new Date();
           user = (await storage.updateUser(user.id, patch)) || user;
         }
+      }
+
+      if (resolvedProvisionTradeTags.slugs.length > 0) {
+        const existingDeclaration = await storage.getProviderDeclarationForUser(user.id);
+        const existingTradeIds = Array.isArray((existingDeclaration as any)?.tradeIds)
+          ? ((existingDeclaration as any).tradeIds as string[]).filter(Boolean)
+          : [];
+        const mergedTradeIds = Array.from(
+          new Set([...existingTradeIds, ...resolvedProvisionTradeTags.slugs])
+        );
+
+        const existingAreasRaw = Array.isArray((existingDeclaration as any)?.serviceAreas)
+          ? ((existingDeclaration as any).serviceAreas as Array<{ countyFips?: string }>)
+          : [];
+        const existingCountyFips = existingAreasRaw
+          .map((area) => String(area?.countyFips || "").trim())
+          .filter((value) => /^\d{5}$/.test(value));
+        const mergedCountyFips = Array.from(
+          new Set([
+            ...existingCountyFips,
+            ...(countyFips && /^\d{5}$/.test(countyFips) ? [countyFips] : []),
+          ])
+        );
+
+        await storage.upsertProviderDeclarationForUser({
+          userId: user.id,
+          tradeIds: mergedTradeIds,
+          serviceAreas: mergedCountyFips.map((county) => ({ countyFips: county })),
+          availabilityFlags:
+            (existingDeclaration as any)?.availabilityFlags &&
+            typeof (existingDeclaration as any).availabilityFlags === "object"
+              ? ((existingDeclaration as any).availabilityFlags as any)
+              : undefined,
+        });
       }
 
       let provisionedProfile: any = null;
@@ -12474,6 +12714,8 @@ export async function registerRoutes(app: any) {
         businessSlug: provisionedBusiness?.slug || null,
         provisionUserTypes,
         businessTags,
+        resolvedTradeTags: resolvedProvisionTradeTags.slugs,
+        createdTradeTags: resolvedProvisionTradeTags.created,
         ...debug,
       });
     } catch (error: any) {

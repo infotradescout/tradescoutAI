@@ -126,6 +126,13 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   return html;
 }
 
+function isMissingColumnError(error: unknown, columnName: string): boolean {
+  const err = error as any;
+  const code = String(err?.code || "");
+  const message = String(err?.message || "");
+  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
+}
+
 export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Promise<string | null> {
   const stateCode = String(opts.stateCode || "").toUpperCase();
   const countySlug = String(opts.countySlug || "")
@@ -156,33 +163,48 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
   );
 
   // Pull a recency-bounded slice of businesses in this county and derive trade presence in JS.
-  const rows = await db
-    .select({
-      id: businesses.id,
-      slug: businesses.slug,
-      name: businesses.name,
-      claimStatus: businesses.claimStatus,
-      ownerUserId: businesses.ownerUserId,
-      updatedAt: businesses.updatedAt,
-      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-      profileData: businesses.profileData,
-      ownerVerificationStatus: users.verificationStatus,
-      ownerAddressVerified: users.addressVerified,
-    })
-    .from(businesses)
-    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-    .leftJoin(users, eq(users.id, businesses.ownerUserId))
-    .where(
-      and(
-        eq(businesses.status, "active" as any),
-        eq(businesses.publicDiscoveryEnabled, true as any),
-        eq(counties.fips, String((county as any).fipsCode || "")),
-        sql`${businesses.updatedAt} >= ${recencyCutoff}`
+  const runCountyQuery = (includeDiscovery: boolean) =>
+    db
+      .select({
+        id: businesses.id,
+        slug: businesses.slug,
+        name: businesses.name,
+        claimStatus: businesses.claimStatus,
+        ownerUserId: businesses.ownerUserId,
+        updatedAt: businesses.updatedAt,
+        publicDiscoveryEnabled: includeDiscovery
+          ? businesses.publicDiscoveryEnabled
+          : sql<boolean>`false`,
+        profileData: businesses.profileData,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerAddressVerified: users.addressVerified,
+      })
+      .from(businesses)
+      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
+      .where(
+        and(
+          eq(businesses.status, "active" as any),
+          ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
+          eq(counties.fips, String((county as any).fipsCode || "")),
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`
+        )
       )
-    )
-    .orderBy(desc(businesses.updatedAt), asc(businesses.slug))
-    .limit(5000);
+      .orderBy(desc(businesses.updatedAt), asc(businesses.slug))
+      .limit(5000);
+
+  let rows: any[] = [];
+  try {
+    rows = await runCountyQuery(true);
+  } catch (error) {
+    if (isMissingColumnError(error, "public_discovery_enabled")) {
+      rows = await runCountyQuery(false);
+    } else {
+      console.error("[SEO] County directory query failed; serving page without listings", error);
+      rows = [];
+    }
+  }
 
   const tradeCounts = new Map<string, number>();
   const tradeLastmod = new Map<string, Date>();
