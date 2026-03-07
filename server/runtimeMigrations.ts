@@ -137,16 +137,28 @@ async function schemaLooksInitialized(): Promise<boolean> {
     users_reg: string | null;
     conversations_reg: string | null;
     marketplace_conversations_reg: string | null;
+    address_verifications_reg: string | null;
+    work_requests_reg: string | null;
+    address_verification_status_type: string | null;
   }>(
     `select
       to_regclass('public.users') as users_reg,
       to_regclass('public.conversations') as conversations_reg,
-      to_regclass('public.marketplace_conversations') as marketplace_conversations_reg`
+      to_regclass('public.marketplace_conversations') as marketplace_conversations_reg,
+      to_regclass('public.address_verifications') as address_verifications_reg,
+      to_regclass('public.work_requests') as work_requests_reg,
+      to_regtype('public.address_verification_status')::text as address_verification_status_type`
   );
   const row = result.rows?.[0];
-  return (
+  const hasLegacyBaseSchema =
     Boolean(row?.users_reg) &&
-    (Boolean(row?.marketplace_conversations_reg) || Boolean(row?.conversations_reg))
+    (Boolean(row?.address_verifications_reg) ||
+      Boolean(row?.work_requests_reg) ||
+      Boolean(row?.address_verification_status_type));
+  return (
+    hasLegacyBaseSchema ||
+    (Boolean(row?.users_reg) &&
+      (Boolean(row?.marketplace_conversations_reg) || Boolean(row?.conversations_reg)))
   );
 }
 

@@ -25,5 +25,9 @@ describe("admin direct-connect provisioning contract", () => {
     expect(source).toContain("resolveOrCreateAdminTrade");
     expect(source).toContain("resolvedTradeId");
     expect(source).toContain("createdTradeId");
+    expect(source).toContain('deliveryMethods: ["in_app"]');
+    expect(source).toContain("Failed to notify target user for admin-created request");
+    expect(source).toContain('console.info("[direct-connect] Admin-created request"');
+    expect(source).toContain("emailResult.skipped !== true");
   });
 });

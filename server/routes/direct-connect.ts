@@ -1271,7 +1271,7 @@ export function registerDirectConnectRoutes(app: Express) {
               }
               htmlParts.push("<p>If you did not expect this, you can ignore this email.</p>");
 
-              await emailService.sendEmail({
+              const emailResult = await emailService.sendEmail({
                 to: targetEmailForNotification,
                 subject: "Your TradeScout Direct Connect request is ready",
                 html: htmlParts.join("\n"),
@@ -1283,9 +1283,9 @@ export function registerDirectConnectRoutes(app: Express) {
                   .join("\n"),
                 purpose: "account_creation",
               });
-              setupEmailSent = true;
+              setupEmailSent = emailResult.skipped !== true;
             } else {
-              await emailService.sendEmail({
+              const emailResult = await emailService.sendEmail({
                 to: targetEmailForNotification,
                 subject: "You have a new TradeScout Direct Connect request",
                 html: [
@@ -1296,7 +1296,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 text: `Open Direct Connect: ${publicBase}/direct-connect`,
                 purpose: "notification",
               });
-              requestEmailSent = true;
+              requestEmailSent = emailResult.skipped !== true;
             }
           } else if (process.env.NODE_ENV !== "production") {
             // In local/dev environments return links for manual testing.
@@ -1372,6 +1372,33 @@ export function registerDirectConnectRoutes(app: Express) {
           } catch (e) {
             console.warn("[direct-connect] Failed to record admin-created request event", e);
           }
+
+          try {
+            await notificationService.createNotification({
+              userId: String(targetUser.id),
+              type: "new_project_request",
+              title: "A Direct Connect request was created for you",
+              message: `Open Direct Connect to review: ${created.title}`,
+              actionUrl: "/direct-connect",
+              actionText: "Open Direct Connect",
+              iconName: "briefcase",
+              iconColor: "orange",
+              deliveryMethods: ["in_app"],
+            });
+          } catch (e) {
+            console.error(
+              "[direct-connect] Failed to notify target user for admin-created request",
+              e
+            );
+          }
+
+          console.info("[direct-connect] Admin-created request", {
+            requestId: created.id,
+            targetUserId: String(targetUser.id),
+            targetEmail: targetEmailForNotification,
+            setupEmailSent,
+            requestEmailSent,
+          });
         }
 
         // Staff-directed explicit targeting preserves individual choice for this request.
