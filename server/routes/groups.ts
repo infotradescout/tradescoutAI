@@ -4,7 +4,7 @@ import { storage } from "../storage";
 import { communityGroups, counties, groupMembers } from "../../shared/schema";
 import { and, eq } from "drizzle-orm";
 
-async function ensureCountyGroupMembershipForUser(userId: string): Promise<void> {
+export async function ensureCountyGroupMembershipForUser(userId: string): Promise<void> {
   const user = await storage.getUser(userId);
   if (!user) return;
 

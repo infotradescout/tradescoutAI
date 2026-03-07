@@ -18361,6 +18361,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/community/groups", async (req: any, res: any) => {
     try {
       const authUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (authUserId) {
+        try {
+          const { ensureCountyGroupMembershipForUser } = await import("./routes/groups");
+          await ensureCountyGroupMembershipForUser(String(authUserId));
+        } catch (membershipError) {
+          console.warn(
+            "[community/groups] failed to enforce county auto-membership",
+            membershipError
+          );
+        }
+      }
       const user = authUserId ? await storage.getUser(authUserId) : null;
 
       const hasExplicitLocationFilters =
