@@ -92,7 +92,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Admin audit log (super/head admin only)
+  // Admin audit log (super admin only)
   // ---------------------------------------------------------------------------
   app.get(
     "/api/admin/audit-log",
@@ -458,7 +458,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Admin county heatmap: metrics by county FIPS (super/head admin only)
+  // Admin county heatmap: metrics by county FIPS (super admin only)
   // ---------------------------------------------------------------------------
   app.get(
     "/api/admin/heatmap/users-by-county",
@@ -522,7 +522,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Seed states + counties from built-in dataset (super/head admin only)
+  // Seed states + counties from built-in dataset (super admin only)
   // Non-destructive: inserts missing rows, never deletes.
   // ---------------------------------------------------------------------------
   app.post(
@@ -591,7 +591,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Admin county metrics refresh (super/head admin only)
+  // Admin county metrics refresh (super admin only)
   // ---------------------------------------------------------------------------
   const lastGeoMetricsRefreshByUser: Record<string, number> = {};
 
@@ -644,7 +644,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Admin county coverage summary (super/head admin only)
+  // Admin county coverage summary (super admin only)
   // ---------------------------------------------------------------------------
   app.get(
     "/api/admin/geo/coverage",
@@ -684,7 +684,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Admin county notes (super/head admin only)
+  // Admin county notes (super admin only)
   // ---------------------------------------------------------------------------
   const COUNTY_NOTE_CATEGORIES = [
     "affiliate",
@@ -874,7 +874,7 @@ export function mountAdminRoutes(app: any) {
   );
 
   // ---------------------------------------------------------------------------
-  // Admin county entities (super/head admin only)
+  // Admin county entities (super admin only)
   // ---------------------------------------------------------------------------
   app.get(
     "/api/admin/geo/counties/:fips/entities",

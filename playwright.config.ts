@@ -5,8 +5,19 @@ import dotenv from "dotenv";
 // Load test environment variables
 dotenv.config({ path: "tests/.env" });
 
-const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5000";
+const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5002";
+process.env.BASE_URL = baseURL;
+process.env.E2E_BASE_URL = baseURL;
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const baseUrlPort =
+  (() => {
+    try {
+      const parsed = new URL(baseURL);
+      return parsed.port && parsed.port.trim().length > 0 ? parsed.port : "5000";
+    } catch {
+      return "5000";
+    }
+  })();
 
 const serverCommand = hasTestDb
   ? "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts"
@@ -19,7 +30,6 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   retries: process.env.CI ? 2 : 0,
 
-  /*
   webServer: {
     command: serverCommand,
     // Use the API health endpoint so Playwright waits for the real
@@ -28,10 +38,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
-      PORT: "5002",
+      PORT: baseUrlPort,
     },
   },
-  */
 
   globalSetup: hasTestDb ? "./tests/global-setup.ts" : undefined,
 

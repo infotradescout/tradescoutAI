@@ -82,7 +82,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "moderator", // Basic moderation powers
   "ops_admin", // Operations and platform management
   "super_admin", // Ultimate platform authority (admin management included)
-  "head_admin", // LEGACY: treat as super_admin (do not assign)
+  "head_admin", // LEGACY: normalized to super_admin at runtime
 ]);
 
 // Story template categories for professional story generation

@@ -15,7 +15,7 @@ const routeDir = path.dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = path.join(routeDir, "..", "cache", "manual", "system_prompt.md");
 
 /**
- * Middleware to check if user is super admin or head admin
+ * Middleware to check if user is super admin
  */
 function requireSuperAdmin(req: Request, res: Response, next: () => void) {
   const user = (req as any).user as AuthenticatedUser | undefined;

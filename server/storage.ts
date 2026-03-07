@@ -1622,21 +1622,83 @@ export class DatabaseStorage implements IStorage {
     ownerUserId: string,
     businessId: string
   ): Promise<Business | undefined> {
-    const rows = await db
-      .select()
-      .from(businesses)
-      .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
-      .limit(1);
-    return rows[0];
+    try {
+      const rows = await db
+        .select()
+        .from(businesses)
+        .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
+        .limit(1);
+      return rows[0];
+    } catch (error: any) {
+      const isMissingDiscoveryColumn =
+        String(error?.code || "") === "42703" &&
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("public_discovery_enabled");
+      if (!isMissingDiscoveryColumn) throw error;
+
+      const fallback = (await db.execute(sql`
+        select
+          b.id,
+          b.name,
+          b.slug,
+          b.type,
+          b.owner_user_id as "ownerUserId",
+          b.role_context as "roleContext",
+          b.profile_data as "profileData",
+          b.claim_status as "claimStatus",
+          true as "publicDiscoveryEnabled",
+          b.sources,
+          b.status,
+          b.created_at as "createdAt",
+          b.updated_at as "updatedAt"
+        from businesses b
+        where b.id = ${businessId}
+          and b.owner_user_id = ${ownerUserId}
+        limit 1
+      `)) as any;
+      return Array.isArray(fallback?.rows) ? (fallback.rows[0] as Business | undefined) : undefined;
+    }
   }
 
   async getBusinessBySlugPublic(slug: string): Promise<Business | undefined> {
-    const rows = await db
-      .select()
-      .from(businesses)
-      .where(and(eq(businesses.slug, slug), ne(businesses.status, "suspended" as any)))
-      .limit(1);
-    return rows[0];
+    try {
+      const rows = await db
+        .select()
+        .from(businesses)
+        .where(and(eq(businesses.slug, slug), ne(businesses.status, "suspended" as any)))
+        .limit(1);
+      return rows[0];
+    } catch (error: any) {
+      const isMissingDiscoveryColumn =
+        String(error?.code || "") === "42703" &&
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("public_discovery_enabled");
+      if (!isMissingDiscoveryColumn) throw error;
+
+      const fallback = (await db.execute(sql`
+        select
+          b.id,
+          b.name,
+          b.slug,
+          b.type,
+          b.owner_user_id as "ownerUserId",
+          b.role_context as "roleContext",
+          b.profile_data as "profileData",
+          b.claim_status as "claimStatus",
+          true as "publicDiscoveryEnabled",
+          b.sources,
+          b.status,
+          b.created_at as "createdAt",
+          b.updated_at as "updatedAt"
+        from businesses b
+        where b.slug = ${slug}
+          and b.status <> 'suspended'
+        limit 1
+      `)) as any;
+      return Array.isArray(fallback?.rows) ? (fallback.rows[0] as Business | undefined) : undefined;
+    }
   }
 
   async getBusinessPublicById(businessId: string): Promise<PublicBusinessRecord | undefined> {
@@ -2585,8 +2647,8 @@ export class DatabaseStorage implements IStorage {
       .toLowerCase();
     if (!normalizedRole) return undefined;
 
-    // Backward-compat: treat "head_admin" as "super_admin" (super_admin is the highest).
-    if (normalizedRole === "head_admin") normalizedRole = "super_admin";
+    // Backward-compat: treat "super_admin" as "super_admin" (super_admin is the highest).
+    if (normalizedRole === "super_admin") normalizedRole = "super_admin";
 
     const [user] =
       normalizedRole === "super_admin"
@@ -2594,7 +2656,7 @@ export class DatabaseStorage implements IStorage {
             .select()
             .from(users)
             .where(
-              sql`${users.role}::text = ${normalizedRole} OR lower(${users.role}::text) in ('owner','head_admin')`
+              sql`${users.role}::text = ${normalizedRole} OR lower(${users.role}::text) in ('owner','head_admin','super_admin')`
             )
             .limit(1)
         : await db

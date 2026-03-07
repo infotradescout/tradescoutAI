@@ -644,7 +644,9 @@ export function registerSocialRoutes(app: Express) {
       const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
       const roleToken = rawRole.trim().toLowerCase();
       const normalizedRole =
-        roleToken === "head_admin" || roleToken === "owner" ? "super_admin" : roleToken;
+        roleToken === "super_admin" || roleToken === "head_admin" || roleToken === "owner"
+          ? "super_admin"
+          : roleToken;
       const canModerate =
         normalizedRole &&
         [

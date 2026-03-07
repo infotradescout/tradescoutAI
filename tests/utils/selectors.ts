@@ -140,14 +140,14 @@ export function hasStubContent(text: string): boolean {
   const stubPatterns = [
     /TODO/i,
     /coming soon/i,
-    /placeholder/i,
-    /stub/i,
+    /\bplaceholder\b/i,
+    /\bstub\b/i,
     /unimplemented/i,
     /wip/i,
     /work in progress/i,
-    /fixture/i,
-    /mock/i,
-    /sample/i,
+    /\bfixture data\b/i,
+    /\bmock data\b/i,
+    /\bsample data\b/i,
   ];
   return stubPatterns.some(pattern => pattern.test(text));
 }

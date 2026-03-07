@@ -1,5 +1,5 @@
 # Admin System Complete Inventory
-## Every Admin, Super Admin, Head Admin Component in TradeScout
+## Every Admin, Super Admin, super admin Component in TradeScout
 
 **Last Updated**: Jan 1, 2026  
 **Scope**: Comprehensive audit of all admin-related code, routes, components, roles, and permissions
@@ -20,7 +20,7 @@ userRoleEnum = pgEnum('user_role', [
   'moderator',        // Basic moderation powers
   'ops_admin',        // Operations and platform management  
   'super_admin',      // Full platform control except user management
-  'head_admin'        // Ultimate authority - can manage all users and admins
+  'super_admin'        // Ultimate authority - can manage all users and admins
 ]);
 ```
 
@@ -31,9 +31,9 @@ userRoleEnum = pgEnum('user_role', [
 | **moderator** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **ops_admin** | Limited | ❌ | ✅ | ✅ | Limited | ❌ |
 | **super_admin** | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **head_admin** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **super_admin** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-**Critical Rule**: Only `head_admin` can modify admin roles or create new admins
+**Critical Rule**: Only `super_admin` can modify admin roles or create new admins
 
 ---
 
@@ -47,27 +47,27 @@ userRoleEnum = pgEnum('user_role', [
 
 | Route | Page File | Component | Status | Auth Level |
 |-------|-----------|-----------|--------|------------|
-| `/admin` | admin.tsx | SuperAdminDashboard | ✅ Production | head_admin, super_admin |
-| `/admin/users` | admin-users.tsx | AdminUsers | ✅ Production | head_admin, super_admin |
-| `/admin/user-management` | AdminUserManagement.tsx | AdminUserManagement | ✅ Production | head_admin, super_admin |
-| `/admin/verification` | admin-address-verifications.tsx | AdminAddressVerifications | ✅ Production | head_admin, super_admin |
-| `/admin/moderation` | content-moderation.tsx | ContentModeration | ✅ Production | head_admin, super_admin, moderator |
-| `/admin/impersonate` | admin-workspace.tsx | AdminWorkspaceContent | ✅ Production | head_admin, ops_admin |
+| `/admin` | admin.tsx | SuperAdminDashboard | ✅ Production | super_admin, super_admin |
+| `/admin/users` | admin-users.tsx | AdminUsers | ✅ Production | super_admin, super_admin |
+| `/admin/user-management` | AdminUserManagement.tsx | AdminUserManagement | ✅ Production | super_admin, super_admin |
+| `/admin/verification` | admin-address-verifications.tsx | AdminAddressVerifications | ✅ Production | super_admin, super_admin |
+| `/admin/moderation` | content-moderation.tsx | ContentModeration | ✅ Production | super_admin, super_admin, moderator |
+| `/admin/impersonate` | admin-workspace.tsx | AdminWorkspaceContent | ✅ Production | super_admin, ops_admin |
 
 #### Geo Intelligence
 
 | Route | Page File | Component | Status | Auth Level |
 |-------|-----------|-----------|--------|------------|
-| `/admin/geo/counties` | (UserHeatmap component) | UserHeatmap | ✅ Production | head_admin, super_admin |
-| `/admin/geo/coverage` | admin-geo-coverage.tsx | AdminGeoCoverageConsole | ✅ Production | head_admin, super_admin |
+| `/admin/geo/counties` | (UserHeatmap component) | UserHeatmap | ✅ Production | super_admin, super_admin |
+| `/admin/geo/coverage` | admin-geo-coverage.tsx | AdminGeoCoverageConsole | ✅ Production | super_admin, super_admin |
 
 #### Growth & Marketplace
 
 | Route | Page File | Component | Status | Auth Level |
 |-------|-----------|-----------|--------|------------|
-| `/admin/listings` | admin-listings.tsx | AdminListings | ✅ Production | head_admin, super_admin, ops_admin |
-| `/admin/ads` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | head_admin, super_admin |
-| `/admin/prizes` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | head_admin, super_admin |
+| `/admin/listings` | admin-listings.tsx | AdminListings | ✅ Production | super_admin, super_admin, ops_admin |
+| `/admin/ads` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin, super_admin |
+| `/admin/prizes` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin, super_admin |
 | `/admin/promotions` | admin-promotions.tsx | AdminPromotions | ⚠️ Partial | super_admin only |
 
 #### Platform Ops
@@ -77,26 +77,26 @@ userRoleEnum = pgEnum('user_role', [
 | `/admin/site-settings` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin only |
 | `/admin/contractors` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin only |
 | `/admin/notifications` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin only |
-| `/admin/errors` | admin-error-reports.tsx | AdminErrorReports | ✅ Production | head_admin, super_admin |
-| `/admin/testing-controls` | admin-testing-controls.tsx | AdminTestingControls | ✅ Production | head_admin, super_admin |
+| `/admin/errors` | admin-error-reports.tsx | AdminErrorReports | ✅ Production | super_admin, super_admin |
+| `/admin/testing-controls` | admin-testing-controls.tsx | AdminTestingControls | ✅ Production | super_admin, super_admin |
 
 #### Intelligence & Automation
 
 | Route | Page File | Component | Status | Auth Level |
 |-------|-----------|-----------|--------|------------|
-| `/admin/ai-monitoring` | UIMonitoringDashboard (component) | UIMonitoringDashboard | ⚠️ No Data | head_admin, super_admin |
-| `/admin/ai-fixes` | AICodeFixingDashboard (component) | AICodeFixingDashboard | ⚠️ No Data | head_admin, super_admin |
-| `/admin/pricing` | admin-pricing-analytics.tsx | AdminPricingAnalytics | ⚠️ Stub | head_admin, ops_admin |
+| `/admin/ai-monitoring` | UIMonitoringDashboard (component) | UIMonitoringDashboard | ⚠️ No Data | super_admin, super_admin |
+| `/admin/ai-fixes` | AICodeFixingDashboard (component) | AICodeFixingDashboard | ⚠️ No Data | super_admin, super_admin |
+| `/admin/pricing` | admin-pricing-analytics.tsx | AdminPricingAnalytics | ⚠️ Stub | super_admin, ops_admin |
 | `/admin/llm` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin only |
 | `/admin/knowledge` | admin-panel.tsx (tab) | AdminPanelTabRedirect | ⚠️ Legacy | super_admin only |
-| `/admin/system-prompt` | PromptAdminPage.tsx | PromptAdminPage | ✅ Production | head_admin, super_admin |
+| `/admin/system-prompt` | PromptAdminPage.tsx | PromptAdminPage | ✅ Production | super_admin, super_admin |
 
 #### Finance
 
 | Route | Page File | Component | Status | Auth Level |
 |-------|-----------|-----------|--------|------------|
 | `/admin/finance` | FinanceLedgerPanel (component) | FinanceLedgerPanel | ✅ Production | super_admin only |
-| `/admin/platform-analytics` | platform-analytics.tsx | PlatformAnalytics | ✅ Production | head_admin, super_admin |
+| `/admin/platform-analytics` | platform-analytics.tsx | PlatformAnalytics | ✅ Production | super_admin, super_admin |
 
 ### 2.2 Hidden/Unmapped Routes (Not in Main Nav)
 
@@ -179,7 +179,7 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| GET | `/api/admin/health` | head_admin, super_admin | Health check | ✅ |
+| GET | `/api/admin/health` | super_admin, super_admin | Health check | ✅ |
 | GET | `/api/admin/heatmap` | authenticated | User heatmap data | ✅ |
 | GET | `/api/admin/heatmap/users-by-county` | authenticated | Users per county | ✅ |
 
@@ -187,16 +187,16 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| POST | `/api/admin/geo/metrics/refresh` | head_admin, super_admin | Refresh county metrics | ✅ |
-| GET | `/api/admin/geo/coverage` | head_admin, super_admin | Coverage overview | ✅ |
-| GET | `/api/admin/geo/counties/:fips/notes` | head_admin, super_admin | County notes | ✅ |
-| POST | `/api/admin/geo/counties/:fips/notes` | head_admin, super_admin | Create county note | ✅ |
-| PUT | `/api/admin/geo/notes/:noteId` | head_admin, super_admin | Update county note | ✅ |
-| DELETE | `/api/admin/geo/notes/:noteId` | head_admin, super_admin | Delete county note | ✅ |
-| GET | `/api/admin/geo/counties/:fips/entities` | head_admin, super_admin | County entities (TMs, affiliates) | ✅ |
-| POST | `/api/admin/geo/counties/:fips/entities` | head_admin, super_admin | Assign entity to county | ✅ |
-| PUT | `/api/admin/geo/entities/:entityId` | head_admin, super_admin | Update entity | ✅ |
-| DELETE | `/api/admin/geo/entities/:entityId` | head_admin, super_admin | Remove entity | ✅ |
+| POST | `/api/admin/geo/metrics/refresh` | super_admin, super_admin | Refresh county metrics | ✅ |
+| GET | `/api/admin/geo/coverage` | super_admin, super_admin | Coverage overview | ✅ |
+| GET | `/api/admin/geo/counties/:fips/notes` | super_admin, super_admin | County notes | ✅ |
+| POST | `/api/admin/geo/counties/:fips/notes` | super_admin, super_admin | Create county note | ✅ |
+| PUT | `/api/admin/geo/notes/:noteId` | super_admin, super_admin | Update county note | ✅ |
+| DELETE | `/api/admin/geo/notes/:noteId` | super_admin, super_admin | Delete county note | ✅ |
+| GET | `/api/admin/geo/counties/:fips/entities` | super_admin, super_admin | County entities (TMs, affiliates) | ✅ |
+| POST | `/api/admin/geo/counties/:fips/entities` | super_admin, super_admin | Assign entity to county | ✅ |
+| PUT | `/api/admin/geo/entities/:entityId` | super_admin, super_admin | Update entity | ✅ |
+| DELETE | `/api/admin/geo/entities/:entityId` | super_admin, super_admin | Remove entity | ✅ |
 
 #### Feature Flags
 
@@ -211,9 +211,9 @@ AdminHeader.tsx                    ✅ Top header
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
 | GET | `/api/admin/users` | requireAdmin | List all users | ✅ |
-| PUT | `/api/admin/users/:userId/roles` | head_admin, super_admin | Update user roles | ✅ |
-| POST | `/api/admin/users/:userId/badges` | head_admin, super_admin | Award user badge | ✅ |
-| POST | `/api/admin/users/:userId/impersonate` | head_admin, ops_admin | Impersonate user | ✅ |
+| PUT | `/api/admin/users/:userId/roles` | super_admin, super_admin | Update user roles | ✅ |
+| POST | `/api/admin/users/:userId/badges` | super_admin, super_admin | Award user badge | ✅ |
+| POST | `/api/admin/users/:userId/impersonate` | super_admin, ops_admin | Impersonate user | ✅ |
 
 #### Affiliate Management
 
@@ -252,22 +252,22 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| GET | `/api/admin/devices` | head_admin | List devices | ✅ |
-| GET | `/api/admin/pending-devices` | head_admin | Pending devices | ✅ |
-| POST | `/api/admin/approve-device` | head_admin | Approve device | ✅ |
-| POST | `/api/admin/revoke-device` | head_admin | Revoke device | ✅ |
+| GET | `/api/admin/devices` | super_admin | List devices | ✅ |
+| GET | `/api/admin/pending-devices` | super_admin | Pending devices | ✅ |
+| POST | `/api/admin/approve-device` | super_admin | Approve device | ✅ |
+| POST | `/api/admin/revoke-device` | super_admin | Revoke device | ✅ |
 
 #### Account Creation
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| POST | `/api/admin/create-account` | head_admin, ops_admin | Create admin account | ✅ |
+| POST | `/api/admin/create-account` | super_admin, ops_admin | Create admin account | ✅ |
 
 #### Impersonation
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| POST | `/api/admin/impersonate` | head_admin, ops_admin | Start impersonation | ✅ |
+| POST | `/api/admin/impersonate` | super_admin, ops_admin | Start impersonation | ✅ |
 | POST | `/api/admin/stop-impersonation` | authenticated | Stop impersonation | ✅ |
 
 #### Notifications
@@ -299,10 +299,10 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| GET | `/api/admin/pricing-analytics` | head_admin, ops_admin | Get pricing analytics | ⚠️ Stub |
-| POST | `/api/admin/pricing-analytics/update-calculator` | head_admin, ops_admin | Update calculator | ⚠️ Stub |
-| GET | `/api/admin/pricing-analytics/export` | head_admin, ops_admin | Export pricing data | ⚠️ Stub |
-| GET | `/api/admin/pricing-analytics/recommendations` | head_admin, ops_admin | Pricing recommendations | ⚠️ Stub |
+| GET | `/api/admin/pricing-analytics` | super_admin, ops_admin | Get pricing analytics | ⚠️ Stub |
+| POST | `/api/admin/pricing-analytics/update-calculator` | super_admin, ops_admin | Update calculator | ⚠️ Stub |
+| GET | `/api/admin/pricing-analytics/export` | super_admin, ops_admin | Export pricing data | ⚠️ Stub |
+| GET | `/api/admin/pricing-analytics/recommendations` | super_admin, ops_admin | Pricing recommendations | ⚠️ Stub |
 
 #### Stats & Analytics
 
@@ -315,15 +315,15 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| GET | `/api/admin/contractor-applications` | head_admin, ops_admin | List applications | ✅ |
-| PATCH | `/api/admin/contractor-applications/:id` | head_admin, ops_admin | Update application | ✅ |
+| GET | `/api/admin/contractor-applications` | super_admin, ops_admin | List applications | ✅ |
+| PATCH | `/api/admin/contractor-applications/:id` | super_admin, ops_admin | Update application | ✅ |
 
 #### Recommendations
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| GET | `/api/admin/recommendations/pending` | head_admin, ops_admin, moderator | Pending recommendations | ✅ |
-| PATCH | `/api/admin/recommendations/:id/moderate` | head_admin, ops_admin, moderator | Moderate recommendation | ✅ |
+| GET | `/api/admin/recommendations/pending` | super_admin, ops_admin, moderator | Pending recommendations | ✅ |
+| PATCH | `/api/admin/recommendations/:id/moderate` | super_admin, ops_admin, moderator | Moderate recommendation | ✅ |
 
 #### Professional Verification
 
@@ -457,7 +457,7 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| Various | `/api/admin/authority/*` | head_admin, super_admin | Authority diagnostics | ⚠️ Partial |
+| Various | `/api/admin/authority/*` | super_admin, super_admin | Authority diagnostics | ⚠️ Partial |
 
 **Mount Point**: `app.use("/api/admin/authority", router)`
 
@@ -465,7 +465,7 @@ AdminHeader.tsx                    ✅ Top header
 
 | Method | Endpoint | Auth | Purpose | Status |
 |--------|----------|------|---------|--------|
-| Various | `/api/admin-control/*` | head_admin, super_admin | Feature flags & kill switches | ❌ Stub |
+| Various | `/api/admin-control/*` | super_admin, super_admin | Feature flags & kill switches | ❌ Stub |
 
 **Mount Point**: `app.use("/api/admin-control", adminControlRouter)`
 
@@ -497,7 +497,7 @@ const isAdmin = (req: any, res: any, next: any) => {
     return res.status(401).send({ error: "Not authenticated" });
   }
   
-  const adminRoles = ['admin', 'moderator', 'ops_admin', 'super_admin', 'head_admin'];
+  const adminRoles = ['admin', 'moderator', 'ops_admin', 'super_admin', 'super_admin'];
   if (!adminRoles.includes(user.role)) {
     return res.status(403).send({ error: "Admin access required" });
   }
@@ -505,14 +505,14 @@ const isAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
-// Super admin check (super_admin or head_admin only)
+// Super admin check (super_admin or super_admin only)
 const isSuperAdmin = (req: any, res: any, next: any) => {
   const user = req.user;
   if (!user) {
     return res.status(401).send({ error: "Not authenticated" });
   }
   
-  if (user.role !== 'super_admin' && user.role !== 'head_admin') {
+  if (user.role !== 'super_admin' && user.role !== 'super_admin') {
     return res.status(403).send({ error: "Super admin access required" });
   }
   
@@ -541,7 +541,7 @@ const requireRole = (allowedRoles: string[]) => {
 
 // Require any admin role
 const requireAdmin = (req: any, res: any, next: any) => {
-  const adminRoles = ['admin', 'moderator', 'ops_admin', 'super_admin', 'head_admin'];
+  const adminRoles = ['admin', 'moderator', 'ops_admin', 'super_admin', 'super_admin'];
   return requireRole(adminRoles)(req, res, next);
 };
 ```
@@ -553,13 +553,13 @@ const requireAdmin = (req: any, res: any, next: any) => {
 app.get('/api/admin/users', isAuthenticated, requireAdmin, handler);
 
 // Pattern 2: Specific roles
-app.get('/api/admin/devices', isAuthenticated, requireRole(['head_admin']), handler);
+app.get('/api/admin/devices', isAuthenticated, requireRole(['super_admin']), handler);
 
 // Pattern 3: Super admin only
 app.post('/api/admin/promotions', isAuthenticated, isSuperAdmin, handler);
 
 // Pattern 4: Multiple roles
-app.post('/api/admin/create-account', isAuthenticated, requireRole(['head_admin', 'ops_admin']), handler);
+app.post('/api/admin/create-account', isAuthenticated, requireRole(['super_admin', 'ops_admin']), handler);
 
 // Pattern 5: Basic isAdmin helper
 app.get('/api/admin/verifications', isAuthenticated, isAdmin, handler);
@@ -575,7 +575,7 @@ export interface User {
   username: string;
   email?: string;
   role: 'homeowner' | 'contractor' | 'admin' | 'moderator' | 
-         'ops_admin' | 'super_admin' | 'head_admin' | /* ... 20+ more roles */;
+         'ops_admin' | 'super_admin' | 'super_admin' | /* ... 20+ more roles */;
   // ... other fields
 }
 
@@ -583,13 +583,13 @@ export interface User {
 const { user, isLoading } = useAuth();
 
 // Check admin status:
-const isAdmin = user?.role === 'head_admin' || 
+const isAdmin = user?.role === 'super_admin' || 
                 user?.role === 'ops_admin' || 
                 user?.role === 'super_admin' ||
                 user?.role === 'admin' ||
                 user?.role === 'moderator';
 
-const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'head_admin';
+const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'super_admin';
 ```
 
 ### 4.4 Frontend Route Guards
@@ -606,7 +606,7 @@ export default function AdminShell() {
     return <PageLoadingSpinner message="Verifying super admin access..." />;
   }
 
-  // Guard: Only super_admin and head_admin can access
+  // Guard: Only super_admin and super_admin can access
   if (error || !data?.ok || !data.isSuperAdmin) {
     return (
       <Card>
@@ -632,7 +632,7 @@ export default function AdminShell() {
 **Location**: `client/src/admin/superAdminNav.ts`
 
 ```typescript
-export type AdminRole = "super_admin" | "head_admin";
+export type AdminRole = "super_admin" | "super_admin";
 
 export type VisibilityRule = {
   roles?: AdminRole[];
@@ -808,7 +808,7 @@ export const countyEntities = pgTable('county_entities', {
 
 ```typescript
 // Pattern A (clean)
-app.get('/route', isAuthenticated, requireRole(['head_admin']), handler);
+app.get('/route', isAuthenticated, requireRole(['super_admin']), handler);
 
 // Pattern B (deprecated)
 app.get('/route', isAuthenticated, requireAdmin, handler);
@@ -833,9 +833,9 @@ app.get('/route', isAuthenticated, async (req, res) => {
 
 ```typescript
 // Current: Each route specifies exact roles
-app.get('/api/admin/users', requireRole(['head_admin', 'ops_admin']));
+app.get('/api/admin/users', requireRole(['super_admin', 'ops_admin']));
 
-// Missing: head_admin should automatically have ops_admin permissions
+// Missing: super_admin should automatically have ops_admin permissions
 // Missing: super_admin should have most admin permissions
 ```
 
@@ -843,7 +843,7 @@ app.get('/api/admin/users', requireRole(['head_admin', 'ops_admin']));
 
 ```typescript
 const ROLE_HIERARCHY = {
-  head_admin: ['super_admin', 'ops_admin', 'moderator', 'admin'],
+  super_admin: ['super_admin', 'ops_admin', 'moderator', 'admin'],
   super_admin: ['ops_admin', 'moderator', 'admin'],
   ops_admin: ['moderator', 'admin'],
   moderator: ['admin'],
@@ -902,7 +902,7 @@ const hasPermission = (userRole: string, requiredRoles: string[]): boolean => {
 
 ### Quick Reference: Who Can Do What?
 
-| Capability | moderator | ops_admin | super_admin | head_admin |
+| Capability | moderator | ops_admin | super_admin | super_admin |
 |------------|-----------|-----------|-------------|------------|
 | **User Management** |
 | View users | ❌ | Limited | ❌ | ✅ |
@@ -1062,7 +1062,7 @@ server/
 └── middleware/
     └── (inline in routes.ts)
         ├── isAdmin()                 ✅ Any admin check
-        ├── isSuperAdmin()            ✅ Super/head admin check
+        ├── isSuperAdmin()            ✅ Super/super admin check
         ├── requireRole()             ✅ Specific role check
         └── requireAdmin()            ✅ Any admin check
 ```

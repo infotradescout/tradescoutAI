@@ -12116,7 +12116,7 @@ export async function registerRoutes(app: any) {
       }
 
       // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
-      if (["moderator", "ops_admin", "super_admin", "head_admin"].includes(resolvedProvisionRole)) {
+      if (["moderator", "ops_admin", "super_admin"].includes(resolvedProvisionRole)) {
         return res.status(400).json({
           message:
             "Admin roles must be created via the dedicated admin creation flow (not user provisioning).",
@@ -13762,12 +13762,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     if (!user) throw { status: 404, message: "User not found" };
 
     const roles: string[] = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
+    const alreadyArchivedEmail = String(user.email || "")
+      .toLowerCase()
+      .startsWith("archived+");
     const isCandidate =
       user.onboardingCompleted === false &&
       (user.password == null || user.password === "") &&
       (roles.includes("business_owner") || String(user.role || "") === "business_owner");
 
     if (!isCandidate) {
+      // Idempotent cleanup behavior: if this user was already archived by this flow, return success.
+      if (
+        alreadyArchivedEmail &&
+        String((user.preferences as any)?.archivedReason || "") === "admin_import_cleanup"
+      ) {
+        return {
+          userId: id,
+          archivedEmail: String(user.email || ""),
+          directoryBusinessId: String((user.preferences as any)?.archivedDirectoryBusinessId || ""),
+          directoryBusinessSlug: null,
+          directoryBusinessName: null,
+          alreadyArchived: true,
+        };
+      }
       throw {
         status: 400,
         message:
@@ -13895,30 +13912,64 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           candidateSlug = `${baseSlug}-${attempt + 2}`;
         }
 
-        const inserted = await tx
-          .insert(businesses)
-          .values({
-            name: String(baseName).slice(0, 255),
-            slug: candidateSlug,
-            type: "other" as any,
-            ownerUserId: null,
-            roleContext: "business_owner" as any,
-            claimStatus: "unclaimed" as any,
-            sources: ["admin_import_cleanup"] as any,
-            status: "draft" as any,
-            profileData: {
-              ...(originalEmail ? { email: originalEmail } : {}),
-              ...(originalPhone ? { phone: originalPhone } : {}),
-              importExtras: {
-                archived_from_user_id: id,
-                archived_from_user_email: originalEmail,
-                ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
-              },
-            } as any,
-            createdAt: now,
-            updatedAt: now,
-          } as any)
-          .returning();
+        let inserted: any[] = [];
+        try {
+          inserted = await tx
+            .insert(businesses)
+            .values({
+              name: String(baseName).slice(0, 255),
+              slug: candidateSlug,
+              type: "other" as any,
+              ownerUserId: null,
+              roleContext: "business_owner" as any,
+              claimStatus: "unclaimed" as any,
+              sources: ["admin_import_cleanup"] as any,
+              status: "draft" as any,
+              profileData: {
+                ...(originalEmail ? { email: originalEmail } : {}),
+                ...(originalPhone ? { phone: originalPhone } : {}),
+                importExtras: {
+                  archived_from_user_id: id,
+                  archived_from_user_email: originalEmail,
+                  ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
+                },
+              } as any,
+              createdAt: now,
+              updatedAt: now,
+            } as any)
+            .returning();
+        } catch (error: any) {
+          const isMissingClaimStatusColumn =
+            String(error?.code || "") === "42703" &&
+            String(error?.message || "")
+              .toLowerCase()
+              .includes("claim_status");
+          if (!isMissingClaimStatusColumn) throw error;
+
+          inserted = await tx
+            .insert(businesses)
+            .values({
+              name: String(baseName).slice(0, 255),
+              slug: candidateSlug,
+              type: "other" as any,
+              ownerUserId: null,
+              roleContext: "business_owner" as any,
+              sources: ["admin_import_cleanup"] as any,
+              status: "draft" as any,
+              profileData: {
+                ...(originalEmail ? { email: originalEmail } : {}),
+                ...(originalPhone ? { phone: originalPhone } : {}),
+                importExtras: {
+                  archived_from_user_id: id,
+                  archived_from_user_email: originalEmail,
+                  ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
+                },
+              } as any,
+              createdAt: now,
+              updatedAt: now,
+            } as any)
+            .returning();
+        }
 
         const createdBiz = inserted[0] as any;
         directoryBusinessId = createdBiz?.id ? String(createdBiz.id) : null;
@@ -15791,7 +15842,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (
         !existingListing ||
         (existingListing.sellerId !== user?.id &&
-          !["head_admin", "moderator", "ops_admin"].includes(user.role || ""))
+          !["super_admin", "moderator", "ops_admin"].includes(user.role || ""))
       ) {
         return res.status(403).json({ message: "Not authorized to delete this listing" });
       }
@@ -16638,14 +16689,14 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const roleFromClaimsRaw = (req.user as any)?.claims?.role;
       const roleFromClaims =
         typeof roleFromClaimsRaw === "string" && roleFromClaimsRaw.trim().toLowerCase() === "owner"
-          ? "head_admin"
+          ? "super_admin"
           : roleFromClaimsRaw;
       const rawRoles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
       const roles: string[] = [roleFromClaims, ...(rawRoles || [])].filter(
         (r): r is string => typeof r === "string"
       );
       const isSuperAdminLike = roles.some((r) =>
-        ["head_admin", "super_admin", "owner"].includes(r)
+        ["super_admin", "head_admin", "owner"].includes(r)
       );
 
       const wantsGlobalScope = scopeParam === "all" || scopeParam === "global";
@@ -19501,7 +19552,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // Check admin permissions
         const userRole = user?.role || "";
-        if (!user || !["ops_admin", "head_admin"].includes(userRole)) {
+        if (!user || !["ops_admin", "super_admin"].includes(userRole)) {
           return res.status(403).json({ message: "Admin access required" });
         }
 
@@ -19527,7 +19578,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       // Check admin permissions
       const userRole = user?.role || "";
-      if (!user || !["ops_admin", "head_admin"].includes(userRole)) {
+      if (!user || !["ops_admin", "super_admin"].includes(userRole)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -19568,7 +19619,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         // Check admin permissions
         const userRole = user?.role || "";
-        if (!user || !["ops_admin", "head_admin"].includes(userRole)) {
+        if (!user || !["ops_admin", "super_admin"].includes(userRole)) {
           return res.status(403).json({ message: "Admin access required" });
         }
 
@@ -20211,7 +20262,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(viewerId);
         const viewerRole = (viewer as any)?.role || "";
-        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
           String(viewerRole)
         );
         const isOwner =
@@ -20303,7 +20354,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
           const viewer = await storage.getUser(String(viewerId));
           const viewerRole = String((viewer as any)?.role || "");
-          const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+          const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
             viewerRole
           );
           const isOwner =
@@ -20707,7 +20758,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(viewerId));
         const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
           viewerRole
         );
         const isOwner =
@@ -20950,7 +21001,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(userId));
         const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
           viewerRole
         );
         const isOwner =
@@ -20995,7 +21046,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(userId));
         const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
           viewerRole
         );
         const isOwner =
@@ -21336,7 +21387,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(userId));
         const viewerRole = (viewer as any)?.role || "";
-        const isAdminLike = ["head_admin", "super_admin", "ops_admin", "moderator"].includes(
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
           String(viewerRole)
         );
 
@@ -22845,7 +22896,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   });
 
   // Admin: Create foundation cause
-  app.post("/api/admin/foundation/causes", isAuthenticated, async (req: any, res: any) => {
+  app.post(
+    "/api/admin/foundation/causes",
+    isAuthenticated,
+    requireRole(["ops_admin", "super_admin"]),
+    async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       if (!userId) {
@@ -22871,8 +22926,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
       const user = userRows[0];
-      if (!user || !Array.isArray(user.roles) || !user.roles.includes("admin")) {
-        return res.status(403).json({ message: "Only admins can create foundation causes" });
+      if (!user) {
+        return res.status(403).json({ message: "Only ops/super admins can create foundation causes" });
       }
 
       const inserted = await db
@@ -22897,7 +22952,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       console.error("Error creating foundation cause:", error);
       res.status(500).json({ message: "Failed to create foundation cause" });
     }
-  });
+    }
+  );
 
   app.post("/api/user/account-deletion-request", isAuthenticated, async (req: any, res: any) => {
     try {

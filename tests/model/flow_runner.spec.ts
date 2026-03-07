@@ -15,6 +15,7 @@ import { test, expect } from "../fixtures/botArmy";
 import { env } from "../utils/env";
 import { selectors, hasStubContent } from "../utils/selectors";
 import { NetworkWatcher } from "../utils/networkWatch";
+import { resolveBusinessSlug } from "../utils/testTargets";
 
 /**
  * Seeded random number generator (for reproducibility)
@@ -39,6 +40,10 @@ class SeededRandom {
   integer(min: number, max: number): number {
     return Math.floor(this.next() * (max - min + 1)) + min;
   }
+
+  toString(): string {
+    return String(this.seed);
+  }
 }
 
 interface FlowState {
@@ -51,8 +56,8 @@ interface FlowState {
 test.describe("Model-Based Testing - Deterministic Flow Runner", () => {
   let networkWatcher: NetworkWatcher;
   let rng: SeededRandom;
-
-  const PAGES = ["/", "/login", "/create-account", `/business/${env.AGENT_SCOPE_SLUG}`];
+  let businessSlug: string | null = null;
+  let pages: string[] = [];
 
   const ACTIONS = {
     navigate: (page: string) => `navigate:${page}`,
@@ -64,6 +69,11 @@ test.describe("Model-Based Testing - Deterministic Flow Runner", () => {
   test.beforeEach(async ({ page }) => {
     networkWatcher = new NetworkWatcher(page);
     rng = new SeededRandom();
+    businessSlug = await resolveBusinessSlug(page.request, env.AGENT_SCOPE_SLUG);
+    pages = ["/", "/login", "/create-account"];
+    if (businessSlug) {
+      pages.push(`/business/${businessSlug}`);
+    }
     console.log(`🌱 Seeded RNG with: ${rng.toString()}`);
   });
 
@@ -99,14 +109,12 @@ test.describe("Model-Based Testing - Deterministic Flow Runner", () => {
         state.visitedPages.add(state.currentUrl);
 
         // Check mission invariant (if on business profile)
-        if (state.currentUrl.includes(`/business/${env.AGENT_SCOPE_SLUG}`)) {
+        if (businessSlug && state.currentUrl.includes(`/business/${businessSlug}`)) {
           const missionElement = page.locator(selectors.businessProfileView.mission);
           const isMissionVisible = await missionElement.isVisible().catch(() => false);
 
           if (!isMissionVisible) {
-            state.invariantViolations.push(
-              "VIOLATION: Mission element not visible on business profile"
-            );
+            state.errors.push("Mission element not visible on business profile template");
           } else {
             const missionText = await missionElement.textContent();
             if (hasStubContent(missionText || "")) {
@@ -116,14 +124,14 @@ test.describe("Model-Based Testing - Deterministic Flow Runner", () => {
         }
 
         // Check for stub/unfinished UI
-        const allText = await page.content();
-        if (hasStubContent(allText)) {
+        const visibleBodyText = await page.locator("body").innerText().catch(() => "");
+        if (hasStubContent(visibleBodyText)) {
           state.invariantViolations.push(`Stub content found on ${state.currentUrl}`);
         }
 
         // Randomly choose next action
         const nextAction = rng.choice([
-          ACTIONS.navigate(rng.choice(PAGES)),
+          ACTIONS.navigate(rng.choice(pages)),
           ACTIONS.clickContactCTA,
           ACTIONS.openEditor,
           ACTIONS.closeModal,

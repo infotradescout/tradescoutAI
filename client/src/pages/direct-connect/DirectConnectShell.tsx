@@ -37,12 +37,12 @@ const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"]
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "Start Project",
+  post: "Start Connection",
   board: "Odd Jobs",
   employment: "Employment",
   inbox: "Inbox",
   pros: "Pros",
-  engagements: "My Projects",
+  engagements: "My Connections",
 };
 
 const SECTION_META: Record<
@@ -55,9 +55,9 @@ const SECTION_META: Record<
   }
 > = {
   post: {
-    title: "Start a project",
-    description: "Pick what you need, then submit the right project form.",
-    actionLabel: "Go to My Projects",
+    title: "Start a connection",
+    description: "Pick the type, then submit a clear request.",
+    actionLabel: "Go to My Connections",
     actionTarget: "engagements",
   },
   board: {
@@ -73,9 +73,9 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   inbox: {
-    title: "Request inbox",
+    title: "Inbox",
     description: "Review request updates and opportunities.",
-    actionLabel: "View My Projects",
+    actionLabel: "View My Connections",
     actionTarget: "engagements",
   },
   pros: {
@@ -85,7 +85,7 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   engagements: {
-    title: "My projects",
+    title: "My connections",
     description: "Track status and next steps.",
     actionLabel: "Open Inbox",
     actionTarget: "inbox",
@@ -225,7 +225,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     }
   > = {
     service_request: {
-      label: "Service request",
+      label: "Hire provider",
       category: "service_request",
       titlePlaceholder: "Need a provider for...",
       descriptionPlaceholder: "What needs to be done, timeline, and requirements.",
@@ -235,7 +235,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       budgetPlaceholderMax: "2500",
     },
     business_request: {
-      label: "Business request",
+      label: "Hire business partner",
       category: "business_request",
       titlePlaceholder: "Need another business for...",
       descriptionPlaceholder: "Scope, timing, and business requirements.",
@@ -245,7 +245,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       budgetPlaceholderMax: "5000",
     },
     customer_support: {
-      label: "Customer support",
+      label: "Customer handoff",
       category: "customer_support",
       titlePlaceholder: "Need help for a customer with...",
       descriptionPlaceholder: "Customer need, location context, and urgency.",
@@ -310,8 +310,8 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     },
     onSuccess: () => {
       toast({
-        title: "Project posted",
-        description: "Your project is live in Direct Connect.",
+        title: "Connection posted",
+        description: "Your request is live in Direct Connect.",
       });
       setTitle("");
       setDescription("");
@@ -336,12 +336,12 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
   return (
     <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Start project</CardTitle>
+        <CardTitle className="text-base">Start connection</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-1.5">
           <label className="text-xs text-[color:var(--text-secondary)]">
-            What are you trying to do?
+            Connection type
           </label>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {(
@@ -435,7 +435,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
             disabled={createMutation.isPending || !canSubmit}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
-            {createMutation.isPending ? "Posting..." : "Start project"}
+            {createMutation.isPending ? "Posting..." : "Start connection"}
           </Button>
         </div>
       </CardContent>
@@ -690,7 +690,7 @@ function DirectConnectInbox() {
                     {request?.title || "Direct Connect opportunity"}
                   </h3>
                   <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
-                    {request?.description || "Homeowner request."}
+                    {request?.description || "Connection request."}
                   </p>
                 </div>
                 <Badge
@@ -1086,6 +1086,7 @@ export default function DirectConnectShell() {
   );
 
   const sectionMeta = SECTION_META[activeSection];
+  const isPostComposer = activeSection === "post";
   const showMobileNavAboveContent = activeSection !== "post";
 
   let centerContent: ReactNode = null;
@@ -1120,7 +1121,7 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)] mt-1">
-              Post jobs, browse opportunities, and manage your connections—all in one place.
+              Start requests, browse opportunities, and manage connections in one place.
             </p>
           </div>
 
@@ -1190,7 +1191,12 @@ export default function DirectConnectShell() {
 
           {/* Main Content Area */}
           <div className="min-w-0 space-y-4">
-            <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+            <Card
+              className={cn(
+                "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
+                isPostComposer ? "hidden md:block" : ""
+              )}
+            >
               <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-5">
                 <div>
                   <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">

@@ -26,7 +26,38 @@ type ProvisionResponse = {
   message?: string;
 };
 
+type DirectConnectAdminResult = {
+  request?: { id?: string | null; status?: string | null } | null;
+  requesterIntent?: string | null;
+  resolvedCategory?: string | null;
+  createdForUser?: { id?: string; email?: string } | null;
+  targetUserProvisioned?: boolean;
+  targetUserExisted?: boolean;
+  setupEmailSent?: boolean;
+  requestEmailSent?: boolean;
+  activationLinkIncluded?: boolean;
+  verifyLinkIncluded?: boolean;
+};
+
 export default function AdminProvisionUser() {
+  const adminDirectConnectRequestTypes = [
+    {
+      value: "service_request",
+      label: "Service request",
+      helper: "Customer needs a provider to do work.",
+    },
+    {
+      value: "business_request",
+      label: "Business request",
+      helper: "Business needs another business/service partner.",
+    },
+    {
+      value: "customer_support",
+      label: "Customer support",
+      helper: "Support help needed for an existing customer.",
+    },
+  ] as const;
+
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -54,13 +85,17 @@ export default function AdminProvisionUser() {
   const [targetUserId, setTargetUserId] = useState("");
   const [requestTitle, setRequestTitle] = useState("");
   const [requestDescription, setRequestDescription] = useState("");
-  const [requestCategory, setRequestCategory] = useState("");
+  const [requestCategory, setRequestCategory] =
+    useState<(typeof adminDirectConnectRequestTypes)[number]["value"]>("service_request");
   const [requestTradeId, setRequestTradeId] = useState("");
   const [requestCountyFips, setRequestCountyFips] = useState("");
   const [requestStateCode, setRequestStateCode] = useState("");
   const [requestBudgetMin, setRequestBudgetMin] = useState("");
   const [requestBudgetMax, setRequestBudgetMax] = useState("");
   const [targetContractorIds, setTargetContractorIds] = useState("");
+  const [directConnectResult, setDirectConnectResult] = useState<DirectConnectAdminResult | null>(
+    null
+  );
   const [editTargetEmail, setEditTargetEmail] = useState("");
   const [editTargetUserId, setEditTargetUserId] = useState("");
   const [editFirstName, setEditFirstName] = useState("");
@@ -146,7 +181,7 @@ export default function AdminProvisionUser() {
 
       if (targetUserId.trim()) payload.targetUserId = targetUserId.trim();
       if (targetUserEmail.trim()) payload.targetEmail = targetUserEmail.trim().toLowerCase();
-      if (requestCategory.trim()) payload.category = requestCategory.trim();
+      payload.category = requestCategory;
       if (requestTradeId.trim()) payload.tradeId = requestTradeId.trim();
       if (requestCountyFips.trim()) payload.countyFips = requestCountyFips.trim();
       if (requestStateCode.trim()) payload.stateCode = requestStateCode.trim().toUpperCase();
@@ -157,15 +192,21 @@ export default function AdminProvisionUser() {
       return apiRequest("POST", "/api/admin/direct-connect/requests", payload);
     },
     onSuccess: (data: any) => {
+      setDirectConnectResult(data as DirectConnectAdminResult);
+      const emailSummary = data?.setupEmailSent
+        ? "Setup email sent"
+        : data?.requestEmailSent
+          ? "Request notification sent"
+          : "Request created (email not sent)";
       toast({
         title: "Direct Connect request created",
-        description: `Request created for ${data?.createdForUser?.email || "target user"}.`,
+        description: `${emailSummary} for ${data?.createdForUser?.email || "target user"}.`,
       });
       setTargetUserId("");
       setTargetUserEmail("");
       setRequestTitle("");
       setRequestDescription("");
-      setRequestCategory("");
+      setRequestCategory("service_request");
       setRequestTradeId("");
       setRequestCountyFips("");
       setRequestStateCode("");
@@ -683,8 +724,8 @@ export default function AdminProvisionUser() {
         <CardHeader>
           <CardTitle className="text-white">Create Direct Connect Request for User</CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
-            Staff/admin can create a request on behalf of an existing user. This still enters the
-            normal Direct Connect request lifecycle.
+            Use this when the target user is looking to get work done or hire a provider. The
+            request still enters the normal Direct Connect lifecycle.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -720,13 +761,26 @@ export default function AdminProvisionUser() {
               />
             </div>
             <div>
-              <label className="text-xs text-white/60">Category (optional)</label>
-              <Input
+              <label className="text-xs text-white/60">Request type</label>
+              <select
                 value={requestCategory}
-                onChange={(e) => setRequestCategory(e.target.value)}
-                placeholder="repair"
-                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-              />
+                onChange={(e) =>
+                  setRequestCategory(e.target.value as (typeof adminDirectConnectRequestTypes)[number]["value"])
+                }
+                className="flex h-10 w-full rounded-xl border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)]/70"
+              >
+                {adminDirectConnectRequestTypes.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-white/50">
+                {
+                  adminDirectConnectRequestTypes.find((option) => option.value === requestCategory)
+                    ?.helper
+                }
+              </p>
             </div>
           </div>
 
@@ -817,6 +871,22 @@ export default function AdminProvisionUser() {
           >
             {createDirectConnectRequest.isPending ? "Creating request..." : "Create request"}
           </Button>
+
+          {directConnectResult ? (
+            <div className="rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-white/80 space-y-1">
+              <div>
+                Request ID: <span className="font-mono">{directConnectResult.request?.id || "n/a"}</span>
+              </div>
+              <div>Requester intent: {directConnectResult.requesterIntent || "hire_provider"}</div>
+              <div>Request type: {directConnectResult.resolvedCategory || "service_request"}</div>
+              <div>Target user: {directConnectResult.createdForUser?.email || "n/a"}</div>
+              <div>Provisioned new user: {String(directConnectResult.targetUserProvisioned === true)}</div>
+              <div>Email sent (setup): {String(directConnectResult.setupEmailSent === true)}</div>
+              <div>
+                Email sent (request notice): {String(directConnectResult.requestEmailSent === true)}
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -272,7 +272,7 @@ export default function DeviceManagement() {
                 <li>• Devices are identified by browser fingerprint and IP address</li>
                 <li>• Approved devices stay authorized for 1 year unless revoked</li>
                 <li>• You can revoke access from any device immediately</li>
-                <li>• Only head admin accounts require device authorization</li>
+                <li>• Only super admin accounts require device authorization</li>
               </ul>
             </div>
           </div>

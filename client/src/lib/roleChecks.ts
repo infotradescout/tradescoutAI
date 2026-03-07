@@ -20,7 +20,7 @@ const normalizeRole = (role: UserRole): string => {
 /**
  * Super Admin check (highest authority tier)
  *
- * Temporary legacy support for head_admin → super_admin transition.
+ * Temporary legacy support for owner/head_admin -> super_admin transition.
  * DO NOT expand this list.
  */
 export const isSuperAdminLike = (role: UserRole): boolean => {

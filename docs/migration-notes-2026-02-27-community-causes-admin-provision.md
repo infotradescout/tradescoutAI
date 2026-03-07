@@ -20,7 +20,7 @@
 ### Behavioral notes
 
 - Community causes creation is restricted to platform curator roles:
-  - `head_admin`, `super_admin`, `ops_admin`
+  - `super_admin`, `super_admin`, `ops_admin`
 - Builder notification read-marking now verifies ownership before update.
 - Public profile publish flow supports explicit unverified proceed via:
   - `proceedUnverified: true`

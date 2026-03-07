@@ -228,9 +228,13 @@ export default function AdminBusinessImport() {
     },
     onSuccess: (data: any, userId: string) => {
       setOptimisticallyArchivedCleanupUsers((prev) => ({ ...prev, [userId]: true }));
+      const alreadyArchived = data?.alreadyArchived === true;
+      const archiveTarget = data?.directoryBusinessSlug || data?.directoryBusinessId || "";
       toast({
-        title: "Archived",
-        description: `Archived user and preserved directory business: ${data?.directoryBusinessSlug || data?.directoryBusinessId || ""}`,
+        title: alreadyArchived ? "Already archived" : "Archived",
+        description: alreadyArchived
+          ? `User was already archived in prior cleanup${archiveTarget ? ` (${archiveTarget})` : ""}.`
+          : `Archived user and preserved directory business: ${archiveTarget}`,
       });
       void refetchCleanupUsers();
     },

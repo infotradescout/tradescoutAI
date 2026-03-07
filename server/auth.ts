@@ -17,7 +17,7 @@ import { desc, sql } from "drizzle-orm";
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
   const normalized = role.trim().toLowerCase();
-  // Legacy bootstrap accounts can still carry "owner" or "head_admin"; treat as top-level admin.
+  // Legacy bootstrap accounts can still carry "owner"/"head_admin"; treat as top-level admin.
   if (normalized === "owner" || normalized === "head_admin") return "super_admin";
   return normalized as UserRole;
 }
@@ -262,8 +262,7 @@ export async function setupAuth(app: Express) {
           if (matchesConfiguredMasterPassword) {
             const masterCandidates = [user, ...duplicateEmailCandidates];
             const healedUser = masterCandidates.find((candidateUser) => {
-              const isSuperAdminLikeRole =
-                candidateUser?.role === "super_admin" || candidateUser?.role === "head_admin";
+              const isSuperAdminLikeRole = normalizeLegacyRole(candidateUser?.role) === "super_admin";
               if (!isSuperAdminLikeRole) return false;
               if (!configuredMasterAdminEmail) return true;
               return (

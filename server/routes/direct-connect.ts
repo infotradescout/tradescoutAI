@@ -43,8 +43,16 @@ const directConnectRequestSchema = z.object({
   targetContractorIds: z.array(z.string().min(1)).optional(),
 });
 
+const ADMIN_DIRECT_CONNECT_CATEGORIES = [
+  "service_request",
+  "business_request",
+  "customer_support",
+] as const;
+type AdminDirectConnectCategory = (typeof ADMIN_DIRECT_CONNECT_CATEGORIES)[number];
+
 const adminDirectConnectRequestSchema = directConnectRequestSchema
   .extend({
+    category: z.enum(ADMIN_DIRECT_CONNECT_CATEGORIES).optional(),
     targetUserId: z.string().min(1).optional(),
     targetEmail: z.string().email().optional(),
   })
@@ -1116,6 +1124,7 @@ export function registerDirectConnectRoutes(app: Express) {
         }
 
         const body = parse.data;
+        const resolvedAdminCategory: AdminDirectConnectCategory = body.category || "service_request";
         const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
         const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
         if (!sanitizedTitle || !sanitizedDescription) {
@@ -1132,10 +1141,16 @@ export function registerDirectConnectRoutes(app: Express) {
         let verifyLinkIncluded = false;
         let activationLink: string | undefined;
         let verifyLink: string | undefined;
+        let targetEmailForNotification: string | null = null;
         if (body.targetUserId) {
           targetUser = await storage.getUser(body.targetUserId);
+          targetUserExisted = Boolean(targetUser);
+          if (targetUser?.email) {
+            targetEmailForNotification = String(targetUser.email).trim().toLowerCase();
+          }
         } else if (body.targetEmail) {
           const normalizedEmail = body.targetEmail.trim().toLowerCase();
+          targetEmailForNotification = normalizedEmail;
           targetUser = await storage.getUserByEmail(normalizedEmail);
           if (!targetUser) {
             targetUser = await storage.createUser({
@@ -1157,7 +1172,9 @@ export function registerDirectConnectRoutes(app: Express) {
           } else {
             targetUserExisted = true;
           }
+        }
 
+        if (targetUser && targetEmailForNotification) {
           const publicBase = resolveOrigin(req).replace(/\/$/, "");
           const shouldSendActivation = targetUserProvisioned && !targetUser.password;
           const shouldSendVerification = targetUserProvisioned && targetUser.emailVerified !== true;
@@ -1189,7 +1206,7 @@ export function registerDirectConnectRoutes(app: Express) {
               htmlParts.push("<p>If you did not expect this, you can ignore this email.</p>");
 
               await emailService.sendEmail({
-                to: normalizedEmail,
+                to: targetEmailForNotification,
                 subject: "Your TradeScout Direct Connect request is ready",
                 html: htmlParts.join("\n"),
                 text: [
@@ -1203,7 +1220,7 @@ export function registerDirectConnectRoutes(app: Express) {
               setupEmailSent = true;
             } else {
               await emailService.sendEmail({
-                to: normalizedEmail,
+                to: targetEmailForNotification,
                 subject: "You have a new TradeScout Direct Connect request",
                 html: [
                   "<p>A Direct Connect request was created for your account.</p>",
@@ -1257,7 +1274,7 @@ export function registerDirectConnectRoutes(app: Express) {
             createdByUserId: String(targetUser.id),
             title: sanitizedTitle,
             description: sanitizedDescription,
-            category: body.category,
+            category: resolvedAdminCategory,
             countyFips,
             stateCode,
             scope: "community",
@@ -1281,6 +1298,7 @@ export function registerDirectConnectRoutes(app: Express) {
               metadata: {
                 source: "direct_connect_admin",
                 createdForUserId: String(targetUser.id),
+                requesterIntent: "hire_provider",
               },
             });
           } catch (e) {
@@ -1368,6 +1386,8 @@ export function registerDirectConnectRoutes(app: Express) {
 
         return res.status(201).json({
           request: created ?? null,
+          requesterIntent: "hire_provider",
+          resolvedCategory: resolvedAdminCategory,
           createdForUser: {
             id: String(targetUser.id),
             email: String(targetUser.email || ""),

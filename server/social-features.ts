@@ -63,7 +63,7 @@ export function registerSocialFeatures(app: Express) {
     );
     return roles.some((r) => {
       const token = String(r).toLowerCase();
-      return token === "super_admin" || token === "owner" || token === "head_admin";
+      return token === "super_admin" || token === "head_admin" || token === "owner";
     });
   };
 

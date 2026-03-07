@@ -57,7 +57,7 @@ export function ModerationButtons({
       const r = String(v || "")
         .trim()
         .toLowerCase();
-      if (r) tokens.push(r === "owner" || r === "head_admin" ? "super_admin" : r);
+      if (r) tokens.push(r === "owner" ? "super_admin" : r);
     };
     push((user as any)?.role);
     push((user as any)?.activeRole);

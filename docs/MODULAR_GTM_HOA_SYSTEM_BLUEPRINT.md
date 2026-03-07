@@ -54,12 +54,12 @@ Provide a governed operations layer for HOA communities while preserving TradeSc
 - Board member (president, vice president, etc.)
 - HOA manager (third-party or board-embedded)
 - Vendor/contractor participant
-- Platform support admins (super/head admin failsafe support)
+- Platform support admins (super/super admin failsafe support)
 
 Design principle: role title does not equal unlimited authority; permissions are action-scoped.
 
 ## 3.3 Authority Model
-- Platform-level authority (super/head admin) for support and recovery paths
+- Platform-level authority (super/super admin) for support and recovery paths
 - HOA membership authority for community operations
 - Capability flags (view finances, edit docs, manage vendors, create votes)
 - Governance config controls quorum/threshold in HOA context

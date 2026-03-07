@@ -92,7 +92,7 @@ async function seedCountyEntities() {
     "moderator",
     "ops_admin",
     "super_admin",
-    "head_admin",
+    "super_admin",
   ] as const;
 
   const employeeRows = await db

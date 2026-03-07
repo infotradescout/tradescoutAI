@@ -4,6 +4,7 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 import { AppShell } from "./components/layout/AppShell";
+import { CommunityShell } from "./components/layout/CommunityShell";
 import ScoutOS from "./scout";
 import SmartHome from "./SmartHome";
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -797,14 +798,18 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             {/* Groups routes */}
             <Route path="/groups">
-              <LazyPage Component={Groups} />
+              <CommunityShell sectionLabel="Groups">
+                <LazyPage Component={Groups} />
+              </CommunityShell>
             </Route>
             <Route path="/group/:id">
               <LazyPage Component={GroupDetail} />
             </Route>
             <Route path="/hoa-management">
               <ProtectedRoute>
-                <LazyPage Component={HoaManagement} />
+                <CommunityShell sectionLabel="HOA">
+                  <LazyPage Component={HoaManagement} />
+                </CommunityShell>
               </ProtectedRoute>
             </Route>
             <Route path="/hoa/residents">
@@ -819,10 +824,14 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             {/* Community tab should show the rich Nextdoor-style feed */}
             <Route path="/community">
-              <LazyPage Component={CommunityFeed} />
+              <CommunityShell sectionLabel="Community">
+                <LazyPage Component={CommunityFeed} />
+              </CommunityShell>
             </Route>
             <Route path="/community-feed">
-              <LazyPage Component={CommunityFeed} />
+              <CommunityShell sectionLabel="Community Feed">
+                <LazyPage Component={CommunityFeed} />
+              </CommunityShell>
             </Route>
             <Route path="/community/u/:userId">
               <LazyPage Component={CommunityProfile} />
@@ -999,7 +1008,9 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/messages">
               <ProtectedRoute>
-                <LazyPage Component={Messages} />
+                <CommunityShell sectionLabel="Messages">
+                  <LazyPage Component={Messages} />
+                </CommunityShell>
               </ProtectedRoute>
             </Route>
             <Route path="/saved-ads">
@@ -1273,12 +1284,16 @@ export const AppRoutes = memo(function AppRoutes({
             {/* Additional Features */}
             <Route path="/hoa-dashboard">
               <ProtectedRoute>
-                <LazyPage Component={HOADashboard} />
+                <CommunityShell sectionLabel="HOA Dashboard">
+                  <LazyPage Component={HOADashboard} />
+                </CommunityShell>
               </ProtectedRoute>
             </Route>
             <Route path="/hoa-dashboard/:hoaId">
               <ProtectedRoute>
-                <LazyPage Component={HOADashboard} />
+                <CommunityShell sectionLabel="HOA Dashboard">
+                  <LazyPage Component={HOADashboard} />
+                </CommunityShell>
               </ProtectedRoute>
             </Route>
             <Route path="/membership-portal">

@@ -78,7 +78,7 @@ export class DeviceAuthService {
     return true;
   }
 
-  // Register a new device for approval (requires admin approval for head_admin users)
+  // Register a new device for approval (requires admin approval for super_admin users)
   static async registerDevice(
     userId: string, 
     req: Request, 

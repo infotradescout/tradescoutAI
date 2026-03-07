@@ -176,7 +176,7 @@ export default function PublicProfileView() {
         .trim()
         .toLowerCase();
       if (!r) return;
-      tokens.push(r === "owner" || r === "head_admin" ? "super_admin" : r);
+      tokens.push(r === "owner" ? "super_admin" : r);
     };
     push((user as any)?.role);
     push((user as any)?.activeRole);
