@@ -75,6 +75,7 @@ export default function PreScoutSetup() {
   const anyUser: any = user || {};
   const currentProfileVersion: number =
     typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
+  const onboardingCompleted = anyUser.onboardingCompleted === true;
   const hasCanonicalLocation =
     typeof anyUser.stateCode === "string" &&
     anyUser.stateCode.length === 2 &&
@@ -182,7 +183,7 @@ export default function PreScoutSetup() {
     if (!hasCanonicalLocation) return;
 
     const next = postSetupNext;
-    if (currentProfileVersion < CURRENT_PROFILE_VERSION) {
+    if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
       navigate(`/onboarding/profile?next=${encodeURIComponent(next)}`);
       return;
     }
@@ -193,6 +194,7 @@ export default function PreScoutSetup() {
     isAdminDestination,
     hasCanonicalLocation,
     currentProfileVersion,
+    onboardingCompleted,
     postSetupNext,
     navigate,
   ]);

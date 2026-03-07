@@ -3386,7 +3386,8 @@ export async function registerRoutes(app: any) {
             const anyUser: any = user || {};
             const profileVersion: number =
               typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-            const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+            const needsProfileNormalization =
+              profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
             const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
             return res.redirect(redirectTo);
           }
@@ -3423,7 +3424,8 @@ export async function registerRoutes(app: any) {
         const anyUser: any = user || {};
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-        const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+        const needsProfileNormalization =
+          profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
         const oauthNext = readAndClearOAuthNext(req);
         const redirectBase = needsProfileNormalization
           ? "/onboarding/profile"
@@ -3496,7 +3498,8 @@ export async function registerRoutes(app: any) {
             const anyUser: any = user || {};
             const profileVersion: number =
               typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-            const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+            const needsProfileNormalization =
+              profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
             const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
             return res.redirect(redirectTo);
           }
@@ -3534,7 +3537,8 @@ export async function registerRoutes(app: any) {
         const anyUser: any = user || {};
         const profileVersion: number =
           typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-        const needsProfileNormalization = profileVersion < CURRENT_PROFILE_VERSION;
+        const needsProfileNormalization =
+          profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
         const oauthNext = readAndClearOAuthNext(req);
         const redirectBase = needsProfileNormalization
           ? "/onboarding/profile"

@@ -9,12 +9,25 @@ import ScoutOS from "./scout";
 import SmartHome from "./SmartHome";
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
 import { isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
+import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
+function userNeedsOnboarding(user: unknown): boolean {
+  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
+  if (!record) return false;
+
+  const onboardingCompleted = record.onboardingCompleted === true;
+  const profileVersion =
+    typeof record.profileVersion === "number" ? Number(record.profileVersion) : 0;
+  return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;
+}
+
 function getPostLandingRoute(user: unknown): string {
+  if (userNeedsOnboarding(user)) return "/onboarding/profile";
+
   const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
   const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
   const isSuperAdmin = isSuperAdminLike(role) || record?.isSuperAdmin === true;
@@ -38,6 +51,19 @@ function isLegacyRootScoutQuery(rest: string): boolean {
   if (!query) return false;
   const params = new URLSearchParams(query);
   return params.has("prompt") || params.has("intent");
+}
+
+function isOnboardingExemptPath(path: string): boolean {
+  return (
+    path.startsWith("/pre-scout-setup") ||
+    path.startsWith("/onboarding/profile") ||
+    path.startsWith("/onboarding/intent") ||
+    path.startsWith("/verify-email") ||
+    path.startsWith("/check-email") ||
+    path.startsWith("/reset-password") ||
+    path.startsWith("/logout") ||
+    path.startsWith("/auth/logout")
+  );
 }
 
 const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
@@ -81,6 +107,29 @@ const HardRedirectTo = memo(function HardRedirectTo({ to }: { to: string }) {
       window.location.assign(to);
     }
   }, [to]);
+
+  return null;
+});
+
+const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user) return;
+    if (!userNeedsOnboarding(user)) return;
+
+    const raw = String(location || "/");
+    const restIdx = raw.search(/[?#]/);
+    const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
+    if (isOnboardingExemptPath(pathOnly)) return;
+
+    const next = encodeURIComponent(raw.startsWith("/") ? raw : `/${raw}`);
+    const target = `/onboarding/profile?next=${next}`;
+    if (raw !== target) {
+      navigate(target);
+    }
+  }, [user, isAuthenticated, isLoading, location, navigate]);
 
   return null;
 });
@@ -492,6 +541,7 @@ export const AppRoutes = memo(function AppRoutes({
         </Switch>
       ) : (
         <AppShell>
+          <AuthenticatedOnboardingGate />
           <Switch>
             {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
             <Route path="/" component={RootLanding} />

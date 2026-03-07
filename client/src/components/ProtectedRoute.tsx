@@ -81,6 +81,8 @@ export function ProtectedRoute({
     const isSuperAdminLike = isSuperAdminRoleLike(role);
     const profileVersion =
       typeof (user as any)?.profileVersion === "number" ? (user as any).profileVersion : 0;
+    const onboardingCompleted = (user as any)?.onboardingCompleted === true;
+    const needsOnboarding = profileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted;
 
     const isSetupRoute =
       location.startsWith("/pre-scout-setup") ||
@@ -88,23 +90,9 @@ export function ProtectedRoute({
       location.startsWith("/onboarding/intent") ||
       location.startsWith("/profile-setup");
 
-    if (
-      !isAdmin &&
-      !isSuperAdminLike &&
-      user &&
-      profileVersion < CURRENT_PROFILE_VERSION &&
-      !isSetupRoute
-    ) {
+    if (!isAdmin && !isSuperAdminLike && user && needsOnboarding && !isSetupRoute) {
       const next = encodeURIComponent(location || "/");
-      const hasCanonicalLocation = Boolean((user as any)?.stateCode && (user as any)?.countyFips);
-
-      // If locality is already committed, send them through the profile normalization flow
-      // instead of looping them back into local setup.
-      if (hasCanonicalLocation) {
-        setLocation(`/onboarding/profile?next=${next}`);
-      } else {
-        setLocation(`/pre-scout-setup?mode=signin&next=${next}`);
-      }
+      setLocation(`/onboarding/profile?next=${next}`);
       return;
     }
 
