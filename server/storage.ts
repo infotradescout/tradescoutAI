@@ -418,6 +418,7 @@ import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { applyPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import { computeAllocationShares } from "./utils/communityCauseAllocation";
+import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
 
 // Helper to safely convert strings/numbers to Decimal format
 const decimal = (value: any): string => {
@@ -2692,6 +2693,16 @@ export class DatabaseStorage implements IStorage {
       : userData?.email;
     const values = normalizedEmail ? { ...userData, email: normalizedEmail } : userData;
     const [user] = await db.insert(users).values(values).returning();
+
+    try {
+      await ensureSuperAdminConnectionForUser(String(user.id));
+    } catch (error) {
+      console.error("[auth] Failed to ensure super admin auto-connection on user create", {
+        userId: user.id,
+        error,
+      });
+    }
+
     return user;
   }
 

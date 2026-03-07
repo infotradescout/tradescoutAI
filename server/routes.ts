@@ -57,6 +57,7 @@ import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
+import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { getMessagingService } from "./messaging-service";
@@ -2507,6 +2508,27 @@ export async function registerRoutes(app: any) {
       if (!user) {
         res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
+      }
+
+      // Invariant: every account must maintain an auto-connection with super admin.
+      // Fail-soft so auth never blocks.
+      try {
+        const sessionAny = req.session as any;
+        const ensuredForUserId =
+          typeof sessionAny?.superAdminConnectionEnsuredForUserId === "string"
+            ? sessionAny.superAdminConnectionEnsuredForUserId
+            : "";
+        if (ensuredForUserId !== String(userId)) {
+          await ensureSuperAdminConnectionForUser(String(userId));
+          if (sessionAny) {
+            sessionAny.superAdminConnectionEnsuredForUserId = String(userId);
+          }
+        }
+      } catch (ensureError) {
+        console.error("[auth/user] Failed to ensure super admin auto-connection", {
+          userId,
+          error: ensureError,
+        });
       }
 
       const applyImpersonation = (baseUser: any) => {
