@@ -5,7 +5,6 @@ import { storage } from "../storage";
 import { db } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
-import { US_STATES_COUNTIES } from "../../shared/states-counties";
 import { sql } from "drizzle-orm";
 
 const router = Router();
@@ -1017,21 +1016,46 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
+    const navigationRows = (await db.execute(sql`
+      with trade_state_pairs as (
+        select distinct trade_slug, state_code
+        from ts_seo_trade_county_pages
+        where coalesce(trade_slug, '') <> '' and coalesce(state_code, '') <> ''
+        union
+        select distinct trade_slug, state_code
+        from ts_seo_trade_city_pages
+        where coalesce(trade_slug, '') <> '' and coalesce(state_code, '') <> ''
+      )
+      select trade_slug, state_code
+      from trade_state_pairs
+      order by trade_slug asc, state_code asc;
+    `)) as any;
+
+    const tradeStates = Array.isArray(navigationRows?.rows) ? navigationRows.rows : [];
+    const activeTradeSlugs = Array.from<string>(
+      new Set<string>(
+        tradeStates
+          .map((row: any) => String(row.trade_slug || "").trim())
+          .filter((tradeSlug: string) => tradeSlug.length > 0)
+      )
+    );
 
     const urls = [
       { loc: `${baseUrl}/trade`, lastmod: today },
-      ...PRIMARY_TRADE_SLUGS.map((tradeSlug) => ({
-        loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
+      ...(activeTradeSlugs.length > 0 ? activeTradeSlugs : PRIMARY_TRADE_SLUGS).map(
+        (tradeSlug) => ({
+          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
+          lastmod: today,
+        })
+      ),
+      ...tradeStates.map((row: any) => ({
+        loc: `${baseUrl}/trade/${encodeURIComponent(String(row.trade_slug || "").trim())}/${encodeURIComponent(
+          String(row.state_code || "")
+            .trim()
+            .toLowerCase()
+        )}`,
         lastmod: today,
       })),
-      ...PRIMARY_TRADE_SLUGS.flatMap((tradeSlug) =>
-        US_STATES_COUNTIES.map((state) => ({
-          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
-            String(state.code || "").toLowerCase()
-          )}`,
-          lastmod: today,
-        }))
-      ),
     ];
 
     res.type("application/xml");
