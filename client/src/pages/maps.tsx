@@ -43,29 +43,48 @@ const MAPS_V1_ENABLED =
     .toLowerCase() !== "false";
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
+const GOOGLE_MAPS_AUTH_FAILURE_EVENT = "ts:google-maps-auth-failure";
+
+function buildPublicConfigCandidates(): string[] {
+  const cacheBust = `?_=${Date.now()}`;
+  const candidates = [`/api/public-config${cacheBust}`];
+
+  if (typeof window !== "undefined") {
+    const hostname = String(window.location.hostname || "")
+      .trim()
+      .toLowerCase();
+    if (hostname !== "www.thetradescout.com") {
+      candidates.push(`https://www.thetradescout.com/api/public-config${cacheBust}`);
+    }
+  }
+
+  return candidates;
+}
 
 async function fetchPublicConfigWithFallback(): Promise<{ googleMapsApiKey: string } | null> {
-  try {
-    // Cache-bust to avoid a 304 from a stale SW/browser cache.
-    const url = `/api/public-config?_=${Date.now()}`;
-    const res = await fetch(url, {
-      method: "GET",
-      credentials: "omit",
-      headers: { Accept: "application/json", "Cache-Control": "no-cache" },
-      cache: "no-store",
-    });
+  for (const url of buildPublicConfigCandidates()) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "omit",
+        headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+        cache: "no-store",
+      });
 
-    if (!res.ok) return null;
+      if (!res.ok) continue;
 
-    const text = await res.text();
-    const payload = text ? (JSON.parse(text) as any) : null;
-    const key = String(payload?.googleMapsApiKey || "").trim();
-    if (!key) return null;
+      const text = await res.text();
+      const payload = text ? (JSON.parse(text) as any) : null;
+      const key = String(payload?.googleMapsApiKey || "").trim();
+      if (!key) continue;
 
-    return { googleMapsApiKey: key };
-  } catch {
-    return null;
+      return { googleMapsApiKey: key };
+    } catch {
+      // Try the next candidate.
+    }
   }
+
+  return null;
 }
 
 async function loadGoogleMapsScript(apiKey: string): Promise<void> {
@@ -90,8 +109,10 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     // Google Maps calls `window.gm_authFailure()` when the key is blocked by restrictions
     // (commonly HTTP referrer restrictions / RefererNotAllowedMapError).
-    window.gm_authFailure = () =>
+    window.gm_authFailure = () => {
+      window.dispatchEvent(new CustomEvent(GOOGLE_MAPS_AUTH_FAILURE_EVENT));
       reject(new Error("Google Maps auth failed (check HTTP referrer restrictions)"));
+    };
 
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
@@ -114,6 +135,7 @@ export default function MapsPage() {
   const [scriptReady, setScriptReady] = useState(false);
   const [scriptError, setScriptError] = useState<string>("");
   const [mapsApiKey, setMapsApiKey] = useState<string>("");
+  const [mapsConfigResolved, setMapsConfigResolved] = useState(false);
   const [bbox, setBbox] = useState<string>("");
   const [trade, setTrade] = useState<string>("");
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
@@ -127,10 +149,21 @@ export default function MapsPage() {
   });
   const [selectedPoint, setSelectedPoint] = useState<MapEntityPoint | null>(null);
 
+  const clearMapArtifacts = () => {
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+      clustererRef.current = null;
+    }
+    mapRef.current = null;
+  };
+
   useEffect(() => {
     const fromVite = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
     if (fromVite) {
       setMapsApiKey(fromVite);
+      setMapsConfigResolved(true);
       return;
     }
 
@@ -140,9 +173,10 @@ export default function MapsPage() {
         if (cancelled) return;
         const key = String(payload?.googleMapsApiKey || "").trim();
         if (key) setMapsApiKey(key);
+        setMapsConfigResolved(true);
       })
       .catch(() => {
-        // Ignore; scriptError will surface missing key below.
+        if (!cancelled) setMapsConfigResolved(true);
       });
 
     return () => {
@@ -152,6 +186,7 @@ export default function MapsPage() {
 
   useEffect(() => {
     if (!MAPS_V1_ENABLED) return;
+    if (!mapsConfigResolved) return;
     if (!mapsApiKey) {
       setScriptError("Missing Google Maps API key");
       return;
@@ -173,7 +208,23 @@ export default function MapsPage() {
     return () => {
       cancelled = true;
     };
-  }, [mapsApiKey]);
+  }, [mapsApiKey, mapsConfigResolved]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleAuthFailure = () => {
+      clearMapArtifacts();
+      setSelectedPoint(null);
+      setScriptReady(false);
+      setScriptError("Google Maps auth failed (check HTTP referrer restrictions)");
+    };
+
+    window.addEventListener(GOOGLE_MAPS_AUTH_FAILURE_EVENT, handleAuthFailure);
+    return () => {
+      window.removeEventListener(GOOGLE_MAPS_AUTH_FAILURE_EVENT, handleAuthFailure);
+    };
+  }, []);
 
   useEffect(() => {
     if (!scriptReady || !mapContainerRef.current || mapRef.current) return;
@@ -255,12 +306,7 @@ export default function MapsPage() {
   useEffect(() => {
     if (!scriptReady || !mapRef.current) return;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
-    markersRef.current = [];
-    if (clustererRef.current) {
-      clustererRef.current.clearMarkers();
-      clustererRef.current = null;
-    }
+    clearMapArtifacts();
 
     const iconForPoint = (point: MapEntityPoint) => {
       const verifiedStatus = String((point.meta as any)?.verifiedStatus || "").toLowerCase();

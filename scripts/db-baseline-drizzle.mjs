@@ -57,19 +57,22 @@ async function main() {
       "select id, hash, created_at from drizzle.__drizzle_migrations order by created_at desc limit 1"
     );
 
-    if (current.rowCount && Number(current.rows[0].created_at) >= latest.when) {
+    if (current.rowCount && current.rows[0].hash === latest.hash) {
       console.log(
-        `[db:baseline] No changes. Existing latest created_at=${current.rows[0].created_at} is >= ${latest.when}`
+        `[db:baseline] No changes. Existing latest hash already matches ${latest.tag}`
       );
       return;
     }
 
+    const latestCreatedAt = current.rowCount ? Number(current.rows[0].created_at) : 0;
+    const markerCreatedAt = Math.max(latest.when, latestCreatedAt + 1);
+
     await client.query("insert into drizzle.__drizzle_migrations (hash, created_at) values ($1, $2)", [
       latest.hash,
-      latest.when,
+      markerCreatedAt,
     ]);
     console.log(
-      `[db:baseline] Inserted baseline migration marker for ${latest.tag} (created_at=${latest.when})`
+      `[db:baseline] Inserted baseline migration marker for ${latest.tag} (created_at=${markerCreatedAt})`
     );
   } finally {
     await client.end();
