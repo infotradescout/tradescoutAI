@@ -12078,6 +12078,46 @@ export async function registerRoutes(app: any) {
           : legacyBusinessWebsite;
       const businessEmail =
         typeof profileInput?.businessEmail === "string" ? profileInput.businessEmail.trim() : "";
+      const requestedProfileVisibilityRaw =
+        typeof profileInput?.profileVisibility === "string"
+          ? profileInput.profileVisibility.trim().toLowerCase()
+          : typeof body.profileVisibility === "string"
+            ? body.profileVisibility.trim().toLowerCase()
+            : "";
+      const requestedProfileVisibility: "public" | "private" | null = requestedProfileVisibilityRaw
+        ? requestedProfileVisibilityRaw === "private"
+          ? "private"
+          : "public"
+        : null;
+      const requestedServicesDescription =
+        typeof profileInput?.servicesDescription === "string"
+          ? profileInput.servicesDescription.trim()
+          : typeof body.servicesDescription === "string"
+            ? body.servicesDescription.trim()
+            : "";
+      const rawProfileSections =
+        profileInput && typeof profileInput?.profileSections === "object"
+          ? profileInput.profileSections
+          : body && typeof body.profileSections === "object"
+            ? body.profileSections
+            : null;
+      const allowedProfileSectionKeys = new Set([
+        "about",
+        "rolesAndBadges",
+        "stats",
+        "services",
+        "marketplaceListings",
+        "reviews",
+        "communityActivity",
+        "contactCard",
+      ]);
+      const normalizedProfileSections: Record<string, boolean> = {};
+      if (rawProfileSections && typeof rawProfileSections === "object") {
+        for (const [key, value] of Object.entries(rawProfileSections)) {
+          if (!allowedProfileSectionKeys.has(String(key))) continue;
+          normalizedProfileSections[String(key)] = value !== false;
+        }
+      }
 
       const resolvedProvisionRole = (
         role || (createBusinessProfile ? "business_owner" : "")
@@ -12114,6 +12154,11 @@ export async function registerRoutes(app: any) {
           message: "businessTags supports up to 24 entries",
         });
       }
+      if (requestedServicesDescription.length > 5000) {
+        return res.status(400).json({
+          message: "servicesDescription must be 5000 characters or fewer",
+        });
+      }
 
       // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
       if (["moderator", "ops_admin", "super_admin"].includes(resolvedProvisionRole)) {
@@ -12128,6 +12173,23 @@ export async function registerRoutes(app: any) {
 
       if (!user) {
         const passwordHash = password ? await hashPassword(password) : undefined;
+        const initialPreferences: Record<string, unknown> = {};
+        if (provisionUserTypes.length > 0) {
+          initialPreferences.provisional = {
+            userTypes: provisionUserTypes,
+            capturedAt: new Date().toISOString(),
+          };
+        }
+        if (requestedProfileVisibility) {
+          initialPreferences.profileVisibility = requestedProfileVisibility;
+        }
+        if (requestedServicesDescription) {
+          initialPreferences.servicesDescription = requestedServicesDescription;
+        }
+        if (Object.keys(normalizedProfileSections).length > 0) {
+          initialPreferences.profileSections = normalizedProfileSections;
+        }
+
         user = await storage.createUser({
           email,
           password: passwordHash,
@@ -12137,15 +12199,7 @@ export async function registerRoutes(app: any) {
           city: city || undefined,
           stateCode: stateCode || undefined,
           countyFips: countyFips || undefined,
-          preferences:
-            provisionUserTypes.length > 0
-              ? {
-                  provisional: {
-                    userTypes: provisionUserTypes,
-                    capturedAt: new Date().toISOString(),
-                  },
-                }
-              : undefined,
+          preferences: initialPreferences,
           role: (resolvedProvisionRole || null) as any,
           roles: resolvedProvisionRole ? [resolvedProvisionRole] : undefined,
           activeRole: resolvedProvisionRole || undefined,
@@ -12172,6 +12226,44 @@ export async function registerRoutes(app: any) {
               ...currentProvisional,
               userTypes: dedupeStrings([...existingUserTypes, ...provisionUserTypes]),
               capturedAt: new Date().toISOString(),
+            },
+          };
+        }
+        if (requestedProfileVisibility) {
+          const currentPreferences = (patch.preferences ||
+            (user as any).preferences ||
+            {} ||
+            {}) as Record<string, any>;
+          patch.preferences = {
+            ...currentPreferences,
+            profileVisibility: requestedProfileVisibility,
+          };
+        }
+        if (requestedServicesDescription) {
+          const currentPreferences = (patch.preferences ||
+            (user as any).preferences ||
+            {} ||
+            {}) as Record<string, any>;
+          patch.preferences = {
+            ...currentPreferences,
+            servicesDescription: requestedServicesDescription,
+          };
+        }
+        if (Object.keys(normalizedProfileSections).length > 0) {
+          const currentPreferences = (patch.preferences ||
+            (user as any).preferences ||
+            {} ||
+            {}) as Record<string, any>;
+          const existingSections =
+            currentPreferences.profileSections &&
+            typeof currentPreferences.profileSections === "object"
+              ? currentPreferences.profileSections
+              : {};
+          patch.preferences = {
+            ...currentPreferences,
+            profileSections: {
+              ...existingSections,
+              ...normalizedProfileSections,
             },
           };
         }

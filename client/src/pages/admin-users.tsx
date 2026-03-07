@@ -1617,7 +1617,7 @@ export default function AdminUsers() {
 
         {/* Edit Profile Dialog */}
         <Dialog open={!!profileUser} onOpenChange={() => setProfileUser(null)}>
-          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl">
+          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-foreground">Edit Public Profile</DialogTitle>
               <DialogDescription className="text-muted-foreground">

@@ -27,7 +27,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   high: {
     key: "high",
     series: "contractor",
-    label: "Contractor Series — Carhartt K87",
+    label: "Contractor Series - Carhartt K87",
     summary: "Pocket tee + embroidery. Built for job sites.",
     wholesaleEstimate: 24,
     blankUrl: "/scoutfitters/blank-high.svg",
@@ -37,7 +37,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   medium: {
     key: "medium",
     series: "contractor",
-    label: "Contractor Series — Hanes Beefy-T",
+    label: "Contractor Series - Hanes Beefy-T",
     summary: "6.1oz heavyweight + DTG. Durable daily driver.",
     wholesaleEstimate: 13,
     blankUrl: "/scoutfitters/blank-medium.svg",
@@ -47,7 +47,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   low: {
     key: "low",
     series: "contractor",
-    label: "Contractor Series — Gildan Ultra",
+    label: "Contractor Series - Gildan Ultra",
     summary: "6oz heavyweight + DTG. No thin promo tees.",
     wholesaleEstimate: 10,
     blankUrl: "/scoutfitters/blank-low.svg",
@@ -56,7 +56,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   budget: {
     key: "budget",
     series: "value",
-    label: "Value — Budget (Gildan 5000)",
+    label: "Value - Budget (Gildan 5000)",
     summary: "Classic tee + DTG. Cheaper, less durable.",
     wholesaleEstimate: 6,
     blankUrl: "/scoutfitters/blank-low.svg",
@@ -65,7 +65,7 @@ const TIERS: Record<TierKey, TierSpec> = {
   promo: {
     key: "promo",
     series: "value",
-    label: "Value — Promo (Softstyle / thin)",
+    label: "Value - Promo (Softstyle / thin)",
     summary: "Thin promo tee + DTG. Not recommended for workwear.",
     wholesaleEstimate: 4,
     blankUrl: "/scoutfitters/blank-low.svg",
@@ -581,7 +581,7 @@ export default function ScoutFitters() {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl py-8 space-y-6">
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
@@ -591,6 +591,11 @@ export default function ScoutFitters() {
           <p className="text-sm text-white/70 mt-1">
             Contractor Series is featured first. Customers can still pick budget blanks if they
             want. Upload a logo, preview placement, and send to fulfillment.
+          </p>
+          <p className="text-xs text-white/70 mt-2">
+            Selected: <span className="text-white">{tierSpec.label}</span> • Unit:{" "}
+            <span className="text-white">${unitPrice.toFixed(2)}</span> • Subtotal:{" "}
+            <span className="text-white">${subtotal.toFixed(2)}</span>
           </p>
         </div>
         <div className="flex gap-2">
@@ -616,14 +621,14 @@ export default function ScoutFitters() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BadgeCheck className="h-5 w-5 text-ts-orange" />
               Visualizer
             </CardTitle>
             <CardDescription>
-              Tier selects the blank + technique. Placement selects front center or left chest
+              Step 1: pick tier, placement, and logo. Placement supports front center or left chest
               (4&quot;x4&quot;).
             </CardDescription>
           </CardHeader>
@@ -856,15 +861,14 @@ export default function ScoutFitters() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] lg:sticky lg:top-20 h-fit">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="h-5 w-5 text-ts-orange" />
               Send to fulfillment
             </CardTitle>
             <CardDescription>
-              Creates a Printful draft order (confirm=false). Shipping/payment flow can be layered
-              in next.
+              Step 2: enter recipient details and create a Printful draft order.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

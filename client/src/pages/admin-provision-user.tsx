@@ -73,6 +73,20 @@ export default function AdminProvisionUser() {
   const [profileRoleContext, setProfileRoleContext] = useState("business_owner");
   const [profileHeadline, setProfileHeadline] = useState("");
   const [profileAbout, setProfileAbout] = useState("");
+  const [provisionProfileVisibility, setProvisionProfileVisibility] = useState<
+    "public" | "private"
+  >("public");
+  const [provisionServicesDescription, setProvisionServicesDescription] = useState("");
+  const [provisionProfileSections, setProvisionProfileSections] = useState({
+    about: true,
+    rolesAndBadges: true,
+    stats: true,
+    services: true,
+    marketplaceListings: true,
+    reviews: true,
+    communityActivity: true,
+    contactCard: true,
+  });
   const [provisionUserTypes, setProvisionUserTypes] = useState("");
   const [createBusinessRecord, setCreateBusinessRecord] = useState(false);
   const [businessName, setBusinessName] = useState("");
@@ -133,6 +147,9 @@ export default function AdminProvisionUser() {
         businessTags: normalizedBusinessTags.length > 0 ? normalizedBusinessTags : undefined,
         password: password || undefined,
         sendEmail,
+        profileVisibility: provisionProfileVisibility,
+        servicesDescription: provisionServicesDescription.trim() || undefined,
+        profileSections: provisionProfileSections,
         profile: createBusinessProfile
           ? {
               create: true,
@@ -140,6 +157,9 @@ export default function AdminProvisionUser() {
               roleContext: profileRoleContext.trim() || undefined,
               headline: profileHeadline.trim() || undefined,
               about: profileAbout.trim() || undefined,
+              profileVisibility: provisionProfileVisibility,
+              servicesDescription: provisionServicesDescription.trim() || undefined,
+              profileSections: provisionProfileSections,
               businessPhone: businessPhone.trim() || undefined,
               businessEmail: businessEmail.trim() || undefined,
               businessWebsite: businessWebsite.trim() || undefined,
@@ -378,6 +398,77 @@ export default function AdminProvisionUser() {
               <Checkbox checked={sendEmail} onCheckedChange={(v) => setSendEmail(v === true)} />
               Send setup email (recommended)
             </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">Profile visibility</label>
+                <select
+                  value={provisionProfileVisibility}
+                  onChange={(e) =>
+                    setProvisionProfileVisibility(
+                      e.target.value === "private" ? "private" : "public"
+                    )
+                  }
+                  className="w-full rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-white"
+                >
+                  <option value="public">public</option>
+                  <option value="private">private</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/60">
+                  User types (comma separated, optional)
+                </label>
+                <Input
+                  value={provisionUserTypes}
+                  onChange={(e) => setProvisionUserTypes(e.target.value)}
+                  placeholder="business_owner, contractor"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-white/60">Services description (optional)</label>
+              <Textarea
+                value={provisionServicesDescription}
+                onChange={(e) => setProvisionServicesDescription(e.target.value)}
+                placeholder="What they do, service area, and specialties."
+                rows={3}
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+              />
+            </div>
+
+            <div className="space-y-2 rounded-md border border-[color:var(--border-subtle)] bg-black/30 p-3">
+              <div className="text-xs font-semibold text-white/80">Public profile sections</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-white/80">
+                {[
+                  ["about", "About"],
+                  ["rolesAndBadges", "Roles & badges"],
+                  ["stats", "Stats"],
+                  ["services", "Services"],
+                  ["marketplaceListings", "Marketplace"],
+                  ["reviews", "Reviews"],
+                  ["communityActivity", "Community"],
+                  ["contactCard", "Contact card"],
+                ].map(([key, label]) => {
+                  const sectionKey = key as keyof typeof provisionProfileSections;
+                  return (
+                    <label key={key} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={provisionProfileSections[sectionKey] === true}
+                        onCheckedChange={(value) =>
+                          setProvisionProfileSections((current) => ({
+                            ...current,
+                            [sectionKey]: value === true,
+                          }))
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
 
             <label className="flex items-center gap-2 text-xs text-white/70">
               <Checkbox
@@ -427,18 +518,6 @@ export default function AdminProvisionUser() {
                     onChange={(e) => setProfileAbout(e.target.value)}
                     placeholder="Longer profile summary shown in About section"
                     rows={3}
-                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-white/60">
-                    User types (comma separated, optional)
-                  </label>
-                  <Input
-                    value={provisionUserTypes}
-                    onChange={(e) => setProvisionUserTypes(e.target.value)}
-                    placeholder="business_owner, contractor"
                     className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                   />
                 </div>
