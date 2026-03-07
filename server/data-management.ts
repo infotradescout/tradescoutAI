@@ -1,10 +1,10 @@
-import { db } from "../src/db/drizzle-mock";
+import { db } from "./db";
 import { eq, desc, and, or, isNull, isNotNull, sql } from "drizzle-orm";
-import { 
-  users, 
-  userDataRequests, 
-  dataAccessLogs, 
-  securityIncidents, 
+import {
+  users,
+  userDataRequests,
+  dataAccessLogs,
+  securityIncidents,
   userPrivacySettings,
   leads,
   conversations,
@@ -15,7 +15,7 @@ import {
   type UserDataRequest,
   type DataAccessLog,
   type SecurityIncident,
-  type UserPrivacySettings
+  type UserPrivacySettings,
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import JSZip from "jszip";
@@ -36,7 +36,6 @@ export interface DataExportData {
  * Comprehensive data management service for user privacy and security
  */
 export class DataManagementService {
-  
   /**
    * Log data access for audit trail
    */
@@ -44,8 +43,22 @@ export class DataManagementService {
     userId?: string;
     accessorId: string;
     accessorRole: string;
-    actionType: 'view' | 'edit' | 'delete' | 'export' | 'login_attempt' | 'password_reset' | 'profile_update';
-    resourceType?: 'profile' | 'messages' | 'leads' | 'recommendations' | 'payments' | 'documents' | 'analytics';
+    actionType:
+      | "view"
+      | "edit"
+      | "delete"
+      | "export"
+      | "login_attempt"
+      | "password_reset"
+      | "profile_update";
+    resourceType?:
+      | "profile"
+      | "messages"
+      | "leads"
+      | "recommendations"
+      | "payments"
+      | "documents"
+      | "analytics";
     resourceId?: string;
     ipAddress?: string;
     userAgent?: string;
@@ -77,20 +90,23 @@ export class DataManagementService {
    */
   async createDataRequest(params: {
     userId: string;
-    requestType: 'data_export' | 'data_deletion' | 'privacy_report' | 'account_closure';
+    requestType: "data_export" | "data_deletion" | "privacy_report" | "account_closure";
     reason?: string;
     requestedBy: string;
   }): Promise<UserDataRequest> {
-    const verificationCode = randomBytes(16).toString('hex');
-    
-    const [request] = await db.insert(userDataRequests).values({
-      userId: params.userId,
-      requestType: params.requestType,
-      reason: params.reason,
-      requestedBy: params.requestedBy,
-      verificationCode,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-    }).returning();
+    const verificationCode = randomBytes(16).toString("hex");
+
+    const [request] = await db
+      .insert(userDataRequests)
+      .values({
+        userId: params.userId,
+        requestType: params.requestType,
+        reason: params.reason,
+        requestedBy: params.requestedBy,
+        verificationCode,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      })
+      .returning();
 
     return request;
   }
@@ -102,11 +118,13 @@ export class DataManagementService {
     const [request] = await db
       .update(userDataRequests)
       .set({ isVerified: true })
-      .where(and(
-        eq(userDataRequests.id, requestId),
-        eq(userDataRequests.verificationCode, verificationCode),
-        eq(userDataRequests.isVerified, false)
-      ))
+      .where(
+        and(
+          eq(userDataRequests.id, requestId),
+          eq(userDataRequests.verificationCode, verificationCode),
+          eq(userDataRequests.isVerified, false)
+        )
+      )
       .returning();
 
     return !!request;
@@ -132,19 +150,27 @@ export class DataManagementService {
         contractorProfile,
         privacySettings,
         accessLogs,
-        dataRequests
+        dataRequests,
       ] = await Promise.all([
         db.select().from(leads).where(eq(leads.userId, userId)),
-        db.select().from(conversations).where(or(
-          eq(conversations.homeownerId, userId),
-          eq(conversations.contractorId, userId)
-        )),
+        db
+          .select()
+          .from(conversations)
+          .where(or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))),
         db.select().from(messages).where(eq(messages.senderId, userId)),
         db.select().from(recommendations).where(eq(recommendations.contractorId, userId)),
         db.select().from(contractors).where(eq(contractors.userId, userId)),
         db.select().from(userPrivacySettings).where(eq(userPrivacySettings.userId, userId)),
-        db.select().from(dataAccessLogs).where(eq(dataAccessLogs.userId, userId)).orderBy(desc(dataAccessLogs.timestamp)),
-        db.select().from(userDataRequests).where(eq(userDataRequests.userId, userId)).orderBy(desc(userDataRequests.createdAt))
+        db
+          .select()
+          .from(dataAccessLogs)
+          .where(eq(dataAccessLogs.userId, userId))
+          .orderBy(desc(dataAccessLogs.timestamp)),
+        db
+          .select()
+          .from(userDataRequests)
+          .where(eq(userDataRequests.userId, userId))
+          .orderBy(desc(userDataRequests.createdAt)),
       ]);
 
       const exportData: DataExportData = {
@@ -177,13 +203,13 @@ export class DataManagementService {
 
     // Add profile data
     zip.file("profile.json", JSON.stringify(exportData.profile, null, 2));
-    
+
     // Add activity data
     zip.file("leads.json", JSON.stringify(exportData.leads, null, 2));
     zip.file("conversations.json", JSON.stringify(exportData.conversations, null, 2));
     zip.file("messages.json", JSON.stringify(exportData.messages, null, 2));
     zip.file("recommendations.json", JSON.stringify(exportData.recommendations, null, 2));
-    
+
     // Add contractor data if applicable
     if (exportData.contractorProfile) {
       zip.file("contractor_profile.json", JSON.stringify(exportData.contractorProfile, null, 2));
@@ -232,44 +258,43 @@ For questions about your data, contact: support@tradescout.com
       await this.logDataAccess({
         userId,
         accessorId: adminId,
-        accessorRole: 'admin',
-        actionType: 'delete',
-        resourceType: 'profile',
-        metadata: { action: 'full_data_deletion' }
+        accessorRole: "admin",
+        actionType: "delete",
+        resourceType: "profile",
+        metadata: { action: "full_data_deletion" },
       });
 
       // Delete in order to respect foreign key constraints
       await db.transaction(async (tx: any) => {
         // Delete messages
         await tx.delete(messages).where(eq(messages.senderId, userId));
-        
+
         // Delete conversations where user is homeowner or contractor
-        await tx.delete(conversations).where(or(
-          eq(conversations.homeownerId, userId),
-          eq(conversations.contractorId, userId)
-        ));
-        
+        await tx
+          .delete(conversations)
+          .where(or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId)));
+
         // Delete leads
         await tx.delete(leads).where(eq(leads.userId, userId));
-        
+
         // Delete recommendations
         await tx.delete(recommendations).where(eq(recommendations.contractorId, userId));
-        
+
         // Delete contractor profile
         await tx.delete(contractors).where(eq(contractors.userId, userId));
-        
+
         // Delete privacy settings
         await tx.delete(userPrivacySettings).where(eq(userPrivacySettings.userId, userId));
-        
+
         // Mark data requests as completed
-        await tx.update(userDataRequests)
-          .set({ status: 'completed', completedBy: adminId, completedAt: new Date() })
+        await tx
+          .update(userDataRequests)
+          .set({ status: "completed", completedBy: adminId, completedAt: new Date() })
           .where(eq(userDataRequests.userId, userId));
-        
+
         // Finally, delete the user profile
         await tx.delete(users).where(eq(users.id, userId));
       });
-
     } catch (error) {
       console.error("Error deleting user data:", error);
       throw new Error("Failed to delete user data");
@@ -281,8 +306,14 @@ For questions about your data, contact: support@tradescout.com
    */
   async reportSecurityIncident(params: {
     userId?: string;
-    incidentType: 'unauthorized_access' | 'data_breach' | 'failed_login_attempts' | 'suspicious_activity' | 'phishing_attempt' | 'malware_detection';
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    incidentType:
+      | "unauthorized_access"
+      | "data_breach"
+      | "failed_login_attempts"
+      | "suspicious_activity"
+      | "phishing_attempt"
+      | "malware_detection";
+    severity: "low" | "medium" | "high" | "critical";
     description: string;
     sourceIp?: string;
     detectionMethod?: string;
@@ -292,15 +323,18 @@ For questions about your data, contact: support@tradescout.com
       recordCount?: number;
     };
   }): Promise<SecurityIncident> {
-    const [incident] = await db.insert(securityIncidents).values({
-      userId: params.userId,
-      incidentType: params.incidentType,
-      severity: params.severity,
-      description: params.description,
-      sourceIp: params.sourceIp,
-      detectionMethod: params.detectionMethod || 'automated',
-      affectedData: params.affectedData,
-    }).returning();
+    const [incident] = await db
+      .insert(securityIncidents)
+      .values({
+        userId: params.userId,
+        incidentType: params.incidentType,
+        severity: params.severity,
+        description: params.description,
+        sourceIp: params.sourceIp,
+        detectionMethod: params.detectionMethod || "automated",
+        affectedData: params.affectedData,
+      })
+      .returning();
 
     return incident;
   }
@@ -309,21 +343,30 @@ For questions about your data, contact: support@tradescout.com
    * Get user privacy settings or create default ones
    */
   async getUserPrivacySettings(userId: string): Promise<UserPrivacySettings> {
-    let [settings] = await db.select().from(userPrivacySettings).where(eq(userPrivacySettings.userId, userId));
-    
+    let [settings] = await db
+      .select()
+      .from(userPrivacySettings)
+      .where(eq(userPrivacySettings.userId, userId));
+
     if (!settings) {
-      [settings] = await db.insert(userPrivacySettings).values({
-        userId,
-      }).returning();
+      [settings] = await db
+        .insert(userPrivacySettings)
+        .values({
+          userId,
+        })
+        .returning();
     }
-    
+
     return settings;
   }
 
   /**
    * Update user privacy settings
    */
-  async updateUserPrivacySettings(userId: string, updates: Partial<UserPrivacySettings>): Promise<UserPrivacySettings> {
+  async updateUserPrivacySettings(
+    userId: string,
+    updates: Partial<UserPrivacySettings>
+  ): Promise<UserPrivacySettings> {
     const [settings] = await db
       .update(userPrivacySettings)
       .set({
@@ -340,7 +383,9 @@ For questions about your data, contact: support@tradescout.com
    * Get data access logs for a user (admin only)
    */
   async getUserAccessLogs(userId: string, limit: number = 100): Promise<DataAccessLog[]> {
-    return db.select().from(dataAccessLogs)
+    return db
+      .select()
+      .from(dataAccessLogs)
       .where(eq(dataAccessLogs.userId, userId))
       .orderBy(desc(dataAccessLogs.timestamp))
       .limit(limit);
@@ -351,11 +396,11 @@ For questions about your data, contact: support@tradescout.com
    */
   async getAllDataRequests(status?: string): Promise<UserDataRequest[]> {
     const query = db.select().from(userDataRequests);
-    
+
     if (status) {
       query.where(eq(userDataRequests.status, status as any));
     }
-    
+
     return query.orderBy(desc(userDataRequests.createdAt));
   }
 
@@ -364,11 +409,11 @@ For questions about your data, contact: support@tradescout.com
    */
   async getSecurityIncidents(status?: string): Promise<SecurityIncident[]> {
     const query = db.select().from(securityIncidents);
-    
+
     if (status) {
       query.where(eq(securityIncidents.status, status as any));
     }
-    
+
     return query.orderBy(desc(securityIncidents.createdAt));
   }
 }

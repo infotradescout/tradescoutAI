@@ -1,10 +1,10 @@
-import { db } from "../../src/db/drizzle-mock";
+import { db } from ".././db";
 import { SQL, and, eq, gte, lte, sql } from "drizzle-orm";
 import {
   affiliateAccounts,
   affiliatePayouts,
   affiliateTrafficEvents,
-  affiliateReferrals
+  affiliateReferrals,
 } from "@shared/schema";
 
 export interface AffiliateStats {
@@ -80,14 +80,21 @@ export async function getAffiliateReferrals(
   affiliateId: string,
   options?: { limit?: number; offset?: number }
 ): Promise<Referral[]> {
-  console.warn("getAffiliateReferrals is temporarily disabled for MVP (no affiliateReferrals table).");
+  console.warn(
+    "getAffiliateReferrals is temporarily disabled for MVP (no affiliateReferrals table)."
+  );
   return [];
 }
 
 export async function trackReferral(
   affiliateId: string,
   referredUserId: string,
-  options?: { shareLinkId?: string; couponCode?: string; conversionSource?: string; conversionType?: string }
+  options?: {
+    shareLinkId?: string;
+    couponCode?: string;
+    conversionSource?: string;
+    conversionType?: string;
+  }
 ): Promise<Referral | null> {
   console.warn("trackReferral is temporarily disabled for MVP (no affiliateReferrals table).");
   return null;
@@ -96,14 +103,12 @@ export async function trackReferral(
 export async function convertReferral(referralId: string): Promise<boolean> {
   try {
     // For now, just log a traffic event for conversion
-    await db
-      .insert(affiliateTrafficEvents)
-      .values({
-        shareLinkId: referralId,
-        conversionType: "conversion",
-        conversionsCount: 1,
-        computedConversion: true,
-      });
+    await db.insert(affiliateTrafficEvents).values({
+      shareLinkId: referralId,
+      conversionType: "conversion",
+      conversionsCount: 1,
+      computedConversion: true,
+    });
 
     return true;
   } catch (error) {
@@ -234,7 +239,11 @@ export async function markCommissionAsPaid(
   }
 }
 
-export async function getMonthlyStats(affiliateId: string, month: number, year: number): Promise<{
+export async function getMonthlyStats(
+  affiliateId: string,
+  month: number,
+  year: number
+): Promise<{
   referrals: number;
   commissions: number;
   conversions: number;

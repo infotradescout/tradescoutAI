@@ -1,6 +1,6 @@
 /**
  * Phase D2: Scout Confidence Scoring Engine
- * 
+ *
  * Calculates 0.0-1.0 confidence score for contact recommendations
  * Based on 5 weighted components:
  * - expertise_match: 30% (target's skills vs need)
@@ -8,7 +8,7 @@
  * - trust_signal: 25% (verification, reviews, network)
  * - past_success: 15% (prior outcomes with this pair)
  * - availability_match: 5% (recent activity)
- * 
+ *
  * Authority Gates (based on confidence):
  * - 0.85-1.0: auto_allow (minimal friction)
  * - 0.70-0.84: manual_confirm (user must click)
@@ -16,12 +16,12 @@
  * - <0.50: blocked (don't show, offer alternatives)
  */
 
-import { db } from '../../src/db/drizzle-mock';
-import { users, marketplaceConversations } from '@shared/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { db } from ".././db";
+import { users, marketplaceConversations } from "@shared/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 
-export type Intent = 'hire' | 'advise' | 'collaborate' | 'reconnect';
-export type AuthorityGate = 'auto_allow' | 'manual_confirm' | 'caution' | 'blocked';
+export type Intent = "hire" | "advise" | "collaborate" | "reconnect";
+export type AuthorityGate = "auto_allow" | "manual_confirm" | "caution" | "blocked";
 
 export interface ConfidenceComponents {
   expertise_match: number; // 0.0-1.0
@@ -65,17 +65,17 @@ async function calculateExpertiseMatch(
   if (!target) return 0;
 
   // Perfect match scenarios
-  if (intent === 'hire' && target.role === 'contractor') {
+  if (intent === "hire" && target.role === "contractor") {
     // Check if decision context mentions target's trade
     // Future: Match against contractor.specialties
     return 0.9;
   }
 
-  if (intent === 'advise' && (target.role === 'hoa_member' || target.role === 'hoa_board')) {
+  if (intent === "advise" && (target.role === "hoa_member" || target.role === "hoa_board")) {
     return 0.85;
   }
 
-  if (intent === 'collaborate' && target.role === 'contractor') {
+  if (intent === "collaborate" && target.role === "contractor") {
     return 0.8;
   }
 
@@ -87,10 +87,7 @@ async function calculateExpertiseMatch(
  * Calculate location match component (25% weight)
  * Geographic proximity and service area overlap
  */
-async function calculateLocationMatch(
-  userId: string,
-  targetUserId: string
-): Promise<number> {
+async function calculateLocationMatch(userId: string, targetUserId: string): Promise<number> {
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   const [target] = await db.select().from(users).where(eq(users.id, targetUserId));
 
@@ -114,10 +111,7 @@ async function calculateLocationMatch(
  * Calculate trust signal component (25% weight)
  * Verification status, reviews, network connections
  */
-async function calculateTrustSignal(
-  userId: string,
-  targetUserId: string
-): Promise<number> {
+async function calculateTrustSignal(userId: string, targetUserId: string): Promise<number> {
   const [target] = await db.select().from(users).where(eq(users.id, targetUserId));
   if (!target) return 0;
 
@@ -143,10 +137,7 @@ async function calculateTrustSignal(
  * Calculate past success component (15% weight)
  * Prior outcomes with this specific pair
  */
-async function calculatePastSuccess(
-  userId: string,
-  targetUserId: string
-): Promise<number> {
+async function calculatePastSuccess(userId: string, targetUserId: string): Promise<number> {
   // Check if they've had prior successful conversations
   const priorConvs = await db
     .select()
@@ -173,10 +164,7 @@ async function calculatePastSuccess(
  * Calculate availability match component (5% weight)
  * Recent activity, response rate
  */
-async function calculateAvailabilityMatch(
-  userId: string,
-  targetUserId: string
-): Promise<number> {
+async function calculateAvailabilityMatch(userId: string, targetUserId: string): Promise<number> {
   const [target] = await db.select().from(users).where(eq(users.id, targetUserId));
   if (!target) return 0;
 
@@ -210,40 +198,45 @@ export async function calculateConfidenceScore(
   decisionContext?: string
 ): Promise<ConfidenceScore> {
   // Calculate all components
-  const expertise_match = await calculateExpertiseMatch(userId, targetUserId, intent, decisionContext);
+  const expertise_match = await calculateExpertiseMatch(
+    userId,
+    targetUserId,
+    intent,
+    decisionContext
+  );
   const location_match = await calculateLocationMatch(userId, targetUserId);
   const trust_signal = await calculateTrustSignal(userId, targetUserId);
   const past_success = await calculatePastSuccess(userId, targetUserId);
   const availability_match = await calculateAvailabilityMatch(userId, targetUserId);
 
   // Weighted average
-  const overall = 
-    (expertise_match * 0.30) +
-    (location_match * 0.25) +
-    (trust_signal * 0.25) +
-    (past_success * 0.15) +
-    (availability_match * 0.05);
+  const overall =
+    expertise_match * 0.3 +
+    location_match * 0.25 +
+    trust_signal * 0.25 +
+    past_success * 0.15 +
+    availability_match * 0.05;
 
   // Determine authority gate based on overall score
   let authorityGate: AuthorityGate;
-  if (overall >= 0.85) authorityGate = 'auto_allow';
-  else if (overall >= 0.70) authorityGate = 'manual_confirm';
-  else if (overall >= 0.50) authorityGate = 'caution';
-  else authorityGate = 'blocked';
+  if (overall >= 0.85) authorityGate = "auto_allow";
+  else if (overall >= 0.7) authorityGate = "manual_confirm";
+  else if (overall >= 0.5) authorityGate = "caution";
+  else authorityGate = "blocked";
 
   // Generate risk flags for caution/blocked states
   const riskFlags: string[] = [];
   if (location_match < 0.5) {
-    riskFlags.push('Different geographic area may affect availability');
+    riskFlags.push("Different geographic area may affect availability");
   }
   if (trust_signal < 0.5) {
-    riskFlags.push('Limited verification or network signals');
+    riskFlags.push("Limited verification or network signals");
   }
   if (expertise_match < 0.6) {
-    riskFlags.push('Skills may not perfectly match your need');
+    riskFlags.push("Skills may not perfectly match your need");
   }
   if (availability_match < 0.4) {
-    riskFlags.push('User has been inactive recently');
+    riskFlags.push("User has been inactive recently");
   }
 
   return {
@@ -272,7 +265,7 @@ export async function generateScoutRecommendation(
 ): Promise<ScoutRecommendation> {
   const [target] = await db.select().from(users).where(eq(users.id, targetUserId));
   if (!target) {
-    throw new Error('Target user not found');
+    throw new Error("Target user not found");
   }
 
   const confidence = await calculateConfidenceScore(userId, targetUserId, intent, decisionContext);
@@ -280,9 +273,11 @@ export async function generateScoutRecommendation(
   return {
     recommendationId: `scout_rec_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
     targetUserId: target.id,
-    targetUserName: `${target.firstName} ${target.lastName}`.trim() || 'User',
-    targetRole: target.role || 'user',
-    targetLocation: target.countyFips ? `${target.countyFips}, ${target.state}` : target.state || undefined,
+    targetUserName: `${target.firstName} ${target.lastName}`.trim() || "User",
+    targetRole: target.role || "user",
+    targetLocation: target.countyFips
+      ? `${target.countyFips}, ${target.state}`
+      : target.state || undefined,
     suggestedIntent: intent,
     reasoning,
     confidence,
@@ -302,15 +297,15 @@ export function checkRecommendationRateLimit(
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const dailyCount = recentRecommendations.filter(r => r.createdAt > oneDayAgo).length;
-  const weeklyCount = recentRecommendations.filter(r => r.createdAt > oneWeekAgo).length;
+  const dailyCount = recentRecommendations.filter((r) => r.createdAt > oneDayAgo).length;
+  const weeklyCount = recentRecommendations.filter((r) => r.createdAt > oneWeekAgo).length;
 
   if (dailyCount >= 3) {
-    return { allowed: false, reason: 'Daily recommendation limit reached (3 per day)' };
+    return { allowed: false, reason: "Daily recommendation limit reached (3 per day)" };
   }
 
   if (weeklyCount >= 10) {
-    return { allowed: false, reason: 'Weekly recommendation limit reached (10 per week)' };
+    return { allowed: false, reason: "Weekly recommendation limit reached (10 per week)" };
   }
 
   return { allowed: true };

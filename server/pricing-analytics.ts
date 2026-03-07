@@ -1,13 +1,12 @@
-
 /**
  * Pricing Analytics Service
  * Tracks job quotes, price trends, and regional variations for admin insights
  * and automatic calculator updates
  */
 
-import { db } from '../src/db/drizzle-mock';
-import { eq } from 'drizzle-orm';
-import { pricingData } from '@shared/schema';
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import { pricingData } from "@shared/schema";
 
 export interface PricingAnalytics {
   averageQuotes: {
@@ -56,11 +55,10 @@ export interface PricingAnalytics {
 }
 
 export class PricingAnalyticsService {
-  
   /**
    * Get comprehensive pricing analytics for admin dashboard
    */
-  async getPricingAnalytics(timeframe: '7d' | '30d' | '90d' = '30d'): Promise<PricingAnalytics> {
+  async getPricingAnalytics(timeframe: "7d" | "30d" | "90d" = "30d"): Promise<PricingAnalytics> {
     void timeframe;
     // Analytics queries depend on quote/lead fields not present in the current schema.
     // Return an empty-but-shaped response to satisfy callers while keeping the service typed.
@@ -86,7 +84,7 @@ export class PricingAnalyticsService {
    * Update calculator pricing based on collected data
    */
   async updateCalculatorPricing(threshold: number = 10) {
-    const analytics = await this.getPricingAnalytics('30d');
+    const analytics = await this.getPricingAnalytics("30d");
     const updates = [];
 
     // Update pricing data for trades with significant data
@@ -109,21 +107,19 @@ export class PricingAnalyticsService {
             .set({
               baseLow: newBaseLow.toString(),
               baseHigh: newBaseHigh.toString(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(pricingData.service, tradeId));
         } else {
           // Create new pricing entry
-          await db
-            .insert(pricingData)
-            .values({
-              service: tradeId,
-              fips: '00000', // Default nationwide
-              baseLow: newBaseLow.toString(),
-              baseHigh: newBaseHigh.toString(),
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
+          await db.insert(pricingData).values({
+            service: tradeId,
+            fips: "00000", // Default nationwide
+            baseLow: newBaseLow.toString(),
+            baseHigh: newBaseHigh.toString(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
         }
 
         updates.push({
@@ -132,14 +128,14 @@ export class PricingAnalyticsService {
           oldHigh: existingPricing[0]?.baseHigh,
           newLow: newBaseLow,
           newHigh: newBaseHigh,
-          sampleSize: data.count
+          sampleSize: data.count,
         });
       }
     }
 
     return {
       updatedCount: updates.length,
-      updates
+      updates,
     };
   }
 
@@ -147,15 +143,16 @@ export class PricingAnalyticsService {
    * Get pricing recommendations for specific regions
    */
   async getRegionalPricingRecommendations(stateCode?: string) {
-    const analytics = await this.getPricingAnalytics('90d');
+    const analytics = await this.getPricingAnalytics("90d");
     const recommendations = [];
 
     for (const [regionKey, data] of Object.entries(analytics.averageQuotes.byRegion)) {
       if (stateCode && !regionKey.startsWith(stateCode)) continue;
-      
-      if (data.count >= 5) { // Minimum sample size
-        const [state, countyId] = regionKey.split('-');
-        
+
+      if (data.count >= 5) {
+        // Minimum sample size
+        const [state, countyId] = regionKey.split("-");
+
         recommendations.push({
           stateCode: state,
           countyId,
@@ -163,7 +160,7 @@ export class PricingAnalyticsService {
           recommendedHigh: Math.round(data.average * 1.25),
           confidence: Math.min(data.count / 10, 1), // Confidence based on sample size
           sampleSize: data.count,
-          currentAverage: data.average
+          currentAverage: data.average,
         });
       }
     }

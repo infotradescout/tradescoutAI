@@ -1,4 +1,4 @@
-import { db } from "../src/db/drizzle-mock";
+import { db } from "./db";
 import { siteSettings, prizeConfigurations, contractorSettings, users } from "../shared/schema";
 
 export async function populateAdminData() {

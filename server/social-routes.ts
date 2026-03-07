@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { eq, desc, and, or, like, sql, count, inArray } from "drizzle-orm";
-import { db } from "../src/db/drizzle-mock";
+import { db } from "./db";
 import {
   socialPosts,
   postReactions,

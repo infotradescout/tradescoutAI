@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getGeminiModelName } from "../ai/modelConfig";
 import { and, eq, or, sql } from "drizzle-orm";
 import mammoth from "mammoth";
-import { db } from "../../src/db/drizzle-mock";
+import { db } from ".././db";
 import { storage } from "../storage";
 import { chooseKnowledgeMode } from "../scout/brandGuard";
 import { businesses, businessCounties, counties } from "../../shared/schema";

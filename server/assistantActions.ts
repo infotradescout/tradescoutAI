@@ -1,4 +1,4 @@
-import { db } from "../src/db/drizzle-mock";
+import { db } from "./db";
 
 // Import all services
 import * as marketplaceService from "./services/marketplaceService.js";

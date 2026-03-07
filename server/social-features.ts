@@ -22,7 +22,7 @@ import { eq, desc, and, or, like, ilike, sql, inArray, notInArray } from "drizzl
 import { rateLimit } from "express-rate-limit";
 import { pool } from "./db";
 import { createPostgresRateLimitStore } from "./utils/postgresRateLimitStore";
-import { db } from "../src/db/drizzle-mock";
+import { db } from "./db";
 import {
   decisionCards,
   users,

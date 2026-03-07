@@ -1,4 +1,4 @@
-import { db } from "../../../src/db/drizzle-mock";
+import { db } from "../.././db";
 
 /**
  * Extract public profile data for caching

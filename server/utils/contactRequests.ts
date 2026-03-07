@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db } from "../../src/db/drizzle-mock";
+import { db } from ".././db";
 import {
   contactPermissionEvents,
   contactPermissions,

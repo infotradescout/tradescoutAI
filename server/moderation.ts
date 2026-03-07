@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { db } from "../src/db/drizzle-mock";
+import { db } from "./db";
 import {
   moderationVotes,
   moderationScores,

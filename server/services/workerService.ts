@@ -1,6 +1,12 @@
-import { db } from "../../src/db/drizzle-mock";
+import { db } from ".././db";
 import { and, eq, ilike } from "drizzle-orm";
-import { workers, tasks, taskApplications, type Worker as DbWorker, type Task as DbTask } from "@shared/schema";
+import {
+  workers,
+  tasks,
+  taskApplications,
+  type Worker as DbWorker,
+  type Task as DbTask,
+} from "@shared/schema";
 
 // Re-export schema-derived types for consumers of this service
 export type WorkerProfile = DbWorker;
@@ -99,11 +105,7 @@ export async function getWorkerProfile(workerId: string): Promise<WorkerProfile 
   try {
     if (!workerId) return null;
 
-    const rows = await db
-      .select()
-      .from(workers)
-      .where(eq(workers.id, workerId))
-      .limit(1);
+    const rows = await db.select().from(workers).where(eq(workers.id, workerId)).limit(1);
 
     return rows[0] ?? null;
   } catch (error) {
@@ -181,15 +183,13 @@ export async function applyToTask(
   try {
     if (!taskId || !workerId) return false;
 
-    await db
-      .insert(taskApplications)
-      .values({
-        taskId,
-        workerId,
-        message: proposal,
-        estimatedDuration: estimatedHours ? String(estimatedHours) : undefined,
-        status: "pending",
-      } as any);
+    await db.insert(taskApplications).values({
+      taskId,
+      workerId,
+      message: proposal,
+      estimatedDuration: estimatedHours ? String(estimatedHours) : undefined,
+      status: "pending",
+    } as any);
 
     return true;
   } catch (error) {
