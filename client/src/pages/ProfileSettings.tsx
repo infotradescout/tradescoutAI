@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -790,890 +791,857 @@ export default function ProfileSettings() {
     updateColorScheme(preset);
   };
 
-  return (
-    <div className="container mx-auto py-8 space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Profile Settings</h1>
-        <p className="text-white/60">
-          Customize your TradeScout experience. Your profile is your website.
-        </p>
-        {isOnboarding && (
-          <p className="mt-2 text-sm text-white/60">
-            You just created your account with Google or Facebook. You can finish this now or skip
-            and come back later from Settings → Profile.
-          </p>
-        )}
-      </div>
+  const profileSectionOptions: Array<{
+    key: keyof ProfileSections;
+    label: string;
+    description: string;
+  }> = [
+    {
+      key: "about",
+      label: "About",
+      description: "High-level overview of who you are on TradeScout.",
+    },
+    {
+      key: "rolesAndBadges",
+      label: "Roles and badges",
+      description: "Show your TradeScout roles and earned badges.",
+    },
+    {
+      key: "stats",
+      label: "Stats",
+      description: "Show activity and trust metrics when available.",
+    },
+    {
+      key: "services",
+      label: "Services",
+      description: "Show the services summary from your profile.",
+    },
+    {
+      key: "marketplaceListings",
+      label: "Marketplace listings",
+      description: "Feature active marketplace listings on your public profile.",
+    },
+    {
+      key: "reviews",
+      label: "Recommendations",
+      description: "Display CVS trust and recommendation sections.",
+    },
+    {
+      key: "communityActivity",
+      label: "Community activity",
+      description: "Show your visible participation in TradeScout communities.",
+    },
+    {
+      key: "contactCard",
+      label: "Contact card",
+      description: "Show a call-to-action for routed contact requests.",
+    },
+  ];
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Basics</CardTitle>
-          <CardDescription>Update your profile photo and display name.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-white/10 overflow-hidden flex items-center justify-center text-sm font-semibold">
-              {profileBasics.profileImageUrl ? (
-                <img
-                  src={profileBasics.profileImageUrl}
-                  alt="Profile"
-                  className="h-16 w-16 object-cover"
-                />
-              ) : (
-                <span>
-                  {(profileBasics.firstName?.[0] || user?.firstName?.[0] || "").toUpperCase()}
-                  {(profileBasics.lastName?.[0] || user?.lastName?.[0] || "").toUpperCase()}
-                </span>
+  const paletteFields: Array<{ key: PaletteKey; label: string; value: string }> = [
+    { key: "background", label: "Background", value: palette.background },
+    { key: "surface", label: "Surface", value: palette.surface },
+    { key: "text", label: "Text", value: palette.text },
+    { key: "textMuted", label: "Muted text", value: palette.textMuted },
+    { key: "accent", label: "Accent", value: palette.accent },
+    { key: "accentStrong", label: "Accent strong", value: palette.accentStrong },
+  ];
+
+  return (
+    <div className="mx-auto w-full max-w-6xl space-y-6 pb-20 pt-6">
+      <Card className="border-white/10 bg-tsCard">
+        <CardContent className="p-5 md:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white md:text-3xl">Profile Settings</h1>
+              <p className="mt-2 text-sm text-white/70 md:text-base">
+                Control identity, routing, visibility, booking, and appearance from one place.
+              </p>
+              {isOnboarding && (
+                <p className="mt-2 text-xs text-white/60 md:text-sm">
+                  You just created your account with Google or Facebook. Finish setup now or come
+                  back later from Settings to complete it.
+                </p>
               )}
             </div>
-            <div>
-              <Label htmlFor="profile-photo-upload">Profile photo</Label>
-              <div className="mt-1">
-                <Input
-                  id="profile-photo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleProfilePhotoSelected}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label>First name</Label>
-              <Input
-                value={profileBasics.firstName}
-                onChange={(e) =>
-                  setProfileBasics((prev) => ({ ...prev, firstName: e.target.value }))
-                }
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Last name</Label>
-              <Input
-                value={profileBasics.lastName}
-                onChange={(e) =>
-                  setProfileBasics((prev) => ({ ...prev, lastName: e.target.value }))
-                }
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="button" onClick={saveProfileBasics} disabled={loading}>
-              {loading ? "Saving..." : "Save profile"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Public Pages */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-ts-orange" />
-            Public pages
-          </CardTitle>
-          <CardDescription>
-            Share your public pages. Contact stays routed through TradeScout.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-sm font-medium">Profile page</div>
-              <div className="text-xs text-white/60 break-all">
-                {profileSlug ? `${getCanonicalAppOrigin()}/u/${profileSlug}` : "Not published yet"}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!profileSlug}
-                onClick={() => profileSlug && navigate(`/u/${profileSlug}`)}
-              >
-                View
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!profileSlug}
-                onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
-              >
-                Edit
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-sm font-medium">Business page</div>
-              <div className="text-xs text-white/60 break-all">
-                {(user as any)?.businessSlug
-                  ? `${window.location.origin}/business/${(user as any).businessSlug}`
-                  : "Not published yet"}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!(user as any)?.businessSlug}
-                onClick={() =>
-                  (user as any)?.businessSlug &&
-                  navigate(`/business/${encodeURIComponent((user as any).businessSlug)}`)
-                }
-              >
-                View
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!(user as any)?.businessSlug}
-                onClick={() =>
-                  (user as any)?.businessSlug &&
-                  navigate(`/business/${encodeURIComponent((user as any).businessSlug)}/edit`)
-                }
-              >
-                Edit
-              </Button>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+                Visibility:{" "}
+                {preferences.profileVisibility === "public" ? "Public profile" : "Private profile"}
+              </span>
+              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+                Home: {preferences.defaultHomePage || "llm"}
+              </span>
+              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+                Booking: {profileBooking.enabled ? "Enabled" : "Disabled"}
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Color Scheme */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-ts-orange" />
-            Site + Profile Palette
-          </CardTitle>
-          <CardDescription>
-            These 6 colors power your full site experience (background + UI layer) and keep your
-            public profile in sync.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { key: "background", label: "Background (Charcoal)", value: palette.background },
-              { key: "surface", label: "UI Surface", value: palette.surface },
-              { key: "text", label: "Text (White)", value: palette.text },
-              { key: "textMuted", label: "Muted Text", value: palette.textMuted },
-              { key: "accent", label: "Accent (Orange)", value: palette.accent },
-              { key: "accentStrong", label: "Accent Secondary", value: palette.accentStrong },
-            ].map((item) => (
-              <div key={item.key} className="space-y-1">
-                <Label className="text-xs">{item.label}</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={sanitizeColorForInput(item.value)}
-                    onChange={(e) => setPaletteField(item.key as PaletteKey, e.target.value)}
-                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
-                  />
+      <Tabs defaultValue="identity" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-4">
+          <TabsTrigger value="identity">Identity</TabsTrigger>
+          <TabsTrigger value="routing">Routing</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="booking">Booking</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="identity" className="space-y-6">
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle>Profile Basics</CardTitle>
+              <CardDescription>Update your profile photo and display name.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 overflow-hidden rounded-full bg-white/10 text-sm font-semibold flex items-center justify-center">
+                  {profileBasics.profileImageUrl ? (
+                    <img
+                      src={profileBasics.profileImageUrl}
+                      alt="Profile"
+                      className="h-16 w-16 object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {(profileBasics.firstName?.[0] || user?.firstName?.[0] || "").toUpperCase()}
+                      {(profileBasics.lastName?.[0] || user?.lastName?.[0] || "").toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="profile-photo-upload">Profile photo</Label>
+                  <div className="mt-1">
+                    <Input
+                      id="profile-photo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePhotoSelected}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>First name</Label>
                   <Input
-                    value={item.value}
-                    onChange={(e) => setPaletteField(item.key as PaletteKey, e.target.value)}
+                    value={profileBasics.firstName}
+                    onChange={(e) =>
+                      setProfileBasics((prev) => ({ ...prev, firstName: e.target.value }))
+                    }
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Last name</Label>
+                  <Input
+                    value={profileBasics.lastName}
+                    onChange={(e) =>
+                      setProfileBasics((prev) => ({ ...prev, lastName: e.target.value }))
+                    }
                     disabled={loading}
                   />
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div className="flex justify-end pt-2 border-t border-white/10">
-            <Button type="button" onClick={savePalette} disabled={loading}>
-              {loading ? "Saving…" : "Save Palette"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex justify-end">
+                <Button type="button" onClick={saveProfileBasics} disabled={loading}>
+                  {loading ? "Saving..." : "Save profile basics"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Color Scheme */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-ts-orange" />
-            Color Scheme
-          </CardTitle>
-          <CardDescription>
-            Choose colors that represent your brand. Visitors to your profile will see these colors.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Select Preset</Label>
-              {preferences.colorScheme?.preset && preferences.colorScheme.preset !== "default" && (
-                <button
-                  type="button"
-                  onClick={() => handlePresetChange("default")}
-                  disabled={loading}
-                  className="text-xs text-ts-orange hover:text-ts-orange-light underline underline-offset-2 transition-colors disabled:opacity-50"
-                >
-                  Reset to Default
-                </button>
-              )}
-            </div>
-            <Select
-              value={preferences.colorScheme?.preset || "default"}
-              onValueChange={handlePresetChange}
-              disabled={loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a color scheme" />
-              </SelectTrigger>
-              <SelectContent>
-                {getPresetNames().map((preset: string) => (
-                  <SelectItem key={preset} value={preset}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded border"
-                        style={{ backgroundColor: COLOR_PRESETS[preset].primary }}
-                      />
-                      <span className="capitalize">{preset}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-4 h-4 rounded border"
-                      style={{ backgroundColor: customColors.primary }}
-                    />
-                    <span>Custom</span>
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutTemplate className="h-5 w-5 text-ts-orange" />
+                Public pages
+              </CardTitle>
+              <CardDescription>
+                Share your public pages. Contact still routes through TradeScout gates.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">Profile page</div>
+                  <div className="break-all text-xs text-white/60">
+                    {profileSlug
+                      ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
+                      : "Not published yet"}
                   </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!profileSlug}
+                    onClick={() => profileSlug && navigate(`/u/${profileSlug}`)}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!profileSlug}
+                    onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
+                  >
+                    Edit
+                  </Button>
+                </div>
+              </div>
 
-          {/* Color Preview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {previewColors && (
-              <>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">Business page</div>
+                  <div className="break-all text-xs text-white/60">
+                    {(user as any)?.businessSlug
+                      ? `${window.location.origin}/business/${(user as any).businessSlug}`
+                      : "Not published yet"}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!(user as any)?.businessSlug}
+                    onClick={() =>
+                      (user as any)?.businessSlug &&
+                      navigate(`/business/${encodeURIComponent((user as any).businessSlug)}`)
+                    }
+                  >
+                    View
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!(user as any)?.businessSlug}
+                    onClick={() =>
+                      (user as any)?.businessSlug &&
+                      navigate(`/business/${encodeURIComponent((user as any).businessSlug)}/edit`)
+                    }
+                  >
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {preferences.profileVisibility === "public" ? (
+                  <Eye className="h-5 w-5 text-ts-orange" />
+                ) : (
+                  <EyeOff className="h-5 w-5 text-ts-orange" />
+                )}
+                Profile visibility
+              </CardTitle>
+              <CardDescription>
+                Choose whether your profile can be discovered by users and Scout.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label>Make profile public</Label>
+                  <p className="text-sm text-white/60">
+                    Allow your profile to appear in search and assistant responses.
+                  </p>
+                </div>
+                <Switch
+                  checked={preferences.profileVisibility === "public"}
+                  onCheckedChange={updateProfileVisibility}
+                  disabled={loading}
+                />
+              </div>
+
+              {preferences.profileVisibility === "public" && (
+                <div className="rounded-lg border border-ts-orange/20 bg-ts-orange/10 p-4 text-sm text-white">
+                  Your profile is your website. Public mode surfaces your profile in discovery flows
+                  while keeping contact gated through TradeScout rules.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="routing" className="space-y-6">
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Home className="h-5 w-5 text-ts-orange" />
+                Default home page
+              </CardTitle>
+              <CardDescription>Pick the first workspace you see after login.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Landing page</Label>
+                <Select
+                  value={preferences.defaultHomePage || "llm"}
+                  onValueChange={updateDefaultHome}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose your landing page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="llm">Scout (Default)</SelectItem>
+                    <SelectItem value="dashboard">My Dashboard</SelectItem>
+                    <SelectItem value="marketplace">Exchange</SelectItem>
+                    <SelectItem value="contractor-board">Contractor Board</SelectItem>
+                    <SelectItem value="profile">My Profile</SelectItem>
+                    <SelectItem value="community">Community</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-white/60">
+                Current default: {preferences.defaultHomePage || "llm"}.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutTemplate className="h-5 w-5 text-ts-orange" />
+                Services you offer
+              </CardTitle>
+              <CardDescription>
+                Scout and routing use this text with your roles and location to avoid mismatches.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                value={preferences.servicesDescription || ""}
+                onChange={(e) =>
+                  setPreferences((prev) => ({
+                    ...prev,
+                    servicesDescription: e.target.value,
+                  }))
+                }
+                rows={6}
+                placeholder="Example: I specialize in small residential plumbing repairs, water heater replacements, and leak detection."
+              />
+              <div className="flex justify-end">
+                <Button type="button" onClick={saveServicesDescription} disabled={loading}>
+                  Save services
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutTemplate className="h-5 w-5 text-ts-orange" />
+                Public profile sections
+              </CardTitle>
+              <CardDescription>
+                Toggle which sections are visible on your public profile site.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profileSectionOptions.map((item) => (
+                <div key={item.key} className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <Label>{item.label}</Label>
+                    <p className="text-sm text-white/60">{item.description}</p>
+                  </div>
+                  <Switch
+                    checked={preferences.profileSections?.[item.key] !== false}
+                    onCheckedChange={(value) => updateProfileSection(item.key, value)}
+                    disabled={loading}
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="appearance" className="space-y-6">
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-ts-orange" />
+                Site and profile palette
+              </CardTitle>
+              <CardDescription>
+                These six colors drive app surfaces and keep your public profile synchronized.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {paletteFields.map((item) => (
+                  <div key={item.key} className="space-y-1">
+                    <Label className="text-xs">{item.label}</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={sanitizeColorForInput(item.value)}
+                        onChange={(e) => setPaletteField(item.key, e.target.value)}
+                        className="h-10 w-10 rounded border border-white/10 bg-transparent p-0"
+                      />
+                      <Input
+                        value={item.value}
+                        onChange={(e) => setPaletteField(item.key, e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end border-t border-white/10 pt-2">
+                <Button type="button" onClick={savePalette} disabled={loading}>
+                  {loading ? "Saving..." : "Save palette"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-ts-orange" />
+                Presets and custom colors
+              </CardTitle>
+              <CardDescription>
+                Choose a preset or maintain your own custom color set.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Select preset</Label>
+                  {preferences.colorScheme?.preset &&
+                    preferences.colorScheme.preset !== "default" && (
+                      <button
+                        type="button"
+                        onClick={() => handlePresetChange("default")}
+                        disabled={loading}
+                        className="text-xs text-ts-orange underline underline-offset-2 transition-colors disabled:opacity-50"
+                      >
+                        Reset to default
+                      </button>
+                    )}
+                </div>
+                <Select
+                  value={preferences.colorScheme?.preset || "default"}
+                  onValueChange={handlePresetChange}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a color scheme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getPresetNames().map((preset: string) => (
+                      <SelectItem key={preset} value={preset}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-4 w-4 rounded border"
+                            style={{ backgroundColor: COLOR_PRESETS[preset].primary }}
+                          />
+                          <span className="capitalize">{preset}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-4 w-4 rounded border"
+                          style={{ backgroundColor: customColors.primary }}
+                        />
+                        <span>Custom</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.primary }}
                   />
-                  <p className="text-xs text-white/60 text-center">Primary</p>
+                  <p className="text-center text-xs text-white/60">Primary</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.secondary }}
                   />
-                  <p className="text-xs text-white/60 text-center">Secondary</p>
+                  <p className="text-center text-xs text-white/60">Secondary</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.background }}
                   />
-                  <p className="text-xs text-white/60 text-center">Background</p>
+                  <p className="text-center text-xs text-white/60">Background</p>
                 </div>
                 <div className="space-y-1">
                   <div
                     className="h-12 rounded-md border"
                     style={{ backgroundColor: previewColors.text }}
                   />
-                  <p className="text-xs text-white/60 text-center">Text</p>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Custom color pickers */}
-          <div className="mt-6 space-y-3">
-            <Label>Custom Colors</Label>
-            <p className="text-xs text-white/60">
-              Pick your own colors for this profile. Select “Custom” above to use them in your theme
-              and public profile.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Primary</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={sanitizeColorForInput(customColors.primary)}
-                    onChange={(e) =>
-                      setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
-                    }
-                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
-                  />
-                  <Input
-                    value={customColors.primary}
-                    onChange={(e) =>
-                      setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
-                    }
-                  />
+                  <p className="text-center text-xs text-white/60">Text</p>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Secondary</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={sanitizeColorForInput(customColors.secondary)}
-                    onChange={(e) =>
-                      setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
-                    }
-                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
-                  />
-                  <Input
-                    value={customColors.secondary}
-                    onChange={(e) =>
-                      setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Background</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={sanitizeColorForInput(customColors.background)}
-                    onChange={(e) =>
-                      setCustomColors((prev) => ({ ...prev, background: e.target.value }))
-                    }
-                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
-                  />
-                  <Input
-                    value={customColors.background}
-                    onChange={(e) =>
-                      setCustomColors((prev) => ({ ...prev, background: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Text</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={sanitizeColorForInput(customColors.text)}
-                    onChange={(e) => setCustomColors((prev) => ({ ...prev, text: e.target.value }))}
-                    className="w-10 h-10 rounded border border-white/10 bg-transparent p-0"
-                  />
-                  <Input
-                    value={customColors.text}
-                    onChange={(e) => setCustomColors((prev) => ({ ...prev, text: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <Button type="button" onClick={saveCustomColors} disabled={loading}>
-                {loading ? "Saving…" : "Save Custom Colors"}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Default Home Page */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-ts-orange" />
-            Default Home Page
-          </CardTitle>
-          <CardDescription>
-            Choose the first page you see when you visit TradeScout. Scout and your home route will
-            use this when you open the app.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Landing Page</Label>
-            <Select
-              value={preferences.defaultHomePage || "llm"}
-              onValueChange={updateDefaultHome}
-              disabled={loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose your landing page" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="llm">Scout (Default)</SelectItem>
-                <SelectItem value="dashboard">My Dashboard</SelectItem>
-                <SelectItem value="marketplace">Exchange</SelectItem>
-                <SelectItem value="contractor-board">Contractor Board</SelectItem>
-                <SelectItem value="profile">My Profile</SelectItem>
-                <SelectItem value="community">Community</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-xs text-white/60">
-            Your current default is{" "}
-            {preferences.defaultHomePage === "dashboard"
-              ? "Dashboard"
-              : preferences.defaultHomePage === "marketplace"
-                ? "Exchange"
-                : preferences.defaultHomePage === "contractor-board"
-                  ? "Contractor Board"
-                  : preferences.defaultHomePage === "profile"
-                    ? "My Profile"
-                    : preferences.defaultHomePage === "community"
-                      ? "Community Feed"
-                      : "Scout (Default)"}
-            .
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Profile Visibility */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {preferences.profileVisibility === "public" ? (
-              <Eye className="h-5 w-5 text-ts-orange" />
-            ) : (
-              <EyeOff className="h-5 w-5 text-ts-orange" />
-            )}
-            Profile Visibility
-          </CardTitle>
-          <CardDescription>
-            Control who can see your profile. Public profiles are searchable and can be found by
-            Scout.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Make Profile Public</Label>
-              <p className="text-sm text-white/60">
-                Allow your profile to be found in searches and by the AI
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileVisibility === "public"}
-              onCheckedChange={updateProfileVisibility}
-              disabled={loading}
-            />
-          </div>
-
-          {preferences.profileVisibility === "public" && (
-            <div className="p-4 bg-ts-orange/10 rounded-lg border border-ts-orange/20">
-              <p className="text-sm text-white">
-                <strong>Your profile is your website.</strong> When public, visitors will see your
-                customized colors, user types, activity, and information. Scout can reference your
-                profile when answering questions.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Services description used by Scout & routing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-ts-orange" />
-            Services You Offer
-          </CardTitle>
-          <CardDescription>
-            Describe, in your own words, the services you perform. Scout and the auto-routing system
-            use this (along with your roles, locality, and recommendations) to send you the right
-            requests and avoid calls for work you don&apos;t offer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            value={preferences.servicesDescription || ""}
-            onChange={(e) =>
-              setPreferences((prev) => ({
-                ...prev,
-                servicesDescription: e.target.value,
-              }))
-            }
-            rows={5}
-            placeholder="Example: I specialize in small residential plumbing repairs, water heater replacements, and leak detection for single-family homes and small multi-unit buildings. I do not offer new construction rough-in work."
-          />
-          <div className="flex justify-end">
-            <Button type="button" onClick={saveServicesDescription} disabled={loading}>
-              Save services
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-ts-orange" />
-            Booking, Calendar, and Pricing
-          </CardTitle>
-          <CardDescription>
-            Turn on public bookings, optionally collect payment, set calendar visibility, and
-            publish pricing tables.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Enable booking on public profile</Label>
-              <p className="text-sm text-white/60">
-                Show a booking section on your public profile for any visitor.
-              </p>
-            </div>
-            <Switch
-              checked={profileBooking.enabled === true}
-              onCheckedChange={(value) => updateProfileBooking({ enabled: value })}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Enable paid bookings</Label>
-              <p className="text-sm text-white/60">Require a booking deposit through Stripe.</p>
-            </div>
-            <Switch
-              checked={profileBooking.paidBookings === true}
-              onCheckedChange={(value) => updateProfileBooking({ paidBookings: value })}
-              disabled={loading || profileBooking.enabled !== true}
-            />
-          </div>
-
-          {profileBooking.paidBookings === true && (
-            <div className="space-y-2">
-              <Label>Booking deposit (USD)</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={String(profileBooking.bookingPriceUsd ?? 0)}
-                onChange={(e) =>
-                  updateProfileBooking({
-                    bookingPriceUsd: Math.max(0, Number(e.target.value || 0)),
-                  })
-                }
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Calendar visibility</Label>
-            <Select
-              value={profileBooking.calendarVisibility || "public"}
-              onValueChange={(value) =>
-                updateProfileBooking({ calendarVisibility: value as "public" | "private" })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose calendar visibility" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public (show availability)</SelectItem>
-                <SelectItem value="private">Private (hide availability)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Calendar timezone</Label>
-            <Input
-              value={profileBooking.timezone || "America/Chicago"}
-              onChange={(e) => updateProfileBooking({ timezone: e.target.value })}
-              placeholder="America/Chicago"
-            />
-          </div>
-
-          <div className="space-y-3 rounded-lg border border-white/10 p-4">
-            <div className="flex items-center justify-between">
-              <Label>Weekly availability slots</Label>
-              <Button type="button" variant="outline" onClick={addBookingSlot} disabled={loading}>
-                Add slot
-              </Button>
-            </div>
-            {(profileBooking.slots || []).length === 0 ? (
-              <p className="text-sm text-white/60">
-                No slots yet. Add at least one availability window.
-              </p>
-            ) : (
               <div className="space-y-3">
-                {(profileBooking.slots || []).map((slot) => (
-                  <div key={slot.id} className="grid gap-2 md:grid-cols-5 items-end">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Day</Label>
-                      <Select
-                        value={String(slot.dayOfWeek)}
-                        onValueChange={(value) =>
-                          upsertBookingSlot(slot.id, { dayOfWeek: Number(value) })
+                <Label>Custom colors</Label>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Primary</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={sanitizeColorForInput(customColors.primary)}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DAYS_OF_WEEK.map((day, idx) => (
-                            <SelectItem key={day} value={String(idx)}>
-                              {day}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Start</Label>
+                        className="h-10 w-10 rounded border border-white/10 bg-transparent p-0"
+                      />
                       <Input
-                        type="time"
-                        value={slot.startTime}
-                        onChange={(e) => upsertBookingSlot(slot.id, { startTime: e.target.value })}
+                        value={customColors.primary}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, primary: e.target.value }))
+                        }
                       />
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">End</Label>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Secondary</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={sanitizeColorForInput(customColors.secondary)}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
+                        }
+                        className="h-10 w-10 rounded border border-white/10 bg-transparent p-0"
+                      />
                       <Input
-                        type="time"
-                        value={slot.endTime}
-                        onChange={(e) => upsertBookingSlot(slot.id, { endTime: e.target.value })}
+                        value={customColors.secondary}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, secondary: e.target.value }))
+                        }
                       />
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Label (optional)</Label>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Background</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={sanitizeColorForInput(customColors.background)}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, background: e.target.value }))
+                        }
+                        className="h-10 w-10 rounded border border-white/10 bg-transparent p-0"
+                      />
                       <Input
-                        value={slot.label || ""}
-                        onChange={(e) => upsertBookingSlot(slot.id, { label: e.target.value })}
-                        placeholder="Morning"
+                        value={customColors.background}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, background: e.target.value }))
+                        }
                       />
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Text</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={sanitizeColorForInput(customColors.text)}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, text: e.target.value }))
+                        }
+                        className="h-10 w-10 rounded border border-white/10 bg-transparent p-0"
+                      />
+                      <Input
+                        value={customColors.text}
+                        onChange={(e) =>
+                          setCustomColors((prev) => ({ ...prev, text: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="button" onClick={saveCustomColors} disabled={loading}>
+                    {loading ? "Saving..." : "Save custom colors"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="booking" className="space-y-6">
+          <Card className="border-white/10 bg-tsCard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-ts-orange" />
+                Booking, calendar, and pricing
+              </CardTitle>
+              <CardDescription>
+                Configure bookings, deposits, availability, and pricing rows for your public
+                profile.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable booking on public profile</Label>
+                  <p className="text-sm text-white/60">
+                    Show booking controls to visitors on your public page.
+                  </p>
+                </div>
+                <Switch
+                  checked={profileBooking.enabled === true}
+                  onCheckedChange={(value) => updateProfileBooking({ enabled: value })}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enable paid bookings</Label>
+                  <p className="text-sm text-white/60">
+                    Require a Stripe deposit before confirmation.
+                  </p>
+                </div>
+                <Switch
+                  checked={profileBooking.paidBookings === true}
+                  onCheckedChange={(value) => updateProfileBooking({ paidBookings: value })}
+                  disabled={loading || profileBooking.enabled !== true}
+                />
+              </div>
+
+              {profileBooking.paidBookings === true && (
+                <div className="space-y-2">
+                  <Label>Booking deposit (USD)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={String(profileBooking.bookingPriceUsd ?? 0)}
+                    onChange={(e) =>
+                      updateProfileBooking({
+                        bookingPriceUsd: Math.max(0, Number(e.target.value || 0)),
+                      })
+                    }
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Calendar visibility</Label>
+                <Select
+                  value={profileBooking.calendarVisibility || "public"}
+                  onValueChange={(value) =>
+                    updateProfileBooking({ calendarVisibility: value as "public" | "private" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose calendar visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public (show availability)</SelectItem>
+                    <SelectItem value="private">Private (hide availability)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Calendar timezone</Label>
+                <Input
+                  value={profileBooking.timezone || "America/Chicago"}
+                  onChange={(e) => updateProfileBooking({ timezone: e.target.value })}
+                  placeholder="America/Chicago"
+                />
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-white/10 p-4">
+                <div className="flex items-center justify-between">
+                  <Label>Weekly availability slots</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addBookingSlot}
+                    disabled={loading}
+                  >
+                    Add slot
+                  </Button>
+                </div>
+                {(profileBooking.slots || []).length === 0 ? (
+                  <p className="text-sm text-white/60">
+                    No slots yet. Add at least one availability window.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {(profileBooking.slots || []).map((slot) => (
+                      <div key={slot.id} className="grid items-end gap-2 md:grid-cols-5">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Day</Label>
+                          <Select
+                            value={String(slot.dayOfWeek)}
+                            onValueChange={(value) =>
+                              upsertBookingSlot(slot.id, { dayOfWeek: Number(value) })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DAYS_OF_WEEK.map((day, idx) => (
+                                <SelectItem key={day} value={String(idx)}>
+                                  {day}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Start</Label>
+                          <Input
+                            type="time"
+                            value={slot.startTime}
+                            onChange={(e) =>
+                              upsertBookingSlot(slot.id, { startTime: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">End</Label>
+                          <Input
+                            type="time"
+                            value={slot.endTime}
+                            onChange={(e) =>
+                              upsertBookingSlot(slot.id, { endTime: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Label (optional)</Label>
+                          <Input
+                            value={slot.label || ""}
+                            onChange={(e) => upsertBookingSlot(slot.id, { label: e.target.value })}
+                            placeholder="Morning"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeBookingSlot(slot.id)}
+                          disabled={loading}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Show pricing table</Label>
+                  <p className="text-sm text-white/60">
+                    Publish a simple price list on your public profile.
+                  </p>
+                </div>
+                <Switch
+                  checked={profileBooking.pricingTableEnabled === true}
+                  onCheckedChange={(value) => updateProfileBooking({ pricingTableEnabled: value })}
+                  disabled={loading}
+                />
+              </div>
+
+              {profileBooking.pricingTableEnabled === true && (
+                <div className="space-y-3 rounded-lg border border-white/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Pricing rows</Label>
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => removeBookingSlot(slot.id)}
+                      onClick={addPricingRow}
                       disabled={loading}
                     >
-                      Remove
+                      Add row
                     </Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Show pricing table</Label>
-              <p className="text-sm text-white/60">
-                Publish a simple pricing table on your public profile.
-              </p>
-            </div>
-            <Switch
-              checked={profileBooking.pricingTableEnabled === true}
-              onCheckedChange={(value) => updateProfileBooking({ pricingTableEnabled: value })}
-              disabled={loading}
-            />
-          </div>
-
-          {profileBooking.pricingTableEnabled === true && (
-            <div className="space-y-3 rounded-lg border border-white/10 p-4">
-              <div className="flex items-center justify-between">
-                <Label>Pricing rows</Label>
-                <Button type="button" variant="outline" onClick={addPricingRow} disabled={loading}>
-                  Add row
-                </Button>
-              </div>
-              {(profileBooking.pricingRows || []).length === 0 ? (
-                <p className="text-sm text-white/60">No pricing rows yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {(profileBooking.pricingRows || []).map((row) => (
-                    <div key={row.id} className="grid gap-2 md:grid-cols-4 items-end">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Service</Label>
-                        <Input
-                          value={row.name}
-                          onChange={(e) => upsertPricingRow(row.id, { name: e.target.value })}
-                          placeholder="General notarization"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Price</Label>
-                        <Input
-                          value={row.priceLabel}
-                          onChange={(e) => upsertPricingRow(row.id, { priceLabel: e.target.value })}
-                          placeholder="$125"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Description</Label>
-                        <Input
-                          value={row.description || ""}
-                          onChange={(e) =>
-                            upsertPricingRow(row.id, { description: e.target.value })
-                          }
-                          placeholder="Up to 30 minutes"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => removePricingRow(row.id)}
-                        disabled={loading}
-                      >
-                        Remove
-                      </Button>
+                  {(profileBooking.pricingRows || []).length === 0 ? (
+                    <p className="text-sm text-white/60">No pricing rows yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {(profileBooking.pricingRows || []).map((row) => (
+                        <div key={row.id} className="grid items-end gap-2 md:grid-cols-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Service</Label>
+                            <Input
+                              value={row.name}
+                              onChange={(e) => upsertPricingRow(row.id, { name: e.target.value })}
+                              placeholder="General service"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Price</Label>
+                            <Input
+                              value={row.priceLabel}
+                              onChange={(e) =>
+                                upsertPricingRow(row.id, { priceLabel: e.target.value })
+                              }
+                              placeholder="$125"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Description</Label>
+                            <Input
+                              value={row.description || ""}
+                              onChange={(e) =>
+                                upsertPricingRow(row.id, { description: e.target.value })
+                              }
+                              placeholder="Up to 30 minutes"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => removePricingRow(row.id)}
+                            disabled={loading}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          <div className="flex justify-end">
-            <Button type="button" onClick={saveProfileBooking} disabled={loading}>
-              Save booking setup
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Profile Site Sections */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LayoutTemplate className="h-5 w-5 text-ts-orange" />
-            Profile Site Sections
-          </CardTitle>
-          <CardDescription>
-            Choose which sections appear on your public profile site. Turning sections off hides
-            them from visitors.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>About</Label>
-              <p className="text-sm text-white/60">
-                High-level overview of who you are on TradeScout.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.about !== false}
-              onCheckedChange={(value) => updateProfileSection("about", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Roles & badges</Label>
-              <p className="text-sm text-white/60">
-                Show your TradeScout roles, badges, and Community Builder badge status.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.rolesAndBadges !== false}
-              onCheckedChange={(value) => updateProfileSection("rolesAndBadges", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Stats</Label>
-              <p className="text-sm text-white/60">
-                When available, show counts for listings, RECOMMENDATIONS, and trust (CVS).
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.stats !== false}
-              onCheckedChange={(value) => updateProfileSection("stats", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Services</Label>
-              <p className="text-sm text-white/60">
-                For contractors and pros, show a services overview when available.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.services !== false}
-              onCheckedChange={(value) => updateProfileSection("services", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Marketplace listings</Label>
-              <p className="text-sm text-white/60">
-                Allow TradeScout to feature your active marketplace listings here.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.marketplaceListings !== false}
-              onCheckedChange={(value) => updateProfileSection("marketplaceListings", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>RECOMMENDATIONS</Label>
-              <p className="text-sm text-white/60">
-                When RECOMMENDATIONS are enabled, show your trust (CVS) and testimonials.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.reviews !== false}
-              onCheckedChange={(value) => updateProfileSection("reviews", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Community activity</Label>
-              <p className="text-sm text-white/60">
-                Highlight your participation in TradeScout communities and boards.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.communityActivity !== false}
-              onCheckedChange={(value) => updateProfileSection("communityActivity", value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Contact card</Label>
-              <p className="text-sm text-white/60">
-                Show a call-to-action so visitors can reach you.
-              </p>
-            </div>
-            <Switch
-              checked={preferences.profileSections?.contactCard !== false}
-              onCheckedChange={(value) => updateProfileSection("contactCard", value)}
-              disabled={loading}
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex justify-end">
+                <Button type="button" onClick={saveProfileBooking} disabled={loading}>
+                  Save booking setup
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
