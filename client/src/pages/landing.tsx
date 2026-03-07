@@ -1056,12 +1056,19 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 // ---- Main Page ----
 export default function Home() {
   const [location] = useLocation();
-  const pathOnly =
-    String(location || "")
-      .split("?")[0]
-      .replace(/\/+$/, "") || "/";
-  const canonicalLandingUrl = "https://www.thetradescout.com/landing";
-  const isCanonicalLandingPath = pathOnly === "/landing";
+  const rawLocation = String(location || "");
+  const pathOnly = rawLocation.split("?")[0].replace(/\/+$/, "") || "/";
+  const hasQueryParams = rawLocation.includes("?");
+  const canonicalLandingPath = pathOnly.startsWith("/lp/")
+    ? pathOnly.replace(/^\/lp\//, "/landing/")
+    : pathOnly === "/lp"
+      ? "/landing"
+      : pathOnly.startsWith("/landing/")
+        ? pathOnly
+        : "/landing";
+  const canonicalLandingUrl = `https://www.thetradescout.com${canonicalLandingPath}`;
+  const isAliasLandingPath = pathOnly === "/lp" || pathOnly.startsWith("/lp/");
+  const shouldIndexLandingPage = !isAliasLandingPath && !hasQueryParams;
 
   const variant = useLandingVariant();
   const trackedVariant = useMemo(
@@ -1101,10 +1108,14 @@ export default function Home() {
   return (
     <div className="flex flex-col bg-transparent text-white font-body">
       <SEOHelmet
-        title="TradeScout | Connection Without Compromise"
-        description="Trust-first local matching powered by Scout. No lead sales, no pay-to-play, and gated contact through intent and decision."
+        title={
+          canonicalLandingPath === "/landing"
+            ? "TradeScout | Connection Without Compromise"
+            : `${variant.displayName} | TradeScout`
+        }
+        description={variant.subhead}
         canonical={canonicalLandingUrl}
-        noIndex={!isCanonicalLandingPath}
+        noIndex={!shouldIndexLandingPage}
       />
       <Navbar variant={trackedVariant} />
       <main>
