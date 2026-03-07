@@ -25,6 +25,10 @@ function sanitizeNext(next: string) {
   return next;
 }
 
+function buildIntentRoute(next: string) {
+  return `/onboarding/intent?next=${encodeURIComponent(next)}`;
+}
+
 export default function OnboardingProfile() {
   const { user, isAuthenticated, isLoading, refetch } = useAuth();
   const { toast } = useToast();
@@ -53,9 +57,14 @@ export default function OnboardingProfile() {
     const profileVersion: number =
       typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
-    // If already on or above the current profile version, skip ahead.
+    // If profile normalization is already complete, continue into intent confirmation
+    // unless onboarding itself has been explicitly completed.
     if (profileVersion >= CURRENT_PROFILE_VERSION) {
-      navigate(postProfileNext);
+      if ((anyUser.onboardingCompleted as boolean | undefined) === true) {
+        navigate(postProfileNext);
+      } else {
+        navigate(buildIntentRoute(postProfileNext));
+      }
       return;
     }
 
@@ -103,10 +112,9 @@ export default function OnboardingProfile() {
       }
       toast({
         title: "Profile updated",
-        description:
-          "You're all set. You won't be asked to update this again unless something important changes.",
+        description: "Profile saved. One more step so Scout can set up your workspace.",
       });
-      navigate(postProfileNext);
+      navigate(buildIntentRoute(postProfileNext));
     },
     onError: (error: any) => {
       toast({

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +23,15 @@ export default function OnboardingIntent() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  const search = useMemo(() => {
+    const raw = String(location || "");
+    const query = raw.includes("?") ? raw.split("?", 2)[1] : "";
+    return new URLSearchParams(query);
+  }, [location]);
+  const nextParam = (search.get("next") || "").trim();
+  const postIntentNext = nextParam.startsWith("/") ? nextParam : routeForIntentFallback();
 
   const saveIntent = useMutation({
     mutationFn: async (intent: StartIntent | null) => {
@@ -33,12 +41,14 @@ export default function OnboardingIntent() {
         startIntent: intent || undefined,
       };
 
-      return apiRequest("PUT", "/api/user/profile", {
+      await apiRequest("PUT", "/api/user/profile", {
         preferences: mergedPreferences,
       });
+      return apiRequest("POST", "/api/user/complete-onboarding", {});
     },
-    onSuccess: () => {
+    onSuccess: (_data, intent) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      navigate(postIntentNext || routeForIntent(intent));
     },
     onError: (error: any) => {
       toast({
@@ -54,6 +64,10 @@ export default function OnboardingIntent() {
     return INTENT_ROUTES[intent];
   };
 
+  function routeForIntentFallback(): string {
+    return INTENT_ROUTES.community;
+  }
+
   const handleChoose = (intent: StartIntent | null) => {
     if (!isAuthenticated) {
       navigate("/pre-scout-setup?mode=create");
@@ -61,7 +75,6 @@ export default function OnboardingIntent() {
     }
 
     saveIntent.mutate(intent);
-    navigate(routeForIntent(intent));
   };
 
   return (
