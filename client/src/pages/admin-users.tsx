@@ -1660,7 +1660,9 @@ export default function AdminUsers() {
                 Change the role for{" "}
                 {userToEdit?.firstName && userToEdit?.lastName
                   ? `${userToEdit.firstName} ${userToEdit.lastName}`
-                  : userToEdit?.email}
+                  : userToEdit
+                    ? getDisplayEmail(userToEdit)
+                    : ""}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -1715,7 +1717,8 @@ export default function AdminUsers() {
             <DialogHeader>
               <DialogTitle className="text-foreground">Edit Public Profile</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Update the public-facing profile fields for {profileUser?.email || "this user"}.
+                Update the public-facing profile fields for{" "}
+                {profileUser ? getDisplayEmail(profileUser) : "this user"}.
               </DialogDescription>
             </DialogHeader>
 
