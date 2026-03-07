@@ -148,7 +148,7 @@ export default function AdminUsers() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<"all" | "24h" | "7d" | "30d">("all");
-  const [showArchivedPlaceholders, setShowArchivedPlaceholders] = useState(false);
+  const [accountScope, setAccountScope] = useState<"all" | "active_only" | "archived_only">("all");
   const [adminSafetyKey, setAdminSafetyKey] = useState("");
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
@@ -730,11 +730,15 @@ export default function AdminUsers() {
     () => users.filter((u) => isArchivedPlaceholderUser(u.email)).length,
     [users]
   );
-  const usersBase = useMemo(
-    () =>
-      showArchivedPlaceholders ? users : users.filter((u) => !isArchivedPlaceholderUser(u.email)),
-    [users, showArchivedPlaceholders]
-  );
+  const usersBase = useMemo(() => {
+    if (accountScope === "archived_only") {
+      return users.filter((u) => isArchivedPlaceholderUser(u.email));
+    }
+    if (accountScope === "active_only") {
+      return users.filter((u) => !isArchivedPlaceholderUser(u.email));
+    }
+    return users;
+  }, [users, accountScope]);
 
   const filteredUsers = usersBase.filter((u) => {
     const name = u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : "";
@@ -1133,14 +1137,18 @@ export default function AdminUsers() {
                   </Select>
                 </div>
                 {archivedPlaceholderCount > 0 && (
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={showArchivedPlaceholders}
-                      onChange={(e) => setShowArchivedPlaceholders(e.target.checked)}
-                    />
-                    <span>Show archived placeholders ({archivedPlaceholderCount})</span>
-                  </label>
+                  <Select value={accountScope} onValueChange={(v: any) => setAccountScope(v)}>
+                    <SelectTrigger className="w-56 bg-input border-input text-foreground text-xs">
+                      <SelectValue placeholder="Account scope" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border text-xs">
+                      <SelectItem value="all">Accounts: All</SelectItem>
+                      <SelectItem value="active_only">Accounts: Active only</SelectItem>
+                      <SelectItem value="archived_only">
+                        Accounts: Archived only ({archivedPlaceholderCount})
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
             </div>
