@@ -9,15 +9,14 @@ const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://loca
 process.env.BASE_URL = baseURL;
 process.env.E2E_BASE_URL = baseURL;
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
-const baseUrlPort =
-  (() => {
-    try {
-      const parsed = new URL(baseURL);
-      return parsed.port && parsed.port.trim().length > 0 ? parsed.port : "5000";
-    } catch {
-      return "5000";
-    }
-  })();
+const baseUrlPort = (() => {
+  try {
+    const parsed = new URL(baseURL);
+    return parsed.port && parsed.port.trim().length > 0 ? parsed.port : "5000";
+  } catch {
+    return "5000";
+  }
+})();
 
 const serverCommand = hasTestDb
   ? "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts"
@@ -61,7 +60,5 @@ export default defineConfig({
     storageState: "tests/.auth/storageState.json",
   },
 
-  projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-  ],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

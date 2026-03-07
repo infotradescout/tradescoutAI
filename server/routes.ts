@@ -20262,9 +20262,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(viewerId);
         const viewerRole = (viewer as any)?.role || "";
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
-          String(viewerRole)
-        );
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(String(viewerRole));
         const isOwner =
           viewerId === (listing as any).sellerUserId ||
           viewerId === (listing as any).agentUserId ||
@@ -20354,9 +20352,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
           const viewer = await storage.getUser(String(viewerId));
           const viewerRole = String((viewer as any)?.role || "");
-          const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
-            viewerRole
-          );
+          const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
           const isOwner =
             String(viewerId) === String((listing as any).sellerUserId || "") ||
             String(viewerId) === String((listing as any).agentUserId || "") ||
@@ -20758,9 +20754,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(viewerId));
         const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
-          viewerRole
-        );
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
         const isOwner =
           String(viewerId) === String((listing as any).sellerUserId || "") ||
           String(viewerId) === String((listing as any).agentUserId || "") ||
@@ -21001,9 +20995,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(userId));
         const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
-          viewerRole
-        );
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
         const isOwner =
           String(userId) === String((listing as any).sellerUserId || "") ||
           String(userId) === String((listing as any).agentUserId || "") ||
@@ -21046,9 +21038,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(userId));
         const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
-          viewerRole
-        );
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
         const isOwner =
           String(userId) === String((listing as any).sellerUserId || "") ||
           String(userId) === String((listing as any).agentUserId || "") ||
@@ -21387,9 +21377,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const viewer = await storage.getUser(String(userId));
         const viewerRole = (viewer as any)?.role || "";
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(
-          String(viewerRole)
-        );
+        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(String(viewerRole));
 
         const isOwner =
           String(userId) === String((existing as any).sellerUserId || "") ||
@@ -22901,38 +22889,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAuthenticated,
     requireRole(["ops_admin", "super_admin"]),
     async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Unauthorized" });
+        }
 
-      const {
-        name,
-        description,
-        category,
-        countyId,
-        targetAmount,
-        imageUrl,
-        websiteUrl,
-        contactEmail,
-        taxId,
-      } = req.body || {};
-
-      if (!name || !description || !category) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-
-      const user = userRows[0];
-      if (!user) {
-        return res.status(403).json({ message: "Only ops/super admins can create foundation causes" });
-      }
-
-      const inserted = await db
-        .insert(foundationCauses)
-        .values({
+        const {
           name,
           description,
           category,
@@ -22942,16 +22905,43 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           websiteUrl,
           contactEmail,
           taxId,
-          createdBy: userId,
-          isActive: true,
-        } as any)
-        .returning();
+        } = req.body || {};
 
-      res.status(201).json(inserted?.[0] ?? null);
-    } catch (error: any) {
-      console.error("Error creating foundation cause:", error);
-      res.status(500).json({ message: "Failed to create foundation cause" });
-    }
+        if (!name || !description || !category) {
+          return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+        const user = userRows[0];
+        if (!user) {
+          return res
+            .status(403)
+            .json({ message: "Only ops/super admins can create foundation causes" });
+        }
+
+        const inserted = await db
+          .insert(foundationCauses)
+          .values({
+            name,
+            description,
+            category,
+            countyId,
+            targetAmount,
+            imageUrl,
+            websiteUrl,
+            contactEmail,
+            taxId,
+            createdBy: userId,
+            isActive: true,
+          } as any)
+          .returning();
+
+        res.status(201).json(inserted?.[0] ?? null);
+      } catch (error: any) {
+        console.error("Error creating foundation cause:", error);
+        res.status(500).json({ message: "Failed to create foundation cause" });
+      }
     }
   );
 

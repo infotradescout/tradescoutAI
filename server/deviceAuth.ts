@@ -1,8 +1,8 @@
-import crypto from 'crypto';
-import type { Request } from 'express';
-import { db } from './db';
-import { trustedDevices } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import crypto from "crypto";
+import type { Request } from "express";
+import { db } from "./db";
+import { trustedDevices } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export interface DeviceFingerprint {
   userAgent: string;
@@ -17,30 +17,30 @@ export class DeviceAuthService {
   // Generate device fingerprint from request headers and client data
   static generateFingerprint(req: Request, clientData?: Partial<DeviceFingerprint>): string {
     const fpData = {
-      userAgent: req.headers['user-agent'] || '',
-      ipAddress: req.ip || req.connection.remoteAddress || '',
-      acceptLanguage: req.headers['accept-language'] || '',
-      acceptEncoding: req.headers['accept-encoding'] || '',
-      timezone: clientData?.timezone || 'unknown',
-      screenResolution: clientData?.screenResolution || 'unknown'
+      userAgent: req.headers["user-agent"] || "",
+      ipAddress: req.ip || req.connection.remoteAddress || "",
+      acceptLanguage: req.headers["accept-language"] || "",
+      acceptEncoding: req.headers["accept-encoding"] || "",
+      timezone: clientData?.timezone || "unknown",
+      screenResolution: clientData?.screenResolution || "unknown",
     };
 
-    const fingerprintString = Object.values(fpData).join('|');
-    return crypto.createHash('sha256').update(fingerprintString).digest('hex');
+    const fingerprintString = Object.values(fpData).join("|");
+    return crypto.createHash("sha256").update(fingerprintString).digest("hex");
   }
 
   // Get friendly device name from user agent
   static getDeviceName(userAgent: string): string {
-    if (userAgent.includes('iPhone')) return 'iPhone';
-    if (userAgent.includes('iPad')) return 'iPad';
-    if (userAgent.includes('Android')) return 'Android Device';
-    if (userAgent.includes('Windows NT')) return 'Windows Computer';
-    if (userAgent.includes('Macintosh')) return 'Mac Computer';
-    if (userAgent.includes('Linux')) return 'Linux Computer';
-    if (userAgent.includes('Chrome')) return 'Chrome Browser';
-    if (userAgent.includes('Firefox')) return 'Firefox Browser';
-    if (userAgent.includes('Safari')) return 'Safari Browser';
-    return 'Unknown Device';
+    if (userAgent.includes("iPhone")) return "iPhone";
+    if (userAgent.includes("iPad")) return "iPad";
+    if (userAgent.includes("Android")) return "Android Device";
+    if (userAgent.includes("Windows NT")) return "Windows Computer";
+    if (userAgent.includes("Macintosh")) return "Mac Computer";
+    if (userAgent.includes("Linux")) return "Linux Computer";
+    if (userAgent.includes("Chrome")) return "Chrome Browser";
+    if (userAgent.includes("Firefox")) return "Firefox Browser";
+    if (userAgent.includes("Safari")) return "Safari Browser";
+    return "Unknown Device";
   }
 
   // Check if device is trusted and approved for this user
@@ -52,7 +52,7 @@ export class DeviceAuthService {
         and(
           eq(trustedDevices.userId, userId),
           eq(trustedDevices.deviceFingerprint, deviceFingerprint),
-          eq(trustedDevices.status, 'approved')
+          eq(trustedDevices.status, "approved")
         )
       )
       .limit(1);
@@ -64,7 +64,7 @@ export class DeviceAuthService {
       // Mark device as expired
       await db
         .update(trustedDevices)
-        .set({ status: 'revoked', updatedAt: new Date() })
+        .set({ status: "revoked", updatedAt: new Date() })
         .where(eq(trustedDevices.id, device.id));
       return false;
     }
@@ -80,13 +80,13 @@ export class DeviceAuthService {
 
   // Register a new device for approval (requires admin approval for super_admin users)
   static async registerDevice(
-    userId: string, 
-    req: Request, 
+    userId: string,
+    req: Request,
     clientData?: Partial<DeviceFingerprint>,
     autoApprove: boolean = false
   ): Promise<{ deviceId: string; needsApproval: boolean }> {
     const deviceFingerprint = this.generateFingerprint(req, clientData);
-    const deviceName = this.getDeviceName(req.headers['user-agent'] || '');
+    const deviceName = this.getDeviceName(req.headers["user-agent"] || "");
 
     // Check if device already exists
     const [existingDevice] = await db
@@ -101,32 +101,32 @@ export class DeviceAuthService {
       .limit(1);
 
     if (existingDevice) {
-      if (existingDevice.status === 'approved') {
+      if (existingDevice.status === "approved") {
         return { deviceId: existingDevice.id, needsApproval: false };
       }
       return { deviceId: existingDevice.id, needsApproval: true };
     }
 
     // Create new device registration
-    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const sessionToken = crypto.randomBytes(32).toString("hex");
     const [newDevice] = await db
       .insert(trustedDevices)
       .values({
         userId,
         deviceFingerprint,
         deviceName,
-        userAgent: req.headers['user-agent'],
+        userAgent: req.headers["user-agent"],
         ipAddress: req.ip || req.connection.remoteAddress,
         sessionToken,
-        status: autoApprove ? 'approved' : 'pending',
+        status: autoApprove ? "approved" : "pending",
         approvedAt: autoApprove ? new Date() : null,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
       })
       .returning();
 
-    return { 
-      deviceId: newDevice.id, 
-      needsApproval: !autoApprove 
+    return {
+      deviceId: newDevice.id,
+      needsApproval: !autoApprove,
     };
   }
 
@@ -134,17 +134,12 @@ export class DeviceAuthService {
   static async approveDevice(deviceId: string, adminUserId: string): Promise<boolean> {
     const [updated] = await db
       .update(trustedDevices)
-      .set({ 
-        status: 'approved', 
+      .set({
+        status: "approved",
         approvedAt: new Date(),
-        updatedAt: new Date() 
+        updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(trustedDevices.id, deviceId),
-          eq(trustedDevices.status, 'pending')
-        )
-      )
+      .where(and(eq(trustedDevices.id, deviceId), eq(trustedDevices.status, "pending")))
       .returning();
 
     return !!updated;
@@ -154,9 +149,9 @@ export class DeviceAuthService {
   static async revokeDevice(deviceId: string, adminUserId: string): Promise<boolean> {
     const [updated] = await db
       .update(trustedDevices)
-      .set({ 
-        status: 'revoked',
-        updatedAt: new Date() 
+      .set({
+        status: "revoked",
+        updatedAt: new Date(),
       })
       .where(eq(trustedDevices.id, deviceId))
       .returning();
@@ -175,7 +170,7 @@ export class DeviceAuthService {
         status: trustedDevices.status,
         lastUsedAt: trustedDevices.lastUsedAt,
         createdAt: trustedDevices.createdAt,
-        expiresAt: trustedDevices.expiresAt
+        expiresAt: trustedDevices.expiresAt,
       })
       .from(trustedDevices)
       .where(eq(trustedDevices.userId, userId))
@@ -191,10 +186,10 @@ export class DeviceAuthService {
         deviceName: trustedDevices.deviceName,
         userAgent: trustedDevices.userAgent,
         ipAddress: trustedDevices.ipAddress,
-        createdAt: trustedDevices.createdAt
+        createdAt: trustedDevices.createdAt,
       })
       .from(trustedDevices)
-      .where(eq(trustedDevices.status, 'pending'))
+      .where(eq(trustedDevices.status, "pending"))
       .orderBy(trustedDevices.createdAt);
   }
 }

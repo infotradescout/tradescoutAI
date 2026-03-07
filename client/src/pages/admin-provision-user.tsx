@@ -765,7 +765,9 @@ export default function AdminProvisionUser() {
               <select
                 value={requestCategory}
                 onChange={(e) =>
-                  setRequestCategory(e.target.value as (typeof adminDirectConnectRequestTypes)[number]["value"])
+                  setRequestCategory(
+                    e.target.value as (typeof adminDirectConnectRequestTypes)[number]["value"]
+                  )
                 }
                 className="flex h-10 w-full rounded-xl border border-[color:var(--border-subtle)] bg-black/30 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)]/70"
               >
@@ -875,12 +877,15 @@ export default function AdminProvisionUser() {
           {directConnectResult ? (
             <div className="rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-white/80 space-y-1">
               <div>
-                Request ID: <span className="font-mono">{directConnectResult.request?.id || "n/a"}</span>
+                Request ID:{" "}
+                <span className="font-mono">{directConnectResult.request?.id || "n/a"}</span>
               </div>
               <div>Requester intent: {directConnectResult.requesterIntent || "hire_provider"}</div>
               <div>Request type: {directConnectResult.resolvedCategory || "service_request"}</div>
               <div>Target user: {directConnectResult.createdForUser?.email || "n/a"}</div>
-              <div>Provisioned new user: {String(directConnectResult.targetUserProvisioned === true)}</div>
+              <div>
+                Provisioned new user: {String(directConnectResult.targetUserProvisioned === true)}
+              </div>
               <div>Email sent (setup): {String(directConnectResult.setupEmailSent === true)}</div>
               <div>
                 Email sent (request notice): {String(directConnectResult.requestEmailSent === true)}

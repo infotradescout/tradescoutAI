@@ -15,7 +15,7 @@ async function upsertCountyEntity(
   entityType: "affiliate" | "employee" | "territory_manager",
   entityId: string,
   label: string | null,
-  metadata?: Record<string, any>,
+  metadata?: Record<string, any>
 ) {
   if (!entityId) return;
 
@@ -26,8 +26,8 @@ async function upsertCountyEntity(
       and(
         eq(countyEntities.countyFips, countyFips),
         eq(countyEntities.entityType, entityType),
-        eq(countyEntities.entityId, entityId),
-      ),
+        eq(countyEntities.entityId, entityId)
+      )
     )
     .limit(1);
 
@@ -73,7 +73,7 @@ async function seedCountyEntities() {
     if (!countyFips) continue;
 
     const nameParts = [row.firstName, row.lastName].filter(Boolean) as string[];
-    const label = nameParts.length > 0 ? nameParts.join(" ") : row.email ?? null;
+    const label = nameParts.length > 0 ? nameParts.join(" ") : (row.email ?? null);
 
     await upsertCountyEntity(countyFips, "affiliate", row.affiliateUserId as string, label, {
       affiliateAccountId: row.affiliateAccountId,
@@ -114,7 +114,7 @@ async function seedCountyEntities() {
     if (!countyFips) continue;
 
     const nameParts = [row.firstName, row.lastName].filter(Boolean) as string[];
-    const label = nameParts.length > 0 ? nameParts.join(" ") : row.email ?? null;
+    const label = nameParts.length > 0 ? nameParts.join(" ") : (row.email ?? null);
 
     await upsertCountyEntity(countyFips, "employee", row.userId as string, label, {
       primaryRole: row.role,
@@ -133,14 +133,16 @@ async function seedCountyEntities() {
     .from(users)
     .where(and(isNotNull(users.countyFips), eq(users.role, "territory_manager" as any)));
 
-  console.log(`[geo-seed] Found ${territoryRows.length} territory manager rows for entity seeding.`);
+  console.log(
+    `[geo-seed] Found ${territoryRows.length} territory manager rows for entity seeding.`
+  );
 
   for (const row of territoryRows) {
     const countyFips = row.countyFips as string | null;
     if (!countyFips) continue;
 
     const nameParts = [row.firstName, row.lastName].filter(Boolean) as string[];
-    const label = nameParts.length > 0 ? nameParts.join(" ") : row.email ?? null;
+    const label = nameParts.length > 0 ? nameParts.join(" ") : (row.email ?? null);
 
     await upsertCountyEntity(countyFips, "territory_manager", row.userId as string, label, {
       primaryRole: "territory_manager",
@@ -155,7 +157,7 @@ async function seedCountyNotes() {
 
   if (!systemUserId) {
     console.warn(
-      "[geo-seed] SYSTEM_USER_ID is not set; skipping county_notes seeding to avoid mis-attribution.",
+      "[geo-seed] SYSTEM_USER_ID is not set; skipping county_notes seeding to avoid mis-attribution."
     );
     return;
   }
@@ -194,7 +196,7 @@ async function seedCountyNotes() {
   const countiesWithNotes = new Set<string>(
     existingNoteRows
       .map((row) => (row.countyFips ? String(row.countyFips) : null))
-      .filter((v): v is string => !!v),
+      .filter((v): v is string => !!v)
   );
 
   const notesToInsert: InsertCountyNote[] = [];
@@ -206,8 +208,7 @@ async function seedCountyNotes() {
       countyFips,
       authorUserId: systemUserId,
       category: "operations",
-      content:
-        "System-seeded county record from existing TradeScout data (initialization).",
+      content: "System-seeded county record from existing TradeScout data (initialization).",
       createdAt: new Date(),
       updatedAt: new Date(),
     });

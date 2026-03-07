@@ -340,9 +340,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-1.5">
-          <label className="text-xs text-[color:var(--text-secondary)]">
-            Connection type
-          </label>
+          <label className="text-xs text-[color:var(--text-secondary)]">Connection type</label>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {(
               Object.entries(requestTypeMeta) as Array<

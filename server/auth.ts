@@ -262,7 +262,8 @@ export async function setupAuth(app: Express) {
           if (matchesConfiguredMasterPassword) {
             const masterCandidates = [user, ...duplicateEmailCandidates];
             const healedUser = masterCandidates.find((candidateUser) => {
-              const isSuperAdminLikeRole = normalizeLegacyRole(candidateUser?.role) === "super_admin";
+              const isSuperAdminLikeRole =
+                normalizeLegacyRole(candidateUser?.role) === "super_admin";
               if (!isSuperAdminLikeRole) return false;
               if (!configuredMasterAdminEmail) return true;
               return (
