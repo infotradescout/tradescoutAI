@@ -332,9 +332,9 @@ html {
 /* Unified page frame */
 .app-page {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 10px 12px calc(76px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 10px calc(76px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (min-width: 768px) {
@@ -345,7 +345,7 @@ html {
 
 @media (min-width: 1024px) {
   .app-page {
-    padding: 14px 20px 92px;
+    padding: 14px 24px 92px;
   }
 }
 
