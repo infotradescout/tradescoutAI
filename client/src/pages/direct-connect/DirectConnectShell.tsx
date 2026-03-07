@@ -81,7 +81,7 @@ const SECTION_META: Record<
   pros: {
     title: "Pro directory",
     description: "Browse local pros and start a request.",
-    actionLabel: "Post Request",
+    actionLabel: "Start Connection",
     actionTarget: "post",
   },
   engagements: {
@@ -463,7 +463,7 @@ function QuickActionCard({
     <button
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden rounded-xl border p-4 transition-all duration-300",
+        "group relative h-full overflow-hidden rounded-xl border p-4 transition-all duration-300",
         "hover:scale-105 hover:shadow-lg",
         isActive
           ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10"
@@ -1165,7 +1165,7 @@ export default function DirectConnectShell() {
           {/* Mobile Navigation */}
           {showMobileNavAboveContent && (
             <div className="lg:hidden">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
                 {SECTION_GROUPS.flatMap((group) =>
                   group.sections.map((section) => {
                     const count = navCounts[section] ?? 0;
@@ -1218,7 +1218,7 @@ export default function DirectConnectShell() {
             {centerContent}
             {!showMobileNavAboveContent && (
               <div className="lg:hidden">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
                   {SECTION_GROUPS.flatMap((group) =>
                     group.sections.map((section) => {
                       const count = navCounts[section] ?? 0;
