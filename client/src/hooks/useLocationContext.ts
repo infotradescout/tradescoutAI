@@ -83,6 +83,21 @@ export function hasCountyContext(ctx: LocationContext | undefined | null): boole
   return stateCode.length === 2 && countyFips.length === 5;
 }
 
+export function hasPendingCountyResolution(ctx: LocationContext | undefined | null): boolean {
+  if (!ctx) return false;
+
+  const stateCode = typeof ctx.stateCode === "string" ? ctx.stateCode.trim().toUpperCase() : "";
+  const countyFips = typeof ctx.countyFips === "string" ? ctx.countyFips.trim() : "";
+  const countyName =
+    typeof ctx.countyName === "string"
+      ? ctx.countyName.trim()
+      : typeof (ctx as any).county === "string"
+        ? String((ctx as any).county).trim()
+        : "";
+
+  return stateCode.length === 2 && countyFips.length !== 5 && countyName.length > 0;
+}
+
 export function useLocationContext(overrides?: Partial<LocationContext>): LocationContext {
   const { user } = useAuth() as any;
 
