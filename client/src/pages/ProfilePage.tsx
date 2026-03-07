@@ -62,6 +62,12 @@ type XpMeResponse = {
   recentLedger: XpLedgerEntry[];
 };
 
+type BadgesMeResponse = {
+  userId: string;
+  labels?: string[];
+  awarded?: Array<{ badgeId: string; awardedAt: string; source?: string | null }>;
+};
+
 const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
 
 function formatActivityReason(reason: string) {
@@ -127,6 +133,15 @@ export default function ProfilePage() {
     staleTime: 60 * 1000,
   });
 
+  const { data: badgesData } = useQuery<BadgesMeResponse>({
+    queryKey: ["/api/badges/me"],
+    enabled: Boolean(user?.id),
+    queryFn: async () => {
+      return (await apiRequest("GET", "/api/badges/me")) as BadgesMeResponse;
+    },
+    staleTime: 60 * 1000,
+  });
+
   if (!user) {
     return (
       <div className="container mx-auto py-12 text-center">
@@ -145,7 +160,10 @@ export default function ProfilePage() {
       ? `${user.city}, ${user.state}`
       : user.city || user.state || "Location not set";
 
-  const badges = user.badges || [];
+  const badges =
+    Array.isArray(badgesData?.labels) && badgesData.labels.length > 0
+      ? badgesData.labels
+      : user.badges || [];
   const distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
   const showBadges = user.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (user.roles || []).includes("community_builder");
@@ -456,10 +474,16 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <div className="text-2xl font-bold text-ts-orange">
-                        {user?.stats?.listings ?? "—"}
+                      <div className="text-2xl font-bold text-ts-orange flex items-center justify-center gap-1">
+                        {xpLoading ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : typeof xpData?.xpTotal === "number" ? (
+                          xpData.xpTotal
+                        ) : (
+                          "—"
+                        )}
                       </div>
-                      <div className="text-xs text-white/60">Listings</div>
+                      <div className="text-xs text-white/60">Activity Points</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-ts-orange">
@@ -476,6 +500,11 @@ export default function ProfilePage() {
                       <div className="text-xs text-white/60">CVS</div>
                     </div>
                   </div>
+                  {xpError ? (
+                    <p className="mt-3 text-center text-xs text-white/50">
+                      Activity points are temporarily unavailable.
+                    </p>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>
@@ -490,9 +519,45 @@ export default function ProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-white/60 text-center py-8">
-                  No activity yet. Start engaging with the community!
-                </p>
+                {xpLoading ? (
+                  <div className="flex items-center justify-center py-8 text-white/60">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading activity...
+                  </div>
+                ) : xpData?.recentLedger && xpData.recentLedger.length > 0 ? (
+                  <div className="space-y-3">
+                    {xpData.recentLedger.slice(0, 12).map((entry) => {
+                      const createdAt = new Date(entry.createdAt);
+                      const isValidDate = !Number.isNaN(createdAt.getTime());
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex items-start justify-between gap-3 rounded-md border border-white/10 bg-black/20 p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm text-white truncate">
+                              {formatActivityReason(entry.reason)}
+                            </p>
+                            <p className="mt-1 text-xs text-white/50 flex items-center gap-1">
+                              <Clock3 className="h-3 w-3" />
+                              {isValidDate
+                                ? createdAt.toLocaleString()
+                                : String(entry.dayKeyUtc || "Unknown date")}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-sm font-semibold text-emerald-400">
+                              {entry.delta >= 0 ? `+${entry.delta}` : entry.delta}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/60 text-center py-8">
+                    No activity yet. Start engaging with the community!
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

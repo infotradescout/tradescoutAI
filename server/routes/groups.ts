@@ -2,7 +2,89 @@ import { Request, Response } from "express";
 import { db } from "../db";
 import { storage } from "../storage";
 import { communityGroups, counties, groupMembers } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+
+async function ensureCountyGroupMembershipForUser(userId: string): Promise<void> {
+  const user = await storage.getUser(userId);
+  if (!user) return;
+
+  const stateCodeRaw =
+    (user as any).stateCode ?? (user as any).state_code ?? (user as any).state ?? "";
+  const countyFipsRaw = (user as any).countyFips ?? (user as any).county_fips ?? "";
+
+  const stateCode = String(stateCodeRaw || "")
+    .trim()
+    .toUpperCase();
+  const countyFips = String(countyFipsRaw || "").trim();
+
+  if (!/^[A-Z]{2}$/.test(stateCode) || !/^\d{5}$/.test(countyFips)) {
+    return;
+  }
+
+  const [countyRow] = await db
+    .select({ name: counties.name })
+    .from(counties)
+    .where(and(eq(counties.fips, countyFips), eq(counties.stateCode, stateCode)))
+    .limit(1);
+
+  const countyName = String(countyRow?.name || `County ${countyFips}`);
+  const slug = `county-${stateCode.toLowerCase()}-${countyFips}`;
+
+  const [existingGroup] = await db
+    .select({ id: communityGroups.id })
+    .from(communityGroups)
+    .where(
+      and(
+        eq(communityGroups.scope, "county" as any),
+        eq(communityGroups.stateCode, stateCode),
+        eq(communityGroups.countyFips, countyFips),
+        eq(communityGroups.isActive, true)
+      )
+    )
+    .limit(1);
+
+  let groupId = existingGroup?.id as string | undefined;
+
+  if (!groupId) {
+    try {
+      const [created] = await db
+        .insert(communityGroups)
+        .values({
+          name: `${countyName} Community`,
+          slug,
+          description: `Automatic county community group for ${countyName}.`,
+          groupType: "auto_county",
+          autoCreated: true,
+          scope: "county",
+          stateCode,
+          countyFips,
+          isPrivate: false,
+          createdBy: null,
+          isActive: true,
+        } as any)
+        .returning({ id: communityGroups.id });
+      groupId = created?.id;
+    } catch {
+      const [raceWinner] = await db
+        .select({ id: communityGroups.id })
+        .from(communityGroups)
+        .where(
+          and(
+            eq(communityGroups.scope, "county" as any),
+            eq(communityGroups.stateCode, stateCode),
+            eq(communityGroups.countyFips, countyFips),
+            eq(communityGroups.isActive, true)
+          )
+        )
+        .limit(1);
+      groupId = raceWinner?.id as string | undefined;
+    }
+  }
+
+  if (groupId) {
+    await storage.joinGroup(userId, groupId);
+  }
+}
 
 // Get groups based on user location and interests
 export async function getGroups(req: Request, res: Response) {
@@ -101,8 +183,35 @@ export async function getUserGroups(req: Request, res: Response) {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const userGroups = await (storage as any).getUserGroups?.(userId);
-    res.json(userGroups);
+    await ensureCountyGroupMembershipForUser(String(userId));
+
+    const user = await storage.getUser(String(userId));
+    const stateCode =
+      typeof (user as any)?.stateCode === "string"
+        ? String((user as any).stateCode)
+            .trim()
+            .toUpperCase()
+        : typeof (user as any)?.state === "string"
+          ? String((user as any).state)
+              .trim()
+              .toUpperCase()
+          : undefined;
+    const countyFips =
+      typeof (user as any)?.countyFips === "string"
+        ? String((user as any).countyFips).trim()
+        : typeof (user as any)?.county_fips === "string"
+          ? String((user as any).county_fips).trim()
+          : undefined;
+
+    const userGroups = await storage.getGroups({
+      userId: String(userId),
+      stateCode: /^[A-Z]{2}$/.test(String(stateCode || "")) ? stateCode : undefined,
+      countyFips: /^\d{5}$/.test(String(countyFips || "")) ? countyFips : undefined,
+      limit: 100,
+      offset: 0,
+    });
+
+    res.json({ groups: userGroups });
   } catch (error) {
     console.error("Error fetching user groups:", error);
     res.status(500).json({ message: "Failed to fetch user groups" });
@@ -131,15 +240,68 @@ export async function createGroup(req: Request, res: Response) {
         .slice(0, 60) || "group";
     const slug = `${slugBase}-${Math.random().toString(36).slice(2, 7)}`;
 
-    let resolvedStateCode = typeof stateCode === "string" ? stateCode : undefined;
-    if (!resolvedStateCode && typeof countyFips === "string" && countyFips.trim()) {
+    const user = await storage.getUser(String(userId));
+
+    const bodyCountyFips = typeof countyFips === "string" ? countyFips.trim() : "";
+    const userCountyFips =
+      typeof (user as any)?.countyFips === "string"
+        ? String((user as any).countyFips).trim()
+        : typeof (user as any)?.county_fips === "string"
+          ? String((user as any).county_fips).trim()
+          : "";
+    const resolvedCountyFips = /^\d{5}$/.test(bodyCountyFips)
+      ? bodyCountyFips
+      : /^\d{5}$/.test(userCountyFips)
+        ? userCountyFips
+        : "";
+
+    let resolvedStateCode =
+      typeof stateCode === "string" && stateCode.trim()
+        ? stateCode.trim().toUpperCase()
+        : typeof (user as any)?.stateCode === "string"
+          ? String((user as any).stateCode)
+              .trim()
+              .toUpperCase()
+          : typeof (user as any)?.state === "string"
+            ? String((user as any).state)
+                .trim()
+                .toUpperCase()
+            : undefined;
+
+    if ((!resolvedStateCode || !/^[A-Z]{2}$/.test(resolvedStateCode)) && resolvedCountyFips) {
       const [county] = await db
         .select({ stateCode: counties.stateCode })
         .from(counties)
-        .where(eq(counties.fips, countyFips.trim()))
+        .where(eq(counties.fips, resolvedCountyFips))
         .limit(1);
       resolvedStateCode = county?.stateCode || undefined;
     }
+
+    const typeRaw = String(type || "custom")
+      .trim()
+      .toLowerCase();
+    const normalizedType:
+      | "auto_county"
+      | "custom"
+      | "trade"
+      | "business"
+      | "interest"
+      | "neighborhood" = (() => {
+      if (typeRaw === "county_community") return "neighborhood";
+      if (typeRaw === "specialty_trade") return "trade";
+      if (typeRaw === "interest_based") return "interest";
+      if (
+        typeRaw === "auto_county" ||
+        typeRaw === "custom" ||
+        typeRaw === "trade" ||
+        typeRaw === "business" ||
+        typeRaw === "interest" ||
+        typeRaw === "neighborhood"
+      ) {
+        return typeRaw;
+      }
+      return "custom";
+    })();
 
     const [group] = await db
       .insert(communityGroups)
@@ -147,9 +309,9 @@ export async function createGroup(req: Request, res: Response) {
         name: name.trim(),
         slug,
         description: typeof description === "string" ? description : null,
-        groupType: type || "custom",
-        scope: countyFips ? "county" : resolvedStateCode ? "state" : "national",
-        countyFips: typeof countyFips === "string" ? countyFips : null,
+        groupType: normalizedType,
+        scope: resolvedCountyFips ? "county" : resolvedStateCode ? "state" : "national",
+        countyFips: resolvedCountyFips || null,
         stateCode: resolvedStateCode || null,
         isPrivate: isPublic === false,
         createdBy: String(userId),

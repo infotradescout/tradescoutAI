@@ -1037,11 +1037,22 @@ export async function registerRoutes(app: any) {
       normalizedPrimaryRole === "super_admin" ||
       Boolean(primaryRole && primaryRole === "super_admin");
 
+    const canonicalStateCodeRaw =
+      (user as any).stateCode ?? (user as any).state_code ?? (user as any).state ?? null;
+    const canonicalCountyFipsRaw =
+      (user as any).countyFips ??
+      (user as any).county_fips ??
+      (typeof (user as any).county === "string" && /^\d{5}$/.test((user as any).county)
+        ? (user as any).county
+        : null);
+
+    const canonicalStateCode =
+      typeof canonicalStateCodeRaw === "string" ? canonicalStateCodeRaw.trim().toUpperCase() : "";
+    const canonicalCountyFips =
+      typeof canonicalCountyFipsRaw === "string" ? canonicalCountyFipsRaw.trim() : "";
+
     const hasCanonicalLocation =
-      typeof (user as any).stateCode === "string" &&
-      (user as any).stateCode.length === 2 &&
-      typeof (user as any).countyFips === "string" &&
-      (user as any).countyFips.length === 5;
+      canonicalStateCode.length === 2 && /^\d{5}$/.test(canonicalCountyFips);
 
     const rawThemePreference =
       typeof user?.themePreference === "string" ? user.themePreference : "";
@@ -1059,6 +1070,8 @@ export async function registerRoutes(app: any) {
       // Guard against legacy/synthetic theme IDs leaking into persisted preferences.
       // The app derives "profile-*" appearance from `preferences.colorScheme`, not from themePreference.
       themePreference: normalizedThemePreference || user?.themePreference,
+      stateCode: hasCanonicalLocation ? canonicalStateCode : (user as any).stateCode,
+      countyFips: hasCanonicalLocation ? canonicalCountyFips : (user as any).countyFips,
       // Canonical flag for whether this account has a committed
       // county-level location. All UX prompts should key off this,
       // not off ad-hoc context checks.
@@ -18356,11 +18369,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const filters: Parameters<typeof storage.getGroups>[0] = {
         stateCode:
           (req.query.stateCode as string) ||
-          (user && !hasExplicitLocationFilters ? (user.state as string) || undefined : undefined),
+          (user && !hasExplicitLocationFilters
+            ? ((user as any).stateCode as string) || (user.state as string) || undefined
+            : undefined),
         countyFips:
           (req.query.countyFips as string) ||
           (user && !hasExplicitLocationFilters
-            ? ((user as any).countyFips as string) || undefined
+            ? ((user as any).countyFips as string) ||
+              ((user as any).county_fips as string) ||
+              undefined
             : undefined),
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
