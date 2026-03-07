@@ -114,17 +114,11 @@ process.on("uncaughtException", (error) => {
   console.error("Stack:", error.stack);
 });
 
-process.on("exit", (code) => {
-  console.log(`Process exiting with code: ${code}`);
-  console.trace("Exit stack trace:");
-});
-
-process.on("beforeExit", (code) => {
-  console.log(`Before exit with code: ${code}`);
-});
-
+let isShuttingDown = false;
 const shutdown = (signal: string) => {
-  console.log(`Received ${signal} - shutting down gracefully`);
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  logger.info(`[lifecycle] Received ${signal}; shutting down gracefully`);
   try {
     void pool.end();
   } catch (err) {

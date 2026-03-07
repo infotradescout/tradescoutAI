@@ -94,14 +94,6 @@ function getCachedTemplate(indexPath: string) {
   return html;
 }
 
-// Override process.exit to trap explicit exits
-const originalExit = process.exit;
-process.exit = (code?: number) => {
-  console.log(`[Diagnostic] process.exit(${code}) was called explicitly.`);
-  console.trace("Call stack for process.exit:");
-  return originalExit(code);
-};
-
 function log(message: string, source = "express") {
   logger.info(`[${source}] ${message}`);
 }
@@ -115,17 +107,11 @@ process.on("uncaughtException", (error) => {
   console.error("Stack:", error.stack);
 });
 
-process.on("exit", (code) => {
-  console.log(`Process exiting with code: ${code}`);
-  console.trace("Exit stack trace:");
-});
-
-process.on("beforeExit", (code) => {
-  console.log(`Before exit with code: ${code}`);
-});
-
+let isShuttingDown = false;
 const shutdown = (signal: string) => {
-  console.log(`Received ${signal} - shutting down gracefully`);
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  logger.info(`[lifecycle] Received ${signal}; shutting down gracefully`);
   try {
     void pool.end();
   } catch (err) {
