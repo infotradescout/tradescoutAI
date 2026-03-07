@@ -62,6 +62,8 @@ type User = {
   firstName?: string;
   lastName?: string;
   role: string;
+  activeRole?: string;
+  roles?: string[];
   emailVerified?: boolean;
   verificationStatus?:
     | "pending"
@@ -475,7 +477,7 @@ export default function AdminUsers() {
 
   const handleUpdateRole = () => {
     if (userToEdit && newRole) {
-      const targetLevel = roleHierarchy[newRole as keyof typeof roleHierarchy]?.level || 0;
+      const currentTargetRole = resolveUserRole(userToEdit);
 
       // Prevent elevation to super_admin unless current user is super_admin
       if (newRole === "super_admin" && !isSuperAdmin) {
@@ -488,7 +490,7 @@ export default function AdminUsers() {
       }
 
       // Prevent modification of super_admin by non-super_admin
-      if (userToEdit.role === "super_admin" && !isSuperAdmin) {
+      if (currentTargetRole === "super_admin" && !isSuperAdmin) {
         toast({
           title: "Access Denied",
           description: "Only Super Admin can modify other Super Admin accounts.",
@@ -706,6 +708,16 @@ export default function AdminUsers() {
     return "other";
   };
 
+  const resolveUserRole = (targetUser: User): string => {
+    const active = String(targetUser.activeRole || "").trim();
+    if (active) return active;
+    const roles = Array.isArray(targetUser.roles)
+      ? targetUser.roles.map((r) => String(r || "").trim()).filter(Boolean)
+      : [];
+    if (roles.length > 0) return roles[0];
+    return String(targetUser.role || "").trim();
+  };
+
   const isArchivedPlaceholderUser = (email: string): boolean => {
     const normalized = String(email || "")
       .trim()
@@ -744,7 +756,7 @@ export default function AdminUsers() {
       (addressFilter === "verified" && !!u.addressVerified) ||
       (addressFilter === "not_verified" && !u.addressVerified);
 
-    const bucket = getRoleBucket(u.role);
+    const bucket = getRoleBucket(resolveUserRole(u));
     const matchesRole =
       roleFilter === "all" ||
       (roleFilter === "contractor" && bucket === "contractor") ||
@@ -822,7 +834,7 @@ export default function AdminUsers() {
         escape(u.email),
         escape(u.firstName || ""),
         escape(u.lastName || ""),
-        escape(u.role),
+        escape(resolveUserRole(u)),
         escape(u.verificationStatus || ""),
         escape(u.addressVerified ? "true" : "false"),
         escape(u.onboardingCompleted ? "true" : "false"),
@@ -1208,7 +1220,8 @@ export default function AdminUsers() {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user: User) => {
-                      const roleInfo = getRoleInfo(user.role);
+                      const resolvedRole = resolveUserRole(user);
+                      const roleInfo = getRoleInfo(resolvedRole);
                       const RoleIcon = roleInfo.icon;
 
                       return (
@@ -1280,25 +1293,26 @@ export default function AdminUsers() {
                           <TableCell className="py-3 min-w-[100px]">
                             {(() => {
                               const targetLevel =
-                                roleHierarchy[user.role as keyof typeof roleHierarchy]?.level || 0;
+                                roleHierarchy[resolvedRole as keyof typeof roleHierarchy]?.level ||
+                                0;
                               const canManage =
                                 currentUserLevel > targetLevel ||
-                                (isSuperAdmin && user.role === "super_admin");
+                                (isSuperAdmin && resolvedRole === "super_admin");
                               if (!canManage) return null;
 
                               const canRunSuperActions =
                                 isSuperAdmin &&
                                 user.id !== (userToEdit?.id || "") &&
-                                user.role !== "super_admin";
+                                resolvedRole !== "super_admin";
                               const canRunOpsActions =
                                 (isSuperAdmin || isOpsAdmin) &&
                                 user.id !== (userToEdit?.id || "") &&
-                                user.role !== "super_admin";
+                                resolvedRole !== "super_admin";
 
                               const canDeleteUser =
                                 isSuperAdmin &&
                                 String(user.id) !== currentAdminId &&
-                                user.role !== "super_admin";
+                                resolvedRole !== "super_admin";
 
                               return (
                                 <DropdownMenu>
@@ -1317,7 +1331,7 @@ export default function AdminUsers() {
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setUserToEdit(user);
-                                        setNewRole(user.role);
+                                        setNewRole(resolvedRole);
                                       }}
                                       className="cursor-pointer"
                                     >
@@ -1340,7 +1354,7 @@ export default function AdminUsers() {
 
                                     {!user.emailVerified &&
                                       user.id !== (userToEdit?.id || "") &&
-                                      user.role !== "super_admin" && (
+                                      resolvedRole !== "super_admin" && (
                                         <>
                                           <DropdownMenuSeparator />
                                           <DropdownMenuItem
@@ -1497,7 +1511,11 @@ export default function AdminUsers() {
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                               onClick={() =>
-                                                handleDeleteUser(user.id, user.role, user.email)
+                                                handleDeleteUser(
+                                                  user.id,
+                                                  resolveUserRole(user),
+                                                  user.email
+                                                )
                                               }
                                               disabled={deleteUserMutation.isPending}
                                               className="cursor-pointer text-destructive"
@@ -1604,8 +1622,10 @@ export default function AdminUsers() {
               <div>
                 <Label className="text-muted-foreground">Current Role</Label>
                 <div className="mt-1">
-                  <Badge className={`${getRoleInfo(userToEdit?.role || "").color}`}>
-                    {getRoleInfo(userToEdit?.role || "").label}
+                  <Badge
+                    className={`${getRoleInfo(userToEdit ? resolveUserRole(userToEdit) : "").color}`}
+                  >
+                    {getRoleInfo(userToEdit ? resolveUserRole(userToEdit) : "").label}
                   </Badge>
                 </div>
               </div>
