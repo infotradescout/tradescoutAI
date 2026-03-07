@@ -1661,6 +1661,53 @@ export const providerDeclarations = pgTable("provider_declarations", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Canonical legal envelope for where a provider is allowed to operate.
+// This is distinct from serviceAreas, which are opt-in operating choices.
+export const providerEligibilities = pgTable(
+  "provider_eligibilities",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    providerUserId: varchar("provider_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jurisdictionType: varchar("jurisdiction_type", {
+      enum: ["state", "county"],
+    }).notNull(),
+    eligibilityBasis: varchar("eligibility_basis", {
+      enum: ["state_license", "county_license", "verified_exception"],
+    }).notNull(),
+    verificationStatus: varchar("verification_status", {
+      enum: ["pending", "approved", "rejected", "expired"],
+    })
+      .notNull()
+      .default("approved"),
+    stateCode: varchar("state_code", { length: 2 }),
+    countyFips: varchar("county_fips", { length: 5 }).references(() => counties.fips, {
+      onDelete: "cascade",
+    }),
+    evidenceNote: text("evidence_note"),
+    expiresAt: timestamp("expires_at"),
+    verifiedAt: timestamp("verified_at").defaultNow(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_provider_eligibilities_provider").on(table.providerUserId),
+    index("idx_provider_eligibilities_county").on(table.countyFips),
+    index("idx_provider_eligibilities_state").on(table.stateCode),
+    uniqueIndex("uq_provider_eligibility_scope").on(
+      table.providerUserId,
+      table.jurisdictionType,
+      table.stateCode,
+      table.countyFips,
+      table.eligibilityBasis
+    ),
+  ]
+);
+
 // Per-county behavioral rollup for providers (derived from events)
 export const providerLocalStats = pgTable("provider_local_stats", {
   id: varchar("id")
@@ -1690,6 +1737,8 @@ export type InsertObservation = typeof observations.$inferInsert;
 export type Observation = typeof observations.$inferSelect;
 export type InsertObservationSource = typeof observationSources.$inferInsert;
 export type ObservationSource = typeof observationSources.$inferSelect;
+export type InsertProviderEligibility = typeof providerEligibilities.$inferInsert;
+export type ProviderEligibility = typeof providerEligibilities.$inferSelect;
 
 // Business-level verification records (append-only)
 export const businessVerifications = pgTable("business_verifications", {

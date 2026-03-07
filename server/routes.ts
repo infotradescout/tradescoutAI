@@ -58,6 +58,10 @@ import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
+import {
+  getComputedProviderEligibilitiesForUser,
+  getEligibilityDecisionForCounty,
+} from "./providerEligibility";
 // DISABLED: WebSocketManager is not instantiated, using Socket.io messaging service instead
 // import { WebSocketManager } from "./websocket";
 import { getMessagingService } from "./messaging-service";
@@ -6103,6 +6107,11 @@ export async function registerRoutes(app: any) {
 
       // Validate service areas by county FIPS
       const normalizedServiceAreas: { countyFips: string }[] = [];
+      const resolvedServiceAreaCounties: Array<{
+        countyFips: string;
+        countyName: string;
+        stateCode: string;
+      }> = [];
       for (const area of serviceAreas) {
         const countyFips = String((area as any)?.countyFips || "").trim();
         if (!countyFips) {
@@ -6113,6 +6122,31 @@ export async function registerRoutes(app: any) {
           return res.status(400).json({ message: `Unknown countyFips: ${countyFips}` });
         }
         normalizedServiceAreas.push({ countyFips: countyRecord.fips });
+        resolvedServiceAreaCounties.push({
+          countyFips: countyRecord.fips,
+          countyName: countyRecord.name,
+          stateCode: countyRecord.stateCode,
+        });
+      }
+
+      const computedEligibilities = await getComputedProviderEligibilitiesForUser(userId);
+      const blockedServiceAreas = resolvedServiceAreaCounties.filter((county) => {
+        return !getEligibilityDecisionForCounty(computedEligibilities, {
+          fips: county.countyFips,
+          stateCode: county.stateCode,
+        }).eligible;
+      });
+
+      if (blockedServiceAreas.length > 0) {
+        return res.status(428).json({
+          message: "Verified legal eligibility is required for every service area you declare.",
+          code: "ELIGIBILITY_REQUIRED",
+          blockedServiceAreas: blockedServiceAreas.map((county) => ({
+            countyFips: county.countyFips,
+            countyName: county.countyName,
+            stateCode: county.stateCode,
+          })),
+        });
       }
 
       const availabilityFlags = availability ?? {};
@@ -6145,6 +6179,22 @@ export async function registerRoutes(app: any) {
         providerUserId: userId,
         trades: tradesOut,
         serviceAreas: serviceAreasOut,
+        legalEligibility: {
+          eligibleStateCodes: Array.from(
+            new Set(
+              computedEligibilities
+                .filter((entry) => entry.jurisdictionType === "state" && entry.stateCode)
+                .map((entry) => entry.stateCode as string)
+            )
+          ),
+          eligibleCountyFips: Array.from(
+            new Set(
+              computedEligibilities
+                .filter((entry) => entry.jurisdictionType === "county" && entry.countyFips)
+                .map((entry) => entry.countyFips as string)
+            )
+          ),
+        },
         availability: availabilityFlags,
         lastUpdatedAt: declaration.updatedAt ?? declaration.createdAt,
       });
@@ -6220,6 +6270,30 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  app.get(
+    "/api/providers/eligibility",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+
+        const explicitEligibilities = await storage.getProviderEligibilitiesForUser(userId);
+        const computedEligibilities = await getComputedProviderEligibilitiesForUser(userId);
+
+        res.json({
+          explicitEligibilities,
+          computedEligibilities,
+        });
+      } catch (error: any) {
+        console.error("Error fetching provider eligibility:", error);
+        res.status(500).json({ message: "Failed to fetch provider eligibility" });
+      }
+    }
+  );
+
   // Provider standing: summarize how a provider is set up and showing up in a specific county
   app.get("/api/providers/standing", isAuthenticated, async (req: AuthedRequest, res: Response) => {
     try {
@@ -6243,6 +6317,11 @@ export async function registerRoutes(app: any) {
       const tradeIds = declaration?.tradeIds ?? [];
       const declaredServiceAreas = declaration?.serviceAreas ?? [];
       const servesThisCounty = declaredServiceAreas.some((a: any) => a.countyFips === countyFips);
+      const computedEligibilities = await getComputedProviderEligibilitiesForUser(userId);
+      const legalDecision = getEligibilityDecisionForCounty(computedEligibilities, {
+        fips: county.fips,
+        stateCode: county.stateCode,
+      });
 
       // Local stats (behavior in this county) with a fallback to global credibility stats
       const localStats = await storage
@@ -6292,10 +6371,14 @@ export async function registerRoutes(app: any) {
 
       // Reach label is intentionally simple and explainable
       let reachLabel = "not_set_up";
-      if (servesThisCounty && declaredServiceAreas.length <= 3) {
+      if (servesThisCounty && !legalDecision.eligible) {
+        reachLabel = "declared_not_eligible_here";
+      } else if (servesThisCounty && declaredServiceAreas.length <= 3) {
         reachLabel = "local_here";
       } else if (servesThisCounty && declaredServiceAreas.length > 3) {
         reachLabel = "regional_here";
+      } else if (legalDecision.eligible) {
+        reachLabel = "eligible_not_declared_here";
       } else if (!servesThisCounty && declaredServiceAreas.length > 0) {
         reachLabel = "nearby_not_listed_here";
       }
@@ -6317,6 +6400,10 @@ export async function registerRoutes(app: any) {
           label: reachLabel,
           servesThisCounty,
           declaredServiceAreaCount: declaredServiceAreas.length,
+        },
+        legal: {
+          eligibleInCounty: legalDecision.eligible,
+          matchedEligibilities: legalDecision.matched,
         },
         activity: {
           jobsCompleted,
@@ -6765,6 +6852,116 @@ export async function registerRoutes(app: any) {
       } catch (error: any) {
         console.error("Error sending broadcast notification:", error);
         res.status(500).json({ message: "Failed to send broadcast notification" });
+      }
+    }
+  );
+
+  app.put(
+    "/api/admin/providers/:userId/eligibilities",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.params.userId || "").trim();
+        if (!userId) {
+          return res.status(400).json({ message: "userId is required" });
+        }
+
+        const rawEligibilities = Array.isArray((req.body as any)?.eligibilities)
+          ? ((req.body as any).eligibilities as any[])
+          : [];
+
+        const sanitized: Array<{
+          jurisdictionType: "state" | "county";
+          eligibilityBasis: "state_license" | "county_license" | "verified_exception";
+          verificationStatus: "approved";
+          stateCode: string | null;
+          countyFips: string | null;
+          evidenceNote: string | null;
+          expiresAt: Date | null;
+          isActive: true;
+        }> = [];
+
+        for (const raw of rawEligibilities) {
+          const jurisdictionType = String(raw?.jurisdictionType || "")
+            .trim()
+            .toLowerCase();
+          const eligibilityBasis = String(raw?.eligibilityBasis || "")
+            .trim()
+            .toLowerCase();
+
+          if (jurisdictionType !== "state" && jurisdictionType !== "county") {
+            return res.status(400).json({ message: "Invalid jurisdictionType" });
+          }
+          if (
+            eligibilityBasis !== "state_license" &&
+            eligibilityBasis !== "county_license" &&
+            eligibilityBasis !== "verified_exception"
+          ) {
+            return res.status(400).json({ message: "Invalid eligibilityBasis" });
+          }
+
+          let stateCode: string | null = null;
+          let countyFipsValue: string | null = null;
+
+          if (jurisdictionType === "state") {
+            const candidate = String(raw?.stateCode || "")
+              .trim()
+              .toUpperCase();
+            if (!/^[A-Z]{2}$/.test(candidate)) {
+              return res
+                .status(400)
+                .json({ message: "Valid stateCode is required for state eligibility" });
+            }
+            stateCode = candidate;
+          } else {
+            const countyFips = String(raw?.countyFips || "").trim();
+            if (!/^\d{5}$/.test(countyFips)) {
+              return res
+                .status(400)
+                .json({ message: "Valid countyFips is required for county eligibility" });
+            }
+            const countyRecord = await storage.getCountyByFips(countyFips);
+            if (!countyRecord) {
+              return res.status(400).json({ message: `Unknown countyFips: ${countyFips}` });
+            }
+            countyFipsValue = countyRecord.fips;
+            stateCode = countyRecord.stateCode;
+          }
+
+          const expiry = raw?.expiresAt ? new Date(raw.expiresAt) : null;
+          if (expiry && Number.isNaN(expiry.getTime())) {
+            return res.status(400).json({ message: "Invalid expiresAt" });
+          }
+
+          sanitized.push({
+            jurisdictionType: jurisdictionType as "state" | "county",
+            eligibilityBasis: eligibilityBasis as
+              | "state_license"
+              | "county_license"
+              | "verified_exception",
+            verificationStatus: "approved",
+            stateCode,
+            countyFips: countyFipsValue,
+            evidenceNote:
+              typeof raw?.evidenceNote === "string" && raw.evidenceNote.trim()
+                ? raw.evidenceNote.trim()
+                : null,
+            expiresAt: expiry,
+            isActive: true,
+          });
+        }
+
+        const explicitEligibilities = await storage.replaceProviderEligibilitiesForUser(
+          userId,
+          sanitized
+        );
+        const computedEligibilities = await getComputedProviderEligibilitiesForUser(userId);
+
+        res.json({ explicitEligibilities, computedEligibilities });
+      } catch (error: any) {
+        console.error("Error updating provider eligibilities:", error);
+        res.status(500).json({ message: "Failed to update provider eligibilities" });
       }
     }
   );
@@ -12154,6 +12351,36 @@ export async function registerRoutes(app: any) {
             ])
           );
 
+          const legalEligibilities = await getComputedProviderEligibilitiesForUser(target.id);
+          const ineligibleCounties: Array<{
+            countyFips: string;
+            countyName: string;
+            stateCode: string;
+          }> = [];
+          for (const county of mergedCountyFips) {
+            const countyRecord = await storage.getCountyByFips(county);
+            if (!countyRecord) continue;
+            const legalDecision = getEligibilityDecisionForCounty(legalEligibilities, {
+              fips: countyRecord.fips,
+              stateCode: countyRecord.stateCode,
+            });
+            if (!legalDecision.eligible) {
+              ineligibleCounties.push({
+                countyFips: countyRecord.fips,
+                countyName: countyRecord.name,
+                stateCode: countyRecord.stateCode,
+              });
+            }
+          }
+
+          if (ineligibleCounties.length > 0) {
+            return res.status(428).json({
+              message: "Verified legal eligibility is required before assigning provider counties.",
+              code: "ELIGIBILITY_REQUIRED",
+              blockedServiceAreas: ineligibleCounties,
+            });
+          }
+
           await storage.upsertProviderDeclarationForUser({
             userId: target.id,
             tradeIds: mergedTradeIds,
@@ -12580,6 +12807,36 @@ export async function registerRoutes(app: any) {
             ...(countyFips && /^\d{5}$/.test(countyFips) ? [countyFips] : []),
           ])
         );
+
+        const legalEligibilities = await getComputedProviderEligibilitiesForUser(user.id);
+        const ineligibleCounties: Array<{
+          countyFips: string;
+          countyName: string;
+          stateCode: string;
+        }> = [];
+        for (const county of mergedCountyFips) {
+          const countyRecord = await storage.getCountyByFips(county);
+          if (!countyRecord) continue;
+          const legalDecision = getEligibilityDecisionForCounty(legalEligibilities, {
+            fips: countyRecord.fips,
+            stateCode: countyRecord.stateCode,
+          });
+          if (!legalDecision.eligible) {
+            ineligibleCounties.push({
+              countyFips: countyRecord.fips,
+              countyName: countyRecord.name,
+              stateCode: countyRecord.stateCode,
+            });
+          }
+        }
+
+        if (ineligibleCounties.length > 0) {
+          return res.status(428).json({
+            message: "Verified legal eligibility is required before assigning provider counties.",
+            code: "ELIGIBILITY_REQUIRED",
+            blockedServiceAreas: ineligibleCounties,
+          });
+        }
 
         await storage.upsertProviderDeclarationForUser({
           userId: user.id,

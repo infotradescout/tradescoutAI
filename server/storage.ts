@@ -236,9 +236,12 @@ import {
   type AdFeedback,
   type InsertAdFeedback,
   providerDeclarations,
+  providerEligibilities,
   providerLocalStats,
   businessVerifications,
   type ProviderDeclaration,
+  type ProviderEligibility,
+  type InsertProviderEligibility,
   type ProviderLocalStat,
   type BusinessVerification,
   type TradeRequirement,
@@ -675,6 +678,16 @@ export interface IStorage {
     };
   }): Promise<ProviderDeclaration>;
   getProviderDeclarationForUser(userId: string): Promise<ProviderDeclaration | undefined>;
+  getProviderEligibilitiesForUser(userId: string): Promise<ProviderEligibility[]>;
+  replaceProviderEligibilitiesForUser(
+    userId: string,
+    eligibilities: Array<
+      Omit<
+        InsertProviderEligibility,
+        "id" | "providerUserId" | "createdAt" | "updatedAt" | "verifiedAt"
+      >
+    >
+  ): Promise<ProviderEligibility[]>;
   getProviderLocalStatsForUserInCounty(
     userId: string,
     countyFips: string
@@ -3194,6 +3207,41 @@ export class DatabaseStorage implements IStorage {
       .from(providerDeclarations)
       .where(eq(providerDeclarations.providerUserId, userId));
     return existing;
+  }
+
+  async getProviderEligibilitiesForUser(userId: string): Promise<ProviderEligibility[]> {
+    return db
+      .select()
+      .from(providerEligibilities)
+      .where(eq(providerEligibilities.providerUserId, userId));
+  }
+
+  async replaceProviderEligibilitiesForUser(
+    userId: string,
+    eligibilities: Array<
+      Omit<
+        InsertProviderEligibility,
+        "id" | "providerUserId" | "createdAt" | "updatedAt" | "verifiedAt"
+      >
+    >
+  ): Promise<ProviderEligibility[]> {
+    await db.delete(providerEligibilities).where(eq(providerEligibilities.providerUserId, userId));
+
+    if (!eligibilities.length) {
+      return [];
+    }
+
+    return db
+      .insert(providerEligibilities)
+      .values(
+        eligibilities.map((eligibility) => ({
+          ...eligibility,
+          providerUserId: userId,
+          verifiedAt: new Date(),
+          updatedAt: new Date(),
+        }))
+      )
+      .returning();
   }
 
   async getProviderLocalStatsForUserInCounty(
