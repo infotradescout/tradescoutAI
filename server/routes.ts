@@ -17494,60 +17494,61 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  // XP & badges read endpoints (me-only)
+  app.get("/api/xp/me", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const [xpTotal, ledger] = await Promise.all([
+        storage.getUserXpTotal(userId),
+        storage.getUserXpLedger(userId, 50),
+      ]);
+
+      res.json({
+        userId,
+        xpTotal,
+        recentLedger: ledger,
+      });
+    } catch (error: any) {
+      console.error("Error fetching XP for current user:", error);
+      res.status(500).json({ message: "Failed to fetch XP" });
+    }
+  });
+
+  app.get("/api/badges/me", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const [user, awarded] = await Promise.all([
+        storage.getUser(userId),
+        storage.getUserAwardedBadges(userId),
+      ]);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const computedLabels = computeBadgesForUser(user);
+
+      res.json({
+        userId,
+        labels: computedLabels,
+        awarded,
+      });
+    } catch (error: any) {
+      console.error("Error fetching badges for current user:", error);
+      res.status(500).json({ message: "Failed to fetch badges" });
+    }
+  });
+
   // Trending Topics (DB-backed; community-only)
   app.get("/api/community/trending", async (req: any, res: any) => {
-    // XP & badges read endpoints (me-only for now)
-    app.get("/api/xp/me", isAuthenticated, async (req: any, res: any) => {
-      try {
-        const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        if (!userId) {
-          return res.status(401).json({ message: "Unauthorized" });
-        }
-
-        const [xpTotal, ledger] = await Promise.all([
-          storage.getUserXpTotal(userId),
-          storage.getUserXpLedger(userId, 50),
-        ]);
-
-        res.json({
-          userId,
-          xpTotal,
-          recentLedger: ledger,
-        });
-      } catch (error: any) {
-        console.error("Error fetching XP for current user:", error);
-        res.status(500).json({ message: "Failed to fetch XP" });
-      }
-    });
-
-    app.get("/api/badges/me", isAuthenticated, async (req: any, res: any) => {
-      try {
-        const userId: string | undefined = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        if (!userId) {
-          return res.status(401).json({ message: "Unauthorized" });
-        }
-
-        const [user, awarded] = await Promise.all([
-          storage.getUser(userId),
-          storage.getUserAwardedBadges(userId),
-        ]);
-
-        if (!user) {
-          return res.status(404).json({ message: "User not found" });
-        }
-
-        const computedLabels = computeBadgesForUser(user);
-
-        res.json({
-          userId,
-          labels: computedLabels,
-          awarded,
-        });
-      } catch (error: any) {
-        console.error("Error fetching badges for current user:", error);
-        res.status(500).json({ message: "Failed to fetch badges" });
-      }
-    });
     try {
       const stateCode = typeof req.query.stateCode === "string" ? req.query.stateCode : undefined;
       const countyFips =

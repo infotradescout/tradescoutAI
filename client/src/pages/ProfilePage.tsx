@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ import {
   Copy,
   Check,
   Shield,
+  Loader2,
+  TrendingUp,
+  Clock3,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -44,7 +48,29 @@ type OwnedProfile = {
   status?: "draft" | "published";
 };
 
+type XpLedgerEntry = {
+  id: string;
+  delta: number;
+  reason: string;
+  dayKeyUtc: string;
+  createdAt: string;
+};
+
+type XpMeResponse = {
+  userId: string;
+  xpTotal: number;
+  recentLedger: XpLedgerEntry[];
+};
+
 const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
+
+function formatActivityReason(reason: string) {
+  const cleaned = String(reason || "")
+    .trim()
+    .replace(/[._-]+/g, " ");
+  if (!cleaned) return "Activity event";
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -87,6 +113,19 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, [user]);
+
+  const {
+    data: xpData,
+    isLoading: xpLoading,
+    error: xpError,
+  } = useQuery<XpMeResponse>({
+    queryKey: ["/api/xp/me"],
+    enabled: Boolean(user?.id),
+    queryFn: async () => {
+      return (await apiRequest("GET", "/api/xp/me")) as XpMeResponse;
+    },
+    staleTime: 60 * 1000,
+  });
 
   if (!user) {
     return (
