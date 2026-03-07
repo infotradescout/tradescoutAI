@@ -14,6 +14,7 @@
 
 import { Router, type Request, Response } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModelName } from "../ai/modelConfig";
 import { loadSystemPrompt } from "../services/promptService";
 import { executeAssistantAction } from "../assistantActions";
 import { buildUserContext, formatUserContextForPrompt } from "../services/userContextService";
@@ -280,7 +281,7 @@ router.post("/message-v2", async (req: Request, res: Response) => {
     }
 
     const gemini = new GoogleGenerativeAI(geminiKey);
-    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
 
     let finalResponse: Partial<EnhancedScoutResponseV2> | null = null;
 

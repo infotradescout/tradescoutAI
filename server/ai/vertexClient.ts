@@ -1,4 +1,5 @@
 import { createRequire as createVertexRequire } from "node:module";
+import { getVertexGeminiModelName } from "./modelConfig";
 
 const vertexRequire = createVertexRequire(import.meta.url);
 
@@ -29,7 +30,7 @@ function getVertexModel() {
 
   const vertex = new VertexAI({ project, location });
   cachedModel = vertex.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: getVertexGeminiModelName(),
   });
 
   return cachedModel;

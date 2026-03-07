@@ -1,16 +1,17 @@
 /**
  * Scout Agent Supervisor - Phase 4
- * 
+ *
  * This service coordinates a council of specialized sub-agents:
  * 1. Marketplace Specialist Agent
  * 2. Contractor Specialist Agent
  * 3. Community Specialist Agent
- * 
+ *
  * The Supervisor analyzes user requests and delegates to the appropriate specialist(s),
  * then synthesizes their findings into a comprehensive response.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModelName } from "../ai/modelConfig";
 
 /**
  * Agent types and their specialties
@@ -56,7 +57,7 @@ export class ScoutAgentSupervisor {
     this.geminiKey = process.env.GEMINI_API_KEY || "";
     if (this.geminiKey) {
       const gemini = new GoogleGenerativeAI(this.geminiKey);
-      this.model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+      this.model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     }
   }
 
@@ -191,8 +192,7 @@ Provide your expert analysis and recommendations in JSON format.`;
   }> {
     const agentSummaries = agentResponses
       .map(
-        (r) =>
-          `${r.agent_type}: ${r.analysis}\nRecommendations: ${r.recommendations.join(", ")}`
+        (r) => `${r.agent_type}: ${r.analysis}\nRecommendations: ${r.recommendations.join(", ")}`
       )
       .join("\n\n");
 

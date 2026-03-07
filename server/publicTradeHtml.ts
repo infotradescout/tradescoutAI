@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, or, sql } from "drizzle-orm";
 import { db, pool } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import {
@@ -90,7 +90,7 @@ function buildTradeWhereClause(tradeRaw: unknown) {
     .slice(0, 8)
     .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
   if (!patterns.length) return null;
-  return sql`(${businesses.profileData}::text ILIKE ANY(${patterns}::text[]))`;
+  return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
 }
 
 function buildTradeMeta(args: {

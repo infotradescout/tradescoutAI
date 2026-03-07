@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import { businessCounties, businesses, counties } from "../../shared/schema";
 import { slugifyCountyName } from "../../shared/tradeSeo";
@@ -42,7 +42,7 @@ function buildTradeWhereClause(tradeRaw: unknown) {
     .slice(0, 8)
     .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
   if (!patterns.length) return null;
-  return sql`(${businesses.profileData}::text ILIKE ANY(${patterns}::text[]))`;
+  return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
 }
 
 // Public (read-only): city → counties facet. This preserves "counties are operational containers"

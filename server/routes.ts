@@ -7,6 +7,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { getGeminiModelName } from "./ai/modelConfig";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
 import { contractorSignupRouter } from "./routes/contractor-signup";
@@ -11257,7 +11258,7 @@ export async function registerRoutes(app: any) {
 
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+      const modelName = getGeminiModelName();
       const model = genAI.getGenerativeModel({ model: modelName });
 
       const result = await model.generateContent(prompt);

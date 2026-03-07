@@ -13,6 +13,7 @@
 
 import { Router, type Request, Response } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModelName } from "../ai/modelConfig";
 import { loadSystemPrompt } from "../services/promptService";
 import { executeAssistantAction } from "../assistantActions";
 import { buildUserContext, formatUserContextForPrompt } from "../services/userContextService";
@@ -279,7 +280,7 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
     }
 
     const gemini = new GoogleGenerativeAI(geminiKey);
-    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
 
     // Call LLM
     const result = await model.generateContent(fullPrompt);

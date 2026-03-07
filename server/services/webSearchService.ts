@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModelName } from "../ai/modelConfig";
 
 export interface WebSearchResult {
   success: boolean;
@@ -18,7 +19,7 @@ export async function webSearch(query: string, nResults = 5): Promise<WebSearchR
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: getGeminiModelName() });
     const prompt = `Search the open web for: ${query}\nReturn ${nResults} concise findings with sources when possible.`;
     const result = await model.generateContent(prompt);
     const text = result.response.text();

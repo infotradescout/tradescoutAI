@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
 import {
@@ -84,7 +84,7 @@ function buildTradeWhereClause(tradeRaw: unknown) {
 
   // Broad match: profileData is the canonical "directory field bucket" (category/services/importExtras).
   // This intentionally avoids "intelligence computation" and stays within plain-text matching.
-  return sql`(${businesses.profileData}::text ILIKE ANY(${patterns}::text[]))`;
+  return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
 }
 
 // Public-safe directory list. Never exposes direct contact vectors.

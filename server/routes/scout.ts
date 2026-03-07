@@ -11,6 +11,7 @@ import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCa
 import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
 import { GeminiProvider, VertexGeminiProvider, LLMProvider } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModelName } from "../ai/modelConfig";
 import type { User } from "../assistantActions";
 import {
   resolveKnowledge,
@@ -821,7 +822,7 @@ async function generateSmartSynthesis(
 
   Now write an inspiring but concrete orientation that helps this person immediately understand what TradeScout is, who it serves, and how Scout will run the operating system for their community:`;
 
-    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const result = await model.generateContent(synthPrompt);
     const text = result.response.text();
     // Allow a richer, orientation-style answer for intro questions
@@ -886,7 +887,7 @@ async function synthesizeResponse(
   }
 
   try {
-    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const tradeTopic = detectTradeTopic(userMessage);
     const tradeHintBlock = `
 TRADE TOPIC HINT: ${tradeTopic ? tradeTopic.toUpperCase() : "NONE"}
@@ -1354,7 +1355,7 @@ async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
   }
 
   try {
-    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const prompt = `You are designing the very first question a brand new person should ask Scout, the built-in helper that runs TradeScout b7 a community operating system, not just an app.
 
 Create a SINGLE best starter prompt that will cause Scout to give a rich orientation to TradeScout as their community OS b7 what it is, who it serves, and how it can run their local projects and community flows.

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
@@ -169,6 +169,11 @@ export async function buildPublicBestTradeCountyHtml(
     now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
   );
   const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
+  const keywordPatterns = match.keywords
+    .map((k) => String(k || "").trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
 
   const rows = await db
     .select({
@@ -193,12 +198,13 @@ export async function buildPublicBestTradeCountyHtml(
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.fips, String((county as any).fipsCode || "")),
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
-        // Broad trade match (same as directory pages).
-        sql`(${businesses.profileData}::text ILIKE ANY(${match.keywords
-          .map((k) => String(k || "").trim())
-          .filter(Boolean)
-          .slice(0, 8)
-          .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`)}::text[]))`
+        keywordPatterns.length
+          ? or(
+              ...keywordPatterns.map(
+                (pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`
+              )
+            )
+          : sql`true`
       )
     )
     .orderBy(desc(businesses.updatedAt), asc(businesses.name))
@@ -360,7 +366,11 @@ export async function buildPublicBestTradeCityHtml(
         sql`${sqlCitySlugExpr()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
         keywordPatterns.length
-          ? sql`(${businesses.profileData}::text ILIKE ANY(${keywordPatterns}::text[]))`
+          ? or(
+              ...keywordPatterns.map(
+                (pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`
+              )
+            )
           : sql`true`
       )
     )

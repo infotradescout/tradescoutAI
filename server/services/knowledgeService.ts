@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getGeminiModelName } from "../ai/modelConfig";
 import { and, eq, or, sql } from "drizzle-orm";
 import mammoth from "mammoth";
 import { db } from "../../src/db/drizzle-mock";
@@ -822,8 +823,7 @@ async function searchInternet(
   try {
     if (!gemini) return { source: "none", data: null, layer: 0 };
 
-    // Use stable model name; "-latest" can 404 on some API versions
-    const model = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const lower = message.toLowerCase();
 
     const codeOrPermit = isCodeOrPermitQuery(lower);
