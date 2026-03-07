@@ -823,10 +823,14 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(200).json({ status: "cancelled" });
         }
 
-        if (requestRow.status !== "in_progress" && requestRow.status !== "routed") {
+        if (
+          requestRow.status !== "open" &&
+          requestRow.status !== "in_progress" &&
+          requestRow.status !== "routed"
+        ) {
           return res
             .status(400)
-            .json({ message: "Only routed or in-progress requests can be cancelled" });
+            .json({ message: "Only open, routed, or in-progress requests can be cancelled" });
         }
 
         const now = new Date();

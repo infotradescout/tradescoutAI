@@ -1,6 +1,7 @@
 ﻿import { ReactNode, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -766,7 +767,7 @@ function MyDirectConnectRequests() {
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [mobileActionRequestId, setMobileActionRequestId] = useState<string | null>(null);
   const [requestFilter, setRequestFilter] = useState<
-    "all" | "routed" | "in_progress" | "accepted" | "cancelled"
+    "all" | "open" | "routed" | "in_progress" | "accepted" | "completed" | "cancelled"
   >("all");
   const { toast } = useToast();
 
@@ -861,7 +862,9 @@ function MyDirectConnectRequests() {
     <div className="space-y-3">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="flex gap-1.5 overflow-x-auto p-2">
-          {(["all", "routed", "in_progress", "accepted", "cancelled"] as const).map((f) => {
+          {(
+            ["all", "open", "routed", "in_progress", "accepted", "completed", "cancelled"] as const
+          ).map((f) => {
             const count =
               f === "all"
                 ? requestsData?.filter((r) => r.status !== "cancelled").length || 0
@@ -889,10 +892,10 @@ function MyDirectConnectRequests() {
       </Card>
 
       {filteredRequests.map((r) => {
-        const status = String(r.status || "routed").toLowerCase();
+        const status = String(r.status || "open").toLowerCase();
         const hasAccepted =
           status === "in_progress" || status === "completed" || Boolean(r.dcConversationThreadId);
-        const canSend = status === "routed";
+        const canSend = status === "open";
         const isMobileActionOpen = mobileActionRequestId === r.id;
         return (
           <Card
@@ -958,7 +961,7 @@ function MyDirectConnectRequests() {
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
-                  Send
+                  Route
                 </Button>
                 <Button
                   size="sm"
@@ -974,7 +977,8 @@ function MyDirectConnectRequests() {
                   variant="outline"
                   className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
                   disabled={
-                    (status !== "in_progress" && status !== "routed") || cancelMutation.isPending
+                    (status !== "open" && status !== "in_progress" && status !== "routed") ||
+                    cancelMutation.isPending
                   }
                   onClick={() => cancelMutation.mutate(r.id)}
                 >
@@ -1014,7 +1018,7 @@ function MyDirectConnectRequests() {
                     disabled={!canSend || routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
-                    Send
+                    Route
                   </Button>
                   <Button
                     size="sm"
@@ -1030,7 +1034,8 @@ function MyDirectConnectRequests() {
                     variant="outline"
                     className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
                     disabled={
-                      (status !== "in_progress" && status !== "routed") || cancelMutation.isPending
+                      (status !== "open" && status !== "in_progress" && status !== "routed") ||
+                      cancelMutation.isPending
                     }
                     onClick={() => cancelMutation.mutate(r.id)}
                   >
@@ -1100,7 +1105,7 @@ export default function DirectConnectShell() {
 
   const sectionMeta = SECTION_META[activeSection];
   const isPostComposer = activeSection === "post";
-  const showMobileNavAboveContent = activeSection !== "post";
+  const showMobileNavAboveContent = true;
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -1108,7 +1113,9 @@ export default function DirectConnectShell() {
       centerContent = <DirectConnectRequestComposer defaultCountyFips={defaultCountyFips} />;
       break;
     case "board":
-      centerContent = <DirectConnectInbox />;
+      centerContent = (
+        <TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="browse" />
+      );
       break;
     case "employment":
       centerContent = <EmploymentBoard defaultCountyFips={defaultCountyFips} />;

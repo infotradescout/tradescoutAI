@@ -119,4 +119,23 @@ describe("direct-connect gate regressions", () => {
       'status === "in_progress" || status === "completed" || Boolean(r.dcConversationThreadId)'
     );
   });
+
+  it("shows open request controls and keeps Odd Jobs wired to the board view", () => {
+    const directConnectShellFile = readRepoFile(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+
+    expect(directConnectShellFile).toContain('"all" | "open" | "routed"');
+    expect(directConnectShellFile).toContain('const canSend = status === "open";');
+    expect(directConnectShellFile).toContain(
+      '<TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="browse" />'
+    );
+  });
+
+  it("allows cancellation for open direct-connect requests", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain('requestRow.status !== "open"');
+    expect(routeFile).toContain("Only open, routed, or in-progress requests can be cancelled");
+  });
 });
