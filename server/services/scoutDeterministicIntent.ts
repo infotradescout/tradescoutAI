@@ -54,24 +54,22 @@ export function maybeHandleDeterministicIntent(args: {
   message: string;
   resolvedContext: DeterministicContext | null;
   currentJobId: string | null;
-}):
-  | {
-      intent: DeterministicIntent;
-      message: string;
-      suggestedActions: string[];
-      actions: {
-        type: string;
-        label: string;
-        path: string;
-        payload: { jobId: string; intent: DeterministicIntent };
-      }[];
-      metadata: {
-        intent: DeterministicIntent;
-        decision: string;
-        resolvedContext: DeterministicContext & { requiresLLM: boolean };
-      };
-    }
-  | null {
+}): {
+  intent: DeterministicIntent;
+  message: string;
+  suggestedActions: string[];
+  actions: {
+    type: string;
+    label: string;
+    path: string;
+    payload: { jobId: string; intent: DeterministicIntent };
+  }[];
+  metadata: {
+    intent: DeterministicIntent;
+    decision: string;
+    resolvedContext: DeterministicContext & { requiresLLM: boolean };
+  };
+} | null {
   const { message, resolvedContext, currentJobId } = args;
   const deterministicIntent = deriveDeterministicIntentInternal(message);
   if (!deterministicIntent || !resolvedContext || !currentJobId) {
@@ -110,8 +108,7 @@ export function maybeHandleDeterministicIntent(args: {
     case "open_deal_room":
       allowedKey = "OPEN_DEAL_ROOM";
       actionLabel = "Open deal room";
-      actionExplanation =
-        "I'll open your project deal room so you can handle this.";
+      actionExplanation = "I'll open your project deal room so you can handle this.";
       break;
   }
 
@@ -124,8 +121,8 @@ export function maybeHandleDeterministicIntent(args: {
     message: actionExplanation,
     suggestedActions: [
       "Explain what’s blocking this project",
-      "Show other ways TradeScout can help",
-      "Ask another question",
+      "Open Direct Connect opportunities",
+      "Review this project in Inbox",
     ],
     actions: [
       {
@@ -137,8 +134,7 @@ export function maybeHandleDeterministicIntent(args: {
     ],
     metadata: {
       intent: deterministicIntent,
-      decision:
-        "Handled via deterministic route based on project documents and allowed actions.",
+      decision: "Handled via deterministic route based on project documents and allowed actions.",
       resolvedContext: {
         ...resolvedContext,
         requiresLLM: false,

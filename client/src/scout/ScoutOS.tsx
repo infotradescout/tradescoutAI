@@ -940,7 +940,7 @@ export default function ScoutOS() {
 
     const normalized = roles.map((r) => {
       const raw = String(r || "").toLowerCase();
-      if (raw === "owner") return "super_admin";
+      if (raw === "owner" || raw === "head_admin") return "super_admin";
       return raw;
     });
 

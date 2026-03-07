@@ -51,6 +51,7 @@ import { ensureFollowUpQuestion } from "../scout/responseShape";
 import {
   sanitizeScoutActionsForPolicy,
   sanitizeScoutMessageForPolicy,
+  sanitizeScoutSuggestionsForPolicy,
 } from "../services/scoutPolicy";
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
@@ -2388,9 +2389,7 @@ router.post("/", async (req: Request, res: Response) => {
       typeof process.env.SCOUT_DEFAULT_ENGINE === "string" &&
       process.env.SCOUT_DEFAULT_ENGINE.trim().length > 0
         ? process.env.SCOUT_DEFAULT_ENGINE.trim().toLowerCase()
-        : process.env.NODE_ENV === "production"
-          ? "v4"
-          : "classic";
+        : "classic";
 
     const wantsEnhancedV4 =
       defaultEngine === "v4" || defaultEngine === "enhanced_v4" || defaultEngine === "enhanced-v4";
@@ -2651,12 +2650,6 @@ router.post("/", async (req: Request, res: Response) => {
         sponsored: null,
         metadata: {
           intent: "auth_required",
-          thought_flow: [
-            "User asked to post/publish",
-            "This requires authentication",
-            "Redirect to account creation",
-          ],
-          decision: `Directing user to create account at ${redirect}`,
           redirect,
         },
       };
@@ -3131,8 +3124,6 @@ router.post("/", async (req: Request, res: Response) => {
         sponsored: null,
         metadata: {
           intent: synthesized.intent,
-          thought_flow: synthesized.thought_flow,
-          decision: synthesized.decision,
           redirect: "/pre-scout-setup?mode=create",
           resolvedContext,
         },
@@ -3181,8 +3172,6 @@ router.post("/", async (req: Request, res: Response) => {
       })),
       metadata: {
         intent: synthesized.intent,
-        thought_flow: synthesized.thought_flow,
-        decision: synthesized.decision,
         sourceUsed: sourceAudit.sourceUsed,
         attemptedSource: sourceAudit.attemptedSource,
         fallbackUsed: sourceAudit.fallbackUsed,
@@ -4305,8 +4294,14 @@ router.post("/", async (req: Request, res: Response) => {
     const policyMessage = sanitizeScoutMessageForPolicy(finalMessage || "");
     finalMessage = policyMessage.message;
     const policyActions = sanitizeScoutActionsForPolicy((aiResponse.actions || []) as any[]);
+    const policySuggestions = sanitizeScoutSuggestionsForPolicy(aiResponse.suggestedActions || []);
+    aiResponse.suggestedActions = policySuggestions.suggestions;
 
-    const policyViolations = [...policyMessage.violations, ...policyActions.violations];
+    const policyViolations = [
+      ...policyMessage.violations,
+      ...policyActions.violations,
+      ...policySuggestions.violations,
+    ];
     if (policyViolations.length > 0) {
       try {
         await storage.logEvent("scout_policy_violation_detected", {
@@ -4442,6 +4437,23 @@ router.post("/execute-action", async (req: Request, res: Response) => {
       });
     }
 
+    const guestSafeActions = new Set([
+      "NAVIGATE",
+      "OPEN_APP_DRAWER",
+      "OPEN_TOOLS_DRAWER",
+      "PREFILL_INPUT",
+      "ASK_SCOUT",
+      "EXTERNAL_LINK",
+      "CALL_TOOL",
+      "NOOP",
+    ]);
+    if (!userId && !guestSafeActions.has(String(action.type))) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in is required for this action",
+      });
+    }
+
     // Reconstruct guard context from request
     const guardContext: ScoutActionContext = {
       userId,
@@ -4461,7 +4473,7 @@ router.post("/execute-action", async (req: Request, res: Response) => {
     if (result.ok) {
       return res.json({
         success: true,
-        message: result.message || "Action executed",
+        message: result.message || "Action authorized",
         data: result.data,
         nextAction: (result as any).nextAction,
       });
@@ -4533,18 +4545,24 @@ router.get("/auto-prompt", async (_req: Request, res: Response) => {
   });
 });
 
+function normalizeScoutAdminRole(rawRole: unknown): string {
+  const role = typeof rawRole === "string" ? rawRole.trim().toLowerCase() : "";
+  if (!role) return "";
+  return role === "owner" || role === "head_admin" ? "super_admin" : role;
+}
+
 /**
  * Admin-only: Cache statistics endpoint
  * GET /api/scout/admin/cache-stats
  * Requires admin role
  */
 router.get("/admin/cache-stats", (req: Request, res: Response) => {
-  const userRole = (req as any).user?.role;
+  const userRole = normalizeScoutAdminRole((req as any).user?.role);
 
-  if (!userRole || userRole !== "admin") {
+  if (!userRole || userRole !== "super_admin") {
     return res.status(403).json({
-      error: "Admin access required",
-      message: "Only administrators can access cache statistics",
+      error: "Super admin access required",
+      message: "Only super admins can access cache statistics",
     });
   }
 
@@ -4575,12 +4593,12 @@ router.get("/admin/cache-stats", (req: Request, res: Response) => {
  * Requires admin role
  */
 router.get("/admin/system-status", (req: Request, res: Response) => {
-  const userRole = (req as any).user?.role;
+  const userRole = normalizeScoutAdminRole((req as any).user?.role);
 
-  if (!userRole || userRole !== "admin") {
+  if (!userRole || userRole !== "super_admin") {
     return res.status(403).json({
-      error: "Admin access required",
-      message: "Only administrators can access system status",
+      error: "Super admin access required",
+      message: "Only super admins can access system status",
     });
   }
 
@@ -4607,12 +4625,12 @@ router.get("/admin/system-status", (req: Request, res: Response) => {
  * Requires admin role
  */
 router.post("/admin/cache-clear", (req: Request, res: Response) => {
-  const userRole = (req as any).user?.role;
+  const userRole = normalizeScoutAdminRole((req as any).user?.role);
 
-  if (!userRole || userRole !== "admin") {
+  if (!userRole || userRole !== "super_admin") {
     return res.status(403).json({
-      error: "Admin access required",
-      message: "Only administrators can clear cache",
+      error: "Super admin access required",
+      message: "Only super admins can clear cache",
     });
   }
 

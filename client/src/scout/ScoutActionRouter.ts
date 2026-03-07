@@ -21,6 +21,19 @@ type GuardedActionResponse = {
   nextAction?: ScoutAction;
 };
 
+function isSensitiveScoutAction(action: ScoutAction): boolean {
+  switch (action.type) {
+    case "SEND_ADMIN_BROADCAST":
+    case "START_COMMUNITY_VAULT_DONATION":
+    case "START_PLATFORM_SUPPORT":
+    case "FOLLOW_USER":
+    case "UNFOLLOW_USER":
+      return true;
+    default:
+      return false;
+  }
+}
+
 async function executeActionViaServerGuard(action: ScoutAction): Promise<{
   blocked: boolean;
   message?: string;
@@ -39,7 +52,14 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
 
     if (!res.ok) {
       // Guard endpoint unavailable should never block local execution.
-      if (res.status >= 500) return { blocked: false };
+      if (res.status >= 500) {
+        return isSensitiveScoutAction(action)
+          ? {
+              blocked: true,
+              message: "This action is temporarily unavailable. Please try again shortly.",
+            }
+          : { blocked: false };
+      }
 
       const fail = (await res.json().catch(() => ({}))) as GuardedActionResponse;
       return {
@@ -64,8 +84,13 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
           : undefined,
     };
   } catch {
-    // Network/intermittent failures should degrade gracefully.
-    return { blocked: false };
+    // Network/intermittent failures degrade gracefully for low-risk actions only.
+    return isSensitiveScoutAction(action)
+      ? {
+          blocked: true,
+          message: "This action is temporarily unavailable. Please try again shortly.",
+        }
+      : { blocked: false };
   }
 }
 

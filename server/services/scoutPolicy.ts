@@ -144,3 +144,29 @@ export function sanitizeScoutActionsForPolicy<T extends ActionLike>(
 
   return { actions: sanitized, violations };
 }
+
+export function sanitizeScoutSuggestionsForPolicy(suggestions: string[]): {
+  suggestions: string[];
+  violations: ScoutPolicyViolation[];
+} {
+  const sanitized: string[] = [];
+  const violations: ScoutPolicyViolation[] = [];
+
+  for (const raw of suggestions) {
+    if (typeof raw !== "string") continue;
+    const { output, violations: localViolations } = replaceWithRules(raw);
+    sanitized.push(output);
+    if (localViolations.length > 0) {
+      violations.push(
+        ...localViolations.map((item) => ({
+          ...item,
+          kind: "action_label" as const,
+          original: raw,
+          sanitized: output,
+        }))
+      );
+    }
+  }
+
+  return { suggestions: sanitized, violations };
+}
