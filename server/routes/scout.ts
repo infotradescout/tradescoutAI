@@ -2390,9 +2390,14 @@ router.post("/", async (req: Request, res: Response) => {
       process.env.SCOUT_DEFAULT_ENGINE.trim().length > 0
         ? process.env.SCOUT_DEFAULT_ENGINE.trim().toLowerCase()
         : "classic";
+    const scoutEnhancedEnabled =
+      String(process.env.SCOUT_ENHANCED_ENABLED || "").toLowerCase() === "true";
 
     const wantsEnhancedV4 =
-      defaultEngine === "v4" || defaultEngine === "enhanced_v4" || defaultEngine === "enhanced-v4";
+      scoutEnhancedEnabled &&
+      (defaultEngine === "v4" ||
+        defaultEngine === "enhanced_v4" ||
+        defaultEngine === "enhanced-v4");
 
     let sourceAudit: {
       sourceUsed: string;
