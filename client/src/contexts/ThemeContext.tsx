@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PRESET_THEMES, applyTheme, getThemeById, type Theme } from "@/lib/themes";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { getUserColorScheme } from "@shared/colorPresets";
 
 interface ThemeContextType {
   currentTheme: Theme;
@@ -32,37 +31,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const resolveTheme = useCallback(() => {
-    // Priority 1: explicit profile color scheme (used on public profile + should drive in-app look)
-    const preferenceScheme = user?.preferences?.colorScheme;
-    if (preferenceScheme) {
-      const scheme = getUserColorScheme({ colorScheme: preferenceScheme });
-      const derivedSurface = `color-mix(in oklab, ${scheme.background} 90%, #ffffff 10%)`;
-      const derivedChrome = `color-mix(in oklab, ${scheme.background} 85%, #000000 15%)`;
-      const derivedBorder = scheme.border || `color-mix(in oklab, ${scheme.text} 12%, transparent)`;
-      const themeFromProfile: Theme = {
-        id: preferenceScheme.preset || "profile-theme",
-        name: "Profile Color Scheme",
-        description: "Colors synced from profile preferences",
-        colors: {
-          bgPrimary: scheme.background,
-          bgSecondary: derivedSurface,
-          bgTertiary: derivedChrome,
-          textPrimary: scheme.text,
-          textSecondary: `color-mix(in oklab, ${scheme.text} 70%, transparent)`,
-          accentPrimary: scheme.primary,
-          accentSecondary: scheme.secondary || scheme.primary,
-          borderPrimary: derivedBorder,
-          borderSecondary: `color-mix(in oklab, ${scheme.text} 8%, transparent)`,
-        },
-      };
-      return {
-        theme: themeFromProfile,
-        custom: preferenceScheme.preset === "custom" ? preferenceScheme : null,
-        themeId: preferenceScheme.preset || "profile-theme",
-      };
-    }
-
-    // Priority 2: stored theme preference / local storage
+    // App theme should come from theme preference/custom theme only.
+    // Profile colorScheme is used by public profile rendering and should not force in-app theme swaps.
     const savedThemeId =
       user?.themePreference ||
       (typeof window !== "undefined" ? safeStorage.get("themeId") : null) ||
