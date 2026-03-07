@@ -100,7 +100,10 @@ export function ConversationStarter({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className={`bg-ts-orange-dark hover:bg-ts-orange-dark text-white ${className}`} size="lg">
+        <Button
+          className={`bg-ts-orange-dark hover:bg-ts-orange-dark text-white ${className}`}
+          size="lg"
+        >
           <MessageCircle className="h-4 w-4 mr-2" />
           Request Quote
         </Button>
@@ -165,7 +168,7 @@ export function ConversationStarter({
           </form>
 
           <div className="text-xs text-white/60 space-y-1">
-            <p>- Awareness does not unlock direct contact.</p>
+            <p>- Visibility does not unlock direct contact.</p>
             <p>- First contact always requires seller approval.</p>
             <p>- TradeScout opens chat only after approval.</p>
           </div>

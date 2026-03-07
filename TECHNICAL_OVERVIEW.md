@@ -8,9 +8,9 @@ Last Updated: January 13, 2026
 
 ## Executive Summary
 
-TradeScout is a full-stack TypeScript application that reimagines how communities connect with service providers. Built on a foundation of **trust-first authority**, it operates as an AI-assisted community operating system where awareness never grants automatic access, and all interactions flow through verified decision pathways.
+TradeScout is a full-stack TypeScript application that reimagines how communities connect with service providers. Built on a foundation of **trust-first authority**, it operates as an AI-assisted community operating system where visibility does not equal automatic access, and all interactions flow through verified decision pathways.
 
-**Core Philosophy**: Awareness ≠ Authority. Scout (the AI assistant) is the primary system controller, and UI surfaces are tools Scout orchestrates.
+**Core Philosophy**: Visibility does not equal access. Scout (the AI assistant) is the primary system controller, and UI surfaces are tools Scout orchestrates.
 
 ---
 
@@ -929,3 +929,4 @@ MIT (as specified in package.json)
 ---
 
 **TradeScout**: Where community trust governs local work, and AI assists rather than replaces human judgment.
+

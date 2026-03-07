@@ -3,7 +3,7 @@
 This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, copy, or concepts.
 
 ## 1) Platform law (must be preserved)
-- Awareness ≠ Authority: visibility never grants contact/power.
+- Visibility does not equal access: being seen never grants contact or power.
 - All contact is gated: Intent → Decision Card → Contact.
 - Claims-first signup; verification is adaptive/contextual.
 - Counties are operational containers; intelligence precomputes into:
@@ -28,3 +28,4 @@ This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, c
 - No regressions in gating.
 - Tests/build succeed (or document why not and provide the fix path).
 - Clear migration notes if data shape changes.
+

@@ -3,7 +3,7 @@
 TradeScout core interaction contract is:
 
 1. `Discovery -> Request -> Decision -> Contact`
-2. Awareness never grants direct authority or direct contact.
+2. Visibility does not equal access to direct authority or direct contact.
 3. Marketplace ranking cannot be purchased.
 
 ## Enforcement Points

@@ -51,8 +51,8 @@ export function RevenueDisclosureSection({
           </ul>
 
           <p className="text-xs text-white/60 leading-relaxed">
-            None of the above can buy trust, ranking, routing, or access. Awareness never grants
-            authority.
+            None of the above can buy trust, ranking, routing, or access. Visibility does not equal
+            access.
           </p>
         </CardContent>
       </Card>
