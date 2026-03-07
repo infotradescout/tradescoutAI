@@ -1541,6 +1541,18 @@ export class DatabaseStorage implements IStorage {
       .slice(0, 80);
   }
 
+  private isMissingPublicDiscoveryEnabledColumn(error: any): boolean {
+    const code = String(error?.code || "").trim();
+    const message = String(error?.message || "")
+      .trim()
+      .toLowerCase();
+    return (
+      code === "42703" &&
+      (message.includes("public_discovery_enabled") ||
+        message.includes("businesses.public_discovery_enabled"))
+    );
+  }
+
   private async generateUniqueBusinessSlug(base: string): Promise<string> {
     const baseSlug = this.slugify(base);
     if (!baseSlug) return randomUUID();
@@ -1587,11 +1599,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(businesses.ownerUserId, ownerUserId))
         .orderBy(desc(businesses.updatedAt));
     } catch (error: any) {
-      const isMissingDiscoveryColumn =
-        String(error?.code || "") === "42703" &&
-        String(error?.message || "")
-          .toLowerCase()
-          .includes("public_discovery_enabled");
+      const isMissingDiscoveryColumn = this.isMissingPublicDiscoveryEnabledColumn(error);
       if (!isMissingDiscoveryColumn) throw error;
 
       const fallback = (await db.execute(sql`
@@ -1630,11 +1638,7 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
       return rows[0];
     } catch (error: any) {
-      const isMissingDiscoveryColumn =
-        String(error?.code || "") === "42703" &&
-        String(error?.message || "")
-          .toLowerCase()
-          .includes("public_discovery_enabled");
+      const isMissingDiscoveryColumn = this.isMissingPublicDiscoveryEnabledColumn(error);
       if (!isMissingDiscoveryColumn) throw error;
 
       const fallback = (await db.execute(sql`
@@ -1670,11 +1674,7 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
       return rows[0];
     } catch (error: any) {
-      const isMissingDiscoveryColumn =
-        String(error?.code || "") === "42703" &&
-        String(error?.message || "")
-          .toLowerCase()
-          .includes("public_discovery_enabled");
+      const isMissingDiscoveryColumn = this.isMissingPublicDiscoveryEnabledColumn(error);
       if (!isMissingDiscoveryColumn) throw error;
 
       const fallback = (await db.execute(sql`

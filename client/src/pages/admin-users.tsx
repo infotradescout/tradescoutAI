@@ -64,6 +64,7 @@ type User = {
   role: string;
   activeRole?: string;
   roles?: string[];
+  preferences?: Record<string, unknown> | null;
   emailVerified?: boolean;
   verificationStatus?:
     | "pending"
@@ -709,6 +710,13 @@ export default function AdminUsers() {
   };
 
   const resolveUserRole = (targetUser: User): string => {
+    const archivedReason = String((targetUser.preferences as any)?.archivedReason || "")
+      .trim()
+      .toLowerCase();
+    if (isArchivedPlaceholderUser(targetUser.email) && archivedReason === "admin_import_cleanup") {
+      return "business_owner";
+    }
+
     const active = String(targetUser.activeRole || "").trim();
     if (active) return active;
     const roles = Array.isArray(targetUser.roles)
@@ -724,6 +732,28 @@ export default function AdminUsers() {
       .toLowerCase();
     if (!normalized) return false;
     return normalized.startsWith("archived+") && normalized.endsWith("@thetradescout.invalid");
+  };
+
+  const getArchivedOriginalEmail = (targetUser: User): string => {
+    const raw = String((targetUser.preferences as any)?.archivedEmail || "")
+      .trim()
+      .toLowerCase();
+    return raw;
+  };
+
+  const getDisplayEmail = (targetUser: User): string => {
+    if (!isArchivedPlaceholderUser(targetUser.email)) {
+      return String(targetUser.email || "").trim();
+    }
+    return getArchivedOriginalEmail(targetUser) || String(targetUser.email || "").trim();
+  };
+
+  const getDisplayName = (targetUser: User): string => {
+    const fullName =
+      `${String(targetUser.firstName || "").trim()} ${String(targetUser.lastName || "").trim()}`.trim();
+    if (fullName) return fullName;
+    const displayEmail = getDisplayEmail(targetUser);
+    return displayEmail || String(targetUser.email || "").trim();
   };
 
   const archivedPlaceholderCount = useMemo(
@@ -743,9 +773,11 @@ export default function AdminUsers() {
   const filteredUsers = usersBase.filter((u) => {
     const name = u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : "";
     const searchLower = searchTerm.trim().toLowerCase();
+    const archivedOriginalEmail = getArchivedOriginalEmail(u);
     const matchesSearch =
       !searchLower ||
       u.email.toLowerCase().includes(searchLower) ||
+      archivedOriginalEmail.includes(searchLower) ||
       name.toLowerCase().includes(searchLower);
 
     const status = u.verificationStatus || "pending";
@@ -835,7 +867,7 @@ export default function AdminUsers() {
     const rows = filteredUsers.map((u) =>
       [
         escape(u.id),
-        escape(u.email),
+        escape(getDisplayEmail(u)),
         escape(u.firstName || ""),
         escape(u.lastName || ""),
         escape(resolveUserRole(u)),
@@ -1236,13 +1268,9 @@ export default function AdminUsers() {
                         <TableRow key={user.id} className="hover:bg-muted/50">
                           <TableCell className="py-3 min-w-[280px] sticky left-0 z-10 bg-[color:var(--surface-card)]">
                             <div className="text-foreground space-y-1">
-                              <div className="font-medium truncate">
-                                {user.firstName
-                                  ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-                                  : user.email}
-                              </div>
+                              <div className="font-medium truncate">{getDisplayName(user)}</div>
                               <div className="text-xs text-muted-foreground truncate">
-                                {user.email}
+                                {getDisplayEmail(user)}
                               </div>
                             </div>
                           </TableCell>
@@ -1276,7 +1304,7 @@ export default function AdminUsers() {
                                     : "bg-muted text-muted-foreground"
                                 }`}
                               >
-                                {user.addressVerified ? "Address ✓" : "Address ✗"}
+                                {user.addressVerified ? "Address verified" : "Address not verified"}
                               </Badge>
                               <Badge
                                 className={`text-xs whitespace-nowrap ${
@@ -1285,13 +1313,13 @@ export default function AdminUsers() {
                                     : "bg-muted text-muted-foreground"
                                 }`}
                               >
-                                {user.emailVerified ? "Email ✓" : "Email ✗"}
+                                {user.emailVerified ? "Email verified" : "Email not verified"}
                               </Badge>
                               <Badge
                                 variant={user.onboardingCompleted ? "outline" : "secondary"}
                                 className="text-xs whitespace-nowrap"
                               >
-                                {user.onboardingCompleted ? "Setup ✓" : "Setup ✗"}
+                                {user.onboardingCompleted ? "Setup complete" : "Setup pending"}
                               </Badge>
                             </div>
                           </TableCell>
