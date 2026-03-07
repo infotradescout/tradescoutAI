@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db } from "../db";
-import { communityGroups, groupMembers, users } from "@shared/schema";
+import { communityGroups, counties, groupMembers, states, users } from "@shared/schema";
 import { storage } from "../storage";
-import { inArray, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { createGroup, ensureCountyGroupMembershipForUser } from "../routes/groups";
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
@@ -10,27 +11,60 @@ const describeDb = hasTestDb ? describe : describe.skip;
 describeDb("community groups scoping and membership", () => {
   const countyAFips = "03101";
   const countyBFips = "03202";
+  const canonicalStateCode = "ZG";
+  const canonicalCountyFips = "97301";
   const stateCode = "TX";
 
   const userAId = "groups-test-user-a";
   const userBId = "groups-test-user-b";
+  const userCanonicalId = "groups-test-user-canonical";
 
   let groupAId: string;
   let groupBId: string;
+
+  const createMockResponse = () => {
+    const result: { statusCode: number; body: unknown } = { statusCode: 200, body: undefined };
+    const response = {
+      status(code: number) {
+        result.statusCode = code;
+        return this;
+      },
+      json(payload: unknown) {
+        result.body = payload;
+        return this;
+      },
+    };
+
+    return { response: response as any, result };
+  };
 
   beforeAll(async () => {
     // Clean up any prior test data
     await db
       .delete(groupMembers)
-      .where(inArray(groupMembers.userId, [userAId, userBId]));
+      .where(inArray(groupMembers.userId, [userAId, userBId, userCanonicalId]));
 
     await db
       .delete(communityGroups)
-      .where(inArray(communityGroups.countyFips, [countyAFips, countyBFips]));
+      .where(inArray(communityGroups.countyFips, [countyAFips, countyBFips, canonicalCountyFips]));
 
-    await db
-      .delete(users)
-      .where(inArray(users.id, [userAId, userBId]));
+    await db.delete(users).where(inArray(users.id, [userAId, userBId, userCanonicalId]));
+
+    await db.delete(counties).where(eq(counties.fips, canonicalCountyFips));
+    await db.delete(states).where(eq(states.code, canonicalStateCode));
+
+    await db.insert(states).values({
+      id: "groups-test-state-zg",
+      name: "Groups Test State",
+      code: canonicalStateCode,
+    });
+
+    await db.insert(counties).values({
+      id: "groups-test-county-zg-97301",
+      name: "Canon County",
+      fips: canonicalCountyFips,
+      stateCode: canonicalStateCode,
+    });
 
     // Seed users
     await db.insert(users).values({
@@ -49,6 +83,17 @@ describeDb("community groups scoping and membership", () => {
       lastName: "B",
       state: stateCode,
       county: "Groups County B",
+    } as any);
+
+    await db.insert(users).values({
+      id: userCanonicalId,
+      email: "groups-canonical@example.com",
+      firstName: "Canon",
+      lastName: "User",
+      state: canonicalStateCode,
+      county: "Canon County",
+      stateCode: canonicalStateCode,
+      countyFips: canonicalCountyFips,
     } as any);
 
     // Seed groups for each county
@@ -82,6 +127,21 @@ describeDb("community groups scoping and membership", () => {
     groupBId = groupB.id;
   });
 
+  afterAll(async () => {
+    await db
+      .delete(groupMembers)
+      .where(inArray(groupMembers.userId, [userAId, userBId, userCanonicalId]));
+
+    await db
+      .delete(communityGroups)
+      .where(inArray(communityGroups.countyFips, [countyAFips, countyBFips, canonicalCountyFips]));
+
+    await db.delete(users).where(inArray(users.id, [userAId, userBId, userCanonicalId]));
+
+    await db.delete(counties).where(eq(counties.fips, canonicalCountyFips));
+    await db.delete(states).where(eq(states.code, canonicalStateCode));
+  });
+
   it("returns only groups for the requested county", async () => {
     const groupsForA = await storage.getGroups({
       stateCode,
@@ -110,11 +170,7 @@ describeDb("community groups scoping and membership", () => {
 
   it("joinGroup is idempotent and leaveGroup deactivates membership", async () => {
     // Ensure no prior membership
-    await db
-      .delete(groupMembers)
-      .where(
-        inArray(groupMembers.userId, [userAId])
-      );
+    await db.delete(groupMembers).where(inArray(groupMembers.userId, [userAId]));
 
     // First join should create membership
     const firstJoin = await storage.joinGroup(userAId, groupAId);
@@ -140,12 +196,93 @@ describeDb("community groups scoping and membership", () => {
     // Leave should mark inactive
     await storage.leaveGroup(userAId, groupAId);
 
-    const afterLeave = await db
-      .select()
-      .from(groupMembers)
-      .where(eq(groupMembers.userId, userAId));
+    const afterLeave = await db.select().from(groupMembers).where(eq(groupMembers.userId, userAId));
 
     expect(afterLeave.length).toBe(1);
     expect(afterLeave[0].isActive).toBe(false);
   });
+
+  it("auto-creates the county group and active membership for canonical users", async () => {
+    await db.delete(groupMembers).where(eq(groupMembers.userId, userCanonicalId));
+    await db.delete(communityGroups).where(eq(communityGroups.countyFips, canonicalCountyFips));
+
+    await ensureCountyGroupMembershipForUser(userCanonicalId);
+
+    const countyGroups = await db
+      .select()
+      .from(communityGroups)
+      .where(
+        and(
+          eq(communityGroups.countyFips, canonicalCountyFips),
+          eq(communityGroups.stateCode, canonicalStateCode)
+        )
+      );
+
+    expect(countyGroups).toHaveLength(1);
+    expect(countyGroups[0].groupType).toBe("auto_county");
+    expect(countyGroups[0].createdBy).toBeNull();
+
+    const firstMemberships = await db
+      .select()
+      .from(groupMembers)
+      .where(
+        and(eq(groupMembers.userId, userCanonicalId), eq(groupMembers.groupId, countyGroups[0].id))
+      );
+
+    expect(firstMemberships).toHaveLength(1);
+    expect(firstMemberships[0].isActive).toBe(true);
+
+    await ensureCountyGroupMembershipForUser(userCanonicalId);
+
+    const secondMemberships = await db
+      .select()
+      .from(groupMembers)
+      .where(
+        and(eq(groupMembers.userId, userCanonicalId), eq(groupMembers.groupId, countyGroups[0].id))
+      );
+
+    expect(secondMemberships).toHaveLength(1);
+  });
+
+  it.each([
+    ["specialty_trade", "trade"],
+    ["interest_based", "interest"],
+    ["county_community", "neighborhood"],
+  ] as const)(
+    "maps UI group type %s to persisted type %s and defaults to the creator county",
+    async (requestedType, expectedType) => {
+      const request = {
+        user: { id: userCanonicalId },
+        body: {
+          name: `Mapped ${requestedType}`,
+          description: `Coverage for ${requestedType}`,
+          type: requestedType,
+          isPublic: true,
+        },
+      } as any;
+      const { response, result } = createMockResponse();
+
+      await createGroup(request, response);
+
+      expect(result.statusCode).toBe(201);
+
+      const createdGroup = result.body as any;
+      expect(createdGroup.groupType).toBe(expectedType);
+      expect(createdGroup.scope).toBe("county");
+      expect(createdGroup.stateCode).toBe(canonicalStateCode);
+      expect(createdGroup.countyFips).toBe(canonicalCountyFips);
+      expect(createdGroup.createdBy).toBe(userCanonicalId);
+
+      const ownerMembership = await db
+        .select()
+        .from(groupMembers)
+        .where(
+          and(eq(groupMembers.groupId, createdGroup.id), eq(groupMembers.userId, userCanonicalId))
+        );
+
+      expect(ownerMembership).toHaveLength(1);
+      expect(ownerMembership[0].role).toBe("owner");
+      expect(ownerMembership[0].isActive).toBe(true);
+    }
+  );
 });
