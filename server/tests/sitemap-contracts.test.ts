@@ -22,6 +22,18 @@ const expectedSitemapLocs = [
   "https://www.thetradescout.com/sitemap-recent-activity.xml",
 ];
 
+const expectedStaticPublicRoutes = [
+  "https://www.thetradescout.com/",
+  "https://www.thetradescout.com/landing",
+  "https://www.thetradescout.com/direct-connect",
+  "https://www.thetradescout.com/community",
+  "https://www.thetradescout.com/how-it-works",
+  "https://www.thetradescout.com/trust-model",
+  "https://www.thetradescout.com/direct-connect-info",
+  "https://www.thetradescout.com/privacy",
+  "https://www.thetradescout.com/compliance",
+];
+
 describe("sitemap contracts", () => {
   it("dynamic sitemap index includes the crawler-facing directory, best, and recent feeds", () => {
     const source = read("server/routes/profiles.ts");
@@ -31,12 +43,12 @@ describe("sitemap contracts", () => {
     }
   });
 
-  it("static sitemap.xml mirrors the submitted sitemap index targets", () => {
+  it("static sitemap.xml remains a conservative canonical urlset", () => {
     const source = read("client/public/sitemap.xml");
 
-    expect(source).toContain("<sitemapindex");
-    expect(source).not.toContain("<urlset");
-    for (const loc of expectedSitemapLocs) {
+    expect(source).toContain("<urlset");
+    expect(source).not.toContain("<sitemapindex");
+    for (const loc of expectedStaticPublicRoutes) {
       expect(source).toContain(`<loc>${loc}</loc>`);
     }
   });
