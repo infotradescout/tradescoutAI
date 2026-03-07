@@ -846,6 +846,8 @@ export default function AdminUsers() {
     const header = [
       "id",
       "email",
+      "archivedOriginalEmail",
+      "accountType",
       "firstName",
       "lastName",
       "role",
@@ -868,6 +870,8 @@ export default function AdminUsers() {
       [
         escape(u.id),
         escape(getDisplayEmail(u)),
+        escape(getArchivedOriginalEmail(u)),
+        escape(isArchivedPlaceholderUser(u.email) ? "archived_placeholder" : "active"),
         escape(u.firstName || ""),
         escape(u.lastName || ""),
         escape(resolveUserRole(u)),
@@ -1272,6 +1276,11 @@ export default function AdminUsers() {
                               <div className="text-xs text-muted-foreground truncate">
                                 {getDisplayEmail(user)}
                               </div>
+                              {isArchivedPlaceholderUser(user.email) ? (
+                                <div className="text-[10px] uppercase tracking-wide text-amber-400">
+                                  Archived placeholder
+                                </div>
+                              ) : null}
                             </div>
                           </TableCell>
                           <TableCell className="py-3 min-w-[140px]">
