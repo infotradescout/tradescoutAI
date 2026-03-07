@@ -181,6 +181,16 @@ export default function AdminUsers() {
     colorSecondary: string;
     colorBackground: string;
     colorText: string;
+    emailVerified: boolean;
+    addressVerified: boolean;
+    onboardingCompleted: boolean;
+    verificationStatus:
+      | "pending"
+      | "under_review"
+      | "approved"
+      | "rejected"
+      | "expired"
+      | "suspended";
   }>({
     firstName: "",
     lastName: "",
@@ -199,6 +209,10 @@ export default function AdminUsers() {
     colorSecondary: "",
     colorBackground: "",
     colorText: "",
+    emailVerified: false,
+    addressVerified: false,
+    onboardingCompleted: false,
+    verificationStatus: "pending",
   });
 
   // Pending state for each user action (by userId + action)
@@ -307,6 +321,10 @@ export default function AdminUsers() {
         countyFips: profileForm.countyFips.trim() || undefined,
         countyName: profileForm.countyName.trim() || undefined,
         profileImageUrl: profileForm.profileImageUrl.trim() || undefined,
+        emailVerified: profileForm.emailVerified,
+        addressVerified: profileForm.addressVerified,
+        onboardingCompleted: profileForm.onboardingCompleted,
+        verificationStatus: profileForm.verificationStatus,
         preferencesPatch: {
           bio: profileForm.bio,
           profileVisibility: profileForm.profileVisibility,
@@ -381,6 +399,17 @@ export default function AdminUsers() {
         colorSecondary: typeof color.secondary === "string" ? color.secondary : "",
         colorBackground: typeof color.background === "string" ? color.background : "",
         colorText: typeof color.text === "string" ? color.text : "",
+        emailVerified: Boolean(u?.emailVerified),
+        addressVerified: Boolean(u?.addressVerified),
+        onboardingCompleted: Boolean(u?.onboardingCompleted),
+        verificationStatus:
+          u?.verificationStatus === "approved" ||
+          u?.verificationStatus === "suspended" ||
+          u?.verificationStatus === "under_review" ||
+          u?.verificationStatus === "rejected" ||
+          u?.verificationStatus === "expired"
+            ? u.verificationStatus
+            : "pending",
       });
     } catch (error: any) {
       toast({
@@ -1830,6 +1859,73 @@ export default function AdminUsers() {
                   rows={4}
                   className="bg-input border-input text-foreground"
                 />
+              </div>
+
+              <div className="md:col-span-2 space-y-3 rounded-lg border border-input p-3">
+                <div className="text-sm font-semibold text-foreground">Account state</div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <Label className="text-muted-foreground">Verification status</Label>
+                    <Select
+                      value={profileForm.verificationStatus}
+                      onValueChange={(v) =>
+                        setProfileForm((p) => ({
+                          ...p,
+                          verificationStatus:
+                            v === "approved" ||
+                            v === "suspended" ||
+                            v === "under_review" ||
+                            v === "rejected" ||
+                            v === "expired"
+                              ? v
+                              : "pending",
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="bg-input border-input text-foreground">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="under_review">Under review</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={profileForm.emailVerified}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, emailVerified: e.target.checked }))
+                      }
+                    />
+                    <span>Email verified</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={profileForm.addressVerified}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, addressVerified: e.target.checked }))
+                      }
+                    />
+                    <span>Address verified</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-foreground md:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={profileForm.onboardingCompleted}
+                      onChange={(e) =>
+                        setProfileForm((p) => ({ ...p, onboardingCompleted: e.target.checked }))
+                      }
+                    />
+                    <span>Setup completed</span>
+                  </label>
+                </div>
               </div>
 
               <div className="md:col-span-2 space-y-2 rounded-lg border border-input p-3">

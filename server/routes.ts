@@ -11659,6 +11659,10 @@ export async function registerRoutes(app: any) {
           latitude,
           longitude,
           profileImageUrl,
+          emailVerified,
+          addressVerified,
+          onboardingCompleted,
+          verificationStatus,
           preferencesPatch,
         } = body;
 
@@ -11709,6 +11713,19 @@ export async function registerRoutes(app: any) {
           latitude: typeof latitude === "number" ? String(latitude) : undefined,
           longitude: typeof longitude === "number" ? String(longitude) : undefined,
           profileImageUrl: normalizedProfileImageUrl,
+          emailVerified: typeof emailVerified === "boolean" ? emailVerified : undefined,
+          addressVerified: typeof addressVerified === "boolean" ? addressVerified : undefined,
+          onboardingCompleted:
+            typeof onboardingCompleted === "boolean" ? onboardingCompleted : undefined,
+          verificationStatus:
+            verificationStatus === "pending" ||
+            verificationStatus === "under_review" ||
+            verificationStatus === "approved" ||
+            verificationStatus === "rejected" ||
+            verificationStatus === "expired" ||
+            verificationStatus === "suspended"
+              ? verificationStatus
+              : undefined,
           preferences: patchPreferences
             ? { ...existingPreferences, ...patchPreferences }
             : undefined,
@@ -11736,6 +11753,10 @@ export async function registerRoutes(app: any) {
             "latitude",
             "longitude",
             "profileImageUrl",
+            "emailVerified",
+            "addressVerified",
+            "onboardingCompleted",
+            "verificationStatus",
             patchPreferences ? "preferencesPatch" : null,
           ].filter(Boolean),
         });

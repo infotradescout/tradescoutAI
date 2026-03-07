@@ -55,6 +55,7 @@ const adminDirectConnectRequestSchema = directConnectRequestSchema
     category: z.enum(ADMIN_DIRECT_CONNECT_CATEGORIES).optional(),
     targetUserId: z.string().min(1).optional(),
     targetEmail: z.string().email().optional(),
+    forceSetupEmail: z.boolean().optional(),
   })
   .refine((data) => Boolean(data.targetUserId || data.targetEmail), {
     message: "targetUserId or targetEmail is required",
@@ -1124,7 +1125,8 @@ export function registerDirectConnectRoutes(app: Express) {
         }
 
         const body = parse.data;
-        const resolvedAdminCategory: AdminDirectConnectCategory = body.category || "service_request";
+        const resolvedAdminCategory: AdminDirectConnectCategory =
+          body.category || "service_request";
         const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
         const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
         if (!sanitizedTitle || !sanitizedDescription) {
@@ -1176,8 +1178,9 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (targetUser && targetEmailForNotification) {
           const publicBase = resolveOrigin(req).replace(/\/$/, "");
-          const shouldSendActivation = targetUserProvisioned && !targetUser.password;
-          const shouldSendVerification = targetUserProvisioned && targetUser.emailVerified !== true;
+          const shouldSendSetupFlow = targetUserProvisioned || body.forceSetupEmail === true;
+          const shouldSendActivation = shouldSendSetupFlow && !targetUser.password;
+          const shouldSendVerification = shouldSendSetupFlow && targetUser.emailVerified !== true;
           activationLinkIncluded = shouldSendActivation;
           verifyLinkIncluded = shouldSendVerification;
 
