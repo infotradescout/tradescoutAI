@@ -16,6 +16,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { MessageCircle, Send } from "lucide-react";
 import type { MarketplaceListing } from "@shared/schema";
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return String(error ?? "");
+}
+
 interface ConversationStarterProps {
   listing: MarketplaceListing;
   sellerId: string;
@@ -59,14 +64,15 @@ export function ConversationStarter({
       });
       navigate("/conversations");
     },
-    onError: (error: any) => {
-      if (error.message.includes("already exists")) {
+    onError: (error: unknown) => {
+      const errorMessage = getErrorMessage(error);
+      if (errorMessage.includes("already exists")) {
         toast({
           title: "Conversation exists",
           description: "You already have an active conversation for this listing.",
         });
         navigate("/conversations");
-      } else if (error.message.includes("declined")) {
+      } else if (errorMessage.includes("declined")) {
         toast({
           title: "Request declined",
           description: "This seller declined first contact for now.",
@@ -181,7 +187,6 @@ export function ConversationStarter({
 export function QuickContactButton({ listing, sellerId, className }: ConversationStarterProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   if (!isAuthenticated || user?.id === sellerId) {
     return null;
