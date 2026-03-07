@@ -90,7 +90,8 @@ function buildTradeWhereClause(tradeRaw: unknown) {
 // Public-safe directory list. Never exposes direct contact vectors.
 router.get("/api/businesses", async (req, res, next) => {
   try {
-    if (isAuthed(req)) return next();
+    const forcePublicView = String(req.query.public || "") === "1";
+    if (isAuthed(req) && !forcePublicView) return next();
 
     const countyFips = normalizeCountyFips(
       req.query.countyFips ?? req.query.county ?? req.query.county_fips

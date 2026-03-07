@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import ContractorCard from "@/components/contractor-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -19,11 +20,24 @@ import {
   setSessionLocationOverride,
 } from "@/hooks/useLocationContext";
 import { StateCountySelector } from "@/components/state-county-selector";
+import { Link } from "wouter";
 
 type TradeOption = {
   id: string;
   name: string;
   slug: string;
+};
+
+type DirectoryBusinessFallback = {
+  id: string;
+  name: string;
+  slug: string;
+  claimStatus?: string;
+  counties?: Array<{ fips: string; stateCode: string; name: string }>;
+};
+
+type DirectoryResponse = {
+  items: DirectoryBusinessFallback[];
 };
 
 export default function DirectConnectPros() {
@@ -73,6 +87,37 @@ export default function DirectConnectPros() {
 
   const hasResults = (contractors as any[])?.length > 0;
   const showEmptyState = countyCommitted && !isLoading && !hasResults;
+
+  const { data: directoryFallback = [], isLoading: directoryFallbackLoading } = useQuery<
+    DirectoryBusinessFallback[]
+  >({
+    queryKey: [
+      "/api/businesses",
+      "public-directory-fallback",
+      countyFips,
+      stateCode,
+      effectiveTradeSlug,
+      searchQuery,
+    ],
+    enabled: showEmptyState,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("public", "1");
+      params.set("claimed", "any");
+      params.set("limit", "12");
+      params.set("offset", "0");
+      if (countyFips) params.set("countyFips", countyFips);
+      if (stateCode) params.set("stateCode", stateCode);
+      if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+
+      const payload = (await apiRequest(
+        "GET",
+        `/api/businesses?${params.toString()}`
+      )) as DirectoryResponse;
+      return Array.isArray(payload?.items) ? payload.items : [];
+    },
+  });
 
   const handleStateChange = (value: string) => {
     setStateCode(value);
@@ -170,7 +215,69 @@ export default function DirectConnectPros() {
       {showEmptyState && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
-            No pros found yet for this selection.
+            No verified pros found for this selection yet.
+          </CardContent>
+        </Card>
+      )}
+
+      {showEmptyState && directoryFallbackLoading && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-3 p-6">
+            <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
+            <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
+            <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
+          </CardContent>
+        </Card>
+      )}
+
+      {showEmptyState && directoryFallback.length > 0 && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardHeader>
+            <CardTitle className="text-sm">Directory businesses (unverified)</CardTitle>
+            <p className="text-xs text-[color:var(--text-secondary)]">
+              These are real local business listings from the county directory, but they are not
+              currently verified in TradeScout.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {directoryFallback.map((business) => {
+              const county = business.counties?.[0];
+              return (
+                <div
+                  key={business.id}
+                  className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                        {business.name}
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                        {county
+                          ? `${county.name}, ${county.stateCode} (FIPS ${county.fips})`
+                          : "County not specified"}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Badge variant="secondary">Unverified</Badge>
+                        <Badge variant="outline">Directory-confirmed</Badge>
+                        {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
+                          <Badge variant="outline">Claimed profile</Badge>
+                        ) : (
+                          <Badge variant="outline">Unclaimed listing</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <Link href={`/business/${encodeURIComponent(business.slug)}`}>
+                        <Button size="sm" variant="outline">
+                          View listing
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}

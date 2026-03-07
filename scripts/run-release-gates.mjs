@@ -83,6 +83,17 @@ async function main() {
 
   console.log(`[release-gates] Using BASE_URL=${resolvedBaseUrl}`);
 
+  const gateTestSpecs = ["server/tests/direct-connect-gates.regression.test.ts"];
+  if (process.env.TEST_DATABASE_URL) {
+    gateTestSpecs.push("server/tests/direct-connect-gates.integration.test.ts");
+  }
+
+  const gateTestsExit = await runCommand("npm", ["run", "test:run", "--", ...gateTestSpecs], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (gateTestsExit !== 0) process.exit(gateTestsExit);
+
   const exitCode = await runPlaywright(resolvedBaseUrl);
   process.exit(exitCode);
 }

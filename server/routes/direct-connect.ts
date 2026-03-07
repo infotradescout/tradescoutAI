@@ -192,29 +192,32 @@ export function registerDirectConnectRoutes(app: Express) {
           .map((c: any) => c.userId as string | undefined)
           .filter((id): id is string => Boolean(id));
 
-        // Compliance gate: only apply if this trade has explicit requirements
+        // Compliance gate: only apply if this trade has explicit requirements.
+        // Must fail closed when no contractor satisfies required verification.
         let gatedContractors = baseContractors;
         const requirements = await storage.getTradeRequirementsByTradeId(tradeRecord.id);
-        if (!expandReach && requirements && userIds.length > 0) {
-          const compliance = await storage.getUserVerificationSummary(userIds);
-
+        if (!expandReach && requirements) {
           const requiresLicense = requirements.requiresLicense ?? false;
           const requiresInsurance = requirements.requiresInsurance ?? false;
           const requiresEin = requirements.requiresEin ?? false;
+          const hasExplicitRequirements = requiresLicense || requiresInsurance || requiresEin;
 
-          const compliantIds = baseContractors
-            .filter((c: any) => {
-              if (!c.userId) return false;
-              const summary = compliance[c.userId];
-              if (!summary) return false;
-              if (requiresLicense && !summary.hasLicense) return false;
-              if (requiresInsurance && !summary.hasInsurance) return false;
-              if (requiresEin && !summary.hasEin) return false;
-              return true;
-            })
-            .map((c: any) => c.id as string);
+          if (hasExplicitRequirements) {
+            const compliance =
+              userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
 
-          if (compliantIds.length > 0) {
+            const compliantIds = baseContractors
+              .filter((c: any) => {
+                if (!c.userId) return false;
+                const summary = compliance[c.userId];
+                if (!summary) return false;
+                if (requiresLicense && !summary.hasLicense) return false;
+                if (requiresInsurance && !summary.hasInsurance) return false;
+                if (requiresEin && !summary.hasEin) return false;
+                return true;
+              })
+              .map((c: any) => c.id as string);
+
             gatedContractors = baseContractors.filter((c: any) => compliantIds.includes(c.id));
           }
         }
@@ -437,7 +440,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const statusRaw = typeof req.query?.status === "string" ? (req.query.status as string) : "";
         const status = statusRaw.trim() as WorkRequest["status"] | "";
 
-        const filters: any[] = [eq(workRequests.createdByUserId, String(userId))];
+        const filters: any[] = [
+          eq(workRequests.createdByUserId, String(userId)),
+          eq(workRequests.source, "direct_connect" as any),
+        ];
         if (status) {
           filters.push(eq(workRequests.status, status));
         }
@@ -940,7 +946,9 @@ export function registerDirectConnectRoutes(app: Express) {
             context: { intent: "create_work_request", category: body.category },
           });
 
-          return res.status(200).json({
+          return res.status(428).json({
+            code: "VERIFICATION_REQUIRED",
+            message: gateResponse.message,
             ...gateResponse,
             verificationRequired: {
               action: "REQUEST_CONTRACTOR_QUOTE",
@@ -1023,6 +1031,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
+        // Explicit targeting preserves requester choice; this is not automatic routing.
         if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
           try {
             const requestedIds = Array.from(new Set(body.targetContractorIds));
@@ -1309,6 +1318,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
+        // Staff-directed explicit targeting preserves individual choice for this request.
         if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
           try {
             const requestedIds = Array.from(new Set(body.targetContractorIds));

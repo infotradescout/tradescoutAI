@@ -49,6 +49,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
+import { SEOHelmet } from "@/components/SEOHelmet";
 import { resolveLandingVariant } from "./landingVariants";
 import {
   bootstrapDemandAttribution,
@@ -1054,6 +1055,14 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
 // ---- Main Page ----
 export default function Home() {
+  const [location] = useLocation();
+  const pathOnly =
+    String(location || "")
+      .split("?")[0]
+      .replace(/\/+$/, "") || "/";
+  const canonicalLandingUrl = "https://www.thetradescout.com/landing";
+  const isCanonicalLandingPath = pathOnly === "/landing";
+
   const variant = useLandingVariant();
   const trackedVariant = useMemo(
     () => ({
@@ -1091,6 +1100,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col bg-transparent text-white font-body">
+      <SEOHelmet
+        title="TradeScout | Connection Without Compromise"
+        description="Trust-first local matching powered by Scout. No lead sales, no pay-to-play, and gated contact through intent and decision."
+        canonical={canonicalLandingUrl}
+        noIndex={!isCanonicalLandingPath}
+      />
       <Navbar variant={trackedVariant} />
       <main>
         <HeroSection variant={trackedVariant} />

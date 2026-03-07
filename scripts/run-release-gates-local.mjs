@@ -216,6 +216,25 @@ async function main() {
     }
 
     console.log(`[release-gates:local] Running Playwright release gates...`);
+
+    console.log(`[release-gates:local] Running Direct Connect gate regression/integration tests...`);
+    const gateTestsExit = await run(
+      "npm",
+      [
+        "run",
+        "test:run",
+        "--",
+        "server/tests/direct-connect-gates.regression.test.ts",
+        "server/tests/direct-connect-gates.integration.test.ts",
+      ],
+      {
+        ...serverEnv,
+        TEST_DATABASE_URL: testDatabaseUrl,
+        DATABASE_URL: testDatabaseUrl,
+      }
+    );
+    if (gateTestsExit !== 0) process.exit(gateTestsExit);
+
     const specs = [
       "tests/journeys/auth_buttons_present.spec.ts",
       "tests/journeys/pre_scout_auth_integrity.spec.ts",

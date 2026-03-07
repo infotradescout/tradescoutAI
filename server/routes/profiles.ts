@@ -3,25 +3,12 @@ import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
 import { db } from "../db";
-import { COMPREHENSIVE_TRADES } from "../../shared/trades-data";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
 import { US_STATES_COUNTIES } from "../../shared/states-counties";
 import { sql } from "drizzle-orm";
 
 const router = Router();
-
-const LANDING_AUDIENCE_KEYS = [
-  "contractor",
-  "homeowner",
-  "realtor",
-  "hoa",
-  "property-manager",
-  "lender",
-  "insurance-agent",
-  "supplier",
-  "affiliate",
-] as const;
 
 const CORE_STATIC_PATHS = [
   "/",
@@ -132,26 +119,10 @@ ${urlEntries
 }
 
 function buildRuntimeCorePaths(): string[] {
-  const slugs = Array.from(
-    new Set(
-      (COMPREHENSIVE_TRADES || [])
-        .map((trade) => String((trade as any)?.slug || "").trim())
-        .filter((slug) => slug.length > 0)
-    )
-  );
-  const all = [...CORE_STATIC_PATHS];
-
-  for (const slug of slugs) {
-    all.push(`/landing/${slug}`);
-  }
-  for (const audience of LANDING_AUDIENCE_KEYS) {
-    all.push(`/landing/${audience}`);
-    for (const slug of slugs) {
-      all.push(`/landing/${audience}-${slug}`);
-    }
-  }
-
-  return Array.from(new Set(all));
+  // Keep sitemap-core focused on canonical, intent-strong URLs.
+  // Variant landing routes remain available, but are intentionally excluded from core sitemap
+  // to avoid flooding Search Console with near-duplicate discovery candidates.
+  return Array.from(new Set(CORE_STATIC_PATHS));
 }
 
 function getAuthedUserId(req: any): string {

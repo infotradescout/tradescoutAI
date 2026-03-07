@@ -12,6 +12,18 @@ dotenv.config({ path: path.join(repoRoot, ".env.test") });
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 
 async function main() {
+  const gateTestSpecs = ["server/tests/direct-connect-gates.regression.test.ts"];
+  if (hasTestDb) {
+    gateTestSpecs.push("server/tests/direct-connect-gates.integration.test.ts");
+  }
+
+  const gateExit = await runCommand("npm", ["run", "test:run", "--", ...gateTestSpecs], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (gateExit !== 0) process.exit(gateExit);
+
   if (hasTestDb) {
     // When a disposable test DB is available (CI or local DB lane), enforce zero-skips.
     const exitCode = await runCommand("npm", ["run", "test:run:no-skips"], {
@@ -40,4 +52,3 @@ main().catch((error) => {
   );
   process.exit(1);
 });
-

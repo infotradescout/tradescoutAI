@@ -323,6 +323,20 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       navigate("/direct-connect/engagements");
     },
     onError: (error: any) => {
+      const isVerificationGate =
+        error?.status === 428 ||
+        String(error?.code || "").toUpperCase() === "VERIFICATION_REQUIRED";
+      if (isVerificationGate) {
+        toast({
+          title: "Address verification required",
+          description:
+            error?.message || "Complete verification before posting Direct Connect requests.",
+          variant: "destructive",
+        });
+        navigate("/verification");
+        return;
+      }
+
       toast({
         title: "Could not post project",
         description: error?.message || "Please try again.",
@@ -784,7 +798,7 @@ function MyDirectConnectRequests() {
 
   const expandMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/expand`);
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route?expand=true`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
@@ -876,7 +890,8 @@ function MyDirectConnectRequests() {
 
       {filteredRequests.map((r) => {
         const status = String(r.status || "routed").toLowerCase();
-        const hasAccepted = status === "accepted";
+        const hasAccepted =
+          status === "in_progress" || status === "completed" || Boolean(r.dcConversationThreadId);
         const canSend = status === "routed";
         const isMobileActionOpen = mobileActionRequestId === r.id;
         return (

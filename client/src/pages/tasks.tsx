@@ -343,6 +343,20 @@ export default function TasksHub({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
     },
     onError: (err: any) => {
+      const isVerificationGate =
+        err?.status === 428 || String(err?.code || "").toUpperCase() === "VERIFICATION_REQUIRED";
+      if (isVerificationGate) {
+        toast({
+          title: "Address verification required",
+          description:
+            err?.message ||
+            "Complete verification to send contractor requests through Direct Connect.",
+          variant: "destructive",
+        });
+        navigate("/verification");
+        return;
+      }
+
       const message = String(err?.message || "Please try again.");
       if (/non-contact project details/i.test(message)) {
         setFieldErrors((prev) => ({

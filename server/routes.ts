@@ -5789,32 +5789,35 @@ export async function registerRoutes(app: any) {
         .map((c: any) => c.userId as string | undefined)
         .filter((id): id is string => Boolean(id));
 
-      // Compliance gate: only apply if this trade has explicit requirements
+      // Compliance gate: only apply if this trade has explicit requirements.
+      // Automatic routing must fail closed when requirements are not met.
       let gatedContractors = contractors;
       if (tradeRecord) {
         const requirements = await storage.getTradeRequirementsByTradeId(tradeRecord.id);
-        if (requirements && userIds.length > 0) {
-          const compliance = await storage.getUserVerificationSummary(userIds);
-
+        if (requirements) {
           const requiresLicense = requirements.requiresLicense ?? false;
           const requiresInsurance = requirements.requiresInsurance ?? false;
           const requiresEin = requirements.requiresEin ?? false;
+          const hasExplicitRequirements = requiresLicense || requiresInsurance || requiresEin;
 
-          const compliantIds = contractors
-            .filter((c: any) => {
-              if (!c.userId) return false;
-              const summary = compliance[c.userId];
-              if (!summary) return false;
-              if (requiresLicense && !summary.hasLicense) return false;
-              if (requiresInsurance && !summary.hasInsurance) return false;
-              if (requiresEin && !summary.hasEin) return false;
-              return true;
-            })
-            .map((c: any) => c.id as string);
+          if (!hasExplicitRequirements) {
+            gatedContractors = contractors;
+          } else {
+            const compliance =
+              userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
 
-          // Only enforce the gate if at least one compliant provider exists;
-          // otherwise, fall back to the full set so we never return zero
-          if (compliantIds.length > 0) {
+            const compliantIds = contractors
+              .filter((c: any) => {
+                if (!c.userId) return false;
+                const summary = compliance[c.userId];
+                if (!summary) return false;
+                if (requiresLicense && !summary.hasLicense) return false;
+                if (requiresInsurance && !summary.hasInsurance) return false;
+                if (requiresEin && !summary.hasEin) return false;
+                return true;
+              })
+              .map((c: any) => c.id as string);
+
             gatedContractors = contractors.filter((c: any) => compliantIds.includes(c.id));
           }
         }
