@@ -37,7 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
-import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 export type NavItem = {
   label: string;
@@ -54,11 +54,7 @@ type AppShellProps = {
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (
-  hasAdminAccess: boolean,
-  isSuperAdmin: boolean,
-  isAuthenticated: boolean
-): NavItem[] => {
+const buildFeatureNav = (): NavItem[] => {
   const baseNav: NavItem[] = [
     {
       label: "Scout",
@@ -122,20 +118,6 @@ const buildFeatureNav = (
     },
   ];
 
-  // Keep Admin visible for authenticated users; server-side route guards
-  // still enforce actual authority.
-  if (isAuthenticated) {
-    return [
-      {
-        label: "Admin",
-        href: "/admin",
-        icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-        ...(hasAdminAccess && isSuperAdmin ? { badge: "SA" } : {}),
-      },
-      ...baseNav,
-    ];
-  }
-
   return baseNav;
 };
 
@@ -175,7 +157,6 @@ export function AppShell({ children, footer }: AppShellProps) {
           .toLowerCase()
       : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
-  const hasAdminAccess = hasAdminUiAccess(user);
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
@@ -183,7 +164,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   });
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
-  const featureNav = buildFeatureNav(hasAdminAccess, isSuperAdmin, isAuthenticated);
+  const featureNav = buildFeatureNav();
   const showFeatureNav = !isAuthOrSetupSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
