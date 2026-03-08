@@ -85,7 +85,9 @@ export default function ProfileSettings() {
   const { updateCustomColors } = useTheme();
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("identity");
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
+  const [profileStatus, setProfileStatus] = useState<"draft" | "published" | null>(null);
   const [profileBasics, setProfileBasics] = useState({
     firstName: "",
     lastName: "",
@@ -259,6 +261,7 @@ export default function ProfileSettings() {
 
         if (!cancelled) {
           setProfileSlug(active?.slug || null);
+          setProfileStatus((active?.status as "draft" | "published" | undefined) || null);
         }
       } catch (err) {
         console.error("Error loading profile site slug for public links:", err);
@@ -847,6 +850,24 @@ export default function ProfileSettings() {
     { key: "accentStrong", label: "Accent strong", value: palette.accentStrong },
   ];
 
+  const openTab = (value: "identity" | "routing" | "appearance" | "booking") => {
+    setActiveTab(value);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const profilePageLabel =
+    profileStatus === "published"
+      ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
+      : profileSlug
+        ? "Draft ready. Open the editor to review and publish your public page."
+        : "No profile page found yet. Open the editor to finish setup.";
+
+  const businessPageLabel = (user as any)?.businessSlug
+    ? `${window.location.origin}/business/${(user as any).businessSlug}`
+    : "No business page yet. Add a business persona in account settings to create one.";
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 pb-20 pt-6">
       <Card className="border-white/10 bg-tsCard">
@@ -855,7 +876,8 @@ export default function ProfileSettings() {
             <div>
               <h1 className="text-2xl font-semibold text-white md:text-3xl">Profile Settings</h1>
               <p className="mt-2 text-sm text-white/70 md:text-base">
-                Control identity, routing, visibility, booking, and appearance from one place.
+                Update the profile-facing controls that shape how people discover you. Account
+                notifications, privacy, security, and roles stay in account settings.
               </p>
               {isOnboarding && (
                 <p className="mt-2 text-xs text-white/60 md:text-sm">
@@ -865,22 +887,52 @@ export default function ProfileSettings() {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full border-white/15 bg-white/5 text-xs text-white/80"
+                onClick={() => openTab("identity")}
+              >
                 Visibility:{" "}
                 {preferences.profileVisibility === "public" ? "Public profile" : "Private profile"}
-              </span>
-              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full border-white/15 bg-white/5 text-xs text-white/80"
+                onClick={() => openTab("routing")}
+              >
                 Home: {preferences.defaultHomePage || "llm"}
-              </span>
-              <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full border-white/15 bg-white/5 text-xs text-white/80"
+                onClick={() => openTab("booking")}
+              >
                 Booking: {profileBooking.enabled ? "Enabled" : "Disabled"}
-              </span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/settings")}
+              >
+                Open account settings
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="identity" className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-4">
           <TabsTrigger value="identity">Identity</TabsTrigger>
           <TabsTrigger value="routing">Routing</TabsTrigger>
@@ -962,29 +1014,55 @@ export default function ProfileSettings() {
                 Public pages
               </CardTitle>
               <CardDescription>
-                Share your public pages. Contact still routes through TradeScout gates.
+                Open, edit, and publish the pages that represent you. Contact still routes through
+                TradeScout gates.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium">Profile page</div>
-                  <div className="break-all text-xs text-white/60">
-                    {profileSlug
-                      ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
-                      : "Not published yet"}
-                  </div>
-                </div>
-                <div className="flex gap-2">
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                Need notifications, privacy, security, or business personas?
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!profileSlug}
-                    onClick={() => profileSlug && navigate(`/u/${profileSlug}`)}
+                    onClick={() => navigate("/settings?tab=roles")}
                   >
-                    View
+                    Business personas
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/settings?tab=notifications")}
+                  >
+                    Notifications
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/settings?tab=privacy")}
+                  >
+                    Privacy
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/settings?tab=security")}
+                  >
+                    Security
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">Profile page</div>
+                  <div className="break-all text-xs text-white/60">{profilePageLabel}</div>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -992,45 +1070,72 @@ export default function ProfileSettings() {
                     disabled={!profileSlug}
                     onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
                   >
-                    Edit
+                    {profileSlug ? "Open editor" : "Profile editor unavailable"}
                   </Button>
+                  {profileStatus === "published" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => profileSlug && navigate(`/u/${profileSlug}`)}
+                    >
+                      View live page
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!profileSlug}
+                      onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
+                    >
+                      Open editor to publish
+                    </Button>
+                  )}
                 </div>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="text-sm font-medium">Business page</div>
-                  <div className="break-all text-xs text-white/60">
-                    {(user as any)?.businessSlug
-                      ? `${window.location.origin}/business/${(user as any).businessSlug}`
-                      : "Not published yet"}
-                  </div>
+                  <div className="break-all text-xs text-white/60">{businessPageLabel}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!(user as any)?.businessSlug}
-                    onClick={() =>
-                      (user as any)?.businessSlug &&
-                      navigate(`/business/${encodeURIComponent((user as any).businessSlug)}`)
-                    }
-                  >
-                    View
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!(user as any)?.businessSlug}
-                    onClick={() =>
-                      (user as any)?.businessSlug &&
-                      navigate(`/business/${encodeURIComponent((user as any).businessSlug)}/edit`)
-                    }
-                  >
-                    Edit
-                  </Button>
+                  {(user as any)?.businessSlug ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          navigate(`/business/${encodeURIComponent((user as any).businessSlug)}`)
+                        }
+                      >
+                        View live page
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          navigate(
+                            `/business/${encodeURIComponent((user as any).businessSlug)}/edit`
+                          )
+                        }
+                      >
+                        Open editor
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate("/settings?tab=roles")}
+                    >
+                      Set up business page
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
