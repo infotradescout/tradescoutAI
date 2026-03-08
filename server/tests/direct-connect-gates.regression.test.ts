@@ -116,7 +116,7 @@ describe("direct-connect gate regressions", () => {
     );
 
     expect(directConnectShellFile).toContain(
-      'status === "in_progress" || status === "completed" || Boolean(r.dcConversationThreadId)'
+      'const canMessage = Boolean(r.dcConversationThreadId) || stage === "active_conversation";'
     );
   });
 
@@ -125,8 +125,10 @@ describe("direct-connect gate regressions", () => {
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
 
-    expect(directConnectShellFile).toContain('"all" | "open" | "routed"');
-    expect(directConnectShellFile).toContain('const canSend = status === "open";');
+    expect(directConnectShellFile).toContain(
+      'type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";'
+    );
+    expect(directConnectShellFile).toContain('const canSend = stage === "ready_to_send";');
     expect(directConnectShellFile).toContain(
       '<TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="browse" />'
     );
@@ -144,12 +146,14 @@ describe("direct-connect gate regressions", () => {
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
 
-    expect(directConnectShellFile).toContain("Start a governed request");
-    expect(directConnectShellFile).toContain("Manage live requests");
     expect(directConnectShellFile).toContain(
-      "Every posted request lands on Your Requests immediately."
+      "See whether a request is ready to send, waiting on pros, or already in conversation."
     );
-    expect(directConnectShellFile).toContain("Post to your request board");
+    expect(directConnectShellFile).toContain(
+      "Each request moves through one clear stage at a time: ready to send, waiting on pros, or in conversation."
+    );
+    expect(directConnectShellFile).toContain("Send to pros");
+    expect(directConnectShellFile).toContain("Check replies");
   });
 
   it("supports request photo attachments in Direct Connect", () => {

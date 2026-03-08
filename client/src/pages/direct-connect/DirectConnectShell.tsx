@@ -93,8 +93,9 @@ const SECTION_META: Record<
   },
   engagements: {
     title: "My requests",
-    description: "Check status, photos, and next steps for your open requests.",
-    actionLabel: "Open Replies",
+    description:
+      "See whether a request is ready to send, waiting on pros, or already in conversation.",
+    actionLabel: "View replies",
     actionTarget: "inbox",
   },
 };
@@ -194,6 +195,92 @@ type DirectConnectRequest = {
   dcConversationThreadId?: string | null;
   dcLastEventAt?: string | null;
 };
+
+type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";
+
+type RequestWorkflowStage =
+  | "ready_to_send"
+  | "waiting_on_pros"
+  | "active_conversation"
+  | "completed"
+  | "cancelled";
+
+const REQUEST_FILTERS: RequestFilter[] = [
+  "all",
+  "open",
+  "routed",
+  "in_progress",
+  "completed",
+  "cancelled",
+];
+
+function getRequestWorkflowStage(request: DirectConnectRequest): RequestWorkflowStage {
+  const status = String(request.status || "open").toLowerCase();
+  if (status === "cancelled") return "cancelled";
+  if (status === "completed") return "completed";
+  if (status === "in_progress" || Boolean(request.dcConversationThreadId)) {
+    return "active_conversation";
+  }
+  if (status === "routed") return "waiting_on_pros";
+  return "ready_to_send";
+}
+
+function getRequestFilterLabel(filter: RequestFilter): string {
+  switch (filter) {
+    case "all":
+      return "All";
+    case "open":
+      return "Ready to send";
+    case "routed":
+      return "Waiting on pros";
+    case "in_progress":
+      return "In conversation";
+    case "completed":
+      return "Completed";
+    case "cancelled":
+      return "Cancelled";
+  }
+}
+
+function getRequestStageLabel(stage: RequestWorkflowStage): string {
+  switch (stage) {
+    case "ready_to_send":
+      return "Ready to send";
+    case "waiting_on_pros":
+      return "Waiting on pros";
+    case "active_conversation":
+      return "In conversation";
+    case "completed":
+      return "Completed";
+    case "cancelled":
+      return "Cancelled";
+  }
+}
+
+function getRequestStageSummary(stage: RequestWorkflowStage): string {
+  switch (stage) {
+    case "ready_to_send":
+      return "This request is saved on your board and still needs to be sent to matching pros.";
+    case "waiting_on_pros":
+      return "TradeScout has already sent this request out. You're waiting to see who responds.";
+    case "active_conversation":
+      return "A pro has engaged with this request, so your next step is to continue the conversation.";
+    case "completed":
+      return "This request is done. You can review the details or reopen it only by creating a new request.";
+    case "cancelled":
+      return "This request is paused. Reopen it when you want TradeScout to work it again.";
+  }
+}
+
+function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilter): boolean {
+  const stage = getRequestWorkflowStage(request);
+  if (filter === "all") return stage !== "cancelled";
+  if (filter === "open") return stage === "ready_to_send";
+  if (filter === "routed") return stage === "waiting_on_pros";
+  if (filter === "in_progress") return stage === "active_conversation";
+  if (filter === "completed") return stage === "completed";
+  return stage === "cancelled";
+}
 
 type DraftAttachment = {
   file: File;
@@ -935,9 +1022,7 @@ function MyDirectConnectRequests() {
   const [, navigate] = useLocation();
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [mobileActionRequestId, setMobileActionRequestId] = useState<string | null>(null);
-  const [requestFilter, setRequestFilter] = useState<
-    "all" | "open" | "routed" | "in_progress" | "accepted" | "completed" | "cancelled"
-  >("all");
+  const [requestFilter, setRequestFilter] = useState<RequestFilter>("all");
   const { toast } = useToast();
 
   const { data: requestsData, isLoading } = useQuery<DirectConnectRequest[]>({
@@ -952,8 +1037,7 @@ function MyDirectConnectRequests() {
 
   const filteredRequests = useMemo(() => {
     if (!requestsData) return [];
-    if (requestFilter === "all") return requestsData.filter((r) => r.status !== "cancelled");
-    return requestsData.filter((r) => r.status === requestFilter);
+    return requestsData.filter((request) => matchesRequestFilter(request, requestFilter));
   }, [requestsData, requestFilter]);
 
   const routeMutation = useMutation({
@@ -1048,43 +1132,56 @@ function MyDirectConnectRequests() {
   return (
     <div className="space-y-3">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="flex gap-1.5 overflow-x-auto p-2">
-          {(
-            ["all", "open", "routed", "in_progress", "accepted", "completed", "cancelled"] as const
-          ).map((f) => {
-            const count =
-              f === "all"
-                ? requestsData?.filter((r) => r.status !== "cancelled").length || 0
-                : requestsData?.filter((r) => r.status === f).length || 0;
-            const active = requestFilter === f;
-            return (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setRequestFilter(f)}
-                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
-                style={{
-                  borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
-                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
-                  backgroundColor: active
-                    ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
-                    : "var(--surface-intermediate)",
-                }}
-              >
-                {f[0].toUpperCase() + f.slice(1)} ({count})
-              </button>
-            );
-          })}
+        <CardContent className="space-y-3 p-3">
+          <div className="space-y-1 px-1">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+              Request stages
+            </p>
+            <p className="text-sm text-[color:var(--text-secondary)]">
+              Each request moves through one clear stage at a time: ready to send, waiting on pros,
+              or in conversation.
+            </p>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto">
+            {REQUEST_FILTERS.map((f) => {
+              const count =
+                requestsData?.filter((request) => matchesRequestFilter(request, f)).length || 0;
+              const active = requestFilter === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setRequestFilter(f)}
+                  className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
+                  style={{
+                    borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
+                    color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                    backgroundColor: active
+                      ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
+                      : "var(--surface-intermediate)",
+                  }}
+                >
+                  {getRequestFilterLabel(f)} ({count})
+                </button>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
       {filteredRequests.map((r) => {
         const status = String(r.status || "open").toLowerCase();
         const interpreted = interpretWorkRequestStateForScout(r as unknown as WorkRequest);
-        const hasAccepted =
-          status === "in_progress" || status === "completed" || Boolean(r.dcConversationThreadId);
-        const canSend = status === "open";
-        const canExpand = status === "routed";
+        const stage = getRequestWorkflowStage(r);
+        const hasAccepted = stage === "active_conversation" || stage === "completed";
+        const canSend = stage === "ready_to_send";
+        const canExpand = stage === "waiting_on_pros";
+        const canMessage = Boolean(r.dcConversationThreadId) || stage === "active_conversation";
+        const canCancel =
+          stage === "ready_to_send" ||
+          stage === "waiting_on_pros" ||
+          stage === "active_conversation";
+        const canReopen = stage === "cancelled";
         const isExpanded = expandedRequestId === r.id;
         const isMobileActionOpen = mobileActionRequestId === r.id;
         const timelineStamp = r.dcLastEventAt || r.createdAt;
@@ -1108,7 +1205,7 @@ function MyDirectConnectRequests() {
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      {interpreted.state}
+                      {getRequestStageLabel(stage)}
                     </p>
                     {timelineStamp && (
                       <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
@@ -1159,18 +1256,10 @@ function MyDirectConnectRequests() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      Next step
+                      What happens now
                     </p>
                     <p className="mt-1 text-sm text-[color:var(--text-primary)]">
-                      {hasAccepted
-                        ? "Continue the accepted conversation."
-                        : canSend
-                          ? "Send this request out to matching pros."
-                          : canExpand
-                            ? "Widen the search if the first round was too limited."
-                            : status === "cancelled"
-                              ? "Reopen when you're ready to try again."
-                              : "Check the current status and wait for the next update."}
+                      {getRequestStageSummary(stage)}
                     </p>
                   </div>
                   <Button
@@ -1205,77 +1294,86 @@ function MyDirectConnectRequests() {
                     <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
                       Status
                     </p>
-                    <p className="mt-1 text-[color:var(--text-primary)]">{interpreted.state}</p>
+                    <p className="mt-1 text-[color:var(--text-primary)]">
+                      {getRequestStageLabel(stage)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      Messages
+                      Conversation
                     </p>
                     <p className="mt-1 text-[color:var(--text-primary)]">
-                      {hasAccepted ? "Ready to message" : "Available after someone accepts"}
+                      {canMessage
+                        ? "You can open the thread now."
+                        : "Messaging unlocks after a pro engages."}
                     </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      Other actions
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {canExpand && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs"
+                          disabled={expandMutation.isPending}
+                          onClick={() => expandMutation.mutate(r.id)}
+                        >
+                          Widen search
+                        </Button>
+                      )}
+                      {canCancel && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                          disabled={cancelMutation.isPending}
+                          onClick={() => cancelMutation.mutate(r.id)}
+                        >
+                          Cancel request
+                        </Button>
+                      )}
+                      {canReopen && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                          disabled={reopenMutation.isPending}
+                          onClick={() => reopenMutation.mutate(r.id)}
+                        >
+                          Reopen request
+                        </Button>
+                      )}
+                      {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
+                    </div>
                   </div>
                 </div>
               )}
 
               <div className="hidden flex-wrap items-center justify-end gap-1.5 sm:flex">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs"
-                  onClick={() => {
-                    const threadId = r.dcConversationThreadId;
-                    window.location.href = threadId
-                      ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                      : "/messages";
-                  }}
-                  disabled={!hasAccepted}
-                >
-                  Messages
-                </Button>
-                {!hasAccepted && <WhyLink to={getHelpLink("messaging")} />}
-                <Button
-                  size="sm"
-                  className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                  disabled={!canSend || routeMutation.isPending}
-                  onClick={() => routeMutation.mutate(r.id)}
-                >
-                  Send out
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs"
-                  disabled={!canExpand || expandMutation.isPending}
-                  onClick={() => expandMutation.mutate(r.id)}
-                >
-                  Widen search
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                  disabled={
-                    (status !== "open" && status !== "in_progress" && status !== "routed") ||
-                    cancelMutation.isPending
-                  }
-                  onClick={() => cancelMutation.mutate(r.id)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                  disabled={status !== "cancelled" || reopenMutation.isPending}
-                  onClick={() => reopenMutation.mutate(r.id)}
-                >
-                  Reopen
-                </Button>
-              </div>
-
-              {isMobileActionOpen && (
-                <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                {canSend && (
+                  <Button
+                    size="sm"
+                    className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    disabled={routeMutation.isPending}
+                    onClick={() => routeMutation.mutate(r.id)}
+                  >
+                    Send to pros
+                  </Button>
+                )}
+                {stage === "waiting_on_pros" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => navigate("/direct-connect/inbox")}
+                  >
+                    Check replies
+                  </Button>
+                )}
+                {canMessage && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -1286,49 +1384,72 @@ function MyDirectConnectRequests() {
                         ? `/messages?thread=${encodeURIComponent(String(threadId))}`
                         : "/messages";
                     }}
-                    disabled={!hasAccepted}
                   >
-                    <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    Message
+                    Open messages
                   </Button>
-                  <Button
-                    size="sm"
-                    className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                    disabled={!canSend || routeMutation.isPending}
-                    onClick={() => routeMutation.mutate(r.id)}
-                  >
-                    Send out
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    disabled={!canExpand || expandMutation.isPending}
-                    onClick={() => expandMutation.mutate(r.id)}
-                  >
-                    Widen
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                    disabled={
-                      (status !== "open" && status !== "in_progress" && status !== "routed") ||
-                      cancelMutation.isPending
-                    }
-                    onClick={() => cancelMutation.mutate(r.id)}
-                  >
-                    Cancel
-                  </Button>
+                )}
+                {canReopen && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                    disabled={status !== "cancelled" || reopenMutation.isPending}
+                    disabled={reopenMutation.isPending}
                     onClick={() => reopenMutation.mutate(r.id)}
                   >
-                    Reopen
+                    Reopen request
                   </Button>
+                )}
+              </div>
+
+              {isMobileActionOpen && (
+                <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                  {canSend && (
+                    <Button
+                      size="sm"
+                      className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                      disabled={routeMutation.isPending}
+                      onClick={() => routeMutation.mutate(r.id)}
+                    >
+                      Send to pros
+                    </Button>
+                  )}
+                  {stage === "waiting_on_pros" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => navigate("/direct-connect/inbox")}
+                    >
+                      Check replies
+                    </Button>
+                  )}
+                  {canMessage && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => {
+                        const threadId = r.dcConversationThreadId;
+                        window.location.href = threadId
+                          ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                          : "/messages";
+                      }}
+                    >
+                      <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                      Open messages
+                    </Button>
+                  )}
+                  {canReopen && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                      disabled={reopenMutation.isPending}
+                      onClick={() => reopenMutation.mutate(r.id)}
+                    >
+                      Reopen request
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
