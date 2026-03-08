@@ -17,17 +17,37 @@ describe("public monetization copy guards", () => {
   });
 
   it("comparison pages avoid pay-on-completion contractor claims", () => {
+    const compareHub = read("client/src/pages/compare.tsx");
     const angi = read("client/src/pages/compare-angi.tsx");
+    const homeServices = read("client/src/pages/compare-home-services.tsx");
+    const leadGeneration = read("client/src/pages/compare-lead-generation.tsx");
+    const realEstate = read("client/src/pages/compare-real-estate.tsx");
     const homeAdvisor = read("client/src/pages/compare-homeadvisor.tsx");
 
+    expect(compareHub).toContain("does not sell leads");
     expect(angi).toContain("does not sell leads");
+    expect(homeServices).toContain("does not sell leads");
+    expect(leadGeneration).toContain("does not sell leads");
+    expect(realEstate).toContain("does not sell leads");
     expect(homeAdvisor).toContain("does not sell leads");
+    expect(compareHub).toContain("does not charge to connect");
     expect(angi).toContain("does not charge to connect");
+    expect(homeServices).toContain("does not charge to connect");
+    expect(leadGeneration).toContain("does not charge to connect");
+    expect(realEstate).toContain("does not charge to connect");
     expect(homeAdvisor).toContain("does not charge to connect");
 
+    expect(compareHub).not.toContain("pay-on-completion");
     expect(angi).not.toContain("pay-on-completion");
+    expect(homeServices).not.toContain("pay-on-completion");
+    expect(leadGeneration).not.toContain("pay-on-completion");
+    expect(realEstate).not.toContain("pay-on-completion");
     expect(homeAdvisor).not.toContain("pay-on-completion");
+    expect(compareHub).not.toContain("fee only on completed work");
     expect(angi).not.toContain("fee only on completed work");
+    expect(homeServices).not.toContain("fee only on completed work");
+    expect(leadGeneration).not.toContain("fee only on completed work");
+    expect(realEstate).not.toContain("fee only on completed work");
     expect(homeAdvisor).not.toContain("fee only on completed work");
   });
 

@@ -30,6 +30,13 @@ const expectedStaticPublicRoutes = [
   "https://www.thetradescout.com/how-it-works",
   "https://www.thetradescout.com/trust-model",
   "https://www.thetradescout.com/direct-connect-info",
+  "https://www.thetradescout.com/compare",
+  "https://www.thetradescout.com/compare/home-services",
+  "https://www.thetradescout.com/compare/real-estate",
+  "https://www.thetradescout.com/compare/community",
+  "https://www.thetradescout.com/compare/local-business",
+  "https://www.thetradescout.com/compare/coordination",
+  "https://www.thetradescout.com/compare/lead-generation",
   "https://www.thetradescout.com/privacy",
   "https://www.thetradescout.com/compliance",
 ];

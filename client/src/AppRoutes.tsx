@@ -336,7 +336,14 @@ const Pricing = React.lazy(() => import("./pages/pricing"));
 const HowItWorks = React.lazy(() => import("./pages/how-it-works"));
 const TrustModel = React.lazy(() => import("./pages/trust-model"));
 const DirectConnectInfo = React.lazy(() => import("./pages/direct-connect-info"));
+const CompareHub = React.lazy(() => import("./pages/compare"));
 const CompareAngi = React.lazy(() => import("./pages/compare-angi"));
+const CompareHomeServices = React.lazy(() => import("./pages/compare-home-services"));
+const CompareRealEstate = React.lazy(() => import("./pages/compare-real-estate"));
+const CompareCommunity = React.lazy(() => import("./pages/compare-community"));
+const CompareLocalBusiness = React.lazy(() => import("./pages/compare-local-business"));
+const CompareCoordination = React.lazy(() => import("./pages/compare-coordination"));
+const CompareLeadGeneration = React.lazy(() => import("./pages/compare-lead-generation"));
 const CompareHomeAdvisor = React.lazy(() => import("./pages/compare-homeadvisor"));
 const RemoteNotary = React.lazy(() => import("./pages/legal/remote-notary"));
 const NotFound = React.lazy(() => import("./pages/not-found"));
@@ -1536,8 +1543,29 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/direct-connect-info">
               <LazyPage Component={DirectConnectInfo} />
             </Route>
+            <Route path="/compare">
+              <LazyPage Component={CompareHub} />
+            </Route>
             <Route path="/compare/angi">
               <LazyPage Component={CompareAngi} />
+            </Route>
+            <Route path="/compare/home-services">
+              <LazyPage Component={CompareHomeServices} />
+            </Route>
+            <Route path="/compare/real-estate">
+              <LazyPage Component={CompareRealEstate} />
+            </Route>
+            <Route path="/compare/community">
+              <LazyPage Component={CompareCommunity} />
+            </Route>
+            <Route path="/compare/local-business">
+              <LazyPage Component={CompareLocalBusiness} />
+            </Route>
+            <Route path="/compare/coordination">
+              <LazyPage Component={CompareCoordination} />
+            </Route>
+            <Route path="/compare/lead-generation">
+              <LazyPage Component={CompareLeadGeneration} />
             </Route>
             <Route path="/compare/homeadvisor">
               <LazyPage Component={CompareHomeAdvisor} />

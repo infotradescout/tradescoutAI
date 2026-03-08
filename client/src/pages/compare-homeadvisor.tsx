@@ -321,7 +321,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
           <Reveal>
             <nav className="pt-4 border-t border-white/10">
               <h3 className="text-sm font-semibold text-white/60 mb-3">Learn More</h3>
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-4 gap-3">
                 <Link href="/how-it-works">
                   <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
                     How TradeScout Works →
@@ -330,6 +330,11 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 <Link href="/trust-model">
                   <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
                     Trust Model →
+                  </a>
+                </Link>
+                <Link href="/compare/home-services">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Compare: Home Services →
                   </a>
                 </Link>
                 <Link href="/compare/angi">

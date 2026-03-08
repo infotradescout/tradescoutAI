@@ -356,10 +356,15 @@ const HowItWorksPage = memo(function HowItWorksPage() {
           <Reveal>
             <nav className="pt-4 border-t border-white/10">
               <h3 className="text-sm font-semibold text-white/60 mb-3">Learn More</h3>
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-4 gap-3">
                 <Link href="/trust-model">
                   <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
                     Trust Model →
+                  </a>
+                </Link>
+                <Link href="/compare">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Compare TradeScout →
                   </a>
                 </Link>
                 <Link href="/compare/angi">

@@ -145,7 +145,9 @@ const TrustModelPage = memo(function TrustModelPage() {
               className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-4"
             >
               <Shield className="w-4 h-4 text-ts-orange" />
-              <span className="text-sm font-medium text-ts-orange">Community Verification Score</span>
+              <span className="text-sm font-medium text-ts-orange">
+                Community Verification Score
+              </span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
@@ -230,7 +232,9 @@ const TrustModelPage = memo(function TrustModelPage() {
                         ))}
                       </ul>
                       {layer.note && (
-                        <p className="text-xs text-ts-orange mt-3 ml-11 font-medium">{layer.note}</p>
+                        <p className="text-xs text-ts-orange mt-3 ml-11 font-medium">
+                          {layer.note}
+                        </p>
                       )}
                     </div>
                   </Reveal>
@@ -360,10 +364,15 @@ const TrustModelPage = memo(function TrustModelPage() {
           <Reveal>
             <nav className="pt-4 border-t border-white/10">
               <h3 className="text-sm font-semibold text-white/60 mb-3">Learn More</h3>
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-4 gap-3">
                 <Link href="/how-it-works">
                   <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
                     How It Works →
+                  </a>
+                </Link>
+                <Link href="/compare">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Compare TradeScout →
                   </a>
                 </Link>
                 <Link href="/compare/angi">

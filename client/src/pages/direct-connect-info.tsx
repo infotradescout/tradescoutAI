@@ -330,12 +330,15 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           {/* Internal Links */}
           <nav className="mt-12 pt-8 border-t border-white/10">
             <h3 className="text-lg font-semibold mb-4">Learn More</h3>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <Link href="/how-it-works">
                 <a className="text-ts-orange hover:underline">How TradeScout Works -&gt;</a>
               </Link>
               <Link href="/trust-model">
                 <a className="text-ts-orange hover:underline">Trust Model -&gt;</a>
+              </Link>
+              <Link href="/compare">
+                <a className="text-ts-orange hover:underline">Compare TradeScout -&gt;</a>
               </Link>
               <Link href="/compare/angi">
                 <a className="text-ts-orange hover:underline">Compare: Angi -&gt;</a>
