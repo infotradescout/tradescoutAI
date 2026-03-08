@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 import {
   Home,
   Calculator,
@@ -22,9 +23,7 @@ export default function Navigation() {
   const [location, navigate] = useLocation();
 
   const isContractor = user?.role === "contractor_user";
-  const isAdmin = user?.role
-    ? ["owner", "ops_admin", "super_admin", "analytics_read"].includes(user.role)
-    : false;
+  const isAdmin = hasAdminUiAccess(user);
 
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
@@ -135,7 +134,8 @@ export default function Navigation() {
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
-              className="text-white/60 hover:text-white">
+              className="text-white/60 hover:text-white"
+            >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
           </div>
