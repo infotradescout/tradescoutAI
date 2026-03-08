@@ -129,7 +129,7 @@ describe("Scout Tool Evals", () => {
         "/contractors/123",
         "/contractors/abc-plumber",
         "/profile/user-456",
-        "/deal-room/789",
+        "/help/getting-started",
         "/community/downtown",
         "/groups/homeowners",
       ];

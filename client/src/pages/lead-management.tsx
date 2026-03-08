@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 // Legacy route: /lead-management
-// Projects and deal rooms now live inside Finances.
+// Projects and job workflows now live inside Finances.
 // This page simply forwards users (and any jobId/projectId query params)
 // into /finances.
 
@@ -24,7 +24,7 @@ export default function ProjectTracker() {
       <div className="max-w-md text-center space-y-2">
         <h1 className="text-base font-semibold">Projects moved to Finances</h1>
         <p className="text-xs text-white/60">
-          Your jobs and deal workflow now live in Finances. We're sending you there automatically.
+          Your jobs and workflow now live in Finances. We're sending you there automatically.
         </p>
       </div>
     </div>

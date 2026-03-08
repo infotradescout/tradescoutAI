@@ -1216,16 +1216,6 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={FinancesSettings} />
               </ProtectedRoute>
             </Route>
-            <Route path="/deal-room">
-              <ProtectedRoute>
-                <RedirectTo to="/finances/jobs" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/deal-room/:jobId">
-              <ProtectedRoute>
-                <RedirectTo to="/finances/jobs" />
-              </ProtectedRoute>
-            </Route>
             <Route path="/accounting">
               <ProtectedRoute>
                 <LazyPage Component={Accounting} />
