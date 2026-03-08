@@ -12,7 +12,10 @@ export const apiBase = apiBaseEnv || "/api";
 
 export interface ScoutLocality {
   county?: string;
+  countyName?: string;
+  countyFips?: string;
   state?: string;
+  stateCode?: string;
   zip?: string;
   lat?: number;
   lng?: number;
@@ -193,20 +196,34 @@ export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBac
   const mode: ScoutMode =
     options.mode ?? inferModeFromMessageAndRoles(options.message, options.roles);
 
-  const countyCode =
-    options.locality?.county && options.locality?.state
-      ? `${sanitizeAreaLabel(options.locality.county)}, ${options.locality.state}`
-      : options.locality?.county
+  const countyFips =
+    typeof options.locality?.countyFips === "string" &&
+    options.locality.countyFips.trim().length >= 5
+      ? options.locality.countyFips.trim().slice(0, 5)
+      : undefined;
+  const stateCode =
+    typeof options.locality?.stateCode === "string" && options.locality.stateCode.trim().length > 0
+      ? options.locality.stateCode.trim().toUpperCase()
+      : typeof options.locality?.state === "string" && options.locality.state.trim().length > 0
+        ? options.locality.state.trim().toUpperCase()
+        : undefined;
+  const countyName =
+    typeof options.locality?.countyName === "string" &&
+    options.locality.countyName.trim().length > 0
+      ? sanitizeAreaLabel(options.locality.countyName)
+      : typeof options.locality?.county === "string" && options.locality.county.trim().length > 0
         ? sanitizeAreaLabel(options.locality.county)
         : undefined;
 
-  const stateCode = options.locality?.state;
+  const countyCode =
+    countyFips && countyName && stateCode ? `${countyName}, ${stateCode}` : undefined;
 
   const payload = {
     message: options.message,
     history: options.history,
     countyCode, // server uses countyCode
     stateCode, // server uses stateCode
+    countyHint: countyFips,
     // extra fields are allowed but ignored by current server
     mode,
     intent: options.intent,

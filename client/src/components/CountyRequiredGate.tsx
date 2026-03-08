@@ -9,7 +9,6 @@ import {
   type LocationContext,
 } from "@/hooks/useLocationContext";
 import { recordActivity } from "../agent/activity";
-import { useAuth } from "@/hooks/useAuth";
 
 interface CountyRequiredGateProps {
   locationOverride?: LocationContext | null;
@@ -29,14 +28,8 @@ export function CountyRequiredGate({
   surface,
   allowBypass,
 }: CountyRequiredGateProps) {
-  const { user } = useAuth() as any;
   const ctx = locationOverride ?? useLocationContext();
-  // Canonical gate: user-level committed location, not ad-hoc context
-  const hasCanonicalLocation = !!(
-    user &&
-    (((user as any).locationCommitted as boolean | undefined) ||
-      ((user as any).stateCode && (user as any).countyFips))
-  );
+  const hasCanonicalLocation = hasCountyContext(ctx);
   const pendingCountyResolution = hasPendingCountyResolution(ctx);
 
   useEffect(() => {

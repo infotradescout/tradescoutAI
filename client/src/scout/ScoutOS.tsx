@@ -438,22 +438,31 @@ export default function ScoutOS() {
   // auto demo) sends the first message.
 
   const locationCtx = useLocationContext();
-  const countyCommitted = hasCountyContext(locationCtx as any);
+  const countyCommitted = hasCountyContext(locationCtx);
 
   const locality: ScoutLocality = useMemo(() => {
+    const countyName = countyCommitted
+      ? locationCtx.countyName || (locationCtx as any).county
+      : undefined;
+    const stateCode = countyCommitted ? locationCtx.stateCode : undefined;
+
     return {
-      // Align Scout locality with the canonical LocationContext for all reads.
-      county: (locationCtx as any).countyName || (locationCtx as any).county,
-      state: locationCtx.stateCode,
+      county: countyName,
+      countyName,
+      countyFips: countyCommitted ? locationCtx.countyFips : undefined,
+      state: stateCode,
+      stateCode,
       // zip is still sourced from the user profile when present.
       zip: user?.zip,
       lat: locationCtx.lat,
       lng: locationCtx.lng,
     };
   }, [
-    locationCtx.stateCode,
+    countyCommitted,
     (locationCtx as any).county,
-    (locationCtx as any).countyName,
+    locationCtx.countyFips,
+    locationCtx.countyName,
+    locationCtx.stateCode,
     locationCtx.lat,
     locationCtx.lng,
     user?.zip,
@@ -834,9 +843,7 @@ export default function ScoutOS() {
       const wantsOnboarding = params.get("onboarding") === "true";
       const provisional = (user as any)?.preferences?.provisional;
       const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
-      const hasCanonicalLocation = Boolean(
-        (user as any)?.locationCommitted || ((user as any)?.stateCode && (user as any)?.countyFips)
-      );
+      const hasCanonicalLocation = hasCountyContext(locationCtx);
 
       // Avoid redirect loops: once a user has a canonical location committed, they should not be
       // forced back into pre-scout setup just because a provisional draft was cleared.
@@ -850,7 +857,7 @@ export default function ScoutOS() {
     } catch {
       // Ignore malformed URLs; do not block navigation.
     }
-  }, [isAuthenticated, user, location, navigate]);
+  }, [isAuthenticated, location, locationCtx, navigate, user]);
 
   // Trigger onboarding flow when ?onboarding=true
   useEffect(() => {

@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation, Link } from "wouter";
 import { Users2, Landmark, Target, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { hasCountyContext, useLocationContext } from "@/hooks/useLocationContext";
 import { trackShellEvent, getDeviceType } from "@/lib/analytics";
 import { getUserLocationLabel } from "@/lib/copyHelpers";
 
@@ -30,18 +31,18 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 }) => {
   const [location] = useLocation();
   const { user } = useAuth() as any;
+  const locationCtx = useLocationContext();
 
   const locationLabel: string = React.useMemo(() => {
     return getUserLocationLabel(user as any);
   }, [user]);
 
   const countyLabel: string = React.useMemo(() => {
-    const u: any = user;
-    if (u?.countyName && u?.stateCode) {
-      return `${u.countyName}, ${u.stateCode}`;
+    if (hasCountyContext(locationCtx) && locationCtx.countyName && locationCtx.stateCode) {
+      return `${locationCtx.countyName}, ${locationCtx.stateCode}`;
     }
     return locationLabel;
-  }, [user, locationLabel]);
+  }, [locationCtx, locationLabel]);
 
   const [highlightIndex, setHighlightIndex] = React.useState(0);
 
@@ -87,8 +88,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     membersCount > 0 ? `${membersCount.toLocaleString()} members` : "Neighbors are joining";
 
   React.useEffect(() => {
-    const u: any = user;
-    const locationSet = !!(u && (u.locationCommitted || (u.stateCode && u.countyFips)));
+    const locationSet = hasCountyContext(locationCtx);
 
     trackShellEvent({
       type: "community_shell_load",
@@ -97,7 +97,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
       hasUnreadNotifications: notificationsCount > 0,
       locationSet,
     });
-  }, [location, notificationsCount, user]);
+  }, [location, locationCtx, notificationsCount]);
 
   const activeHighlight = rotatingItems[highlightIndex] ?? rotatingItems[0];
   const mobileNavItems: Array<{ href: string; label: string; testId: string }> = [
