@@ -14,7 +14,8 @@ describe("ScoutFitters catalog contracts", () => {
     expect(source).toContain("const SCOUTFITTERS_TIER_KEYS = Array.from(ALLOWED_TIER_KEYS).sort()");
     expect(source).toContain("configuredTierKeys");
     expect(source).toContain("variantsConfigured");
-    expect(source).toContain("catalog: SCOUTFITTERS_TIER_KEYS.map((key) => ({");
+    expect(source).toContain("const catalog = await Promise.all(");
+    expect(source).toContain("retailPrice");
   });
 
   it("marketing page loads live ScoutFitters config and renders value tiers directly", () => {
@@ -24,7 +25,15 @@ describe("ScoutFitters catalog contracts", () => {
     expect(source).toContain("const contractorTierKeys = useMemo(");
     expect(source).toContain("const valueTierKeys = useMemo(");
     expect(source).toContain("{valueTierKeys.length > 0 && (");
+    expect(source).toContain("const retailPriceByTier = useMemo(");
     expect(source).not.toContain("showValueOptions");
+  });
+
+  it("marketing page no longer exposes internal profit math to customers", () => {
+    const source = read("client/src/pages/marketing/ScoutFitters.tsx");
+
+    expect(source).not.toContain("PROFIT_PER_SHIRT");
+    expect(source).not.toContain("Profit:");
   });
 
   it("draft orders stay gated by fulfillment readiness", () => {

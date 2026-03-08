@@ -9,7 +9,7 @@ interface AppDrawerProps {
   isAdmin?: boolean;
 }
 
-export default function AppDrawer({ isOpen, onClose }: AppDrawerProps) {
+export default function AppDrawer({ isOpen, onClose, isAdmin }: AppDrawerProps) {
   const sections = isAdmin
     ? [{ label: "Admin OS", href: "/admin" }, ...NAV_SECTIONS]
     : NAV_SECTIONS;

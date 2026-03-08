@@ -43,6 +43,11 @@ function parsePositiveInt(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
 }
 
+function parsePositiveMoney(value: unknown): number | null {
+  const parsed = Number(String(value ?? "").trim());
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 function sanitizeTierKey(value: unknown): string | null {
   const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
   if (!raw) return null;
@@ -80,6 +85,34 @@ async function getVariantMapFromSiteSettings(): Promise<Record<string, number> |
   }
 }
 
+async function getRetailPriceMapFromSiteSettings(): Promise<Record<string, number> | null> {
+  try {
+    const settings = await storage.getSiteSettings("marketing");
+    const candidates = settings
+      .filter((s) => s && s.key === "scoutfitters_catalog_prices" && s.isActive !== false)
+      .sort((a: any, b: any) => {
+        const aT = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const bT = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return bT - aT;
+      });
+
+    const value: any = candidates[0]?.value;
+    if (!value || typeof value !== "object") return null;
+
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(value)) {
+      const key = sanitizeTierKey(k);
+      const parsed = parsePositiveMoney(v);
+      if (key && parsed) {
+        out[key] = parsed;
+      }
+    }
+    return Object.keys(out).length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 async function getVariantIdForTier(tier: string): Promise<number | null> {
   const key = sanitizeTierKey(tier);
   if (!key) return null;
@@ -100,6 +133,39 @@ async function getVariantIdForTier(tier: string): Promise<number | null> {
           : null;
 
   return parsePositiveInt(env);
+}
+
+async function getRetailPriceForTier(tier: string): Promise<number | null> {
+  const key = sanitizeTierKey(tier);
+  if (!key) return null;
+
+  const fromSiteSettings = await getRetailPriceMapFromSiteSettings();
+  const configuredRetail = fromSiteSettings?.[key];
+  if (configuredRetail) {
+    return configuredRetail;
+  }
+
+  const apiKey = String(process.env.PRINTFUL_API_KEY || "").trim();
+  if (!apiKey) return null;
+
+  const variantId = await getVariantIdForTier(key);
+  if (!variantId) return null;
+
+  try {
+    const resp = await fetch(`https://api.printful.com/store/variants/${variantId}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!resp.ok) return null;
+    const json: any = await resp.json().catch(() => null);
+    const retail = json?.result?.retail_price ?? json?.result?.price ?? json?.price;
+    return parsePositiveMoney(retail);
+  } catch {
+    return null;
+  }
 }
 
 function getTechniqueForTier(tier: TierKey): "EMBROIDERY" | "DTG" {
@@ -236,12 +302,16 @@ export function registerScoutFittersRoutes(app: any) {
       .map(([key]) => key);
     const variantMap = await getVariantMapFromSiteSettings();
     const fileTypeOverrides = await getPrintfulFileTypeOverridesFromSiteSettings();
-    res.status(200).json({
-      catalog: SCOUTFITTERS_TIER_KEYS.map((key) => ({
+    const catalog = await Promise.all(
+      SCOUTFITTERS_TIER_KEYS.map(async (key) => ({
         key,
         technique: getTechniqueForTier(key),
         configured: Boolean(variantsConfigured[key]),
-      })),
+        retailPrice: variantsConfigured[key] ? await getRetailPriceForTier(key) : null,
+      }))
+    );
+    res.status(200).json({
+      catalog,
       fulfillment: {
         printfulConfigured: Boolean(String(process.env.PRINTFUL_API_KEY || "").trim()),
         variantsConfigured,

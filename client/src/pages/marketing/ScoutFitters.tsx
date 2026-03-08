@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
-import { Shirt, Upload, ShieldCheck, Loader2, Truck, BadgeCheck } from "lucide-react";
+import { Shirt, Upload, ShieldCheck, Truck, BadgeCheck, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +20,6 @@ type TierSpec = {
   technique: "EMBROIDERY" | "DTG";
   featured?: boolean;
 };
-
-const PROFIT_PER_SHIRT = 18;
 
 const TIERS: Record<TierKey, TierSpec> = {
   high: {
@@ -94,6 +91,7 @@ type ScoutFittersConfig = {
     key: TierKey;
     technique: "EMBROIDERY" | "DTG";
     configured: boolean;
+    retailPrice?: number | null;
   }>;
   fulfillment?: {
     printfulConfigured?: boolean;
@@ -233,8 +231,6 @@ function isQualityOk(dims: { width: number; height: number }, placement: Placeme
 }
 
 export default function ScoutFitters() {
-  const [, navigate] = useLocation();
-
   const [tier, setTier] = useState<TierKey>("high");
   const [placement, setPlacement] = useState<PlacementKey>("left_chest");
   const [quantity, setQuantity] = useState<number>(1);
@@ -326,6 +322,17 @@ export default function ScoutFitters() {
 
   const printfulConfigured = config?.fulfillment?.printfulConfigured !== false;
   const selectedTierConfigured = configuredTierKeys.includes(tier);
+  const retailPriceByTier = useMemo(() => {
+    const entries = (config?.catalog || [])
+      .filter((item): item is NonNullable<ScoutFittersConfig["catalog"]>[number] =>
+        Boolean(item?.key)
+      )
+      .map(
+        (item) =>
+          [item.key, typeof item.retailPrice === "number" ? item.retailPrice : null] as const
+      );
+    return Object.fromEntries(entries) as Partial<Record<TierKey, number | null>>;
+  }, [config]);
 
   const selectableButtonClass =
     "rounded-xl border px-3 py-2 text-left transition-colors border-white/10 bg-tsCard hover:border-ts-orange/30 hover:bg-white/5";
@@ -337,12 +344,18 @@ export default function ScoutFitters() {
     setTier(configuredTierKeys[0]);
   }, [configuredTierKeys, tier]);
 
-  const unitPrice = useMemo(() => tierSpec.wholesaleEstimate + PROFIT_PER_SHIRT, [tierSpec]);
+  const unitPrice = useMemo(() => retailPriceByTier[tier] ?? null, [retailPriceByTier, tier]);
 
   const subtotal = useMemo(() => {
+    if (typeof unitPrice !== "number") return null;
     const q = Number.isFinite(quantity) ? Math.max(1, Math.floor(quantity)) : 1;
     return q * unitPrice;
   }, [quantity, unitPrice]);
+
+  const formatMoney = (value: number | null | undefined) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? `$${value.toFixed(2)}`
+      : "Price available after sync";
 
   const printBox = useMemo(() => {
     // Canvas coordinates for preview placement. These do not dictate Printful positioning;
@@ -386,7 +399,6 @@ export default function ScoutFitters() {
     const maxW = Math.max(32, printBox.w - pad * 2);
     const maxH = Math.max(32, printBox.h - pad * 2);
 
-    // Reset scale, then fit
     logoObj.scaleX = 1;
     logoObj.scaleY = 1;
     if (typeof logoObj.scaleToWidth === "function") {
@@ -814,6 +826,62 @@ export default function ScoutFitters() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="rounded-2xl border border-ts-orange/20 bg-[linear-gradient(180deg,rgba(249,115,22,0.08),rgba(0,0,0,0))] p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="text-[0.7rem] uppercase tracking-[0.2em] text-white/60">
+                    Selected item
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-white">{tierSpec.label}</div>
+                  <div className="mt-1 text-sm text-white/70">{tierSpec.summary}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-right min-w-[140px]">
+                  <div className="text-[0.65rem] uppercase tracking-[0.18em] text-white/50">
+                    Customer price
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-white">
+                    {formatMoney(unitPrice)}
+                  </div>
+                  <div className="text-xs text-white/60">
+                    {typeof subtotal === "number"
+                      ? `Subtotal ${formatMoney(subtotal)}`
+                      : "Price sync required"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                  <div className="text-[0.65rem] uppercase tracking-[0.18em] text-white/50">
+                    Series
+                  </div>
+                  <div className="mt-1 text-sm text-white capitalize">{tierSpec.series}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                  <div className="text-[0.65rem] uppercase tracking-[0.18em] text-white/50">
+                    Technique
+                  </div>
+                  <div className="mt-1 text-sm text-white">{tierSpec.technique}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                  <div className="text-[0.65rem] uppercase tracking-[0.18em] text-white/50">
+                    Placement
+                  </div>
+                  <div className="mt-1 text-sm text-white">
+                    {placement === "left_chest" ? "Left chest" : "Front center"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                  <div className="text-[0.65rem] uppercase tracking-[0.18em] text-white/50">
+                    Quantity
+                  </div>
+                  <div className="mt-1 text-sm text-white">
+                    {Math.max(1, Math.floor(quantity || 1))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {configError && (
               <Alert variant="destructive">
                 <AlertTitle>Catalog status</AlertTitle>
@@ -839,6 +907,20 @@ export default function ScoutFitters() {
               </Alert>
             )}
 
+            <div className="rounded-xl border p-3 bg-black/20 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-white">
+                <Sparkles className="h-4 w-4 text-ts-orange" />
+                Item preview
+              </div>
+              <div className="text-xs text-white/60">
+                Preview the selected blank, placement, and uploaded mark before you send the draft
+                order.
+              </div>
+              <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border border-white/10 bg-black/30 p-2">
+                <canvas ref={canvasElRef} className="h-auto w-full max-w-[520px] rounded-lg" />
+              </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1 space-y-3">
                 <div>
@@ -852,7 +934,7 @@ export default function ScoutFitters() {
                   {contractorTierKeys.map((k) => {
                     const t = TIERS[k];
                     const active = tier === k;
-                    const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
+                    const retailPrice = retailPriceByTier[k] ?? null;
                     return (
                       <button
                         key={k}
@@ -877,8 +959,7 @@ export default function ScoutFitters() {
                           Technique: <span className="text-white">{t.technique}</span>
                         </div>
                         <div className="text-[11px] text-white/70 mt-1">
-                          Your price: <span className="text-white">${unit.toFixed(2)}</span> •
-                          Profit: <span className="text-white">${PROFIT_PER_SHIRT.toFixed(2)}</span>
+                          Price: <span className="text-white">{formatMoney(retailPrice)}</span>
                         </div>
                       </button>
                     );
@@ -897,7 +978,7 @@ export default function ScoutFitters() {
                       {valueTierKeys.map((k) => {
                         const t = TIERS[k];
                         const active = tier === k;
-                        const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
+                        const retailPrice = retailPriceByTier[k] ?? null;
                         return (
                           <button
                             key={k}
@@ -914,9 +995,7 @@ export default function ScoutFitters() {
                               Technique: <span className="text-white">{t.technique}</span>
                             </div>
                             <div className="text-[11px] text-white/70 mt-1">
-                              Your price: <span className="text-white">${unit.toFixed(2)}</span> •
-                              Profit:{" "}
-                              <span className="text-white">${PROFIT_PER_SHIRT.toFixed(2)}</span>
+                              Price: <span className="text-white">{formatMoney(retailPrice)}</span>
                             </div>
                           </button>
                         );
@@ -962,7 +1041,7 @@ export default function ScoutFitters() {
                     onChange={(e) => setQuantity(Math.max(1, Number(e.target.value || 1)))}
                   />
                   <div className="text-[11px] text-white/70">
-                    Est. subtotal: <span className="text-white">${subtotal.toFixed(2)}</span>
+                    Est. subtotal: <span className="text-white">{formatMoney(subtotal)}</span>
                   </div>
                 </div>
 
@@ -1017,15 +1096,6 @@ export default function ScoutFitters() {
                 <AlertDescription>{qualityError}</AlertDescription>
               </Alert>
             )}
-
-            <div className="rounded-xl border p-3 bg-black/20">
-              <div className="text-[0.7rem] uppercase tracking-[0.2em] text-white/70 mb-2">
-                Preview
-              </div>
-              <div className="w-full overflow-auto">
-                <canvas ref={canvasElRef} className="rounded-lg border border-white/10" />
-              </div>
-            </div>
           </CardContent>
         </Card>
 
