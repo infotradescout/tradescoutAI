@@ -15,25 +15,25 @@ const compareLanes = [
   {
     href: "/compare/real-estate",
     title: "Real Estate",
-    subtitle: "Listing and discovery platforms that stop short of community operating logic",
+    subtitle: "Listing and home-search sites",
     examples: "Zillow, Realtor.com, Redfin, Trulia, Homes.com",
   },
   {
     href: "/compare/community",
     title: "Community Platforms",
-    subtitle: "Neighborhood feeds and groups without authority-first routing",
+    subtitle: "Neighborhood feeds, groups, and community apps",
     examples: "Nextdoor, Facebook Groups, neighborhood forums, community apps",
   },
   {
     href: "/compare/local-business",
     title: "Local Business Discovery",
-    subtitle: "Directory and review surfaces that create awareness but not governed action",
+    subtitle: "Directory and review sites",
     examples: "Yelp, Google Business Profiles, Yellow Pages, directories",
   },
   {
     href: "/compare/coordination",
     title: "Local Coordination",
-    subtitle: "Scheduling and task tools that help transactions but not community trust",
+    subtitle: "Task boards, scheduling tools, and fast-response marketplaces",
     examples: "Taskrabbit, Craigslist services, gig boards, referral threads",
   },
 ];
@@ -42,12 +42,12 @@ const faqs = [
   {
     question: "What is this compare hub about?",
     answer:
-      "This hub explains how TradeScout differs from intermediary platforms across home services, real estate, community, local business discovery, and coordination. TradeScout is the operating system for community interaction, not just a directory or lead source.",
+      "This hub shows how TradeScout compares with sites people already use for local help, home search, community activity, local business discovery, and fast coordination.",
   },
   {
     question: "Why compare TradeScout to Zillow, Realtor.com, or Nextdoor?",
     answer:
-      "Because those systems create awareness, browsing, or conversation, but they do not govern the full path from discovery to routed action with trust and local authority at the center.",
+      "Because those products are often part of the local journey. They help people browse, search, or talk, but they usually stop before the decision and follow-through stage.",
   },
   {
     question: "Is TradeScout only for homeowners and contractors?",
@@ -57,7 +57,7 @@ const faqs = [
   {
     question: "How does TradeScout make money if it is not another intermediary platform?",
     answer:
-      "TradeScout does not sell leads and does not charge to connect. It keeps trust, routing, and authority separate from paid visibility so system incentives stay aligned with local outcomes.",
+      "TradeScout does not sell leads and does not charge people to connect. The goal is to keep trust and decision quality separate from pay-to-play visibility.",
   },
 ];
 
@@ -97,9 +97,9 @@ const CompareHubPage = memo(function CompareHubPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-3xl mx-auto leading-relaxed"
             >
-              TradeScout is the local operating system for community interaction. Most competing
-              platforms create awareness, listings, or lead flow. TradeScout governs the path from
-              discovery to routed action with trust, authority, and local decision logic intact.
+              Most local platforms help you browse, search, or post. TradeScout is built to help you
+              keep going from discovery to a real local decision without getting pushed into lead
+              spam, random outreach, or disconnected tools.
             </motion.p>
           </div>
         </section>
@@ -113,22 +113,27 @@ const CompareHubPage = memo(function CompareHubPage() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
                   <Shield className="w-5 h-5 text-ts-orange mb-2" />
-                  <h3 className="text-sm font-semibold text-white mb-2">Authority Before Access</h3>
+                  <h3 className="text-sm font-semibold text-white mb-2">
+                    Real fit before random outreach
+                  </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    Awareness never grants authority. Contact, visibility, and action stay governed.
+                    Seeing someone does not automatically open the door to spammy contact or a flood
+                    of bad-fit replies.
                   </p>
                 </div>
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
                   <Compass className="w-5 h-5 text-ts-orange mb-2" />
-                  <h3 className="text-sm font-semibold text-white mb-2">Scout Controls The Flow</h3>
+                  <h3 className="text-sm font-semibold text-white mb-2">
+                    Scout helps you move forward
+                  </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    Scout is the bridge from discovery to action, so users move through one
-                    operating layer instead of disconnected tools.
+                    You can ask questions, find help, compare options, and take the next step in one
+                    place.
                   </p>
                 </div>
                 <div className="bg-tsCard border border-white/10 rounded-xl p-4">
                   <Sparkles className="w-5 h-5 text-ts-orange mb-2" />
-                  <h3 className="text-sm font-semibold text-white mb-2">Trust Is Not For Sale</h3>
+                  <h3 className="text-sm font-semibold text-white mb-2">Trust is not for sale</h3>
                   <p className="text-xs text-white/60 leading-relaxed">
                     TradeScout does not sell leads and does not charge to connect. Paid visibility
                     never overrides trust.

@@ -43,27 +43,26 @@ const TrustModelPage = memo(function TrustModelPage() {
     {
       question: "What is the Community Verification Score (CVS)?",
       answer:
-        "CVS is a composite trust score (0-100) based on verified identity, active license/insurance, work history, community recommendations, and dispute resolution. Higher scores mean higher trust and better visibility.",
+        "CVS is TradeScout's trust score. It looks at verified identity, license and insurance status, work history, community recommendations, and how problems were handled.",
     },
     {
       question: "How are contractors verified?",
       answer:
-        "Contractors must pass: (1) Identity verification (real person, real business), (2) License check (active, state-issued), (3) Insurance verification (liability + workers comp), (4) Background check (criminal/legal history), (5) First completed job review.",
+        "Pros go through identity, license, insurance, and background checks, then start building trust through real work and real reviews.",
     },
     {
       question: "Why are reviews not anonymous?",
       answer:
-        "Anonymous reviews enable fake testimonials and retaliation. TradeScout reviews are tied to verified community members who actually worked with the contractor. Review lineage is publicly auditable.",
+        "Because anonymous reviews are easy to fake. TradeScout ties reviews to real, verified people who actually worked with the pro.",
     },
     {
       question: "Can contractors pay to change trust score or ranking?",
-      answer:
-        "No. Trust score and ranking are based only on verification and performance signals. Financial activity cannot change trust authority or ranking order.",
+      answer: "No. Paying more does not improve trust score or move someone ahead in ranking.",
     },
     {
       question: "What happens if a contractor's license expires?",
       answer:
-        "Their CVS drops immediately, and they're marked 'verification pending.' They cannot receive new Direct Connect requests until verification is restored.",
+        "Their trust status drops right away, and they stop receiving new Direct Connect requests until the issue is fixed.",
     },
   ];
 
@@ -163,9 +162,8 @@ const TrustModelPage = memo(function TrustModelPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
             >
-              Every pro has a Community Verification Score (CVS) based on verified identity, active
-              credentials, work history, community recommendations, and dispute resolution. Trust
-              metrics are public and auditable.
+              Every pro has a Community Verification Score based on identity checks, active
+              credentials, work history, community recommendations, and dispute history.
             </motion.p>
           </div>
         </section>
@@ -181,8 +179,8 @@ const TrustModelPage = memo(function TrustModelPage() {
                     Payment Cannot Override Trust
                   </h3>
                   <p className="text-sm text-white/70">
-                    A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Financial activity
-                    is excluded from ranking logic. Trust always comes first.
+                    Someone with lower trust cannot buy their way above someone with higher trust.
+                    Money is not part of the ranking rules.
                   </p>
                 </div>
               </div>
@@ -200,8 +198,8 @@ const TrustModelPage = memo(function TrustModelPage() {
                 Five Verification Layers
               </h2>
               <p className="text-sm text-white/60 max-w-xl mx-auto">
-                Each layer contributes to a contractor's CVS score (0-100). All data is public and
-                auditable.
+                Each layer adds to a pro's CVS score. The goal is to show why someone is trusted,
+                not just that they are.
               </p>
             </Reveal>
             <div className="space-y-4">
@@ -258,15 +256,15 @@ const TrustModelPage = memo(function TrustModelPage() {
               <div className="bg-tsCard border border-white/10 rounded-xl p-5 shadow-[0_18px_52px_rgba(0,0,0,0.36)] mb-4">
                 <h3 className="font-semibold text-white text-sm mb-3">How Matching Works</h3>
                 <p className="text-xs text-white/60 mb-3">
-                  When Scout matches you with contractors, ranking is determined by:
+                  When Scout lines up options for you, ranking is based on:
                 </p>
                 <ol className="space-y-1.5">
                   {[
-                    "CVS score (trust authority)",
-                    "Trade match (relevant skills for your job type)",
-                    "Location proximity (county + service area)",
-                    "Availability (active on platform, not overbooked)",
-                    "Context signals (urgency, budget, job complexity)",
+                    "CVS score",
+                    "Fit for the job",
+                    "Location and service area",
+                    "Availability",
+                    "Job details like urgency, budget, and complexity",
                   ].map((item, i) => (
                     <li key={i} className="flex gap-2 text-xs text-white/70">
                       <span className="text-ts-orange font-bold flex-shrink-0">{i + 1}.</span>
@@ -275,8 +273,7 @@ const TrustModelPage = memo(function TrustModelPage() {
                   ))}
                 </ol>
                 <p className="text-xs text-white/50 mt-3 italic">
-                  Financial activity (subscriptions, promotions, ad spend) is explicitly excluded
-                  from ranking logic.
+                  Subscriptions, promotions, and ad spend do not change ranking.
                 </p>
               </div>
             </Reveal>

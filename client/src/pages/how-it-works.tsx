@@ -46,12 +46,12 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How does TradeScout match me with contractors?",
       answer:
-        "Scout analyzes your request context (job type, location, urgency, budget signals) and matches you with contractors based on trust score, verification status, and relevance — not who paid the most. Payment never determines ranking.",
+        "You tell Scout what you need, and Scout looks for local pros who fit the job, serve your area, and have the right trust signals. Paying more does not move someone ahead in the line.",
     },
     {
       question: "What is the trust system?",
       answer:
-        "Every contractor has a Community Verification Score (CVS) based on verified identity, license/insurance checks, work history, and community recommendations. Trust metrics are public and auditable.",
+        "Every pro has a Community Verification Score, or CVS. It is based on things like verified identity, license and insurance checks, work history, and community recommendations.",
     },
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
@@ -61,12 +61,12 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "What is Scout?",
       answer:
-        "Scout is your AI helper that controls the entire platform. You can ask Scout questions, request contractor matches, get estimates, and navigate features — all from a single conversation. Scout prioritizes outcomes over impressions.",
+        "Scout is the helper built into TradeScout. You can ask questions, look for help, and move through the platform from one conversation instead of hunting through menus.",
     },
     {
       question: "How does Direct Connect work?",
       answer:
-        "When you request a contractor, Scout evaluates trust, availability, and context, then routes your request directly to 1-3 qualified pros. Contact stays gated until a match accepts.",
+        "When you send a request, TradeScout shares it with a small number of local pros who look like a good fit. That keeps replies focused instead of turning into a lead blast.",
     },
   ];
 
@@ -74,40 +74,40 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: MessageSquare,
       title: "Ask Scout",
-      desc: "Tell Scout what you need. Scout is your community assistant for local work.",
+      desc: "Tell Scout what you need help with.",
     },
     {
       icon: Search,
-      title: "Scout Matches",
-      desc: "Scout uses community trust signals plus trade and location to find 1-3 fits.",
+      title: "Scout finds good options",
+      desc: "Scout looks for a small set of local pros who fit the job.",
     },
     {
       icon: CheckCircle,
-      title: "Pros Accept/Decline",
-      desc: "Pros review your request and choose to accept or pass. Contact stays gated until acceptance.",
+      title: "Pros say yes or no",
+      desc: "Pros review your request and decide whether it fits before the conversation moves forward.",
     },
     {
       icon: Handshake,
-      title: "Direct Connection",
-      desc: "Pros who accept contact you directly. You choose who to hire.",
+      title: "You choose who to work with",
+      desc: "If someone accepts, you can keep the conversation going and decide who feels right.",
     },
   ];
 
   const mechanisms = [
     {
       icon: Search,
-      title: "Trust-Based Matching",
-      desc: "Scout analyzes your request context (job type, location, urgency, budget signals) and matches based on trust score, verification, and relevance — not payment.",
+      title: "Good-fit matching",
+      desc: "Scout looks at the job, the location, timing, and trust signals to find people who actually fit.",
       bullets: [
-        "Small routing set: Your request goes to 1-3 relevant pros, not dozens",
-        "Context-aware: Scout includes job details, urgency, and budget signals",
-        "Trust-verified: Only verified contractors can receive requests",
+        "Your request goes to a small set of local pros, not a giant blast list",
+        "Job details, timing, and budget help people decide quickly",
+        "Trust checks matter more than who pays the most",
       ],
     },
     {
       icon: Shield,
       title: "Community Verification Score",
-      desc: "Every contractor has a CVS (0-100) based on five public, auditable layers.",
+      desc: "Every pro has a CVS score based on public trust checks.",
       bullets: [
         "Verified identity (real person, real business)",
         "Active license & insurance (state-verified)",
@@ -118,13 +118,13 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     },
     {
       icon: MessageSquare,
-      title: "Scout as Controller",
-      desc: "Scout is your AI helper that controls the entire platform from a single conversation.",
+      title: "Scout keeps it simple",
+      desc: "Scout helps you move through the platform without bouncing between disconnected pages.",
       bullets: [
-        "Ask Scout questions about contractors, projects, or pricing",
-        "Request contractor matches directly from chat",
-        "Manage Direct Connect requests without navigating menus",
-        "Scout prioritizes outcomes over impressions",
+        "Ask questions about contractors, projects, or pricing",
+        "Start a request directly from chat",
+        "Manage requests without digging through menus",
+        "Keep the whole process in one place",
       ],
     },
   ];
@@ -142,8 +142,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     },
     {
       icon: Zap,
-      title: "AI-Controlled",
-      desc: "Scout orchestrates everything — you don't need to navigate menus or forms.",
+      title: "Less menu hunting",
+      desc: "Scout helps guide the process so you can spend less time figuring out where to click next.",
     },
     {
       icon: Lock,
@@ -188,8 +188,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
             >
-              Connection without compromise. Trust-verified matching controlled by Scout, your AI
-              helper.
+              Ask for help, get matched with local pros, and move forward without lead spam or
+              pay-to-play rankings.
             </motion.p>
           </div>
         </section>
@@ -206,7 +206,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Four Steps to a Trusted Match
               </h2>
               <p className="text-sm text-white/60 max-w-xl mx-auto">
-                Trust-first matching controlled by Scout. No payment determines ranking.
+                A simple path from asking for help to choosing who feels right.
               </p>
             </Reveal>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -240,7 +240,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 <span className="text-sm font-medium text-ts-orange">Core Mechanism</span>
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
-                Under the Hood
+                What happens behind the scenes
               </h2>
             </Reveal>
             <div className="space-y-4">
@@ -334,7 +334,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Ready to Get Started?
               </h2>
               <p className="text-white/70 text-sm mb-4">
-                Ask Scout anything, or browse verified contractors.
+                Ask Scout a question or start looking for local help.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
@@ -345,7 +345,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 </Link>
                 <Link href="/direct-connect">
                   <a className="inline-flex items-center gap-2 border border-white/20 text-white hover:bg-white/10 font-semibold px-5 h-10 rounded-lg transition-all text-sm">
-                    Find Contractors
+                    Find Pros
                   </a>
                 </Link>
               </div>
