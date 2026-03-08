@@ -131,8 +131,11 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
 
   type AdminUserSummary = {
     id: string;
+    email?: string | null;
     role?: string | null;
+    activeRole?: string | null;
     roles?: string[] | null;
+    preferences?: Record<string, unknown> | null;
     createdAt?: string | null;
   };
 
@@ -252,6 +255,49 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   ];
 
   const userGrowth = useMemo(() => {
+    const isArchivedPlaceholderEmail = (email: string | null | undefined): boolean => {
+      const normalized = String(email || "")
+        .trim()
+        .toLowerCase();
+      return normalized.startsWith("archived+") && normalized.endsWith("@thetradescout.invalid");
+    };
+
+    const isImportTaggedUser = (u: AdminUserSummary): boolean => {
+      const prefs = (u.preferences || {}) as Record<string, unknown>;
+      const tags = [
+        prefs.importSource,
+        prefs.sourceTag,
+        prefs.createdBy,
+        prefs.archivedReason,
+        prefs.accountOrigin,
+      ]
+        .map((v) => String(v || "").toLowerCase())
+        .join(" ");
+      if (tags.includes("import")) return true;
+      if (tags.includes("admin_import_cleanup")) return true;
+      if (prefs.isImportedBusiness === true) return true;
+      return false;
+    };
+
+    const getRoleTokens = (u: AdminUserSummary): Set<string> => {
+      const tokens = new Set<string>();
+      const addToken = (value: unknown) => {
+        const token = String(value || "")
+          .trim()
+          .toLowerCase();
+        if (!token) return;
+        if (token === "owner" || token === "head_admin") {
+          tokens.add("super_admin");
+          return;
+        }
+        tokens.add(token);
+      };
+      addToken(u.role);
+      addToken(u.activeRole);
+      for (const r of Array.isArray(u.roles) ? u.roles : []) addToken(r);
+      return tokens;
+    };
+
     const now = new Date();
     const months: Array<{ month: string; homeowners: number; contractors: number; total: number }> =
       [];
@@ -265,14 +311,26 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
       let total = 0;
 
       for (const u of adminUsers) {
+        if (isArchivedPlaceholderEmail(u.email)) continue;
+        if (isImportTaggedUser(u)) continue;
+
         const createdAt = u.createdAt ? new Date(u.createdAt) : null;
         if (!createdAt || Number.isNaN(createdAt.getTime())) continue;
         const key = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, "0")}`;
         if (key !== monthKey) continue;
         total += 1;
-        const roleSet = new Set([u.role, ...(u.roles || [])].filter(Boolean));
-        if (roleSet.has("homeowner")) homeowners += 1;
-        if (roleSet.has("contractor") || roleSet.has("handyman")) contractors += 1;
+        const roleSet = getRoleTokens(u);
+        const isContractorLike =
+          roleSet.has("contractor") ||
+          roleSet.has("contractor_user") ||
+          roleSet.has("handyman") ||
+          roleSet.has("accelerator_member");
+        const isAdminLike =
+          roleSet.has("super_admin") || roleSet.has("ops_admin") || roleSet.has("moderator");
+        const isHomeownerOnly = roleSet.has("homeowner") && !isContractorLike && !isAdminLike;
+
+        if (isHomeownerOnly) homeowners += 1;
+        if (isContractorLike) contractors += 1;
       }
 
       months.push({ month: monthLabel, homeowners, contractors, total });
