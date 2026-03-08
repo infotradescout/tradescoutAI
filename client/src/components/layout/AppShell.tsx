@@ -623,7 +623,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
       {!isMobile && !isAuthOrSetupSurface && !isScoutSurface && (
         <aside
-          className="hidden lg:block fixed z-40"
+          className="fixed z-40"
           style={{
             top: "var(--top-nav-h)",
             bottom: "var(--bottom-nav-h)",
@@ -654,7 +654,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             onClick={() => setIsToolsOpen(false)}
           />
           <aside
-            className="hidden lg:block h-full"
+            className="h-full"
             style={{
               width: "var(--right-nav-w)",
               background: "var(--surface-intermediate)",
