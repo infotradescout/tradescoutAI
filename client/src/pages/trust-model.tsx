@@ -129,9 +129,9 @@ const TrustModelPage = memo(function TrustModelPage() {
   return (
     <>
       <SEOHelmet
-        title="Trust Model – How TradeScout Verifies Contractors"
-        description="TradeScout uses Community Verification Score (CVS) to rank contractors based on verified identity, license/insurance, work history, and community recommendations — not payment. Learn how trust works."
-        keywords="community verification score, contractor verification, trust model, license verification, insurance verification, review lineage, no anonymous reviews"
+        title="TradeScout Trust Model | Verified Local Help and Public Trust Rules"
+        description="Learn how TradeScout uses verification, Community Verification Score, licensing, insurance, work history, and public trust rules to help users make safer local decisions."
+        keywords="tradescout trust model, community verification score, trusted local help, contractor verification, license verification, insurance verification, review lineage"
         structuredData={createFAQStructuredData(faqs)}
       />
       <div className="text-white font-body">

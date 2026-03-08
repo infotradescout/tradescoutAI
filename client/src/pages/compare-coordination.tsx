@@ -3,12 +3,12 @@ import { CompareCategoryPage, type CompareCategoryConfig } from "./compareCatego
 const config: CompareCategoryConfig = {
   title: "TradeScout vs. Local Coordination Tools",
   description:
-    "Compare TradeScout to local task boards, gig platforms, coordination threads, and scheduling tools that help transactions but do not act like community operating systems.",
-  seoTitle: "TradeScout vs. Local Coordination Tools | TradeScout",
+    "Compare TradeScout to local task boards, gig platforms, coordination threads, and scheduling tools people use to book help and get local tasks moving.",
+  seoTitle: "Coordinate Local Help | TradeScout vs. Local Coordination Tools",
   seoDescription:
-    "Compare TradeScout to Taskrabbit, Craigslist services, gig boards, and local coordination tools. See how Scout differs from transaction-first coordination layers.",
+    "See how TradeScout helps users coordinate local help, book next steps, and move from question to action through Scout instead of relying on gig boards and task threads.",
   seoKeywords:
-    "tradescout vs taskrabbit, craigslist services alternative, local coordination platform alternative, gig board alternative",
+    "coordinate local help, book local services, tradescout vs taskrabbit, craigslist services alternative, local coordination platform alternative",
   canonical: "https://www.thetradescout.com/compare/coordination",
   badgeLabel: "Coordination Comparison",
   categoryName: "Local Coordination Tools",

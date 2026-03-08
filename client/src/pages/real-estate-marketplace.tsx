@@ -19,6 +19,7 @@ import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 type HomeScoutListing = {
   id: string;
@@ -223,261 +224,269 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   });
 
   return (
-    <RealEstateMarketplaceShell>
-      <CountyRequiredGate surface="homescout" allowBypass={allowBypass}>
-        <div className="max-w-6xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
-            <div className="space-y-0.5 md:space-y-1">
-              <div className="flex items-center gap-3">
-                <Home className="h-6 w-6 md:h-7 md:w-7 text-ts-orange" />
-                <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
+    <>
+      <SEOHelmet
+        title="HomeScout Real Estate Marketplace | Browse Listings, List Homes, and Explore Local Housing | TradeScout"
+        description="Browse local listings, filter homes by price and features, list a property, and explore local housing activity through HomeScout on TradeScout."
+        keywords="homescout, real estate marketplace, browse local listings, list a home, local housing platform, tradescout homes"
+        canonical="https://www.thetradescout.com/real-estate-marketplace"
+      />
+      <RealEstateMarketplaceShell>
+        <CountyRequiredGate surface="homescout" allowBypass={allowBypass}>
+          <div className="max-w-6xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
+              <div className="space-y-0.5 md:space-y-1">
+                <div className="flex items-center gap-3">
+                  <Home className="h-6 w-6 md:h-7 md:w-7 text-ts-orange" />
+                  <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
+                </div>
+                <p className="text-sm md:text-base text-white/70">
+                  County-first real estate, with intent-based contact.
+                </p>
+                <div className="flex items-center gap-2 text-xs text-white/60">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>{ctx.label || "Your county context"}</span>
+                </div>
               </div>
-              <p className="text-sm md:text-base text-white/70">
-                County-first real estate, with intent-based contact.
-              </p>
-              <div className="flex items-center gap-2 text-xs text-white/60">
-                <MapPin className="h-3.5 w-3.5" />
-                <span>{ctx.label || "Your county context"}</span>
-              </div>
-            </div>
-            <div className="flex w-full md:w-auto gap-2">
-              <Link href="/homescout/new">
-                <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  List on HomeScout
+              <div className="flex w-full md:w-auto gap-2">
+                <Link href="/homescout/new">
+                  <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    List on HomeScout
+                  </Button>
+                </Link>
+                <Button
+                  className="w-full md:w-auto"
+                  variant="secondary"
+                  onClick={() => saveSearchMutation.mutate()}
+                  disabled={saveSearchMutation.isPending}
+                >
+                  Save search
                 </Button>
-              </Link>
-              <Button
-                className="w-full md:w-auto"
-                variant="secondary"
-                onClick={() => saveSearchMutation.mutate()}
-                disabled={saveSearchMutation.isPending}
-              >
-                Save search
-              </Button>
+              </div>
             </div>
-          </div>
 
-          <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
-            <CardContent className="p-4 md:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
-                  <Input
-                    placeholder="Search title or city..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-tsCard border-white/10 text-white"
-                  />
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
+              <CardContent className="p-4 md:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                    <Input
+                      placeholder="Search title or city..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-tsCard border-white/10 text-white"
+                    />
+                  </div>
+
+                  <Select value={priceRange} onValueChange={setPriceRange}>
+                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Price Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Prices</SelectItem>
+                      <SelectItem value="under-300k">Under $300,000</SelectItem>
+                      <SelectItem value="300k-500k">$300,000 - $500,000</SelectItem>
+                      <SelectItem value="500k-750k">$500,000 - $750,000</SelectItem>
+                      <SelectItem value="over-750k">Over $750,000</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={propertyType} onValueChange={setPropertyType}>
+                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Property Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="house">House</SelectItem>
+                      <SelectItem value="condo">Condo</SelectItem>
+                      <SelectItem value="townhouse">Townhouse</SelectItem>
+                      <SelectItem value="multifamily">Multi-Family</SelectItem>
+                      <SelectItem value="land">Land</SelectItem>
+                      <SelectItem value="commercial">Commercial</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={bedrooms} onValueChange={setBedrooms}>
+                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Bedrooms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any Bedrooms</SelectItem>
+                      <SelectItem value="1">1+ Bedrooms</SelectItem>
+                      <SelectItem value="2">2+ Bedrooms</SelectItem>
+                      <SelectItem value="3">3+ Bedrooms</SelectItem>
+                      <SelectItem value="4">4+ Bedrooms</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={bathrooms} onValueChange={setBathrooms}>
+                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Bathrooms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any Baths</SelectItem>
+                      <SelectItem value="1">1+ Baths</SelectItem>
+                      <SelectItem value="1.5">1.5+ Baths</SelectItem>
+                      <SelectItem value="2">2+ Baths</SelectItem>
+                      <SelectItem value="3">3+ Baths</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={maxDom} onValueChange={setMaxDom}>
+                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Days on market" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any DOM</SelectItem>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="14">14 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                      <SelectItem value="90">90 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={sqftMin} onValueChange={setSqftMin}>
+                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Min sqft" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any sqft</SelectItem>
+                      <SelectItem value="800">800+</SelectItem>
+                      <SelectItem value="1200">1200+</SelectItem>
+                      <SelectItem value="1600">1600+</SelectItem>
+                      <SelectItem value="2000">2000+</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    type="button"
+                    variant={priceDropsOnly ? "default" : "secondary"}
+                    className="shrink-0"
+                    onClick={() => setPriceDropsOnly((v) => !v)}
+                  >
+                    Price drops
+                  </Button>
                 </div>
 
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                    <SelectValue placeholder="Price Range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="under-300k">Under $300,000</SelectItem>
-                    <SelectItem value="300k-500k">$300,000 - $500,000</SelectItem>
-                    <SelectItem value="500k-750k">$500,000 - $750,000</SelectItem>
-                    <SelectItem value="over-750k">Over $750,000</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                    <SelectValue placeholder="Property Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="house">House</SelectItem>
-                    <SelectItem value="condo">Condo</SelectItem>
-                    <SelectItem value="townhouse">Townhouse</SelectItem>
-                    <SelectItem value="multifamily">Multi-Family</SelectItem>
-                    <SelectItem value="land">Land</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={bedrooms} onValueChange={setBedrooms}>
-                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                    <SelectValue placeholder="Bedrooms" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Bedrooms</SelectItem>
-                    <SelectItem value="1">1+ Bedrooms</SelectItem>
-                    <SelectItem value="2">2+ Bedrooms</SelectItem>
-                    <SelectItem value="3">3+ Bedrooms</SelectItem>
-                    <SelectItem value="4">4+ Bedrooms</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={bathrooms} onValueChange={setBathrooms}>
-                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                    <SelectValue placeholder="Bathrooms" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Baths</SelectItem>
-                    <SelectItem value="1">1+ Baths</SelectItem>
-                    <SelectItem value="1.5">1.5+ Baths</SelectItem>
-                    <SelectItem value="2">2+ Baths</SelectItem>
-                    <SelectItem value="3">3+ Baths</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={maxDom} onValueChange={setMaxDom}>
-                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                    <SelectValue placeholder="Days on market" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any DOM</SelectItem>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="14">14 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="90">90 days</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={sqftMin} onValueChange={setSqftMin}>
-                  <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                    <SelectValue placeholder="Min sqft" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any sqft</SelectItem>
-                    <SelectItem value="800">800+</SelectItem>
-                    <SelectItem value="1200">1200+</SelectItem>
-                    <SelectItem value="1600">1600+</SelectItem>
-                    <SelectItem value="2000">2000+</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  type="button"
-                  variant={priceDropsOnly ? "default" : "secondary"}
-                  className="shrink-0"
-                  onClick={() => setPriceDropsOnly((v) => !v)}
-                >
-                  Price drops
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-white/60" />
-                <span className="text-white/60 text-sm">
-                  {isLoading ? "Searching..." : `${listings.length} active listing(s)`}
-                  {isError ? " (search failed)" : ""}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            {listings.map((listing) => {
-              const photos = safePhotos(listing.photos);
-              const hero = photos.length > 0 ? photos[0] : null;
-              const locationLabel = [listing.city, listing.stateCode].filter(Boolean).join(", ");
-
-              return (
-                <Card
-                  key={listing.id}
-                  className="bg-tsCard/50 border-white/10 backdrop-blur-sm hover:bg-tsCard/50 transition-colors overflow-hidden"
-                >
-                  <CardHeader className="p-0">
-                    <div className="relative">
-                      {hero ? (
-                        <img
-                          src={hero}
-                          alt={listing.title}
-                          className="w-full h-44 sm:h-52 md:h-56 object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-44 sm:h-52 md:h-56 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-                          <div className="text-white/60 text-sm">No photo</div>
-                        </div>
-                      )}
-                      <div className="absolute top-3 md:top-4 left-3 md:left-4">
-                        <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">
-                          For Sale
-                        </Badge>
-                      </div>
-                      <div className="absolute top-3 md:top-4 right-3 md:right-4">
-                        <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-md">
-                          {formatCurrency(listing.price)}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 md:p-5 space-y-2.5 md:space-y-3">
-                    <div className="space-y-1">
-                      <div className="text-base md:text-lg font-semibold text-white leading-snug">
-                        {listing.title}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-white/70">
-                        <MapPin className="h-4 w-4 text-white/60" />
-                        <span>
-                          {locationLabel || `${listing.countyFips}, ${listing.stateCode}`}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="flex items-center gap-2 text-white/70">
-                        <BedDouble className="h-4 w-4 text-white/60" />
-                        <span>{listing.beds ?? "?"} bd</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Bath className="h-4 w-4 text-white/60" />
-                        <span>{listing.baths ?? "?"} ba</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Square className="h-4 w-4 text-white/60" />
-                        <span>{listing.sqft ?? "?"} sqft</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between">
-                      <div className="text-xs text-white/60">
-                        Contact requires intent confirmation (Decision Card required).
-                      </div>
-                      <Link href={`/homescout/listings/${listing.id}`}>
-                        <Button
-                          size="sm"
-                          className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
-                        >
-                          View
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {!isLoading && listings.length === 0 && (
-            <Card className="bg-black/30 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">No active listings yet</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-white/70 space-y-3">
-                <p>
-                  HomeScout inventory is county-first. If you're the first to post a listing here,
-                  it will appear after admin review.
-                </p>
-                <div className="flex gap-2">
-                  <Link href="/homescout/new">
-                    <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                      List on HomeScout
-                    </Button>
-                  </Link>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-white/60" />
+                  <span className="text-white/60 text-sm">
+                    {isLoading ? "Searching..." : `${listings.length} active listing(s)`}
+                    {isError ? " (search failed)" : ""}
+                  </span>
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
-      </CountyRequiredGate>
-    </RealEstateMarketplaceShell>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              {listings.map((listing) => {
+                const photos = safePhotos(listing.photos);
+                const hero = photos.length > 0 ? photos[0] : null;
+                const locationLabel = [listing.city, listing.stateCode].filter(Boolean).join(", ");
+
+                return (
+                  <Card
+                    key={listing.id}
+                    className="bg-tsCard/50 border-white/10 backdrop-blur-sm hover:bg-tsCard/50 transition-colors overflow-hidden"
+                  >
+                    <CardHeader className="p-0">
+                      <div className="relative">
+                        {hero ? (
+                          <img
+                            src={hero}
+                            alt={listing.title}
+                            className="w-full h-44 sm:h-52 md:h-56 object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-44 sm:h-52 md:h-56 bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+                            <div className="text-white/60 text-sm">No photo</div>
+                          </div>
+                        )}
+                        <div className="absolute top-3 md:top-4 left-3 md:left-4">
+                          <Badge className="bg-ts-orange-dark hover:bg-ts-orange-dark">
+                            For Sale
+                          </Badge>
+                        </div>
+                        <div className="absolute top-3 md:top-4 right-3 md:right-4">
+                          <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-md">
+                            {formatCurrency(listing.price)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 md:p-5 space-y-2.5 md:space-y-3">
+                      <div className="space-y-1">
+                        <div className="text-base md:text-lg font-semibold text-white leading-snug">
+                          {listing.title}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-white/70">
+                          <MapPin className="h-4 w-4 text-white/60" />
+                          <span>
+                            {locationLabel || `${listing.countyFips}, ${listing.stateCode}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="flex items-center gap-2 text-white/70">
+                          <BedDouble className="h-4 w-4 text-white/60" />
+                          <span>{listing.beds ?? "?"} bd</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white/70">
+                          <Bath className="h-4 w-4 text-white/60" />
+                          <span>{listing.baths ?? "?"} ba</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white/70">
+                          <Square className="h-4 w-4 text-white/60" />
+                          <span>{listing.sqft ?? "?"} sqft</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-between">
+                        <div className="text-xs text-white/60">
+                          Contact requires intent confirmation (Decision Card required).
+                        </div>
+                        <Link href={`/homescout/listings/${listing.id}`}>
+                          <Button
+                            size="sm"
+                            className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
+                          >
+                            View
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {!isLoading && listings.length === 0 && (
+              <Card className="bg-black/30 border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white">No active listings yet</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-white/70 space-y-3">
+                  <p>
+                    HomeScout inventory is county-first. If you're the first to post a listing here,
+                    it will appear after admin review.
+                  </p>
+                  <div className="flex gap-2">
+                    <Link href="/homescout/new">
+                      <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
+                        List on HomeScout
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </CountyRequiredGate>
+      </RealEstateMarketplaceShell>
+    </>
   );
 });
 

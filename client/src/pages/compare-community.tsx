@@ -3,12 +3,12 @@ import { CompareCategoryPage, type CompareCategoryConfig } from "./compareCatego
 const config: CompareCategoryConfig = {
   title: "TradeScout vs. Community Platforms",
   description:
-    "Compare TradeScout to neighborhood feeds, community groups, and social discussion platforms like Nextdoor, Facebook Groups, and similar local conversation tools.",
-  seoTitle: "TradeScout vs. Community Platforms | TradeScout",
+    "Compare TradeScout to neighborhood feeds, community groups, and social discussion platforms like Nextdoor, Facebook Groups, and similar tools people use to stay connected locally.",
+  seoTitle: "Stay Connected Locally | TradeScout vs. Community Platforms",
   seoDescription:
-    "Compare TradeScout to Nextdoor, Facebook Groups, and local community apps. See how authority-first community operating logic differs from feed-based neighborhood interaction.",
+    "See how TradeScout helps users stay connected locally, ask questions, follow neighborhood activity, and move from conversation to action without relying on feed-only community apps.",
   seoKeywords:
-    "tradescout vs nextdoor, nextdoor alternative, facebook groups alternative, neighborhood platform alternative, community operating system",
+    "local community platform, stay connected locally, ask neighbors online, tradescout vs nextdoor, nextdoor alternative, facebook groups alternative",
   canonical: "https://www.thetradescout.com/compare/community",
   badgeLabel: "Community Comparison",
   categoryName: "Community Platforms",

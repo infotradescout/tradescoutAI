@@ -155,9 +155,9 @@ const HowItWorksPage = memo(function HowItWorksPage() {
   return (
     <>
       <SEOHelmet
-        title="How It Works - Trust-First Contractor Matching | TradeScout"
-        description="TradeScout matches you with verified contractors based on trust and relevance, not payment. Learn how our AI-controlled platform works: matching, verification, Direct Connect, and community trust."
-        keywords="how tradescout works, contractor matching, trust verification, direct connect, community verification score, no pay-to-play"
+        title="How TradeScout Works | Ask Scout, Find Trusted Local Help, and Take Action"
+        description="Learn how TradeScout helps users ask Scout for help, find trusted local pros, compare options, manage local decisions, and move from discovery to action with trust built in."
+        keywords="how tradescout works, ask scout for help, find trusted local help, direct connect, community verification score, local operating system"
         canonical="https://www.thetradescout.com/how-it-works"
         structuredData={createFAQStructuredData(faqs)}
       />

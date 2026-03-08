@@ -142,11 +142,11 @@ export default function DirectConnectPros() {
     <div className="space-y-4">
       <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="pb-1">
-          <CardTitle className="text-sm">Browse local pros</CardTitle>
+          <CardTitle className="text-sm">Find local pros</CardTitle>
           <p className="text-xs text-[color:var(--text-secondary)]">
             {countyCommitted
               ? `${(contractors as any[])?.length || 0} result(s)`
-              : "Set county to search"}
+              : "Choose a county to start"}
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -215,7 +215,7 @@ export default function DirectConnectPros() {
       {showEmptyState && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
-            No verified pros found for this selection yet.
+            No pros found for that search yet.
           </CardContent>
         </Card>
       )}
@@ -233,10 +233,10 @@ export default function DirectConnectPros() {
       {showEmptyState && directoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
-            <CardTitle className="text-sm">Directory businesses (unverified)</CardTitle>
+            <CardTitle className="text-sm">More local businesses</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These are real local business listings from the county directory, but they are not
-              currently verified in TradeScout.
+              These businesses appear in the county directory, but they have not finished TradeScout
+              verification yet.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -258,8 +258,8 @@ export default function DirectConnectPros() {
                           : "County not specified"}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <Badge variant="secondary">Unverified</Badge>
-                        <Badge variant="outline">Directory-confirmed</Badge>
+                        <Badge variant="secondary">Not verified</Badge>
+                        <Badge variant="outline">County directory</Badge>
                         {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                           <Badge variant="outline">Claimed profile</Badge>
                         ) : (

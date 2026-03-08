@@ -3,12 +3,12 @@ import { CompareCategoryPage, type CompareCategoryConfig } from "./compareCatego
 const config: CompareCategoryConfig = {
   title: "TradeScout vs. Home Services Platforms",
   description:
-    "Compare TradeScout to home-services intermediaries like Angi, HomeAdvisor, Thumbtack, Porch, Networx, Houzz, and other contractor lead or directory systems.",
-  seoTitle: "TradeScout vs. Home Services Platforms | TradeScout",
+    "Compare TradeScout to home-services intermediaries like Angi, HomeAdvisor, Thumbtack, Porch, Networx, Houzz, and other contractor lead or directory systems users rely on to find local help.",
+  seoTitle: "Find Trusted Local Pros | TradeScout vs. Home Services Platforms",
   seoDescription:
-    "Compare TradeScout to home-services lead generation and directory platforms. See how Scout, CVS, and governed contact differ from broad lead flow and contractor marketplaces.",
+    "See how TradeScout helps users find trusted local pros, compare options, and request help through Scout instead of relying on lead-generation marketplaces and contractor directories.",
   seoKeywords:
-    "tradescout vs angi, tradescout vs homeadvisor, thumbtack alternative, contractor lead sites alternative, home services platform alternative",
+    "find trusted contractors, hire local pros, tradescout vs angi, tradescout vs homeadvisor, thumbtack alternative, home services platform alternative",
   canonical: "https://www.thetradescout.com/compare/home-services",
   badgeLabel: "Home Services Comparison",
   categoryName: "Home Services Platforms",

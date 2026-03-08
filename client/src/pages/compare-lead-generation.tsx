@@ -166,9 +166,9 @@ const CompareLeadGenerationPage = memo(function CompareLeadGenerationPage() {
   return (
     <>
       <SEOHelmet
-        title="TradeScout vs. Lead Generation Platforms | TradeScout"
-        description="Compare TradeScout against lead-generation and directory-style contractor platforms. See how trust-first routing differs from lead sales, broad distribution, and early-open contact models."
-        keywords="tradescout vs lead generation, lead generation alternative, contractor lead sites alternative, angi alternative, homeadvisor alternative, thumbtack alternative, no lead sales"
+        title="Request Trusted Local Help | TradeScout vs. Lead Generation Platforms"
+        description="See how TradeScout helps users request trusted local help, compare better matches, and avoid lead sales, broad quote spam, and early-open contact."
+        keywords="request local help, find trusted contractors, tradescout vs lead generation, lead generation alternative, angi alternative, homeadvisor alternative, no lead sales"
         canonical="https://www.thetradescout.com/compare/lead-generation"
         structuredData={createFAQStructuredData(faqs)}
       />

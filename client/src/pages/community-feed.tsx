@@ -1,6 +1,7 @@
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { SEOHelmet } from "@/components/SEOHelmet";
 import {
   MessageSquare,
   Zap,
@@ -1390,562 +1391,574 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   return (
-    <div className="community-feed-page">
-      <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
-        <div className="mx-auto w-full max-w-[1024px] px-2.5 py-2 md:px-3 md:py-3 overflow-x-hidden">
-          <CommunityTopNav />
+    <>
+      <SEOHelmet
+        title="TradeScout Community | Local Updates, Questions, and Neighborhood Activity"
+        description="Stay connected to local activity on TradeScout Community. Ask questions, share updates, follow neighborhood conversations, and keep up with what is happening nearby."
+        keywords="tradescout community, local community feed, neighborhood activity, ask neighbors online, local updates"
+        canonical="https://www.thetradescout.com/community"
+      />
+      <div className="community-feed-page">
+        <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
+          <div className="mx-auto w-full max-w-[1024px] px-2.5 py-2 md:px-3 md:py-3 overflow-x-hidden">
+            <CommunityTopNav />
 
-          <Dialog
-            open={Boolean(topicTagKey)}
-            onOpenChange={(open) => {
-              if (!open) setActiveTopic("");
-            }}
-          >
-            <DialogContent className="left-0 top-0 z-[1000] h-[100vh] w-[100vw] max-w-none translate-x-0 translate-y-0 rounded-none border border-white/10 bg-[color:var(--surface-app-bg)] p-0">
-              <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[color:var(--surface-intermediate)] px-4 py-3">
-                  <div className="min-w-0">
-                    <DialogTitle className="text-base md:text-lg">
-                      Topic: {topicTagLabel || topicTagKey}
-                    </DialogTitle>
-                    <div className="mt-0.5 text-xs text-white/60">
-                      Showing posts that mention this topic in your current scope.
+            <Dialog
+              open={Boolean(topicTagKey)}
+              onOpenChange={(open) => {
+                if (!open) setActiveTopic("");
+              }}
+            >
+              <DialogContent className="left-0 top-0 z-[1000] h-[100vh] w-[100vw] max-w-none translate-x-0 translate-y-0 rounded-none border border-white/10 bg-[color:var(--surface-app-bg)] p-0">
+                <div className="flex h-full flex-col">
+                  <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[color:var(--surface-intermediate)] px-4 py-3">
+                    <div className="min-w-0">
+                      <DialogTitle className="text-base md:text-lg">
+                        Topic: {topicTagLabel || topicTagKey}
+                      </DialogTitle>
+                      <div className="mt-0.5 text-xs text-white/60">
+                        Showing posts that mention this topic in your current scope.
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTopic("")}
+                      className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.7rem] font-semibold text-black hover:bg-ts-orange-dark"
+                    >
+                      Close
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTopic("")}
-                    className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.7rem] font-semibold text-black hover:bg-ts-orange-dark"
-                  >
-                    Close
-                  </button>
-                </div>
 
-                <div className="flex-1 overflow-y-auto px-2.5 py-3 md:px-3">
-                  {topicPostsLoading ? (
-                    <div className="text-sm text-white/60">Loading topic…</div>
-                  ) : (topicPostsData || []).length === 0 ? (
-                    <div className="text-sm text-white/60">No posts found for this topic yet.</div>
-                  ) : (
-                    <div className="space-y-4">
-                      {(topicPostsData || []).map((post) => (
-                        <Card
-                          key={`topic-${post.id}`}
-                          className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-xs text-white/60">
-                                  {post.author?.name || "Member"} •{" "}
-                                  {post.createdAt ? new Date(post.createdAt).toLocaleString() : ""}
-                                </div>
-                                {post.title ? (
-                                  <div className="mt-1 text-sm font-semibold text-white">
-                                    {post.title}
+                  <div className="flex-1 overflow-y-auto px-2.5 py-3 md:px-3">
+                    {topicPostsLoading ? (
+                      <div className="text-sm text-white/60">Loading topic…</div>
+                    ) : (topicPostsData || []).length === 0 ? (
+                      <div className="text-sm text-white/60">
+                        No posts found for this topic yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {(topicPostsData || []).map((post) => (
+                          <Card
+                            key={`topic-${post.id}`}
+                            className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-xs text-white/60">
+                                    {post.author?.name || "Member"} •{" "}
+                                    {post.createdAt
+                                      ? new Date(post.createdAt).toLocaleString()
+                                      : ""}
                                   </div>
-                                ) : null}
-                                <div className="mt-1 text-sm text-white/70 whitespace-pre-line">
-                                  {String(post.content || "").slice(0, 300)}
-                                  {String(post.content || "").length > 300 ? "…" : ""}
+                                  {post.title ? (
+                                    <div className="mt-1 text-sm font-semibold text-white">
+                                      {post.title}
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-1 text-sm text-white/70 whitespace-pre-line">
+                                    {String(post.content || "").slice(0, 300)}
+                                    {String(post.content || "").length > 300 ? "…" : ""}
+                                  </div>
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveTopic("");
+                                    setOpenCommentsForPostId(post.id);
+                                    try {
+                                      window.setTimeout(() => {
+                                        const el = document.querySelector(
+                                          `[data-post-id="${CSS.escape(post.id)}"]`
+                                        ) as HTMLElement | null;
+                                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                      }, 50);
+                                    } catch {
+                                      // ignore
+                                    }
+                                  }}
+                                  className="shrink-0 text-xs text-ts-orange hover:underline underline-offset-4"
+                                >
+                                  Open
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveTopic("");
-                                  setOpenCommentsForPostId(post.id);
-                                  try {
-                                    window.setTimeout(() => {
-                                      const el = document.querySelector(
-                                        `[data-post-id="${CSS.escape(post.id)}"]`
-                                      ) as HTMLElement | null;
-                                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                    }, 50);
-                                  } catch {
-                                    // ignore
-                                  }
-                                }}
-                                className="shrink-0 text-xs text-ts-orange hover:underline underline-offset-4"
-                              >
-                                Open
-                              </button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <ScoutContinueBanner className="mb-3" />
+            <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-ts-orange">
+                      Community
+                    </p>
+                    <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
+                      Useful local conversation
+                    </h1>
+                    <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
+                      Ask, recommend, and coordinate with people in your area.
+                    </p>
+                    <p className="mt-1 text-[11px] md:text-xs text-white/60">
+                      {isAuthenticated && connectionActivityData
+                        ? `Connections active today: ${connectionActivityData.activeTodayCount}`
+                        : `Active today: ${communityStats.activeToday}`}{" "}
+                      | Posts today: {communityStats.postsToday}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
+                  <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
+                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">Members</p>
+                      <p className="text-sm font-semibold text-white">
+                        {communityStats.totalMembers}
+                      </p>
                     </div>
-                  )}
+                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">
+                        Verified pros
+                      </p>
+                      <p className="text-sm font-semibold text-white">
+                        {communityStats.verifiedPros ?? 0}
+                      </p>
+                    </div>
+                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">Recs (7d)</p>
+                      <p className="text-sm font-semibold text-white">
+                        {communityStats.recommendations7d ?? 0}
+                      </p>
+                    </div>
+                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">Help (7d)</p>
+                      <p className="text-sm font-semibold text-white">
+                        {communityStats.helpRequests7d ?? 0}
+                      </p>
+                    </div>
+                    <div className="snap-start shrink-0 w-[148px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">
+                        Median reply (7d)
+                      </p>
+                      <p className="text-sm font-semibold text-white">
+                        {formatMinutesCompact(communityStats.medianFirstReplyMinutes7d)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
 
-          <ScoutContinueBanner className="mb-3" />
-          <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-ts-orange">
-                    Community
-                  </p>
-                  <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
-                    Useful local conversation
-                  </h1>
-                  <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
-                    Ask, recommend, and coordinate with people in your area.
-                  </p>
-                  <p className="mt-1 text-[11px] md:text-xs text-white/60">
-                    {isAuthenticated && connectionActivityData
-                      ? `Connections active today: ${connectionActivityData.activeTodayCount}`
-                      : `Active today: ${communityStats.activeToday}`}{" "}
-                    | Posts today: {communityStats.postsToday}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
-                <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
-                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">Members</p>
-                    <p className="text-sm font-semibold text-white">
-                      {communityStats.totalMembers}
-                    </p>
+                {activeConnections.length > 0 && (
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/60">
+                      Active now
+                    </div>
+                    <div className="text-[11px] text-white/60">
+                      {connectionActivityData?.activeNowCount ?? activeConnections.length}
+                    </div>
                   </div>
-                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">
-                      Verified pros
-                    </p>
-                    <p className="text-sm font-semibold text-white">
-                      {communityStats.verifiedPros ?? 0}
-                    </p>
-                  </div>
-                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">Recs (7d)</p>
-                    <p className="text-sm font-semibold text-white">
-                      {communityStats.recommendations7d ?? 0}
-                    </p>
-                  </div>
-                  <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">Help (7d)</p>
-                    <p className="text-sm font-semibold text-white">
-                      {communityStats.helpRequests7d ?? 0}
-                    </p>
-                  </div>
-                  <div className="snap-start shrink-0 w-[148px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">
-                      Median reply (7d)
-                    </p>
-                    <p className="text-sm font-semibold text-white">
-                      {formatMinutesCompact(communityStats.medianFirstReplyMinutes7d)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {activeConnections.length > 0 && (
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/60">
-                    Active now
-                  </div>
-                  <div className="text-[11px] text-white/60">
-                    {connectionActivityData?.activeNowCount ?? activeConnections.length}
-                  </div>
-                </div>
-              )}
-              {activeConnections.length > 0 && (
-                <div className="mt-2 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
-                  <div className="flex items-center gap-2 min-w-max pb-1">
-                    {activeConnections.slice(0, 12).map((neighbor) => {
-                      const name =
-                        [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||
-                        "Connection";
-                      const stableId = String(neighbor.id || "")
-                        .replace(/[^a-z0-9]/gi, "")
-                        .slice(0, 2)
-                        .toUpperCase();
-                      const fallback =
-                        stableId ||
-                        String(name || "")
-                          .trim()
-                          .split(/\s+/)
+                )}
+                {activeConnections.length > 0 && (
+                  <div className="mt-2 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
+                    <div className="flex items-center gap-2 min-w-max pb-1">
+                      {activeConnections.slice(0, 12).map((neighbor) => {
+                        const name =
+                          [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||
+                          "Connection";
+                        const stableId = String(neighbor.id || "")
+                          .replace(/[^a-z0-9]/gi, "")
                           .slice(0, 2)
-                          .map((p) => p[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase() ||
-                        "U";
+                          .toUpperCase();
+                        const fallback =
+                          stableId ||
+                          String(name || "")
+                            .trim()
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((p) => p[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase() ||
+                          "U";
 
-                      return (
-                        <div
-                          key={neighbor.id}
-                          className="shrink-0 flex flex-col items-center gap-1 w-[54px]"
-                          title={name}
-                        >
-                          <div className="relative">
-                            <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70">
-                              <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
-                              <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
-                                {fallback}
-                              </AvatarFallback>
-                            </Avatar>
-                            {neighbor.isActiveNow && (
-                              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[color:var(--surface-card)]" />
-                            )}
+                        return (
+                          <div
+                            key={neighbor.id}
+                            className="shrink-0 flex flex-col items-center gap-1 w-[54px]"
+                            title={name}
+                          >
+                            <div className="relative">
+                              <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70">
+                                <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
+                                <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
+                                  {fallback}
+                                </AvatarFallback>
+                              </Avatar>
+                              {neighbor.isActiveNow && (
+                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[color:var(--surface-card)]" />
+                              )}
+                            </div>
+                            <div className="w-full text-[10px] text-white/60 text-center truncate">
+                              {String(neighbor.firstName || name).split(" ")[0]}
+                            </div>
                           </div>
-                          <div className="w-full text-[10px] text-white/60 text-center truncate">
-                            {String(neighbor.firstName || name).split(" ")[0]}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
+              </CardContent>
+            </Card>
+            {/* Phase 1: Global Community Toggle (read-only visibility) */}
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-lg p-1">
+                <button
+                  onClick={() => handleScopeToggle("local")}
+                  aria-pressed={!isGlobalView}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    !isGlobalView
+                      ? "bg-ts-orange text-white"
+                      : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                  }`}
+                >
+                  <MapPin className="inline h-4 w-4 mr-1" />
+                  Local
+                </button>
+                <button
+                  onClick={() => handleScopeToggle("global")}
+                  aria-pressed={isGlobalView}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    isGlobalView
+                      ? "bg-ts-orange text-white"
+                      : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                  }`}
+                >
+                  <Globe className="inline h-4 w-4 mr-1" />
+                  Everywhere
+                </button>
+              </div>
+              {isGlobalView && (
+                <span className="text-[11px] md:text-xs text-[color:var(--text-secondary)]">
+                  Read-only
+                </span>
               )}
-            </CardContent>
-          </Card>
-          {/* Phase 1: Global Community Toggle (read-only visibility) */}
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-lg p-1">
-              <button
-                onClick={() => handleScopeToggle("local")}
-                aria-pressed={!isGlobalView}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  !isGlobalView
-                    ? "bg-ts-orange text-white"
-                    : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                }`}
-              >
-                <MapPin className="inline h-4 w-4 mr-1" />
-                Local
-              </button>
-              <button
-                onClick={() => handleScopeToggle("global")}
-                aria-pressed={isGlobalView}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  isGlobalView
-                    ? "bg-ts-orange text-white"
-                    : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                }`}
-              >
-                <Globe className="inline h-4 w-4 mr-1" />
-                Everywhere
-              </button>
             </div>
-            {isGlobalView && (
-              <span className="text-[11px] md:text-xs text-[color:var(--text-secondary)]">
-                Read-only
-              </span>
-            )}
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
-            {/* Main Feed */}
-            <div className="lg:col-span-2 space-y-3 md:space-y-4">
-              <Tabs
-                value={activeTab}
-                onValueChange={(value) => handleTabChange(value as FeedTab)}
-                className="w-full"
-              >
-                <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2">
-                  <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
-                    <TabsTrigger
-                      value="forYou"
-                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                    >
-                      For You
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="recent"
-                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                    >
-                      Recent
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="nearby"
-                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                    >
-                      Nearby
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="vault"
-                      className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                    >
-                      Saved
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-                {/* Inline composer (local-only; global view is read-only) */}
-                {!isGlobalView ? (
-                  <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] mb-3 md:mb-5 md:sticky md:top-16">
-                    <CardContent className="p-3 md:p-5">
-                      <div className="flex gap-4">
-                        <Avatar className="w-10 h-10 md:w-11 md:h-11">
-                          <AvatarImage src={user?.avatar as string | undefined} />
-                          <AvatarFallback>
-                            {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-3">
-                          <Textarea
-                            ref={composerRef}
-                            placeholder={
-                              selectedCategory === "request"
-                                ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
-                                : selectedCategory === "question"
-                                  ? "What do you want to know? Scout or your neighbors can help..."
-                                  : selectedCategory === "forsale"
-                                    ? "What are you selling? Include price and condition..."
-                                    : selectedCategory === "alert"
-                                      ? "What should everyone know about right now?"
-                                      : selectedCategory === "event"
-                                        ? "What's happening? When and where?"
-                                        : "What's happening in your community today?"
-                            }
-                            value={newPostContent}
-                            onChange={(e) => setNewPostContent(e.target.value)}
-                            rows={3}
-                          />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
+              {/* Main Feed */}
+              <div className="lg:col-span-2 space-y-3 md:space-y-4">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={(value) => handleTabChange(value as FeedTab)}
+                  className="w-full"
+                >
+                  <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2">
+                    <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
+                      <TabsTrigger
+                        value="forYou"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                      >
+                        For You
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="recent"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Recent
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="nearby"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Nearby
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="vault"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Saved
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                  {/* Inline composer (local-only; global view is read-only) */}
+                  {!isGlobalView ? (
+                    <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] mb-3 md:mb-5 md:sticky md:top-16">
+                      <CardContent className="p-3 md:p-5">
+                        <div className="flex gap-4">
+                          <Avatar className="w-10 h-10 md:w-11 md:h-11">
+                            <AvatarImage src={user?.avatar as string | undefined} />
+                            <AvatarFallback>
+                              {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 space-y-3">
+                            <Textarea
+                              ref={composerRef}
+                              placeholder={
+                                selectedCategory === "request"
+                                  ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
+                                  : selectedCategory === "question"
+                                    ? "What do you want to know? Scout or your neighbors can help..."
+                                    : selectedCategory === "forsale"
+                                      ? "What are you selling? Include price and condition..."
+                                      : selectedCategory === "alert"
+                                        ? "What should everyone know about right now?"
+                                        : selectedCategory === "event"
+                                          ? "What's happening? When and where?"
+                                          : "What's happening in your community today?"
+                              }
+                              value={newPostContent}
+                              onChange={(e) => setNewPostContent(e.target.value)}
+                              rows={3}
+                            />
 
-                          {/* Hidden file inputs */}
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handleImagesSelected}
-                            className="hidden"
-                          />
-                          <input
-                            ref={videoInputRef}
-                            type="file"
-                            accept="video/*"
-                            onChange={handleVideoSelected}
-                            className="hidden"
-                          />
+                            {/* Hidden file inputs */}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handleImagesSelected}
+                              className="hidden"
+                            />
+                            <input
+                              ref={videoInputRef}
+                              type="file"
+                              accept="video/*"
+                              onChange={handleVideoSelected}
+                              className="hidden"
+                            />
 
-                          {/* Category selection - Maps human intent to system routing
+                            {/* Category selection - Maps human intent to system routing
                           PHILOSOPHY: Users think in outcomes, not systems
                           - "I need help" -> Scout + Direct Connect (invisible)
                           - "What's for sale?" -> Marketplace integration (transparent)
                           - "What's happening?" -> Community feed (default)
                           Categories route information WITHOUT exposing internal system names
                         */}
-                          <div className="flex flex-wrap gap-1.5">
-                            {[
-                              {
-                                key: "general",
-                                label: "General",
-                                icon: MessageSquare,
-                                intent: "Share with neighbors",
-                              },
-                              {
-                                key: "question",
-                                label: "Question",
-                                icon: HelpCircle,
-                                intent: "Get help from Scout or locals",
-                              },
-                              {
-                                key: "recommendation",
-                                label: "Recommend",
-                                icon: Award,
-                                intent: "Recommend someone you trust",
-                              },
-                              {
-                                key: "event",
-                                label: "Event",
-                                icon: Calendar,
-                                intent: "Let people know about an event",
-                              },
-                              {
-                                key: "tip",
-                                label: "Tip",
-                                icon: Lightbulb,
-                                intent: "Share something useful",
-                              },
-                              {
-                                key: "request",
-                                label: "Need Help",
-                                icon: Wrench,
-                                intent: "Find someone to do work",
-                              },
-                              {
-                                key: "alert",
-                                label: "Alert",
-                                icon: AlertTriangle,
-                                intent: "Important: everyone should see this",
-                              },
-                              {
-                                key: "forsale",
-                                label: "For Sale",
-                                icon: DollarSign,
-                                intent: "Sell something locally",
-                              },
-                            ].map(({ key, label, icon: Icon, intent }) => (
-                              <button
-                                key={key}
-                                type="button"
-                                onClick={() => setSelectedCategory(key)}
-                                title={intent}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                                  selectedCategory === key
-                                    ? "bg-ts-orange text-white"
-                                    : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
-                                }`}
-                              >
-                                <Icon className="h-3 w-3" />
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Image preview grid */}
-                          {uploadedImages.length > 0 && (
-                            <div className="grid grid-cols-4 gap-2">
-                              {uploadedImages.map((url, index) => (
-                                <div key={url} className="relative group">
-                                  <img
-                                    src={url}
-                                    alt={`Upload ${index + 1}`}
-                                    className="w-full h-20 object-cover rounded border border-[color:var(--border-subtle)]"
-                                  />
-                                  <button
-                                    onClick={() => handleRemoveImage(index)}
-                                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <span className="text-xs">x</span>
-                                  </button>
-                                </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                {
+                                  key: "general",
+                                  label: "General",
+                                  icon: MessageSquare,
+                                  intent: "Share with neighbors",
+                                },
+                                {
+                                  key: "question",
+                                  label: "Question",
+                                  icon: HelpCircle,
+                                  intent: "Get help from Scout or locals",
+                                },
+                                {
+                                  key: "recommendation",
+                                  label: "Recommend",
+                                  icon: Award,
+                                  intent: "Recommend someone you trust",
+                                },
+                                {
+                                  key: "event",
+                                  label: "Event",
+                                  icon: Calendar,
+                                  intent: "Let people know about an event",
+                                },
+                                {
+                                  key: "tip",
+                                  label: "Tip",
+                                  icon: Lightbulb,
+                                  intent: "Share something useful",
+                                },
+                                {
+                                  key: "request",
+                                  label: "Need Help",
+                                  icon: Wrench,
+                                  intent: "Find someone to do work",
+                                },
+                                {
+                                  key: "alert",
+                                  label: "Alert",
+                                  icon: AlertTriangle,
+                                  intent: "Important: everyone should see this",
+                                },
+                                {
+                                  key: "forsale",
+                                  label: "For Sale",
+                                  icon: DollarSign,
+                                  intent: "Sell something locally",
+                                },
+                              ].map(({ key, label, icon: Icon, intent }) => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setSelectedCategory(key)}
+                                  title={intent}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                                    selectedCategory === key
+                                      ? "bg-ts-orange text-white"
+                                      : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
+                                  }`}
+                                >
+                                  <Icon className="h-3 w-3" />
+                                  {label}
+                                </button>
                               ))}
                             </div>
-                          )}
 
-                          {!hasUserPosts && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-wide">
-                                <MessageSquare className="h-3 w-3" />
-                                <span>Ask your neighbors</span>
-                              </div>
-                              <div className="grid gap-2">
-                                {seededPrompts.map((prompt) => (
-                                  <button
-                                    key={prompt}
-                                    type="button"
-                                    onClick={() => handlePromptClick(prompt)}
-                                    className="w-full rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)] transition-colors"
-                                  >
-                                    {prompt}
-                                  </button>
+                            {/* Image preview grid */}
+                            {uploadedImages.length > 0 && (
+                              <div className="grid grid-cols-4 gap-2">
+                                {uploadedImages.map((url, index) => (
+                                  <div key={url} className="relative group">
+                                    <img
+                                      src={url}
+                                      alt={`Upload ${index + 1}`}
+                                      className="w-full h-20 object-cover rounded border border-[color:var(--border-subtle)]"
+                                    />
+                                    <button
+                                      onClick={() => handleRemoveImage(index)}
+                                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <span className="text-xs">x</span>
+                                    </button>
+                                  </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
-                            <div className="flex flex-wrap gap-2">
+                            {!hasUserPosts && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-wide">
+                                  <MessageSquare className="h-3 w-3" />
+                                  <span>Ask your neighbors</span>
+                                </div>
+                                <div className="grid gap-2">
+                                  {seededPrompts.map((prompt) => (
+                                    <button
+                                      key={prompt}
+                                      type="button"
+                                      onClick={() => handlePromptClick(prompt)}
+                                      className="w-full rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)] transition-colors"
+                                    >
+                                      {prompt}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handlePhotoClick}
+                                  className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                                >
+                                  <Image className="h-4 w-4 mr-1" />
+                                  Photo
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleVideoClick}
+                                  className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                                >
+                                  <Video className="h-4 w-4 mr-1" />
+                                  Video
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handlePollClick}
+                                  className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                                >
+                                  <BarChart3 className="h-4 w-4 mr-1" />
+                                  Poll
+                                </Button>
+                              </div>
+
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handlePhotoClick}
-                                className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                                className="bg-ts-orange hover:bg-ts-orange-dark w-full sm:w-auto"
+                                onClick={handleCreatePost}
+                                disabled={!newPostContent.trim() || createPostMutation.isPending}
+                                data-testid="button-submit-post"
                               >
-                                <Image className="h-4 w-4 mr-1" />
-                                Photo
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleVideoClick}
-                                className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                              >
-                                <Video className="h-4 w-4 mr-1" />
-                                Video
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handlePollClick}
-                                className="border-[color:var(--border-subtle)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                              >
-                                <BarChart3 className="h-4 w-4 mr-1" />
-                                Poll
+                                {createPostMutation.isPending ? "Posting..." : "Post"}
                               </Button>
                             </div>
-
-                            <Button
-                              className="bg-ts-orange hover:bg-ts-orange-dark w-full sm:w-auto"
-                              onClick={handleCreatePost}
-                              disabled={!newPostContent.trim() || createPostMutation.isPending}
-                              data-testid="button-submit-post"
-                            >
-                              {createPostMutation.isPending ? "Posting..." : "Post"}
-                            </Button>
                           </div>
                         </div>
-                      </div>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  {lastCreatedPostId && (
+                    <OutcomeConfirmationCard
+                      actionType="community_notice"
+                      artifactId={lastCreatedPostId}
+                      stateCode={stateCode}
+                      countyFips={countyFips}
+                      initiatedBy="direct"
+                    />
+                  )}
+
+                  <TabsContent value="forYou" className="mt-0">
+                    {renderFeedList()}
+                  </TabsContent>
+
+                  <TabsContent value="recent" className="mt-0">
+                    {renderFeedList()}
+                  </TabsContent>
+
+                  <TabsContent value="nearby" className="mt-0">
+                    {renderFeedList()}
+                  </TabsContent>
+
+                  <TabsContent value="vault" className="mt-0">
+                    {renderFeedList()}
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Right column: community snapshot + signals */}
+              <div className="lg:col-span-1 space-y-4">
+                {countyFips ? (
+                  <CommunitySnapshotRail
+                    countyFips={countyFips}
+                    communityStats={communityStats}
+                    className="sticky top-20"
+                  />
+                ) : null}
+                {trendingTopics.length > 0 && (
+                  <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-white">Trending Topics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-2">
+                      {trendingTopics.slice(0, 8).map((topic) => (
+                        <span
+                          key={topic.tag}
+                          className="inline-flex items-center rounded-full border border-ts-orange/30 bg-ts-orange/10 px-2.5 py-1 text-[11px] text-ts-orange"
+                        >
+                          #{topic.tag}
+                        </span>
+                      ))}
                     </CardContent>
                   </Card>
-                ) : null}
-
-                {lastCreatedPostId && (
-                  <OutcomeConfirmationCard
-                    actionType="community_notice"
-                    artifactId={lastCreatedPostId}
-                    stateCode={stateCode}
-                    countyFips={countyFips}
-                    initiatedBy="direct"
-                  />
                 )}
-
-                <TabsContent value="forYou" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-
-                <TabsContent value="recent" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-
-                <TabsContent value="nearby" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-
-                <TabsContent value="vault" className="mt-0">
-                  {renderFeedList()}
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Right column: community snapshot + signals */}
-            <div className="lg:col-span-1 space-y-4">
-              {countyFips ? (
-                <CommunitySnapshotRail
-                  countyFips={countyFips}
-                  communityStats={communityStats}
-                  className="sticky top-20"
-                />
-              ) : null}
-              {trendingTopics.length > 0 && (
-                <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-white">Trending Topics</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap gap-2">
-                    {trendingTopics.slice(0, 8).map((topic) => (
-                      <span
-                        key={topic.tag}
-                        className="inline-flex items-center rounded-full border border-ts-orange/30 bg-ts-orange/10 px-2.5 py-1 text-[11px] text-ts-orange"
-                      >
-                        #{topic.tag}
-                      </span>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      </CountyRequiredGate>
-    </div>
+        </CountyRequiredGate>
+      </div>
+    </>
   );
 });
 

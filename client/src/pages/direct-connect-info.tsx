@@ -26,41 +26,41 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "What is Direct Connect?",
       answer:
-        "Direct Connect is TradeScout's matching system. When you request a contractor, Scout analyzes your job context (type, location, urgency, budget) and routes your request directly to 1-3 qualified, verified pros - not dozens of lead-buyers.",
+        "Direct Connect is the part of TradeScout that helps you ask for help and hear back from a small set of local pros who fit the job.",
     },
     {
       question: "How is this different from Angi or HomeAdvisor?",
       answer:
-        "Some platforms distribute a request broadly. Direct Connect routes your request to a small set of pre-matched, trust-verified contractors, and contact stays gated until a match accepts.",
+        "Instead of blasting your request out to a big list, TradeScout sends it to a small number of local pros who look like a good fit. That means fewer junk calls and less back-and-forth.",
     },
     {
       question: "Do contractors pay to receive my request?",
       answer:
-        "No. Direct Connect matching is based on trust, relevance, and availability - not payment. TradeScout does not sell leads and does not charge to route a request or open contact.",
+        "No. TradeScout does not sell leads, and paying does not help someone get your request.",
     },
     {
       question: "What payment requests are legitimate?",
       answer:
-        "TradeScout never charges to connect, to be routed, or to unlock visibility. Payment never changes matching, ranking, or contact authority.",
+        "TradeScout never charges you to get connected, send your request, or unlock contact. If someone asks for money in TradeScout's name for that, treat it as suspicious.",
     },
     {
       question: "What information does Scout send to contractors?",
       answer:
-        "Scout includes: job type, location, timeline/urgency signals, budget range (if mentioned), special requirements, and your contact preference (call/message). Contractors can accept or decline before contacting you.",
+        "Scout shares the details you give it, like the type of job, your area, timing, budget if you include one, and how you want to be contacted.",
     },
     {
       question: "What if no contractors respond?",
       answer:
-        "Scout will expand the search radius or suggest alternative trades. If still no match, you'll be asked if you want to post to the community for neighbor recommendations.",
+        "TradeScout can widen the search or suggest another path, including community recommendations, if nobody is a fit right away.",
     },
   ];
 
   return (
     <>
       <SEOHelmet
-        title="Direct Connect - Trust-First Matching | TradeScout"
-        description="TradeScout Direct Connect routes your request to 1-3 verified contractors based on trust and relevance, not payment. Contact stays intent-gated until acceptance."
-        keywords="direct connect, contractor matching, trust-verified contractors, intent-gated contact, qualified matches"
+        title="Direct Connect | Request Trusted Local Help Through Scout | TradeScout"
+        description="TradeScout Direct Connect helps you ask for local help, hear back from a small set of good-fit pros, and avoid spammy lead-generation platforms."
+        keywords="direct connect, local help, find local pros, contractor help, request help, avoid lead generation spam"
         canonical="https://www.thetradescout.com/direct-connect-info"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -71,7 +71,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <header className="mb-12">
             <h1 className="text-4xl font-bold mb-4">Direct Connect</h1>
             <p className="text-xl text-white/70">
-              Trust-first contractor matching with intent-gated contact.
+              Tell Scout what you need and hear back from a small set of local pros who fit the job.
             </p>
           </header>
 
@@ -79,7 +79,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <section className="mb-16">
             <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
               <Zap className="h-6 w-6 text-ts-orange" />
-              How Direct Connect Works
+              How It Works
             </h2>
 
             <div className="space-y-8">
@@ -90,14 +90,13 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     1
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2">You Ask Scout</h3>
+                    <h3 className="text-xl font-semibold mb-2">Tell Scout what you need</h3>
                     <p className="text-white/70">
                       "I need a licensed roofer in Austin. Emergency leak repair. Budget ~$2,000."
                     </p>
                     <p className="text-white/70 mt-2">
-                      Scout extracts: <strong>job type</strong> (roof repair),{" "}
-                      <strong>location</strong> (Austin), <strong>urgency</strong> (emergency),{" "}
-                      <strong>budget</strong> (~$2k).
+                      The more clear you are about the job, location, timing, and budget, the easier
+                      it is to find a good fit.
                     </p>
                   </div>
                 </div>
@@ -110,23 +109,23 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     2
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2">Scout Finds Matches</h3>
-                    <p className="text-white/70 mb-2">Scout filters contractors by:</p>
+                    <h3 className="text-xl font-semibold mb-2">Scout looks for a good fit</h3>
+                    <p className="text-white/70 mb-2">Scout looks at things like:</p>
                     <ul className="list-disc list-inside space-y-1 text-white/70 ml-4">
                       <li>
-                        <strong>Trust</strong>: CVS &gt;= 60 (verified, licensed, insured)
+                        <strong>Trust</strong>: verified, licensed, and insured when required
                       </li>
                       <li>
-                        <strong>Trade match</strong>: Licensed for roofing
+                        <strong>Type of work</strong>: the job matches what they do
                       </li>
                       <li>
-                        <strong>Location</strong>: Serves Austin metro area
+                        <strong>Location</strong>: they actually serve your area
                       </li>
                       <li>
-                        <strong>Availability</strong>: Can respond to emergency within 24 hours
+                        <strong>Availability</strong>: they can realistically take the work
                       </li>
                       <li>
-                        <strong>Budget alignment</strong>: Typical pricing in your range
+                        <strong>Budget</strong>: your range makes sense for the job
                       </li>
                     </ul>
                   </div>
@@ -140,16 +139,19 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     3
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2">Scout Routes Your Request</h3>
+                    <h3 className="text-xl font-semibold mb-2">
+                      A few local pros get your request
+                    </h3>
                     <p className="text-white/70">
-                      Scout sends your request to <strong>1-3 qualified contractors</strong> (not
-                      20+).
+                      Instead of blasting your request out everywhere, TradeScout sends it to a
+                      small number of local pros.
                     </p>
                     <p className="text-white/70 mt-2">
-                      Request includes: job details, urgency, budget range, your contact preference.
+                      They see the details you shared, including timing, budget if you added one,
+                      and how you want to be contacted.
                     </p>
                     <p className="text-white/70 mt-2">
-                      Contractors can <strong>accept or decline</strong> before contacting you.
+                      They can say yes or no before reaching out.
                     </p>
                   </div>
                 </div>
@@ -162,12 +164,12 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     4
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2">You Connect</h3>
+                    <h3 className="text-xl font-semibold mb-2">You choose who to talk to</h3>
                     <p className="text-white/70">
-                      Contractors who accept your request contact you directly (call/message).
+                      If someone accepts your request, the conversation can move forward.
                     </p>
                     <p className="text-white/70 mt-2">
-                      You choose who to hire. No pressure, no bidding war.
+                      You decide who feels right. No rush, no bidding war.
                     </p>
                   </div>
                 </div>
@@ -190,12 +192,11 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                   No Lead Spam
                 </h3>
                 <p className="text-white/70">
-                  Traditional platforms sell your request to 10-20+ contractors. You get bombarded
-                  with calls.
+                  Some platforms sell your request to a long list of businesses, and your phone
+                  starts ringing right away.
                 </p>
                 <p className="text-white/70 mt-2">
-                  <strong>Direct Connect sends your request to 1-3 pre-matched pros.</strong> No
-                  spam.
+                  <strong>Direct Connect keeps it small and focused.</strong>
                 </p>
               </div>
 
@@ -206,37 +207,37 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                   No Bidding Wars
                 </h3>
                 <p className="text-white/70">
-                  On lead-buying platforms, contractors compete on price alone. You get lowball
-                  quotes that don't reflect reality.
+                  You should not have to sort through a pile of rushed quotes just to find someone
+                  real.
                 </p>
                 <p className="text-white/70 mt-2">
                   <strong>
-                    Direct Connect matches on trust + relevance, not price competition.
+                    TradeScout tries to send your request to people who actually fit the job.
                   </strong>
                 </p>
               </div>
 
               {/* Trust-Verified */}
               <div className="bg-tsCard p-6 rounded-lg border border-white/10">
-                <h3 className="text-lg font-semibold mb-2">Trust-Verified Access</h3>
+                <h3 className="text-lg font-semibold mb-2">Real screening</h3>
                 <p className="text-white/70">
-                  Only contractors with CVS at least 60 (verified, licensed, insured) can receive
-                  Connect requests.
+                  TradeScout checks trust signals before someone can keep showing up in Direct
+                  Connect.
                 </p>
                 <p className="text-white/70 mt-2">
-                  <strong>Low-trust contractors cannot buy their way in.</strong>
+                  <strong>Money does not buy access.</strong>
                 </p>
               </div>
 
               {/* Context-Aware */}
               <div className="bg-tsCard p-6 rounded-lg border border-white/10">
-                <h3 className="text-lg font-semibold mb-2">Context-Aware</h3>
+                <h3 className="text-lg font-semibold mb-2">Less back-and-forth</h3>
                 <p className="text-white/70">
-                  Scout includes job details, urgency, and budget signals so contractors can accept
-                  or decline upfront.
+                  Job details, timing, and budget help people decide quickly if the request makes
+                  sense.
                 </p>
                 <p className="text-white/70 mt-2">
-                  <strong>No wasted time on mismatched leads.</strong>
+                  <strong>That saves time on bad fits.</strong>
                 </p>
               </div>
             </div>
@@ -244,43 +245,40 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
 
           {/* How Contractors Benefit */}
           <section className="mb-16">
-            <h2 className="text-2xl font-semibold mb-6">How Contractors Benefit</h2>
+            <h2 className="text-2xl font-semibold mb-6">Why Pros Like It</h2>
 
             <div className="bg-tsCard p-6 rounded-lg border border-white/10">
               <ul className="space-y-3 text-white/70">
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
-                    <strong>$0 access</strong>: No fee for TradeScout features, connections, or
-                    information in Direct Connect routing
+                    <strong>$0 access</strong>: no fee to use Direct Connect
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
-                    <strong>Qualified requests only</strong>: Scout filters out mismatches before
-                    routing
+                    <strong>Fewer bad fits</strong>: requests come with enough detail to decide
+                    quickly
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
-                    <strong>Full context upfront</strong>: Job details, budget, urgency - no
-                    surprises
+                    <strong>More context upfront</strong>: job details, budget, and timing before
+                    you reply
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
-                    <strong>Accept/decline before contact</strong>: No obligation to chase bad-fit
-                    leads
+                    <strong>Say yes or no first</strong>: no need to chase every request
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-ts-orange shrink-0 mt-0.5" />
                   <span>
-                    <strong>Trust determines visibility</strong>: High CVS = more matches,
-                    regardless of ad spend
+                    <strong>Trust matters</strong>: paying more does not move someone ahead of you
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -311,7 +309,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <section className="bg-tsCard p-8 rounded-lg border border-white/10 text-center">
             <h2 className="text-2xl font-semibold mb-4">Try Direct Connect</h2>
             <p className="text-white/70 mb-6">
-              Ask Scout to find you a contractor. See trust-first matching in action.
+              Tell Scout what you need and see how Direct Connect works.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/scout">
@@ -321,7 +319,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
               </Link>
               <Link href="/direct-connect">
                 <a className="bg-tsCard border border-white/10 text-white px-6 py-3 rounded-lg font-semibold hover:bg-tsBg transition">
-                  Browse Contractors
+                  Open Direct Connect
                 </a>
               </Link>
             </div>

@@ -3,12 +3,12 @@ import { CompareCategoryPage, type CompareCategoryConfig } from "./compareCatego
 const config: CompareCategoryConfig = {
   title: "TradeScout vs. Real Estate Platforms",
   description:
-    "Compare TradeScout to real-estate listing and discovery platforms like Zillow, Realtor.com, Redfin, Trulia, and Homes.com.",
-  seoTitle: "TradeScout vs. Real Estate Platforms | TradeScout",
+    "Compare TradeScout to real-estate listing and discovery platforms like Zillow, Realtor.com, Redfin, Trulia, and Homes.com for people browsing homes, listing property, and making local housing decisions.",
+  seoTitle: "Browse Homes and List Property | TradeScout vs. Real Estate Platforms",
   seoDescription:
-    "Compare TradeScout to Zillow, Realtor.com, Redfin, Trulia, and other real-estate platforms. See how community operating logic differs from listing-first discovery.",
+    "See how TradeScout helps users browse homes, list property, and manage local housing decisions with Scout, trust, and community context instead of listing-only discovery.",
   seoKeywords:
-    "tradescout vs zillow, tradescout vs realtor.com, redfin alternative, real estate platform alternative, community operating system real estate",
+    "browse homes on tradescout, list property on tradescout, tradescout vs zillow, tradescout vs realtor.com, redfin alternative, real estate platform alternative",
   canonical: "https://www.thetradescout.com/compare/real-estate",
   badgeLabel: "Real Estate Comparison",
   categoryName: "Real Estate Platforms",

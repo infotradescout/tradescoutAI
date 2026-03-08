@@ -3,12 +3,12 @@ import { CompareCategoryPage, type CompareCategoryConfig } from "./compareCatego
 const config: CompareCategoryConfig = {
   title: "TradeScout vs. Local Business Discovery Platforms",
   description:
-    "Compare TradeScout to local business discovery and review surfaces like Yelp, Google Business Profiles, and directory-style local search products.",
-  seoTitle: "TradeScout vs. Local Business Discovery Platforms | TradeScout",
+    "Compare TradeScout to local business discovery and review surfaces like Yelp, Google Business Profiles, and directory-style local search products people use to find nearby businesses.",
+  seoTitle: "Find Local Businesses | TradeScout vs. Discovery Platforms",
   seoDescription:
-    "Compare TradeScout to Yelp, Google Business Profiles, and local directories. See how governed local action differs from review-and-discovery platforms.",
+    "See how TradeScout helps users find local businesses, compare options, and take the next step through Scout instead of stopping at reviews, directories, and map listings.",
   seoKeywords:
-    "tradescout vs yelp, google business profile alternative, local directory alternative, business discovery platform alternative",
+    "find local businesses, local business platform, tradescout vs yelp, google business profile alternative, local directory alternative",
   canonical: "https://www.thetradescout.com/compare/local-business",
   badgeLabel: "Local Business Comparison",
   categoryName: "Local Business Discovery Platforms",

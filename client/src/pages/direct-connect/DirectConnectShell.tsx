@@ -37,7 +37,6 @@ import {
   Paperclip,
   ImagePlus,
   FolderKanban,
-  ArrowRight,
   Clock3,
 } from "lucide-react";
 
@@ -45,42 +44,12 @@ const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"]
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "Start Request",
-  board: "Open Board",
-  employment: "Employment",
-  inbox: "Incoming",
-  pros: "Pros",
-  engagements: "Your Requests",
-};
-
-type FlowMode = "start" | "manage";
-
-const FLOW_MODE_META: Record<
-  FlowMode,
-  {
-    title: string;
-    description: string;
-    target: Section;
-    sections: Section[];
-    icon: ReactNode;
-  }
-> = {
-  start: {
-    title: "Start a governed request",
-    description:
-      "Create a request with enough clarity that Scout can route it, providers can qualify it, and the board stays actionable.",
-    target: "post",
-    sections: ["post", "pros", "board", "employment"],
-    icon: <ClipboardPlus className="h-5 w-5" />,
-  },
-  manage: {
-    title: "Manage live requests",
-    description:
-      "Review what is open, what is getting routed, who has responded, and what next action is available without hunting through the portal.",
-    target: "engagements",
-    sections: ["engagements", "inbox"],
-    icon: <FolderKanban className="h-5 w-5" />,
-  },
+  post: "New Request",
+  board: "Local Requests",
+  employment: "Jobs",
+  inbox: "Replies",
+  pros: "Find Pros",
+  engagements: "My Requests",
 };
 
 const SECTION_META: Record<
@@ -93,44 +62,39 @@ const SECTION_META: Record<
   }
 > = {
   post: {
-    title: "Start a request",
-    description:
-      "Describe the job clearly, attach supporting photos, and post it to your governed request board.",
-    actionLabel: "Go to Your Requests",
+    title: "New request",
+    description: "Tell people what you need, add photos if you have them, and send your request.",
+    actionLabel: "View My Requests",
     actionTarget: "engagements",
   },
   board: {
-    title: "Open request board",
-    description:
-      "Browse open local requests when you want to see live demand and quick-turn opportunities.",
+    title: "Local requests",
+    description: "See open requests in your area.",
     actionLabel: "Start a request",
     actionTarget: "post",
   },
   employment: {
-    title: "Employment",
-    description: "Jobs + resumes. Contact stays intent-gated through Scout.",
+    title: "Jobs",
+    description: "Post a job or a resume and talk through Scout.",
     actionLabel: "Start a request",
     actionTarget: "post",
   },
   inbox: {
-    title: "Incoming responses",
-    description:
-      "Review request updates, invites, and accepted conversations in one governed queue.",
-    actionLabel: "View Your Requests",
+    title: "Replies",
+    description: "See updates, replies, and accepted conversations in one place.",
+    actionLabel: "View My Requests",
     actionTarget: "engagements",
   },
   pros: {
-    title: "Pro directory",
-    description:
-      "Browse local pros, then turn that interest into a governed request instead of jumping straight to contact.",
-    actionLabel: "Start request",
+    title: "Find pros",
+    description: "Look through local pros, then send a request when you're ready.",
+    actionLabel: "Start a request",
     actionTarget: "post",
   },
   engagements: {
-    title: "Your request board",
-    description:
-      "Track status, attachments, routing activity, and the next available action for every live request.",
-    actionLabel: "Open Incoming",
+    title: "My requests",
+    description: "Check status, photos, and next steps for your open requests.",
+    actionLabel: "Open Replies",
     actionTarget: "inbox",
   },
 };
@@ -169,10 +133,6 @@ function getSectionFromPath(path: string): Section {
 function buildHref(section: Section): string {
   if (section === "post") return "/direct-connect";
   return `/direct-connect/${section}`;
-}
-
-function getFlowMode(section: Section): FlowMode {
-  return section === "engagements" || section === "inbox" ? "manage" : "start";
 }
 
 function statusTone(status: string) {
@@ -425,7 +385,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     },
     onSuccess: () => {
       toast({
-        title: "Connection posted",
+        title: "Request sent",
         description: "Your request is live in Direct Connect.",
       });
       setTitle("");
@@ -454,7 +414,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       }
 
       toast({
-        title: "Could not post project",
+        title: "Could not send request",
         description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
@@ -490,7 +450,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
   return (
     <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Start request</CardTitle>
+        <CardTitle className="text-base">New request</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
@@ -500,17 +460,17 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-[color:var(--text-primary)]">
-                Give providers a clearer operating picture
+                Photos help people understand the job faster
               </p>
               <p className="text-xs text-[color:var(--text-secondary)]">
-                Add photos of the work area, damage, or materials so routing stays precise and
-                responses start from the right context.
+                Add photos of the space, damage, or materials so people know what they're looking at
+                before they reply.
               </p>
             </div>
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs text-[color:var(--text-secondary)]">Connection type</label>
+          <label className="text-xs text-[color:var(--text-secondary)]">Request type</label>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {(
               Object.entries(requestTypeMeta) as Array<
@@ -648,7 +608,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
             disabled={createMutation.isPending || !canSubmit}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
-            {createMutation.isPending ? "Posting..." : "Post to your request board"}
+            {createMutation.isPending ? "Sending..." : "Send request"}
           </Button>
         </div>
       </CardContent>
@@ -1207,12 +1167,12 @@ function MyDirectConnectRequests() {
                       {hasAccepted
                         ? "Continue the accepted conversation."
                         : canSend
-                          ? "Route this request to providers."
+                          ? "Send this request out to matching pros."
                           : canExpand
-                            ? "Expand reach if the first routing pass was too narrow."
+                            ? "Widen the search if the first round was too limited."
                             : status === "cancelled"
-                              ? "Reopen when you want Scout to start routing again."
-                              : "Review current status and wait for the next governed update."}
+                              ? "Reopen when you're ready to try again."
+                              : "Check the current status and wait for the next update."}
                     </p>
                   </div>
                   <Button
@@ -1387,7 +1347,6 @@ export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
-  const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
 
   const defaultCountyFips = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1428,8 +1387,10 @@ export default function DirectConnectShell() {
   );
 
   const sectionMeta = SECTION_META[activeSection];
-  const activeModeMeta = FLOW_MODE_META[activeFlowMode];
-  const activeModeSections = activeModeMeta.sections;
+  const activeModeSections =
+    activeSection === "engagements" || activeSection === "inbox"
+      ? (["engagements", "inbox"] as const)
+      : (["post", "pros", "board", "employment"] as const);
   const isPostComposer = activeSection === "post";
 
   let centerContent: ReactNode = null;
@@ -1466,8 +1427,7 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)] mt-1">
-              Start a governed request, then manage it from a request board that keeps status,
-              photos, and next actions in one place.
+              Start a request, see replies, and keep track of open work in one place.
             </p>
           </div>
 
@@ -1492,93 +1452,35 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {(
-            Object.entries(FLOW_MODE_META) as Array<[FlowMode, (typeof FLOW_MODE_META)[FlowMode]]>
-          ).map(([mode, meta]) => {
-            const active = mode === activeFlowMode;
+        <div className="flex flex-wrap gap-2">
+          {activeModeSections.map((section) => {
+            const active = section === activeSection;
+            const count = navCounts[section] ?? 0;
             return (
               <button
-                key={mode}
+                key={section}
                 type="button"
-                onClick={() => navigateSection(meta.target)}
+                onClick={() => navigateSection(section)}
                 className={cn(
-                  "rounded-3xl border p-4 text-left transition-all duration-300",
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors",
                   active
-                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
-                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] hover:border-[color:var(--theme-accent-primary)]/50"
+                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
+                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
                 )}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--theme-accent-primary)]">
-                      {meta.icon}
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
-                        {meta.title}
-                      </h2>
-                      <p className="mt-1 text-sm text-[color:var(--text-secondary)]">
-                        {meta.description}
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight className="mt-1 h-4 w-4 text-[color:var(--text-secondary)]" />
-                </div>
+                <span className="text-[color:var(--theme-accent-primary)]">
+                  {SECTION_ICONS[section]}
+                </span>
+                <span>{SECTION_LABELS[section]}</span>
+                {count > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {count}
+                  </Badge>
+                )}
               </button>
             );
           })}
         </div>
-
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="space-y-3 p-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                  {activeFlowMode === "start" ? "Start mode" : "Manage mode"}
-                </p>
-                <p className="mt-1 text-sm text-[color:var(--text-primary)]">
-                  {activeModeMeta.description}
-                </p>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-[color:var(--text-secondary)]">
-                <FolderKanban className="h-3.5 w-3.5" />
-                {activeFlowMode === "start"
-                  ? "Every posted request lands on Your Requests immediately."
-                  : "Manage mode keeps request state and response state together."}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {activeModeSections.map((section) => {
-                const active = section === activeSection;
-                const count = navCounts[section] ?? 0;
-                return (
-                  <button
-                    key={section}
-                    type="button"
-                    onClick={() => navigateSection(section)}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors",
-                      active
-                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
-                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                    )}
-                  >
-                    <span className="text-[color:var(--theme-accent-primary)]">
-                      {SECTION_ICONS[section]}
-                    </span>
-                    <span>{SECTION_LABELS[section]}</span>
-                    {count > 0 && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {count}
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
 
         <div className="min-w-0 space-y-4">
           <Card

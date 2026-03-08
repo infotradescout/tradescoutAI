@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 interface TradeDeal {
   id: string;
@@ -99,12 +100,282 @@ export default function TradeDealsLuckyPage() {
 
   const featuredDeals = deals.filter((d) => d.featured);
   const regularDeals = deals.filter((d) => !d.featured);
+  const seo = (
+    <SEOHelmet
+      title="TradeDeals | Discover Local Deals and Offers | TradeScout"
+      description="Discover local deals and offers on TradeScout. Explore featured promotions, track savings, and check back for new local opportunities as they go live."
+      keywords="tradescout deals, local deals, local offers, featured promotions, savings near me"
+      canonical="https://www.thetradescout.com/trade-deals"
+    />
+  );
 
   // Show empty state when no deals are available
   if (deals.length === 0) {
     return (
-      <div className="pb-24 py-12" style={{ backgroundColor: "var(--surface-base)" }}>
-        <div className="max-w-4xl mx-auto px-4 space-y-8">
+      <>
+        {seo}
+        <div className="pb-24 py-12" style={{ backgroundColor: "var(--surface-base)" }}>
+          <div className="max-w-4xl mx-auto px-4 space-y-8">
+            {/* Header */}
+            <div className="text-center space-y-3">
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border"
+                style={{
+                  backgroundColor: "var(--surface-card)",
+                  borderColor: "var(--border-subtle)",
+                }}
+              >
+                <Sparkles className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                >
+                  TradeDeals Feed
+                </span>
+              </div>
+              <h1
+                className="text-3xl md:text-4xl font-bold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                No active TradeDeals in this county
+              </h1>
+              <p
+                className="text-sm md:text-base max-w-2xl mx-auto"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Use Scout and Direct Connect to request supplier offers for active projects and
+                notify your county network.
+              </p>
+            </div>
+
+            {/* Empty State Illustration */}
+            <Card
+              className="border-2 border-dashed"
+              style={{
+                backgroundColor: "var(--surface-card)",
+                borderColor: "var(--border-subtle)",
+              }}
+            >
+              <CardContent className="p-12 text-center space-y-6">
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <PackageX className="h-24 w-24" style={{ color: "var(--text-tertiary)" }} />
+                    <Rocket
+                      className="h-8 w-8 absolute -top-2 -right-2"
+                      style={{ color: "var(--theme-accent-primary)" }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                    No TradeDeals Available Yet
+                  </h3>
+                  <p
+                    className="text-sm max-w-md mx-auto"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    We're building partnerships with quality suppliers and manufacturers. TradeDeals
+                    will start appearing here as our partner network grows.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* What to Expect */}
+            <div className="space-y-4">
+              <h2
+                className="text-xl font-semibold text-center"
+                style={{ color: "var(--text-primary)" }}
+              >
+                What to expect from TradeDeals
+              </h2>
+              <div className="grid md:grid-cols-3 gap-4">
+                <Card
+                  style={{
+                    backgroundColor: "var(--surface-card)",
+                    borderColor: "var(--border-subtle)",
+                  }}
+                >
+                  <CardContent className="p-6 space-y-3">
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor:
+                          "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
+                      }}
+                    >
+                      <Sparkles
+                        className="h-5 w-5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    </div>
+                    <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                      Exclusive Offers
+                    </h3>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      Deals available only through TradeScout - not found anywhere else online or in
+                      stores.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  style={{
+                    backgroundColor: "var(--surface-card)",
+                    borderColor: "var(--border-subtle)",
+                  }}
+                >
+                  <CardContent className="p-6 space-y-3">
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor:
+                          "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
+                      }}
+                    >
+                      <Star className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+                    </div>
+                    <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                      Verified Partners
+                    </h3>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      Every deal comes from vetted suppliers, manufacturers, and trusted local
+                      businesses.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  style={{
+                    backgroundColor: "var(--surface-card)",
+                    borderColor: "var(--border-subtle)",
+                  }}
+                >
+                  <CardContent className="p-6 space-y-3">
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor:
+                          "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
+                      }}
+                    >
+                      <DollarSign
+                        className="h-5 w-5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
+                    </div>
+                    <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                      Project-Based
+                    </h3>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      Deals matched to your active projects - materials and services when you
+                      actually need them.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* How It Works */}
+            <Card
+              style={{
+                backgroundColor: "var(--surface-card)",
+                borderColor: "var(--border-subtle)",
+              }}
+            >
+              <CardContent className="p-6 space-y-4">
+                <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  How TradeDeals will work
+                </h3>
+                <div className="space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  <div className="flex gap-3">
+                    <div
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{
+                        backgroundColor: "var(--theme-accent-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      1
+                    </div>
+                    <div>
+                      <strong style={{ color: "var(--text-primary)" }}>Scratch to reveal</strong> -
+                      Each deal appears as a scratcher card. Scratch it to see the discount and
+                      details.
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{
+                        backgroundColor: "var(--theme-accent-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      2
+                    </div>
+                    <div>
+                      <strong style={{ color: "var(--text-primary)" }}>Claim what you need</strong>{" "}
+                      - When you find a deal for your project, claim it to lock in the pricing.
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{
+                        backgroundColor: "var(--theme-accent-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      3
+                    </div>
+                    <div>
+                      <strong style={{ color: "var(--text-primary)" }}>Rate your experience</strong>{" "}
+                      - Help the community by rating deals after you use them.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* CTA */}
+            <div className="text-center space-y-4 pt-4">
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                In the meantime, use{" "}
+                <strong style={{ color: "var(--text-primary)" }}>Direct Connect</strong> to start
+                your project and <strong style={{ color: "var(--text-primary)" }}>Community</strong>{" "}
+                to get contractor recommendations.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={() => navigate("/direct-connect")}
+                  style={{
+                    backgroundColor: "var(--theme-accent-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Start a Project
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/community")}
+                  style={{ borderColor: "var(--border-active)", color: "var(--text-primary)" }}
+                >
+                  Browse Community
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {seo}
+      <div className="pb-24 py-6" style={{ backgroundColor: "var(--surface-base)" }}>
+        <div className="max-w-7xl mx-auto px-4 space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">
             <div
@@ -119,319 +390,121 @@ export default function TradeDealsLuckyPage() {
                 className="text-sm font-medium"
                 style={{ color: "var(--theme-accent-primary)" }}
               >
-                TradeDeals Feed
+                Lucky Bucks TradeDeals
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-              No active TradeDeals in this county
+              Scratch, Reveal & Save
             </h1>
             <p
               className="text-sm md:text-base max-w-2xl mx-auto"
               style={{ color: "var(--text-secondary)" }}
             >
-              Use Scout and Direct Connect to request supplier offers for active projects and notify
-              your county network.
+              Exclusive deals from trusted partners. Scratch to reveal your discount, claim what you
+              need, and rate your experience.
             </p>
           </div>
 
-          {/* Empty State Illustration */}
-          <Card
-            className="border-2 border-dashed"
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
-          >
-            <CardContent className="p-12 text-center space-y-6">
-              <div className="flex justify-center">
-                <div className="relative">
-                  <PackageX className="h-24 w-24" style={{ color: "var(--text-tertiary)" }} />
-                  <Rocket
-                    className="h-8 w-8 absolute -top-2 -right-2"
-                    style={{ color: "var(--theme-accent-primary)" }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                  No TradeDeals Available Yet
-                </h3>
-                <p className="text-sm max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
-                  We're building partnerships with quality suppliers and manufacturers. TradeDeals
-                  will start appearing here as our partner network grows.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* What to Expect */}
-          <div className="space-y-4">
-            <h2
-              className="text-xl font-semibold text-center"
-              style={{ color: "var(--text-primary)" }}
+          {/* Stats Bar */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card
+              style={{
+                backgroundColor: "var(--surface-card)",
+                borderColor: "var(--border-subtle)",
+              }}
             >
-              What to expect from TradeDeals
-            </h2>
-            <div className="grid md:grid-cols-3 gap-4">
-              <Card
-                style={{
-                  backgroundColor: "var(--surface-card)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <CardContent className="p-6 space-y-3">
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor:
-                        "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
-                    }}
-                  >
-                    <Sparkles
-                      className="h-5 w-5"
-                      style={{ color: "var(--theme-accent-primary)" }}
-                    />
-                  </div>
-                  <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                    Exclusive Offers
-                  </h3>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    Deals available only through TradeScout - not found anywhere else online or in
-                    stores.
-                  </p>
-                </CardContent>
-              </Card>
+              <CardContent className="p-4 text-center">
+                <div
+                  className="text-2xl font-bold"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                >
+                  {deals.length}
+                </div>
+                <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Active Deals
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              style={{
+                backgroundColor: "var(--surface-card)",
+                borderColor: "var(--border-subtle)",
+              }}
+            >
+              <CardContent className="p-4 text-center">
+                <div
+                  className="text-2xl font-bold"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                >
+                  {deals.reduce((sum, d) => sum + d.claimed, 0)}
+                </div>
+                <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Times Claimed
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              style={{
+                backgroundColor: "var(--surface-card)",
+                borderColor: "var(--border-subtle)",
+              }}
+            >
+              <CardContent className="p-4 text-center">
+                <div
+                  className="text-2xl font-bold"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                >
+                  $
+                  {deals
+                    .reduce((sum, d) => {
+                      const savings =
+                        parseFloat(d.originalPrice?.replace(/[^0-9.]/g, "") || "0") -
+                        parseFloat(d.discountedPrice?.replace(/[^0-9.]/g, "") || "0");
+                      return sum + savings * d.claimed;
+                    }, 0)
+                    .toFixed(0)}
+                </div>
+                <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Total Saved
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              <Card
-                style={{
-                  backgroundColor: "var(--surface-card)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <CardContent className="p-6 space-y-3">
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor:
-                        "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
-                    }}
-                  >
-                    <Star className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
-                  </div>
-                  <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                    Verified Partners
-                  </h3>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    Every deal comes from vetted suppliers, manufacturers, and trusted local
-                    businesses.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card
-                style={{
-                  backgroundColor: "var(--surface-card)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <CardContent className="p-6 space-y-3">
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor:
-                        "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
-                    }}
-                  >
-                    <DollarSign
-                      className="h-5 w-5"
-                      style={{ color: "var(--theme-accent-primary)" }}
-                    />
-                  </div>
-                  <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                    Project-Based
-                  </h3>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    Deals matched to your active projects - materials and services when you actually
-                    need them.
-                  </p>
-                </CardContent>
-              </Card>
+          {/* Featured Deals */}
+          {featuredDeals.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+                <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Featured Deals
+                </h2>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {featuredDeals.map((deal) => (
+                  <DealCard
+                    key={deal.id}
+                    deal={deal}
+                    onScratch={handleScratch}
+                    onClaim={handleClaimDeal}
+                    onRate={handleRateDeal}
+                    onSelect={setSelectedDeal}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* How It Works */}
-          <Card
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
-          >
-            <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                How TradeDeals will work
-              </h3>
-              <div className="space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-                <div className="flex gap-3">
-                  <div
-                    className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
-                    style={{
-                      backgroundColor: "var(--theme-accent-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    1
-                  </div>
-                  <div>
-                    <strong style={{ color: "var(--text-primary)" }}>Scratch to reveal</strong> -
-                    Each deal appears as a scratcher card. Scratch it to see the discount and
-                    details.
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div
-                    className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
-                    style={{
-                      backgroundColor: "var(--theme-accent-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    2
-                  </div>
-                  <div>
-                    <strong style={{ color: "var(--text-primary)" }}>Claim what you need</strong> -
-                    When you find a deal for your project, claim it to lock in the pricing.
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div
-                    className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
-                    style={{
-                      backgroundColor: "var(--theme-accent-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    3
-                  </div>
-                  <div>
-                    <strong style={{ color: "var(--text-primary)" }}>Rate your experience</strong> -
-                    Help the community by rating deals after you use them.
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* CTA */}
-          <div className="text-center space-y-4 pt-4">
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              In the meantime, use{" "}
-              <strong style={{ color: "var(--text-primary)" }}>Direct Connect</strong> to start your
-              project and <strong style={{ color: "var(--text-primary)" }}>Community</strong> to get
-              contractor recommendations.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button
-                onClick={() => navigate("/direct-connect")}
-                style={{
-                  backgroundColor: "var(--theme-accent-primary)",
-                  color: "var(--text-primary)",
-                }}
-              >
-                Start a Project
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/community")}
-                style={{ borderColor: "var(--border-active)", color: "var(--text-primary)" }}
-              >
-                Browse Community
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pb-24 py-6" style={{ backgroundColor: "var(--surface-base)" }}>
-      <div className="max-w-7xl mx-auto px-4 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border"
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
-          >
-            <Sparkles className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
-            <span className="text-sm font-medium" style={{ color: "var(--theme-accent-primary)" }}>
-              Lucky Bucks TradeDeals
-            </span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Scratch, Reveal & Save
-          </h1>
-          <p
-            className="text-sm md:text-base max-w-2xl mx-auto"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Exclusive deals from trusted partners. Scratch to reveal your discount, claim what you
-            need, and rate your experience.
-          </p>
-        </div>
-
-        {/* Stats Bar */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
-          >
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold" style={{ color: "var(--theme-accent-primary)" }}>
-                {deals.length}
-              </div>
-              <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                Active Deals
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
-          >
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold" style={{ color: "var(--theme-accent-primary)" }}>
-                {deals.reduce((sum, d) => sum + d.claimed, 0)}
-              </div>
-              <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                Times Claimed
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-subtle)" }}
-          >
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold" style={{ color: "var(--theme-accent-primary)" }}>
-                $
-                {deals
-                  .reduce((sum, d) => {
-                    const savings =
-                      parseFloat(d.originalPrice?.replace(/[^0-9.]/g, "") || "0") -
-                      parseFloat(d.discountedPrice?.replace(/[^0-9.]/g, "") || "0");
-                    return sum + savings * d.claimed;
-                  }, 0)
-                  .toFixed(0)}
-              </div>
-              <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                Total Saved
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Featured Deals */}
-        {featuredDeals.length > 0 && (
+          {/* Regular Deals */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+              <Sparkles className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
               <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                Featured Deals
+                All Deals
               </h2>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {featuredDeals.map((deal) => (
+              {regularDeals.map((deal) => (
                 <DealCard
                   key={deal.id}
                   deal={deal}
@@ -443,117 +516,98 @@ export default function TradeDealsLuckyPage() {
               ))}
             </div>
           </div>
-        )}
-
-        {/* Regular Deals */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
-            <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              All Deals
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {regularDeals.map((deal) => (
-              <DealCard
-                key={deal.id}
-                deal={deal}
-                onScratch={handleScratch}
-                onClaim={handleClaimDeal}
-                onRate={handleRateDeal}
-                onSelect={setSelectedDeal}
-              />
-            ))}
-          </div>
         </div>
-      </div>
 
-      {/* Deal Detail Modal */}
-      {selectedDeal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-          onClick={() => setSelectedDeal(null)}
-        >
-          <Card
-            className="max-w-lg w-full"
-            style={{ backgroundColor: "var(--surface-card)", borderColor: "var(--border-active)" }}
-            onClick={(e) => e.stopPropagation()}
+        {/* Deal Detail Modal */}
+        {selectedDeal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
+            onClick={() => setSelectedDeal(null)}
           >
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    {selectedDeal.title}
-                  </h3>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {selectedDeal.brand}
-                  </p>
-                </div>
-                <Badge
-                  className="text-lg font-bold px-3 py-1"
-                  style={{
-                    backgroundColor: "var(--theme-accent-primary)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {selectedDeal.discount}
-                </Badge>
-              </div>
-
-              <p style={{ color: "var(--text-secondary)" }}>{selectedDeal.description}</p>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div style={{ color: "var(--text-secondary)" }}>Original Price</div>
-                  <div
-                    className="text-lg font-semibold line-through"
-                    style={{ color: "var(--text-tertiary)" }}
+            <Card
+              className="max-w-lg w-full"
+              style={{
+                backgroundColor: "var(--surface-card)",
+                borderColor: "var(--border-active)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+                      {selectedDeal.title}
+                    </h3>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      {selectedDeal.brand}
+                    </p>
+                  </div>
+                  <Badge
+                    className="text-lg font-bold px-3 py-1"
+                    style={{
+                      backgroundColor: "var(--theme-accent-primary)",
+                      color: "var(--text-primary)",
+                    }}
                   >
-                    {selectedDeal.originalPrice}
+                    {selectedDeal.discount}
+                  </Badge>
+                </div>
+
+                <p style={{ color: "var(--text-secondary)" }}>{selectedDeal.description}</p>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div style={{ color: "var(--text-secondary)" }}>Original Price</div>
+                    <div
+                      className="text-lg font-semibold line-through"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {selectedDeal.originalPrice}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: "var(--text-secondary)" }}>Deal Price</div>
+                    <div
+                      className="text-lg font-semibold"
+                      style={{ color: "var(--theme-accent-primary)" }}
+                    >
+                      {selectedDeal.discountedPrice}
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div style={{ color: "var(--text-secondary)" }}>Deal Price</div>
-                  <div
-                    className="text-lg font-semibold"
-                    style={{ color: "var(--theme-accent-primary)" }}
-                  >
-                    {selectedDeal.discountedPrice}
+
+                <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    <span>{selectedDeal.location}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>Expires in {selectedDeal.expiresIn}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span>{selectedDeal.location}</span>
+                <div className="pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={() => handleClaimDeal(selectedDeal)}
+                    style={{
+                      backgroundColor: "var(--theme-accent-primary)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    Claim This Deal
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>Expires in {selectedDeal.expiresIn}</span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t" style={{ borderColor: "var(--border-subtle)" }}>
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={() => handleClaimDeal(selectedDeal)}
-                  style={{
-                    backgroundColor: "var(--theme-accent-primary)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  Claim This Deal
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

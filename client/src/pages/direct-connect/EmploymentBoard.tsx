@@ -226,8 +226,8 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
 
   const headerCopy =
     active === "job"
-      ? "Post and browse employment opportunities. No spam: contact stays intent-gated through Scout."
-      : "Post and browse people looking for work. No spam: contact stays intent-gated through Scout.";
+      ? "Post jobs, browse openings, and talk through Scout."
+      : "Post resumes, browse candidates, and talk through Scout.";
 
   return (
     <div className="space-y-4">
@@ -245,8 +245,8 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               <div className="text-sm text-[color:var(--text-secondary)]">{headerCopy}</div>
               {!viewerVerified && (
                 <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                  Unverified members can browse and post, but cannot initiate contact. Verify your
-                  identity + address to use Ask Scout.
+                  You can browse and post now, but you need to verify your identity and address
+                  before you can start a conversation.
                   <Button
                     size="sm"
                     className="ml-2 h-7 bg-amber-400/90 px-2 text-[11px] font-semibold text-black hover:bg-amber-400"
@@ -412,7 +412,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 }
               />
               <div className="text-xs text-[color:var(--text-muted)]">
-                Don’t include phone/email. Contact stays intent-gated through Scout.
+                Leave out phone numbers and email. People can reply through Scout.
               </div>
             </div>
 
