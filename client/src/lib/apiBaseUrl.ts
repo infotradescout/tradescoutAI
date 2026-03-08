@@ -28,8 +28,12 @@ export function getApiBaseUrl(): string {
       return "";
     }
 
-    // Keep auth/session same-origin between apex and www.
+    // If the frontend is on apex but API is configured on www (or vice versa),
+    // honor the configured API origin so /api requests never hit the wrong host.
     if (isPrimaryTradeScoutHost(configuredHost) && isPrimaryTradeScoutHost(currentHost)) {
+      if (configuredHost !== currentHost) {
+        return configuredApiBaseUrl;
+      }
       return "";
     }
 
