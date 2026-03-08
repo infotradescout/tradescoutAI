@@ -45,6 +45,37 @@ const MAPS_V1_ENABLED =
 const SCRIPT_ID = "ts-google-maps-v1-script";
 const GOOGLE_MAPS_AUTH_FAILURE_EVENT = "ts:google-maps-auth-failure";
 
+function buildNormalizedBbox(bounds: any): string | null {
+  if (!bounds) return null;
+
+  const sw = bounds.getSouthWest?.();
+  const ne = bounds.getNorthEast?.();
+  if (!sw || !ne) return null;
+
+  const swLng = Number(sw.lng?.());
+  const swLat = Number(sw.lat?.());
+  const neLng = Number(ne.lng?.());
+  const neLat = Number(ne.lat?.());
+
+  if (![swLng, swLat, neLng, neLat].every(Number.isFinite)) return null;
+  if (swLat < -90 || neLat > 90 || swLat >= neLat) return null;
+
+  let minLng = swLng;
+  let maxLng = neLng;
+
+  // Google Maps can report wrapped bounds where west > east when the viewport
+  // crosses the antimeridian or briefly initializes in a wrapped state.
+  // The API expects minLng < maxLng, so widen to the full world span instead.
+  if (minLng >= maxLng) {
+    minLng = -180;
+    maxLng = 180;
+  }
+
+  if (minLng < -180 || maxLng > 180 || minLng >= maxLng) return null;
+
+  return [minLng, swLat, maxLng, neLat].map((value) => value.toFixed(6)).join(",");
+}
+
 function buildPublicConfigCandidates(): string[] {
   const cacheBust = `?_=${Date.now()}`;
   const candidates = [`/api/public-config${cacheBust}`];
@@ -247,10 +278,11 @@ export default function MapsPage() {
 
     const updateBbox = () => {
       const bounds = map.getBounds();
-      if (!bounds) return;
-      const sw = bounds.getSouthWest();
-      const ne = bounds.getNorthEast();
-      const next = [sw.lng(), sw.lat(), ne.lng(), ne.lat()].map((v) => v.toFixed(6)).join(",");
+      const next = buildNormalizedBbox(bounds);
+      if (!next) {
+        setBbox("");
+        return;
+      }
       setBbox((prev) => (prev === next ? prev : next));
     };
 
