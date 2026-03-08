@@ -2603,6 +2603,45 @@ export async function registerRoutes(app: any) {
         return;
       }
 
+      const mergeSessionAuthority = (baseUser: any) => {
+        const authUser = (req.user || {}) as any;
+        if (!baseUser || !authUser) return baseUser;
+
+        const normalizeRoleToken = (value: unknown): string => {
+          const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+          if (!raw) return "";
+          return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
+        };
+
+        const mergedRoles = Array.from(
+          new Set(
+            [
+              ...(Array.isArray(baseUser?.roles) ? baseUser.roles : []),
+              ...(Array.isArray(authUser?.roles) ? authUser.roles : []),
+              baseUser?.role,
+              baseUser?.activeRole,
+              authUser?.role,
+              authUser?.activeRole,
+            ]
+              .map((role) => normalizeRoleToken(role))
+              .filter(Boolean)
+          )
+        );
+
+        const hasAdminRole = mergedRoles.some((role) =>
+          ["super_admin", "ops_admin", "moderator"].includes(role)
+        );
+        const hasSuperAdminRole = mergedRoles.includes("super_admin");
+
+        return {
+          ...baseUser,
+          roles: mergedRoles,
+          isAdmin: baseUser?.isAdmin === true || authUser?.isAdmin === true || hasAdminRole,
+          isSuperAdmin:
+            baseUser?.isSuperAdmin === true || authUser?.isSuperAdmin === true || hasSuperAdminRole,
+        };
+      };
+
       // Resolve the current super admin support account for session-level support paths.
       // Do not create contact edges here; governed contact must remain gated.
       try {
@@ -2648,7 +2687,7 @@ export async function registerRoutes(app: any) {
             const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
             res.json({
               authenticated: true,
-              user: sanitizeUserForResponse(applyImpersonation(updated)),
+              user: sanitizeUserForResponse(mergeSessionAuthority(applyImpersonation(updated))),
             });
             return;
           }
@@ -2668,7 +2707,7 @@ export async function registerRoutes(app: any) {
             const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
             res.json({
               authenticated: true,
-              user: sanitizeUserForResponse(applyImpersonation(updated)),
+              user: sanitizeUserForResponse(mergeSessionAuthority(applyImpersonation(updated))),
             });
             return;
           }
@@ -2677,7 +2716,7 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      const finalUser = sanitizeUserForResponse(applyImpersonation(user));
+      const finalUser = sanitizeUserForResponse(mergeSessionAuthority(applyImpersonation(user)));
       // Graduate pilot: community-first experience is now default for all authenticated users.
       const communityFirst = true;
 

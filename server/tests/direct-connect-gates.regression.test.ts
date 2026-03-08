@@ -173,12 +173,12 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("buildRequestAttachmentUrl");
   });
 
-  it("does not auto-create accepted super-admin contact permissions", () => {
+  it("keeps the explicit super-admin platform-support auto-link path", () => {
     const helperFile = readRepoFile("server/utils/superAdminConnection.ts");
 
-    expect(helperFile).toContain('reason: "contact_gated"');
-    expect(helperFile).not.toContain("contactPermissions");
-    expect(helperFile).not.toContain('status: "accepted"');
-    expect(helperFile).not.toContain("user_follows");
+    expect(helperFile).toContain("insert into user_follows");
+    expect(helperFile).toContain("contact_permissions");
+    expect(helperFile).toContain("system_super_admin_auto_connection");
+    expect(helperFile).toContain("platform_support");
   });
 });
