@@ -259,20 +259,6 @@ export function RightToolsPanel({
             Shortcuts
           </div>
           <div className="space-y-2">
-            {!isAuthenticated && (
-              <NavLink
-                href="/scout"
-                icon={
-                  <ClipboardList
-                    className="h-3.5 w-3.5"
-                    style={{ color: "var(--theme-accent-primary)" }}
-                  />
-                }
-                label="Scout"
-                description="Ask questions, get help, and see your dashboard."
-                onNavigate={handleNavigate}
-              />
-            )}
             <NavLink
               href="/finances"
               icon={
