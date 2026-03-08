@@ -7,7 +7,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-import { getGeminiModelName } from "./ai/modelConfig";
+import { generateGeminiTextWithFallback } from "./ai/geminiFallback";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
 import { contractorSignupRouter } from "./routes/contractor-signup";
@@ -11785,11 +11785,7 @@ export async function registerRoutes(app: any) {
 
       const { GoogleGenerativeAI } = await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = getGeminiModelName();
-      const model = genAI.getGenerativeModel({ model: modelName });
-
-      const result = await model.generateContent(prompt);
-      const text = result?.response?.text?.() || "";
+      const { text } = await generateGeminiTextWithFallback(genAI, prompt);
 
       return res.json({ text });
     } catch (error: any) {

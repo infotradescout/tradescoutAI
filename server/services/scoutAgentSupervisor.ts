@@ -11,7 +11,7 @@
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getGeminiModelName } from "../ai/modelConfig";
+import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 
 /**
  * Agent types and their specialties
@@ -51,13 +51,13 @@ export interface DelegationDecision {
  */
 export class ScoutAgentSupervisor {
   private geminiKey: string;
-  private model: any;
+  private gemini: GoogleGenerativeAI | null;
 
   constructor() {
     this.geminiKey = process.env.GEMINI_API_KEY || "";
+    this.gemini = null;
     if (this.geminiKey) {
-      const gemini = new GoogleGenerativeAI(this.geminiKey);
-      this.model = gemini.getGenerativeModel({ model: getGeminiModelName() });
+      this.gemini = new GoogleGenerativeAI(this.geminiKey);
     }
   }
 
@@ -84,8 +84,13 @@ Respond with JSON:
 }`;
 
     try {
-      const result = await this.model.generateContent(analysisPrompt);
-      const responseText = result.response.text();
+      if (!this.gemini) {
+        throw new Error("Gemini API is not configured");
+      }
+      const { text: responseText } = await generateGeminiTextWithFallback(
+        this.gemini,
+        analysisPrompt
+      );
       const parsed = JSON.parse(responseText);
 
       return {
@@ -133,8 +138,10 @@ ${contextString}
 Provide your expert analysis and recommendations in JSON format.`;
 
     try {
-      const result = await this.model.generateContent(fullPrompt);
-      const responseText = result.response.text();
+      if (!this.gemini) {
+        throw new Error("Gemini API is not configured");
+      }
+      const { text: responseText } = await generateGeminiTextWithFallback(this.gemini, fullPrompt);
       const parsed = JSON.parse(responseText);
 
       return {
@@ -218,8 +225,13 @@ Respond with JSON:
 }`;
 
     try {
-      const result = await this.model.generateContent(synthesisPrompt);
-      const responseText = result.response.text();
+      if (!this.gemini) {
+        throw new Error("Gemini API is not configured");
+      }
+      const { text: responseText } = await generateGeminiTextWithFallback(
+        this.gemini,
+        synthesisPrompt
+      );
       return JSON.parse(responseText);
     } catch (error) {
       console.error("[Scout Supervisor] Synthesis error:", error);
