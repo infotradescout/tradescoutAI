@@ -173,7 +173,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     onSuccess: () => {
       toast({
         title: active === "job" ? "Job posted" : "Resume posted",
-        description: "People can browse it, but contact stays Scout-gated.",
+        description: "People can read it, but replies still go through Scout.",
       });
       setPostOpen(false);
       setTitle("");
@@ -237,7 +237,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
             <div className="space-y-1">
               <div className="inline-flex items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
                 <Sparkles className="h-4 w-4" />
-                County-scoped board{" "}
+                Local board{" "}
                 <span className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]">
                   {selectedCountyFips || "County not set"}
                 </span>
@@ -386,8 +386,8 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
           <div className="grid gap-3">
             {!viewerVerified && (
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                This post will be marked <span className="font-semibold">Unverified</span> until you
-                verify your address.
+                This post will be marked <span className="font-semibold">Not verified</span> until
+                you verify your address.
               </div>
             )}
             <div className="grid gap-2">
@@ -554,7 +554,9 @@ function PostList({
                       {post.title}
                     </div>
                     {closed && <Badge variant="secondary">Closed</Badge>}
-                    {post.posterVerified === false && <Badge variant="secondary">Unverified</Badge>}
+                    {post.posterVerified === false && (
+                      <Badge variant="secondary">Not verified</Badge>
+                    )}
                     {post.posterVerified === true && <Badge variant="outline">Verified</Badge>}
                     {post.tradeId && <Badge variant="outline">{post.tradeId}</Badge>}
                     {pay && <Badge variant="outline">{pay}</Badge>}
@@ -572,11 +574,11 @@ function PostList({
                     onClick={() => onAskScout(post)}
                     title={
                       viewerVerified
-                        ? "Ask Scout"
-                        : "Verify your address to initiate contact (browse is allowed)."
+                        ? "Reply in Scout"
+                        : "Verify your address before you can reply."
                     }
                   >
-                    Ask Scout
+                    Reply in Scout
                   </Button>
                   {canClose && post.isOwner && !closed && (
                     <Button size="sm" variant="ghost" onClick={() => onClose(post.id)}>

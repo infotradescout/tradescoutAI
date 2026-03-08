@@ -293,37 +293,38 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     }
   > = {
     service_request: {
-      label: "Hire provider",
+      label: "Hire someone",
       category: "service_request",
-      titlePlaceholder: "Need a provider for...",
-      descriptionPlaceholder: "What needs to be done, timeline, and requirements.",
+      titlePlaceholder: "I need help with...",
+      descriptionPlaceholder:
+        "What needs to be done, when you need it, and anything important to know.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "500",
       budgetPlaceholderMax: "2500",
     },
     business_request: {
-      label: "Hire business partner",
+      label: "Find a business",
       category: "business_request",
-      titlePlaceholder: "Need another business for...",
-      descriptionPlaceholder: "Scope, timing, and business requirements.",
+      titlePlaceholder: "Looking for a business to help with...",
+      descriptionPlaceholder: "What you need, when you need it, and any business requirements.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "300",
       budgetPlaceholderMax: "5000",
     },
     customer_support: {
-      label: "Customer handoff",
+      label: "Help a customer",
       category: "customer_support",
-      titlePlaceholder: "Need help for a customer with...",
-      descriptionPlaceholder: "Customer need, location context, and urgency.",
+      titlePlaceholder: "A customer needs help with...",
+      descriptionPlaceholder: "Explain the issue, where it is, and how urgent it is.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
       budgetPlaceholderMax: "1500",
     },
     employment: {
-      label: "Employment",
+      label: "Jobs",
       category: "employment",
       titlePlaceholder: "Hiring for role / contract...",
       descriptionPlaceholder: "Role, schedule, skills needed, and start date.",
@@ -333,10 +334,10 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       budgetPlaceholderMax: "35",
     },
     buy_sell: {
-      label: "Buy / sell / source",
+      label: "Buy or sell",
       category: "buy_sell",
-      titlePlaceholder: "Need source for materials...",
-      descriptionPlaceholder: "What item/material, quantity, and deadline?",
+      titlePlaceholder: "Looking to buy or sell...",
+      descriptionPlaceholder: "What item or material do you need, how much, and by when?",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
@@ -346,7 +347,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       label: "Other",
       category: "other",
       titlePlaceholder: "What do you need help with?",
-      descriptionPlaceholder: "Add details so Scout can route this correctly.",
+      descriptionPlaceholder: "Add enough detail so the right people can understand the request.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
@@ -386,7 +387,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     onSuccess: () => {
       toast({
         title: "Request sent",
-        description: "Your request is live in Direct Connect.",
+        description: "Your request is live.",
       });
       setTitle("");
       setDescription("");
@@ -405,8 +406,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       if (isVerificationGate) {
         toast({
           title: "Address verification required",
-          description:
-            error?.message || "Complete verification before posting Direct Connect requests.",
+          description: error?.message || "Finish verification before sending a request.",
           variant: "destructive",
         });
         navigate("/verification");
@@ -733,7 +733,7 @@ function DirectConnectInbox() {
     queryKey: ["/api/direct-connect/inbox"],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/inbox");
-      if (!res.ok) throw new Error("Failed to load Direct Connect inbox");
+      if (!res.ok) throw new Error("Failed to load replies");
       return res.json();
     },
     enabled: isAuthenticated,
@@ -860,13 +860,13 @@ function DirectConnectInbox() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                    {canRespond ? "Incoming match" : "Tracked request"}
+                    {canRespond ? "New reply" : "Saved request"}
                   </p>
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
-                    {request?.title || "Direct Connect opportunity"}
+                    {request?.title || "New opportunity"}
                   </h3>
                   <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
-                    {request?.description || "Connection request."}
+                    {request?.description || "Request details."}
                   </p>
                 </div>
                 <Badge
@@ -904,12 +904,10 @@ function DirectConnectInbox() {
               {isExpanded && (
                 <div className="space-y-1 text-[11px] text-[color:var(--text-secondary)] md:hidden">
                   {createdAt && (
-                    <div>
-                      Routed {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
-                    </div>
+                    <div>Sent {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</div>
                   )}
                   {typeof snapshot?.score === "number" && (
-                    <div>Score {Math.round(snapshot.score)}</div>
+                    <div>Fit score {Math.round(snapshot.score)}</div>
                   )}
                   {typeof snapshot?.distanceMiles === "number" && (
                     <div>{snapshot.distanceMiles.toFixed(1)} mi away</div>
@@ -964,7 +962,7 @@ function MyDirectConnectRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Request routed successfully" });
+      toast({ title: "Request sent out" });
     },
   });
 
@@ -974,7 +972,7 @@ function MyDirectConnectRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Reach expanded" });
+      toast({ title: "Search widened" });
     },
   });
 
@@ -984,7 +982,7 @@ function MyDirectConnectRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Request cancelled" });
+      toast({ title: "Request canceled" });
     },
   });
 
@@ -1031,7 +1029,7 @@ function MyDirectConnectRequests() {
               No requests in this view
             </p>
             <p className="text-sm text-[color:var(--text-secondary)]">
-              Start a request and it will land here with status, photos, and next-step controls.
+              Start a request and it will show up here with updates, photos, and next steps.
             </p>
           </div>
           <div className="flex justify-center">
@@ -1205,7 +1203,7 @@ function MyDirectConnectRequests() {
                 <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      Board state
+                      Status
                     </p>
                     <p className="mt-1 text-[color:var(--text-primary)]">{interpreted.state}</p>
                   </div>
@@ -1214,9 +1212,7 @@ function MyDirectConnectRequests() {
                       Messages
                     </p>
                     <p className="mt-1 text-[color:var(--text-primary)]">
-                      {hasAccepted
-                        ? "Unlocked for accepted coordination"
-                        : "Locked until a provider accepts"}
+                      {hasAccepted ? "Ready to message" : "Available after someone accepts"}
                     </p>
                   </div>
                 </div>
@@ -1244,7 +1240,7 @@ function MyDirectConnectRequests() {
                   disabled={!canSend || routeMutation.isPending}
                   onClick={() => routeMutation.mutate(r.id)}
                 >
-                  Route
+                  Send out
                 </Button>
                 <Button
                   size="sm"
@@ -1253,7 +1249,7 @@ function MyDirectConnectRequests() {
                   disabled={!canExpand || expandMutation.isPending}
                   onClick={() => expandMutation.mutate(r.id)}
                 >
-                  Expand reach
+                  Widen search
                 </Button>
                 <Button
                   size="sm"
@@ -1293,7 +1289,7 @@ function MyDirectConnectRequests() {
                     disabled={!hasAccepted}
                   >
                     <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                    Msg
+                    Message
                   </Button>
                   <Button
                     size="sm"
@@ -1301,7 +1297,7 @@ function MyDirectConnectRequests() {
                     disabled={!canSend || routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
-                    Route
+                    Send out
                   </Button>
                   <Button
                     size="sm"
@@ -1310,7 +1306,7 @@ function MyDirectConnectRequests() {
                     disabled={!canExpand || expandMutation.isPending}
                     onClick={() => expandMutation.mutate(r.id)}
                   >
-                    Expand
+                    Widen
                   </Button>
                   <Button
                     size="sm"
