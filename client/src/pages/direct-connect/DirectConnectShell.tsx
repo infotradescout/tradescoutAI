@@ -443,7 +443,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       budgetPlaceholderMax: "5000",
     },
     customer_support: {
-      label: "Help a customer",
+      label: "Hire for someone else",
       category: "customer_support",
       titlePlaceholder: "A customer needs help with...",
       descriptionPlaceholder: "Explain the issue, where it is, and how urgent it is.",
