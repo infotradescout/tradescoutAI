@@ -47,9 +47,9 @@ const SECTION_LABELS: Record<Section, string> = {
   post: "New Request",
   board: "Local Requests",
   employment: "Jobs",
-  inbox: "Replies",
+  inbox: "Pros Responding",
   pros: "Find Pros",
-  engagements: "My Requests",
+  engagements: "Request Tracker",
 };
 
 const SECTION_META: Record<
@@ -80,9 +80,9 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   inbox: {
-    title: "Replies",
-    description: "See updates, replies, and accepted conversations in one place.",
-    actionLabel: "View My Requests",
+    title: "Pros responding",
+    description: "Review who has responded and move accepted work into conversation.",
+    actionLabel: "View request tracker",
     actionTarget: "engagements",
   },
   pros: {
@@ -92,9 +92,9 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   engagements: {
-    title: "My requests",
+    title: "Request tracker",
     description:
-      "See whether a request is ready to send, waiting on pros, or already in conversation.",
+      "See what still needs your action, what is already out with pros, and what is in conversation.",
     actionLabel: "View replies",
     actionTarget: "inbox",
   },
@@ -280,6 +280,13 @@ function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilt
   if (filter === "in_progress") return stage === "active_conversation";
   if (filter === "completed") return stage === "completed";
   return stage === "cancelled";
+}
+
+function countRequestsByStage(
+  requests: DirectConnectRequest[] | undefined,
+  stage: RequestWorkflowStage
+): number {
+  return (requests || []).filter((request) => getRequestWorkflowStage(request) === stage).length;
 }
 
 type DraftAttachment = {
@@ -1502,12 +1509,20 @@ export default function DirectConnectShell() {
     }),
     [inboxData, requestsData]
   );
+  const requestSummary = useMemo(
+    () => ({
+      readyToSend: countRequestsByStage(requestsData, "ready_to_send"),
+      waitingOnPros: countRequestsByStage(requestsData, "waiting_on_pros"),
+      inConversation: countRequestsByStage(requestsData, "active_conversation"),
+    }),
+    [requestsData]
+  );
 
   const sectionMeta = SECTION_META[activeSection];
-  const activeModeSections =
-    activeSection === "engagements" || activeSection === "inbox"
-      ? (["engagements", "inbox"] as const)
-      : (["post", "pros", "board", "employment"] as const);
+  const isManageMode = activeSection === "engagements" || activeSection === "inbox";
+  const activeModeSections = isManageMode
+    ? (["engagements", "inbox"] as const)
+    : (["post", "pros", "board", "employment"] as const);
   const isPostComposer = activeSection === "post";
 
   let centerContent: ReactNode = null;
@@ -1544,7 +1559,9 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)] mt-1">
-              Start a request, see replies, and keep track of open work in one place.
+              {isManageMode
+                ? "Follow one governed path: send a request, wait for responses, then move accepted work into conversation."
+                : "Start a request, choose the right path, and keep local work moving through Scout."}
             </p>
           </div>
 
@@ -1552,20 +1569,48 @@ export default function DirectConnectShell() {
           <div
             className={cn("flex flex-wrap gap-2", activeSection === "post" ? "hidden sm:flex" : "")}
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
-              <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-              <span className="text-[color:var(--text-secondary)]">Inbox</span>
-              <span className="font-semibold text-[color:var(--text-primary)]">
-                {navCounts.inbox || 0}
-              </span>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
-              <TrendingUp className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-              <span className="text-[color:var(--text-secondary)]">Active</span>
-              <span className="font-semibold text-[color:var(--text-primary)]">
-                {navCounts.engagements || 0}
-              </span>
-            </div>
+            {isManageMode ? (
+              <>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                  <Zap className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+                  <span className="text-[color:var(--text-secondary)]">Ready to send</span>
+                  <span className="font-semibold text-[color:var(--text-primary)]">
+                    {requestSummary.readyToSend}
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                  <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+                  <span className="text-[color:var(--text-secondary)]">Waiting on pros</span>
+                  <span className="font-semibold text-[color:var(--text-primary)]">
+                    {requestSummary.waitingOnPros}
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                  <MessageCircle className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+                  <span className="text-[color:var(--text-secondary)]">In conversation</span>
+                  <span className="font-semibold text-[color:var(--text-primary)]">
+                    {requestSummary.inConversation}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                  <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+                  <span className="text-[color:var(--text-secondary)]">Pros responding</span>
+                  <span className="font-semibold text-[color:var(--text-primary)]">
+                    {navCounts.inbox || 0}
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                  <TrendingUp className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+                  <span className="text-[color:var(--text-secondary)]">Open requests</span>
+                  <span className="font-semibold text-[color:var(--text-primary)]">
+                    {navCounts.engagements || 0}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

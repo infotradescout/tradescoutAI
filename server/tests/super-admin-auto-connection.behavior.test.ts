@@ -1,13 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { selectResultMock, executeMock, insertMock, valuesMock, onConflictDoUpdateMock } =
-  vi.hoisted(() => ({
-    selectResultMock: vi.fn(),
-    executeMock: vi.fn(),
-    insertMock: vi.fn(),
-    valuesMock: vi.fn(),
-    onConflictDoUpdateMock: vi.fn(),
-  }));
+const { selectResultMock, executeMock, insertMock } = vi.hoisted(() => ({
+  selectResultMock: vi.fn(),
+  executeMock: vi.fn(),
+  insertMock: vi.fn(),
+}));
 
 vi.mock("../db", () => ({
   db: {
@@ -30,30 +27,20 @@ import { ensureSuperAdminConnectionForUser } from "../utils/superAdminConnection
 describe("super-admin auto-connection behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    onConflictDoUpdateMock.mockResolvedValue(undefined);
-    valuesMock.mockReturnValue({ onConflictDoUpdate: onConflictDoUpdateMock });
-    insertMock.mockReturnValue({ values: valuesMock });
   });
 
-  it("creates mutual follow edges and accepted contact permission for a real super admin", async () => {
+  it("resolves a real super admin without auto-creating contact access", async () => {
     selectResultMock.mockResolvedValue([{ id: "super-1" }]);
 
     const result = await ensureSuperAdminConnectionForUser("user-1");
 
-    expect(result).toEqual({ ensured: true, superAdminUserId: "super-1" });
-    expect(executeMock).toHaveBeenCalledTimes(2);
-    expect(insertMock).toHaveBeenCalledTimes(1);
-    expect(valuesMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        requesterId: "super-1",
-        targetUserId: "user-1",
-        status: "accepted",
-        authorityGate: "system_super_admin_auto_connection",
-        intent: "platform_support",
-        respondedBy: "super-1",
-      })
-    );
-    expect(onConflictDoUpdateMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      ensured: false,
+      reason: "contact_gated",
+      superAdminUserId: "super-1",
+    });
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
   it("fails safe when no true super admin exists", async () => {

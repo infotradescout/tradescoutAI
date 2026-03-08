@@ -147,10 +147,10 @@ describe("direct-connect gate regressions", () => {
     );
 
     expect(directConnectShellFile).toContain(
-      "See whether a request is ready to send, waiting on pros, or already in conversation."
+      "See what still needs your action, what is already out with pros, and what is in conversation."
     );
     expect(directConnectShellFile).toContain(
-      "Each request moves through one clear stage at a time: ready to send, waiting on pros, or in conversation."
+      '"Follow one governed path: send a request, wait for responses, then move accepted work into conversation."'
     );
     expect(directConnectShellFile).toContain("Send to pros");
     expect(directConnectShellFile).toContain("Check replies");
@@ -162,13 +162,23 @@ describe("direct-connect gate regressions", () => {
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
 
-    expect(routeFile).toContain(
-      "attachments: z.array(z.string().trim().min(3).max(600)).max(8).optional()"
-    );
+    expect(routeFile).toContain("const isPrivateAttachmentObjectKey =");
+    expect(routeFile).toContain('if (!trimmed.startsWith("private/")) return false;');
+    expect(routeFile).toContain("if (/^https?:\\/\\//i.test(trimmed)) return false;");
     expect(routeFile).toContain('"/api/direct-connect/requests/:id/attachments/:index"');
     expect(routeFile).toContain("attachmentCount: getAttachmentCount(requestRow)");
+    expect(routeFile).not.toContain("return res.redirect(302, objectKey);");
     expect(directConnectShellFile).toContain("uploadPrivateObject(attachment.file)");
     expect(directConnectShellFile).toContain("Request photos");
     expect(directConnectShellFile).toContain("buildRequestAttachmentUrl");
+  });
+
+  it("does not auto-create accepted super-admin contact permissions", () => {
+    const helperFile = readRepoFile("server/utils/superAdminConnection.ts");
+
+    expect(helperFile).toContain('reason: "contact_gated"');
+    expect(helperFile).not.toContain("contactPermissions");
+    expect(helperFile).not.toContain('status: "accepted"');
+    expect(helperFile).not.toContain("user_follows");
   });
 });

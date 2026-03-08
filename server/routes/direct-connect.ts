@@ -40,7 +40,7 @@ const directConnectRequestSchema = z.object({
   tradeId: z.string().min(1).optional(),
   countyFips: z.string().length(5).optional(),
   stateCode: z.string().length(2).optional(),
-  attachments: z.array(z.string().trim().min(3).max(600)).max(8).optional(),
+  attachments: z.array(z.string().trim().min(10).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
 });
 
@@ -110,6 +110,17 @@ export function registerDirectConnectRoutes(app: Express) {
       .trim()
       .slice(0, maxLength);
 
+  const isPrivateAttachmentObjectKey = (value: unknown): value is string => {
+    if (typeof value !== "string") return false;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("private/")) return false;
+    if (/^https?:\/\//i.test(trimmed)) return false;
+
+    const parts = trimmed.split("/").filter(Boolean);
+    const fileId = parts[parts.length - 1] || "";
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileId);
+  };
+
   const normalizeAttachmentKeys = (value: unknown): string[] => {
     if (!Array.isArray(value)) return [];
 
@@ -117,7 +128,7 @@ export function registerDirectConnectRoutes(app: Express) {
       new Set(
         value
           .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-          .filter((entry) => entry.length >= 3)
+          .filter((entry) => isPrivateAttachmentObjectKey(entry))
       )
     ).slice(0, 8);
   };
@@ -798,9 +809,8 @@ export function registerDirectConnectRoutes(app: Express) {
         const attachments = normalizeAttachmentKeys((requestRow as any).attachments);
         const objectKey = attachments[attachmentIndex];
         if (!objectKey) return res.status(404).json({ message: "Attachment not found" });
-
-        if (/^https?:\/\//i.test(objectKey)) {
-          return res.redirect(302, objectKey);
+        if (!isPrivateAttachmentObjectKey(objectKey)) {
+          return res.status(404).json({ message: "Attachment not found" });
         }
 
         const useR2 = Boolean(process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID);

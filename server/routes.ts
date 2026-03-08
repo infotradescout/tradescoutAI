@@ -2597,8 +2597,8 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      // Invariant: every account must maintain an auto-connection with super admin.
-      // Fail-soft so auth never blocks.
+      // Resolve the current super admin support account for session-level support paths.
+      // Do not create contact edges here; governed contact must remain gated.
       try {
         const sessionAny = req.session as any;
         const ensuredForUserId =
