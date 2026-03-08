@@ -140,7 +140,8 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     }
 
     case "OPEN_APP_DRAWER":
-      helpers.openAppDrawer();
+      // "Browse TradeScout" drawer is retired; route this action to tools drawer.
+      helpers.openToolsDrawer();
       return;
 
     case "OPEN_TOOLS_DRAWER":

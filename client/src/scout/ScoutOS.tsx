@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "../hooks/useIsMobile";
-import AppDrawer from "../components/AppDrawer";
 import { useScoutState } from "./state";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
@@ -313,7 +312,6 @@ export default function ScoutOS() {
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
-  const [appDrawerOpen, setAppDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [workAreaOpen, setWorkAreaOpen] = useState(false);
   const [workAreaUrl, setWorkAreaUrl] = useState<string | null>(null);
@@ -2996,7 +2994,7 @@ export default function ScoutOS() {
               navigate(to);
             }
           },
-          openAppDrawer: () => setAppDrawerOpen(true),
+          openAppDrawer: () => setToolsOpen(true),
           openToolsDrawer: () => setToolsOpen(true),
           prefillInput: (text) => {
             try {
@@ -4218,12 +4216,6 @@ export default function ScoutOS() {
         onOpenChange={setWorkAreaOpen}
         url={workAreaUrl}
         title={workAreaTitle}
-      />
-
-      <AppDrawer
-        isOpen={appDrawerOpen}
-        onClose={() => setAppDrawerOpen(false)}
-        isAdmin={hasAdminAccess}
       />
     </div>
   );
