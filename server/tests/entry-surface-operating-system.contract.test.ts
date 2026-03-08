@@ -18,12 +18,13 @@ describe("entry surface operating-system contracts", () => {
 
   it("landing hero and footer preserve operating-system framing", () => {
     const source = read("client/src/pages/landing.tsx");
+    const normalized = source.replace(/\s+/g, " ");
 
     expect(source).toContain("Scout is the operating layer for local interaction");
-    expect(source).toContain(
+    expect(normalized).toContain(
       "The local operating system for community interaction. Trust-first local action powered by Scout."
     );
-    expect(source).toContain(
+    expect(normalized).toContain(
       "TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to governed action."
     );
     expect(source).toContain("TradeScout | The Local Operating System for Community Interaction");

@@ -123,7 +123,7 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        {open ? "Hide details" : "Details"}
+        {open ? "Hide why" : "Why this answer"}
       </button>
 
       {open && (
@@ -223,7 +223,7 @@ function MessageExtras({
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              Controller actions
+              Next steps
             </div>
             <button
               type="button"
@@ -364,7 +364,7 @@ function MessageExtras({
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              Suggested prompts
+              Keep going
             </div>
             <button
               type="button"

@@ -3597,7 +3597,7 @@ export default function ScoutOS() {
                     >
                       Sign in
                     </button>{" "}
-                    to save and message.
+                    only when you need to save progress or open messaging.
                   </div>
                 )}
 
@@ -3781,7 +3781,14 @@ export default function ScoutOS() {
                       className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Quick start
+                      Start with Scout
+                    </p>
+
+                    <p
+                      className="text-[11px] md:text-xs"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Pick the operating path that matches what you need to move forward right now.
                     </p>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
@@ -3832,7 +3839,7 @@ export default function ScoutOS() {
                               className="mt-1 text-[10px] font-medium"
                               style={{ color: "var(--text-secondary)" }}
                             >
-                              Open
+                              Start here
                             </span>
                           </button>
                         ))}
@@ -3850,7 +3857,8 @@ export default function ScoutOS() {
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          Set your location to unlock local pros, posts, and jobs.
+                          Set your county so Scout can route local providers, activity, and jobs
+                          correctly.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button

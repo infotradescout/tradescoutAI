@@ -59,8 +59,8 @@ export type ScoutActionTile = {
 export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
-    label: "Start a Direct Connect request",
-    description: "Describe the work once and open a trusted local request",
+    label: "Start a governed local request",
+    description: "Describe the work once and let Scout route the trusted next step",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
@@ -87,8 +87,8 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "find_pros",
-    label: "Find the right local pros",
-    description: "Browse local providers and start a request when you are ready",
+    label: "Find the right local providers",
+    description: "Compare trust-backed providers before you open contact",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
@@ -109,8 +109,8 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "nearby",
-    label: "See what's happening nearby",
-    description: "View local posts, events, and marketplace activity",
+    label: "See live local activity",
+    description: "Track community signals, posts, and marketplace movement",
     action: { type: "NAVIGATE", to: "/community" },
     variants: [
       {
@@ -123,8 +123,9 @@ export const scoutActionTiles: ScoutActionTile[] = [
   },
   {
     id: "manage",
-    label: "Browse Exchange marketplace",
-    description: "Buy or sell property, vehicles, equipment, or other big-ticket items in Exchange",
+    label: "Open Exchange marketplace",
+    description:
+      "Operate across property, vehicles, equipment, and other big-ticket exchange activity",
     action: { type: "NAVIGATE", to: "/exchange" },
     variants: [
       {
