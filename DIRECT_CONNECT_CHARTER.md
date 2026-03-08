@@ -1,5 +1,7 @@
 # Direct Connect Charter
 
+Execution contract companion (required layer): `DIRECT_CONNECT_EXECUTION_CONTRACT.md`
+
 ## 1. Purpose
 
 Direct Connect (the `/tasks` surface) is the **primary hub for people who want to get something done locally**.
