@@ -38,6 +38,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
+import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 
 export type NavItem = {
   label: string;
@@ -56,6 +57,11 @@ type AppShellProps = {
 // are still available as subordinate surfaces but are not top-level nav.
 const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
   const baseNav: NavItem[] = [
+    {
+      label: "Scout",
+      href: "/scout",
+      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    },
     {
       label: "Direct Connect",
       href: "/direct-connect",
@@ -671,25 +677,8 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
 
-      {/* Floating Scout trigger (separate from bottom feature nav) */}
-      {showFeatureNav && !isScoutSurface && (
-        <button
-          type="button"
-          onClick={() => navigate("/scout")}
-          aria-label="Open Scout"
-          title="Scout"
-          className="fixed z-[1001] inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition hover:opacity-90 focus:outline-none"
-          style={{
-            left: isMobile ? "12px" : "16px",
-            bottom: "calc(var(--bottom-nav-h) + 10px)",
-            borderColor: "color-mix(in oklab, var(--theme-accent-primary) 55%, transparent)",
-            backgroundColor: "color-mix(in oklab, var(--surface-card) 85%, transparent)",
-            color: "var(--theme-accent-primary)",
-          }}
-        >
-          <Compass className="h-5 w-5" />
-        </button>
-      )}
+      {/* Floating Scout dot: only for resuming unfinished Scout context. */}
+      {showFeatureNav && !isScoutSurface && <ScoutContinueBanner />}
 
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}
