@@ -15,7 +15,7 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
-function userNeedsOnboarding(user: unknown): boolean {
+export function userNeedsOnboarding(user: unknown): boolean {
   const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
   if (!record) return false;
 
@@ -25,7 +25,7 @@ function userNeedsOnboarding(user: unknown): boolean {
   return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;
 }
 
-function getPostLandingRoute(user: unknown): string {
+export function getPostLandingRoute(user: unknown): string {
   if (userNeedsOnboarding(user)) return "/onboarding/profile";
 
   const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;

@@ -12,7 +12,7 @@ async function resolveSuperAdminUserId(): Promise<string | null> {
   const [superAdmin] = await db
     .select({ id: users.id })
     .from(users)
-    .where(sql`lower(${users.role}::text) in ('super_admin', 'head_admin', 'owner')`)
+    .where(sql`lower(${users.role}::text) = 'super_admin'`)
     .orderBy(desc(users.updatedAt), desc(users.createdAt))
     .limit(1);
 
