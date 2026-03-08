@@ -264,7 +264,7 @@ export function RightToolsPanel({
             Shortcuts
           </div>
           <div className="space-y-2">
-            {hasAdminAccess ? (
+            {isAuthenticated ? (
               <NavLink
                 href="/admin"
                 icon={
@@ -275,9 +275,11 @@ export function RightToolsPanel({
                 }
                 label="Admin"
                 description={
-                  isSuperAdmin
+                  hasAdminAccess && isSuperAdmin
                     ? "Full-site controls for TradeScout."
-                    : "Review admin tools and site operations."
+                    : hasAdminAccess
+                      ? "Review admin tools and site operations."
+                      : "Open Admin. Access is enforced by your account permissions."
                 }
                 onNavigate={handleNavigate}
               />

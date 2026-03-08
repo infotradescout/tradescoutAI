@@ -122,14 +122,15 @@ const buildFeatureNav = (
     },
   ];
 
-  // Keep Admin visible in the bottom app bar for all admin-tier users.
-  if (hasAdminAccess) {
+  // Keep Admin visible for authenticated users; server-side route guards
+  // still enforce actual authority.
+  if (isAuthenticated) {
     return [
       {
         label: "Admin",
         href: "/admin",
         icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-        ...(isSuperAdmin ? { badge: "SA" } : {}),
+        ...(hasAdminAccess && isSuperAdmin ? { badge: "SA" } : {}),
       },
       ...baseNav,
     ];
