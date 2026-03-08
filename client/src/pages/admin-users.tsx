@@ -55,6 +55,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { isSuperAdminLike } from "@/lib/roleChecks";
+import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 
 type User = {
   id: string;
@@ -75,6 +76,7 @@ type User = {
     | "suspended";
   addressVerified?: boolean;
   onboardingCompleted: boolean;
+  profileVersion?: number;
   createdAt: string;
   canonicalProfileUrl?: string | null;
 };
@@ -834,10 +836,13 @@ export default function AdminUsers() {
       (roleFilter === "homeowner" && bucket === "homeowner") ||
       (roleFilter === "business" && bucket === "business");
 
+    const hasCompletedSetup =
+      u.onboardingCompleted === true ||
+      (typeof u.profileVersion === "number" && Number(u.profileVersion) >= CURRENT_PROFILE_VERSION);
     const matchesOnboarding =
       onboardingFilter === "all" ||
-      (onboardingFilter === "complete" && u.onboardingCompleted) ||
-      (onboardingFilter === "pending" && !u.onboardingCompleted);
+      (onboardingFilter === "complete" && hasCompletedSetup) ||
+      (onboardingFilter === "pending" && !hasCompletedSetup);
 
     let matchesTime = true;
     if (timeFilter !== "all") {
@@ -1360,10 +1365,20 @@ export default function AdminUsers() {
                                 {user.emailVerified ? "Email verified" : "Email not verified"}
                               </Badge>
                               <Badge
-                                variant={user.onboardingCompleted ? "outline" : "secondary"}
+                                variant={
+                                  user.onboardingCompleted === true ||
+                                  (typeof user.profileVersion === "number" &&
+                                    Number(user.profileVersion) >= CURRENT_PROFILE_VERSION)
+                                    ? "outline"
+                                    : "secondary"
+                                }
                                 className="text-xs whitespace-nowrap"
                               >
-                                {user.onboardingCompleted ? "Setup complete" : "Setup pending"}
+                                {user.onboardingCompleted === true ||
+                                (typeof user.profileVersion === "number" &&
+                                  Number(user.profileVersion) >= CURRENT_PROFILE_VERSION)
+                                  ? "Setup complete"
+                                  : "Setup pending"}
                               </Badge>
                             </div>
                           </TableCell>
