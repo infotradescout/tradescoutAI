@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -139,9 +139,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
   });
 
   // Update form when preferences load
-  if (preferences && !form.formState.isDirty) {
-    form.reset(preferences);
-  }
+  useEffect(() => {
+    if (preferences && !form.formState.isDirty) {
+      form.reset(preferences);
+    }
+  }, [preferences, form]);
 
   // Update preferences mutation
   const updatePreferencesMutation = useMutation({
