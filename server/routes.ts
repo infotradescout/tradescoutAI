@@ -2639,13 +2639,30 @@ export async function registerRoutes(app: any) {
           )
         );
 
+        const ADMIN_ROLE_SET = new Set(["super_admin", "ops_admin", "moderator"]);
+        const findFirstAdminRole = (roles: string[]): string =>
+          roles.find((role) => ADMIN_ROLE_SET.has(role)) || "";
+
+        const baseUserRoles = Array.from(
+          new Set(
+            [
+              ...(Array.isArray(baseUser?.roles) ? baseUser.roles : []),
+              baseUser?.activeRole,
+              baseUser?.role,
+            ]
+              .map((role) => normalizeRoleToken(role))
+              .filter(Boolean)
+          )
+        );
+        const baseUserAdminRole = findFirstAdminRole(baseUserRoles);
+
         const resolvedRole =
+          normalizeRoleToken(baseUser?.activeRole) ||
+          normalizeRoleToken(baseUser?.role) ||
           normalizeRoleToken(authUser?.activeRole) ||
           normalizeRoleToken(authUser?.role) ||
           normalizeRoleToken((authClaims as any)?.activeRole) ||
           normalizeRoleToken((authClaims as any)?.role) ||
-          normalizeRoleToken(baseUser?.activeRole) ||
-          normalizeRoleToken(baseUser?.role) ||
           mergedRoles[0] ||
           "";
 
@@ -2654,10 +2671,19 @@ export async function registerRoutes(app: any) {
         );
         const hasSuperAdminRole = mergedRoles.includes("super_admin");
 
+        // Data authority: if DB says this user is admin-tier, do not allow stale session role payloads
+        // to downgrade admin surfaces in the app shell.
+        const effectiveRole =
+          baseUserAdminRole ||
+          (hasAdminRole && !ADMIN_ROLE_SET.has(resolvedRole)
+            ? findFirstAdminRole(mergedRoles)
+            : "") ||
+          resolvedRole;
+
         return {
           ...baseUser,
-          role: resolvedRole || baseUser?.role,
-          activeRole: resolvedRole || baseUser?.activeRole,
+          role: effectiveRole || baseUser?.role,
+          activeRole: effectiveRole || baseUser?.activeRole,
           roles: mergedRoles,
           isAdmin: baseUser?.isAdmin === true || authUser?.isAdmin === true || hasAdminRole,
           isSuperAdmin:
