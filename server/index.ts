@@ -863,6 +863,7 @@ app.use(botReadOnlyGuard);
               // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
               const identityAssets = new Set([
                 "/favicon.ico",
+                "/favicon.svg",
                 "/favicon-16x16.png",
                 "/favicon-32x32.png",
                 "/favicon-48x48.png",
