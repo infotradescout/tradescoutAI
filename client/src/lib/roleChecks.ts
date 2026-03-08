@@ -13,8 +13,11 @@ export type UserRole = string | undefined;
 const normalizeRole = (role: UserRole): string => {
   const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
   if (!raw) return "";
-  if (raw === "owner" || raw === "head_admin") return "super_admin";
-  return raw;
+  const compact = raw.replace(/[\s-]+/g, "_");
+  if (compact === "owner" || compact === "head_admin" || compact === "superadmin") {
+    return "super_admin";
+  }
+  return compact;
 };
 
 /**
@@ -66,10 +69,35 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
   if (isAdminTier(user.role) || isSuperAdminLike(user.role)) return true;
   if (isAdminTier(user.activeRole) || isSuperAdminLike(user.activeRole)) return true;
 
+  const tokenLooksAdminLike = (rawValue: unknown): boolean => {
+    const normalized = normalizeRole(
+      typeof rawValue === "string" ? rawValue : String(rawValue || "")
+    );
+    if (!normalized) return false;
+    return (
+      isAdminTier(normalized) ||
+      isSuperAdminLike(normalized) ||
+      normalized.includes("admin") ||
+      normalized === "moderator"
+    );
+  };
+
+  if (tokenLooksAdminLike(user.role) || tokenLooksAdminLike(user.activeRole)) {
+    return true;
+  }
+
   if (Array.isArray(user.roles)) {
     return user.roles.some((role) => {
-      const raw = typeof role === "string" ? role : String(role || "");
-      return isAdminTier(raw) || isSuperAdminLike(raw) || raw.toLowerCase().includes("admin");
+      if (tokenLooksAdminLike(role)) return true;
+      if (role && typeof role === "object") {
+        const obj = role as Record<string, unknown>;
+        return (
+          tokenLooksAdminLike(obj.role) ||
+          tokenLooksAdminLike(obj.name) ||
+          tokenLooksAdminLike(obj.value)
+        );
+      }
+      return false;
     });
   }
 
