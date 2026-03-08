@@ -325,8 +325,28 @@ async function bootstrap() {
 
       console.warn("[Boot] chunk load failure detected", err);
 
+      showBootFallback(
+        "Refreshing TradeScout...",
+        "A recent update changed the app bundle. Reloading the latest version now."
+      );
+
+      try {
+        await resetClientCaches({ clearLocalStorage: false });
+      } catch {
+        // ignore
+      }
+
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("__fresh", String(Date.now()));
+        window.location.replace(url.toString());
+        return;
+      } catch {
+        // fall through to manual fallback
+      }
+
       // Ask the browser to check for an updated service worker in the background.
-      // Avoid auto-reloading here; repeated auto-refresh loops feel like "the app is stuck updating".
+      // If reload fails, at least ask the browser to check for an updated service worker.
       try {
         if ("serviceWorker" in navigator) {
           void navigator.serviceWorker

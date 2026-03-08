@@ -1,6 +1,6 @@
 import { useState, useEffect, type ChangeEvent } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, type User } from "@/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { uploadObject } from "@/lib/objectUpload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,12 +78,55 @@ type ProfileBookingSettings = {
   pricingRows?: ProfilePricingRow[];
 };
 
+type ProfileSettingsUser = User & {
+  activeProfileId?: string;
+  businessSlug?: string | null;
+  customThemeColors?: string | null;
+};
+
+type ProfileListItem = {
+  id: string;
+  slug: string;
+  status?: "draft" | "published" | string;
+};
+
+type StoredThemeColors = {
+  bgPrimary?: string;
+  bgSecondary?: string;
+  textPrimary?: string;
+  textSecondary?: string;
+  accentPrimary?: string;
+  accentSecondary?: string;
+};
+
+type ApiErrorPayload = {
+  message?: string;
+  code?: string;
+};
+
+type ProfileVisibilityResponse = {
+  message?: string;
+  allowProceedUnverified?: boolean;
+};
+
+type UserPreferencesResponse = {
+  preferences?: {
+    servicesDescription?: string;
+    profileSections?: ProfileSections;
+  };
+};
+
+type ProfileBookingResponse = {
+  profileBooking?: ProfileBookingSettings;
+};
+
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function ProfileSettings() {
   const { user, refetch } = useAuth();
   const { updateCustomColors } = useTheme();
   const [location, navigate] = useLocation();
+  const profileUser = user as ProfileSettingsUser | null;
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("identity");
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
@@ -201,8 +244,8 @@ export default function ProfileSettings() {
 
       // Prefer the richer site theme payload when available; otherwise derive from profile scheme.
       try {
-        const rawTheme = (user as any)?.customThemeColors
-          ? JSON.parse((user as any).customThemeColors)
+        const rawTheme: StoredThemeColors | null = profileUser?.customThemeColors
+          ? (JSON.parse(profileUser.customThemeColors) as StoredThemeColors)
           : null;
         if (
           rawTheme?.bgPrimary &&
@@ -232,7 +275,7 @@ export default function ProfileSettings() {
         // ignore malformed theme payloads
       }
     }
-  }, [user]);
+  }, [profileUser, user]);
 
   useEffect(() => {
     setProfileBasics({
@@ -250,13 +293,13 @@ export default function ProfileSettings() {
       try {
         const res = await fetch("/api/profiles", { credentials: "include" });
         if (!res.ok) return;
-        const list = (await res.json()) as Array<{ id: string; slug: string; status?: string }>;
+        const list = (await res.json()) as ProfileListItem[];
         if (!Array.isArray(list) || list.length === 0) return;
 
-        const activeProfileId = (user as any).activeProfileId as string | undefined;
+        const activeProfileId = profileUser?.activeProfileId;
         let active = activeProfileId ? list.find((p) => p.id === activeProfileId) : undefined;
         if (!active) {
-          active = (list.find((p) => (p as any).status === "published") as any) || list[0];
+          active = list.find((p) => p.status === "published") || list[0];
         }
 
         if (!cancelled) {
@@ -273,14 +316,14 @@ export default function ProfileSettings() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [profileUser?.activeProfileId, user?.id]);
 
   // Lightweight onboarding hint when redirected after social sign-up
   const isOnboarding = location.includes("onboarding=1");
 
   const readApiError = async (response: Response): Promise<string> => {
     try {
-      const json: any = await response.json();
+      const json = (await response.json()) as ApiErrorPayload;
       if (json?.message) return String(json.message);
       if (json?.code) return String(json.code);
     } catch {
@@ -406,7 +449,7 @@ export default function ProfileSettings() {
         title: "Palette updated",
         description: "Your site theme and public profile colors are now synced.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update palette",
@@ -489,7 +532,7 @@ export default function ProfileSettings() {
         title: "Default home page updated",
         description: `Your home page is now set to ${page}`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update home page",
@@ -516,14 +559,13 @@ export default function ProfileSettings() {
           }),
         });
 
-        const payload = await response.json().catch(() => ({}));
+        const payload = (await response.json().catch(() => ({}))) as ProfileVisibilityResponse;
         return { response, payload };
       };
 
       const { response, payload } = await requestVisibility(false);
 
-      if (!response.ok)
-        throw new Error((payload as any)?.message || `Request failed (${response.status})`);
+      if (!response.ok) throw new Error(payload.message || `Request failed (${response.status})`);
 
       if (payload?.allowProceedUnverified && visibility === "public") {
         const proceed = window.confirm(
@@ -539,9 +581,7 @@ export default function ProfileSettings() {
 
         const retry = await requestVisibility(true);
         if (!retry.response.ok) {
-          throw new Error(
-            (retry.payload as any)?.message || `Request failed (${retry.response.status})`
-          );
+          throw new Error(retry.payload.message || `Request failed (${retry.response.status})`);
         }
       }
 
@@ -577,7 +617,7 @@ export default function ProfileSettings() {
 
       if (!response.ok) throw new Error("Failed to update services description");
 
-      const data = await response.json();
+      const data = (await response.json()) as UserPreferencesResponse;
       setPreferences((prev) => ({
         ...prev,
         servicesDescription: data.preferences?.servicesDescription || "",
@@ -588,7 +628,7 @@ export default function ProfileSettings() {
         title: "Services updated",
         description: "Scout and routing will now use your service description when making matches.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update services description",
@@ -611,7 +651,7 @@ export default function ProfileSettings() {
 
       if (!response.ok) throw new Error("Failed to update profile sections");
 
-      const data = await response.json();
+      const data = (await response.json()) as UserPreferencesResponse;
 
       setPreferences((prev) => ({
         ...prev,
@@ -628,7 +668,7 @@ export default function ProfileSettings() {
         title: "Profile site updated",
         description: "Your public profile layout has been saved.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update profile site sections",
@@ -733,7 +773,7 @@ export default function ProfileSettings() {
       });
 
       if (!response.ok) throw new Error("Failed to update booking settings");
-      const data = await response.json();
+      const data = (await response.json()) as ProfileBookingResponse;
 
       setPreferences((prev) => ({
         ...prev,
@@ -745,7 +785,7 @@ export default function ProfileSettings() {
         title: "Booking settings saved",
         description: "Public booking, calendar, and pricing preferences are updated.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to save booking settings",
@@ -864,8 +904,10 @@ export default function ProfileSettings() {
         ? "Draft ready. Open the editor to review and publish your public page."
         : "No profile page found yet. Open the editor to finish setup.";
 
-  const businessPageLabel = (user as any)?.businessSlug
-    ? `${window.location.origin}/business/${(user as any).businessSlug}`
+  const businessSlug = profileUser?.businessSlug ?? null;
+
+  const businessPageLabel = businessSlug
+    ? `${window.location.origin}/business/${businessSlug}`
     : "No business page yet. Add a business persona in account settings to create one.";
 
   return (
@@ -1101,15 +1143,13 @@ export default function ProfileSettings() {
                   <div className="break-all text-xs text-white/60">{businessPageLabel}</div>
                 </div>
                 <div className="flex gap-2">
-                  {(user as any)?.businessSlug ? (
+                  {businessSlug ? (
                     <>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          navigate(`/business/${encodeURIComponent((user as any).businessSlug)}`)
-                        }
+                        onClick={() => navigate(`/business/${encodeURIComponent(businessSlug)}`)}
                       >
                         View live page
                       </Button>
@@ -1118,9 +1158,7 @@ export default function ProfileSettings() {
                         variant="outline"
                         size="sm"
                         onClick={() =>
-                          navigate(
-                            `/business/${encodeURIComponent((user as any).businessSlug)}/edit`
-                          )
+                          navigate(`/business/${encodeURIComponent(businessSlug)}/edit`)
                         }
                       >
                         Open editor
@@ -1352,21 +1390,19 @@ export default function ProfileSettings() {
                     {getPresetNames().map((preset: string) => (
                       <SelectItem key={preset} value={preset}>
                         <div className="flex items-center gap-2">
-                          <div
-                            className="h-4 w-4 rounded border"
-                            style={{ backgroundColor: COLOR_PRESETS[preset].primary }}
-                          />
                           <span className="capitalize">{preset}</span>
+                          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/60">
+                            {COLOR_PRESETS[preset].primary}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
                     <SelectItem value="custom">
                       <div className="flex items-center gap-2">
-                        <div
-                          className="h-4 w-4 rounded border"
-                          style={{ backgroundColor: customColors.primary }}
-                        />
                         <span>Custom</span>
+                        <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/60">
+                          {customColors.primary}
+                        </span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -1375,31 +1411,27 @@ export default function ProfileSettings() {
 
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div className="space-y-1">
-                  <div
-                    className="h-12 rounded-md border"
-                    style={{ backgroundColor: previewColors.primary }}
-                  />
+                  <div className="rounded-md border border-white/10 bg-white/5 px-3 py-4 text-center text-xs font-mono text-white/80">
+                    {previewColors.primary}
+                  </div>
                   <p className="text-center text-xs text-white/60">Primary</p>
                 </div>
                 <div className="space-y-1">
-                  <div
-                    className="h-12 rounded-md border"
-                    style={{ backgroundColor: previewColors.secondary }}
-                  />
+                  <div className="rounded-md border border-white/10 bg-white/5 px-3 py-4 text-center text-xs font-mono text-white/80">
+                    {previewColors.secondary}
+                  </div>
                   <p className="text-center text-xs text-white/60">Secondary</p>
                 </div>
                 <div className="space-y-1">
-                  <div
-                    className="h-12 rounded-md border"
-                    style={{ backgroundColor: previewColors.background }}
-                  />
+                  <div className="rounded-md border border-white/10 bg-white/5 px-3 py-4 text-center text-xs font-mono text-white/80">
+                    {previewColors.background}
+                  </div>
                   <p className="text-center text-xs text-white/60">Background</p>
                 </div>
                 <div className="space-y-1">
-                  <div
-                    className="h-12 rounded-md border"
-                    style={{ backgroundColor: previewColors.text }}
-                  />
+                  <div className="rounded-md border border-white/10 bg-white/5 px-3 py-4 text-center text-xs font-mono text-white/80">
+                    {previewColors.text}
+                  </div>
                   <p className="text-center text-xs text-white/60">Text</p>
                 </div>
               </div>

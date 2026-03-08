@@ -94,6 +94,21 @@ function parseDataUrlPng(dataUrl: string): string | null {
   return dataUrl.slice(prefix.length);
 }
 
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string" && reader.result.length > 0) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Failed to read image"));
+    };
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function dataUrlToPngBlob(dataUrl: string): Promise<Blob | null> {
   try {
     if (!parseDataUrlPng(dataUrl)) return null;
@@ -108,18 +123,18 @@ async function dataUrlToPngBlob(dataUrl: string): Promise<Blob | null> {
 
 async function loadImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
   if (!file.type.startsWith("image/")) return null;
-  const url = URL.createObjectURL(file);
+  const dataUrl = await fileToDataUrl(file);
+  const img = new Image();
+  img.decoding = "async";
   try {
-    const img = new Image();
-    img.decoding = "async";
     const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
       img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
       img.onerror = () => reject(new Error("Failed to load image"));
-      img.src = url;
+      img.src = dataUrl;
     });
     return dims;
   } finally {
-    URL.revokeObjectURL(url);
+    img.src = "";
   }
 }
 
@@ -296,9 +311,9 @@ export default function ScoutFitters() {
       logoObjectRef.current = null;
     }
 
-    const url = URL.createObjectURL(file);
     try {
-      const img = await fabric.Image.fromURL(url, { crossOrigin: "anonymous" });
+      const dataUrl = await fileToDataUrl(file);
+      const img = await fabric.Image.fromURL(dataUrl);
       img.selectable = true;
       img.hasControls = true;
       img.cornerStyle = "circle";
@@ -310,7 +325,7 @@ export default function ScoutFitters() {
       logoObjectRef.current = img;
       placeLogoObject();
     } finally {
-      URL.revokeObjectURL(url);
+      // no-op
     }
   };
 
@@ -441,9 +456,9 @@ export default function ScoutFitters() {
       backgroundColor: "rgba(0,0,0,0)",
     });
 
-    const url = URL.createObjectURL(logoFile);
     try {
-      const img = await fabric.Image.fromURL(url, { crossOrigin: "anonymous" });
+      const dataUrl = await fileToDataUrl(logoFile);
+      const img = await fabric.Image.fromURL(dataUrl);
       img.selectable = false;
       img.evented = false;
 
@@ -476,7 +491,6 @@ export default function ScoutFitters() {
     } catch {
       return null;
     } finally {
-      URL.revokeObjectURL(url);
       try {
         outCanvas.dispose();
       } catch {
