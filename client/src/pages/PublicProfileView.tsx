@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useRoute } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ import {
 
 interface PublicProfile {
   id: string;
+  canonicalProfileSlug?: string | null;
+  canonicalProfileUrl?: string | null;
   firstName?: string;
   lastName?: string;
   profileImageUrl?: string;
@@ -115,6 +117,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 export default function PublicProfileView() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [, params] = useRoute("/profile/:userId");
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,6 +147,14 @@ export default function PublicProfileView() {
         if (!response.ok) throw new Error("Failed to fetch profile");
 
         const data = await response.json();
+
+        if (typeof data?.canonicalProfileSlug === "string" && data.canonicalProfileSlug.trim()) {
+          navigate(`/u/${encodeURIComponent(data.canonicalProfileSlug.trim())}`, {
+            replace: true,
+          });
+          return;
+        }
+
         setProfile(data);
 
         if (data.preferences?.themeId && typeof data.preferences.themeId === "string") {
@@ -165,7 +176,7 @@ export default function PublicProfileView() {
     return () => {
       profileThemeIdRef.current = null;
     };
-  }, [params?.userId]);
+  }, [params?.userId, navigate]);
 
   const profileThemeId = profileThemeIdRef.current;
 

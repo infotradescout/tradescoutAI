@@ -4464,6 +4464,13 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
+      const ownerProfiles = await storage.listProfilesByOwner(user.id);
+      const canonicalPublicProfile = ownerProfiles.find((profile: any) => {
+        const status = String(profile?.status || "").toLowerCase();
+        const slug = typeof profile?.slug === "string" ? profile.slug.trim() : "";
+        return status === "published" && slug.length > 0;
+      });
+
       // Optionally enrich with connection stats when viewer is authenticated
       let connectionSummary: { followers: number; following: number; mutual: number } | undefined;
       let viewerConnection:
@@ -4616,6 +4623,10 @@ export async function registerRoutes(app: any) {
       // Return safe public profile data
       const publicProfile = {
         id: user.id,
+        canonicalProfileSlug: canonicalPublicProfile?.slug || null,
+        canonicalProfileUrl: canonicalPublicProfile?.slug
+          ? `/u/${encodeURIComponent(String(canonicalPublicProfile.slug))}`
+          : null,
         firstName: user.firstName,
         lastName: user.lastName,
         profileImageUrl: user.profileImageUrl,
