@@ -54,7 +54,7 @@ type AppShellProps = {
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (): NavItem[] => {
+const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
   const baseNav: NavItem[] = [
     {
       label: "Scout",
@@ -118,6 +118,14 @@ const buildFeatureNav = (): NavItem[] => {
     },
   ];
 
+  if (opts?.includeAdmin) {
+    baseNav.unshift({
+      label: "Admin",
+      href: "/admin",
+      icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    });
+  }
+
   return baseNav;
 };
 
@@ -165,7 +173,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   });
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
-  const featureNav = buildFeatureNav();
+  const featureNav = buildFeatureNav({ includeAdmin: hasAdminAccess });
   const showFeatureNav = !isAuthOrSetupSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
