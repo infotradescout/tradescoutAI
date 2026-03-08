@@ -78,8 +78,8 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
   const normalizeEmail = (value: unknown): string =>
     typeof value === "string" ? value.trim().toLowerCase() : "";
   const adminAliasEmails = new Set<string>([
+    "info.tradescout@gmail.com",
     "contact@thetradescout.com",
-    "admin@thetradescout.com",
   ]);
   const userEmail = normalizeEmail(user.email);
   const claimsEmail = normalizeEmail(user.claims?.email);

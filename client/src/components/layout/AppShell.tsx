@@ -37,7 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
-import { isSuperAdminLike } from "@/lib/roleChecks";
+import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 
 export type NavItem = {
   label: string;
@@ -157,6 +157,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           .toLowerCase()
       : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
+  const hasAdminAccess = hasAdminUiAccess(user);
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
@@ -421,6 +422,21 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             )}
             {!isAuthOrSetupSurface && isAuthenticated && <NotificationCenter />}
+            {!isAuthOrSetupSurface && isAuthenticated && hasAdminAccess && (
+              <button
+                type="button"
+                onClick={() => navigate("/admin")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  backgroundColor: "var(--charcoal-900)",
+                }}
+                aria-label="Open admin controls"
+                title="Admin"
+              >
+                <Shield className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+              </button>
+            )}
             {!isAuthOrSetupSurface && (
               <button
                 type="button"
@@ -536,6 +552,18 @@ export function AppShell({ children, footer }: AppShellProps) {
                     <Bell className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
                   </button>
                 )}
+
+                {isAuthenticated && hasAdminAccess ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admin")}
+                    className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                    aria-label="Open admin controls"
+                    title="Admin"
+                  >
+                    <Shield className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                  </button>
+                ) : null}
 
                 {/* Tools / profile panel (user-specific stuff) */}
                 <button

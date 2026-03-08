@@ -33,6 +33,7 @@ function isConfiguredSuperAdminAliasEmail(email: unknown): boolean {
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
+    "info.tradescout@gmail.com",
     "contact@thetradescout.com",
   ]);
   return aliases.has(normalized);

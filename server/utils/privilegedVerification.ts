@@ -24,6 +24,7 @@ function isConfiguredAdminAliasEmail(email: unknown): boolean {
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
+    "info.tradescout@gmail.com",
     "contact@thetradescout.com",
   ]);
 

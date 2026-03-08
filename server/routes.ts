@@ -1124,6 +1124,7 @@ export async function registerRoutes(app: any) {
         .split(",")
         .map((value) => value.trim().toLowerCase())
         .filter(Boolean),
+      "info.tradescout@gmail.com",
       "contact@thetradescout.com",
     ]);
     const normalizedEmail = String(user?.email || "")
@@ -2634,6 +2635,7 @@ export async function registerRoutes(app: any) {
               .split(",")
               .map((v) => v.trim().toLowerCase())
               .filter(Boolean),
+            "info.tradescout@gmail.com",
             // Production fallback alias used for the canonical support/admin identity.
             "contact@thetradescout.com",
           ].filter(Boolean)
