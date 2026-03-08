@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 type TierKey = "high" | "medium" | "low" | "budget" | "promo";
 type PlacementKey = "front_center" | "left_chest";
@@ -88,6 +89,86 @@ type Recipient = {
   phone?: string;
 };
 
+type ScoutFittersConfig = {
+  catalog?: Array<{
+    key: TierKey;
+    technique: "EMBROIDERY" | "DTG";
+    configured: boolean;
+  }>;
+  fulfillment?: {
+    printfulConfigured?: boolean;
+    variantsConfigured?: Partial<Record<TierKey, boolean>>;
+    configuredTierKeys?: string[];
+    allowedTierKeys?: string[];
+    fileTypeOverridesConfigured?: boolean;
+  };
+  quality?: {
+    minShortestSidePx?: number;
+    minDpi?: number;
+  };
+};
+
+type SubmitResult = Record<string, unknown> | null;
+
+type FabricBounds = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+type FabricObjectLike = {
+  selectable?: boolean;
+  evented?: boolean;
+  left?: number;
+  top?: number;
+};
+
+type FabricImageLike = FabricObjectLike & {
+  scaleX?: number;
+  scaleY?: number;
+  width?: number;
+  height?: number;
+  hasControls?: boolean;
+  cornerStyle?: string;
+  borderColor?: string;
+  cornerColor?: string;
+  transparentCorners?: boolean;
+  scaleToWidth?: (value: number) => void;
+  scaleToHeight?: (value: number) => void;
+  getScaledWidth: () => number;
+  getScaledHeight: () => number;
+  setCoords: () => void;
+  getBoundingRect: (absolute?: boolean, calculate?: boolean) => FabricBounds;
+};
+
+type FabricCanvasLike = {
+  backgroundImage?: FabricImageLike;
+  add: (...objects: FabricObjectLike[]) => unknown;
+  remove: (object: FabricObjectLike) => void;
+  requestRenderAll: () => void;
+  getWidth: () => number;
+  getHeight: () => number;
+  dispose: () => void;
+};
+
+type FabricStaticCanvasLike = FabricCanvasLike & {
+  renderAll: () => void;
+  toDataURL: (options: { format: "png"; enableRetinaScaling: boolean }) => string;
+};
+
+type FabricModuleLike = {
+  Image: {
+    fromURL: (url: string, options?: { crossOrigin?: string }) => Promise<FabricImageLike>;
+  };
+  Text: new (text: string, options: Record<string, unknown>) => FabricObjectLike;
+  Canvas: new (element: HTMLCanvasElement, options: Record<string, unknown>) => FabricCanvasLike;
+  StaticCanvas: new (
+    element: HTMLCanvasElement,
+    options: Record<string, unknown>
+  ) => FabricStaticCanvasLike;
+};
+
 function parseDataUrlPng(dataUrl: string): string | null {
   const prefix = "data:image/png;base64,";
   if (typeof dataUrl !== "string" || !dataUrl.startsWith(prefix)) return null;
@@ -157,7 +238,9 @@ export default function ScoutFitters() {
   const [tier, setTier] = useState<TierKey>("high");
   const [placement, setPlacement] = useState<PlacementKey>("left_chest");
   const [quantity, setQuantity] = useState<number>(1);
-  const [showValueOptions, setShowValueOptions] = useState(false);
+  const [config, setConfig] = useState<ScoutFittersConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   const [qualityError, setQualityError] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -176,17 +259,83 @@ export default function ScoutFitters() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitResult, setSubmitResult] = useState<any>(null);
+  const [submitResult, setSubmitResult] = useState<SubmitResult>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canvasElRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const fabricCanvasRef = useRef<any>(null);
-  const fabricRef = useRef<any>(null);
-  const logoObjectRef = useRef<any>(null);
-  const hintObjectRef = useRef<any>(null);
+  const fabricCanvasRef = useRef<unknown>(null);
+  const fabricRef = useRef<unknown>(null);
+  const logoObjectRef = useRef<unknown>(null);
+  const hintObjectRef = useRef<unknown>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadConfig = async () => {
+      setConfigLoading(true);
+      setConfigError(null);
+      try {
+        const response = await fetch("/api/scoutfitters/config", { credentials: "include" });
+        if (!response.ok) {
+          throw new Error(`ScoutFitters config failed (${response.status})`);
+        }
+
+        const payload = (await response.json()) as ScoutFittersConfig;
+        if (!cancelled) {
+          setConfig(payload);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setConfigError(
+            error instanceof Error ? error.message : "Failed to load ScoutFitters config"
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setConfigLoading(false);
+        }
+      }
+    };
+
+    void loadConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const tierSpec = TIERS[tier];
+
+  const configuredTierKeys = useMemo(() => {
+    const fromConfig = (config?.fulfillment?.configuredTierKeys || []).filter(
+      (key): key is TierKey => key in TIERS
+    );
+    return fromConfig.length > 0 ? fromConfig : (Object.keys(TIERS) as TierKey[]);
+  }, [config]);
+
+  const contractorTierKeys = useMemo(
+    () => configuredTierKeys.filter((key) => TIERS[key].series === "contractor"),
+    [configuredTierKeys]
+  );
+
+  const valueTierKeys = useMemo(
+    () => configuredTierKeys.filter((key) => TIERS[key].series === "value"),
+    [configuredTierKeys]
+  );
+
+  const printfulConfigured = config?.fulfillment?.printfulConfigured !== false;
+  const selectedTierConfigured = configuredTierKeys.includes(tier);
+
+  const selectableButtonClass =
+    "rounded-xl border px-3 py-2 text-left transition-colors border-white/10 bg-tsCard hover:border-ts-orange/30 hover:bg-white/5";
+  const activeSelectableButtonClass = "border-ts-orange/40 bg-ts-orange/10";
+
+  useEffect(() => {
+    if (!configuredTierKeys.length) return;
+    if (configuredTierKeys.includes(tier)) return;
+    setTier(configuredTierKeys[0]);
+  }, [configuredTierKeys, tier]);
 
   const unitPrice = useMemo(() => tierSpec.wholesaleEstimate + PROFIT_PER_SHIRT, [tierSpec]);
 
@@ -205,8 +354,8 @@ export default function ScoutFitters() {
   }, [placement]);
 
   const setBackground = async (blankUrl: string) => {
-    const fabric = fabricRef.current;
-    const canvas = fabricCanvasRef.current;
+    const fabric = fabricRef.current as FabricModuleLike | null;
+    const canvas = fabricCanvasRef.current as FabricCanvasLike | null;
     if (!fabric || !canvas) return;
 
     const img = await fabric.Image.fromURL(blankUrl, { crossOrigin: "anonymous" });
@@ -215,8 +364,12 @@ export default function ScoutFitters() {
 
     const cw = canvas.getWidth();
     const ch = canvas.getHeight();
-    img.scaleToWidth(cw);
-    img.scaleToHeight(ch);
+    if (typeof img.scaleToWidth === "function") {
+      img.scaleToWidth(cw);
+    }
+    if (typeof img.scaleToHeight === "function") {
+      img.scaleToHeight(ch);
+    }
     img.left = 0;
     img.top = 0;
 
@@ -225,8 +378,8 @@ export default function ScoutFitters() {
   };
 
   const placeLogoObject = () => {
-    const canvas = fabricCanvasRef.current;
-    const logoObj = logoObjectRef.current;
+    const canvas = fabricCanvasRef.current as FabricCanvasLike | null;
+    const logoObj = logoObjectRef.current as FabricImageLike | null;
     if (!canvas || !logoObj) return;
 
     const pad = 8;
@@ -238,7 +391,7 @@ export default function ScoutFitters() {
     logoObj.scaleY = 1;
     if (typeof logoObj.scaleToWidth === "function") {
       logoObj.scaleToWidth(maxW);
-      if (logoObj.getScaledHeight() > maxH) {
+      if (logoObj.getScaledHeight() > maxH && typeof logoObj.scaleToHeight === "function") {
         logoObj.scaleToHeight(maxH);
       }
     }
@@ -258,8 +411,8 @@ export default function ScoutFitters() {
       // ignore
     }
 
-    const canvas = fabricCanvasRef.current;
-    const logoObj = logoObjectRef.current;
+    const canvas = fabricCanvasRef.current as FabricCanvasLike | null;
+    const logoObj = logoObjectRef.current as FabricImageLike | null;
     if (canvas && logoObj) {
       canvas.remove(logoObj);
       canvas.requestRenderAll();
@@ -270,7 +423,7 @@ export default function ScoutFitters() {
     setQualityError(null);
 
     // Restore hint if removed.
-    const fabric = fabricRef.current;
+    const fabric = fabricRef.current as FabricModuleLike | null;
     if (canvas && fabric && !hintObjectRef.current) {
       const hint = new fabric.Text("Upload a logo to preview", {
         left: 40,
@@ -288,13 +441,13 @@ export default function ScoutFitters() {
   };
 
   const addLogoToCanvas = async (file: File) => {
-    const fabric = fabricRef.current;
-    const canvas = fabricCanvasRef.current;
+    const fabric = fabricRef.current as FabricModuleLike | null;
+    const canvas = fabricCanvasRef.current as FabricCanvasLike | null;
     if (!fabric || !canvas) return;
 
     if (hintObjectRef.current) {
       try {
-        canvas.remove(hintObjectRef.current);
+        canvas.remove(hintObjectRef.current as FabricObjectLike);
       } catch {
         // ignore
       }
@@ -304,7 +457,7 @@ export default function ScoutFitters() {
     // Remove existing logo if any
     if (logoObjectRef.current) {
       try {
-        canvas.remove(logoObjectRef.current);
+        canvas.remove(logoObjectRef.current as FabricObjectLike);
       } catch {
         // ignore
       }
@@ -336,7 +489,7 @@ export default function ScoutFitters() {
       if (!canvasElRef.current) return;
 
       // Fabric is client-only; load dynamically.
-      const fabric = await import("fabric");
+      const fabric = (await import("fabric")) as unknown as FabricModuleLike;
       if (cancelled) return;
 
       fabricRef.current = fabric;
@@ -377,7 +530,7 @@ export default function ScoutFitters() {
     return () => {
       cancelled = true;
       try {
-        fabricCanvasRef.current?.dispose?.();
+        (fabricCanvasRef.current as FabricCanvasLike | null)?.dispose();
       } catch {
         // ignore
       }
@@ -430,8 +583,8 @@ export default function ScoutFitters() {
   };
 
   const exportPrintPng = async (): Promise<string | null> => {
-    const fabric = fabricRef.current;
-    const logoObj = logoObjectRef.current;
+    const fabric = fabricRef.current as FabricModuleLike | null;
+    const logoObj = logoObjectRef.current as FabricImageLike | null;
     if (!fabric || !logoObj || !logoFile) return null;
 
     // Output file is *not* the preview canvas. It’s a high-res, transparent PNG suitable for print.
@@ -519,6 +672,15 @@ export default function ScoutFitters() {
     setSubmitError(null);
     setSubmitResult(null);
 
+    if (!printfulConfigured) {
+      setSubmitError("ScoutFitters fulfillment is not configured yet.");
+      return;
+    }
+    if (!selectedTierConfigured) {
+      setSubmitError("The selected merch option is not configured for fulfillment yet.");
+      return;
+    }
+
     if (!logoFile) {
       setSubmitError("Upload a logo first.");
       return;
@@ -603,13 +765,18 @@ export default function ScoutFitters() {
             ScoutFitters
           </h1>
           <p className="text-sm text-white/70 mt-1">
-            Contractor Series is featured first. Customers can still pick budget blanks if they
-            want. Upload a logo, preview placement, and send to fulfillment.
+            Upload a logo, preview placement, and send any configured ScoutFitters merch option to
+            fulfillment.
           </p>
           <p className="text-xs text-white/70 mt-2">
             Selected: <span className="text-white">{tierSpec.label}</span> • Unit:{" "}
             <span className="text-white">${unitPrice.toFixed(2)}</span> • Subtotal:{" "}
             <span className="text-white">${subtotal.toFixed(2)}</span>
+          </p>
+          <p className="text-xs text-white/70 mt-1">
+            Configured catalog: <span className="text-white">{configuredTierKeys.length}</span>{" "}
+            option
+            {configuredTierKeys.length === 1 ? "" : "s"} ready
           </p>
         </div>
         <div className="flex gap-2">
@@ -647,82 +814,87 @@ export default function ScoutFitters() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {configError && (
+              <Alert variant="destructive">
+                <AlertTitle>Catalog status</AlertTitle>
+                <AlertDescription>{configError}</AlertDescription>
+              </Alert>
+            )}
+
+            {configLoading && (
+              <Alert>
+                <AlertTitle>Catalog status</AlertTitle>
+                <AlertDescription>
+                  Loading configured merch options and fulfillment status.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!configLoading && !configuredTierKeys.length && (
+              <Alert variant="destructive">
+                <AlertTitle>Catalog status</AlertTitle>
+                <AlertDescription>
+                  No ScoutFitters merch options are configured for fulfillment yet.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1 space-y-3">
                 <div>
                   <Label>Contractor Series</Label>
                   <div className="text-[11px] text-white/70 mt-1">
-                    Featured workwear tiers (profit stays the same across tiers).
+                    Featured workwear tiers already configured for fulfillment.
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {(Object.keys(TIERS) as TierKey[])
-                    .filter((k) => TIERS[k].series === "contractor")
-                    .map((k) => {
-                      const t = TIERS[k];
-                      const active = tier === k;
-                      const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
-                      return (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => setTier(k)}
-                          className="rounded-xl border px-3 py-2 text-left transition-colors"
-                          style={{
-                            borderColor: active
-                              ? "rgba(249,115,22,0.65)"
-                              : t.featured
-                                ? "rgba(249,115,22,0.35)"
-                                : "rgba(255,255,255,0.10)",
-                            backgroundColor: active
-                              ? "rgba(249,115,22,0.10)"
-                              : "rgba(17,20,24,0.55)",
-                          }}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium">{t.label}</div>
-                            {t.featured && (
-                              <span className="text-[10px] rounded-full px-2 py-0.5 bg-ts-orange/20 text-ts-orange border border-ts-orange/30">
-                                Featured
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-white/70 mt-1">{t.summary}</div>
-                          <div className="text-[11px] text-white/70 mt-2">
-                            Technique: <span className="text-white">{t.technique}</span>
-                          </div>
-                          <div className="text-[11px] text-white/70 mt-1">
-                            Your price: <span className="text-white">${unit.toFixed(2)}</span> •
-                            Profit:{" "}
-                            <span className="text-white">${PROFIT_PER_SHIRT.toFixed(2)}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                  {contractorTierKeys.map((k) => {
+                    const t = TIERS[k];
+                    const active = tier === k;
+                    const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setTier(k)}
+                        className={cn(
+                          selectableButtonClass,
+                          active && activeSelectableButtonClass,
+                          !active && t.featured && "border-ts-orange/30"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-sm font-medium">{t.label}</div>
+                          {t.featured && (
+                            <span className="text-[10px] rounded-full px-2 py-0.5 bg-ts-orange/20 text-ts-orange border border-ts-orange/30">
+                              Featured
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-white/70 mt-1">{t.summary}</div>
+                        <div className="text-[11px] text-white/70 mt-2">
+                          Technique: <span className="text-white">{t.technique}</span>
+                        </div>
+                        <div className="text-[11px] text-white/70 mt-1">
+                          Your price: <span className="text-white">${unit.toFixed(2)}</span> •
+                          Profit: <span className="text-white">${PROFIT_PER_SHIRT.toFixed(2)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <div>
-                    <Label>Value options</Label>
-                    <div className="text-[11px] text-white/70 mt-1">
-                      Cheaper blanks for customers who want budget pricing.
+                {valueTierKeys.length > 0 && (
+                  <>
+                    <div className="pt-1">
+                      <Label>Value options</Label>
+                      <div className="text-[11px] text-white/70 mt-1">
+                        Lower-cost blanks that are currently configured for fulfillment.
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowValueOptions((s) => !s)}
-                  >
-                    {showValueOptions ? "Hide" : "Show"}
-                  </Button>
-                </div>
-
-                {showValueOptions && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {(Object.keys(TIERS) as TierKey[])
-                      .filter((k) => TIERS[k].series === "value")
-                      .map((k) => {
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {valueTierKeys.map((k) => {
                         const t = TIERS[k];
                         const active = tier === k;
                         const unit = t.wholesaleEstimate + PROFIT_PER_SHIRT;
@@ -731,15 +903,10 @@ export default function ScoutFitters() {
                             key={k}
                             type="button"
                             onClick={() => setTier(k)}
-                            className="rounded-xl border px-3 py-2 text-left transition-colors"
-                            style={{
-                              borderColor: active
-                                ? "rgba(249,115,22,0.65)"
-                                : "rgba(255,255,255,0.10)",
-                              backgroundColor: active
-                                ? "rgba(249,115,22,0.10)"
-                                : "rgba(17,20,24,0.55)",
-                            }}
+                            className={cn(
+                              selectableButtonClass,
+                              active && activeSelectableButtonClass
+                            )}
                           >
                             <div className="text-sm font-medium">{t.label}</div>
                             <div className="text-[11px] text-white/70 mt-1">{t.summary}</div>
@@ -754,7 +921,8 @@ export default function ScoutFitters() {
                           </button>
                         );
                       })}
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -765,34 +933,20 @@ export default function ScoutFitters() {
                     <button
                       type="button"
                       onClick={() => setPlacement("front_center")}
-                      className="rounded-xl border px-3 py-2 text-sm"
-                      style={{
-                        borderColor:
-                          placement === "front_center"
-                            ? "rgba(249,115,22,0.65)"
-                            : "rgba(255,255,255,0.10)",
-                        backgroundColor:
-                          placement === "front_center"
-                            ? "rgba(249,115,22,0.10)"
-                            : "rgba(17,20,24,0.55)",
-                      }}
+                      className={cn(
+                        "rounded-xl border px-3 py-2 text-sm transition-colors border-white/10 bg-tsCard hover:border-ts-orange/30 hover:bg-white/5",
+                        placement === "front_center" && activeSelectableButtonClass
+                      )}
                     >
                       Front center
                     </button>
                     <button
                       type="button"
                       onClick={() => setPlacement("left_chest")}
-                      className="rounded-xl border px-3 py-2 text-sm"
-                      style={{
-                        borderColor:
-                          placement === "left_chest"
-                            ? "rgba(249,115,22,0.65)"
-                            : "rgba(255,255,255,0.10)",
-                        backgroundColor:
-                          placement === "left_chest"
-                            ? "rgba(249,115,22,0.10)"
-                            : "rgba(17,20,24,0.55)",
-                      }}
+                      className={cn(
+                        "rounded-xl border px-3 py-2 text-sm transition-colors border-white/10 bg-tsCard hover:border-ts-orange/30 hover:bg-white/5",
+                        placement === "left_chest" && activeSelectableButtonClass
+                      )}
                     >
                       Left chest (4&quot;x4&quot;)
                     </button>
@@ -882,10 +1036,30 @@ export default function ScoutFitters() {
               Send to fulfillment
             </CardTitle>
             <CardDescription>
-              Step 2: enter recipient details and create a Printful draft order.
+              Step 2: enter recipient details and create a draft order for a configured merch
+              option.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!printfulConfigured && (
+              <Alert variant="destructive">
+                <AlertTitle>Fulfillment unavailable</AlertTitle>
+                <AlertDescription>
+                  Provider credentials are not configured, so draft orders are currently blocked.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {printfulConfigured && !selectedTierConfigured && (
+              <Alert variant="destructive">
+                <AlertTitle>Tier unavailable</AlertTitle>
+                <AlertDescription>
+                  {tierSpec.label} is visible in the catalog but is not configured for fulfillment
+                  right now.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label>Name</Label>
               <Input
@@ -982,7 +1156,14 @@ export default function ScoutFitters() {
               <Button
                 type="button"
                 onClick={submitOrder}
-                disabled={isSubmitting || !logoFile || !!qualityError}
+                disabled={
+                  isSubmitting ||
+                  !logoFile ||
+                  !!qualityError ||
+                  configLoading ||
+                  !printfulConfigured ||
+                  !selectedTierConfigured
+                }
               >
                 {isSubmitting ? (
                   <>

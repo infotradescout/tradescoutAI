@@ -37,14 +37,13 @@ export type LandingVariant = {
 const DEFAULT_VARIANT: LandingVariant = {
   key: "default",
   displayName: "Default",
-  badgeText: "Trust-First Platform",
+  badgeText: "Local Operating System",
   showBadge: false,
   headlineMode: "inline",
-  // Prefer "Connection" / "Without Compromise" line breaks on small screens.
-  headlineNoBreakAfterIndices: [1],
-  headlineLines: ["Connection", "Without", "Compromise"],
+  headlineNoBreakAfterIndices: [2],
+  headlineLines: ["The Local", "Operating System", "for Community Interaction"],
   subhead:
-    "Verified people connect through Scout-powered matching. No lead sales. No pay-to-play. Just trust.",
+    "Scout coordinates discovery, trust, intent, decision, and contact so local work moves forward without lead spam, pay-to-play ranking, or platform confusion.",
   primaryCta: { label: "Get Started", href: "/pre-scout-setup?mode=create" },
   secondaryCta: { label: "See How It Works", scrollToId: "how-it-works" },
   navLinks: [
@@ -61,21 +60,24 @@ const DEFAULT_VARIANT: LandingVariant = {
   },
   audience: {
     sectionLabel: "Who It's For",
-    sectionTitle: "Built For Real Local Work",
+    sectionTitle: "Built To Run Local Decisions Clearly",
     sectionDesc:
-      "TradeScout works across roles. Scout helps you find the right next step without turning your inbox into a dumpster fire.",
+      "TradeScout works across roles because Scout is not just a directory layer. It is the operating layer that explains what to do next, why it matters, and how action stays governed.",
     cards: [
-      { title: "For People Hiring", desc: "Clear decisions and gated contact. No spam." },
+      {
+        title: "For People Hiring",
+        desc: "Clear decisions, governed next steps, and gated contact without chaos.",
+      },
       {
         title: "For Pros & Providers",
-        desc: "Earn visibility through trust and verified activity, not spend.",
+        desc: "Earn visibility through trust, verified work, and local relevance, not spend.",
       },
     ],
   },
   cta: {
-    label: "Join the Trust-First Movement",
-    titleLines: ["Ready to get a", "better local match?"],
-    desc: "Start with Scout. Get 1-3 relevant connections and choose what happens next.",
+    label: "Start With Scout",
+    titleLines: ["Ready to use the", "local operating system?"],
+    desc: "Start with Scout. Get the right next step, the right local path, and the right contact flow without losing trust or context.",
     primaryLabel: "Get Started",
     primaryHref: "/pre-scout-setup?mode=create",
     secondaryLabel: "Sign In",
@@ -87,9 +89,9 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   contractor: {
     displayName: "Contractors",
     badgeText: "Trusted Work Pipeline",
-    headlineLines: ["Earn Local", "Trust-Based", "Work"],
+    headlineLines: ["Operate Inside", "The Trusted", "Local Work System"],
     subhead:
-      "Scout sends relevant local requests to pros who match the work. No bidding chaos, no lead reselling.",
+      "Scout routes relevant local demand to pros who match the work, the trust profile, and the community context. No bidding chaos, no lead reselling.",
     audience: {
       sectionLabel: "For Contractors",
       sectionTitle: "Get Better Jobs, Not Bigger Spam Lists",
@@ -104,9 +106,9 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   homeowner: {
     displayName: "Homeowners",
     badgeText: "Local Help Without Headaches",
-    headlineLines: ["Find The", "Right Pro", "Faster"],
+    headlineLines: ["Use Scout To", "Run The", "Right Local Decision"],
     subhead:
-      "Scout helps you connect with 1-3 relevant local pros so you can move your project forward without spam calls.",
+      "Scout helps you move a local project from uncertainty to action with 1-3 relevant options, visible trust context, and no spam calls.",
     audience: {
       sectionLabel: "For Homeowners",
       sectionTitle: "Less Noise. Better Decisions.",
@@ -121,7 +123,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   realtor: {
     displayName: "Realtors",
     badgeText: "Local Network, On Demand",
-    headlineLines: ["Move Faster", "With Local", "Trust"],
+    headlineLines: ["Run Deal-Critical", "Local Work", "Through Scout"],
     subhead:
       "Scout helps you line up reliable local pros for showings, repairs, and timeline-sensitive work.",
     audience: {
@@ -138,7 +140,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   hoa: {
     displayName: "HOA",
     badgeText: "Community Operations",
-    headlineLines: ["Local Work,", "Handled With", "Receipts"],
+    headlineLines: ["Community Work", "Run With", "Governed Clarity"],
     subhead:
       "Scout helps communities coordinate local providers with clear approvals and gated contact.",
     audience: {
@@ -155,7 +157,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   "property-manager": {
     displayName: "Property Managers",
     badgeText: "Multi-Property Coordination",
-    headlineLines: ["Coordinate", "Reliable", "Local Teams"],
+    headlineLines: ["Coordinate", "Local Operations", "Without Contact Chaos"],
     subhead:
       "Scout helps property teams route maintenance demand to trusted local providers without contact chaos.",
     audience: {
@@ -172,7 +174,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   lender: {
     displayName: "Lenders",
     badgeText: "Trusted Service Network",
-    headlineLines: ["Protect Deals", "With Better", "Execution"],
+    headlineLines: ["Protect Deals", "With Governed", "Local Execution"],
     subhead:
       "Scout helps your borrowers access trustworthy local service pathways that reduce friction before close.",
     audience: {
@@ -189,7 +191,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   "insurance-agent": {
     displayName: "Insurance Agents",
     badgeText: "Claims Support Network",
-    headlineLines: ["Support", "Clients With", "Trusted Help"],
+    headlineLines: ["Guide Claims", "Through Trusted", "Local Response"],
     subhead:
       "Scout helps policyholders connect to relevant local providers when speed, documentation, and trust matter.",
     audience: {
@@ -206,7 +208,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   supplier: {
     displayName: "Suppliers",
     badgeText: "Local Distribution Intelligence",
-    headlineLines: ["Reach Local", "Pros Through", "Trusted Paths"],
+    headlineLines: ["Reach Local", "Demand Through", "Governed Paths"],
     subhead:
       "Scout helps suppliers and vendors connect with real local demand without spam-based distribution.",
     audience: {

@@ -11,6 +11,7 @@ type TierKey = string;
 type PlacementKey = "front_center" | "left_chest";
 
 const ALLOWED_TIER_KEYS = new Set(["high", "medium", "low", "budget", "promo"]);
+const SCOUTFITTERS_TIER_KEYS = Array.from(ALLOWED_TIER_KEYS).sort();
 
 type Recipient = {
   name: string;
@@ -68,25 +69,27 @@ async function getVariantMapFromSiteSettings(): Promise<Record<string, number> |
     const out: Record<string, number> = {};
     for (const [k, v] of Object.entries(value)) {
       const key = sanitizeTierKey(k);
-      const variantId = parsePositiveInt(v);
-      if (!key || !variantId) continue;
-      out[key] = variantId;
+      const parsed = parsePositiveInt(v);
+      if (key && parsed) {
+        out[key] = parsed;
+      }
     }
-
     return Object.keys(out).length ? out : null;
   } catch {
     return null;
   }
 }
 
-async function getVariantIdForTier(tier: TierKey): Promise<number | null> {
+async function getVariantIdForTier(tier: string): Promise<number | null> {
   const key = sanitizeTierKey(tier);
   if (!key) return null;
-  const fromSettings = await getVariantMapFromSiteSettings();
-  const byTier = key ? fromSettings?.[key] : null;
-  if (byTier) return byTier;
 
-  // Fallback: env vars (not required; variant IDs are not secrets, but some deploys prefer env-based config).
+  const fromSiteSettings = await getVariantMapFromSiteSettings();
+  const configured = fromSiteSettings?.[key];
+  if (configured) {
+    return configured;
+  }
+
   const env =
     key === "high"
       ? process.env.SCOUTFITTERS_PRINTFUL_VARIANT_ID_HIGH
@@ -222,26 +225,27 @@ export function registerScoutFittersRoutes(app: any) {
 
   router.get("/config", async (_req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store");
-    const [high, medium, low] = await Promise.all([
-      getVariantIdForTier("high"),
-      getVariantIdForTier("medium"),
-      getVariantIdForTier("low"),
-    ]);
+    const variantEntries = await Promise.all(
+      SCOUTFITTERS_TIER_KEYS.map(
+        async (key) => [key, Boolean(await getVariantIdForTier(key))] as const
+      )
+    );
+    const variantsConfigured = Object.fromEntries(variantEntries);
+    const configuredTierKeys = variantEntries
+      .filter(([, configured]) => configured)
+      .map(([key]) => key);
     const variantMap = await getVariantMapFromSiteSettings();
     const fileTypeOverrides = await getPrintfulFileTypeOverridesFromSiteSettings();
     res.status(200).json({
-      tiers: {
-        high: { technique: "EMBROIDERY" },
-        medium: { technique: "DTG" },
-        low: { technique: "DTG" },
-      },
+      catalog: SCOUTFITTERS_TIER_KEYS.map((key) => ({
+        key,
+        technique: getTechniqueForTier(key),
+        configured: Boolean(variantsConfigured[key]),
+      })),
       fulfillment: {
         printfulConfigured: Boolean(String(process.env.PRINTFUL_API_KEY || "").trim()),
-        variantsConfigured: {
-          high: Boolean(high),
-          medium: Boolean(medium),
-          low: Boolean(low),
-        },
+        variantsConfigured,
+        configuredTierKeys,
         // Not secrets; helpful for UI/admin debugging.
         allowedTierKeys: Object.keys(variantMap || {}).sort(),
         fileTypeOverridesConfigured: Boolean(

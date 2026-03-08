@@ -293,7 +293,15 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             transition={{ duration: 0.7, delay: 0.3 }}
             className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
           >
-            <span className="text-gradient-orange">Connection Without Compromise</span>
+            {variant.headlineLines.map((line, index) => {
+              const isAccent = index === 1 || (variant.headlineLines.length === 1 && index === 0);
+              return (
+                <span key={line}>
+                  <span className={isAccent ? "text-gradient-orange" : undefined}>{line}</span>
+                  {index < variant.headlineLines.length - 1 ? <br /> : null}
+                </span>
+              );
+            })}
           </motion.h1>
 
           <motion.p
@@ -304,6 +312,19 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
           >
             {variant.subhead}
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="mb-3 rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-2"
+          >
+            <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
+              Scout is the operating layer for local interaction: it interprets what you need,
+              routes the right next step, explains trust, and keeps contact governed instead of
+              chaotic.
+            </p>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -378,9 +399,9 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
 // ---- Stats Bar ----
 function StatsBar() {
   const stats = [
-    { value: 100, suffix: "%", label: "Trust-Based Matching" },
+    { value: 1, suffix: "", label: "Scout Control Plane" },
     { value: 0, suffix: "", label: "Lead Spam", display: "Zero" },
-    { value: 5, suffix: "-Layer", label: "Verification System" },
+    { value: 5, suffix: "", label: "Governed Stages", display: "Five" },
     { value: 0, suffix: "", label: "Pay-to-Play", display: "No" },
   ];
 
@@ -410,22 +431,22 @@ function HowItWorksSection() {
     {
       icon: MessageSquare,
       title: "Ask Scout",
-      desc: "Tell Scout what you need. Scout is your community assistant for local work.",
+      desc: "Tell Scout what you need so the system starts from your real intent, not from a category guess.",
     },
     {
       icon: Search,
-      title: "Scout Matches",
-      desc: "Scout uses community trust signals plus trade and location to find 1-3 fits.",
+      title: "Scout Interprets",
+      desc: "Scout turns your request into a local decision path using trust, trade fit, and location context.",
     },
     {
       icon: CheckCircle,
-      title: "Pros Accept/Decline",
-      desc: "Pros review your request and choose to accept or pass. No spam.",
+      title: "Scout Routes",
+      desc: "The system routes the request to the right next step, whether that is a match, a decision card, or a governed hold.",
     },
     {
       icon: Handshake,
-      title: "Direct Connection",
-      desc: "Pros who accept contact you directly. You choose who to hire.",
+      title: "Contact Stays Governed",
+      desc: "Only after fit and intent are clear does contact open. You stay in control without losing privacy or context.",
     },
   ];
 
@@ -444,7 +465,8 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            Trust-first matching controlled by Scout. No payment determines ranking.
+            TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to
+            governed action.
           </p>
         </Reveal>
 
@@ -908,7 +930,8 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
               </span>
             </div>
             <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              Connection Without Compromise. Trust-first local matching powered by Scout.
+              The local operating system for community interaction. Trust-first local action powered
+              by Scout.
             </p>
           </div>
 
@@ -1045,7 +1068,8 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
         <div className="border-t border-white/5 pt-5">
           <p className="text-xs text-white/30 text-center">
-            (c) 2026 TradeScout. All rights reserved. Trust-first local matching.
+            (c) 2026 TradeScout. All rights reserved. The local operating system for community
+            interaction.
           </p>
         </div>
       </div>
@@ -1110,7 +1134,7 @@ export default function Home() {
       <SEOHelmet
         title={
           canonicalLandingPath === "/landing"
-            ? "TradeScout | Connection Without Compromise"
+            ? "TradeScout | The Local Operating System for Community Interaction"
             : `${variant.displayName} | TradeScout`
         }
         description={variant.subhead}

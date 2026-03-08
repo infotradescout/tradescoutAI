@@ -198,7 +198,8 @@ const AppLayout = memo(function AppLayout() {
                   TradeScout is in active beta
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-secondary)]">
-                  Some features may be rough. Keep sharing issues so we can harden Scout fast.
+                  TradeScout is being hardened in public. Report friction so Scout, routing, and
+                  local decision flows stay reliable.
                 </p>
               </div>
               <button
