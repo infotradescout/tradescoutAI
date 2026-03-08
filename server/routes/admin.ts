@@ -1173,32 +1173,120 @@ export function mountAdminRoutes(app: any) {
         const [totalUsersResult] = await db.select({ count: count() }).from(users);
         const totalUsers = totalUsersResult.count;
 
-        // Get all role breakdowns (no filtering)
-        const usersByRole = await db
+        // Build role breakdown from effective community roles (activeRole + roles + role),
+        // and exclude archived/import-placeholder accounts from distribution stats.
+        const userRoleRows = await db
           .select({
             role: users.role,
-            count: count(),
+            activeRole: users.activeRole,
+            roles: users.roles,
+            email: users.email,
+            preferences: users.preferences,
           })
-          .from(users)
-          .groupBy(users.role);
+          .from(users);
 
-        const roleMap: Record<string, number> = {};
-        let knownRolesTotal = 0;
-        const knownRoles = ["homeowner", "contractor", "handyman", "realtor"];
+        const normalizeRoleToken = (value: unknown): string => {
+          const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+          if (!raw) return "";
+          if (raw === "owner" || raw === "head_admin") return "super_admin";
+          return raw;
+        };
+
+        const isArchivedPlaceholderEmail = (email: unknown): boolean => {
+          const normalized = String(email || "")
+            .trim()
+            .toLowerCase();
+          return (
+            normalized.startsWith("archived+") && normalized.endsWith("@thetradescout.invalid")
+          );
+        };
+
+        const isImportTaggedAccount = (prefs: unknown): boolean => {
+          const record =
+            prefs && typeof prefs === "object" ? (prefs as Record<string, unknown>) : {};
+          const joined = [
+            record.importSource,
+            record.sourceTag,
+            record.createdBy,
+            record.archivedReason,
+            record.accountOrigin,
+          ]
+            .map((v) => String(v || "").toLowerCase())
+            .join(" ");
+          return (
+            joined.includes("import") ||
+            joined.includes("admin_import_cleanup") ||
+            record.isImportedBusiness === true
+          );
+        };
+
+        const roleMap: Record<"homeowner" | "contractor" | "handyman" | "realtor", number> = {
+          homeowner: 0,
+          contractor: 0,
+          handyman: 0,
+          realtor: 0,
+        };
         const unknownRoleBreakdown: Record<string, number> = {};
+        let includedUsers = 0;
 
-        usersByRole.forEach((r: any) => {
-          const role = r.role || "homeowner";
-          roleMap[role] = r.count;
+        for (const row of userRoleRows as any[]) {
+          if (isArchivedPlaceholderEmail(row.email)) continue;
+          if (isImportTaggedAccount(row.preferences)) continue;
 
-          if (knownRoles.includes(role)) {
-            knownRolesTotal += r.count;
-          } else {
-            unknownRoleBreakdown[role] = r.count;
+          const roleTokens = new Set<string>();
+          const addRole = (value: unknown) => {
+            const token = normalizeRoleToken(value);
+            if (!token) return;
+            roleTokens.add(token);
+          };
+          addRole(row.role);
+          addRole(row.activeRole);
+          if (Array.isArray(row.roles)) {
+            for (const token of row.roles) addRole(token);
           }
-        });
 
-        const unknownRoleCount = totalUsers - knownRolesTotal;
+          if (roleTokens.size === 0) continue;
+          includedUsers += 1;
+
+          const isHandyman = roleTokens.has("handyman") || roleTokens.has("helper");
+          const isRealtor = roleTokens.has("realtor");
+          const isContractor =
+            roleTokens.has("contractor") ||
+            roleTokens.has("contractor_user") ||
+            roleTokens.has("service_provider") ||
+            roleTokens.has("maintenance_contractor") ||
+            roleTokens.has("specialty_tradesperson") ||
+            roleTokens.has("accelerator_member");
+          const isAdminLike =
+            roleTokens.has("super_admin") ||
+            roleTokens.has("ops_admin") ||
+            roleTokens.has("moderator");
+          const isHomeowner =
+            roleTokens.has("homeowner") ||
+            roleTokens.has("renter") ||
+            roleTokens.has("landlord") ||
+            roleTokens.has("hoa_member");
+
+          if (isHandyman) roleMap.handyman += 1;
+          if (isRealtor) roleMap.realtor += 1;
+          if (isContractor) roleMap.contractor += 1;
+
+          const isHomeownerOnly =
+            isHomeowner && !isContractor && !isHandyman && !isRealtor && !isAdminLike;
+          if (isHomeownerOnly) {
+            roleMap.homeowner += 1;
+          }
+
+          if (!isHomeownerOnly && !isContractor && !isHandyman && !isRealtor) {
+            const fallbackToken =
+              normalizeRoleToken(row.activeRole) || normalizeRoleToken(row.role) || "unknown";
+            unknownRoleBreakdown[fallbackToken] = (unknownRoleBreakdown[fallbackToken] || 0) + 1;
+          }
+        }
+
+        const knownRolesTotal =
+          roleMap.homeowner + roleMap.contractor + roleMap.handyman + roleMap.realtor;
+        const unknownRoleCount = Math.max(0, includedUsers - knownRolesTotal);
 
         // Get community posts count
         const [totalPostsResult] = await db.select({ count: count() }).from(communityPosts);
@@ -1207,7 +1295,7 @@ export function mountAdminRoutes(app: any) {
         // Back-compat metrics still consumed by older admin surfaces.
         const today = new Date();
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const totalContractors = (roleMap.contractor || 0) + (roleMap.handyman || 0);
+        const totalContractors = roleMap.contractor + roleMap.handyman;
         const [newLeads, totalRecommendations] = await Promise.all([
           storage.getEventStats("lead_submitted", { from: weekAgo, to: today }),
           storage.getEventStats("recommendation_submitted"),
@@ -1224,10 +1312,10 @@ export function mountAdminRoutes(app: any) {
           newLeads,
           totalRecommendations,
           roleBreakdown: {
-            homeowner: roleMap.homeowner || 0,
-            contractor: roleMap.contractor || 0,
-            handyman: roleMap.handyman || 0,
-            realtor: roleMap.realtor || 0,
+            homeowner: roleMap.homeowner,
+            contractor: roleMap.contractor,
+            handyman: roleMap.handyman,
+            realtor: roleMap.realtor,
           },
           unknownRoleCount,
           unknownRoles: unknownRoleBreakdown,
