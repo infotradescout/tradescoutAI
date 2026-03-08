@@ -19,7 +19,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    runtimeErrorOverlay(),
+    ...(process.env.NODE_ENV !== "production" ? [runtimeErrorOverlay()] : []),
     ...(process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
       ? [await import("@replit/vite-plugin-cartographer").then((m) => m.cartographer())]
       : []),
@@ -42,6 +42,44 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    reportCompressedSize: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return;
+          }
+
+          if (id.includes("/@radix-ui/") || id.includes("/cmdk/") || id.includes("/vaul/")) {
+            return "vendor-ui";
+          }
+
+          if (
+            id.includes("/recharts/") ||
+            id.includes("/d3-") ||
+            id.includes("/topojson-client/") ||
+            id.includes("/us-atlas/")
+          ) {
+            return "vendor-analytics";
+          }
+
+          if (
+            id.includes("/xlsx/") ||
+            id.includes("/jszip/") ||
+            id.includes("/html2canvas/") ||
+            id.includes("/fabric/")
+          ) {
+            return "vendor-docs";
+          }
+
+          if (id.includes("/@googlemaps/") || id.includes("/google-auth-library/")) {
+            return "vendor-google";
+          }
+
+          return "vendor-misc";
+        },
+      },
+    },
   },
   server: {
     fs: {

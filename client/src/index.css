@@ -1121,7 +1121,7 @@ html {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
-    body.ts-mobile-density.ts-authenticated-app .app-page .text-[11px] {
+    body.ts-mobile-density.ts-authenticated-app .app-page .text-\[11px\] {
       line-height: 1.05rem;
     }
   }
