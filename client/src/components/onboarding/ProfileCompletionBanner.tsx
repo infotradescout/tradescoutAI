@@ -5,17 +5,9 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { isSuperAdminLike } from "@/lib/roleChecks";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 
 type BannerMode = "local_setup" | "onboarding";
-
-function isAdminLike(user: any): boolean {
-  if (!user) return false;
-  if (user.isAdmin === true || user.isSuperAdmin === true) return true;
-  return (
-    isSuperAdminLike((user as any)?.role) || String((user as any)?.role || "").includes("admin")
-  );
-}
 
 export default function ProfileCompletionBanner() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -24,7 +16,7 @@ export default function ProfileCompletionBanner() {
   const mode: BannerMode | null = useMemo(() => {
     if (isLoading) return null;
     if (!isAuthenticated || !user) return null;
-    if (isAdminLike(user)) return null;
+    if (hasAdminUiAccess(user)) return null;
 
     const path = String(location || "");
     const isSetupRoute =

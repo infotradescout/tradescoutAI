@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { getAdminNavSectionsForRole, type AdminRole } from "@/admin/adminTools";
-import { isAdminTier, isSuperAdminLike } from "@/lib/roleChecks";
+import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 
 export interface AdminToolLink {
   id: string;
@@ -104,13 +104,9 @@ export function AdminPageToolsBar() {
   const role = ((user?.role as AdminRole) || "ops_admin") as AdminRole;
   const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
   const isAdmin = Boolean(
-    isAuthenticated &&
-    ((user as any)?.isAdmin === true ||
-      isSuperAdminLike(rawRole) ||
-      isAdminTier(rawRole) ||
-      rawRole.trim().toLowerCase() === "moderator")
+    isAuthenticated && (hasAdminUiAccess(user) || rawRole.trim().toLowerCase() === "moderator")
   );
-  const isSuperAdmin = Boolean((user as any)?.isSuperAdmin === true);
+  const isSuperAdmin = Boolean((user as any)?.isSuperAdmin === true || isSuperAdminLike(rawRole));
 
   const tools = useMemo(() => {
     return buildAdminTools(path || "", { role, isSuperAdmin });

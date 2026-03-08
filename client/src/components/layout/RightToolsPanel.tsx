@@ -20,7 +20,7 @@ import {
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { safeNavigate } from "@/lib/safeNavigate";
-import { isAdminTier, isSuperAdminLike } from "@/lib/roleChecks";
+import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 
 type NavLinkProps = {
   href: string;
@@ -115,8 +115,7 @@ export function RightToolsPanel({
   const displayName = (user as any)?.firstName || (user as any)?.name || "Guest";
   const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(rawRole);
-  const hasAdminAccess =
-    (user as any)?.isAdmin === true || (user as any)?.isSuperAdmin === true || isAdminTier(rawRole);
+  const hasAdminAccess = hasAdminUiAccess(user);
 
   const locationLabel =
     (user as any)?.county && (user as any)?.state

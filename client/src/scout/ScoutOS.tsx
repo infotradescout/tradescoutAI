@@ -51,7 +51,7 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
-import { isAdminTier, isSuperAdminLike } from "@/lib/roleChecks";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 import {
   searchContractors,
   searchMarketplace,
@@ -966,12 +966,7 @@ export default function ScoutOS() {
     return "default";
   };
 
-  const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
-  const hasAdminAccess =
-    (user as any)?.isAdmin === true ||
-    (user as any)?.isSuperAdmin === true ||
-    isAdminTier(rawRole) ||
-    isSuperAdminLike(rawRole);
+  const hasAdminAccess = hasAdminUiAccess(user);
 
   // We no longer surface the separate "Trending" tab at the bottom; all
   // focus stays on the main Scout thread and input.

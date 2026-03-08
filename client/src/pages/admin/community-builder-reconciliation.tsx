@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 
 interface ReconciliationRow {
   countyId: string;
@@ -29,12 +30,13 @@ interface ReconciliationRow {
 export default function AdminCommunityBuilderReconciliationPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const hasAdminAccess = hasAdminUiAccess(user);
 
   useEffect(() => {
-    if (!user?.isAdmin) setLocation("/unauthorized");
-  }, [user?.isAdmin, setLocation]);
+    if (!hasAdminAccess) setLocation("/unauthorized");
+  }, [hasAdminAccess, setLocation]);
 
-  if (!user?.isAdmin) return null;
+  if (!hasAdminAccess) return null;
   const { data: recs = [], isLoading } = useQuery<ReconciliationRow[]>({
     queryKey: ["cbReconciliation"],
     queryFn: async () => {

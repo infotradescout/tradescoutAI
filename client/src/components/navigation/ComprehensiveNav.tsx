@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { safeNavigate } from "@/lib/safeNavigate";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { getRolePermissions } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import {
@@ -394,7 +395,7 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
-  const isAdminUser = Boolean((user as any)?.isAdmin);
+  const isAdminUser = hasAdminUiAccess(user);
 
   const hasPermission = (item: NavItem): boolean => {
     if (!user) return !item.roles && !item.permission;

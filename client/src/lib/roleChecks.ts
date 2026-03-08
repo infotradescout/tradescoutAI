@@ -46,6 +46,34 @@ export const isAdminTier = (role: UserRole): boolean => {
   return isSuperAdminLike(role) || isOpsAdmin(role);
 };
 
+type AdminLikeUser = {
+  isAdmin?: unknown;
+  isSuperAdmin?: unknown;
+  role?: UserRole;
+  roles?: unknown;
+};
+
+/**
+ * Client-side admin UI visibility check.
+ *
+ * This preserves legacy boolean flags while honoring the canonical
+ * admin role model used elsewhere in the app.
+ */
+export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolean => {
+  if (!user) return false;
+  if (user.isAdmin === true || user.isSuperAdmin === true) return true;
+  if (isAdminTier(user.role) || isSuperAdminLike(user.role)) return true;
+
+  if (Array.isArray(user.roles)) {
+    return user.roles.some((role) => {
+      const raw = typeof role === "string" ? role : String(role || "");
+      return isAdminTier(raw) || isSuperAdminLike(raw) || raw.toLowerCase().includes("admin");
+    });
+  }
+
+  return false;
+};
+
 /**
  * Staff check (employee moderation access)
  *

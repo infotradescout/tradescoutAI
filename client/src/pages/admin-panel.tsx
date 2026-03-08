@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { isAdminTier } from "@/lib/roleChecks";
+import { hasAdminUiAccess, isAdminTier } from "@/lib/roleChecks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -187,12 +187,7 @@ export default function AdminPanel() {
 
   // Check admin access
   const rawRole = String(user?.role || "");
-  const hasAdminAccess =
-    (user as any)?.isAdmin === true ||
-    (user as any)?.isSuperAdmin === true ||
-    isAdminTier(rawRole) ||
-    rawRole.trim().toLowerCase() === "moderator" ||
-    rawRole.trim().toLowerCase() === "admin";
+  const hasAdminAccess = hasAdminUiAccess(user) || rawRole.trim().toLowerCase() === "moderator";
   if (!isAuthenticated || !user || !hasAdminAccess) {
     return (
       <div className="bg-tsBg flex items-center justify-center py-24">

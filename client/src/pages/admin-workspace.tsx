@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { RoleImpersonation } from "@/components/admin/RoleImpersonation";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 import {
   Users,
   Download,
@@ -81,8 +82,7 @@ export default function AdminWorkspace() {
   const [activeTab, setActiveTab] = useState("verification");
   const [, setLocation] = useLocation();
 
-  // Check admin access using canonical isAdmin flag
-  const hasAdminAccess = !!user?.isAdmin;
+  const hasAdminAccess = hasAdminUiAccess(user);
 
   // Redirect if not authenticated or not admin
   useEffect(() => {

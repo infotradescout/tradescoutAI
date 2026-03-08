@@ -4,6 +4,7 @@ import { useLocation, Link } from "wouter";
 import AppDrawer from "../components/AppDrawer";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Home, Send } from "lucide-react";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 
 interface Message {
   id: string;
@@ -276,7 +277,7 @@ export default function ScoutLandingLite() {
       <AppDrawer
         isOpen={appDrawerOpen}
         onClose={() => setAppDrawerOpen(false)}
-        isAdmin={user?.isAdmin === true}
+        isAdmin={hasAdminUiAccess(user)}
       />
     </React.Fragment>
   );

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, CheckCircle, X, DollarSign, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 
 interface PendingContribution {
   id: string;
@@ -26,12 +27,13 @@ interface PendingContribution {
 export default function AdminCommunityBuilderDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const hasAdminAccess = hasAdminUiAccess(user);
 
   useEffect(() => {
-    if (!user?.isAdmin) setLocation("/unauthorized");
-  }, [user?.isAdmin, setLocation]);
+    if (!hasAdminAccess) setLocation("/unauthorized");
+  }, [hasAdminAccess, setLocation]);
 
-  if (!user?.isAdmin) return null;
+  if (!hasAdminAccess) return null;
   const { toast } = useToast();
   const [selectedContribution, setSelectedContribution] = useState<string | null>(null);
   const [approvalNotes, setApprovalNotes] = useState("");

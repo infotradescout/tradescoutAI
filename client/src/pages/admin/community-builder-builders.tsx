@@ -16,6 +16,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Ban } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 
 interface BuilderRow {
   id: string;
@@ -33,12 +34,13 @@ interface BuilderRow {
 export default function AdminCommunityBuilderManagementPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const hasAdminAccess = hasAdminUiAccess(user);
 
   useEffect(() => {
-    if (!user?.isAdmin) setLocation("/unauthorized");
-  }, [user?.isAdmin, setLocation]);
+    if (!hasAdminAccess) setLocation("/unauthorized");
+  }, [hasAdminAccess, setLocation]);
 
-  if (!user?.isAdmin) return null;
+  if (!hasAdminAccess) return null;
   const { data: builders = [], refetch } = useQuery<BuilderRow[]>({
     queryKey: ["cbBuilders"],
     queryFn: async () => {

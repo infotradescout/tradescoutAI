@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 
 type ContractorApplication = {
   id: string;
@@ -69,7 +70,7 @@ export default function StaffHardrockDirectory() {
 
   const hasAccess = useMemo(() => {
     if (!isAuthenticated || !user) return false;
-    if (user.isAdmin === true) return true;
+    if (hasAdminUiAccess(user)) return true;
     return STAFF_ROLE_SET.has(String(user.role));
   }, [isAuthenticated, user]);
 
