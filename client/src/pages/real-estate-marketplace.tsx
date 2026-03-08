@@ -37,6 +37,44 @@ type HomeScoutListing = {
   listedAt?: string | null;
 };
 
+type HomeScoutSurfaceSection = {
+  title: string;
+  items: string[];
+};
+
+const HOMESCOUT_SURFACE_SECTIONS: HomeScoutSurfaceSection[] = [
+  {
+    title: "Property Marketplace",
+    items: ["Homes For Sale", "Rentals", "Owner Listings", "Off-Market Properties"],
+  },
+  {
+    title: "Land",
+    items: ["Residential Lots", "Acreage", "Development Land"],
+  },
+  {
+    title: "Commercial Property",
+    items: ["Retail", "Industrial", "Office"],
+  },
+  {
+    title: "Property Programs",
+    items: ["Renovation Opportunities", "Investment Projects", "Build Opportunities"],
+  },
+  {
+    title: "Property Management Tools",
+    items: [
+      "Maintenance Requests",
+      "Contractor Scheduling",
+      "Work History",
+      "Asset Tracking",
+      "Lifecycle Records",
+    ],
+  },
+  {
+    title: "Verified Property History",
+    items: ["Permits", "Contractor Work", "Inspections", "Ownership Timeline"],
+  },
+];
+
 function formatCurrency(value: string | number) {
   const num = typeof value === "number" ? value : Number(String(value || 0));
   const safe = Number.isFinite(num) ? num : 0;
@@ -268,6 +306,42 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
 
             <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardContent className="p-4 md:p-6">
+                <div className="mb-4 md:mb-6">
+                  <h2 className="text-base md:text-lg font-semibold text-white">HomeScout Structure</h2>
+                  <p className="mt-1 text-xs md:text-sm text-white/70">
+                    Each item is a standalone HomeScout surface that stays in sync with county-first
+                    discovery and intent-based contact.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {HOMESCOUT_SURFACE_SECTIONS.map((section) => (
+                      <div
+                        key={section.title}
+                        className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2"
+                      >
+                        <div className="text-sm font-semibold text-white">{section.title}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {section.items.map((item) => {
+                            const params = new URLSearchParams({
+                              hsSection: section.title,
+                              hsItem: item,
+                            });
+                            return (
+                              <Link
+                                key={`${section.title}-${item}`}
+                                href={`/real-estate-marketplace?${params.toString()}`}
+                              >
+                                <Badge className="bg-tsCard border border-white/10 text-white/90 hover:bg-tsCard/80 cursor-pointer">
+                                  {item}
+                                </Badge>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
