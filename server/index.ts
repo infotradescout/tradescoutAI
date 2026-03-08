@@ -53,6 +53,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
+import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -452,15 +453,8 @@ const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 
-// Serve uploaded files (dev + prod). In dev, this supports local file workflows and
-// in-app previews; in prod, this supports staff-accessible upload links.
-const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
-if (fs.existsSync(uploadsPath)) {
-  app.use(
-    "/uploads",
-    express.static(uploadsPath, { maxAge: process.env.NODE_ENV === "production" ? "1y" : "0" })
-  );
-}
+// Serve uploads with resilient fallback (disk + R2 + extension compatibility).
+registerUploadsFallback(app);
 
 const apiSlowLogMs = Number(process.env.API_SLOW_LOG_MS || 750);
 const logAllApiRequests =

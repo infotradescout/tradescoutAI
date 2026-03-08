@@ -48,6 +48,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
+import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -667,9 +668,8 @@ app.use(botReadOnlyGuard);
 </html>`);
             });
 
-            // Serve uploaded files
-            const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
-            app.use("/uploads", express.static(uploadsPath, { maxAge: "1y" }));
+            // Serve uploads with resilient fallback (disk + R2 + extension compatibility).
+            registerUploadsFallback(app);
 
             const assetsPath = path.join(publicDistPath, "assets");
             if (fs.existsSync(assetsPath)) {
