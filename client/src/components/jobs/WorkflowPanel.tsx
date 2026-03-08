@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 
-interface DealRoomPanelProps {
+interface WorkflowPanelProps {
   jobId: string | null;
   userRole: DealRoomRole;
 }
 
-export function DealRoomPanel({ jobId, userRole }: DealRoomPanelProps) {
+export function WorkflowPanel({ jobId, userRole }: WorkflowPanelProps) {
   const { toast } = useToast();
   const { documents, isLoading, error, refetch } = useJobDocuments(jobId);
   const [invoiceTotalInput, setInvoiceTotalInput] = useState("");

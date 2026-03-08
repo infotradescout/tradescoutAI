@@ -57,6 +57,18 @@ interface StandaloneInvoicesResponse {
   };
 }
 
+interface StandaloneReceipt {
+  id: string;
+  job_id: string | null;
+  type: string;
+  status: string;
+  payload: any;
+  created_at: string;
+  updated_at: string;
+}
+
+type AdditionalRecordType = "BILL" | "PURCHASE_ORDER" | "CREDIT_NOTE" | "PAYMENT" | "JOURNAL_ENTRY";
+
 export default function FinancesInvoicesPage() {
   const { isAuthenticated, user } = useAuth();
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
@@ -90,6 +102,20 @@ export default function FinancesInvoicesPage() {
   const [pageSize] = useState(50);
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<"all" | "open" | "paid">("all");
   const [invoiceRangeFilter, setInvoiceRangeFilter] = useState<"all" | "90d" | "365d">("all");
+  const [receiptTitle, setReceiptTitle] = useState("");
+  const [receiptClientName, setReceiptClientName] = useState("");
+  const [receiptJobId, setReceiptJobId] = useState(initialJobIdFromQuery);
+  const [receiptTotal, setReceiptTotal] = useState("");
+  const [receiptNotes, setReceiptNotes] = useState("");
+  const [sourceInvoiceId, setSourceInvoiceId] = useState("");
+  const [otherRecordType, setOtherRecordType] = useState<AdditionalRecordType>("BILL");
+  const [otherRecordTitle, setOtherRecordTitle] = useState("");
+  const [otherRecordJobId, setOtherRecordJobId] = useState(initialJobIdFromQuery);
+  const [otherRecordClientName, setOtherRecordClientName] = useState("");
+  const [otherRecordVendorName, setOtherRecordVendorName] = useState("");
+  const [otherRecordReference, setOtherRecordReference] = useState("");
+  const [otherRecordTotal, setOtherRecordTotal] = useState("");
+  const [otherRecordNotes, setOtherRecordNotes] = useState("");
 
   if (!isAuthenticated) {
     return (
@@ -248,6 +274,117 @@ export default function FinancesInvoicesPage() {
           raw === "INVOICE_NOT_READY_FOR_PAYMENT"
             ? "Send the invoice first, then record payment."
             : formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createReceipt = useMutation({
+    mutationFn: async () => {
+      const numericTotal = Number(receiptTotal || 0);
+      if (!Number.isFinite(numericTotal) || numericTotal <= 0) {
+        throw new Error("Enter a valid receipt total greater than zero.");
+      }
+
+      const res = await fetch("/api/accounting/standalone-receipt", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          projectTitle: receiptTitle || "Manual receipt",
+          clientName: receiptClientName || undefined,
+          jobId: receiptJobId.trim() || undefined,
+          notes: receiptNotes || undefined,
+          total: numericTotal,
+          invoiceId: sourceInvoiceId.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to create receipt (${res.status})`);
+      }
+
+      return (await res.json()) as { document: StandaloneReceipt };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Receipt recorded",
+        description: "Receipt is now part of your finance record and linked flow.",
+      });
+      setReceiptTitle("");
+      setReceiptClientName("");
+      setReceiptJobId("");
+      setReceiptTotal("");
+      setReceiptNotes("");
+      setSourceInvoiceId("");
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/job-flows"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/reports/summary"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not create receipt",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createOtherRecord = useMutation({
+    mutationFn: async () => {
+      const numericTotal = Number(otherRecordTotal || 0);
+      if (!Number.isFinite(numericTotal) || numericTotal <= 0) {
+        throw new Error("Enter a valid record total greater than zero.");
+      }
+
+      const res = await fetch("/api/accounting/standalone-record", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          type: otherRecordType,
+          projectTitle: otherRecordTitle || undefined,
+          jobId: otherRecordJobId.trim() || undefined,
+          clientName: otherRecordClientName || undefined,
+          vendorName: otherRecordVendorName || undefined,
+          reference: otherRecordReference || undefined,
+          notes: otherRecordNotes || undefined,
+          total: numericTotal,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to create record (${res.status})`);
+      }
+
+      return (await res.json()) as { document: { type: string } };
+    },
+    onSuccess: (result) => {
+      toast({
+        title: `${result.document.type.replace(/_/g, " ")} recorded`,
+        description: "Record added to your accounting history and linked flow.",
+      });
+      setOtherRecordTitle("");
+      setOtherRecordClientName("");
+      setOtherRecordVendorName("");
+      setOtherRecordReference("");
+      setOtherRecordTotal("");
+      setOtherRecordNotes("");
+      setOtherRecordJobId("");
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/job-flows"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/reports/summary"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not create record",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -424,6 +561,14 @@ export default function FinancesInvoicesPage() {
           >
             Back to dashboard
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 px-3 border-white/10 text-[11px] text-tsText md:h-8"
+            onClick={() => navigate("/finances/records")}
+          >
+            Open records ledger
+          </Button>
         </div>
       </div>
 
@@ -554,6 +699,149 @@ export default function FinancesInvoicesPage() {
               disabled={createInvoice.isPending}
             >
               {createInvoice.isPending ? "Creating..." : "Create invoice record"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-tsCard border-white/10 mb-4">
+        <CardHeader>
+          <CardTitle className="text-tsText mb-1">Standalone receipt record</CardTitle>
+          <CardDescription>
+            Add a receipt at any point. Link it to an existing job flow or keep it standalone for
+            clean records.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <Input
+              placeholder="Receipt title"
+              value={receiptTitle}
+              onChange={(e) => setReceiptTitle(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Client name (optional)"
+              value={receiptClientName}
+              onChange={(e) => setReceiptClientName(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Link existing job ID (optional)"
+              value={receiptJobId}
+              onChange={(e) => setReceiptJobId(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Receipt total"
+              value={receiptTotal}
+              onChange={(e) => setReceiptTotal(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Input
+              placeholder="Source invoice ID (optional)"
+              value={sourceInvoiceId}
+              onChange={(e) => setSourceInvoiceId(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Notes (optional)"
+              value={receiptNotes}
+              onChange={(e) => setReceiptNotes(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 md:w-auto md:h-8"
+              onClick={() => createReceipt.mutate()}
+              disabled={createReceipt.isPending}
+            >
+              {createReceipt.isPending ? "Creating..." : "Create receipt record"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-tsCard border-white/10 mb-4">
+        <CardHeader>
+          <CardTitle className="text-tsText mb-1">Other bookkeeping records</CardTitle>
+          <CardDescription>
+            Create additional records like bills, purchase orders, credit notes, payments, and
+            journal entries without leaving Finances.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <select
+              value={otherRecordType}
+              onChange={(e) => setOtherRecordType(e.target.value as AdditionalRecordType)}
+              className="h-11 rounded-md bg-tsCard border border-white/10 px-3 text-tsText text-sm"
+            >
+              <option value="BILL">Bill</option>
+              <option value="PURCHASE_ORDER">Purchase order</option>
+              <option value="CREDIT_NOTE">Credit note</option>
+              <option value="PAYMENT">Payment record</option>
+              <option value="JOURNAL_ENTRY">Journal entry</option>
+            </select>
+            <Input
+              placeholder="Record title"
+              value={otherRecordTitle}
+              onChange={(e) => setOtherRecordTitle(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Link existing job ID (optional)"
+              value={otherRecordJobId}
+              onChange={(e) => setOtherRecordJobId(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Record total"
+              value={otherRecordTotal}
+              onChange={(e) => setOtherRecordTotal(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Input
+              placeholder="Client name (optional)"
+              value={otherRecordClientName}
+              onChange={(e) => setOtherRecordClientName(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Vendor name (optional)"
+              value={otherRecordVendorName}
+              onChange={(e) => setOtherRecordVendorName(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Reference (optional)"
+              value={otherRecordReference}
+              onChange={(e) => setOtherRecordReference(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+          </div>
+          <Input
+            placeholder="Notes (optional)"
+            value={otherRecordNotes}
+            onChange={(e) => setOtherRecordNotes(e.target.value)}
+            className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+          />
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 md:w-auto md:h-8"
+              onClick={() => createOtherRecord.mutate()}
+              disabled={createOtherRecord.isPending}
+            >
+              {createOtherRecord.isPending ? "Creating..." : "Create record"}
             </Button>
           </div>
         </CardContent>

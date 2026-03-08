@@ -1,4 +1,4 @@
-// Deterministic intent helpers for Scout deal-room style flows.
+// Deterministic intent helpers for Scout job-workflow flows.
 // This module stays pure and has no dependency on Express or the main
 // scout route so it can be tested and evolved independently.
 
@@ -34,7 +34,7 @@ function deriveDeterministicIntentInternal(message: string): DeterministicIntent
   if (/(sign|e-sign|esign|esig).*(contract)|contract.*sign/.test(lower)) {
     return "sign_contract";
   }
-  // Open deal room / project tracker
+  // Open jobs workspace / project tracker
   if (/open (the )?(deal\s*room|project\s*tracker|job\s*room)/.test(lower)) {
     return "open_deal_room";
   }
@@ -83,32 +83,32 @@ export function maybeHandleDeterministicIntent(args: {
   switch (deterministicIntent) {
     case "send_invoice":
       allowedKey = "SEND_INVOICE";
-      actionLabel = "Open deal room";
+      actionLabel = "Open jobs workspace";
       actionExplanation =
-        "You can send the invoice for this project now. I'll open your deal room so you can review and send it.";
+        "You can send the invoice for this project now. I'll open your jobs workspace so you can review and send it.";
       break;
     case "mark_invoice_paid":
       allowedKey = "MARK_INVOICE_PAID";
-      actionLabel = "Open deal room";
+      actionLabel = "Open jobs workspace";
       actionExplanation =
-        "You can record payment on this invoice from the deal room. I'll open it so you can mark it paid.";
+        "You can record payment on this invoice from your jobs workspace. I'll open it so you can mark it paid.";
       break;
     case "send_contract":
       allowedKey = "SEND_CONTRACT";
-      actionLabel = "Open deal room";
+      actionLabel = "Open jobs workspace";
       actionExplanation =
-        "The contract is ready to send for signature. I'll open your deal room so you can send it.";
+        "The contract is ready to send for signature. I'll open your jobs workspace so you can send it.";
       break;
     case "sign_contract":
       allowedKey = "SIGN_CONTRACT";
-      actionLabel = "Open deal room";
+      actionLabel = "Open jobs workspace";
       actionExplanation =
-        "This contract is waiting on signatures. I'll open your deal room so you can sign it.";
+        "This contract is waiting on signatures. I'll open your jobs workspace so you can sign it.";
       break;
     case "open_deal_room":
       allowedKey = "OPEN_DEAL_ROOM";
-      actionLabel = "Open deal room";
-      actionExplanation = "I'll open your project deal room so you can handle this.";
+      actionLabel = "Open jobs workspace";
+      actionExplanation = "I'll open your jobs workspace so you can handle this.";
       break;
   }
 
@@ -128,7 +128,7 @@ export function maybeHandleDeterministicIntent(args: {
       {
         type: "NAVIGATE",
         label: actionLabel,
-        path: `/lead-management?jobId=${currentJobId}`,
+        path: `/finances/jobs?jobId=${currentJobId}`,
         payload: { jobId: currentJobId, intent: deterministicIntent },
       },
     ],

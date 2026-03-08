@@ -41,6 +41,7 @@ export default function FinancesEstimatesPage() {
   const [clientName, setClientName] = useState("");
   const [linkedJobId, setLinkedJobId] = useState(initialJobIdFromQuery);
   const [notes, setNotes] = useState("");
+  const [contractBody, setContractBody] = useState("");
   const [total, setTotal] = useState("");
 
   const { data, isLoading } = useQuery<JobFlowsResponse>({
@@ -116,6 +117,60 @@ export default function FinancesEstimatesPage() {
     },
   });
 
+  const createContract = useMutation({
+    mutationFn: async () => {
+      const numericTotal = Number(total || 0);
+      if (!Number.isFinite(numericTotal) || numericTotal <= 0) {
+        throw new Error("Enter a valid contract total greater than zero.");
+      }
+
+      const res = await fetch("/api/accounting/standalone-contract", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          projectTitle: projectTitle || "Manual contract",
+          clientName: clientName || undefined,
+          jobId: linkedJobId.trim() || undefined,
+          notes: notes || undefined,
+          body: contractBody || undefined,
+          total: numericTotal,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to create contract (${res.status})`);
+      }
+
+      return (await res.json()) as { document: { job_id?: string }; jobId?: string };
+    },
+    onSuccess: (result) => {
+      const createdJobId = result?.jobId || result?.document?.job_id || "";
+      toast({
+        title: "Contract draft created",
+        description: "This job can now continue through signatures and invoicing in Finances.",
+      });
+      setProjectTitle("");
+      setClientName("");
+      setNotes("");
+      setContractBody("");
+      setTotal("");
+      if (createdJobId) setLinkedJobId(createdJobId);
+      queryClient.invalidateQueries({ queryKey: ["/api/accounting/job-flows"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not create contract",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
   const stageLabel: Record<string, string> = {
     estimate_draft: "Draft",
     estimate_sent: "Sent",
@@ -145,9 +200,12 @@ export default function FinancesEstimatesPage() {
 
       <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold text-white">Create estimate</CardTitle>
+          <CardTitle className="text-sm font-semibold text-white">
+            Create estimate or contract
+          </CardTitle>
           <CardDescription className="text-xs text-white/60">
-            Start a new estimate or attach to an existing accounting job without leaving Finances.
+            Start at estimate or jump straight to a contract draft and attach either to an existing
+            accounting job flow.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -183,11 +241,25 @@ export default function FinancesEstimatesPage() {
             onChange={(e) => setNotes(e.target.value)}
             className="h-10 bg-tsCard border-white/10 text-white text-sm"
           />
-          <div className="flex justify-end">
+          <Input
+            placeholder="Contract body (optional)"
+            value={contractBody}
+            onChange={(e) => setContractBody(e.target.value)}
+            className="h-10 bg-tsCard border-white/10 text-white text-sm"
+          />
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => createContract.mutate()}
+              disabled={createContract.isPending || createEstimate.isPending}
+            >
+              {createContract.isPending ? "Creating..." : "Create contract draft"}
+            </Button>
             <Button
               size="sm"
               onClick={() => createEstimate.mutate()}
-              disabled={createEstimate.isPending}
+              disabled={createEstimate.isPending || createContract.isPending}
             >
               {createEstimate.isPending ? "Creating..." : "Create estimate"}
             </Button>

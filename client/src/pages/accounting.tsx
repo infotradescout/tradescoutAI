@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import type { DealRoomRole } from "@/lib/dealRoomState";
-import { DealRoomPanel } from "@/components/jobs/DealRoomPanel";
+import { WorkflowPanel } from "@/components/jobs/WorkflowPanel";
 import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { formatUserFacingErrorMessage, getRawErrorMessage } from "@/lib/userFacingError";
@@ -1567,7 +1567,7 @@ export default function AccountingWorkspace() {
 
                   <div className="min-h-[260px]">
                     {effectiveJobId ? (
-                      <DealRoomPanel jobId={effectiveJobId} userRole={role} />
+                      <WorkflowPanel jobId={effectiveJobId} userRole={role} />
                     ) : (
                       <div className="h-full flex items-center justify-center text-xs text-white/60 border border-dashed border-white/10 rounded-md bg-tsCard/95 p-4">
                         Select an invoice on the left to open it in the workflow panel.

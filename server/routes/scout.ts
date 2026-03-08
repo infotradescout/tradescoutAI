@@ -2026,12 +2026,12 @@ function buildDealRoomGuidanceFromDocs(
 ): string | null {
   if (!Array.isArray(docs) || docs.length === 0) {
     if (userRole === "contractor") {
-      return "No project documents exist yet for this job. Next step: open the Project Tracker deal room and start a material list draft.";
+      return "No project documents exist yet for this job. Next step: open Finances Jobs and start a material list draft.";
     }
     if (userRole === "homeowner") {
-      return "Your contractor hasn’t started any project documents yet. Next step: ask them to start a material list or estimate from the deal room.";
+      return "Your contractor hasn’t started any project documents yet. Next step: ask them to start a material list or estimate from Finances Jobs.";
     }
-    return "There are no project documents yet. Next step: use the Project Tracker deal room to start a material list or estimate.";
+    return "There are no project documents yet. Next step: use Finances Jobs to start a material list or estimate.";
   }
 
   const latestByType: Record<string, { type?: string; status?: string } | undefined> = {};
@@ -2047,17 +2047,17 @@ function buildDealRoomGuidanceFromDocs(
   const receipt = latestByType["RECEIPT"];
 
   if (receipt) {
-    return "This project already has a receipt on record. The document lifecycle is complete; you can still open the deal room to review everything.";
+    return "This project already has a receipt on record. The document lifecycle is complete; you can still open Finances Jobs to review everything.";
   }
 
   if (invoice) {
     switch (invoice.status) {
       case "draft":
-        return "There is an invoice draft for this project that hasn’t been sent yet. Next step: open the deal room and send the invoice to the homeowner.";
+        return "There is an invoice draft for this project that hasn’t been sent yet. Next step: open Finances Jobs and send the invoice to the homeowner.";
       case "sent":
-        return "An invoice has been sent for this project but is not marked paid yet. Next step: once payment is received, mark the invoice paid in the deal room so you can issue a receipt.";
+        return "An invoice has been sent for this project but is not marked paid yet. Next step: once payment is received, mark the invoice paid in Finances so you can issue a receipt.";
       case "paid":
-        return "The invoice for this project is marked paid, but there is no receipt yet. Next step: open the deal room and issue a receipt for this job.";
+        return "The invoice for this project is marked paid, but there is no receipt yet. Next step: open Finances and issue a receipt for this job.";
       default:
         break;
     }
@@ -2067,24 +2067,24 @@ function buildDealRoomGuidanceFromDocs(
     switch (contract.status) {
       case "draft":
         if (userRole === "contractor") {
-          return "There is a contract draft that hasn’t been sent yet. Next step: open the deal room and send the contract for signature.";
+          return "There is a contract draft that hasn’t been sent yet. Next step: open Finances and send the contract for signature.";
         }
-        return "A contract draft exists for this project but hasn’t been sent yet. Your contractor needs to send it from the deal room before anyone can sign.";
+        return "A contract draft exists for this project but hasn’t been sent yet. Your contractor needs to send it from Finances before anyone can sign.";
       case "sent":
       case "partially_signed":
         if (userRole === "homeowner") {
-          return "There is a contract waiting on signatures. Next step: open the deal room and sign the contract if you’re ready to move forward.";
+          return "There is a contract waiting on signatures. Next step: open Finances and sign the contract if you’re ready to move forward.";
         }
         if (userRole === "contractor") {
-          return "The contract is out for signatures and not fully signed yet. Next step: ensure both sides sign the contract from the deal room.";
+          return "The contract is out for signatures and not fully signed yet. Next step: ensure both sides sign the contract from Finances.";
         }
-        return "This project has a contract that isn’t fully signed yet. Next step: finish signatures in the deal room before generating an invoice.";
+        return "This project has a contract that isn’t fully signed yet. Next step: finish signatures in Finances before generating an invoice.";
       case "signed":
         if (!invoice) {
           if (userRole === "contractor") {
-            return "The contract for this project is fully signed, but there’s no invoice yet. Next step: open the deal room and generate an invoice from the contract.";
+            return "The contract for this project is fully signed, but there’s no invoice yet. Next step: open Finances and generate an invoice from the contract.";
           }
-          return "The contract for this project is fully signed. Next step: your contractor can generate an invoice from the deal room.";
+          return "The contract for this project is fully signed. Next step: your contractor can generate an invoice from Finances.";
         }
         break;
       default:
@@ -2096,20 +2096,20 @@ function buildDealRoomGuidanceFromDocs(
     switch (estimate.status) {
       case "draft":
         if (userRole === "contractor") {
-          return "There is an estimate draft for this project that hasn’t been sent yet. Next step: open the deal room and send the estimate to the homeowner.";
+          return "There is an estimate draft for this project that hasn’t been sent yet. Next step: open Finances and send the estimate to the homeowner.";
         }
-        return "Your contractor has an estimate in draft form that hasn’t been sent yet. Next step: ask them to send the estimate from the deal room so you can review it.";
+        return "Your contractor has an estimate in draft form that hasn’t been sent yet. Next step: ask them to send the estimate from Finances so you can review it.";
       case "sent":
         if (userRole === "homeowner") {
-          return "An estimate has been sent for this project. Next step: open the deal room and approve the estimate if it looks right.";
+          return "An estimate has been sent for this project. Next step: open Finances and approve the estimate if it looks right.";
         }
         if (userRole === "contractor") {
-          return "An estimate has been sent and is waiting on homeowner approval. Next step: wait for the homeowner to approve from the deal room or follow up with them.";
+          return "An estimate has been sent and is waiting on homeowner approval. Next step: wait for the homeowner to approve from Finances or follow up with them.";
         }
-        return "An estimate has been sent for this project and is waiting on approval. Next step: finalize approval in the deal room so a contract can be created.";
+        return "An estimate has been sent for this project and is waiting on approval. Next step: finalize approval in Finances so a contract can be created.";
       case "approved":
         if (!contract) {
-          return "The estimate for this project is approved. Next step: create and send a contract from the deal room so both sides can sign.";
+          return "The estimate for this project is approved. Next step: create and send a contract from Finances so both sides can sign.";
         }
         break;
       default:
@@ -2121,14 +2121,14 @@ function buildDealRoomGuidanceFromDocs(
     switch (material.status) {
       case "draft":
         if (userRole === "contractor") {
-          return "There is a material list draft for this project. Next step: open the deal room and send the material list so the homeowner can review it.";
+          return "There is a material list draft for this project. Next step: open Finances and send the material list so the homeowner can review it.";
         }
-        return "Your contractor has started a material list but hasn’t sent it yet. Next step: they should send it from the deal room so you can confirm selections.";
+        return "Your contractor has started a material list but hasn’t sent it yet. Next step: they should send it from Finances so you can confirm selections.";
       case "pending_homeowner":
         if (userRole === "homeowner") {
-          return "A material list has been sent and is waiting on your review. Next step: open the deal room to review and finalize the material list.";
+          return "A material list has been sent and is waiting on your review. Next step: open Finances to review and finalize the material list.";
         }
-        return "A material list has been sent to the homeowner and is pending their review. Next step: wait for the homeowner to confirm items in the deal room.";
+        return "A material list has been sent to the homeowner and is pending their review. Next step: wait for the homeowner to confirm items in Finances.";
       default:
         break;
     }
@@ -2185,7 +2185,7 @@ function resolveDealRoomContextFromDocs(
     stage = "MATERIALS";
   }
 
-  // Allowed actions mirror the frontend deal room state machine at a high level.
+  // Allowed actions mirror the frontend workflow state machine at a high level.
   if (!material && userRole === "contractor") {
     allowedActions.push("START_MATERIAL_LIST");
   }
@@ -2903,7 +2903,7 @@ router.post("/", async (req: Request, res: Response) => {
         );
         resolvedContext = resolveDealRoomContextFromDocs(rows, userRole);
       } catch (err) {
-        console.error("[Scout] Failed to resolve deal room context", err);
+        console.error("[Scout] Failed to resolve workflow context", err);
         resolvedContext = null;
       }
     }
@@ -3897,9 +3897,9 @@ router.post("/", async (req: Request, res: Response) => {
         }
       }
 
-      // Project tracker / deal room actions
+      // Project tracker / workflow actions
       // If the user is authenticated and asking about projects/jobs/contracts/invoices,
-      // expose an explicit navigation chip into the Project Tracker / deal room surface.
+      // expose an explicit navigation chip into the Project Tracker / Finances surface.
       if (userId) {
         const wantsProjects =
           lower.includes("project") ||
@@ -3910,7 +3910,7 @@ router.post("/", async (req: Request, res: Response) => {
           lower.includes("contract") ||
           lower.includes("invoice") ||
           lower.includes("receipt") ||
-          lower.includes("deal room") ||
+          lower.includes("jobs workspace") ||
           (typeof synthesized.intent === "string" && /project|job/i.test(synthesized.intent));
 
         const wantsJobFinances =
@@ -3942,7 +3942,7 @@ router.post("/", async (req: Request, res: Response) => {
             try {
               // If the user is clearly asking about this job's money
               // or profitability, compute a concise per-job snapshot
-              // using the same documents that power the Deal Room.
+              // using the same documents that power the workflow panel.
               if (wantsJobFinances) {
                 try {
                   const jf = await getJobFinancesSnapshot(currentJobId);
@@ -3979,10 +3979,10 @@ router.post("/", async (req: Request, res: Response) => {
                       directionLine: undefined,
                       actionChips: [
                         {
-                          id: "open-deal-room",
-                          label: "Open Deal Room",
+                          id: "open-jobs-workspace",
+                          label: "Open Jobs Workspace",
                           kind: "NAVIGATE",
-                          target: "/lead-management",
+                          target: "/finances/jobs",
                           args: { jobId: currentJobId },
                           priority: "primary",
                         },
@@ -4012,13 +4012,13 @@ router.post("/", async (req: Request, res: Response) => {
 
               const guidance = buildDealRoomGuidanceFromDocs(rows, userRole);
               if (guidance) {
-                const guidancePrefix = `For this project's deal room:\n${guidance}`;
+                const guidancePrefix = `For this project's jobs workflow:\n${guidance}`;
                 aiResponse.message = trimResponseToScreenFit(
                   `${guidancePrefix}\n\n${aiResponse.message}`
                 );
               }
             } catch (guidanceError) {
-              console.error("[Scout] Failed to compute deal room guidance", guidanceError);
+              console.error("[Scout] Failed to compute workflow guidance", guidanceError);
             }
           }
         }

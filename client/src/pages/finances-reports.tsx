@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 interface AccountingSummary {
   lifetime: {
@@ -51,9 +52,24 @@ interface ExpensesResponse {
   expenses: ExpenseEntry[];
 }
 
+interface AccountingRecord {
+  id: string;
+  job_id: string | null;
+  type: string;
+  status: string;
+  payload: any;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AccountingRecordsResponse {
+  records: AccountingRecord[];
+}
+
 export default function FinancesReportsPage() {
   const { user } = useAuth();
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
+  const [, navigate] = useLocation();
   const [range, setRange] = useState<"all" | "90d" | "365d">("90d");
 
   const { data } = useQuery<AccountingSummary>({
@@ -70,20 +86,22 @@ export default function FinancesReportsPage() {
     },
   });
 
-  const { data: invoicesData, isLoading: isInvoicesLoading } = useQuery<StandaloneInvoicesResponse>({
-    queryKey: ["/api/accounting/standalone-invoices", 1, 500],
-    queryFn: async () => {
-      const params = new URLSearchParams({ page: "1", pageSize: "500" });
-      const res = await fetch(`/api/accounting/standalone-invoices?${params.toString()}`, {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to load invoices (${res.status})`);
-      }
-      return (await res.json()) as StandaloneInvoicesResponse;
-    },
-  });
+  const { data: invoicesData, isLoading: isInvoicesLoading } = useQuery<StandaloneInvoicesResponse>(
+    {
+      queryKey: ["/api/accounting/standalone-invoices", 1, 500],
+      queryFn: async () => {
+        const params = new URLSearchParams({ page: "1", pageSize: "500" });
+        const res = await fetch(`/api/accounting/standalone-invoices?${params.toString()}`, {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to load invoices (${res.status})`);
+        }
+        return (await res.json()) as StandaloneInvoicesResponse;
+      },
+    }
+  );
 
   const { data: expensesData, isLoading: isExpensesLoading } = useQuery<ExpensesResponse>({
     queryKey: ["/api/accounting/expenses"],
@@ -96,6 +114,21 @@ export default function FinancesReportsPage() {
         throw new Error(`Failed to load expenses (${res.status})`);
       }
       return (await res.json()) as ExpensesResponse;
+    },
+  });
+
+  const { data: recordsData, isLoading: isRecordsLoading } = useQuery<AccountingRecordsResponse>({
+    queryKey: ["/api/accounting/records", 1, 500],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page: "1", pageSize: "500" });
+      const res = await fetch(`/api/accounting/records?${params.toString()}`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to load accounting records (${res.status})`);
+      }
+      return (await res.json()) as AccountingRecordsResponse;
     },
   });
 
@@ -153,6 +186,15 @@ export default function FinancesReportsPage() {
     return { income, collected, open, expensesTotal, net, taxRate, recommendedTax };
   }, [invoicesData, expensesData, range]);
 
+  const recordCounts = useMemo(() => {
+    const records = recordsData?.records ?? [];
+    return records.reduce<Record<string, number>>((acc, row) => {
+      const t = String(row.type || "").toUpperCase();
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {});
+  }, [recordsData]);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
@@ -162,14 +204,23 @@ export default function FinancesReportsPage() {
             High-level money analytics powered by your invoices and expenses.
           </p>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+          onClick={() => navigate("/finances/records")}
+        >
+          Open records ledger
+        </Button>
       </div>
 
       <Card className="bg-tsCard border-white/10">
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-white">Summary snapshot</CardTitle>
           <CardDescription className="text-xs text-white/60">
-            This is the same core summary that powers the Finances dashboard, broken out here so you can focus on
-            reporting.
+            This is the same core summary that powers the Finances dashboard, broken out here so you
+            can focus on reporting.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-[11px] text-white/70">
@@ -198,21 +249,11 @@ export default function FinancesReportsPage() {
             </div>
           ) : (
             <>
-              <p>
-                Total billed: {formatCurrency(lifetime.totalAmount)}
-              </p>
-              <p>
-                Collected: {formatCurrency(lifetime.paidAmount)}
-              </p>
-              <p>
-                Outstanding: {formatCurrency(lifetime.unpaidAmount)}
-              </p>
-              <p>
-                Expenses: {formatCurrency(lifetime.totalExpenses)}
-              </p>
-              <p>
-                Net profit (simple): {formatCurrency(lifetime.netProfit)}
-              </p>
+              <p>Total billed: {formatCurrency(lifetime.totalAmount)}</p>
+              <p>Collected: {formatCurrency(lifetime.paidAmount)}</p>
+              <p>Outstanding: {formatCurrency(lifetime.unpaidAmount)}</p>
+              <p>Expenses: {formatCurrency(lifetime.totalExpenses)}</p>
+              <p>Net profit (simple): {formatCurrency(lifetime.netProfit)}</p>
             </>
           )}
           <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
@@ -252,24 +293,29 @@ export default function FinancesReportsPage() {
               <p className="text-[11px] text-white/60">Loading P&amp;L…</p>
             ) : (
               <>
+                <p>Income (invoiced): {formatCurrency(period.income)}</p>
+                <p>Collected (paid): {formatCurrency(period.collected)}</p>
+                <p>Outstanding: {formatCurrency(period.open)}</p>
+                <p>Expenses in period: {formatCurrency(period.expensesTotal)}</p>
+                <p>Net profit (simple): {formatCurrency(period.net)}</p>
                 <p>
-                  Income (invoiced): {formatCurrency(period.income)}
+                  Suggested tax set-aside (~{Math.round(period.taxRate * 100)}%):{" "}
+                  {formatCurrency(period.recommendedTax)}
                 </p>
-                <p>
-                  Collected (paid): {formatCurrency(period.collected)}
-                </p>
-                <p>
-                  Outstanding: {formatCurrency(period.open)}
-                </p>
-                <p>
-                  Expenses in period: {formatCurrency(period.expensesTotal)}
-                </p>
-                <p>
-                  Net profit (simple): {formatCurrency(period.net)}
-                </p>
-                <p>
-                  Suggested tax set-aside (~{Math.round(period.taxRate * 100)}%): {formatCurrency(period.recommendedTax)}
-                </p>
+              </>
+            )}
+          </div>
+          <div className="mt-3 pt-3 border-t border-white/10 space-y-1">
+            <p className="text-[11px] text-white/60">Record coverage</p>
+            {isRecordsLoading ? (
+              <p className="text-[11px] text-white/60">Loading accounting records…</p>
+            ) : (
+              <>
+                <p>Bills: {(recordCounts.BILL || 0).toLocaleString()}</p>
+                <p>Purchase orders: {(recordCounts.PURCHASE_ORDER || 0).toLocaleString()}</p>
+                <p>Credit notes: {(recordCounts.CREDIT_NOTE || 0).toLocaleString()}</p>
+                <p>Payments: {(recordCounts.PAYMENT || 0).toLocaleString()}</p>
+                <p>Journal entries: {(recordCounts.JOURNAL_ENTRY || 0).toLocaleString()}</p>
               </>
             )}
           </div>

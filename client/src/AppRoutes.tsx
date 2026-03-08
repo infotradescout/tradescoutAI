@@ -273,6 +273,7 @@ const FinancesPayroll = React.lazy(() => import("./pages/finances-payroll"));
 const FinancesVendors = React.lazy(() => import("./pages/finances-vendors"));
 const FinancesBankAccounts = React.lazy(() => import("./pages/finances-bank-accounts"));
 const FinancesReports = React.lazy(() => import("./pages/finances-reports"));
+const FinancesRecords = React.lazy(() => import("./pages/finances-records"));
 const FinancesSettings = React.lazy(() => import("./pages/finances-settings"));
 const DirectConnectShell = React.lazy(() => import("./pages/direct-connect/DirectConnectShell"));
 const DirectConnectSharePage = React.lazy(() => import("./pages/direct-connect-share"));
@@ -1209,6 +1210,11 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/finances/reports">
               <ProtectedRoute>
                 <LazyPage Component={FinancesReports} />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/finances/records">
+              <ProtectedRoute>
+                <LazyPage Component={FinancesRecords} />
               </ProtectedRoute>
             </Route>
             <Route path="/finances/settings">

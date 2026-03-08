@@ -83,6 +83,47 @@ function resolveJobFlowStage(latestByType: Record<string, any>): string {
   return "new";
 }
 
+const EXTENDED_ACCOUNTING_TYPES = [
+  "MATERIAL_LIST",
+  "ESTIMATE",
+  "CONTRACT",
+  "INVOICE",
+  "RECEIPT",
+  "EXPENSE",
+  "BILL",
+  "PURCHASE_ORDER",
+  "CREDIT_NOTE",
+  "PAYMENT",
+  "JOURNAL_ENTRY",
+] as const;
+
+const STANDALONE_RECORD_DEFINITIONS: Record<
+  string,
+  { status: string; errorCode: string; defaultTitle: string }
+> = {
+  BILL: { status: "open", errorCode: "INVALID_BILL_TOTAL", defaultTitle: "Manual bill" },
+  PURCHASE_ORDER: {
+    status: "issued",
+    errorCode: "INVALID_PURCHASE_ORDER_TOTAL",
+    defaultTitle: "Manual purchase order",
+  },
+  CREDIT_NOTE: {
+    status: "issued",
+    errorCode: "INVALID_CREDIT_NOTE_TOTAL",
+    defaultTitle: "Manual credit note",
+  },
+  PAYMENT: {
+    status: "recorded",
+    errorCode: "INVALID_PAYMENT_TOTAL",
+    defaultTitle: "Manual payment",
+  },
+  JOURNAL_ENTRY: {
+    status: "posted",
+    errorCode: "INVALID_JOURNAL_ENTRY_TOTAL",
+    defaultTitle: "Manual journal entry",
+  },
+};
+
 function assertRole(role: string) {
   if (role !== "homeowner" && role !== "contractor") {
     throw new HttpError("INVALID_ROLE", 400);
@@ -450,7 +491,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
          FROM documents
          WHERE created_by = $1
            AND job_id LIKE 'acct_%'
-           AND type IN ('ESTIMATE', 'CONTRACT', 'INVOICE', 'RECEIPT', 'EXPENSE')
+           AND type IN ('ESTIMATE', 'CONTRACT', 'INVOICE', 'RECEIPT', 'EXPENSE', 'BILL', 'PURCHASE_ORDER', 'CREDIT_NOTE', 'PAYMENT', 'JOURNAL_ENTRY')
          ORDER BY updated_at DESC NULLS LAST, created_at DESC`,
         [userId]
       );
@@ -491,11 +532,19 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
         const invoicePayload = latestByType.INVOICE?.payload || {};
         const estimatePayload = latestByType.ESTIMATE?.payload || {};
+        const contractPayload = latestByType.CONTRACT?.payload || {};
+        const billPayload = latestByType.BILL?.payload || {};
+        const purchaseOrderPayload = latestByType.PURCHASE_ORDER?.payload || {};
+        const creditNotePayload = latestByType.CREDIT_NOTE?.payload || {};
         const expensePayload = latestByType.EXPENSE?.payload || {};
 
         const title =
           preferPayloadText(invoicePayload, ["projectTitle", "title"]) ||
           preferPayloadText(estimatePayload, ["projectTitle", "title"]) ||
+          preferPayloadText(contractPayload, ["projectTitle", "title"]) ||
+          preferPayloadText(billPayload, ["projectTitle", "title"]) ||
+          preferPayloadText(purchaseOrderPayload, ["projectTitle", "title"]) ||
+          preferPayloadText(creditNotePayload, ["projectTitle", "title"]) ||
           preferPayloadText(expensePayload, ["projectTitle", "title"]) ||
           `Job ${jobId.slice(0, 8)}`;
 
@@ -532,6 +581,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
             invoices: docs.filter((d) => String(d.type).toUpperCase() === "INVOICE").length,
             receipts: docs.filter((d) => String(d.type).toUpperCase() === "RECEIPT").length,
             expenses: docs.filter((d) => String(d.type).toUpperCase() === "EXPENSE").length,
+            bills: docs.filter((d) => String(d.type).toUpperCase() === "BILL").length,
+            purchaseOrders: docs.filter((d) => String(d.type).toUpperCase() === "PURCHASE_ORDER")
+              .length,
+            creditNotes: docs.filter((d) => String(d.type).toUpperCase() === "CREDIT_NOTE").length,
+            payments: docs.filter((d) => String(d.type).toUpperCase() === "PAYMENT").length,
+            journalEntries: docs.filter((d) => String(d.type).toUpperCase() === "JOURNAL_ENTRY")
+              .length,
           },
           latest: {
             estimate: latestByType.ESTIMATE || null,
@@ -1087,7 +1143,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
   // Standalone accounting: create a manual invoice for off-platform or past work.
   // This does not require a contract and creates a dedicated accounting job id prefix so it
-  // can still flow through the deal room UI.
+  // can still flow through the finance workflow UI.
   r.post(
     "/api/accounting/standalone-invoice",
     isAuthenticated,
@@ -1266,6 +1322,102 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       });
 
       res.status(201).json({ document: estimate, jobId });
+    })
+  );
+
+  // Standalone accounting: create a contract draft directly in Finances.
+  r.post(
+    "/api/accounting/standalone-contract",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const {
+        projectTitle,
+        clientName,
+        notes,
+        body,
+        total,
+        currency,
+        jobId: requestedJobId,
+      } = (req.body ?? {}) as any;
+
+      const amount = okNumber(total);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new HttpError("INVALID_CONTRACT_TOTAL", 400);
+      }
+
+      let jobId = `acct_${token32()}`;
+      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
+        const normalizedJobId = requestedJobId.trim();
+        if (!normalizedJobId.startsWith("acct_")) {
+          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+        }
+
+        const existingRes = await pool.query(
+          `SELECT 1
+           FROM documents
+           WHERE created_by = $1 AND job_id = $2
+           LIMIT 1`,
+          [req.user.id, normalizedJobId]
+        );
+        if (!existingRes.rows.length) {
+          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+        }
+        jobId = normalizedJobId;
+      }
+
+      const safeCurrency =
+        typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
+      const title =
+        typeof projectTitle === "string" && projectTitle.trim()
+          ? projectTitle.trim()
+          : "Manual contract";
+      const client = typeof clientName === "string" && clientName.trim() ? clientName.trim() : null;
+      const memo = typeof notes === "string" && notes.trim() ? notes.trim() : null;
+      const contractBody =
+        typeof body === "string" && body.trim()
+          ? body.trim()
+          : `Agreement for ${title}${client ? ` with ${client}` : ""}`;
+
+      const payload = {
+        projectTitle: title,
+        title,
+        clientName: client,
+        notes: memo,
+        body: contractBody,
+        totals: amount,
+        total: amount,
+        currency: safeCurrency,
+      };
+
+      const created = await pool.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES ($1,'CONTRACT','draft',1,$2::jsonb,$3::jsonb,$4)
+         RETURNING *`,
+        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+      );
+      const contract = created.rows[0];
+      try {
+        await storage.logEvent("finance.document_created", {
+          userId: req.user.id,
+          documentType: contract.type,
+          jobId: contract.job_id ?? null,
+        });
+      } catch (err) {
+        console.error("finance.document_created logging failed", err);
+      }
+      console.info("[DOC_TRANSITION]", {
+        docId: contract.id,
+        from: null,
+        to: contract.status,
+        userId: req.user.id,
+        type: contract.type,
+        action: "create_standalone_contract",
+        jobId,
+      });
+
+      res.status(201).json({ document: contract, jobId });
     })
   );
 
@@ -1449,6 +1601,281 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       });
 
       res.status(201).json({ document: expense, jobId });
+    })
+  );
+
+  // Standalone accounting: issue a receipt record directly in Finances.
+  r.post(
+    "/api/accounting/standalone-receipt",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const {
+        projectTitle,
+        clientName,
+        notes,
+        total,
+        currency,
+        invoiceId,
+        jobId: requestedJobId,
+      } = (req.body ?? {}) as any;
+
+      const amount = okNumber(total);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new HttpError("INVALID_RECEIPT_TOTAL", 400);
+      }
+
+      let jobId = `acct_${token32()}`;
+      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
+        const normalizedJobId = requestedJobId.trim();
+        if (!normalizedJobId.startsWith("acct_")) {
+          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+        }
+
+        const existingRes = await pool.query(
+          `SELECT 1
+           FROM documents
+           WHERE created_by = $1 AND job_id = $2
+           LIMIT 1`,
+          [req.user.id, normalizedJobId]
+        );
+        if (!existingRes.rows.length) {
+          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+        }
+        jobId = normalizedJobId;
+      }
+
+      let derivedFromInvoiceId: string | null = null;
+      if (typeof invoiceId === "string" && invoiceId.trim()) {
+        const invRes = await pool.query(
+          `SELECT id, job_id
+           FROM documents
+           WHERE id = $1 AND created_by = $2 AND type = 'INVOICE'
+           LIMIT 1`,
+          [invoiceId.trim(), req.user.id]
+        );
+        if (!invRes.rows.length) {
+          throw new HttpError("INVOICE_NOT_FOUND", 404);
+        }
+        derivedFromInvoiceId = String(invRes.rows[0].id);
+        if (!requestedJobId && invRes.rows[0].job_id) {
+          jobId = String(invRes.rows[0].job_id);
+        }
+      }
+
+      const safeCurrency =
+        typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
+      const title =
+        typeof projectTitle === "string" && projectTitle.trim()
+          ? projectTitle.trim()
+          : "Manual receipt";
+      const client = typeof clientName === "string" && clientName.trim() ? clientName.trim() : null;
+      const memo = typeof notes === "string" && notes.trim() ? notes.trim() : null;
+
+      const payload = {
+        projectTitle: title,
+        clientName: client,
+        notes: memo,
+        amount,
+        total: amount,
+        currency: safeCurrency,
+        derivedFromInvoiceId,
+      };
+
+      const created = await pool.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
+         RETURNING *`,
+        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+      );
+      const receipt = created.rows[0];
+      try {
+        await storage.logEvent("finance.document_created", {
+          userId: req.user.id,
+          documentType: receipt.type,
+          jobId: receipt.job_id ?? null,
+        });
+      } catch (err) {
+        console.error("finance.document_created logging failed", err);
+      }
+      console.info("[DOC_TRANSITION]", {
+        docId: receipt.id,
+        from: null,
+        to: receipt.status,
+        userId: req.user.id,
+        type: receipt.type,
+        action: "create_standalone_receipt",
+        jobId,
+        invoiceId: derivedFromInvoiceId,
+      });
+
+      res.status(201).json({ document: receipt, jobId });
+    })
+  );
+
+  // Standalone accounting: create additional bookkeeping record types directly in Finances.
+  r.post(
+    "/api/accounting/standalone-record",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const {
+        type,
+        projectTitle,
+        clientName,
+        vendorName,
+        notes,
+        reference,
+        total,
+        currency,
+        jobId: requestedJobId,
+      } = (req.body ?? {}) as any;
+
+      const normalizedType = typeof type === "string" ? type.trim().toUpperCase() : "";
+      const recordDef = STANDALONE_RECORD_DEFINITIONS[normalizedType];
+      if (!recordDef) {
+        throw new HttpError("UNSUPPORTED_ACCOUNTING_RECORD_TYPE", 400);
+      }
+
+      const amount = okNumber(total);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new HttpError(recordDef.errorCode, 400);
+      }
+
+      let jobId = `acct_${token32()}`;
+      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
+        const normalizedJobId = requestedJobId.trim();
+        if (!normalizedJobId.startsWith("acct_")) {
+          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+        }
+
+        const existingRes = await pool.query(
+          `SELECT 1
+           FROM documents
+           WHERE created_by = $1 AND job_id = $2
+           LIMIT 1`,
+          [req.user.id, normalizedJobId]
+        );
+        if (!existingRes.rows.length) {
+          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+        }
+        jobId = normalizedJobId;
+      }
+
+      const safeCurrency =
+        typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
+      const title =
+        typeof projectTitle === "string" && projectTitle.trim()
+          ? projectTitle.trim()
+          : recordDef.defaultTitle;
+      const client = typeof clientName === "string" && clientName.trim() ? clientName.trim() : null;
+      const vendor = typeof vendorName === "string" && vendorName.trim() ? vendorName.trim() : null;
+      const memo = typeof notes === "string" && notes.trim() ? notes.trim() : null;
+      const ref = typeof reference === "string" && reference.trim() ? reference.trim() : null;
+
+      const payload = {
+        projectTitle: title,
+        title,
+        clientName: client,
+        vendorName: vendor,
+        notes: memo,
+        reference: ref,
+        total: amount,
+        currency: safeCurrency,
+      };
+
+      const created = await pool.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES ($1,$2,$3,1,$4::jsonb,$5::jsonb,$6)
+         RETURNING *`,
+        [
+          jobId,
+          normalizedType,
+          recordDef.status,
+          JSON.stringify(payload),
+          JSON.stringify({}),
+          req.user.id,
+        ]
+      );
+      const record = created.rows[0];
+      try {
+        await storage.logEvent("finance.document_created", {
+          userId: req.user.id,
+          documentType: record.type,
+          jobId: record.job_id ?? null,
+        });
+      } catch (err) {
+        console.error("finance.document_created logging failed", err);
+      }
+      console.info("[DOC_TRANSITION]", {
+        docId: record.id,
+        from: null,
+        to: record.status,
+        userId: req.user.id,
+        type: record.type,
+        action: "create_standalone_record",
+        jobId,
+      });
+
+      res.status(201).json({ document: record, jobId });
+    })
+  );
+
+  // Standalone accounting: list all supported bookkeeping records for the current user.
+  r.get(
+    "/api/accounting/records",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const pageRaw = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+      const pageSizeRaw = Array.isArray(req.query.pageSize)
+        ? req.query.pageSize[0]
+        : req.query.pageSize;
+      const typeRaw = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
+
+      const page = Math.max(1, Number(pageRaw || 1) || 1);
+      const pageSize = Math.min(250, Math.max(1, Number(pageSizeRaw || 100) || 100));
+      const offset = (page - 1) * pageSize;
+
+      const normalizedType = typeof typeRaw === "string" ? typeRaw.trim().toUpperCase() : "";
+      const useTypeFilter = EXTENDED_ACCOUNTING_TYPES.includes(normalizedType as any);
+
+      const whereType = useTypeFilter ? `type = $2` : `type = ANY($2::text[])`;
+
+      const bindType = useTypeFilter ? normalizedType : EXTENDED_ACCOUNTING_TYPES;
+
+      const totalRes = await pool.query(
+        `SELECT COUNT(*)::int AS count
+         FROM documents
+         WHERE created_by = $1
+           AND job_id LIKE 'acct_%'
+           AND ${whereType}`,
+        [req.user.id, bindType]
+      );
+      const totalCount: number = totalRes.rows[0]?.count ?? 0;
+
+      const { rows } = await pool.query(
+        `SELECT id, job_id, type, status, payload, created_at, updated_at
+         FROM documents
+         WHERE created_by = $1
+           AND job_id LIKE 'acct_%'
+           AND ${whereType}
+         ORDER BY updated_at DESC NULLS LAST, created_at DESC
+         LIMIT $3 OFFSET $4`,
+        [req.user.id, bindType, pageSize, offset]
+      );
+
+      res.json({
+        records: rows,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          pageCount: pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0,
+        },
+      });
     })
   );
 
