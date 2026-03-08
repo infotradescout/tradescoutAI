@@ -1113,7 +1113,7 @@ export default function AccountingWorkspace() {
                 className="border-white/15 text-[11px]"
                 onClick={() => handleNavClick("jobs", "finances-jobs")}
               >
-                Go to Jobs workspace
+                Go to Jobs
               </Button>
             </CardContent>
           </Card>
@@ -1766,7 +1766,7 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-white/60">
-                Bank sync is not enabled for this workspace.
+                Bank sync is not enabled on this page yet.
               </p>
             </CardContent>
           </Card>

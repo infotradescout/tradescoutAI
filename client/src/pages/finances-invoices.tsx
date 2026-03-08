@@ -393,7 +393,7 @@ export default function FinancesInvoicesPage() {
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-semibold text-tsText mb-1">Invoices</h1>
           <p className="text-sm text-white/60">
-            Create, send, and get paid for work you track in your Finances workspace.
+            Create, send, and get paid for work you track in Finances.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 md:flex md:items-center md:justify-end">
@@ -480,7 +480,7 @@ export default function FinancesInvoicesPage() {
               Recent activity
             </CardTitle>
             <CardDescription className="text-[11px] leading-relaxed md:text-sm">
-              Newest invoice records in this workspace.
+              Newest invoice records on this page.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0 flex items-center justify-between gap-3">
@@ -738,7 +738,7 @@ export default function FinancesInvoicesPage() {
                               {sendInvoice.isPending ? "Sending..." : "Send invoice"}
                             </Button>
                           )}
-                          {(status === "sent" || status === "approved") && status !== "paid" && (
+                          {(status === "sent" || status === "approved") && (
                             <Button
                               variant="outline"
                               size="sm"

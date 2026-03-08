@@ -21,7 +21,7 @@ export default function FinancesEstimatesPage() {
             className="h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => navigate("/finances/jobs")}
           >
-            Open jobs workspace
+            Open jobs
           </Button>
         </div>
       </div>
@@ -30,14 +30,14 @@ export default function FinancesEstimatesPage() {
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-white">Estimate pipeline</CardTitle>
           <CardDescription className="text-xs text-white/60">
-            Estimates are created and sent from the job's deal room. This workspace will grow into a true
+            Estimates are created and sent from the job's deal room. This page will grow into a true
             estimate board (by stage, by client, by job).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-[11px] text-white/60">
-            For now, go to a job's deal room to draft, send, or approve estimates. As the accounting layer
-            deepens, this view will summarize open and approved estimates across your jobs.
+            For now, go to a job's deal room to draft, send, or approve estimates. As the accounting
+            layer deepens, this view will summarize open and approved estimates across your jobs.
           </p>
         </CardContent>
       </Card>

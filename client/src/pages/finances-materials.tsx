@@ -22,23 +22,26 @@ export default function FinancesMaterialsPage() {
             className="h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => navigate("/finances/jobs")}
           >
-            Open jobs workspace
+            Open jobs
           </Button>
         </div>
       </div>
 
       <Card className="bg-tsCard border-white/10">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold text-white">How material lists work</CardTitle>
+          <CardTitle className="text-sm font-semibold text-white">
+            How material lists work
+          </CardTitle>
           <CardDescription className="text-xs text-white/60">
-            Material lists are created and sent from the deal room for each job. This tab gives you a high-level
-            explanation and will later surface cross-job rollups.
+            Material lists are created and sent from the deal room for each job. This tab gives you
+            a high-level explanation and will later surface cross-job rollups.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-[11px] text-white/60">
-            To create or manage a material list today, open the job in the deal room from the Jobs workspace.
-            There you can draft lists, send them to clients, and move the job into estimates and contracts.
+            To create or manage a material list today, open the job in the deal room from Jobs.
+            There you can draft lists, send them to clients, and move the job into estimates and
+            contracts.
           </p>
         </CardContent>
       </Card>

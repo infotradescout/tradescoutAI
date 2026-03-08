@@ -112,7 +112,7 @@ export default function OnboardingProfile() {
       }
       toast({
         title: "Profile updated",
-        description: "Profile saved. One more step so Scout can set up your workspace.",
+        description: "Profile saved. One more step so Scout can finish setting things up.",
       });
       navigate(buildIntentRoute(postProfileNext));
     },

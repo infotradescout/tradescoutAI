@@ -31,14 +31,14 @@ export default function FinancesBankAccountsPage() {
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-white">Account connections</CardTitle>
           <CardDescription className="text-xs text-white/60">
-            Today, TradeScout Wallet is your primary on-platform balance. This workspace will eventually show
-            external bank connections, sync status, and reconciliations.
+            Today, TradeScout Wallet is your primary on-platform balance. This page will eventually
+            show external bank connections, sync status, and reconciliations.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-[11px] text-white/60">
-            Use the Wallet workspace for payouts and statements. As we add external bank integrations, this tab
-            will show balances, feeds, and reconciliation status across accounts.
+            Use the Wallet page for payouts and statements. As we add external bank integrations,
+            this tab will show balances, feeds, and reconciliation status across accounts.
           </p>
         </CardContent>
       </Card>

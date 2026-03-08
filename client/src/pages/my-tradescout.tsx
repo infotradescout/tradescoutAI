@@ -130,7 +130,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
     if (isRealtor && !snapshot?.myProjects?.length) {
       recommendedActions.push({
         id: "real-estate-marketplace",
-        reason: "You are a realtor; your marketplace workspace is ready when you are.",
+        reason: "You are a realtor; your marketplace tools are ready when you are.",
         action: {
           label: "Open real estate marketplace",
           path: "/real-estate-marketplace",

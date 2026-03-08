@@ -514,7 +514,7 @@ export default function PreScoutSetup() {
 
       toast({
         title: "Setup saved",
-        description: "Opening your workspace.",
+        description: "Opening your dashboard.",
       });
 
       void trackDemandEvent("setup_complete", {

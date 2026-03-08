@@ -25,8 +25,8 @@ export default function FinancesPayrollPage() {
           <CardTitle className="text-sm font-semibold text-tsText">Payouts and taxes</CardTitle>
           <CardDescription className="text-xs text-white/60">
             Today, TradeScout Wallet and your tax statements provide the source of truth for
-            on-platform payouts. This workspace will consolidate period statements and integrate
-            with payroll providers.
+            on-platform payouts. This page will consolidate period statements and integrate with
+            payroll providers.
           </CardDescription>
         </CardHeader>
         <CardContent>
