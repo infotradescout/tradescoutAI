@@ -2606,6 +2606,8 @@ export async function registerRoutes(app: any) {
       const mergeSessionAuthority = (baseUser: any) => {
         const authUser = (req.user || {}) as any;
         if (!baseUser || !authUser) return baseUser;
+        const authClaims =
+          authUser?.claims && typeof authUser.claims === "object" ? authUser.claims : {};
 
         const normalizeRoleToken = (value: unknown): string => {
           const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -2613,20 +2615,39 @@ export async function registerRoutes(app: any) {
           return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
         };
 
+        const claimsRolesRaw = Array.isArray((authClaims as any)?.roles)
+          ? ((authClaims as any).roles as unknown[])
+          : typeof (authClaims as any)?.roles === "string"
+            ? [String((authClaims as any).roles)]
+            : [];
+
         const mergedRoles = Array.from(
           new Set(
             [
               ...(Array.isArray(baseUser?.roles) ? baseUser.roles : []),
               ...(Array.isArray(authUser?.roles) ? authUser.roles : []),
+              ...claimsRolesRaw,
               baseUser?.role,
               baseUser?.activeRole,
               authUser?.role,
               authUser?.activeRole,
+              (authClaims as any)?.role,
+              (authClaims as any)?.activeRole,
             ]
               .map((role) => normalizeRoleToken(role))
               .filter(Boolean)
           )
         );
+
+        const resolvedRole =
+          normalizeRoleToken(authUser?.activeRole) ||
+          normalizeRoleToken(authUser?.role) ||
+          normalizeRoleToken((authClaims as any)?.activeRole) ||
+          normalizeRoleToken((authClaims as any)?.role) ||
+          normalizeRoleToken(baseUser?.activeRole) ||
+          normalizeRoleToken(baseUser?.role) ||
+          mergedRoles[0] ||
+          "";
 
         const hasAdminRole = mergedRoles.some((role) =>
           ["super_admin", "ops_admin", "moderator"].includes(role)
@@ -2635,6 +2656,8 @@ export async function registerRoutes(app: any) {
 
         return {
           ...baseUser,
+          role: resolvedRole || baseUser?.role,
+          activeRole: resolvedRole || baseUser?.activeRole,
           roles: mergedRoles,
           isAdmin: baseUser?.isAdmin === true || authUser?.isAdmin === true || hasAdminRole,
           isSuperAdmin:
