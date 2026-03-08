@@ -1144,6 +1144,7 @@ export function mountAdminRoutes(app: any) {
             profileImageUrl: users.profileImageUrl,
             emailVerified: users.emailVerified,
             addressVerified: users.addressVerified,
+            preferences: users.preferences,
             createdAt: users.createdAt,
             facebookId: users.facebookId,
             provider: users.provider,
@@ -1220,6 +1221,30 @@ export function mountAdminRoutes(app: any) {
           );
         };
 
+        const isBusinessIntentAccount = (prefs: unknown): boolean => {
+          const record =
+            prefs && typeof prefs === "object" ? (prefs as Record<string, unknown>) : {};
+          const directIntent = String(record.userIntent || "")
+            .trim()
+            .toLowerCase();
+          const provisional =
+            record.provisional && typeof record.provisional === "object"
+              ? (record.provisional as Record<string, unknown>)
+              : {};
+          const provisionalIntent = String(provisional.userIntent || "")
+            .trim()
+            .toLowerCase();
+          const accountType = String(record.accountType || provisional.accountType || "")
+            .trim()
+            .toLowerCase();
+          return (
+            directIntent === "business" ||
+            provisionalIntent === "business" ||
+            accountType === "business" ||
+            record.isBusiness === true
+          );
+        };
+
         const roleMap: Record<"homeowner" | "contractor" | "handyman" | "realtor", number> = {
           homeowner: 0,
           contractor: 0,
@@ -1261,6 +1286,7 @@ export function mountAdminRoutes(app: any) {
             roleTokens.has("super_admin") ||
             roleTokens.has("ops_admin") ||
             roleTokens.has("moderator");
+          const isBusinessIntent = isBusinessIntentAccount(row.preferences);
           const isHomeowner =
             roleTokens.has("homeowner") ||
             roleTokens.has("renter") ||
@@ -1272,7 +1298,12 @@ export function mountAdminRoutes(app: any) {
           if (isContractor) roleMap.contractor += 1;
 
           const isHomeownerOnly =
-            isHomeowner && !isContractor && !isHandyman && !isRealtor && !isAdminLike;
+            isHomeowner &&
+            !isContractor &&
+            !isHandyman &&
+            !isRealtor &&
+            !isAdminLike &&
+            !isBusinessIntent;
           if (isHomeownerOnly) {
             roleMap.homeowner += 1;
           }

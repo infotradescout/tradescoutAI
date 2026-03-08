@@ -23,16 +23,19 @@ function splitModels(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function isSupportedCandidate(modelName: string): boolean {
-  const normalized = modelName.trim().toLowerCase();
-  if (!normalized) return false;
-  if (KNOWN_BAD_MODEL_NAMES.has(normalized)) return false;
-  if (/^gemini-3\./.test(normalized)) return false;
-  return true;
+function normalizeCandidate(modelName: string): string | null {
+  const normalized = modelName
+    .trim()
+    .toLowerCase()
+    .replace(/^models\//, "");
+  if (!normalized) return null;
+  if (KNOWN_BAD_MODEL_NAMES.has(normalized)) return null;
+  if (/^gemini-3(\.|$)/.test(normalized)) return null;
+  return normalized;
 }
 
 function sanitizeModels(models: string[]): string[] {
-  return models.filter(isSupportedCandidate);
+  return models.map(normalizeCandidate).filter((value): value is string => Boolean(value));
 }
 
 export function getGeminiModelName(): string {

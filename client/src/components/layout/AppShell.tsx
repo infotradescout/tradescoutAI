@@ -4,11 +4,9 @@ import {
   MessageCircle,
   Bell,
   Users,
-  Home,
   ShoppingBag,
   Trophy,
   Heart,
-  Share2,
   Compass,
   Map,
   Menu,
@@ -17,6 +15,7 @@ import {
   Download,
   Wrench,
   ClipboardList,
+  Share2,
   CircleHelp,
   Sparkles,
   Shield,
@@ -165,8 +164,18 @@ export function AppShell({ children, footer }: AppShellProps) {
           .trim()
           .toLowerCase()
       : "";
+  const normalizedEmail =
+    typeof (user as any)?.email === "string"
+      ? String((user as any).email)
+          .trim()
+          .toLowerCase()
+      : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
   const hasAdminAccess = hasAdminUiAccess(user);
+  const hasAdminAliasEmail =
+    normalizedEmail === "info.tradescout@gmail.com" ||
+    normalizedEmail === "contact@thetradescout.com";
+  const shouldShowAdminNav = hasAdminAccess || isSuperAdmin || hasAdminAliasEmail;
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
@@ -174,7 +183,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   });
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
-  const featureNav = buildFeatureNav({ includeAdmin: hasAdminAccess });
+  const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
   const showFeatureNav = !isAuthOrSetupSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
@@ -431,7 +440,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             )}
             {!isAuthOrSetupSurface && isAuthenticated && <NotificationCenter />}
-            {!isAuthOrSetupSurface && isAuthenticated && hasAdminAccess && (
+            {!isAuthOrSetupSurface && isAuthenticated && shouldShowAdminNav && (
               <button
                 type="button"
                 onClick={() => navigate("/admin")}
@@ -562,7 +571,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   </button>
                 )}
 
-                {isAuthenticated && hasAdminAccess ? (
+                {isAuthenticated && shouldShowAdminNav ? (
                   <button
                     type="button"
                     onClick={() => navigate("/admin")}

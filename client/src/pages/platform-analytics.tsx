@@ -279,6 +279,29 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
       return false;
     };
 
+    const isBusinessIntentUser = (u: AdminUserSummary): boolean => {
+      const prefs = (u.preferences || {}) as Record<string, unknown>;
+      const provisional =
+        prefs.provisional && typeof prefs.provisional === "object"
+          ? (prefs.provisional as Record<string, unknown>)
+          : {};
+      const directIntent = String(prefs.userIntent || "")
+        .trim()
+        .toLowerCase();
+      const provisionalIntent = String(provisional.userIntent || "")
+        .trim()
+        .toLowerCase();
+      const accountType = String(prefs.accountType || provisional.accountType || "")
+        .trim()
+        .toLowerCase();
+      return (
+        directIntent === "business" ||
+        provisionalIntent === "business" ||
+        accountType === "business" ||
+        prefs.isBusiness === true
+      );
+    };
+
     const getRoleTokens = (u: AdminUserSummary): Set<string> => {
       const tokens = new Set<string>();
       const addToken = (value: unknown) => {
@@ -327,7 +350,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
           roleSet.has("accelerator_member");
         const isAdminLike =
           roleSet.has("super_admin") || roleSet.has("ops_admin") || roleSet.has("moderator");
-        const isHomeownerOnly = roleSet.has("homeowner") && !isContractorLike && !isAdminLike;
+        const isHomeownerOnly =
+          roleSet.has("homeowner") && !isContractorLike && !isAdminLike && !isBusinessIntentUser(u);
 
         if (isHomeownerOnly) homeowners += 1;
         if (isContractorLike) contractors += 1;
