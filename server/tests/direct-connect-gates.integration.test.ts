@@ -200,4 +200,93 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(ids).toContain(String(dcRequest.id));
     expect(res.body.every((row: any) => String(row.source || "") === "direct_connect")).toBe(true);
   });
+
+  it("persists request attachments and scopes attachment access to the requester or assigned contractor", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const { agent: assignedContractorAgent, user: assignedContractorUser } =
+      await createAuthedAgent({
+        role: "contractor",
+        addressVerified: true,
+        emailVerified: true,
+        onboardingCompleted: true,
+      });
+    const { agent: unrelatedAgent } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [assignedContractor] = await db
+      .insert(contractors)
+      .values({
+        userId: assignedContractorUser.id,
+        companyName: `Attachment Access ${unique}`,
+        slug: `attachment-access-${unique}`,
+        isActive: true,
+      } as any)
+      .returning();
+
+    const createRes = await agent.post("/api/direct-connect/requests").send({
+      title: `Attachment request ${unique}`,
+      description: "Need help with a project and attached photos.",
+      category: "service_request",
+      attachments: [
+        " https://example.com/request-photo.jpg ",
+        "https://example.com/request-photo.jpg",
+      ],
+    });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body?.id).toBeTruthy();
+
+    const requestId = String(createRes.body.id);
+
+    const [storedRequest] = await db
+      .select()
+      .from(workRequests)
+      .where(
+        and(eq(workRequests.id, requestId), eq(workRequests.createdByUserId, String(user.id)))
+      );
+
+    expect(storedRequest).toBeTruthy();
+    expect((storedRequest as any).attachments).toEqual(["https://example.com/request-photo.jpg"]);
+
+    const listRes = await agent.get("/api/direct-connect/requests");
+    expect(listRes.status).toBe(200);
+    const listed = (listRes.body as any[]).find((row) => String(row.id) === requestId);
+    expect(listed).toBeTruthy();
+    expect(listed.attachmentCount).toBe(1);
+
+    await db.insert(workRequestAssignments).values({
+      workRequestId: requestId,
+      contractorId: assignedContractor.id,
+      status: "suggested",
+    } as any);
+
+    const ownerAttachmentRes = await agent.get(
+      `/api/direct-connect/requests/${requestId}/attachments/0`
+    );
+    expect(ownerAttachmentRes.status).toBe(302);
+    expect(ownerAttachmentRes.headers.location).toBe("https://example.com/request-photo.jpg");
+
+    const assignedAttachmentRes = await assignedContractorAgent.get(
+      `/api/direct-connect/requests/${requestId}/attachments/0`
+    );
+    expect(assignedAttachmentRes.status).toBe(302);
+    expect(assignedAttachmentRes.headers.location).toBe("https://example.com/request-photo.jpg");
+
+    const unrelatedAttachmentRes = await unrelatedAgent.get(
+      `/api/direct-connect/requests/${requestId}/attachments/0`
+    );
+    expect(unrelatedAttachmentRes.status).toBe(403);
+    expect(unrelatedAttachmentRes.body?.message).toContain("do not have access");
+  });
 });
