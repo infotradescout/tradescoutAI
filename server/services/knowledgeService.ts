@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getGeminiModelName } from "../ai/modelConfig";
+import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 import { and, eq, or, sql } from "drizzle-orm";
 import mammoth from "mammoth";
 import { db } from ".././db";
@@ -822,8 +822,6 @@ async function searchInternet(
 ): Promise<CacheResult> {
   try {
     if (!gemini) return { source: "none", data: null, layer: 0 };
-
-    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const lower = message.toLowerCase();
 
     const codeOrPermit = isCodeOrPermitQuery(lower);
@@ -856,12 +854,11 @@ User locality (if provided, may be approximate): ${localityHint || "unknown"}.
 
 Prefer official or authoritative sources when possible. Keep the answer compact (under ~8 sentences).`;
 
-    const result = await model.generateContent(webPrompt);
-
-    if (result.response.text()) {
+    const { text } = await generateGeminiTextWithFallback(gemini, webPrompt);
+    if (text) {
       return {
         source: "internet",
-        data: { content: result.response.text() },
+        data: { content: text },
         layer: 4,
       };
     }

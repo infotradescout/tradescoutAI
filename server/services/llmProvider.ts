@@ -1,7 +1,7 @@
 // LLM Provider abstraction for multi-model and fallback (PHASE 3)
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { generateAIResponse as generateVertexAIResponse } from "../ai/vertexClient";
-import { getGeminiModelName } from "../ai/modelConfig";
+import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 // import { OpenAI } from "openai"; // Uncomment if OpenAI is used
 
 export type LLMModel = "gemini" | "openai";
@@ -22,9 +22,8 @@ export class GeminiProvider implements LLMProvider {
     return !!process.env.GEMINI_API_KEY;
   }
   async generate(prompt: string) {
-    const model = this.genAI.getGenerativeModel({ model: getGeminiModelName() });
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    const { text } = await generateGeminiTextWithFallback(this.genAI, prompt);
+    return text;
   }
 }
 

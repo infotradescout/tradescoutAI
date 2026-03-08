@@ -1,6 +1,6 @@
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
-import { Link, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -67,6 +67,7 @@ type HoaMembership = {
 };
 
 export default function Settings() {
+  const [, navigate] = useLocation();
   const { user, refetch } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -83,10 +84,46 @@ export default function Settings() {
   );
 
   const searchString = useSearch();
-  const defaultTab = useMemo(() => {
-    const tab = new URLSearchParams(searchString).get("tab");
-    return tab || "profile";
-  }, [searchString]);
+  const validTabs = useMemo(
+    () =>
+      new Set([
+        "profile",
+        "roles",
+        "navigation",
+        "appearance",
+        "notifications",
+        "privacy",
+        "security",
+        "tools",
+      ]),
+    []
+  );
+
+  const normalizeSettingsTab = (rawTab: string | null): string => {
+    const raw = (rawTab || "").trim().toLowerCase();
+    if (!raw) return "profile";
+
+    const aliasMap: Record<string, string> = {
+      location: "profile",
+      account: "profile",
+      public: "privacy",
+      visibility: "privacy",
+      notificationsettings: "notifications",
+      notification: "notifications",
+      profile_settings: "profile",
+    };
+
+    const canonical = aliasMap[raw] || raw;
+    return validTabs.has(canonical) ? canonical : "profile";
+  };
+
+  const tabFromQuery = normalizeSettingsTab(new URLSearchParams(searchString).get("tab"));
+
+  const [activeTab, setActiveTab] = useState<string>(tabFromQuery);
+
+  useEffect(() => {
+    setActiveTab(tabFromQuery);
+  }, [tabFromQuery]);
 
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || "",
@@ -700,7 +737,15 @@ export default function Settings() {
             </div>
           </div>
 
-          <Tabs defaultValue={defaultTab} className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              const normalized = normalizeSettingsTab(value);
+              setActiveTab(normalized);
+              navigate(`/settings?tab=${encodeURIComponent(normalized)}`);
+            }}
+            className="space-y-6"
+          >
             <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
               <TabsTrigger
                 value="profile"

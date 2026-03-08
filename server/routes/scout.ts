@@ -11,7 +11,7 @@ import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCa
 import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
 import { GeminiProvider, VertexGeminiProvider, LLMProvider } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getGeminiModelName } from "../ai/modelConfig";
+import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 import type { User } from "../assistantActions";
 import {
   resolveKnowledge,
@@ -822,9 +822,7 @@ async function generateSmartSynthesis(
 
   Now write an inspiring but concrete orientation that helps this person immediately understand what TradeScout is, who it serves, and how Scout will run the operating system for their community:`;
 
-    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
-    const result = await model.generateContent(synthPrompt);
-    const text = result.response.text();
+    const { text } = await generateGeminiTextWithFallback(gemini, synthPrompt);
     // Allow a richer, orientation-style answer for intro questions
     return trimResponseToScreenFit(text, { mode: "intro" });
   } catch (error) {
@@ -887,7 +885,6 @@ async function synthesizeResponse(
   }
 
   try {
-    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const tradeTopic = detectTradeTopic(userMessage);
     const tradeHintBlock = `
 TRADE TOPIC HINT: ${tradeTopic ? tradeTopic.toUpperCase() : "NONE"}
@@ -1036,8 +1033,11 @@ ${knowledge.layer === 4 ? "You don't have reliable info - be honest about it in 
 
 RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
-    const result = await model.generateContent(synthesisPrompt);
-    let rawResponse = result.response.text();
+    const { text: rawGeneratedText } = await generateGeminiTextWithFallback(
+      gemini,
+      synthesisPrompt
+    );
+    let rawResponse = rawGeneratedText;
 
     // Strip markdown code fences if present
     rawResponse = rawResponse
@@ -1355,7 +1355,6 @@ async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
   }
 
   try {
-    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
     const prompt = `You are designing the very first question a brand new person should ask Scout, the built-in helper that runs TradeScout b7 a community operating system, not just an app.
 
 Create a SINGLE best starter prompt that will cause Scout to give a rich orientation to TradeScout as their community OS b7 what it is, who it serves, and how it can run their local projects and community flows.
@@ -1368,8 +1367,7 @@ Guidelines for autoPrompt:
 Also return 6 short suggestion prompts that help them explore high-impact things Scout can do for them (finding pros, starting projects, connecting community, etc.). None of the suggestions or the autoPrompt should describe Scout as an AI, bot, or model.
 
 Return JSON with keys autoPrompt (string) and suggestions (string array).`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const { text } = await generateGeminiTextWithFallback(gemini, prompt);
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);

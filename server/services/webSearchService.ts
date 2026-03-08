@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getGeminiModelName } from "../ai/modelConfig";
+import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 
 export interface WebSearchResult {
   success: boolean;
@@ -19,14 +19,12 @@ export async function webSearch(query: string, nResults = 5): Promise<WebSearchR
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: getGeminiModelName() });
     const prompt = `Search the open web for: ${query}\nReturn ${nResults} concise findings with sources when possible.`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const { text, model } = await generateGeminiTextWithFallback(genAI, prompt);
     if (!text) {
       return { success: false, error: "Empty web search response" };
     }
-    return { success: true, content: text, provider: "gemini" };
+    return { success: true, content: text, provider: `gemini:${model}` };
   } catch (error: any) {
     return { success: false, error: error?.message || "Web search failed" };
   }

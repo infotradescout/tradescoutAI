@@ -55,6 +55,11 @@ function preferPayloadText(payload: any, keys: string[]): string | null {
   return null;
 }
 
+function normalizeClientKey(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.trim().toLowerCase();
+}
+
 function resolveJobFlowStage(latestByType: Record<string, any>): string {
   const invoice = latestByType.INVOICE;
   const receipt = latestByType.RECEIPT;
@@ -400,6 +405,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
               expenses: [],
               pagination: { page: 1, pageSize: 50, totalCount: 0, pageCount: 0 },
             });
+          }
+          if (req.path === "/api/accounting/clients") {
+            return res.json({ clients: [] });
           }
         }
         next(e);
@@ -1504,6 +1512,270 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       });
 
       res.json(invoices);
+    })
+  );
+
+  // Standalone accounting: manage client profiles independent of invoice creation.
+  r.get(
+    "/api/accounting/clients",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const includeArchivedRaw = Array.isArray(req.query.includeArchived)
+        ? req.query.includeArchived[0]
+        : req.query.includeArchived;
+      const includeArchived = String(includeArchivedRaw || "").toLowerCase() === "true";
+
+      let profileRows: any[] = [];
+      let hasProfilesTable = true;
+      try {
+        const profileRes = await pool.query(
+          `SELECT id, display_name, email, phone, notes, is_archived, created_at, updated_at
+           FROM accounting_clients
+           WHERE created_by = $1
+             AND ($2::boolean = true OR is_archived = false)
+           ORDER BY updated_at DESC NULLS LAST, created_at DESC`,
+          [req.user.id, includeArchived]
+        );
+        profileRows = profileRes.rows as any[];
+      } catch (err: any) {
+        const message = String(err?.message || "");
+        if (
+          message.includes('relation "accounting_clients" does not exist') ||
+          message.includes("undefined_table")
+        ) {
+          hasProfilesTable = false;
+          profileRows = [];
+        } else {
+          throw err;
+        }
+      }
+
+      const ledgerRes = await pool.query(
+        `SELECT
+           lower(trim(payload->>'clientName')) AS client_key,
+           max(trim(payload->>'clientName')) AS client_name,
+           COUNT(*)::int AS invoice_count,
+           COALESCE(SUM((payload->>'total')::numeric), 0) AS total_billed,
+           COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
+         FROM documents
+         WHERE created_by = $1
+           AND type = 'INVOICE'
+           AND job_id LIKE 'acct_%'
+           AND nullif(trim(payload->>'clientName'), '') IS NOT NULL
+         GROUP BY lower(trim(payload->>'clientName'))
+         ORDER BY max(updated_at) DESC NULLS LAST, max(created_at) DESC`,
+        [req.user.id]
+      );
+
+      const ledgerByKey = new Map<string, any>();
+      for (const row of ledgerRes.rows as any[]) {
+        const key = String(row.client_key || "");
+        if (!key) continue;
+        const totalBilled = Number(row.total_billed) || 0;
+        const paidAmount = Number(row.paid_amount) || 0;
+        ledgerByKey.set(key, {
+          invoiceCount: Number(row.invoice_count) || 0,
+          totalBilled,
+          paidAmount,
+          unpaidAmount: Math.max(0, totalBilled - paidAmount),
+          ledgerName: String(row.client_name || "").trim() || null,
+        });
+      }
+
+      const clients = [] as any[];
+      const mergedKeys = new Set<string>();
+
+      for (const profile of profileRows) {
+        const profileName = String(profile.display_name || "").trim();
+        const key = normalizeClientKey(profileName);
+        const ledger = key ? ledgerByKey.get(key) : null;
+        if (key) mergedKeys.add(key);
+        clients.push({
+          id: String(profile.id),
+          displayName: profileName,
+          email: profile.email ? String(profile.email) : null,
+          phone: profile.phone ? String(profile.phone) : null,
+          notes: profile.notes ? String(profile.notes) : null,
+          isArchived: Boolean(profile.is_archived),
+          createdAt: profile.created_at ?? null,
+          updatedAt: profile.updated_at ?? null,
+          profileBacked: true,
+          stats: {
+            invoiceCount: ledger?.invoiceCount || 0,
+            totalBilled: ledger?.totalBilled || 0,
+            paidAmount: ledger?.paidAmount || 0,
+            unpaidAmount: ledger?.unpaidAmount || 0,
+          },
+        });
+      }
+
+      for (const [key, ledger] of ledgerByKey.entries()) {
+        if (mergedKeys.has(key)) continue;
+        clients.push({
+          id: `derived_${key}`,
+          displayName: ledger.ledgerName || "Unknown client",
+          email: null,
+          phone: null,
+          notes: null,
+          isArchived: false,
+          createdAt: null,
+          updatedAt: null,
+          profileBacked: false,
+          stats: {
+            invoiceCount: ledger.invoiceCount,
+            totalBilled: ledger.totalBilled,
+            paidAmount: ledger.paidAmount,
+            unpaidAmount: ledger.unpaidAmount,
+          },
+        });
+      }
+
+      res.json({
+        clients,
+        capabilities: {
+          canPersistProfiles: hasProfilesTable,
+        },
+      });
+    })
+  );
+
+  r.post(
+    "/api/accounting/clients",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const { displayName, email, phone, notes } = (req.body ?? {}) as any;
+
+      const name = typeof displayName === "string" ? displayName.trim() : "";
+      if (!name) {
+        throw new HttpError("CLIENT_NAME_REQUIRED", 400);
+      }
+
+      const id = `ac_${token32()}`;
+      const created = await pool.query(
+        `INSERT INTO accounting_clients (id, created_by, display_name, email, phone, notes, is_archived)
+         VALUES ($1, $2, $3, $4, $5, $6, false)
+         RETURNING id, display_name, email, phone, notes, is_archived, created_at, updated_at`,
+        [
+          id,
+          req.user.id,
+          name,
+          typeof email === "string" && email.trim() ? email.trim() : null,
+          typeof phone === "string" && phone.trim() ? phone.trim() : null,
+          typeof notes === "string" && notes.trim() ? notes.trim() : null,
+        ]
+      );
+
+      res.status(201).json({ client: created.rows[0] });
+    })
+  );
+
+  r.patch(
+    "/api/accounting/clients/:id",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const { id } = req.params;
+      const { displayName, email, phone, notes, isArchived } = (req.body ?? {}) as any;
+
+      const existingRes = await pool.query(
+        `SELECT id
+         FROM accounting_clients
+         WHERE id = $1 AND created_by = $2
+         LIMIT 1`,
+        [id, req.user.id]
+      );
+      if (!existingRes.rows.length) {
+        throw new HttpError("CLIENT_NOT_FOUND", 404);
+      }
+
+      const nextName = typeof displayName === "string" ? displayName.trim() : "";
+      if (!nextName) {
+        throw new HttpError("CLIENT_NAME_REQUIRED", 400);
+      }
+
+      const updated = await pool.query(
+        `UPDATE accounting_clients
+         SET display_name = $3,
+             email = $4,
+             phone = $5,
+             notes = $6,
+             is_archived = $7,
+             updated_at = now()
+         WHERE id = $1 AND created_by = $2
+         RETURNING id, display_name, email, phone, notes, is_archived, created_at, updated_at`,
+        [
+          id,
+          req.user.id,
+          nextName,
+          typeof email === "string" && email.trim() ? email.trim() : null,
+          typeof phone === "string" && phone.trim() ? phone.trim() : null,
+          typeof notes === "string" && notes.trim() ? notes.trim() : null,
+          Boolean(isArchived),
+        ]
+      );
+
+      res.json({ client: updated.rows[0] });
+    })
+  );
+
+  r.post(
+    "/api/accounting/clients/:id/rename-ledger",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const { id } = req.params;
+      const { previousName, nextName } = (req.body ?? {}) as any;
+
+      const prior = typeof previousName === "string" ? previousName.trim() : "";
+      const next = typeof nextName === "string" ? nextName.trim() : "";
+      if (!prior || !next) {
+        throw new HttpError("CLIENT_NAME_REQUIRED", 400);
+      }
+
+      const existsRes = await pool.query(
+        `SELECT id
+         FROM accounting_clients
+         WHERE id = $1 AND created_by = $2
+         LIMIT 1`,
+        [id, req.user.id]
+      );
+      if (!existsRes.rows.length) {
+        throw new HttpError("CLIENT_NOT_FOUND", 404);
+      }
+
+      const docsRes = await pool.query(
+        `SELECT id, payload
+         FROM documents
+         WHERE created_by = $1
+           AND job_id LIKE 'acct_%'
+           AND nullif(trim(payload->>'clientName'), '') IS NOT NULL`,
+        [req.user.id]
+      );
+
+      let updatedCount = 0;
+      const priorKey = normalizeClientKey(prior);
+      for (const row of docsRes.rows as any[]) {
+        const payload = row.payload || {};
+        const currentName = typeof payload.clientName === "string" ? payload.clientName : "";
+        if (normalizeClientKey(currentName) !== priorKey) continue;
+
+        const nextPayload = {
+          ...payload,
+          clientName: next,
+        };
+        await pool.query("UPDATE documents SET payload = $2::jsonb WHERE id = $1", [
+          row.id,
+          JSON.stringify(nextPayload),
+        ]);
+        updatedCount += 1;
+      }
+
+      res.json({ updatedCount });
     })
   );
 

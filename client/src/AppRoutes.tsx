@@ -1609,6 +1609,9 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/settings/profile">
               <RedirectTo to="/profile-settings" />
             </Route>
+            <Route path="/settings/location">
+              <RedirectTo to="/settings?tab=profile" />
+            </Route>
             <Route path="/contractor/dashboard">
               <RedirectTo to="/contractor-dashboard" />
             </Route>

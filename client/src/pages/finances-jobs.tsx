@@ -130,6 +130,22 @@ export default function FinancesJobsPage() {
             variant="outline"
             size="sm"
             className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+            onClick={() => navigate("/finances/estimates")}
+          >
+            Add estimate
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+            onClick={() => navigate("/finances/expenses")}
+          >
+            Add expense
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
             onClick={() => navigate("/finances/invoices")}
           >
             View invoices

@@ -36,7 +36,7 @@ describe("accounting job flow contracts", () => {
     const invoicesPage = read("client/src/pages/finances-invoices.tsx");
     const expensesPage = read("client/src/pages/finances-expenses.tsx");
 
-    expect(serverSource).toContain("const requestedJobId =");
+    expect(serverSource).toContain("jobId: requestedJobId");
     expect(serverSource).toContain("INVALID_ACCOUNTING_JOB_ID");
     expect(serverSource).toContain("ACCOUNTING_JOB_NOT_FOUND");
     expect(invoicesPage).toContain("jobId: linkedJobId.trim() || undefined");
@@ -97,5 +97,19 @@ describe("accounting job flow contracts", () => {
     expect(routesSource).toContain('<Route path="/finances/records">');
     expect(recordsPage).toContain("fetch(`/api/accounting/records?${params.toString()}`");
     expect(recordsPage).toContain('fetch("/api/accounting/standalone-record"');
+  });
+
+  it("supports dedicated accounting client management", () => {
+    const serverSource = read("server/invoicingDocumentsRouter.ts");
+    const clientsPage = read("client/src/pages/finances-clients.tsx");
+
+    expect(serverSource).toContain('"/api/accounting/clients"');
+    expect(serverSource).toContain('"/api/accounting/clients/:id"');
+    expect(serverSource).toContain('"/api/accounting/clients/:id/rename-ledger"');
+    expect(clientsPage).toContain("fetch(`/api/accounting/clients?${params.toString()}`");
+    expect(clientsPage).toContain('fetch("/api/accounting/clients"');
+    expect(clientsPage).toContain("fetch(`/api/accounting/clients/${opts.id}`");
+    expect(clientsPage).toContain("fetch(`/api/accounting/clients/${opts.id}/rename-ledger`");
+    expect(clientsPage).toContain("Add client profile");
   });
 });

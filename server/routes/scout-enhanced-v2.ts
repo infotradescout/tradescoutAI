@@ -14,7 +14,7 @@
 
 import { Router, type Request, Response } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getGeminiModelName } from "../ai/modelConfig";
+import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 import { loadSystemPrompt } from "../services/promptService";
 import { executeAssistantAction } from "../assistantActions";
 import { buildUserContext, formatUserContextForPrompt } from "../services/userContextService";
@@ -281,8 +281,6 @@ router.post("/message-v2", async (req: Request, res: Response) => {
     }
 
     const gemini = new GoogleGenerativeAI(geminiKey);
-    const model = gemini.getGenerativeModel({ model: getGeminiModelName() });
-
     let finalResponse: Partial<EnhancedScoutResponseV2> | null = null;
 
     // Multi-turn reasoning loop
@@ -313,8 +311,7 @@ ${toolHistoryContext}
 ${context.reasoning_turns > 1 ? "You have already executed some tools. Based on the results above, decide if you need to execute more tools or if you have enough information to provide a complete answer to the user." : "Please respond with the enhanced JSON schema including state_acknowledgment, planning, tool_calls, and reflection sections."}`;
 
       // Call LLM
-      const result = await model.generateContent(fullPrompt);
-      const llmOutput = result.response.text();
+      const { text: llmOutput } = await generateGeminiTextWithFallback(gemini, fullPrompt);
 
       // Parse response
       const parsedResponse = parseEnhancedResponse(llmOutput);

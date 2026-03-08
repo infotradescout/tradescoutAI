@@ -204,15 +204,35 @@ export default function FinancesReportsPage() {
             High-level money analytics powered by your invoices and expenses.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 px-3 border-white/15 text-[11px] text-white/70"
-          onClick={() => navigate("/finances/records")}
-        >
-          Open records ledger
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+            onClick={() => navigate("/finances/invoices")}
+          >
+            Add invoice
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+            onClick={() => navigate("/finances/expenses")}
+          >
+            Add expense
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+            onClick={() => navigate("/finances/records")}
+          >
+            Open records ledger
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-tsCard border-white/10">
@@ -238,6 +258,7 @@ export default function FinancesReportsPage() {
                     variant="outline"
                     size="sm"
                     className="h-7 px-3 border-white/10 text-white/70"
+                    onClick={() => navigate("/finances/invoices")}
                   >
                     Go to invoices
                   </Button>

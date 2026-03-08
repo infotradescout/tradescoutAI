@@ -1109,10 +1109,11 @@ export default function ProfileSettings() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={!profileSlug}
-                    onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
+                    onClick={() =>
+                      profileSlug ? navigate(`/u/${profileSlug}/edit`) : navigate("/profile")
+                    }
                   >
-                    {profileSlug ? "Open editor" : "Profile editor unavailable"}
+                    {profileSlug ? "Open editor" : "Open profile setup"}
                   </Button>
                   {profileStatus === "published" ? (
                     <Button
@@ -1206,6 +1207,37 @@ export default function ProfileSettings() {
                   onCheckedChange={updateProfileVisibility}
                   disabled={loading}
                 />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={preferences.profileVisibility === "public" ? "default" : "outline"}
+                  size="sm"
+                  disabled={loading || preferences.profileVisibility === "public"}
+                  onClick={() => updateProfileVisibility(true)}
+                >
+                  Make public
+                </Button>
+                <Button
+                  type="button"
+                  variant={preferences.profileVisibility === "private" ? "default" : "outline"}
+                  size="sm"
+                  disabled={loading || preferences.profileVisibility === "private"}
+                  onClick={() => updateProfileVisibility(false)}
+                >
+                  Make private
+                </Button>
+                {profileSlug && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/u/${profileSlug}`)}
+                  >
+                    View public page
+                  </Button>
+                )}
               </div>
 
               {preferences.profileVisibility === "public" && (
