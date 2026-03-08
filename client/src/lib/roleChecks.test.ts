@@ -14,6 +14,11 @@ describe("roleChecks admin UI access", () => {
     expect(hasAdminUiAccess({ role: "homeowner" })).toBe(false);
   });
 
+  it("honors activeRole when admin authority is carried there", () => {
+    expect(hasAdminUiAccess({ role: "homeowner", activeRole: "ops_admin" })).toBe(true);
+    expect(hasAdminUiAccess({ role: "member", activeRole: "super_admin" })).toBe(true);
+  });
+
   it("honors role arrays from normalized sessions", () => {
     expect(hasAdminUiAccess({ roles: ["member", "ops_admin"] })).toBe(true);
     expect(hasAdminUiAccess({ roles: ["member", "super_admin"] })).toBe(true);

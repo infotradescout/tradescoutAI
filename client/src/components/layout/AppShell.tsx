@@ -37,7 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
-import { isSuperAdminLike } from "@/lib/roleChecks";
+import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 
 export type NavItem = {
   label: string;
@@ -54,7 +54,11 @@ type AppShellProps = {
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (isSuperAdmin: boolean, isAuthenticated: boolean): NavItem[] => {
+const buildFeatureNav = (
+  hasAdminAccess: boolean,
+  isSuperAdmin: boolean,
+  isAuthenticated: boolean
+): NavItem[] => {
   const baseNav: NavItem[] = [
     {
       label: "Scout",
@@ -118,13 +122,14 @@ const buildFeatureNav = (isSuperAdmin: boolean, isAuthenticated: boolean): NavIt
     },
   ];
 
-  // Add Admin link at the FRONT for super admins
-  if (isSuperAdmin) {
+  // Keep Admin visible in the bottom app bar for all admin-tier users.
+  if (hasAdminAccess) {
     return [
       {
         label: "Admin",
         href: "/admin",
         icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+        ...(isSuperAdmin ? { badge: "SA" } : {}),
       },
       ...baseNav,
     ];
@@ -169,6 +174,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           .toLowerCase()
       : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
+  const hasAdminAccess = hasAdminUiAccess(user);
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
@@ -176,7 +182,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   });
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
-  const featureNav = buildFeatureNav(isSuperAdmin, isAuthenticated);
+  const featureNav = buildFeatureNav(hasAdminAccess, isSuperAdmin, isAuthenticated);
   const showFeatureNav = !isAuthOrSetupSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {

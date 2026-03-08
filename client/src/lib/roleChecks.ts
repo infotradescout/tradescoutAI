@@ -50,6 +50,7 @@ type AdminLikeUser = {
   isAdmin?: unknown;
   isSuperAdmin?: unknown;
   role?: UserRole;
+  activeRole?: UserRole;
   roles?: unknown;
 };
 
@@ -63,6 +64,7 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
   if (!user) return false;
   if (user.isAdmin === true || user.isSuperAdmin === true) return true;
   if (isAdminTier(user.role) || isSuperAdminLike(user.role)) return true;
+  if (isAdminTier(user.activeRole) || isSuperAdminLike(user.activeRole)) return true;
 
   if (Array.isArray(user.roles)) {
     return user.roles.some((role) => {
