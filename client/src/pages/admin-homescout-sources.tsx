@@ -43,8 +43,8 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 export default function AdminHomeScoutSources() {
   const qc = useQueryClient();
-  const [newKey, setNewKey] = useState("seed_22105");
-  const [newPath, setNewPath] = useState("data/homescout/seed-22105.json");
+  const [newKey, setNewKey] = useState("");
+  const [newPath, setNewPath] = useState("");
   const [autoActivate, setAutoActivate] = useState(true);
   const [staleAfterDays, setStaleAfterDays] = useState("7");
 
@@ -143,11 +143,19 @@ export default function AdminHomeScoutSources() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Source Key</div>
-              <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+              <Input
+                value={newKey}
+                onChange={(e) => setNewKey(e.target.value)}
+                placeholder="northern_va_mls"
+              />
             </div>
             <div className="space-y-1 md:col-span-2">
               <div className="text-xs text-muted-foreground">JSON File Path (repo-relative)</div>
-              <Input value={newPath} onChange={(e) => setNewPath(e.target.value)} />
+              <Input
+                value={newPath}
+                onChange={(e) => setNewPath(e.target.value)}
+                placeholder="data/homescout/live-feed.json"
+              />
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Stale Days</div>
@@ -156,12 +164,15 @@ export default function AdminHomeScoutSources() {
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm text-muted-foreground">
-              Auto-activate ingested listings:{" "}
+              Create explicit real-data sources only. Auto-activate ingested listings:{" "}
               <Button variant="secondary" size="sm" onClick={() => setAutoActivate((v) => !v)}>
                 {autoActivate ? "On" : "Off"}
               </Button>
             </div>
-            <Button onClick={() => createSource.mutate()} disabled={createSource.isPending}>
+            <Button
+              onClick={() => createSource.mutate()}
+              disabled={createSource.isPending || !newKey.trim() || !newPath.trim()}
+            >
               Create Source
             </Button>
           </div>

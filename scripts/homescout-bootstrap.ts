@@ -2,15 +2,15 @@
  * HomeScout bootstrap (dev/staging)
  *
  * What it does:
- * - Ensures a HomeScout source exists (default: repo seed file for county 22105)
+ * - Ensures a HomeScout source exists when you pass an explicit source configuration
  * - Runs ingestion for that source (or all enabled sources)
  * - Runs the bucket + county metrics jobs so UI has precomputed context
  *
  * Usage:
- *   npm run homescout:bootstrap
+ *   npm run homescout:bootstrap -- --sourceKey northern_va_mls --path data/homescout/live-feed.json
  *
  * Advanced:
- *   tsx -r dotenv/config scripts/homescout-bootstrap.ts --sourceKey seed_22105 --path data/homescout/seed-22105.json
+ *   tsx -r dotenv/config scripts/homescout-bootstrap.ts --sourceKey my_feed --path data/homescout/live-feed.json
  *   tsx -r dotenv/config scripts/homescout-bootstrap.ts --runAllSources
  */
 
@@ -24,7 +24,7 @@ import fs from "fs/promises";
 import path from "path";
 
 type Args = {
-  sourceKey: string;
+  sourceKey?: string;
   sourceType: "json_file" | "json_url";
   path?: string;
   url?: string;
@@ -97,7 +97,7 @@ function readInt(flag: string, defaultValue: number): number {
 }
 
 function parseArgs(): Args {
-  const sourceKey = readString("sourceKey", "seed_22105");
+  const sourceKeyRaw = readArgValue("sourceKey");
   const sourceTypeRaw = readString("sourceType", "json_file");
   const sourceType = sourceTypeRaw === "json_url" ? "json_url" : "json_file";
 
@@ -110,7 +110,8 @@ function parseArgs(): Args {
   const url = readArgValue("url") ?? undefined;
 
   return {
-    sourceKey,
+    sourceKey:
+      sourceKeyRaw == null || sourceKeyRaw.trim().length === 0 ? undefined : sourceKeyRaw.trim(),
     sourceType,
     path,
     url,
@@ -122,13 +123,19 @@ function parseArgs(): Args {
 }
 
 async function ensureSource(args: Args) {
+  if (!args.sourceKey) {
+    throw new Error("--sourceKey is required unless --runAllSources is used");
+  }
   const existing = await storage.getHomeScoutSourceByKey(args.sourceKey);
   const nextConfig: Record<string, any> = {
     staleAfterDays: args.staleAfterDays,
     autoActivate: args.autoActivate,
   };
   if (args.sourceType === "json_file") {
-    nextConfig.path = args.path || "data/homescout/seed-22105.json";
+    if (!args.path || !args.path.trim()) {
+      throw new Error("--path is required when --sourceType json_file");
+    }
+    nextConfig.path = args.path.trim();
   } else {
     if (!args.url) {
       throw new Error(`--url is required when --sourceType json_url`);
@@ -162,21 +169,27 @@ async function main() {
 
   await ensureHomeScoutSchema();
 
-  const source = await ensureSource(args);
-  if (!source) {
-    throw new Error("Failed to ensure HomeScout source");
+  let sourceId: string | undefined;
+  if (!args.runAllSources) {
+    const source = await ensureSource(args);
+    if (!source) {
+      throw new Error("Failed to ensure HomeScout source");
+    }
+
+    sourceId = source.id;
+    console.log("[HomeScoutBootstrap] Source ensured:", {
+      id: source.id,
+      sourceKey: (source as any).sourceKey,
+      sourceType: (source as any).sourceType,
+      enabled: (source as any).enabled,
+      config: (source as any).config,
+    });
+  } else {
+    console.log("[HomeScoutBootstrap] Running against already-configured enabled sources");
   }
 
-  console.log("[HomeScoutBootstrap] Source ensured:", {
-    id: source.id,
-    sourceKey: (source as any).sourceKey,
-    sourceType: (source as any).sourceType,
-    enabled: (source as any).enabled,
-    config: (source as any).config,
-  });
-
   const ingestion = await runHomeScoutIngestionJob(
-    args.runAllSources ? undefined : { sourceId: source.id }
+    args.runAllSources || !sourceId ? undefined : { sourceId }
   );
   console.log("[HomeScoutBootstrap] Ingestion complete:", ingestion);
 
