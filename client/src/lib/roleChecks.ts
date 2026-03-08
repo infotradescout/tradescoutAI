@@ -54,6 +54,7 @@ type AdminLikeUser = {
   isSuperAdmin?: unknown;
   role?: UserRole;
   activeRole?: UserRole;
+  email?: unknown;
   roles?: unknown;
   claims?: {
     role?: unknown;
@@ -61,6 +62,7 @@ type AdminLikeUser = {
     roles?: unknown;
     isAdmin?: unknown;
     isSuperAdmin?: unknown;
+    email?: unknown;
   };
 };
 
@@ -72,6 +74,21 @@ type AdminLikeUser = {
  */
 export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolean => {
   if (!user) return false;
+
+  const normalizeEmail = (value: unknown): string =>
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+  const adminAliasEmails = new Set<string>([
+    "contact@thetradescout.com",
+    "admin@thetradescout.com",
+  ]);
+  const userEmail = normalizeEmail(user.email);
+  const claimsEmail = normalizeEmail(user.claims?.email);
+  if (
+    (userEmail && adminAliasEmails.has(userEmail)) ||
+    (claimsEmail && adminAliasEmails.has(claimsEmail))
+  ) {
+    return true;
+  }
 
   const truthyFlag = (value: unknown): boolean => {
     if (value === true) return true;
