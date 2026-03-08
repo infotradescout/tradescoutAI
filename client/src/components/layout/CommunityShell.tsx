@@ -100,13 +100,6 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   }, [location, locationCtx, notificationsCount]);
 
   const activeHighlight = rotatingItems[highlightIndex] ?? rotatingItems[0];
-  const mobileNavItems: Array<{ href: string; label: string; testId: string }> = [
-    { href: "/community", label: "Community", testId: "nav-community" },
-    { href: "/groups", label: "Groups", testId: "nav-groups" },
-    { href: "/hoa-management", label: "HOA", testId: "nav-hoa" },
-    { href: "/messages", label: "Messages", testId: "nav-messages" },
-  ];
-
   return (
     <div className="flex flex-col w-full">
       <div className="border-b border-white/10 bg-tsBg px-3 md:px-4 py-2 md:py-1 space-y-1 md:space-y-0.5">
@@ -188,42 +181,6 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
       </div>
 
       <div className="w-full max-w-full overflow-x-hidden bg-tsBg">{children}</div>
-
-      <div
-        data-testid="community-shell-bottom-nav"
-        className="md:hidden sticky bottom-0 z-20 border-t border-white/10 bg-tsCard/95 backdrop-blur"
-      >
-        <div className="grid grid-cols-4 px-1 pb-[calc(env(safe-area-inset-bottom)*0.35)] pt-1">
-          {mobileNavItems.map((item) => {
-            const isActive =
-              location === item.href ||
-              (item.href !== "/community" && location.startsWith(`${item.href}/`));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-testid={item.testId}
-                aria-current={isActive ? "page" : undefined}
-                className={`rounded-xl px-2 py-2.5 text-center text-[11px] font-medium transition-colors ${
-                  isActive ? "text-ts-orange" : "text-white/70"
-                }`}
-                style={
-                  isActive
-                    ? {
-                        background:
-                          "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)",
-                        border:
-                          "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)",
-                      }
-                    : undefined
-                }
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 };

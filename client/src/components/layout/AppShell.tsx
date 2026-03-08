@@ -57,11 +57,6 @@ type AppShellProps = {
 const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
   const baseNav: NavItem[] = [
     {
-      label: "Scout",
-      href: "/scout",
-      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    },
-    {
       label: "Direct Connect",
       href: "/direct-connect",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
@@ -674,6 +669,26 @@ export function AppShell({ children, footer }: AppShellProps) {
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
           <MobileAppBar items={featureNav} />
         </div>
+      )}
+
+      {/* Floating Scout trigger (separate from bottom feature nav) */}
+      {showFeatureNav && !isScoutSurface && (
+        <button
+          type="button"
+          onClick={() => navigate("/scout")}
+          aria-label="Open Scout"
+          title="Scout"
+          className="fixed z-[1001] inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition hover:opacity-90 focus:outline-none"
+          style={{
+            left: isMobile ? "12px" : "16px",
+            bottom: "calc(var(--bottom-nav-h) + 10px)",
+            borderColor: "color-mix(in oklab, var(--theme-accent-primary) 55%, transparent)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 85%, transparent)",
+            color: "var(--theme-accent-primary)",
+          }}
+        >
+          <Compass className="h-5 w-5" />
+        </button>
       )}
 
       {/* Desktop-only legal footer sits below the bottom nav so the
