@@ -654,6 +654,11 @@ export function registerSocialFeatures(app: Express) {
         // VALIDATION CHECKPOINT 4: Authority gate validation
         // ========================================
         const { authorityGate, sourceDecisionCardId, confidenceScore, decisionScope } = req.body;
+        const normalizedScoutRecommendationId =
+          typeof initiatedFromScoutRecommendationId === "string" &&
+          initiatedFromScoutRecommendationId.trim().length > 0
+            ? initiatedFromScoutRecommendationId.trim()
+            : null;
 
         // Validate authority gate (LOCKED: only decision_card and scout_recommendation)
         if (!authorityGate || !["decision_card", "scout_recommendation"].includes(authorityGate)) {
@@ -699,13 +704,13 @@ export function registerSocialFeatures(app: Express) {
           }
         }
 
-        // D2: If from scout_recommendation, require sourceScoutRecommendationId (future phase)
-        if (authorityGate === "scout_recommendation" && !initiatedFromScoutRecommendationId) {
-          return res.status(400).json({
-            reasonCode: "MISSING_SCOUT_RECOMMENDATION_ID",
-            message:
-              "Scout Recommendation ID required when authorityGate is 'scout_recommendation'",
-          });
+        // Legacy compatibility:
+        // scout_recommendation flows may not carry a persisted recommendation ID.
+        if (authorityGate === "scout_recommendation" && !normalizedScoutRecommendationId) {
+          console.warn(
+            "[Messaging] scout_recommendation authority without source id; allowing legacy-safe fallback",
+            { userId, targetUserId, intent }
+          );
         }
 
         // ========================================
@@ -779,7 +784,7 @@ export function registerSocialFeatures(app: Express) {
               sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
               sourceScoutRecommendationId:
                 authorityGate === "scout_recommendation"
-                  ? initiatedFromScoutRecommendationId
+                  ? normalizedScoutRecommendationId || "scout-governed-legacy"
                   : null,
               decisionScope: decisionScope || null,
               confidenceScore: confidenceScore != null ? Number(confidenceScore) : null,
@@ -813,7 +818,7 @@ export function registerSocialFeatures(app: Express) {
             sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
             sourceScoutRecommendationId:
               authorityGate === "scout_recommendation"
-                ? initiatedFromScoutRecommendationId
+                ? normalizedScoutRecommendationId || "scout-governed-legacy"
                 : "first-contact-approved",
             confidenceScore: confidenceScore != null ? String(confidenceScore) : null,
             decisionScope: decisionScope || "Direct contact approved",

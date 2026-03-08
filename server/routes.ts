@@ -4621,9 +4621,65 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      const viewerId =
+        (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub || "";
+      const isOwner = Boolean(viewerId) && String(viewerId) === String(user.id);
+      let hasInAppRelationshipAccess = false;
+
+      // In-app profile viewing fallback:
+      // if a signed-in member is connected (follow or accepted contact permission),
+      // allow profile rendering even when public visibility is off.
+      if (viewerId && !isOwner) {
+        try {
+          const { getContactPermission } = await import("./utils/contactRequests");
+          const [viewerToOwnerPermission, ownerToViewerPermission] = await Promise.all([
+            getContactPermission(String(viewerId), String(user.id)),
+            getContactPermission(String(user.id), String(viewerId)),
+          ]);
+          hasInAppRelationshipAccess =
+            viewerToOwnerPermission?.status === "accepted" ||
+            ownerToViewerPermission?.status === "accepted";
+        } catch (permissionError) {
+          console.warn("[public-profile] failed checking contact permission access", {
+            viewerId,
+            userId: user.id,
+            error: permissionError,
+          });
+        }
+
+        if (!hasInAppRelationshipAccess) {
+          try {
+            const [followEdge] = await db
+              .select({ followerId: userFollows.followerId })
+              .from(userFollows)
+              .where(
+                or(
+                  and(
+                    eq(userFollows.followerId, String(viewerId)),
+                    eq(userFollows.followingId, String(user.id))
+                  ),
+                  and(
+                    eq(userFollows.followerId, String(user.id)),
+                    eq(userFollows.followingId, String(viewerId))
+                  )
+                )
+              )
+              .limit(1);
+
+            hasInAppRelationshipAccess = Boolean(followEdge);
+          } catch (followError) {
+            console.warn("[public-profile] failed checking follow relationship access", {
+              viewerId,
+              userId: user.id,
+              error: followError,
+            });
+          }
+        }
+      }
+
       // Check if profile is public
       const isPublic = user.preferences?.profileVisibility === "public";
-      if (!isPublic) {
+      if (!isPublic && !isOwner && !hasInAppRelationshipAccess) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
@@ -4641,8 +4697,6 @@ export async function registerRoutes(app: any) {
         | undefined;
 
       try {
-        const viewerId =
-          (req as AuthedRequest)?.user?.id || (req as AuthedRequest)?.user?.claims?.sub;
         if (viewerId && typeof viewerId === "string") {
           // Get follower/following sets for this public profile
           const followersRows = await db
@@ -18596,7 +18650,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           });
         }
 
-        if (String(post.authorId) !== String(userId)) {
+        const enforceCommentContactGate =
+          String(process.env.ENFORCE_COMMENT_CONTACT_GATE || "")
+            .trim()
+            .toLowerCase() === "true";
+
+        if (enforceCommentContactGate && String(post.authorId) !== String(userId)) {
           const { getContactPermission, ensureContactRequest } =
             await import("./utils/contactRequests");
           const requester = await storage.getUser(String(userId));

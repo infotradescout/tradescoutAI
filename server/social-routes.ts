@@ -34,6 +34,11 @@ const ALLOWED_REACTIONS = [
 type ReactionType = (typeof ALLOWED_REACTIONS)[number];
 
 export function registerSocialRoutes(app: Express) {
+  const enforceCommentContactGate =
+    String(process.env.ENFORCE_COMMENT_CONTACT_GATE || "")
+      .trim()
+      .toLowerCase() === "true";
+
   // Get social feed with filters
   app.get("/api/social/feed", isAuthenticated, async (req: any, res) => {
     try {
@@ -487,7 +492,7 @@ export function registerSocialRoutes(app: Express) {
         return res.status(404).json({ message: "Post not found" });
       }
 
-      if (post.authorId && String(post.authorId) !== String(userId)) {
+      if (enforceCommentContactGate && post.authorId && String(post.authorId) !== String(userId)) {
         const requester = await storage.getUser(String(userId));
         const requesterCountyFips = (requester as any)?.countyFips || null;
         const permission = await getContactPermission(String(userId), String(post.authorId));
