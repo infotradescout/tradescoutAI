@@ -24310,7 +24310,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   } = await import("./routes/hoa");
 
   app.get("/api/hoa/search", searchHOAs);
-  app.get("/api/hoa/:hoaId", getHOA);
   app.get("/api/hoa/:hoaId/member", isAuthenticated, getHOAMember);
   app.get("/api/hoa/:hoaId/members", isAuthenticated, getHOAMembers);
   app.post("/api/hoa/:hoaId/members", isAuthenticated, addHOAMember);
@@ -24393,6 +24392,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       res.status(500).json({ message: "Failed to load HOA votes" });
     }
   });
+
+  // Keep generic :hoaId route after static HOA routes so /api/hoa/dashboard and /api/hoa/votes do not get shadowed.
+  app.get("/api/hoa/:hoaId", getHOA);
 
   app.post(
     "/api/hoa/votes/:id/vote",
