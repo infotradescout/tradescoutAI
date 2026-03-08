@@ -1,14 +1,14 @@
-CREATE TYPE "public"."address_verification_status" AS ENUM('pending', 'submitted', 'approved', 'rejected', 'expired');--> statement-breakpoint
-CREATE TYPE "public"."content_type" AS ENUM('marketplace_listing', 'handmade_product', 'community_post', 'post_comment', 'product_review', 'user_profile', 'seller_profile', 'conversation_message');--> statement-breakpoint
-CREATE TYPE "public"."donation_status" AS ENUM('pending', 'processing', 'completed', 'failed', 'refunded');--> statement-breakpoint
-CREATE TYPE "public"."donation_type" AS ENUM('one_time', 'roundup', 'recurring');--> statement-breakpoint
-CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'declined', 'expired');--> statement-breakpoint
-CREATE TYPE "public"."invitation_type" AS ENUM('email', 'referral_code', 'direct_link');--> statement-breakpoint
-CREATE TYPE "public"."report_reason" AS ENUM('spam', 'harassment', 'inappropriate_content', 'fraud', 'fake_listing', 'wrong_category', 'duplicate_content', 'price_manipulation', 'offensive_language', 'copyright_violation', 'privacy_violation', 'other');--> statement-breakpoint
-CREATE TYPE "public"."transaction_status" AS ENUM('pending', 'payment_processing', 'payment_confirmed', 'in_escrow', 'shipped', 'delivered', 'completed', 'cancelled', 'disputed', 'refunded');--> statement-breakpoint
-CREATE TYPE "public"."user_role" AS ENUM('homeowner', 'contractor_user', 'accelerator_member', 'realtor', 'car_salesman', 'moderator', 'ops_admin', 'head_admin', 'territory_manager', 'contractor_success', 'content_seo', 'analytics_read', 'support');--> statement-breakpoint
-CREATE TYPE "public"."verification_status" AS ENUM('pending', 'under_review', 'approved', 'rejected', 'expired', 'suspended');--> statement-breakpoint
-CREATE TYPE "public"."vote_type" AS ENUM('remove', 'keep', 'needs_review');--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."address_verification_status" AS ENUM('pending', 'submitted', 'approved', 'rejected', 'expired'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."content_type" AS ENUM('marketplace_listing', 'handmade_product', 'community_post', 'post_comment', 'product_review', 'user_profile', 'seller_profile', 'conversation_message'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."donation_status" AS ENUM('pending', 'processing', 'completed', 'failed', 'refunded'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."donation_type" AS ENUM('one_time', 'roundup', 'recurring'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."invitation_status" AS ENUM('pending', 'accepted', 'declined', 'expired'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."invitation_type" AS ENUM('email', 'referral_code', 'direct_link'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."report_reason" AS ENUM('spam', 'harassment', 'inappropriate_content', 'fraud', 'fake_listing', 'wrong_category', 'duplicate_content', 'price_manipulation', 'offensive_language', 'copyright_violation', 'privacy_violation', 'other'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."transaction_status" AS ENUM('pending', 'payment_processing', 'payment_confirmed', 'in_escrow', 'shipped', 'delivered', 'completed', 'cancelled', 'disputed', 'refunded'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."user_role" AS ENUM('homeowner', 'contractor_user', 'accelerator_member', 'realtor', 'car_salesman', 'moderator', 'ops_admin', 'head_admin', 'territory_manager', 'contractor_success', 'content_seo', 'analytics_read', 'support'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."verification_status" AS ENUM('pending', 'under_review', 'approved', 'rejected', 'expired', 'suspended'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."vote_type" AS ENUM('remove', 'keep', 'needs_review'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
 CREATE TABLE "accelerator_memberships" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"contractor_id" varchar NOT NULL,
