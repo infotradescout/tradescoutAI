@@ -2,13 +2,15 @@ services:
   - type: web
     name: tradescout-pro
     runtime: node
-    buildCommand: git config --global credential.helper store && echo "https://x-access-token:${GH_TOKEN}@github.com" > ~/.git-credentials && npm run build
+    buildCommand: npm run build
     startCommand: node server.mjs
     envVars:
       - key: NODE_VERSION
         value: "20"
       - key: NODE_ENV
         value: production
+      - key: HUSKY
+        value: "0"
       - key: PORT
         value: "10000"
       - key: SCOUT_RECOMMENDATIONS_ENABLED
