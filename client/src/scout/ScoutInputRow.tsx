@@ -47,7 +47,7 @@ export function ScoutInputRow({
                   color: "var(--text-primary)",
                 }}
               >
-                Area: {heroLocationLabel}
+                Operating area: {heroLocationLabel}
               </span>
               <button
                 type="button"
@@ -55,7 +55,7 @@ export function ScoutInputRow({
                 className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors"
                 style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
               >
-                Change
+                Change area
               </button>
               <button
                 type="button"
@@ -64,7 +64,7 @@ export function ScoutInputRow({
                 className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
                 style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
               >
-                {isUpdatingGeo ? "Updating..." : "Use device"}
+                {isUpdatingGeo ? "Updating..." : "Use device area"}
               </button>
             </>
           )}
@@ -76,9 +76,9 @@ export function ScoutInputRow({
             className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors"
             style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
             aria-expanded={showOptions}
-            aria-label="Scout options"
+            aria-label="Scout flow options"
           >
-            Options
+            Flow options
           </button>
 
           {showOptions && (
@@ -101,9 +101,10 @@ export function ScoutInputRow({
                   style={{ accentColor: "var(--theme-accent-primary)" }}
                 />
                 <span className="leading-snug">
-                  Auto-open high-confidence routes
+                  Auto-open obvious next steps
                   <span className="block text-[10px] opacity-80">
-                    When Scout is very sure, it can open the right page automatically.
+                    When Scout is highly confident, it can open the right operating surface
+                    automatically.
                   </span>
                 </span>
               </label>
@@ -124,7 +125,7 @@ export function ScoutInputRow({
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
-        placeholder="Describe what you need help with..."
+        placeholder="Describe the local outcome, problem, or task you need to move forward..."
         onSend={onSend}
         onUserTyping={onTyping}
         prefillKey="scout-main"
