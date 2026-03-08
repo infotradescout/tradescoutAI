@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import type { NavItem } from "@/components/layout/AppShell";
 
@@ -8,11 +8,20 @@ type MobileAppBarProps = {
 
 const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
   const [location] = useLocation();
+  const navRef = useRef<HTMLElement | null>(null);
 
   if (!items.length) return null;
 
+  useEffect(() => {
+    // Keep the first item visible when admin entry is prepended.
+    if (items[0]?.href === "/admin" && navRef.current) {
+      navRef.current.scrollLeft = 0;
+    }
+  }, [items, location]);
+
   return (
     <nav
+      ref={navRef}
       className="relative w-full pt-1 pb-[env(safe-area-inset-bottom)] overflow-x-auto border-t"
       style={{
         backgroundColor: "var(--surface-frame)",
