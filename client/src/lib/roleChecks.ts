@@ -55,6 +55,13 @@ type AdminLikeUser = {
   role?: UserRole;
   activeRole?: UserRole;
   roles?: unknown;
+  claims?: {
+    role?: unknown;
+    activeRole?: unknown;
+    roles?: unknown;
+    isAdmin?: unknown;
+    isSuperAdmin?: unknown;
+  };
 };
 
 /**
@@ -65,9 +72,31 @@ type AdminLikeUser = {
  */
 export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolean => {
   if (!user) return false;
-  if (user.isAdmin === true || user.isSuperAdmin === true) return true;
+
+  const truthyFlag = (value: unknown): boolean => {
+    if (value === true) return true;
+    if (typeof value === "string") return value.trim().toLowerCase() === "true";
+    return false;
+  };
+
+  if (
+    truthyFlag(user.isAdmin) ||
+    truthyFlag(user.isSuperAdmin) ||
+    truthyFlag(user.claims?.isAdmin) ||
+    truthyFlag(user.claims?.isSuperAdmin)
+  ) {
+    return true;
+  }
+
   if (isAdminTier(user.role) || isSuperAdminLike(user.role)) return true;
   if (isAdminTier(user.activeRole) || isSuperAdminLike(user.activeRole)) return true;
+  if (isAdminTier(user.claims?.role as UserRole) || isSuperAdminLike(user.claims?.role as UserRole))
+    return true;
+  if (
+    isAdminTier(user.claims?.activeRole as UserRole) ||
+    isSuperAdminLike(user.claims?.activeRole as UserRole)
+  )
+    return true;
 
   const tokenLooksAdminLike = (rawValue: unknown): boolean => {
     const normalized = normalizeRole(
@@ -86,8 +115,12 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
     return true;
   }
 
-  if (Array.isArray(user.roles)) {
-    return user.roles.some((role) => {
+  const roleCollections: unknown[][] = [];
+  if (Array.isArray(user.roles)) roleCollections.push(user.roles);
+  if (Array.isArray(user.claims?.roles)) roleCollections.push(user.claims?.roles as unknown[]);
+
+  for (const roleCollection of roleCollections) {
+    const hasAdminLikeToken = roleCollection.some((role) => {
       if (tokenLooksAdminLike(role)) return true;
       if (role && typeof role === "object") {
         const obj = role as Record<string, unknown>;
@@ -99,6 +132,8 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
       }
       return false;
     });
+
+    if (hasAdminLikeToken) return true;
   }
 
   return false;
