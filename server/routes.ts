@@ -1116,6 +1116,21 @@ export async function registerRoutes(app: any) {
       normalizedActiveRole === "super_admin" ||
       roles.some((role) => role === "super_admin");
 
+    const adminAliasEmails = new Set<string>([
+      String(process.env.MASTER_ADMIN_EMAIL || "")
+        .trim()
+        .toLowerCase(),
+      ...String(process.env.SUPER_ADMIN_EMAIL_ALIASES || "")
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean),
+      "contact@thetradescout.com",
+    ]);
+    const normalizedEmail = String(user?.email || "")
+      .trim()
+      .toLowerCase();
+    const isAdminAliasEmail = normalizedEmail.length > 0 && adminAliasEmails.has(normalizedEmail);
+
     const canonicalStateCodeRaw =
       (user as any).stateCode ?? (user as any).state_code ?? (user as any).state ?? null;
     const canonicalCountyFipsRaw =
@@ -1145,8 +1160,8 @@ export async function registerRoutes(app: any) {
       activeRole: normalizedActiveRole || user?.activeRole,
       roles,
       badges: computeBadgesForUser(user),
-      isAdmin: computedIsAdmin,
-      isSuperAdmin: computedIsSuperAdmin,
+      isAdmin: computedIsAdmin || isAdminAliasEmail,
+      isSuperAdmin: computedIsSuperAdmin || isAdminAliasEmail,
       // Guard against legacy/synthetic theme IDs leaking into persisted preferences.
       // The app derives "profile-*" appearance from `preferences.colorScheme`, not from themePreference.
       themePreference: normalizedThemePreference || user?.themePreference,

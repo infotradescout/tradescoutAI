@@ -22,6 +22,22 @@ function normalizeLegacyRole(role: unknown): UserRole | null {
   return normalized as UserRole;
 }
 
+function isConfiguredSuperAdminAliasEmail(email: unknown): boolean {
+  const normalized = typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!normalized) return false;
+  const aliases = new Set<string>([
+    String(process.env.MASTER_ADMIN_EMAIL || "")
+      .trim()
+      .toLowerCase(),
+    ...String(process.env.SUPER_ADMIN_EMAIL_ALIASES || "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+    "contact@thetradescout.com",
+  ]);
+  return aliases.has(normalized);
+}
+
 function parseCookieDomain(): string | undefined {
   const configured = String(process.env.SESSION_COOKIE_DOMAIN || "").trim();
   if (configured) return configured;
@@ -448,7 +464,11 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
 
   // Super admins always bypass onboarding gates.
   const normalizedRole = normalizeLegacyRole(anyUser.role);
-  if (normalizedRole === "super_admin") {
+  if (
+    normalizedRole === "super_admin" ||
+    isConfiguredSuperAdminAliasEmail(anyUser?.email) ||
+    isConfiguredSuperAdminAliasEmail(anyUser?.claims?.email)
+  ) {
     return next();
   }
 
@@ -485,6 +505,9 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       .filter(Boolean) as UserRole[];
 
     const isAdminFlag = (user as any).isAdmin === true;
+    const isAliasSuperAdmin =
+      isConfiguredSuperAdminAliasEmail((user as any)?.email) ||
+      isConfiguredSuperAdminAliasEmail((user as any)?.claims?.email);
 
     const candidateRoles = new Set<UserRole>();
     if (primaryRole) candidateRoles.add(primaryRole);
@@ -492,6 +515,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
     roleList.forEach((role) => candidateRoles.add(role));
     // Legacy / computed flags should still grant access through role gates when present.
     if (isAdminFlag) candidateRoles.add("super_admin");
+    if (isAliasSuperAdmin) candidateRoles.add("super_admin");
 
     if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
@@ -595,6 +619,9 @@ export const requireAdmin = (req: any, res: any, next: any) => {
   const primaryRole = typeof user.role === "string" ? user.role : "";
   const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
   const isAdminFlag = user.isAdmin === true;
+  const isAliasSuperAdmin =
+    isConfiguredSuperAdminAliasEmail(user?.email) ||
+    isConfiguredSuperAdminAliasEmail(user?.claims?.email);
 
   const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
   const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
@@ -605,7 +632,7 @@ export const requireAdmin = (req: any, res: any, next: any) => {
     adminRoles.has(normalizedPrimaryRole) ||
     normalizedRoles.some((role: string) => adminRoles.has(role));
 
-  if (isAdminFlag || hasAdminRole) {
+  if (isAdminFlag || hasAdminRole || isAliasSuperAdmin) {
     return next();
   }
 
