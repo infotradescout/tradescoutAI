@@ -276,7 +276,6 @@ const FinancesReports = React.lazy(() => import("./pages/finances-reports"));
 const FinancesSettings = React.lazy(() => import("./pages/finances-settings"));
 const DirectConnectShell = React.lazy(() => import("./pages/direct-connect/DirectConnectShell"));
 const DirectConnectSharePage = React.lazy(() => import("./pages/direct-connect-share"));
-const DealRoomPage = React.lazy(() => import("./pages/deal-room"));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
 // and should not be routed. This lazy import is intentionally removed.
 const CommunityModerationDemo = React.lazy(() => import("./pages/CommunityModerationDemo"));
@@ -1219,7 +1218,12 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/deal-room">
               <ProtectedRoute>
-                <LazyPage Component={DealRoomPage} />
+                <RedirectTo to="/finances/jobs" />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/deal-room/:jobId">
+              <ProtectedRoute>
+                <RedirectTo to="/finances/jobs" />
               </ProtectedRoute>
             </Route>
             <Route path="/accounting">

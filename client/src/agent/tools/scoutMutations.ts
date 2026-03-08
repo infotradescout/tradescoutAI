@@ -129,7 +129,7 @@ const createProjectTool: ToolDefinition<CreateProjectInput, ProjectResult> = {
       description: String(project.description || ""),
       status: String(project.status || "pending"),
       createdAt: String(project.createdAt || new Date().toISOString()),
-      projectUrl: `/deal-room/${project.id || project.jobId}`,
+      projectUrl: `/finances/jobs?jobId=${encodeURIComponent(String(project.id || project.jobId || ""))}`,
     };
   },
 };

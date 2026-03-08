@@ -25,6 +25,8 @@ describe("accounting job flow contracts", () => {
     expect(jobsPage).toContain("stageLabelMap");
     expect(estimatesPage).toContain('queryKey: ["/api/accounting/job-flows"]');
     expect(estimatesPage).toContain("Estimate pipeline");
+    expect(jobsPage).not.toContain("/deal-room/");
+    expect(estimatesPage).not.toContain("/deal-room/");
   });
 
   it("supports linking standalone invoices and expenses to an existing accounting job", () => {
@@ -39,5 +41,15 @@ describe("accounting job flow contracts", () => {
     expect(expensesPage).toContain("jobId: linkedJobId.trim() || undefined");
     expect(invoicesPage).toContain("Link existing job ID (optional)");
     expect(expensesPage).toContain("Link existing job ID (optional)");
+  });
+
+  it("supports finance-native estimate creation", () => {
+    const serverSource = read("server/invoicingDocumentsRouter.ts");
+    const estimatesPage = read("client/src/pages/finances-estimates.tsx");
+
+    expect(serverSource).toContain('"/api/accounting/standalone-estimate"');
+    expect(serverSource).toContain("INVALID_ESTIMATE_TOTAL");
+    expect(estimatesPage).toContain("Create estimate");
+    expect(estimatesPage).toContain('fetch("/api/accounting/standalone-estimate"');
   });
 });

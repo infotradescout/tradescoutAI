@@ -518,7 +518,7 @@ export default function AccountingWorkspace() {
     {
       key: "jobs",
       label: "Jobs",
-      description: "Job pipeline and deal room",
+      description: "Job pipeline and workflow workspace",
       icon: Handshake,
       targetId: "finances-jobs",
     },
@@ -1097,7 +1097,7 @@ export default function AccountingWorkspace() {
             <CardHeader>
               <CardTitle className="text-white mb-1">Materials</CardTitle>
               <CardDescription>
-                Start and manage material lists from your job deal rooms. Pick a job under Jobs and
+                Start and manage material lists from your job workflows. Pick a job under Jobs and
                 use the material list actions there to kick off the cycle.
               </CardDescription>
             </CardHeader>
@@ -1124,7 +1124,7 @@ export default function AccountingWorkspace() {
             <CardHeader>
               <CardTitle className="text-white mb-1">Estimates</CardTitle>
               <CardDescription>
-                Create, send, and approve estimates as part of each job's deal room. Once approved,
+                Create, send, and approve estimates as part of each job workflow. Once approved,
                 they automatically roll into contracts and invoices.
                 <span className="block mt-1 text-xs text-ts-orange">
                   Need to double-check an estimate?{" "}
@@ -1145,7 +1145,7 @@ export default function AccountingWorkspace() {
                 className="border-white/15 text-[11px]"
                 onClick={() => handleNavClick("jobs", "finances-jobs")}
               >
-                Open job deal room
+                Open job workflow
               </Button>
             </CardContent>
           </Card>
@@ -1440,7 +1440,7 @@ export default function AccountingWorkspace() {
                 <div>
                   <CardTitle className="text-white">Money Workspace</CardTitle>
                   <CardDescription>
-                    Pick a job record on the left, then manage it in the deal room.
+                    Pick a job record on the left, then manage it in the workflow panel.
                   </CardDescription>
                 </div>
                 <div className="flex flex-col items-stretch gap-2 w-full md:w-auto">
@@ -1482,10 +1482,12 @@ export default function AccountingWorkspace() {
                         size="sm"
                         className="h-7 px-3 border-white/15 text-[11px] text-white/70 mt-1"
                         onClick={() =>
-                          navigate(`/deal-room/${encodeURIComponent(effectiveJobId || "")}`)
+                          navigate(
+                            `/finances/jobs?jobId=${encodeURIComponent(effectiveJobId || "")}`
+                          )
                         }
                       >
-                        Open full deal room
+                        Open in finances jobs
                       </Button>
                     </div>
                   )}
@@ -1568,7 +1570,7 @@ export default function AccountingWorkspace() {
                       <DealRoomPanel jobId={effectiveJobId} userRole={role} />
                     ) : (
                       <div className="h-full flex items-center justify-center text-xs text-white/60 border border-dashed border-white/10 rounded-md bg-tsCard/95 p-4">
-                        Select an invoice on the left to open it in the deal room.
+                        Select an invoice on the left to open it in the workflow panel.
                       </div>
                     )}
                   </div>

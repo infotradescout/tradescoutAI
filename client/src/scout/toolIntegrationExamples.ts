@@ -265,7 +265,7 @@ export async function handleCreateProjectWithTools(
         body: project?.description?.slice(0, 150),
         primaryAction: {
           type: "NAVIGATE",
-          label: "Open Deal Room",
+          label: "Open Jobs Workspace",
           to: project?.projectUrl || "/projects",
           payload: { jobId: project?.id },
         },

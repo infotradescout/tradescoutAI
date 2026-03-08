@@ -123,7 +123,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
           return;
         }
 
-        // If a jobId payload is present, deep-link into the Deal Room
+        // If a jobId payload is present, deep-link into finance jobs flow
         const jobId =
           typeof action.payload?.jobId === "string" ? (action.payload.jobId as string) : null;
         if (
@@ -132,7 +132,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
             destination === "/project-tracker" ||
             destination === "/finances")
         ) {
-          destination = `/deal-room/${encodeURIComponent(jobId)}`;
+          destination = `/finances/jobs?jobId=${encodeURIComponent(jobId)}`;
         }
         helpers.navigate(destination);
       }

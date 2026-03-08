@@ -1002,7 +1002,7 @@ export default function ScoutOS() {
         break;
       case "contractors":
         base.push(
-          "Open my deal room",
+          "Open my jobs workspace",
           "Create an invoice for this job",
           "View invoices and payments",
           "Post a new job",

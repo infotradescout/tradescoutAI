@@ -110,7 +110,7 @@ export default function FinancesJobsPage() {
     return jobs.filter((job) => {
       return (
         job.title.toLowerCase().includes(q) ||
-        (job.client ? job.client.toLowerCase().includes(q) : false) ||
+        (job.clientName ? job.clientName.toLowerCase().includes(q) : false) ||
         (job.jobId ? job.jobId.toLowerCase().includes(q) : false)
       );
     });
@@ -122,7 +122,7 @@ export default function FinancesJobsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Jobs</h1>
           <p className="text-sm text-white/60">
-            Job pipeline and deal rooms, anchored on the invoices you've issued.
+            Job pipeline anchored on your accounting records, continued directly in Finances.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -144,8 +144,8 @@ export default function FinancesJobsPage() {
               Jobs linked to invoices
             </CardTitle>
             <CardDescription className="text-xs text-white/60">
-              Flow-aware jobs sourced from your accounting documents. Open a deal room to continue
-              the estimate, contract, invoice, and payment lifecycle.
+              Flow-aware jobs sourced from your accounting documents. Continue each job lifecycle
+              directly from this workspace.
             </CardDescription>
           </div>
           <div className="flex flex-col items-stretch gap-2 w-full md:w-auto">
@@ -199,11 +199,7 @@ export default function FinancesJobsPage() {
                           : "Begin estimate";
 
                 return (
-                  <Card
-                    key={job.jobId}
-                    className="bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/deal-room/${encodeURIComponent(job.jobId)}`)}
-                  >
+                  <Card key={job.jobId} className="bg-tsCard/95 border-white/10">
                     <CardContent className="p-4 flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -232,6 +228,38 @@ export default function FinancesJobsPage() {
                             Updated {new Date(job.updatedAt).toLocaleDateString()}
                           </p>
                         )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-3 border-white/10 text-[11px] text-white/80"
+                            onClick={() =>
+                              navigate(`/finances/estimates?jobId=${encodeURIComponent(job.jobId)}`)
+                            }
+                          >
+                            Estimate
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-3 border-white/10 text-[11px] text-white/80"
+                            onClick={() =>
+                              navigate(`/finances/invoices?jobId=${encodeURIComponent(job.jobId)}`)
+                            }
+                          >
+                            Invoice
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-3 border-white/10 text-[11px] text-white/80"
+                            onClick={() =>
+                              navigate(`/finances/expenses?jobId=${encodeURIComponent(job.jobId)}`)
+                            }
+                          >
+                            Expense
+                          </Button>
+                        </div>
                       </div>
                       <div className="text-right text-sm font-semibold text-sky-400">
                         {formatCurrency(job.totalInvoiced - job.expensesTotal)}

@@ -92,7 +92,7 @@ const QUICK_ACTION_NAV: Record<string, string> = {
   "show local groups hoas and boards i can join or follow": "/hoa-management",
   "open my admin panel and monitoring tools": "/admin/panel",
   "show recent finance invoicing ledger activity": "/admin/panel?tab=finance",
-  "open my deal room": "/lead-management",
+  "open my jobs workspace": "/finances/jobs",
   "view invoices and payments": "/finances",
   "post a new job": "/lead-management?new=1",
   "help me send a targeted broadcast announcement from notification ops":

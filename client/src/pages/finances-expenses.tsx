@@ -39,14 +39,22 @@ interface ExpensesResponse {
 export default function FinancesExpensesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  const initialJobIdFromQuery = (() => {
+    const idx = location.indexOf("?");
+    if (idx === -1) return "";
+    const search = location.slice(idx + 1);
+    const params = new URLSearchParams(search);
+    return params.get("jobId") || "";
+  })();
 
   const [expenseProjectTitle, setExpenseProjectTitle] = useState("");
   const [expenseVendor, setExpenseVendor] = useState("");
   const [expenseCategory, setExpenseCategory] = useState("");
   const [expenseNotes, setExpenseNotes] = useState("");
   const [expenseTotal, setExpenseTotal] = useState("");
-  const [linkedJobId, setLinkedJobId] = useState("");
+  const [linkedJobId, setLinkedJobId] = useState(initialJobIdFromQuery);
 
   const { data, isLoading } = useQuery<ExpensesResponse>({
     queryKey: ["/api/accounting/expenses"],

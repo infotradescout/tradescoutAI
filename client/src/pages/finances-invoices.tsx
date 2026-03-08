@@ -73,9 +73,17 @@ export default function FinancesInvoicesPage() {
     return params.get("client") || "";
   })();
 
+  const initialJobIdFromQuery = (() => {
+    const idx = location.indexOf("?");
+    if (idx === -1) return "";
+    const search = location.slice(idx + 1);
+    const params = new URLSearchParams(search);
+    return params.get("jobId") || "";
+  })();
+
   const [projectTitle, setProjectTitle] = useState("");
   const [clientName, setClientName] = useState(initialClientFromQuery);
-  const [linkedJobId, setLinkedJobId] = useState("");
+  const [linkedJobId, setLinkedJobId] = useState(initialJobIdFromQuery);
   const [notes, setNotes] = useState("");
   const [total, setTotal] = useState("");
   const [page, setPage] = useState(1);

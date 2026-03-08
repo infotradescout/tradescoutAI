@@ -1177,6 +1177,98 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     })
   );
 
+  // Standalone accounting: create a manual estimate directly in Finances.
+  r.post(
+    "/api/accounting/standalone-estimate",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const {
+        projectTitle,
+        clientName,
+        notes,
+        total,
+        currency,
+        jobId: requestedJobId,
+      } = (req.body ?? {}) as any;
+
+      const amount = okNumber(total);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new HttpError("INVALID_ESTIMATE_TOTAL", 400);
+      }
+
+      let jobId = `acct_${token32()}`;
+      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
+        const normalizedJobId = requestedJobId.trim();
+        if (!normalizedJobId.startsWith("acct_")) {
+          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+        }
+
+        const existingRes = await pool.query(
+          `SELECT 1
+           FROM documents
+           WHERE created_by = $1 AND job_id = $2
+           LIMIT 1`,
+          [req.user.id, normalizedJobId]
+        );
+        if (!existingRes.rows.length) {
+          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+        }
+        jobId = normalizedJobId;
+      }
+
+      const safeCurrency =
+        typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
+      const title =
+        typeof projectTitle === "string" && projectTitle.trim()
+          ? projectTitle.trim()
+          : "Manual estimate";
+      const client = typeof clientName === "string" && clientName.trim() ? clientName.trim() : null;
+      const memo = typeof notes === "string" && notes.trim() ? notes.trim() : null;
+
+      const payload = {
+        projectTitle: title,
+        title,
+        clientName: client,
+        notes: memo,
+        subtotal: amount,
+        tax: 0,
+        total: amount,
+        currency: safeCurrency,
+        lines: [],
+      };
+
+      const created = await pool.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES ($1,'ESTIMATE','draft',1,$2::jsonb,$3::jsonb,$4)
+         RETURNING *`,
+        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+      );
+      const estimate = created.rows[0];
+      try {
+        await storage.logEvent("finance.document_created", {
+          userId: req.user.id,
+          documentType: estimate.type,
+          jobId: estimate.job_id ?? null,
+        });
+      } catch (err) {
+        console.error("finance.document_created logging failed", err);
+      }
+      console.info("[DOC_TRANSITION]", {
+        docId: estimate.id,
+        from: null,
+        to: estimate.status,
+        userId: req.user.id,
+        type: estimate.type,
+        action: "create_standalone_estimate",
+        jobId,
+      });
+
+      res.status(201).json({ document: estimate, jobId });
+    })
+  );
+
   // Standalone accounting: list manual invoices for the current user, with basic pagination.
   r.get(
     "/api/accounting/standalone-invoices",

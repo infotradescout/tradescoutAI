@@ -12,10 +12,18 @@ export default function FinancesMaterialsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Materials</h1>
           <p className="text-sm text-white/60">
-            Material lists tied to active jobs, managed through each job's deal room.
+            Material lists tied to active jobs, managed directly from Finances workflows.
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 border-white/15 text-[11px] text-white/70"
+            onClick={() => navigate("/finances/estimates")}
+          >
+            Open estimates
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -33,15 +41,14 @@ export default function FinancesMaterialsPage() {
             How material lists work
           </CardTitle>
           <CardDescription className="text-xs text-white/60">
-            Material lists are created and sent from the deal room for each job. This tab gives you
-            a high-level explanation and will later surface cross-job rollups.
+            Material lists are tracked per job and aligned with estimates, invoices, and expenses.
+            This tab gives you a high-level view while finance-native material actions are expanded.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-[11px] text-white/60">
-            To create or manage a material list today, open the job in the deal room from Jobs.
-            There you can draft lists, send them to clients, and move the job into estimates and
-            contracts.
+            For now, use Jobs and Estimates as the operational path for material planning and keep
+            costs synced through Expenses. This keeps the full workflow inside Finances.
           </p>
         </CardContent>
       </Card>
