@@ -198,6 +198,22 @@ export function AppShell({ children, footer }: AppShellProps) {
     };
   }, [isMobile]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const shouldScopeAuthenticatedApp = Boolean(isAuthenticated) && !isAuthOrSetupSurface;
+
+    if (shouldScopeAuthenticatedApp) {
+      document.body.classList.add("ts-authenticated-app");
+    } else {
+      document.body.classList.remove("ts-authenticated-app");
+    }
+
+    return () => {
+      document.body.classList.remove("ts-authenticated-app");
+    };
+  }, [isAuthenticated, isAuthOrSetupSurface]);
+
   // Desktop preference: allow collapsing the right tools panel to reclaim space.
   useEffect(() => {
     if (typeof window === "undefined") return;

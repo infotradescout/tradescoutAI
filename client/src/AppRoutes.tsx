@@ -1461,7 +1461,9 @@ export const AppRoutes = memo(function AppRoutes({
 
             {/* Advanced Admin */}
             <Route path="/contractor-verification">
-              <LazyPage Component={ContractorVerification} />
+              <ProtectedRoute adminOnly>
+                <LazyPage Component={ContractorVerification} />
+              </ProtectedRoute>
             </Route>
             <Route path="/content-moderation">
               <LazyPage Component={ContentModeration} />

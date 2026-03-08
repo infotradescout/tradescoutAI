@@ -239,9 +239,35 @@ export default function Settings() {
   const activeHoaId = memberships[0]?.hoaId;
   const activeHoaName = memberships[0]?.hoaName;
 
+  const selfServiceRoleKeys = useMemo(() => new Set(SELF_SERVICE_ROLE_KEYS), []);
+
+  const normalizeSelfServiceRoleKey = (value: string) => {
+    const role = (value || "").trim();
+    if (role === "contractor") return "contractor_user";
+    if (role === "handyman") return "helper";
+    if (role === "car_dealer" || role === "car_salesman") return "vehicle_dealer";
+    if (role === "hoa_board") return "hoa_admin";
+    return role;
+  };
+
+  const sanitizeSelfServiceRoles = (roles: string[]) => {
+    const normalized = roles
+      .map((role) => normalizeSelfServiceRoleKey(String(role || "")))
+      .filter((role) => selfServiceRoleKeys.has(role));
+
+    return Array.from(new Set(normalized));
+  };
+
   // Get user's current roles
-  const userRoles = user?.roles || [user?.role].filter(Boolean);
-  const [selectedRoles, setSelectedRoles] = useState<string[]>(userRoles);
+  const userRoles = useMemo(
+    () => (Array.isArray(user?.roles) ? user.roles : [user?.role].filter(Boolean)),
+    [user?.role, user?.roles]
+  );
+  const currentSelfServiceRoles = useMemo(
+    () => sanitizeSelfServiceRoles(Array.isArray(userRoles) ? (userRoles as string[]) : []),
+    [userRoles, selfServiceRoleKeys]
+  );
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(() => currentSelfServiceRoles);
 
   // Multi user-type selection (business/account personas)
   const normalizeRoleId = (value: string) => {
@@ -257,6 +283,18 @@ export default function Settings() {
     const base = Array.isArray(userRoles) ? (userRoles as string[]) : [];
     return base.map((r) => normalizeRoleId(r)).filter((r) => selectableUserTypeIds.has(r));
   });
+
+  useEffect(() => {
+    setSelectedRoles((prev) => {
+      if (
+        prev.length === currentSelfServiceRoles.length &&
+        prev.every((role, index) => role === currentSelfServiceRoles[index])
+      ) {
+        return prev;
+      }
+      return currentSelfServiceRoles;
+    });
+  }, [currentSelfServiceRoles]);
 
   useEffect(() => {
     if (!userPreferences) return;
@@ -430,7 +468,9 @@ export default function Settings() {
   });
 
   const saveRoles = () => {
-    if (selectedRoles.length === 0) {
+    const sanitizedRoles = sanitizeSelfServiceRoles(selectedRoles);
+
+    if (sanitizedRoles.length === 0) {
       toast({
         title: "Error",
         description: "Please select at least one role.",
@@ -438,7 +478,7 @@ export default function Settings() {
       });
       return;
     }
-    updateRolesMutation.mutate(selectedRoles);
+    updateRolesMutation.mutate(sanitizedRoles);
   };
 
   const saveUserTypes = () => {

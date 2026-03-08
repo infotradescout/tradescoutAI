@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("w-full space-y-4", className)}>{children}</div>;
+  return <div className={cn("w-full max-w-full space-y-4", className)}>{children}</div>;
 }
 
 export function Section({

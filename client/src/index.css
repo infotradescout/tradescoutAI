@@ -1054,6 +1054,76 @@ html {
     body.ts-mobile-density .role-pick-grid .role-card-details {
       display: none !important;
     }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page {
+      padding: 10px 10px calc(74px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page > * {
+      max-width: 100%;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .overflow-x-auto {
+      margin-left: -0.25rem;
+      margin-right: -0.25rem;
+      padding-left: 0.25rem;
+      padding-right: 0.25rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page table {
+      min-width: 640px;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .bg-tsCard,
+    body.ts-mobile-density.ts-authenticated-app .app-page .bg-tsSurface,
+    body.ts-mobile-density.ts-authenticated-app .app-page [class*="bg-tsCard"],
+    body.ts-mobile-density.ts-authenticated-app .app-page [class*="bg-tsSurface"] {
+      border-radius: 1rem;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .rounded-xl,
+    body.ts-mobile-density.ts-authenticated-app .app-page .rounded-2xl {
+      border-radius: 1rem !important;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .flex.items-center.justify-between.gap-3,
+    body.ts-mobile-density.ts-authenticated-app .app-page .flex.items-center.justify-between.gap-4 {
+      row-gap: 0.5rem;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .inline-flex.h-8.w-8,
+    body.ts-mobile-density.ts-authenticated-app .app-page .inline-flex.h-9.w-9,
+    body.ts-mobile-density.ts-authenticated-app .app-page button.h-8,
+    body.ts-mobile-density.ts-authenticated-app .app-page button.h-9 {
+      min-height: 2.5rem;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page [role="tablist"] {
+      width: 100%;
+      justify-content: flex-start;
+      gap: 0.25rem;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page [role="tab"] {
+      min-height: 2.25rem;
+      flex: 0 0 auto;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page input,
+    body.ts-mobile-density.ts-authenticated-app .app-page textarea,
+    body.ts-mobile-density.ts-authenticated-app .app-page select,
+    body.ts-mobile-density.ts-authenticated-app .app-page [role="combobox"] {
+      min-height: 2.75rem;
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .grid.grid-cols-2 {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    body.ts-mobile-density.ts-authenticated-app .app-page .text-[11px] {
+      line-height: 1.05rem;
+    }
   }
 
   /* Engagement animations */

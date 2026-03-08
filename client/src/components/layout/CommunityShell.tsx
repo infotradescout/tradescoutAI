@@ -109,7 +109,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="border-b border-white/10 bg-tsBg px-3 md:px-4 py-1 space-y-0.5">
+      <div className="border-b border-white/10 bg-tsBg px-3 md:px-4 py-2 md:py-1 space-y-1 md:space-y-0.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -168,7 +168,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
               )}
             </div>
 
-            <div className="md:hidden mt-0.5 rounded-lg border border-white/10 bg-tsCard/95 px-2.5 py-1.5">
+            <div className="md:hidden mt-1 rounded-xl border border-white/10 bg-tsCard/95 px-3 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.16)]">
               <div className="flex items-center gap-2 min-w-0">
                 <Users2 className="h-3.5 w-3.5 text-white shrink-0" />
                 <span className="truncate text-white">{membersLabel}</span>
@@ -193,7 +193,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
         data-testid="community-shell-bottom-nav"
         className="md:hidden sticky bottom-0 z-20 border-t border-white/10 bg-tsCard/95 backdrop-blur"
       >
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-4 px-1 pb-[calc(env(safe-area-inset-bottom)*0.35)] pt-1">
           {mobileNavItems.map((item) => {
             const isActive =
               location === item.href ||
@@ -204,9 +204,19 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
                 href={item.href}
                 data-testid={item.testId}
                 aria-current={isActive ? "page" : undefined}
-                className={`px-2 py-2 text-center text-[11px] font-medium transition-colors ${
+                className={`rounded-xl px-2 py-2.5 text-center text-[11px] font-medium transition-colors ${
                   isActive ? "text-ts-orange" : "text-white/70"
                 }`}
+                style={
+                  isActive
+                    ? {
+                        background:
+                          "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)",
+                        border:
+                          "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)",
+                      }
+                    : undefined
+                }
               >
                 {item.label}
               </Link>
