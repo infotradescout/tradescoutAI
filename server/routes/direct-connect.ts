@@ -40,6 +40,7 @@ const directConnectRequestSchema = z.object({
   tradeId: z.string().min(1).optional(),
   countyFips: z.string().length(5).optional(),
   stateCode: z.string().length(2).optional(),
+  attachments: z.array(z.string().trim().min(3).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
 });
 
@@ -108,6 +109,23 @@ export function registerDirectConnectRoutes(app: Express) {
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, maxLength);
+
+  const normalizeAttachmentKeys = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+
+    return Array.from(
+      new Set(
+        value
+          .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+          .filter((entry) => entry.length >= 3)
+      )
+    ).slice(0, 8);
+  };
+
+  const getAttachmentCount = (requestRow: unknown): number => {
+    if (!requestRow || typeof requestRow !== "object") return 0;
+    return normalizeAttachmentKeys((requestRow as { attachments?: unknown }).attachments).length;
+  };
 
   const resolveOrCreateAdminTrade = async (
     rawTradeId: string | undefined
@@ -643,6 +661,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
           return {
             ...r,
+            attachmentCount: getAttachmentCount(r),
             dcSuggestedCount: suggestedCount,
             dcAcceptedAssignmentId: accepted?.id ?? null,
             dcConversationThreadId: conversationThreadId,
@@ -723,6 +742,96 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error creating direct connect share link:", error);
         return res.status(500).json({
           message: "Failed to create share link",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/requests/:id/attachments/:index",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const requestId = String(req.params.id || "");
+        const attachmentIndex = Number.parseInt(String(req.params.index || ""), 10);
+        if (!Number.isInteger(attachmentIndex) || attachmentIndex < 0) {
+          return res.status(400).json({ message: "Attachment index is invalid" });
+        }
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId))
+          .limit(1);
+
+        if (!requestRow) return res.status(404).json({ message: "Work request not found" });
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res.status(400).json({ message: "Only Direct Connect attachments are available" });
+        }
+
+        let hasAccess = String(requestRow.createdByUserId) === String(userId);
+        if (!hasAccess) {
+          const contractor = await storage.getContractorByUserId(String(userId));
+          if (contractor) {
+            const [assignment] = await db
+              .select()
+              .from(workRequestAssignments)
+              .where(
+                and(
+                  eq(workRequestAssignments.workRequestId, requestId),
+                  eq(workRequestAssignments.contractorId, contractor.id)
+                )
+              )
+              .limit(1);
+            hasAccess = Boolean(assignment);
+          }
+        }
+
+        if (!hasAccess) {
+          return res.status(403).json({ message: "You do not have access to this attachment" });
+        }
+
+        const attachments = normalizeAttachmentKeys((requestRow as any).attachments);
+        const objectKey = attachments[attachmentIndex];
+        if (!objectKey) return res.status(404).json({ message: "Attachment not found" });
+
+        if (/^https?:\/\//i.test(objectKey)) {
+          return res.redirect(302, objectKey);
+        }
+
+        const useR2 = Boolean(process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID);
+        const filename = `direct-connect-${requestId}-${attachmentIndex + 1}`;
+
+        if (useR2) {
+          try {
+            const { R2StorageService } = await import("../localStorage");
+            const storageService = new R2StorageService();
+            const url = await storageService.getDownloadURL(objectKey, { filename });
+            return res.redirect(302, url);
+          } catch (err) {
+            console.error("[direct-connect] Failed to sign attachment download URL:", err);
+            return res.status(500).json({ message: "Failed to download attachment" });
+          }
+        }
+
+        try {
+          const { LocalStorageService } = await import("../localStorage");
+          const storageService = new LocalStorageService();
+          const filePath = await storageService.getPrivateFilePathFromObjectKey(objectKey);
+          if (!filePath) return res.status(404).json({ message: "File not found" });
+          return res.download(filePath, filename);
+        } catch (err) {
+          console.error("[direct-connect] Failed to download private attachment:", err);
+          return res.status(500).json({ message: "Failed to download attachment" });
+        }
+      } catch (error: any) {
+        console.error("Error fetching direct connect attachment:", error);
+        return res.status(500).json({
+          message: "Failed to load attachment",
           requestId: (req as any).requestId || null,
         });
       }
@@ -1048,6 +1157,7 @@ export function registerDirectConnectRoutes(app: Express) {
         const bodyCounty = typeof body.countyFips === "string" ? body.countyFips : undefined;
         const bodyState =
           typeof body.stateCode === "string" ? body.stateCode.toUpperCase() : undefined;
+        const attachments = normalizeAttachmentKeys(body.attachments);
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
@@ -1072,6 +1182,7 @@ export function registerDirectConnectRoutes(app: Express) {
             competitionMode: "none",
             budgetMin,
             budgetMax,
+            attachments,
             tradeId: body.tradeId,
           })
           .returning();
@@ -1575,7 +1686,20 @@ export function registerDirectConnectRoutes(app: Express) {
 
             const providerItems = assignments.map((a: any) => ({
               assignment: a,
-              request: requestById.get(a.workRequestId) || null,
+              request: (() => {
+                const requestRow = requestById.get(a.workRequestId) as any;
+                if (!requestRow) return null;
+                return {
+                  id: String(requestRow.id),
+                  title: String(requestRow.title || "Direct Connect request"),
+                  description: String(requestRow.description || ""),
+                  status: String(requestRow.status || "open"),
+                  tradeId: requestRow.tradeId ?? null,
+                  countyFips: requestRow.countyFips ?? null,
+                  createdAt: requestRow.createdAt ?? null,
+                  attachmentCount: getAttachmentCount(requestRow),
+                };
+              })(),
               conversationThreadId: (() => {
                 const reqRow = requestById.get(a.workRequestId) as any;
                 if (!reqRow?.createdByUserId) return null;
@@ -1629,6 +1753,7 @@ export function registerDirectConnectRoutes(app: Express) {
             tradeId: requestRow.tradeId ?? null,
             countyFips: requestRow.countyFips ?? null,
             createdAt: requestRow.createdAt ?? null,
+            attachmentCount: getAttachmentCount(requestRow),
           },
           conversationThreadId: null,
         }));

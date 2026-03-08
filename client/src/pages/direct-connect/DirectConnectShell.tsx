@@ -1,12 +1,16 @@
-﻿import { ReactNode, useMemo, useState } from "react";
+﻿import { ReactNode, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import type { WorkRequest } from "@shared/schema";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { interpretWorkRequestStateForScout } from "@/utils/interpretWorkRequestState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,25 +29,58 @@ import {
   Inbox,
   Users,
   BriefcaseBusiness,
-  Share2,
   MessageCircle,
-  Smartphone,
   MoreHorizontal,
   ChevronRight,
   Zap,
   TrendingUp,
+  Paperclip,
+  ImagePlus,
+  FolderKanban,
+  ArrowRight,
+  Clock3,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"] as const;
 type Section = (typeof SECTIONS)[number];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "Start Connection",
-  board: "Odd Jobs",
+  post: "Start Request",
+  board: "Open Board",
   employment: "Employment",
-  inbox: "Inbox",
+  inbox: "Incoming",
   pros: "Pros",
-  engagements: "My Connections",
+  engagements: "Your Requests",
+};
+
+type FlowMode = "start" | "manage";
+
+const FLOW_MODE_META: Record<
+  FlowMode,
+  {
+    title: string;
+    description: string;
+    target: Section;
+    sections: Section[];
+    icon: ReactNode;
+  }
+> = {
+  start: {
+    title: "Start a governed request",
+    description:
+      "Create a request with enough clarity that Scout can route it, providers can qualify it, and the board stays actionable.",
+    target: "post",
+    sections: ["post", "pros", "board", "employment"],
+    icon: <ClipboardPlus className="h-5 w-5" />,
+  },
+  manage: {
+    title: "Manage live requests",
+    description:
+      "Review what is open, what is getting routed, who has responded, and what next action is available without hunting through the portal.",
+    target: "engagements",
+    sections: ["engagements", "inbox"],
+    icon: <FolderKanban className="h-5 w-5" />,
+  },
 };
 
 const SECTION_META: Record<
@@ -56,39 +93,44 @@ const SECTION_META: Record<
   }
 > = {
   post: {
-    title: "Start a connection",
-    description: "Pick the type, then submit a clear request.",
-    actionLabel: "Go to My Connections",
+    title: "Start a request",
+    description:
+      "Describe the job clearly, attach supporting photos, and post it to your governed request board.",
+    actionLabel: "Go to Your Requests",
     actionTarget: "engagements",
   },
   board: {
-    title: "Odd jobs",
-    description: "Browse open local requests (projects, repairs, quick help).",
-    actionLabel: "Open Inbox",
-    actionTarget: "inbox",
+    title: "Open request board",
+    description:
+      "Browse open local requests when you want to see live demand and quick-turn opportunities.",
+    actionLabel: "Start a request",
+    actionTarget: "post",
   },
   employment: {
     title: "Employment",
     description: "Jobs + resumes. Contact stays intent-gated through Scout.",
-    actionLabel: "Post Odd Job",
+    actionLabel: "Start a request",
     actionTarget: "post",
   },
   inbox: {
-    title: "Inbox",
-    description: "Review request updates and opportunities.",
-    actionLabel: "View My Connections",
+    title: "Incoming responses",
+    description:
+      "Review request updates, invites, and accepted conversations in one governed queue.",
+    actionLabel: "View Your Requests",
     actionTarget: "engagements",
   },
   pros: {
     title: "Pro directory",
-    description: "Browse local pros and start a request.",
-    actionLabel: "Start Connection",
+    description:
+      "Browse local pros, then turn that interest into a governed request instead of jumping straight to contact.",
+    actionLabel: "Start request",
     actionTarget: "post",
   },
   engagements: {
-    title: "My connections",
-    description: "Track status and next steps.",
-    actionLabel: "Open Inbox",
+    title: "Your request board",
+    description:
+      "Track status, attachments, routing activity, and the next available action for every live request.",
+    actionLabel: "Open Incoming",
     actionTarget: "inbox",
   },
 };
@@ -103,18 +145,17 @@ const SECTION_ICONS: Record<Section, ReactNode> = {
 };
 
 const SECTION_GROUPS: Array<{ title: string; sections: Section[]; icon?: ReactNode }> = [
-  { title: "Post & Browse", sections: ["post", "board"], icon: <Zap className="h-4 w-4" /> },
+  { title: "Start", sections: ["post", "pros", "board"], icon: <Zap className="h-4 w-4" /> },
   {
-    title: "Hiring & Employment",
+    title: "Work paths",
     sections: ["employment"],
     icon: <TrendingUp className="h-4 w-4" />,
   },
   {
-    title: "Your Activity",
+    title: "Manage",
     sections: ["engagements", "inbox"],
     icon: <TrendingUp className="h-4 w-4" />,
   },
-  { title: "Find Professionals", sections: ["pros"], icon: <Users className="h-4 w-4" /> },
 ];
 
 function getSectionFromPath(path: string): Section {
@@ -128,6 +169,10 @@ function getSectionFromPath(path: string): Section {
 function buildHref(section: Section): string {
   if (section === "post") return "/direct-connect";
   return `/direct-connect/${section}`;
+}
+
+function getFlowMode(section: Section): FlowMode {
+  return section === "engagements" || section === "inbox" ? "manage" : "start";
 }
 
 function statusTone(status: string) {
@@ -168,6 +213,7 @@ type DirectConnectInboxItem = {
     tradeId?: string | null;
     countyFips?: string | null;
     createdAt?: string | null;
+    attachmentCount?: number | null;
   } | null;
   conversationThreadId?: string | null;
 };
@@ -182,17 +228,66 @@ type DirectConnectRequest = {
   budgetMin?: string | null;
   budgetMax?: string | null;
   createdAt?: string | null;
+  attachmentCount?: number | null;
   dcSuggestedCount?: number | null;
   dcAcceptedAssignmentId?: string | null;
   dcConversationThreadId?: string | null;
   dcLastEventAt?: string | null;
 };
 
+type DraftAttachment = {
+  file: File;
+  previewUrl: string;
+};
+
+function buildRequestAttachmentUrl(requestId: string, index: number): string {
+  return `/api/direct-connect/requests/${encodeURIComponent(requestId)}/attachments/${index}`;
+}
+
+function RequestAttachmentStrip({
+  requestId,
+  attachmentCount,
+}: {
+  requestId: string;
+  attachmentCount?: number | null;
+}) {
+  const total = typeof attachmentCount === "number" ? attachmentCount : 0;
+  if (total <= 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+        <Paperclip className="h-3.5 w-3.5" />
+        Request photos
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {Array.from({ length: total }).map((_, index) => (
+          <a
+            key={`${requestId}-attachment-${index}`}
+            href={buildRequestAttachmentUrl(requestId, index)}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative block h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+          >
+            <img
+              src={buildRequestAttachmentUrl(requestId, index)}
+              alt={`Request photo ${index + 1}`}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips?: string }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const attachmentsRef = useRef<DraftAttachment[]>([]);
   const [requestType, setRequestType] = useState<
     | "service_request"
     | "business_request"
@@ -206,6 +301,18 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [showOptional, setShowOptional] = useState(false);
+  const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+
+  const replaceAttachments = (next: DraftAttachment[]) => {
+    attachmentsRef.current = next;
+    setAttachments(next);
+  };
+
+  const clearAttachments = () => {
+    attachmentsRef.current.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
+    attachmentsRef.current = [];
+    setAttachments([]);
+  };
 
   const requestTypeMeta: Record<
     | "service_request"
@@ -291,10 +398,17 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      const uploadedAttachmentKeys: string[] = [];
+      for (const attachment of attachmentsRef.current) {
+        const { objectKey } = await uploadPrivateObject(attachment.file);
+        uploadedAttachmentKeys.push(objectKey);
+      }
+
       const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim(),
         category: activeRequestMeta.category,
+        ...(uploadedAttachmentKeys.length > 0 ? { attachments: uploadedAttachmentKeys } : {}),
       };
 
       if (defaultCountyFips) payload.countyFips = defaultCountyFips;
@@ -319,6 +433,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
       setBudgetMin("");
       setBudgetMax("");
       setShowOptional(false);
+      clearAttachments();
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
       navigate("/direct-connect/engagements");
@@ -340,7 +455,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
 
       toast({
         title: "Could not post project",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -348,12 +463,52 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
 
   const canSubmit = title.trim().length >= 3 && description.trim().length >= 10;
 
+  const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const remaining = Math.max(0, 6 - attachmentsRef.current.length);
+    const files = Array.from(event.target.files || []).slice(0, remaining);
+    if (!files.length) {
+      event.target.value = "";
+      return;
+    }
+
+    const next = [
+      ...attachmentsRef.current,
+      ...files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+    ].slice(0, 6);
+    replaceAttachments(next);
+    event.target.value = "";
+  };
+
+  const removeAttachmentAt = (index: number) => {
+    const current = attachmentsRef.current[index];
+    if (current) {
+      URL.revokeObjectURL(current.previewUrl);
+    }
+    replaceAttachments(attachmentsRef.current.filter((_, currentIndex) => currentIndex !== index));
+  };
+
   return (
     <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Start connection</CardTitle>
+        <CardTitle className="text-base">Start request</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10 p-2 text-[color:var(--theme-accent-primary)]">
+              <ImagePlus className="h-4 w-4" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-[color:var(--text-primary)]">
+                Give providers a clearer operating picture
+              </p>
+              <p className="text-xs text-[color:var(--text-secondary)]">
+                Add photos of the work area, damage, or materials so routing stays precise and
+                responses start from the right context.
+              </p>
+            </div>
+          </div>
+        </div>
         <div className="space-y-1.5">
           <label className="text-xs text-[color:var(--text-secondary)]">Connection type</label>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
@@ -404,6 +559,51 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
           />
         </div>
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs text-[color:var(--text-secondary)]">Request photos</label>
+            <span className="text-[11px] text-[color:var(--text-secondary)]">
+              {attachments.length}/6 added
+            </span>
+          </div>
+          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 transition-colors hover:border-[color:var(--theme-accent-primary)]/50">
+            <div className="flex items-center gap-2 text-sm text-[color:var(--text-primary)]">
+              <ImagePlus className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+              Add photos to this request
+            </div>
+            <span className="text-xs text-[color:var(--text-secondary)]">JPG, PNG, WEBP</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleAttachmentSelect}
+            />
+          </label>
+          {attachments.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {attachments.map((attachment, index) => (
+                <div
+                  key={`${attachment.file.name}-${index}`}
+                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)]"
+                >
+                  <img
+                    src={attachment.previewUrl}
+                    alt={attachment.file.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
+                    onClick={() => removeAttachmentAt(index)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
           <Button
             type="button"
             variant="ghost"
@@ -448,7 +648,7 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
             disabled={createMutation.isPending || !canSubmit}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
-            {createMutation.isPending ? "Posting..." : "Start connection"}
+            {createMutation.isPending ? "Posting..." : "Post to your request board"}
           </Button>
         </div>
       </CardContent>
@@ -699,6 +899,9 @@ function DirectConnectInbox() {
             <CardContent className="space-y-3 p-3 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                    {canRespond ? "Incoming match" : "Tracked request"}
+                  </p>
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                     {request?.title || "Direct Connect opportunity"}
                   </h3>
@@ -753,6 +956,13 @@ function DirectConnectInbox() {
                   )}
                 </div>
               )}
+
+              {request?.id && request.attachmentCount ? (
+                <RequestAttachmentStrip
+                  requestId={request.id}
+                  attachmentCount={request.attachmentCount}
+                />
+              ) : null}
             </CardContent>
           </Card>
         );
@@ -764,6 +974,7 @@ function DirectConnectInbox() {
 function MyDirectConnectRequests() {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [mobileActionRequestId, setMobileActionRequestId] = useState<string | null>(null);
   const [requestFilter, setRequestFilter] = useState<
@@ -851,8 +1062,26 @@ function MyDirectConnectRequests() {
   if (!filteredRequests.length) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-4 md:p-6 text-center text-sm text-[color:var(--text-secondary)]">
-          No matches.
+        <CardContent className="space-y-4 p-6 text-center md:p-8">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--theme-accent-primary)]">
+            <FolderKanban className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-[color:var(--text-primary)]">
+              No requests in this view
+            </p>
+            <p className="text-sm text-[color:var(--text-secondary)]">
+              Start a request and it will land here with status, photos, and next-step controls.
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <Button
+              className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+              onClick={() => navigate("/direct-connect")}
+            >
+              Start request
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -893,37 +1122,110 @@ function MyDirectConnectRequests() {
 
       {filteredRequests.map((r) => {
         const status = String(r.status || "open").toLowerCase();
+        const interpreted = interpretWorkRequestStateForScout(r as unknown as WorkRequest);
         const hasAccepted =
           status === "in_progress" || status === "completed" || Boolean(r.dcConversationThreadId);
         const canSend = status === "open";
+        const canExpand = status === "routed";
+        const isExpanded = expandedRequestId === r.id;
         const isMobileActionOpen = mobileActionRequestId === r.id;
+        const timelineStamp = r.dcLastEventAt || r.createdAt;
+        const statusFacts = [
+          r.tradeId ? `Trade ${r.tradeId}` : null,
+          r.countyFips ? `County ${r.countyFips}` : null,
+          typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
+            ? `${r.dcSuggestedCount} routed`
+            : null,
+          typeof r.attachmentCount === "number" && r.attachmentCount > 0
+            ? `${r.attachmentCount} photos`
+            : null,
+        ].filter(Boolean);
         return (
           <Card
             key={r.id}
-            className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] hover:border-[color:var(--theme-accent-primary)]/50 transition-colors"
+            className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] transition-colors hover:border-[color:var(--theme-accent-primary)]/50"
           >
-            <CardContent className="space-y-3 p-3 md:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
+            <CardContent className="space-y-4 p-4 md:p-5">
+              <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/75 p-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      {interpreted.state}
+                    </p>
+                    {timelineStamp && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
+                        <Clock3 className="h-3 w-3" />
+                        {formatDistanceToNow(new Date(timelineStamp), { addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
                     {r.title}
                   </h3>
-                  <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
-                    {r.description}
+                  <p className="text-sm text-[color:var(--text-secondary)]">
+                    {interpreted.primaryPhrase}
                   </p>
+                  {interpreted.secondaryPhrase && (
+                    <p className="text-xs text-[color:var(--text-secondary)]/90">
+                      {interpreted.secondaryPhrase}
+                    </p>
+                  )}
                 </div>
                 <Badge
                   variant="outline"
-                  className={cn("uppercase text-[10px]", statusTone(status))}
+                  className={cn("h-fit uppercase text-[10px]", statusTone(status))}
                 >
                   {status.replace("_", " ")}
                 </Badge>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                {r.tradeId && <span>Trade: {r.tradeId}</span>}
-                {r.countyFips && <span>County: {r.countyFips}</span>}
-                {r.dcSuggestedCount && <span>Suggested: {r.dcSuggestedCount}</span>}
+              <div className="space-y-2">
+                <p className="text-sm text-[color:var(--text-primary)]">{r.description}</p>
+                {statusFacts.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                    {statusFacts.map((fact) => (
+                      <span
+                        key={fact}
+                        className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1"
+                      >
+                        {fact}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <RequestAttachmentStrip requestId={r.id} attachmentCount={r.attachmentCount} />
+
+              <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      Next step
+                    </p>
+                    <p className="mt-1 text-sm text-[color:var(--text-primary)]">
+                      {hasAccepted
+                        ? "Continue the accepted conversation."
+                        : canSend
+                          ? "Route this request to providers."
+                          : canExpand
+                            ? "Expand reach if the first routing pass was too narrow."
+                            : status === "cancelled"
+                              ? "Reopen when you want Scout to start routing again."
+                              : "Review current status and wait for the next governed update."}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs"
+                    onClick={() =>
+                      setExpandedRequestId((current) => (current === r.id ? null : r.id))
+                    }
+                  >
+                    {isExpanded ? "Hide details" : "Show details"}
+                  </Button>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-1.5 sm:hidden">
@@ -938,6 +1240,27 @@ function MyDirectConnectRequests() {
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </div>
+
+              {isExpanded && (
+                <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      Board state
+                    </p>
+                    <p className="mt-1 text-[color:var(--text-primary)]">{interpreted.state}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      Messages
+                    </p>
+                    <p className="mt-1 text-[color:var(--text-primary)]">
+                      {hasAccepted
+                        ? "Unlocked for accepted coordination"
+                        : "Locked until a provider accepts"}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="hidden flex-wrap items-center justify-end gap-1.5 sm:flex">
                 <Button
@@ -967,7 +1290,7 @@ function MyDirectConnectRequests() {
                   size="sm"
                   variant="outline"
                   className="h-8 px-2 text-xs"
-                  disabled={status !== "routed" || expandMutation.isPending}
+                  disabled={!canExpand || expandMutation.isPending}
                   onClick={() => expandMutation.mutate(r.id)}
                 >
                   Expand reach
@@ -1024,7 +1347,7 @@ function MyDirectConnectRequests() {
                     size="sm"
                     variant="outline"
                     className="h-8 px-2 text-xs"
-                    disabled={status !== "routed" || expandMutation.isPending}
+                    disabled={!canExpand || expandMutation.isPending}
                     onClick={() => expandMutation.mutate(r.id)}
                   >
                     Expand
@@ -1064,6 +1387,7 @@ export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
+  const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
 
   const defaultCountyFips = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1104,8 +1428,9 @@ export default function DirectConnectShell() {
   );
 
   const sectionMeta = SECTION_META[activeSection];
+  const activeModeMeta = FLOW_MODE_META[activeFlowMode];
+  const activeModeSections = activeModeMeta.sections;
   const isPostComposer = activeSection === "post";
-  const showMobileNavAboveContent = true;
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -1133,7 +1458,7 @@ export default function DirectConnectShell() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
-      <div className="mx-auto w-full max-w-7xl space-y-4 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
+      <div className="mx-auto w-full max-w-6xl space-y-4 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
         {/* Header Section */}
         <div className="space-y-3">
           <div>
@@ -1141,7 +1466,8 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)] mt-1">
-              Start requests, browse opportunities, and manage connections in one place.
+              Start a governed request, then manage it from a request board that keeps status,
+              photos, and next actions in one place.
             </p>
           </div>
 
@@ -1166,102 +1492,122 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-          {/* Sidebar Navigation */}
-          <div className="hidden lg:block">
-            <Card className="sticky top-20 border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Navigation</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <NavigationGrid
-                  activeSection={activeSection}
-                  onSelect={navigateSection}
-                  counts={navCounts}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Mobile Navigation */}
-          {showMobileNavAboveContent && (
-            <div className="lg:hidden">
-              <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
-                {SECTION_GROUPS.flatMap((group) =>
-                  group.sections.map((section) => {
-                    const count = navCounts[section] ?? 0;
-                    return (
-                      <QuickActionCard
-                        key={section}
-                        section={section}
-                        label={SECTION_LABELS[section]}
-                        description={SECTION_META[section].description}
-                        icon={SECTION_ICONS[section]}
-                        count={count}
-                        isActive={section === activeSection}
-                        onClick={() => navigateSection(section)}
-                      />
-                    );
-                  })
+        <div className="grid gap-3 md:grid-cols-2">
+          {(
+            Object.entries(FLOW_MODE_META) as Array<[FlowMode, (typeof FLOW_MODE_META)[FlowMode]]>
+          ).map(([mode, meta]) => {
+            const active = mode === activeFlowMode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => navigateSection(meta.target)}
+                className={cn(
+                  "rounded-3xl border p-4 text-left transition-all duration-300",
+                  active
+                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] hover:border-[color:var(--theme-accent-primary)]/50"
                 )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--theme-accent-primary)]">
+                      {meta.icon}
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
+                        {meta.title}
+                      </h2>
+                      <p className="mt-1 text-sm text-[color:var(--text-secondary)]">
+                        {meta.description}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="mt-1 h-4 w-4 text-[color:var(--text-secondary)]" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                  {activeFlowMode === "start" ? "Start mode" : "Manage mode"}
+                </p>
+                <p className="mt-1 text-sm text-[color:var(--text-primary)]">
+                  {activeModeMeta.description}
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-[color:var(--text-secondary)]">
+                <FolderKanban className="h-3.5 w-3.5" />
+                {activeFlowMode === "start"
+                  ? "Every posted request lands on Your Requests immediately."
+                  : "Manage mode keeps request state and response state together."}
               </div>
             </div>
-          )}
-
-          {/* Main Content Area */}
-          <div className="min-w-0 space-y-4">
-            <Card
-              className={cn(
-                "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
-                isPostComposer ? "hidden md:block" : ""
-              )}
-            >
-              <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-5">
-                <div>
-                  <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
-                    {sectionMeta.title}
-                  </h2>
-                  <p className="text-xs text-[color:var(--text-secondary)] mt-1">
-                    {sectionMeta.description}
-                  </p>
-                </div>
-                {sectionMeta.actionTarget !== activeSection && (
-                  <Button
-                    size="sm"
-                    onClick={() => navigateSection(sectionMeta.actionTarget)}
-                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90 whitespace-nowrap"
+            <div className="flex flex-wrap gap-2">
+              {activeModeSections.map((section) => {
+                const active = section === activeSection;
+                const count = navCounts[section] ?? 0;
+                return (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => navigateSection(section)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors",
+                      active
+                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                    )}
                   >
-                    {sectionMeta.actionLabel}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-            {centerContent}
-            {!showMobileNavAboveContent && (
-              <div className="lg:hidden">
-                <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3">
-                  {SECTION_GROUPS.flatMap((group) =>
-                    group.sections.map((section) => {
-                      const count = navCounts[section] ?? 0;
-                      return (
-                        <QuickActionCard
-                          key={section}
-                          section={section}
-                          label={SECTION_LABELS[section]}
-                          description={SECTION_META[section].description}
-                          icon={SECTION_ICONS[section]}
-                          count={count}
-                          isActive={section === activeSection}
-                          onClick={() => navigateSection(section)}
-                        />
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+                    <span className="text-[color:var(--theme-accent-primary)]">
+                      {SECTION_ICONS[section]}
+                    </span>
+                    <span>{SECTION_LABELS[section]}</span>
+                    {count > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="min-w-0 space-y-4">
+          <Card
+            className={cn(
+              "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
+              isPostComposer ? "hidden md:block" : ""
             )}
-          </div>
+          >
+            <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-5">
+              <div>
+                <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
+                  {sectionMeta.title}
+                </h2>
+                <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                  {sectionMeta.description}
+                </p>
+              </div>
+              {sectionMeta.actionTarget !== activeSection && (
+                <Button
+                  size="sm"
+                  onClick={() => navigateSection(sectionMeta.actionTarget)}
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90 whitespace-nowrap"
+                >
+                  {sectionMeta.actionLabel}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+          {centerContent}
         </div>
       </div>
     </div>

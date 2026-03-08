@@ -138,4 +138,33 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).toContain('requestRow.status !== "open"');
     expect(routeFile).toContain("Only open, routed, or in-progress requests can be cancelled");
   });
+
+  it("keeps Direct Connect organized around start and manage modes", () => {
+    const directConnectShellFile = readRepoFile(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+
+    expect(directConnectShellFile).toContain("Start a governed request");
+    expect(directConnectShellFile).toContain("Manage live requests");
+    expect(directConnectShellFile).toContain(
+      "Every posted request lands on Your Requests immediately."
+    );
+    expect(directConnectShellFile).toContain("Post to your request board");
+  });
+
+  it("supports request photo attachments in Direct Connect", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+    const directConnectShellFile = readRepoFile(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+
+    expect(routeFile).toContain(
+      "attachments: z.array(z.string().trim().min(3).max(600)).max(8).optional()"
+    );
+    expect(routeFile).toContain('"/api/direct-connect/requests/:id/attachments/:index"');
+    expect(routeFile).toContain("attachmentCount: getAttachmentCount(requestRow)");
+    expect(directConnectShellFile).toContain("uploadPrivateObject(attachment.file)");
+    expect(directConnectShellFile).toContain("Request photos");
+    expect(directConnectShellFile).toContain("buildRequestAttachmentUrl");
+  });
 });

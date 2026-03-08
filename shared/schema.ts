@@ -3614,6 +3614,7 @@ export const workRequests = pgTable("work_requests", {
   // Optional budget band
   budgetMin: decimal("budget_min"),
   budgetMax: decimal("budget_max"),
+  attachments: jsonb("attachments").$type<string[]>().notNull().default([]),
   shareToken: varchar("share_token", { length: 64 }),
 
   createdAt: timestamp("created_at").defaultNow(),
