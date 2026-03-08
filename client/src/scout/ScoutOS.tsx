@@ -1444,6 +1444,17 @@ export default function ScoutOS() {
           "deal for my services",
           "deal for my business",
         ];
+        const communityBuilderDonationKeywords = [
+          "community builder donation",
+          "county vault donation",
+          "donate to county vault",
+          "donate to the county vault",
+          "donation pipeline",
+          "submit a contribution",
+          "propose a contribution",
+          "community builder contribution",
+          "vault contribution",
+        ];
         const communityAnnouncementKeywords = [
           "community announcement",
           "post to community",
@@ -1499,6 +1510,9 @@ export default function ScoutOS() {
         const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderPromotion = providerPromotionKeywords.some((kw) =>
+          lowerMsg.includes(kw)
+        );
+        const wantsCommunityBuilderDonation = communityBuilderDonationKeywords.some((kw) =>
           lowerMsg.includes(kw)
         );
         const wantsCommunityAnnouncement = communityAnnouncementKeywords.some((kw) =>
@@ -1787,6 +1801,75 @@ export default function ScoutOS() {
             clusters,
             navTarget: "/offer-services",
             memoryDelta: { lastIntent: "provider_standing" },
+            contextRoles,
+          };
+
+          applyServerResponse(msg, []);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
+
+        // ------------------------------------------------------------------
+        // COMMUNITY BUILDER INTENT: donation + contribution flow
+        // ------------------------------------------------------------------
+        if (wantsCommunityBuilderDonation) {
+          setStatus("ready");
+
+          const countyName = (locationCtx as any)?.countyName || (locationCtx as any)?.county;
+          const stateCode = (locationCtx as any)?.stateCode as string | undefined;
+          const countyLabel =
+            countyName && stateCode
+              ? `${countyName}, ${stateCode}`
+              : countyName
+                ? String(countyName)
+                : "your county";
+
+          const clusters: ScoutCluster[] = [
+            {
+              id: "community-builder-donation-pipeline",
+              title: "County Vault donation pipeline",
+              kind: "generic",
+              body: `Community Builder routes value into county vaults, not TradeScout revenue. Start by proposing a contribution, then complete donation checkout when your contribution is ready. County context: ${countyLabel}.`,
+              actions: [
+                {
+                  type: "NAVIGATE",
+                  label: "Propose contribution",
+                  to: "/community-builder/contributions/new",
+                },
+                {
+                  type: "NAVIGATE",
+                  label: "Open Community Builder dashboard",
+                  to: "/community-builder/dashboard",
+                },
+                {
+                  type: "NAVIGATE",
+                  label: "Open Foundation causes",
+                  to: "/foundation",
+                },
+              ],
+            },
+          ];
+
+          const msg: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content:
+              "Understood. This is a county-vault donation flow. I'll route you to Community Builder contribution actions now.",
+            timestamp: new Date().toISOString(),
+            clusters,
+            navTarget: "/community-builder/contributions/new",
+            memoryDelta: {
+              lastIntent: "community_builder_donation_pipeline",
+            },
             contextRoles,
           };
 

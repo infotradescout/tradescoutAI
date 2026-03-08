@@ -37,14 +37,24 @@ export default function AdminCommunityBuilderDashboard() {
   const { toast } = useToast();
   const [selectedContribution, setSelectedContribution] = useState<string | null>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
+  const adminCountyId =
+    (typeof user?.countyId === "string" && user.countyId.trim().length > 0
+      ? user.countyId.trim()
+      : "") || "all";
 
   // Fetch pending contributions
   const { data: pendingContributions = [], refetch: refetchContributions } = useQuery<
     PendingContribution[]
   >({
-    queryKey: ["adminPendingContributions"],
+    queryKey: ["adminPendingContributions", adminCountyId],
     queryFn: async () => {
-      const res = await fetch("/api/admin/community-builder/contributions/pending");
+      const params = new URLSearchParams();
+      if (adminCountyId && adminCountyId !== "all") {
+        params.set("countyId", adminCountyId);
+      }
+      const res = await fetch(
+        `/api/admin/community-builder/contributions/pending${params.toString() ? `?${params.toString()}` : ""}`
+      );
       if (!res.ok) throw new Error("Failed to fetch pending contributions");
       return res.json();
     },

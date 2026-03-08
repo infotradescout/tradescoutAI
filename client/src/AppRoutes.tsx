@@ -243,6 +243,9 @@ const CommunityBuilderDashboard = React.lazy(() => import("./pages/community-bui
 const CommunityBuilderNewContribution = React.lazy(
   () => import("./pages/community-builder/new-contribution")
 );
+const CommunityBuilderContributionDetail = React.lazy(
+  () => import("./pages/community-builder/contribution-detail")
+);
 const CommunityBuilderContributionSuccess = React.lazy(
   () => import("./pages/community-builder/contribution-success")
 );
@@ -921,6 +924,11 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/community-builder/contributions/new">
               <ProtectedRoute>
                 <LazyPage Component={CommunityBuilderNewContribution} />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/community-builder/contributions/:id">
+              <ProtectedRoute>
+                <LazyPage Component={CommunityBuilderContributionDetail} />
               </ProtectedRoute>
             </Route>
             <Route path="/community-builder/setup">

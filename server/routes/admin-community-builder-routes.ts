@@ -2,8 +2,12 @@ import { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin } from "../auth";
 import { db } from "../db";
-import { builderPayouts, userCountyVaultContributionAdjustments } from "@shared/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import {
+  builderContributions,
+  builderPayouts,
+  userCountyVaultContributionAdjustments,
+} from "@shared/schema";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -18,16 +22,27 @@ const requireCBAdmin = [requireAuth, requireAdmin];
  */
 router.get("/contributions/pending", requireCBAdmin, async (req: Request, res: Response) => {
   try {
-    const { countyId } = req.query;
+    const countyId = typeof req.query.countyId === "string" ? req.query.countyId.trim() : "";
 
-    if (!countyId) {
-      return res.status(400).json({ error: "countyId required" });
-    }
+    const whereClause = countyId
+      ? and(
+          eq(builderContributions.countyId, countyId),
+          or(
+            eq(builderContributions.status, "proposed" as any),
+            eq(builderContributions.status, "pending_approval" as any)
+          )
+        )
+      : or(
+          eq(builderContributions.status, "proposed" as any),
+          eq(builderContributions.status, "pending_approval" as any)
+        );
 
-    const contributions = await storage.getCountyContributions(
-      countyId as string,
-      "pending_approval"
-    );
+    const contributions = await db
+      .select()
+      .from(builderContributions)
+      .where(whereClause as any)
+      .orderBy(desc(builderContributions.createdAt));
+
     res.json(contributions);
   } catch (error) {
     console.error("Error fetching pending contributions:", error);
