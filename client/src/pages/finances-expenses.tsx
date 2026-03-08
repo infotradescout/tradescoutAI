@@ -46,6 +46,7 @@ export default function FinancesExpensesPage() {
   const [expenseCategory, setExpenseCategory] = useState("");
   const [expenseNotes, setExpenseNotes] = useState("");
   const [expenseTotal, setExpenseTotal] = useState("");
+  const [linkedJobId, setLinkedJobId] = useState("");
 
   const { data, isLoading } = useQuery<ExpensesResponse>({
     queryKey: ["/api/accounting/expenses"],
@@ -77,6 +78,7 @@ export default function FinancesExpensesPage() {
         body: JSON.stringify({
           projectTitle: expenseProjectTitle || "Manual expense",
           vendorName: expenseVendor || undefined,
+          jobId: linkedJobId.trim() || undefined,
           category: expenseCategory || undefined,
           notes: expenseNotes || undefined,
           total: numericTotal,
@@ -95,6 +97,7 @@ export default function FinancesExpensesPage() {
       });
       setExpenseProjectTitle("");
       setExpenseVendor("");
+      setLinkedJobId("");
       setExpenseCategory("");
       setExpenseNotes("");
       setExpenseTotal("");
@@ -166,6 +169,12 @@ export default function FinancesExpensesPage() {
                 placeholder="Vendor (optional)"
                 value={expenseVendor}
                 onChange={(e) => setExpenseVendor(e.target.value)}
+                className="bg-tsCard/95 border-white/10 text-white text-sm"
+              />
+              <Input
+                placeholder="Link existing job ID (optional)"
+                value={linkedJobId}
+                onChange={(e) => setLinkedJobId(e.target.value)}
                 className="bg-tsCard/95 border-white/10 text-white text-sm"
               />
               <Input

@@ -43,6 +43,46 @@ function okNumber(n: unknown): number {
   return 0;
 }
 
+function tsValue(row: any): number {
+  return new Date(row?.updated_at || row?.created_at || 0).getTime();
+}
+
+function preferPayloadText(payload: any, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function resolveJobFlowStage(latestByType: Record<string, any>): string {
+  const invoice = latestByType.INVOICE;
+  const receipt = latestByType.RECEIPT;
+  const contract = latestByType.CONTRACT;
+  const estimate = latestByType.ESTIMATE;
+
+  if (receipt && String(receipt.status || "").toLowerCase() === "issued") return "receipt_issued";
+
+  const invoiceStatus = String(invoice?.status || "").toLowerCase();
+  if (invoiceStatus === "paid") return "invoice_paid";
+  if (invoiceStatus === "sent" || invoiceStatus === "approved") return "invoice_sent";
+  if (invoice) return "invoice_draft";
+
+  const contractStatus = String(contract?.status || "").toLowerCase();
+  if (contractStatus === "signed") return "contract_signed";
+  if (contractStatus === "sent" || contractStatus === "partially_signed") {
+    return "contract_sent";
+  }
+  if (contract) return "contract_draft";
+
+  const estimateStatus = String(estimate?.status || "").toLowerCase();
+  if (estimateStatus === "approved") return "estimate_approved";
+  if (estimateStatus === "sent") return "estimate_sent";
+  if (estimate) return "estimate_draft";
+
+  return "new";
+}
+
 function assertRole(role: string) {
   if (role !== "homeowner" && role !== "contractor") {
     throw new HttpError("INVALID_ROLE", 400);
@@ -392,6 +432,129 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
           paidAmount: Number(row.paid_amount) || 0,
         })),
       });
+    })
+  );
+
+  // Canonical job-flow view for standalone accounting jobs.
+  // This preserves the existing data model (documents table) and exposes an explicit
+  // stage pipeline so finance workspace pages can stay synchronized.
+  r.get(
+    "/api/accounting/job-flows",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user.id);
+
+      const { rows } = await pool.query(
+        `SELECT id, job_id, type, status, payload, created_at, updated_at
+         FROM documents
+         WHERE created_by = $1
+           AND job_id LIKE 'acct_%'
+           AND type IN ('ESTIMATE', 'CONTRACT', 'INVOICE', 'RECEIPT', 'EXPENSE')
+         ORDER BY updated_at DESC NULLS LAST, created_at DESC`,
+        [userId]
+      );
+
+      const byJob = new Map<string, any[]>();
+      for (const row of rows as any[]) {
+        const jobId = String(row.job_id || "").trim();
+        if (!jobId) continue;
+        const existing = byJob.get(jobId) || [];
+        existing.push(row);
+        byJob.set(jobId, existing);
+      }
+
+      const flows = Array.from(byJob.entries()).map(([jobId, docs]) => {
+        const latestByType: Record<string, any> = {};
+        let totalInvoiced = 0;
+        let totalPaid = 0;
+        let totalExpenses = 0;
+
+        for (const doc of docs) {
+          const type = String(doc.type || "").toUpperCase();
+          const existing = latestByType[type];
+          if (!existing || tsValue(doc) > tsValue(existing)) {
+            latestByType[type] = doc;
+          }
+
+          const payload = doc.payload || {};
+          if (type === "INVOICE") {
+            const amount = okNumber(payload.total);
+            totalInvoiced += amount;
+            if (String(doc.status || "").toLowerCase() === "paid") {
+              totalPaid += amount;
+            }
+          } else if (type === "EXPENSE") {
+            totalExpenses += okNumber(payload.total);
+          }
+        }
+
+        const invoicePayload = latestByType.INVOICE?.payload || {};
+        const estimatePayload = latestByType.ESTIMATE?.payload || {};
+        const expensePayload = latestByType.EXPENSE?.payload || {};
+
+        const title =
+          preferPayloadText(invoicePayload, ["projectTitle", "title"]) ||
+          preferPayloadText(estimatePayload, ["projectTitle", "title"]) ||
+          preferPayloadText(expensePayload, ["projectTitle", "title"]) ||
+          `Job ${jobId.slice(0, 8)}`;
+
+        const clientName =
+          preferPayloadText(invoicePayload, ["clientName", "client_name"]) ||
+          preferPayloadText(estimatePayload, ["clientName", "client_name"]) ||
+          null;
+
+        const stage = resolveJobFlowStage(latestByType);
+        const createdAt = docs
+          .map((doc) => new Date(doc.created_at || 0).getTime())
+          .filter((ts) => Number.isFinite(ts) && ts > 0)
+          .reduce((min, ts) => Math.min(min, ts), Number.POSITIVE_INFINITY);
+        const updatedAt = docs
+          .map((doc) => tsValue(doc))
+          .filter((ts) => Number.isFinite(ts) && ts > 0)
+          .reduce((max, ts) => Math.max(max, ts), 0);
+
+        return {
+          jobId,
+          title,
+          clientName,
+          stage,
+          totals: {
+            totalInvoiced,
+            totalPaid,
+            totalUnpaid: Math.max(0, totalInvoiced - totalPaid),
+            totalExpenses,
+            net: totalInvoiced - totalExpenses,
+          },
+          documentCounts: {
+            estimates: docs.filter((d) => String(d.type).toUpperCase() === "ESTIMATE").length,
+            contracts: docs.filter((d) => String(d.type).toUpperCase() === "CONTRACT").length,
+            invoices: docs.filter((d) => String(d.type).toUpperCase() === "INVOICE").length,
+            receipts: docs.filter((d) => String(d.type).toUpperCase() === "RECEIPT").length,
+            expenses: docs.filter((d) => String(d.type).toUpperCase() === "EXPENSE").length,
+          },
+          latest: {
+            estimate: latestByType.ESTIMATE || null,
+            contract: latestByType.CONTRACT || null,
+            invoice: latestByType.INVOICE || null,
+            receipt: latestByType.RECEIPT || null,
+            expense: latestByType.EXPENSE || null,
+          },
+          createdAt:
+            Number.isFinite(createdAt) && createdAt !== Number.POSITIVE_INFINITY
+              ? new Date(createdAt).toISOString()
+              : null,
+          updatedAt: updatedAt > 0 ? new Date(updatedAt).toISOString() : null,
+        };
+      });
+
+      flows.sort((a, b) => {
+        const aTs = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const bTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return bTs - aTs;
+      });
+
+      res.json({ jobs: flows });
     })
   );
 
@@ -931,14 +1094,39 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     express.json(),
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
-      const { projectTitle, clientName, notes, total, currency } = (req.body ?? {}) as any;
+      const {
+        projectTitle,
+        clientName,
+        notes,
+        total,
+        currency,
+        jobId: requestedJobId,
+      } = (req.body ?? {}) as any;
 
       const amount = okNumber(total);
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new HttpError("INVALID_TOTAL", 400);
       }
 
-      const jobId = `acct_${token32()}`;
+      let jobId = `acct_${token32()}`;
+      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
+        const normalizedJobId = requestedJobId.trim();
+        if (!normalizedJobId.startsWith("acct_")) {
+          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+        }
+
+        const existingRes = await pool.query(
+          `SELECT 1
+           FROM documents
+           WHERE created_by = $1 AND job_id = $2
+           LIMIT 1`,
+          [req.user.id, normalizedJobId]
+        );
+        if (!existingRes.rows.length) {
+          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+        }
+        jobId = normalizedJobId;
+      }
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
       const title =
@@ -1082,13 +1270,22 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     express.json(),
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
-      const { projectTitle, vendorName, category, notes, total, currency } = (req.body ?? {}) as {
+      const {
+        projectTitle,
+        vendorName,
+        category,
+        notes,
+        total,
+        currency,
+        jobId: requestedJobId,
+      } = (req.body ?? {}) as {
         projectTitle?: string;
         vendorName?: string;
         category?: string;
         notes?: string;
         total?: number | string;
         currency?: string;
+        jobId?: string;
       };
 
       const amount = Number(total);
@@ -1096,7 +1293,25 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("INVALID_EXPENSE_TOTAL", 400);
       }
 
-      const jobId = `acct_${token32()}`;
+      let jobId = `acct_${token32()}`;
+      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
+        const normalizedJobId = requestedJobId.trim();
+        if (!normalizedJobId.startsWith("acct_")) {
+          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+        }
+
+        const existingRes = await pool.query(
+          `SELECT 1
+           FROM documents
+           WHERE created_by = $1 AND job_id = $2
+           LIMIT 1`,
+          [req.user.id, normalizedJobId]
+        );
+        if (!existingRes.rows.length) {
+          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+        }
+        jobId = normalizedJobId;
+      }
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
       const title =

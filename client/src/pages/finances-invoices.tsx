@@ -75,6 +75,7 @@ export default function FinancesInvoicesPage() {
 
   const [projectTitle, setProjectTitle] = useState("");
   const [clientName, setClientName] = useState(initialClientFromQuery);
+  const [linkedJobId, setLinkedJobId] = useState("");
   const [notes, setNotes] = useState("");
   const [total, setTotal] = useState("");
   const [page, setPage] = useState(1);
@@ -143,6 +144,7 @@ export default function FinancesInvoicesPage() {
         body: JSON.stringify({
           projectTitle: projectTitle || "Manual project",
           clientName: clientName || undefined,
+          jobId: linkedJobId.trim() || undefined,
           notes: notes || undefined,
           total: numericTotal,
         }),
@@ -160,6 +162,7 @@ export default function FinancesInvoicesPage() {
       });
       setProjectTitle("");
       setClientName("");
+      setLinkedJobId("");
       setNotes("");
       setTotal("");
       queryClient.invalidateQueries({ queryKey: ["/api/accounting/standalone-invoices"] });
@@ -514,6 +517,12 @@ export default function FinancesInvoicesPage() {
               placeholder="Client name (optional)"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
+              className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
+            />
+            <Input
+              placeholder="Link existing job ID (optional)"
+              value={linkedJobId}
+              onChange={(e) => setLinkedJobId(e.target.value)}
               className="h-11 bg-tsCard border-white/10 text-tsText text-sm"
             />
             <Input

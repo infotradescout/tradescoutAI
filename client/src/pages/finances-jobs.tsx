@@ -8,51 +8,43 @@ import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
-interface StandaloneInvoice {
-  id: string;
-  job_id: string | null;
-  type: string;
-  status: string;
-  payload: any;
-  created_at: string;
-  updated_at: string;
-}
-
-interface StandaloneInvoicesResponse {
-  invoices: StandaloneInvoice[];
-  pagination?: {
-    page: number;
-    pageSize: number;
-    totalCount: number;
-    pageCount: number;
-  };
-}
-
-interface ExpenseEntry {
-  id: string;
-  job_id: string | null;
-  type: string;
-  status: string;
-  payload: any;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ExpensesResponse {
-  expenses: ExpenseEntry[];
-}
-
 interface JobRow {
-  id: string;
   jobId: string;
   title: string;
-  client: string | null;
+  clientName: string | null;
+  stage: string;
   invoiceCount: number;
   totalInvoiced: number;
   paidAmount: number;
   unpaidAmount: number;
   expensesTotal: number;
-  createdAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+interface JobFlowsResponse {
+  jobs: Array<{
+    jobId: string;
+    title: string;
+    clientName: string | null;
+    stage: string;
+    totals: {
+      totalInvoiced: number;
+      totalPaid: number;
+      totalUnpaid: number;
+      totalExpenses: number;
+      net: number;
+    };
+    documentCounts: {
+      estimates: number;
+      contracts: number;
+      invoices: number;
+      receipts: number;
+      expenses: number;
+    };
+    createdAt: string | null;
+    updatedAt: string | null;
+  }>;
 }
 
 export default function FinancesJobsPage() {
@@ -60,32 +52,17 @@ export default function FinancesJobsPage() {
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
   const [, navigate] = useLocation();
 
-  const { data: invoicesData, isLoading: isInvoicesLoading } = useQuery<StandaloneInvoicesResponse>({
-    queryKey: ["/api/accounting/standalone-invoices", 1, 200],
+  const { data: jobFlowsData, isLoading: isJobFlowsLoading } = useQuery<JobFlowsResponse>({
+    queryKey: ["/api/accounting/job-flows"],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: "1", pageSize: "200" });
-      const res = await fetch(`/api/accounting/standalone-invoices?${params.toString()}`, {
+      const res = await fetch("/api/accounting/job-flows", {
         credentials: "include",
         headers: { Accept: "application/json" },
       });
       if (!res.ok) {
-        throw new Error(`Failed to load invoices (${res.status})`);
+        throw new Error(`Failed to load job flows (${res.status})`);
       }
-      return (await res.json()) as StandaloneInvoicesResponse;
-    },
-  });
-
-  const { data: expensesData, isLoading: isExpensesLoading } = useQuery<ExpensesResponse>({
-    queryKey: ["/api/accounting/expenses"],
-    queryFn: async () => {
-      const res = await fetch("/api/accounting/expenses", {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to load expenses (${res.status})`);
-      }
-      return (await res.json()) as ExpensesResponse;
+      return (await res.json()) as JobFlowsResponse;
     },
   });
 
@@ -97,88 +74,35 @@ export default function FinancesJobsPage() {
   };
 
   const jobs: JobRow[] = useMemo(() => {
-    const invoices = invoicesData?.invoices ?? [];
-    const expenses = expensesData?.expenses ?? [];
+    const source = jobFlowsData?.jobs ?? [];
+    return source.map((job) => ({
+      jobId: job.jobId,
+      title: job.title,
+      clientName: job.clientName,
+      stage: job.stage,
+      invoiceCount: Number(job.documentCounts?.invoices || 0),
+      totalInvoiced: Number(job.totals?.totalInvoiced || 0),
+      paidAmount: Number(job.totals?.totalPaid || 0),
+      unpaidAmount: Number(job.totals?.totalUnpaid || 0),
+      expensesTotal: Number(job.totals?.totalExpenses || 0),
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    }));
+  }, [jobFlowsData]);
 
-    const map = new Map<string, JobRow>();
-
-    for (const inv of invoices) {
-      if (!inv.job_id) continue;
-      const payload = inv.payload || {};
-      const jobId = String(inv.job_id);
-      const title: string = payload.projectTitle || `Job ${jobId.slice(0, 8)}`;
-      const client: string | null = payload.clientName || null;
-      const totalVal: number | null = typeof payload.total === "number" ? payload.total : null;
-
-      const existing: JobRow =
-        map.get(jobId) || {
-          id: jobId,
-          jobId,
-          title,
-          client,
-          invoiceCount: 0,
-          totalInvoiced: 0,
-          paidAmount: 0,
-          unpaidAmount: 0,
-          expensesTotal: 0,
-          createdAt: inv.created_at,
-        };
-
-      existing.invoiceCount += 1;
-
-      if (typeof totalVal === "number" && Number.isFinite(totalVal)) {
-        existing.totalInvoiced += totalVal;
-        const status = String(inv.status || "").toLowerCase();
-        if (status === "paid") {
-          existing.paidAmount += totalVal;
-        } else {
-          existing.unpaidAmount += totalVal;
-        }
-      }
-
-      if (new Date(inv.created_at).getTime() < new Date(existing.createdAt).getTime()) {
-        existing.createdAt = inv.created_at;
-      }
-
-      map.set(jobId, existing);
-    }
-
-    for (const exp of expenses) {
-      if (!exp.job_id) continue;
-      const payload = exp.payload || {};
-      const jobId = String(exp.job_id);
-      const title: string = payload.projectTitle || `Job ${jobId.slice(0, 8)}`;
-      const totalVal: number | null = typeof payload.total === "number" ? payload.total : null;
-
-      const existing: JobRow =
-        map.get(jobId) || {
-          id: jobId,
-          jobId,
-          title,
-          client: null,
-          invoiceCount: 0,
-          totalInvoiced: 0,
-          paidAmount: 0,
-          unpaidAmount: 0,
-          expensesTotal: 0,
-          createdAt: exp.created_at,
-        };
-
-      if (typeof totalVal === "number" && Number.isFinite(totalVal)) {
-        existing.expensesTotal += totalVal;
-      }
-
-      if (new Date(exp.created_at).getTime() < new Date(existing.createdAt).getTime()) {
-        existing.createdAt = exp.created_at;
-      }
-
-      map.set(jobId, existing);
-    }
-
-    return Array.from(map.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }, [invoicesData, expensesData]);
+  const stageLabelMap: Record<string, string> = {
+    new: "New",
+    estimate_draft: "Estimate draft",
+    estimate_sent: "Estimate sent",
+    estimate_approved: "Estimate approved",
+    contract_draft: "Contract draft",
+    contract_sent: "Contract sent",
+    contract_signed: "Contract signed",
+    invoice_draft: "Invoice draft",
+    invoice_sent: "Invoice sent",
+    invoice_paid: "Invoice paid",
+    receipt_issued: "Receipt issued",
+  };
 
   const filteredJobs = useMemo(() => {
     if (!jobQuery.trim()) return jobs;
@@ -216,10 +140,12 @@ export default function FinancesJobsPage() {
       <Card className="bg-tsCard border-white/10">
         <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold text-white">Jobs linked to invoices</CardTitle>
+            <CardTitle className="text-sm font-semibold text-white">
+              Jobs linked to invoices
+            </CardTitle>
             <CardDescription className="text-xs text-white/60">
-              This is a simple job list based on your invoice and expense records. Open a deal room to manage
-              materials, estimates, contracts, and payments.
+              Flow-aware jobs sourced from your accounting documents. Open a deal room to continue
+              the estimate, contract, invoice, and payment lifecycle.
             </CardDescription>
           </div>
           <div className="flex flex-col items-stretch gap-2 w-full md:w-auto">
@@ -232,7 +158,7 @@ export default function FinancesJobsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isInvoicesLoading || isExpensesLoading ? (
+          {isJobFlowsLoading ? (
             <p className="text-[11px] text-white/60 py-4">Loading jobs…</p>
           ) : filteredJobs.length === 0 ? (
             <div className="text-[11px] text-white/60 py-4 space-y-2">
@@ -252,9 +178,7 @@ export default function FinancesJobsPage() {
                     Create an invoice when you’re ready
                   </Button>
                   <Link href="/community">
-                    <a className="text-sky-400 hover:text-sky-300">
-                      See what’s happening nearby
-                    </a>
+                    <a className="text-sky-400 hover:text-sky-300">See what’s happening nearby</a>
                   </Link>
                 </div>
               )}
@@ -262,42 +186,52 @@ export default function FinancesJobsPage() {
           ) : (
             <div className="space-y-2">
               {filteredJobs.map((job) => {
-                let statusLabel = "No invoices";
-                if (job.totalInvoiced > 0) {
-                  if (job.unpaidAmount <= 0) statusLabel = "Paid";
-                  else if (job.paidAmount > 0) statusLabel = "Partially paid";
-                  else statusLabel = "Unpaid";
-                }
+                const statusLabel = stageLabelMap[job.stage] || "In progress";
+                const stageHint =
+                  job.stage === "receipt_issued"
+                    ? "Flow complete"
+                    : job.stage.startsWith("invoice")
+                      ? "Collect payment"
+                      : job.stage.startsWith("contract")
+                        ? "Finalize contract"
+                        : job.stage.startsWith("estimate")
+                          ? "Move estimate forward"
+                          : "Begin estimate";
 
                 return (
                   <Card
-                    key={job.id}
+                    key={job.jobId}
                     className="bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer"
                     onClick={() => navigate(`/deal-room/${encodeURIComponent(job.jobId)}`)}
                   >
                     <CardContent className="p-4 flex items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-white truncate max-w-xs">{job.title}</h3>
+                          <h3 className="text-sm font-semibold text-white truncate max-w-xs">
+                            {job.title}
+                          </h3>
                           <Badge className="text-[10px] px-2 py-0.5 bg-white/5 border-white/15">
                             {statusLabel}
                           </Badge>
                         </div>
-                        {job.client && (
-                          <p className="text-[11px] text-white/70">Client: {job.client}</p>
+                        {job.clientName && (
+                          <p className="text-[11px] text-white/70">Client: {job.clientName}</p>
                         )}
                         <p className="text-[11px] text-white/60 mt-1">
-                          Invoiced: {formatCurrency(job.totalInvoiced)} · Paid: {formatCurrency(job.paidAmount)} ·
-                          Open: {formatCurrency(job.unpaidAmount)}
+                          Invoiced: {formatCurrency(job.totalInvoiced)} · Paid:{" "}
+                          {formatCurrency(job.paidAmount)} · Open:{" "}
+                          {formatCurrency(job.unpaidAmount)}
                         </p>
                         <p className="text-[11px] text-white/60 mt-0.5">
-                          Expenses: {formatCurrency(job.expensesTotal)} · Simple net: {formatCurrency(
-                            job.totalInvoiced - job.expensesTotal,
-                          )}
+                          Expenses: {formatCurrency(job.expensesTotal)} · Simple net:{" "}
+                          {formatCurrency(job.totalInvoiced - job.expensesTotal)}
                         </p>
-                        <p className="text-[11px] text-white/60 mt-0.5">
-                          Created {new Date(job.createdAt).toLocaleDateString()}
-                        </p>
+                        <p className="text-[11px] text-white/60 mt-0.5">{stageHint}</p>
+                        {job.updatedAt && (
+                          <p className="text-[11px] text-white/60 mt-0.5">
+                            Updated {new Date(job.updatedAt).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right text-sm font-semibold text-sky-400">
                         {formatCurrency(job.totalInvoiced - job.expensesTotal)}
