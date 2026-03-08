@@ -150,7 +150,9 @@ export default function AdminUsers() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<"all" | "24h" | "7d" | "30d">("all");
-  const [accountScope, setAccountScope] = useState<"all" | "active_only" | "archived_only">("all");
+  const [accountScope, setAccountScope] = useState<"all" | "active_only" | "archived_only">(
+    "active_only"
+  );
   const [adminSafetyKey, setAdminSafetyKey] = useState("");
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<string>("");
@@ -779,6 +781,9 @@ export default function AdminUsers() {
   };
 
   const getDisplayName = (targetUser: User): string => {
+    const businessName = String((targetUser.preferences as any)?.businessName || "").trim();
+    if (businessName) return businessName;
+
     const fullName =
       `${String(targetUser.firstName || "").trim()} ${String(targetUser.lastName || "").trim()}`.trim();
     if (fullName) return fullName;
