@@ -3,6 +3,12 @@
 Direct Connect is not a generic inbox.
 Direct Connect is the contact and coordination authority layer of the TradeScout OS.
 
+## Direct Connect Invariant
+
+Direct Connect is the only system authorized to create contractor-user contact relationships on TradeScout.
+
+No other service, route, or tool may establish direct contact between parties outside the Direct Connect lifecycle.
+
 ## Primary Responsibilities
 - Control who can contact whom
 - Enforce trust and anti-spam gates
@@ -24,6 +30,22 @@ Intent enters via Scout or Direct Connect surface
 -> Outcome tracking
 
 This prevents spammy or policy-breaking contact behavior.
+
+## Allowed Entry Sources
+
+Direct Connect requests may originate from:
+- Scout
+- Exchange listing actions
+- HomeScout property maintenance actions
+- Admin provisioning tools
+
+Direct Connect requests must NOT originate from:
+- Open messaging
+- User profile messaging
+- Community posts that bypass request creation
+- External links that bypass lifecycle enforcement
+
+Any new entry source requires governance approval and an update to this contract in the same PR.
 
 ## Allowed Direct Connect Actions
 The system may only perform these legal behaviors for a request episode:
@@ -149,3 +171,146 @@ It then advances the user through trusted request and connection states.
 - HomeScout: property lifecycle engine
 
 Direct Connect protects signal quality across all downstream contact pathways.
+
+## Contract Compliance Checklist
+
+All changes affecting Direct Connect must pass the following checks.
+
+### 1. Trust Gate Enforcement
+
+PASS if:
+- All contact attempts pass through trust/contact gating logic.
+- `direct-connect.ts` enforces trust eligibility prior to conversation creation.
+
+FAIL if:
+- Messages or requests can be created without trust gate evaluation.
+
+Implementation anchors:
+- `server/routes/direct-connect.ts`
+- `server/services/contactGateService.ts` (if present)
+
+### 2. Legal Action Set Enforcement
+
+Direct Connect actions must be limited to:
+
+ACCEPT
+DECLINE
+ROUTE
+HOLD
+
+PASS if:
+- State transitions use only the allowed actions.
+
+FAIL if:
+- New action types are introduced without updating the execution contract.
+
+Implementation anchors:
+- `server/routes/direct-connect.ts`
+- `server/services/directConnectLifecycle.ts`
+
+### 3. Lifecycle State Integrity
+
+Direct Connect must enforce a deterministic lifecycle.
+
+Allowed lifecycle:
+
+Request Created
+-> Contractor Review
+-> Accept / Decline / Hold
+-> Connection Created
+
+PASS if:
+- All state transitions follow this lifecycle.
+
+FAIL if:
+- Messages or contact occur before Accept.
+
+Implementation anchors:
+- `server/services/directConnectLifecycle.ts`
+- `client/src/pages/direct-connect/DirectConnectShell.tsx`
+
+### 4. Contact Creation Rules
+
+Connections must only be created when:
+
+- Contractor ACCEPTS
+- Trust gate passes
+- Request context exists
+
+PASS if:
+- Connection records are created only after ACCEPT.
+
+FAIL if:
+- Connections appear before acceptance or without a request context.
+
+Implementation anchors:
+- `server/services/connectionService.ts`
+
+### 5. Spam Protection
+
+Direct Connect must prevent uncontrolled messaging.
+
+PASS if:
+- Unsolicited messaging is blocked.
+- Contact only occurs through approved lifecycle events.
+
+FAIL if:
+- Users can message contractors directly without request flow.
+
+Implementation anchors:
+- `server/routes/direct-connect.ts`
+- `client/src/pages/direct-connect/DirectConnectShell.tsx`
+
+### 6. Scout Routing Compliance
+
+Scout must remain the primary demand engine.
+
+PASS if:
+- Scout routes requests into Direct Connect.
+
+FAIL if:
+- Direct Connect bypasses Scout routing without governance approval.
+
+Implementation anchors:
+- `server/services/scoutPlatformRouter.ts`
+
+### 7. Contract Boundary Enforcement
+
+Direct Connect must remain:
+
+Contact coordination infrastructure.
+
+Direct Connect must NOT become:
+
+- A chat platform
+- A social messaging system
+- A lead marketplace
+
+PASS if:
+- All communication relates to a request or connection.
+
+FAIL if:
+- Open messaging appears between users.
+
+### Review Requirement
+
+Any PR affecting the following files requires contract review:
+
+- `server/routes/direct-connect.ts`
+- `client/src/pages/direct-connect/DirectConnectShell.tsx`
+- `server/services/directConnectLifecycle.ts`
+- `server/services/connectionService.ts`
+
+### Implementation Path Note
+
+Some documentation references the historical path:
+
+- `client/src/components/directconnect/DirectConnectShell.tsx`
+
+Current implementation resides at:
+
+- `client/src/pages/direct-connect/DirectConnectShell.tsx`
+
+For compliance checks, reviewers must validate the active implementation file.
+
+If the file is relocated, the compliance checklist must be updated in the same PR.
