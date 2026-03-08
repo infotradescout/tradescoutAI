@@ -62,7 +62,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     sectionLabel: "Who It's For",
     sectionTitle: "Built To Run Local Decisions Clearly",
     sectionDesc:
-      "TradeScout works across roles because Scout is not just a directory layer. It is the operating layer that explains what to do next, why it matters, and how action stays governed.",
+      "TradeScout works across roles because Scout does more than show listings. It explains what to do next, why it matters, and how to move forward without losing trust or context.",
     cards: [
       {
         title: "For People Hiring",
@@ -76,7 +76,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   },
   cta: {
     label: "Start With Scout",
-    titleLines: ["Ready to use the", "local operating system?"],
+    titleLines: ["Ready to get the", "right local next step?"],
     desc: "Start with Scout. Get the right next step, the right local path, and the right contact flow without losing trust or context.",
     primaryLabel: "Get Started",
     primaryHref: "/pre-scout-setup?mode=create",

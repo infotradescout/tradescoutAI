@@ -11,7 +11,7 @@ interface PageHeadProps {
 
 export function PageHead({
   title = "TradeScout | Connection Without Compromise",
-  description = "TradeScout is the authority-first operating system for local work. Connection without compromise.",
+  description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
   keywords = "scout, local helper, contractors, home improvement, quotes, local contractors, verified contractors",
   ogImage = "/tradescout-logo.png?v=4",
   canonicalUrl,

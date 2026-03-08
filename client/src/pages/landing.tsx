@@ -320,9 +320,8 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             className="mb-3 rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-2"
           >
             <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
-              Scout is the operating layer for local interaction: it interprets what you need,
-              routes the right next step, explains trust, and keeps contact governed instead of
-              chaotic.
+              Scout helps you figure out what you need, route the right next step, understand why
+              trust matters, and keep contact clear instead of chaotic.
             </p>
           </motion.div>
 
@@ -930,8 +929,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
               </span>
             </div>
             <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              The local operating system for community interaction. Trust-first local action powered
-              by Scout.
+              One place to find local help, make decisions, and move work forward with Scout.
             </p>
           </div>
 
@@ -1068,8 +1066,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
         <div className="border-t border-white/5 pt-5">
           <p className="text-xs text-white/30 text-center">
-            (c) 2026 TradeScout. All rights reserved. The local operating system for community
-            interaction.
+            (c) 2026 TradeScout. All rights reserved. Trusted local action powered by Scout.
           </p>
         </div>
       </div>

@@ -37,7 +37,64 @@ export async function ensureSuperAdminConnectionForUser(
     return { ensured: false, reason: "self_super_admin", superAdminUserId };
   }
 
-  // Platform law: visibility never grants contact or power.
-  // Resolve the support account for callers, but do not create follows or accepted contact edges.
-  return { ensured: false, reason: "contact_gated", superAdminUserId };
+  await db.execute(sql`
+    insert into user_follows (follower_id, following_id)
+    select ${normalizedUserId}, ${superAdminUserId}
+    where not exists (
+      select 1
+      from user_follows
+      where follower_id = ${normalizedUserId}
+        and following_id = ${superAdminUserId}
+    )
+  `);
+
+  await db.execute(sql`
+    insert into user_follows (follower_id, following_id)
+    select ${superAdminUserId}, ${normalizedUserId}
+    where not exists (
+      select 1
+      from user_follows
+      where follower_id = ${superAdminUserId}
+        and following_id = ${normalizedUserId}
+    )
+  `);
+
+  await db.execute(sql`
+    insert into contact_permissions (
+      requester_id,
+      target_user_id,
+      status,
+      authority_gate,
+      intent,
+      decision_scope,
+      responded_at,
+      responded_by,
+      response_reason,
+      updated_at
+    )
+    values (
+      ${normalizedUserId},
+      ${superAdminUserId},
+      'accepted',
+      'system_super_admin_auto_connection',
+      'platform_support',
+      'Platform support connection',
+      now(),
+      ${superAdminUserId},
+      'system_super_admin_auto_connection',
+      now()
+    )
+    on conflict (requester_id, target_user_id)
+    do update set
+      status = 'accepted',
+      authority_gate = 'system_super_admin_auto_connection',
+      intent = 'platform_support',
+      decision_scope = 'Platform support connection',
+      responded_at = now(),
+      responded_by = ${superAdminUserId},
+      response_reason = 'system_super_admin_auto_connection',
+      updated_at = now()
+  `);
+
+  return { ensured: true, superAdminUserId };
 }

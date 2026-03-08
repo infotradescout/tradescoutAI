@@ -41,7 +41,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "What payment requests are legitimate?",
       answer:
-        "TradeScout never charges you to get connected, send your request, or unlock contact. If someone asks for money in TradeScout's name for that, treat it as suspicious.",
+        "TradeScout never charges to connect, send your request, or unlock contact. If someone asks for money in TradeScout's name for that, treat it as suspicious.",
     },
     {
       question: "What information does Scout send to contractors?",

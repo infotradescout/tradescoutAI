@@ -26,8 +26,8 @@ describe("super-admin auto-connection contracts", () => {
     const helperSource = read("server/utils/superAdminConnection.ts");
 
     expect(helperSource).toContain("insert into user_follows");
-    expect(helperSource).toContain('status: "accepted"');
+    expect(helperSource).toContain("'accepted'");
     expect(helperSource).toContain("system_super_admin_auto_connection");
-    expect(helperSource).toContain('intent: "platform_support"');
+    expect(helperSource).toContain("'platform_support'");
   });
 });

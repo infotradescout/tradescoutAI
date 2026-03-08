@@ -13,9 +13,9 @@ const config: CompareCategoryConfig = {
   badgeLabel: "Real Estate Comparison",
   categoryName: "Real Estate Platforms",
   categorySummary:
-    "Real-estate platforms are strong at listings, browsing, and market discovery, but they are not built as authority-first operating systems for local community interaction.",
+    "Real-estate platforms are strong at listings, browsing, and market discovery, but they are not built to carry trust, routing, and local follow-through beyond the listing itself.",
   tradeScoutSummary:
-    "TradeScout treats real estate as one layer inside a larger community operating system. Scout routes action, trust, and local context across discovery, verification, and decision flows.",
+    "TradeScout treats real estate as one part of a broader local system. Scout carries trust, context, and next steps across discovery, verification, and decision-making.",
   platforms: [
     {
       name: "Zillow",
@@ -59,7 +59,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "System Scope",
       category: "Real-estate specific",
-      tradeScout: "Real estate inside a broader community operating system",
+      tradeScout: "Real estate connected to a broader local system",
       tradeScoutPositive: true,
     },
     {
@@ -89,7 +89,7 @@ const config: CompareCategoryConfig = {
   differences: [
     {
       title: "Real estate is not isolated",
-      desc: "TradeScout connects real-estate activity to the wider community operating environment instead of trapping it inside listing search alone.",
+      desc: "TradeScout connects real-estate activity to the wider local context instead of trapping it inside listing search alone.",
     },
     {
       title: "Scout governs next steps",
@@ -108,7 +108,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout trying to be another Zillow?",
       answer:
-        "No. Zillow and similar platforms are strong discovery products. TradeScout is the operating system that governs what local action looks like after discovery.",
+        "No. Zillow and similar platforms are strong discovery products. TradeScout focuses on what happens after discovery, with trusted next steps and local context built in.",
     },
     {
       question: "Why compare TradeScout to Realtor.com or Redfin?",
@@ -118,7 +118,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Does TradeScout still support real-estate flows?",
       answer:
-        "Yes. It supports them as part of a larger local operating system instead of treating real estate as a silo.",
+        "Yes. It supports them as part of a broader local system instead of treating real estate as a silo.",
     },
     {
       question: "How does monetization differ?",
@@ -127,8 +127,7 @@ const config: CompareCategoryConfig = {
     },
   ],
   ctaTitle: "Replace Listing-Only Local Discovery",
-  ctaDescription:
-    "Use a local operating system that handles discovery and governed action together.",
+  ctaDescription: "Use one local platform that handles discovery and trusted action together.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/community", label: "Community Platforms →" },

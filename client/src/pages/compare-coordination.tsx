@@ -15,7 +15,7 @@ const config: CompareCategoryConfig = {
   categorySummary:
     "Coordination tools can help people post jobs, schedule work, or find a fast responder, but they usually optimize around transaction speed instead of trust-governed community interaction.",
   tradeScoutSummary:
-    "TradeScout coordinates action through Scout, CVS, local context, and authority-first routing. That keeps transactions inside a system of trust instead of treating them like isolated gigs.",
+    "TradeScout coordinates action through Scout, CVS, local context, and authority-first routing. That keeps transactions inside a trusted local system instead of treating them like isolated gigs.",
   platforms: [
     {
       name: "Taskrabbit",
@@ -52,7 +52,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Primary Pattern",
       category: "Fast task coordination or booking",
-      tradeScout: "Coordinated action inside a trust-governed operating layer",
+      tradeScout: "Coordinated action inside a trust-governed local system",
     },
     {
       feature: "Trust Model",
@@ -63,7 +63,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Scope",
       category: "Task or booking specific",
-      tradeScout: "Coordination lives inside a broader community system",
+      tradeScout: "Coordination lives inside a broader local system",
       tradeScoutPositive: true,
     },
     {
@@ -95,7 +95,7 @@ const config: CompareCategoryConfig = {
     },
     {
       title: "Authority scales across categories",
-      desc: "The same operating system can coordinate service, business, neighborhood, and local decision flows.",
+      desc: "The same system can coordinate service, business, neighborhood, and local decision flows.",
     },
     {
       title: "Outcome over speed",
@@ -106,7 +106,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout another Taskrabbit?",
       answer:
-        "No. It can coordinate local action, but it is not a narrow gig marketplace. It is the local operating system for community interaction.",
+        "No. It can coordinate local action, but it is not a narrow gig marketplace. It is built for trusted local coordination across categories.",
     },
     {
       question: "Why compare TradeScout to Craigslist services?",

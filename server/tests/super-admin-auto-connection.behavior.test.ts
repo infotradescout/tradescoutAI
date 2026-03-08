@@ -29,17 +29,17 @@ describe("super-admin auto-connection behavior", () => {
     vi.clearAllMocks();
   });
 
-  it("resolves a real super admin without auto-creating contact access", async () => {
+  it("writes mutual follows and accepted platform support contact permission", async () => {
     selectResultMock.mockResolvedValue([{ id: "super-1" }]);
+    executeMock.mockResolvedValue({});
 
     const result = await ensureSuperAdminConnectionForUser("user-1");
 
     expect(result).toEqual({
-      ensured: false,
-      reason: "contact_gated",
+      ensured: true,
       superAdminUserId: "super-1",
     });
-    expect(executeMock).not.toHaveBeenCalled();
+    expect(executeMock).toHaveBeenCalledTimes(3);
     expect(insertMock).not.toHaveBeenCalled();
   });
 

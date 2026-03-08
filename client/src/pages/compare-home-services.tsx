@@ -91,7 +91,7 @@ const config: CompareCategoryConfig = {
     },
     {
       title: "Scout replaces form-hopping",
-      desc: "Users can move from question to routing to decision inside one operating layer instead of jumping across listings and quote forms.",
+      desc: "Users can move from question to routing to decision in one place instead of jumping across listings and quote forms.",
     },
     {
       title: "Trust governs exposure",
@@ -106,7 +106,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout just another contractor marketplace?",
       answer:
-        "No. Home services is one entry point, but TradeScout is the operating system for community interaction across multiple categories.",
+        "No. Home services is one entry point, but TradeScout spans more than contractor discovery alone.",
     },
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",

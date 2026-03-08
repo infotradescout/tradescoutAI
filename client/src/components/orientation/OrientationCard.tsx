@@ -96,7 +96,7 @@ export function OrientationCard({
                   </li>
                   <li>
                     If you're organizing properties, groups, or communities, Scout helps you keep
-                    people, tasks, and tools in one operating system instead of scattered apps.
+                    people, tasks, and tools in one place instead of scattered apps.
                   </li>
                 </ul>
               </div>

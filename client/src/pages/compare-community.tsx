@@ -106,7 +106,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout trying to replace Nextdoor?",
       answer:
-        "TradeScout serves a different role. It is not just a neighborhood feed; it is the operating system for community interaction.",
+        "TradeScout serves a different role. It is not just a neighborhood feed; it is built to connect local conversation to trusted action.",
     },
     {
       question: "Why compare TradeScout to Facebook Groups?",
@@ -125,7 +125,7 @@ const config: CompareCategoryConfig = {
     },
   ],
   ctaTitle: "Replace Feed-Only Community Tools",
-  ctaDescription: "Move from neighborhood chatter to a governed local operating system.",
+  ctaDescription: "Move from neighborhood chatter to a platform built for trusted local action.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/real-estate", label: "Real Estate →" },

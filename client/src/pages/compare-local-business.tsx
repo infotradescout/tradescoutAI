@@ -13,7 +13,7 @@ const config: CompareCategoryConfig = {
   badgeLabel: "Local Business Comparison",
   categoryName: "Local Business Discovery Platforms",
   categorySummary:
-    "Discovery and review platforms help users find businesses, but they usually stop at awareness, reviews, and basic contact. They are not full local operating systems.",
+    "Discovery and review platforms help users find businesses, but they usually stop at awareness, reviews, and basic contact.",
   tradeScoutSummary:
     "TradeScout turns local discovery into governed local action. Businesses do not just get seen; their exposure, trust, and action paths stay connected to system rules and local outcomes.",
   platforms: [
@@ -75,7 +75,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Scope",
       category: "Business discovery only",
-      tradeScout: "Local business discovery inside a larger community operating system",
+      tradeScout: "Business discovery connected to a broader local system",
     },
     {
       feature: "Main Risk",
@@ -106,7 +106,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout another Yelp?",
       answer:
-        "No. Yelp is primarily a discovery and review layer. TradeScout is the local operating system for community interaction.",
+        "No. Yelp is primarily a discovery and review layer. TradeScout is built to help people move from discovery to a trusted next step.",
     },
     {
       question: "Why compare TradeScout to Google Business Profiles?",

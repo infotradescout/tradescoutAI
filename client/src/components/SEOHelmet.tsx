@@ -15,7 +15,7 @@ interface SEOHelmetProps {
 
 export function SEOHelmet({
   title = "TradeScout | Connection Without Compromise",
-  description = "TradeScout is the authority-first operating system for local work. Connection without compromise.",
+  description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
   keywords = "scout, local helper, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
@@ -211,8 +211,7 @@ export const createOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "TradeScout",
-  description:
-    "Community operating system connecting residents, pros, organizations, and verified local contractors",
+  description: "Platform connecting residents, pros, organizations, and verified local contractors",
   url: getCanonicalOrigin(),
   logo: `${getCanonicalOrigin()}/tradescout-logo.png?v=4`,
   image: `${getCanonicalOrigin()}/tradescout-logo.png?v=4`,
