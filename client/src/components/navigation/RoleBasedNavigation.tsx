@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { safeNavigate } from "@/lib/safeNavigate";
 import { getRolePermissions, getRoleDisplayName } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 import {
   Home,
   Users,
@@ -150,9 +151,40 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
     return null;
   }
 
-  const userRole = user.role as UserRole;
+  const toKnownRole = (role: string): UserRole | null => {
+    const normalized = (
+      role === "owner" || role === "head_admin" ? "super_admin" : role
+    ) as UserRole;
+    return getRoleDisplayName(normalized) !== normalized || normalized === "homeowner"
+      ? normalized
+      : null;
+  };
+
+  const rawRoleTokens = Array.from(
+    new Set(
+      [user.activeRole, user.role, ...(Array.isArray(user.roles) ? user.roles : [])]
+        .map((role) => (typeof role === "string" ? role.trim() : ""))
+        .filter(Boolean)
+    )
+  );
+  const normalizedRoleTokens = rawRoleTokens
+    .map((role) => toKnownRole(role))
+    .filter((role): role is UserRole => Boolean(role));
+  const fallbackRole = normalizedRoleTokens[0] || "homeowner";
+  const userRole = fallbackRole as UserRole;
+  const hasAdminAccess = hasAdminUiAccess(user);
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
-  const permissions = getRolePermissions(userRole);
+  const permissions = normalizedRoleTokens.reduce(
+    (merged, roleToken) => {
+      const role = roleToken as UserRole;
+      const rolePermissions = getRolePermissions(role);
+      (Object.keys(rolePermissions) as Array<keyof typeof rolePermissions>).forEach((key) => {
+        merged[key] = merged[key] || rolePermissions[key];
+      });
+      return merged;
+    },
+    { ...getRolePermissions(userRole) }
+  );
 
   const isItemVisible = (item: NavigationItem): boolean => {
     // For community-first pilot users, soft-hide role hub/identity-heavy nav groups
@@ -166,12 +198,22 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
     }
 
     // Check role requirements
-    if (item.requiredRoles && !item.requiredRoles.includes(userRole)) {
+    if (
+      item.requiredRoles &&
+      !item.requiredRoles.some((role) => normalizedRoleTokens.includes(role))
+    ) {
       return false;
     }
 
     // Check permission requirements
-    if (item.requiredPermission && !permissions[item.requiredPermission]) {
+    if (item.requiredPermission === "canAccessAdminPanel" && !hasAdminAccess) {
+      return false;
+    }
+    if (
+      item.requiredPermission &&
+      item.requiredPermission !== "canAccessAdminPanel" &&
+      !permissions[item.requiredPermission]
+    ) {
       return false;
     }
 
