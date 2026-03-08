@@ -47,6 +47,10 @@ type DirectConnectAdminResult = {
   targetUserExisted?: boolean;
   setupEmailSent?: boolean;
   requestEmailSent?: boolean;
+  setupEmailSkippedReason?: string | null;
+  requestEmailSkippedReason?: string | null;
+  setupEmailMessageId?: string;
+  requestEmailMessageId?: string;
   activationLinkIncluded?: boolean;
   verifyLinkIncluded?: boolean;
 };
@@ -120,6 +124,7 @@ export default function AdminProvisionUser() {
   const [requestBudgetMin, setRequestBudgetMin] = useState("");
   const [requestBudgetMax, setRequestBudgetMax] = useState("");
   const [targetContractorIds, setTargetContractorIds] = useState("");
+  const [forceSetupEmail, setForceSetupEmail] = useState(false);
   const [directConnectResult, setDirectConnectResult] = useState<DirectConnectAdminResult | null>(
     null
   );
@@ -225,6 +230,7 @@ export default function AdminProvisionUser() {
       if (requestBudgetMin.trim()) payload.budgetMin = Number(requestBudgetMin);
       if (requestBudgetMax.trim()) payload.budgetMax = Number(requestBudgetMax);
       if (contractorIds.length > 0) payload.targetContractorIds = contractorIds;
+      if (forceSetupEmail) payload.forceSetupEmail = true;
 
       return apiRequest("POST", "/api/admin/direct-connect/requests", payload);
     },
@@ -250,6 +256,7 @@ export default function AdminProvisionUser() {
       setRequestBudgetMin("");
       setRequestBudgetMax("");
       setTargetContractorIds("");
+      setForceSetupEmail(false);
     },
     onError: (e: any) => {
       toast({
@@ -1001,6 +1008,13 @@ export default function AdminProvisionUser() {
               className="bg-black/30 border-[color:var(--border-subtle)] text-white"
             />
           </div>
+          <label className="flex items-center gap-2 text-xs text-white/70">
+            <Checkbox
+              checked={forceSetupEmail}
+              onCheckedChange={(value) => setForceSetupEmail(value === true)}
+            />
+            Force setup email (send password/verification links when needed)
+          </label>
 
           <Button
             type="button"
@@ -1033,8 +1047,19 @@ export default function AdminProvisionUser() {
                 Provisioned new user: {String(directConnectResult.targetUserProvisioned === true)}
               </div>
               <div>Email sent (setup): {String(directConnectResult.setupEmailSent === true)}</div>
+              <div>Setup email message ID: {directConnectResult.setupEmailMessageId || "none"}</div>
+              <div>
+                Setup email skipped reason: {directConnectResult.setupEmailSkippedReason || "none"}
+              </div>
               <div>
                 Email sent (request notice): {String(directConnectResult.requestEmailSent === true)}
+              </div>
+              <div>
+                Request email message ID: {directConnectResult.requestEmailMessageId || "none"}
+              </div>
+              <div>
+                Request email skipped reason:{" "}
+                {directConnectResult.requestEmailSkippedReason || "none"}
               </div>
             </div>
           ) : null}

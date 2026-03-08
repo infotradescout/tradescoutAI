@@ -1327,6 +1327,10 @@ export function registerDirectConnectRoutes(app: Express) {
         let targetUserExisted = false;
         let setupEmailSent = false;
         let requestEmailSent = false;
+        let setupEmailSkippedReason: string | null = null;
+        let requestEmailSkippedReason: string | null = null;
+        let setupEmailMessageId: string | undefined;
+        let requestEmailMessageId: string | undefined;
         let activationLinkIncluded = false;
         let verifyLinkIncluded = false;
         let activationLink: string | undefined;
@@ -1366,9 +1370,16 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (targetUser && targetEmailForNotification) {
           const publicBase = resolveOrigin(req).replace(/\/$/, "");
-          const shouldSendSetupFlow = targetUserProvisioned || body.forceSetupEmail === true;
-          const shouldSendActivation = shouldSendSetupFlow && !targetUser.password;
-          const shouldSendVerification = shouldSendSetupFlow && targetUser.emailVerified !== true;
+          const hasPassword =
+            typeof targetUser.password === "string" && targetUser.password.length > 0;
+          const isEmailVerified = targetUser.emailVerified === true;
+          const shouldSendSetupFlow =
+            body.forceSetupEmail === true ||
+            targetUserProvisioned ||
+            !hasPassword ||
+            !isEmailVerified;
+          const shouldSendActivation = shouldSendSetupFlow && !hasPassword;
+          const shouldSendVerification = shouldSendSetupFlow && !isEmailVerified;
           activationLinkIncluded = shouldSendActivation;
           verifyLinkIncluded = shouldSendVerification;
 
@@ -1409,6 +1420,9 @@ export function registerDirectConnectRoutes(app: Express) {
                 purpose: "account_creation",
               });
               setupEmailSent = emailResult.skipped !== true;
+              setupEmailMessageId = emailResult.messageId;
+              setupEmailSkippedReason =
+                emailResult.skipped === true ? "suppressed_or_unconfigured" : null;
             } else {
               const emailResult = await emailService.sendEmail({
                 to: targetEmailForNotification,
@@ -1422,10 +1436,24 @@ export function registerDirectConnectRoutes(app: Express) {
                 purpose: "notification",
               });
               requestEmailSent = emailResult.skipped !== true;
+              requestEmailMessageId = emailResult.messageId;
+              requestEmailSkippedReason =
+                emailResult.skipped === true ? "suppressed_or_unconfigured" : null;
             }
           } else if (process.env.NODE_ENV !== "production") {
             // In local/dev environments return links for manual testing.
             setupEmailSent = false;
+            if (shouldSendActivation || shouldSendVerification) {
+              setupEmailSkippedReason = "email_provider_not_configured";
+            } else {
+              requestEmailSkippedReason = "email_provider_not_configured";
+            }
+          } else {
+            if (shouldSendActivation || shouldSendVerification) {
+              setupEmailSkippedReason = "email_provider_not_configured";
+            } else {
+              requestEmailSkippedReason = "email_provider_not_configured";
+            }
           }
         }
 
@@ -1617,6 +1645,10 @@ export function registerDirectConnectRoutes(app: Express) {
           targetUserExisted,
           setupEmailSent,
           requestEmailSent,
+          setupEmailSkippedReason,
+          requestEmailSkippedReason,
+          setupEmailMessageId,
+          requestEmailMessageId,
           activationLinkIncluded,
           verifyLinkIncluded,
           resolvedTradeId: resolvedTrade?.slug ?? null,
