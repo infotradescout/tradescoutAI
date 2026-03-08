@@ -171,7 +171,7 @@ export function RightToolsPanel({
               className="text-[0.65rem] uppercase tracking-[0.3em]"
               style={{ color: "var(--text-secondary)" }}
             >
-              Your space
+              Your account
             </div>
             <div className="mt-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               {displayName}
@@ -255,13 +255,13 @@ export function RightToolsPanel({
           </div>
         </section>
 
-        {/* Workspaces (user-specific) */}
+        {/* Shortcuts (user-specific) */}
         <section>
           <div
             className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
             style={{ color: "var(--text-secondary)" }}
           >
-            Workspaces
+            Shortcuts
           </div>
           <div className="space-y-2">
             {hasAdminAccess ? (
@@ -273,11 +273,11 @@ export function RightToolsPanel({
                     style={{ color: "var(--theme-accent-primary)" }}
                   />
                 }
-                label={isSuperAdmin ? "Super Admin OS" : "Admin Operations"}
+                label="Admin"
                 description={
                   isSuperAdmin
                     ? "Full-site controls for TradeScout."
-                    : "Operations controls and monitoring tools."
+                    : "Review admin tools and site operations."
                 }
                 onNavigate={handleNavigate}
               />
@@ -290,8 +290,8 @@ export function RightToolsPanel({
                     style={{ color: "var(--theme-accent-primary)" }}
                   />
                 }
-                label="Scout hub"
-                description="Assistant-first workspace with your live dashboard."
+                label="Scout"
+                description="Ask questions, get help, and see your dashboard."
                 onNavigate={handleNavigate}
               />
             )}
@@ -303,7 +303,7 @@ export function RightToolsPanel({
                   style={{ color: "var(--theme-accent-primary)" }}
                 />
               }
-              label="Finances workspace"
+              label="Finances"
               description="Invoices, job records, and deal workflow."
               onNavigate={handleNavigate}
             />
@@ -315,7 +315,7 @@ export function RightToolsPanel({
                   style={{ color: "var(--theme-accent-primary)" }}
                 />
               }
-              label="HOA & neighborhood"
+              label="HOA & neighborhood tools"
               description="Join or manage your neighborhood HOA."
               onNavigate={handleNavigate}
             />
@@ -343,8 +343,8 @@ export function RightToolsPanel({
               icon={
                 <Users className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
               }
-              label="Connections"
-              description="People you've approved contact with."
+              label="Approved contacts"
+              description="People you can message directly."
               onNavigate={handleNavigate}
             />
             <NavLink
@@ -528,7 +528,7 @@ function EmbeddedNotesWorkspace() {
         className="px-3 pt-2 text-[0.7rem] uppercase tracking-[0.2em]"
         style={{ color: "var(--text-secondary)" }}
       >
-        Workspace notes
+        Notes
       </div>
       <div className="px-3 pb-2 space-y-2">
         <div>

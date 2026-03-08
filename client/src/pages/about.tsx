@@ -46,7 +46,7 @@ const About = memo(function About() {
       icon: Users,
       title: "Building Trust",
       description:
-        "Our verification system and community feedback create a trusted marketplace for home improvement.",
+        "Verification and community feedback help people find reliable local pros with more confidence.",
     },
     {
       icon: Shield,
@@ -112,15 +112,15 @@ const About = memo(function About() {
     },
     {
       icon: Users,
-      title: "Community-Centered",
+      title: "Built Around Local Communities",
       description:
-        "Local communities are at the heart of everything we do. We organize by local areas — counties, cities, and towns — to strengthen connections.",
+        "Local communities are at the heart of everything we do. We organize by local areas to strengthen connections between neighbors, pros, and community groups.",
     },
     {
       icon: Shield,
       title: "Trust & Transparency",
       description:
-        "Open feedback systems, verified recommendations, and transparent pricing help build trust across neighbors, pros, and community stakeholders.",
+        "Open feedback, verified recommendations, and clear pricing help build trust between neighbors and local pros.",
     },
     {
       icon: Heart,
@@ -200,9 +200,8 @@ const About = memo(function About() {
               </div>
               <h2 className="font-display text-3xl font-extrabold text-white mb-3">Why We Exist</h2>
               <p className="text-white/60 max-w-2xl mx-auto">
-                To create the most trusted community operating system for real-world work by
-                connecting local residents, professionals, and organizations while supporting
-                skilled trades and local communities.
+                To make it easier for local residents, skilled pros, and community groups to find
+                each other, work together, and get real projects done.
               </p>
             </Reveal>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

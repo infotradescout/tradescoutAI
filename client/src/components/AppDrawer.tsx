@@ -10,9 +10,7 @@ interface AppDrawerProps {
 }
 
 export default function AppDrawer({ isOpen, onClose, isAdmin }: AppDrawerProps) {
-  const sections = isAdmin
-    ? [{ label: "Admin OS", href: "/admin" }, ...NAV_SECTIONS]
-    : NAV_SECTIONS;
+  const sections = isAdmin ? [{ label: "Admin", href: "/admin" }, ...NAV_SECTIONS] : NAV_SECTIONS;
 
   return (
     <>
@@ -31,7 +29,7 @@ export default function AppDrawer({ isOpen, onClose, isAdmin }: AppDrawerProps) 
         <div className="bg-tsCardHeader text-tsCardHeaderFg p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Grid3x3 className="w-6 h-6" />
-            <h2 className="text-xl font-bold">TradeScout Sections</h2>
+            <h2 className="text-xl font-bold">Browse TradeScout</h2>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-tsCard/20 rounded-lg transition">
             <X className="w-6 h-6" />
@@ -40,7 +38,7 @@ export default function AppDrawer({ isOpen, onClose, isAdmin }: AppDrawerProps) 
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          <h3 className="text-xs uppercase text-muted-foreground tracking-wide mb-3">Sections</h3>
+          <h3 className="text-xs uppercase text-muted-foreground tracking-wide mb-3">Pages</h3>
           <div className="space-y-1">
             {sections.map((item) => (
               <Link
@@ -57,7 +55,7 @@ export default function AppDrawer({ isOpen, onClose, isAdmin }: AppDrawerProps) 
         </div>
 
         <div className="border-t border-white/10 bg-tsBg p-4 text-center text-sm text-muted-foreground">
-          <p>TradeScout OS • Your Local Operating System</p>
+          <p>TradeScout • Local help, local connections</p>
         </div>
       </div>
     </>

@@ -478,6 +478,13 @@ export default function HomeScoutListingPage() {
     (contactPublicProfile as any)?.userRole ||
     "Seller/Agent";
   const realtorProfile = (contactPublicProfile as any)?.realtorProfile || null;
+  const contactProfileHref =
+    typeof (contactPublicProfile as any)?.canonicalProfileUrl === "string" &&
+    (contactPublicProfile as any).canonicalProfileUrl.trim().length > 0
+      ? String((contactPublicProfile as any).canonicalProfileUrl).trim()
+      : contactUserId
+        ? `/profile/${encodeURIComponent(String(contactUserId))}`
+        : null;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
@@ -1010,8 +1017,8 @@ export default function HomeScoutListingPage() {
                       : String(targetRole)}
                   </div>
                 </div>
-                {contactUserId ? (
-                  <Link href={`/profile/${encodeURIComponent(String(contactUserId))}`}>
+                {contactProfileHref ? (
+                  <Link href={contactProfileHref}>
                     <Button size="sm" variant="outline">
                       View profile
                     </Button>

@@ -32,6 +32,10 @@ interface CommunityPost {
   trending: boolean;
 }
 
+interface PublicProfileLinkPayload {
+  canonicalProfileUrl?: string | null;
+}
+
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
   const now = new Date();
@@ -63,6 +67,19 @@ export default function CommunityProfile() {
       });
       const res = await fetch(`/api/community/posts?${search.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch community posts");
+      return res.json();
+    },
+  });
+
+  const { data: publicProfileLink } = useQuery<PublicProfileLinkPayload | null>({
+    queryKey: ["/api/users/public-link", userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${encodeURIComponent(userId)}/public`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return null;
       return res.json();
     },
   });
@@ -102,6 +119,12 @@ export default function CommunityProfile() {
     });
   }, [posts]);
 
+  const publicProfileHref =
+    typeof publicProfileLink?.canonicalProfileUrl === "string" &&
+    publicProfileLink.canonicalProfileUrl.trim().length > 0
+      ? publicProfileLink.canonicalProfileUrl.trim()
+      : `/profile/${encodeURIComponent(userId)}`;
+
   return (
     <div className="">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -137,7 +160,7 @@ export default function CommunityProfile() {
                 variant="outline"
                 className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
               >
-                <Link href={`/profile/${encodeURIComponent(userId)}`}>View public profile</Link>
+                <Link href={publicProfileHref}>View public profile</Link>
               </Button>
             </div>
           </CardHeader>

@@ -12,6 +12,7 @@ import {
   neighborhoods,
   users,
   socialPostSaves,
+  profiles,
 } from "@shared/schema";
 import { storage } from "./storage";
 import { isAuthenticated, requirePermission } from "./auth";
@@ -1047,7 +1048,34 @@ export function registerSocialRoutes(app: Express) {
         .where(eq(userFollows.followerId, userId))
         .orderBy(desc(userFollows.createdAt));
 
-      res.json(rows);
+      const profileRows = rows.length
+        ? await db
+            .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
+            .from(profiles)
+            .where(
+              and(
+                inArray(
+                  profiles.ownerUserId,
+                  rows.map((row) => row.id)
+                ),
+                eq(profiles.status, "published")
+              )
+            )
+        : [];
+
+      const canonicalProfileUrlByUserId = new Map<string, string>();
+      for (const row of profileRows) {
+        if (!canonicalProfileUrlByUserId.has(row.ownerUserId)) {
+          canonicalProfileUrlByUserId.set(row.ownerUserId, `/u/${row.slug}`);
+        }
+      }
+
+      res.json(
+        rows.map((row) => ({
+          ...row,
+          canonicalProfileUrl: canonicalProfileUrlByUserId.get(row.id) ?? null,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching following list:", error);
       res.status(500).json({ message: "Failed to fetch following list" });
@@ -1076,7 +1104,34 @@ export function registerSocialRoutes(app: Express) {
         .where(eq(userFollows.followingId, userId))
         .orderBy(desc(userFollows.createdAt));
 
-      res.json(rows);
+      const profileRows = rows.length
+        ? await db
+            .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
+            .from(profiles)
+            .where(
+              and(
+                inArray(
+                  profiles.ownerUserId,
+                  rows.map((row) => row.id)
+                ),
+                eq(profiles.status, "published")
+              )
+            )
+        : [];
+
+      const canonicalProfileUrlByUserId = new Map<string, string>();
+      for (const row of profileRows) {
+        if (!canonicalProfileUrlByUserId.has(row.ownerUserId)) {
+          canonicalProfileUrlByUserId.set(row.ownerUserId, `/u/${row.slug}`);
+        }
+      }
+
+      res.json(
+        rows.map((row) => ({
+          ...row,
+          canonicalProfileUrl: canonicalProfileUrlByUserId.get(row.id) ?? null,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching followers list:", error);
       res.status(500).json({ message: "Failed to fetch followers list" });

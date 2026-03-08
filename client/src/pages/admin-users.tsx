@@ -76,6 +76,7 @@ type User = {
   addressVerified?: boolean;
   onboardingCompleted: boolean;
   createdAt: string;
+  canonicalProfileUrl?: string | null;
 };
 
 type SavedView = {
@@ -1419,7 +1420,12 @@ export default function AdminUsers() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onSelect={() => {
-                                        window.location.assign(`/profile/${user.id}`);
+                                        window.location.assign(
+                                          typeof user.canonicalProfileUrl === "string" &&
+                                            user.canonicalProfileUrl.trim().length > 0
+                                            ? user.canonicalProfileUrl.trim()
+                                            : `/profile/${user.id}`
+                                        );
                                       }}
                                       className="cursor-pointer"
                                     >

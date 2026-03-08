@@ -146,11 +146,9 @@ describe("direct-connect gate regressions", () => {
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
 
-    expect(directConnectShellFile).toContain("Start a governed request");
-    expect(directConnectShellFile).toContain("Manage live requests");
-    expect(directConnectShellFile).toContain(
-      "See what still needs your action, what is already out with pros, and what is in conversation."
-    );
+    expect(directConnectShellFile).toContain("Start a request");
+    expect(directConnectShellFile).toContain("Manage your requests");
+    expect(directConnectShellFile).toContain("View my requests");
     expect(directConnectShellFile).toContain(
       "Manage mode keeps request state and response state together."
     );

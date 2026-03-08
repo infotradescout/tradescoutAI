@@ -155,15 +155,15 @@ export default function Navigation() {
       href: "/scout",
       label: "Scout",
       icon: Layout,
-      description: "Assistant-first hub with your live dashboard",
+      description: "Ask questions, get help, and see your dashboard",
     },
     ...(isAdmin
       ? [
           {
             href: "/admin",
-            label: "Admin Operations",
+            label: "Admin",
             icon: Settings,
-            description: "Open Admin OS for all tools",
+            description: "Site controls and admin tools",
           },
         ]
       : []),

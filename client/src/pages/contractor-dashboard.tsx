@@ -12,7 +12,7 @@ export default function ContractorDashboard() {
     <div className="text-foreground">
       <div className="space-y-8">
         <header className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-primary">Contractor workspace</p>
+          <p className="text-xs uppercase tracking-wide text-primary">Contractor dashboard</p>
           <h1 className="text-3xl font-bold text-foreground">
             Welcome{user?.firstName ? `, ${user.firstName}` : ""}
           </h1>
@@ -33,7 +33,7 @@ export default function ContractorDashboard() {
               <CardTitle className="text-sm text-foreground">Create your first invoice</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 Record work you&apos;ve already done or bill a new job. Your invoices will show up
-                in the Finances workspace.
+                in Finances.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">

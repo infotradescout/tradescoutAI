@@ -1,17 +1,17 @@
-import { memo, useState, ChangeEvent } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, Heart, Share2, Image as ImageIcon } from 'lucide-react';
+import { memo, useState, ChangeEvent } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Settings as SettingsIcon } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, Heart, Share2, Image as ImageIcon } from "lucide-react";
 import {
   AVAILABLE_WIDGETS,
   ActivityStatsWidget,
@@ -23,10 +23,10 @@ import {
   CommunityFeedWidget,
   AffiliateStatsWidget,
   CommunityBuilderImpactWidget,
-} from '@/components/dashboard/DashboardWidgets';
-import { LocalImpactCard } from '@/components/dashboard/LocalImpactCard';
-import { HoaLeadershipBadge } from '@/components/dashboard/HoaLeadershipBadge';
-import { uploadObject } from '@/lib/objectUpload';
+} from "@/components/dashboard/DashboardWidgets";
+import { LocalImpactCard } from "@/components/dashboard/LocalImpactCard";
+import { HoaLeadershipBadge } from "@/components/dashboard/HoaLeadershipBadge";
+import { uploadObject } from "@/lib/objectUpload";
 
 interface Post {
   id: string;
@@ -42,7 +42,6 @@ interface Post {
   shareCount: number;
 }
 
-
 const Dashboard = memo(function Dashboard() {
   const { user } = useAuth();
   const isCommunityFirst = Boolean((user as any)?.communityFirst);
@@ -52,8 +51,11 @@ const Dashboard = memo(function Dashboard() {
   // but community-first users get a softer empty state.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyGlobal: any =
-    typeof (globalThis as any).workspace !== 'undefined' ? (globalThis as any).workspace : undefined;
-  const workspaceId = anyGlobal?.id || (user as any)?.workspaceId || (user as any)?.businessId || null;
+    typeof (globalThis as any).workspace !== "undefined"
+      ? (globalThis as any).workspace
+      : undefined;
+  const workspaceId =
+    anyGlobal?.id || (user as any)?.workspaceId || (user as any)?.businessId || null;
   const isAuthenticated = Boolean(user);
   const canLoadDashboard =
     isAuthenticated &&
@@ -66,12 +68,12 @@ const Dashboard = memo(function Dashboard() {
   const queryClient = useQueryClient();
 
   const { data: preferences, isLoading: preferencesLoading } = useQuery({
-    queryKey: ['/api/users/preferences'],
+    queryKey: ["/api/users/preferences"],
     enabled: canLoadDashboard,
   });
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
-    queryKey: ['/api/community/posts'],
+    queryKey: ["/api/community/posts"],
     enabled: canLoadDashboard,
   });
 
@@ -85,7 +87,7 @@ const Dashboard = memo(function Dashboard() {
         const { publicUrl } = await uploadObject(file);
         uploaded.push(publicUrl);
       } catch (error) {
-        console.error('Failed to upload dashboard post image', error);
+        console.error("Failed to upload dashboard post image", error);
       }
     }
 
@@ -98,24 +100,24 @@ const Dashboard = memo(function Dashboard() {
 
   const createPostMutation = useMutation({
     mutationFn: async (postData: { content: string; title?: string; images?: string[] }) => {
-      const response = await fetch('/api/community/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/community/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: postData.content,
           title: postData.title,
           images: postData.images,
-          postType: 'discussion',
-          visibility: 'public'
+          postType: "discussion",
+          visibility: "public",
         }),
       });
-      if (!response.ok) throw new Error('Failed to create post');
+      if (!response.ok) throw new Error("Failed to create post");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
       setShowNewPostForm(false);
-      setNewPostContent('');
+      setNewPostContent("");
       setNewPostImages([]);
       toast({
         title: "Posted!",
@@ -128,21 +130,21 @@ const Dashboard = memo(function Dashboard() {
         description: "Failed to create post. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const likePostMutation = useMutation({
     mutationFn: async (postId: string) => {
       const response = await fetch(`/api/community/posts/${postId}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error('Failed to like post');
+      if (!response.ok) throw new Error("Failed to like post");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/community/posts'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
+    },
   });
 
   const handleCreatePost = () => {
@@ -161,9 +163,9 @@ const Dashboard = memo(function Dashboard() {
 
   type DashboardWidgetId = (typeof AVAILABLE_WIDGETS)[number]["id"];
 
-  const defaultEnabledWidgets: DashboardWidgetId[] = AVAILABLE_WIDGETS
-    .filter((w) => w.defaultEnabled)
-    .map((w) => w.id);
+  const defaultEnabledWidgets: DashboardWidgetId[] = AVAILABLE_WIDGETS.filter(
+    (w) => w.defaultEnabled
+  ).map((w) => w.id);
 
   const dashboardPrefs = (preferences && (preferences as any).dashboard) || {};
 
@@ -175,11 +177,12 @@ const Dashboard = memo(function Dashboard() {
 
   const defaultWidgetOrder: DashboardWidgetId[] = AVAILABLE_WIDGETS.map((w) => w.id);
 
-  let widgetOrder: DashboardWidgetId[] = Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
-    ? (dashboardPrefs.widgetOrder.filter((id: string): id is DashboardWidgetId =>
-        AVAILABLE_WIDGETS.some((w) => w.id === id)
-      ) as DashboardWidgetId[])
-    : defaultWidgetOrder;
+  let widgetOrder: DashboardWidgetId[] =
+    Array.isArray(dashboardPrefs.widgetOrder) && dashboardPrefs.widgetOrder.length
+      ? (dashboardPrefs.widgetOrder.filter((id: string): id is DashboardWidgetId =>
+          AVAILABLE_WIDGETS.some((w) => w.id === id)
+        ) as DashboardWidgetId[])
+      : defaultWidgetOrder;
 
   // Ensure the widget order stays in sync with AVAILABLE_WIDGETS
   const availableIdSet = new Set<DashboardWidgetId>(defaultWidgetOrder);
@@ -193,15 +196,15 @@ const Dashboard = memo(function Dashboard() {
   const orderedEnabledWidgets = widgetOrder.filter((id) => enabledWidgets.includes(id));
 
   const widgetComponents: Record<string, React.ComponentType<{ className?: string }>> = {
-    'activity-stats': ActivityStatsWidget,
-    'quick-actions': QuickActionsWidget,
-    'recent-projects': RecentProjectsWidget,
-    'saved-contractors': SavedContractorsWidget,
-    'messages-preview': MessagesPreviewWidget,
-    'notifications': NotificationsWidget,
-    'community-feed': CommunityFeedWidget,
-    'affiliate-stats': AffiliateStatsWidget,
-    'community-builder-impact': CommunityBuilderImpactWidget,
+    "activity-stats": ActivityStatsWidget,
+    "quick-actions": QuickActionsWidget,
+    "recent-projects": RecentProjectsWidget,
+    "saved-contractors": SavedContractorsWidget,
+    "messages-preview": MessagesPreviewWidget,
+    notifications: NotificationsWidget,
+    "community-feed": CommunityFeedWidget,
+    "affiliate-stats": AffiliateStatsWidget,
+    "community-builder-impact": CommunityBuilderImpactWidget,
   };
 
   if (!canLoadDashboard) {
@@ -213,10 +216,12 @@ const Dashboard = memo(function Dashboard() {
               Your tools live here when you need them
             </h1>
             <p className="text-sm text-muted-foreground">
-              Use this workspace to keep track of your Direct Connect requests, saved pros, and activity as your community life grows.
+              Use this dashboard to keep track of your Direct Connect requests, saved pros, and
+              activity as your community life grows.
             </p>
             <p className="text-sm text-muted-foreground">
-              For now, see what&apos;s happening in your community and come back here whenever you want to organize things.
+              For now, see what&apos;s happening in your community and come back here whenever you
+              want to organize things.
             </p>
             <div className="mt-4">
               <Link href="/community-feed">
@@ -248,7 +253,7 @@ const Dashboard = memo(function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h1 className="text-lg font-semibold text-primary">
-              Welcome back, {user?.firstName || 'Friend'}!
+              Welcome back, {user?.firstName || "Friend"}!
             </h1>
             <p className="text-sm text-white/60 dark:text-white/60">
               Here's what's happening in your community
@@ -279,7 +284,7 @@ const Dashboard = memo(function Dashboard() {
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={user?.profileImageUrl} />
                     <AvatarFallback className="bg-ts-orange text-white">
-                      {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+                      {user?.firstName?.[0] || user?.email?.[0] || "U"}
                     </AvatarFallback>
                   </Avatar>
                   {!showNewPostForm ? (
@@ -305,7 +310,7 @@ const Dashboard = memo(function Dashboard() {
                             <div
                               key={url + index}
                               className="relative w-full overflow-hidden rounded-md border border-white/10 dark:border-white/15 bg-black/40"
-                              style={{ paddingBottom: '70%' }}
+                              style={{ paddingBottom: "70%" }}
                             >
                               <img
                                 src={url}
@@ -338,25 +343,25 @@ const Dashboard = memo(function Dashboard() {
                           />
                         </label>
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => {
                               setShowNewPostForm(false);
-                              setNewPostContent('');
+                              setNewPostContent("");
                               setNewPostImages([]);
                             }}
                           >
                             Cancel
                           </Button>
-                          <Button 
+                          <Button
                             onClick={handleCreatePost}
                             disabled={!newPostContent.trim() || createPostMutation.isPending}
                             size="sm"
                             className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white"
                             data-testid="button-submit-post"
                           >
-                            {createPostMutation.isPending ? 'Posting...' : 'Post'}
+                            {createPostMutation.isPending ? "Posting..." : "Post"}
                           </Button>
                         </div>
                       </div>
@@ -374,29 +379,35 @@ const Dashboard = memo(function Dashboard() {
                   <p className="text-white/60 dark:text-white/60 mt-4 text-sm">Loading feed...</p>
                 </CardContent>
               </Card>
-            ) : (!Array.isArray(posts) || posts.length === 0) ? (
+            ) : !Array.isArray(posts) || posts.length === 0 ? (
               <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm">
                 <CardContent className="p-12 text-center">
-                  <h3 className="text-lg font-semibold mb-2 text-ts-orange">Welcome to your neighborhood!</h3>
-                  <p className="text-sm text-white/60 dark:text-white/60">Be the first to share something with your community.</p>
+                  <h3 className="text-lg font-semibold mb-2 text-ts-orange">
+                    Welcome to your neighborhood!
+                  </h3>
+                  <p className="text-sm text-white/60 dark:text-white/60">
+                    Be the first to share something with your community.
+                  </p>
                 </CardContent>
               </Card>
             ) : (
-              Array.isArray(posts) && posts.map((post: Post) => (
-                <Card key={post.id} className="bg-tsBg dark:bg-white/5 border-0 shadow-sm hover:shadow-md transition-shadow">
+              Array.isArray(posts) &&
+              posts.map((post: Post) => (
+                <Card
+                  key={post.id}
+                  className="bg-tsBg dark:bg-white/5 border-0 shadow-sm hover:shadow-md transition-shadow"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="bg-blue-500 text-white text-sm">
-                          {post.authorId?.charAt(0)?.toUpperCase() || 'U'}
+                          {post.authorId?.charAt(0)?.toUpperCase() || "U"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-semibold text-sm text-ts-orange">
-                            Neighbor
-                          </h4>
-                          {post.postType === 'promotion' && (
+                          <h4 className="font-semibold text-sm text-ts-orange">Neighbor</h4>
+                          {post.postType === "promotion" && (
                             <Badge className="bg-ts-orange/10 text-ts-orange dark:bg-ts-orange/10 dark:text-ts-orange text-xs">
                               Contractor
                             </Badge>
@@ -411,22 +422,24 @@ const Dashboard = memo(function Dashboard() {
                     {post.title && (
                       <h3 className="text-base font-semibold mb-2 text-ts-orange">{post.title}</h3>
                     )}
-                    <p className="text-sm text-white/70 dark:text-white/70 mb-2 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-sm text-white/70 dark:text-white/70 mb-2 whitespace-pre-wrap">
+                      {post.content}
+                    </p>
 
                     {(() => {
                       const images =
                         (post as any).imageUrls && Array.isArray((post as any).imageUrls)
                           ? ((post as any).imageUrls as string[])
                           : Array.isArray(post.images)
-                          ? post.images
-                          : [];
+                            ? post.images
+                            : [];
                       return images.length > 0 ? (
                         <div className="mb-3 grid grid-cols-2 gap-2">
                           {images.slice(0, 4).map((url, index) => (
                             <div
                               key={url + index}
                               className="relative w-full overflow-hidden rounded-md border border-white/10 dark:border-white/10 bg-black/40"
-                              style={{ paddingBottom: '70%' }}
+                              style={{ paddingBottom: "70%" }}
                             >
                               <img
                                 src={url}
@@ -441,8 +454,16 @@ const Dashboard = memo(function Dashboard() {
 
                     {(post.likeCount > 0 || post.commentCount > 0) && (
                       <div className="flex items-center gap-4 text-xs text-white/60 dark:text-white/60 mb-2 pb-2 border-b border-white/10 dark:border-white/10">
-                        {post.likeCount > 0 && <span>{post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}</span>}
-                        {post.commentCount > 0 && <span>{post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}</span>}
+                        {post.likeCount > 0 && (
+                          <span>
+                            {post.likeCount} {post.likeCount === 1 ? "like" : "likes"}
+                          </span>
+                        )}
+                        {post.commentCount > 0 && (
+                          <span>
+                            {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -472,10 +493,11 @@ const Dashboard = memo(function Dashboard() {
           {/* Snapshot Grid (role-aware via preferences) */}
           <div>
             <div className="grid lg:grid-cols-3 gap-4">
-              {Array.isArray(orderedEnabledWidgets) && orderedEnabledWidgets.map((widgetId: string) => {
-                const WidgetComponent = widgetComponents[widgetId];
-                return WidgetComponent ? <WidgetComponent key={widgetId} /> : null;
-              })}
+              {Array.isArray(orderedEnabledWidgets) &&
+                orderedEnabledWidgets.map((widgetId: string) => {
+                  const WidgetComponent = widgetComponents[widgetId];
+                  return WidgetComponent ? <WidgetComponent key={widgetId} /> : null;
+                })}
 
               {(!Array.isArray(orderedEnabledWidgets) || orderedEnabledWidgets.length === 0) && (
                 <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm lg:col-span-3">

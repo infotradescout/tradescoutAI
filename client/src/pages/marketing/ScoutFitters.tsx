@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Shirt, Upload, ShieldCheck, Truck, BadgeCheck, Sparkles } from "lucide-react";
+import { useLocation } from "wouter";
+import { Shirt, Upload, ShieldCheck, Truck, BadgeCheck, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,6 +232,7 @@ function isQualityOk(dims: { width: number; height: number }, placement: Placeme
 }
 
 export default function ScoutFitters() {
+  const [, navigate] = useLocation();
   const [tier, setTier] = useState<TierKey>("high");
   const [placement, setPlacement] = useState<PlacementKey>("left_chest");
   const [quantity, setQuantity] = useState<number>(1);
@@ -782,8 +784,8 @@ export default function ScoutFitters() {
           </p>
           <p className="text-xs text-white/70 mt-2">
             Selected: <span className="text-white">{tierSpec.label}</span> • Unit:{" "}
-            <span className="text-white">${unitPrice.toFixed(2)}</span> • Subtotal:{" "}
-            <span className="text-white">${subtotal.toFixed(2)}</span>
+            <span className="text-white">{formatMoney(unitPrice)}</span> • Subtotal:{" "}
+            <span className="text-white">{formatMoney(subtotal)}</span>
           </p>
           <p className="text-xs text-white/70 mt-1">
             Configured catalog: <span className="text-white">{configuredTierKeys.length}</span>{" "}

@@ -48,9 +48,9 @@ const SECTION_LABELS: Record<Section, string> = {
   post: "New Request",
   board: "Local Requests",
   employment: "Jobs",
-  inbox: "Pros Responding",
+  inbox: "Replies",
   pros: "Find Pros",
-  engagements: "Request Tracker",
+  engagements: "My Requests",
 };
 
 type FlowMode = "start" | "manage";
@@ -66,17 +66,16 @@ const FLOW_MODE_META: Record<
   }
 > = {
   start: {
-    title: "Start a governed request",
+    title: "Start a request",
     description:
-      "Create a request with enough clarity that Scout can route it, providers can qualify it, and the board stays actionable.",
+      "Describe what you need so the right local pros can understand the job and respond.",
     target: "post",
     sections: ["post", "pros", "board", "employment"],
     icon: <ClipboardPlus className="h-5 w-5" />,
   },
   manage: {
-    title: "Manage live requests",
-    description:
-      "Review what is open, what is getting routed, who has responded, and what next action is available without hunting through the portal.",
+    title: "Manage your requests",
+    description: "See what is still open, who replied, and what you need to do next.",
     target: "engagements",
     sections: ["engagements", "inbox"],
     icon: <FolderKanban className="h-5 w-5" />,
@@ -111,9 +110,9 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   inbox: {
-    title: "Pros responding",
+    title: "Replies",
     description: "Review who has responded and move accepted work into conversation.",
-    actionLabel: "View request tracker",
+    actionLabel: "View my requests",
     actionTarget: "engagements",
   },
   pros: {
@@ -123,7 +122,7 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   engagements: {
-    title: "Request tracker",
+    title: "My requests",
     description:
       "See what still needs your action, what is already out with pros, and what is in conversation.",
     actionLabel: "View replies",
@@ -445,8 +444,8 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     customer_support: {
       label: "Hire for someone else",
       category: "customer_support",
-      titlePlaceholder: "A customer needs help with...",
-      descriptionPlaceholder: "Explain the issue, where it is, and how urgent it is.",
+      titlePlaceholder: "Someone else needs help with...",
+      descriptionPlaceholder: "Explain what they need, where it is, and how urgent it is.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
@@ -1593,8 +1592,7 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)] mt-1">
-              Start a governed request, then manage it from a request board that keeps status,
-              photos, and next actions in one place.
+              Start a request, then keep track of replies, photos, and next steps in one place.
             </p>
           </div>
 
@@ -1630,7 +1628,7 @@ export default function DirectConnectShell() {
               <>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
                   <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Pros responding</span>
+                  <span className="text-[color:var(--text-secondary)]">Replies</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {navCounts.inbox || 0}
                   </span>

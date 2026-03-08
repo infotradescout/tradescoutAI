@@ -27,6 +27,7 @@ import {
   decisionCards,
   users,
   userFollows,
+  profiles,
   contactPermissions,
   conversations,
   messages,
@@ -1184,6 +1185,22 @@ export function registerSocialFeatures(app: Express) {
 
         const usersById = new Map(userRows.map((row) => [row.id, row]));
 
+        const profileRows = partnerIds.length
+          ? await db
+              .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
+              .from(profiles)
+              .where(
+                and(inArray(profiles.ownerUserId, partnerIds), eq(profiles.status, "published"))
+              )
+          : [];
+
+        const canonicalProfileUrlByUserId = new Map<string, string>();
+        for (const row of profileRows) {
+          if (!canonicalProfileUrlByUserId.has(row.ownerUserId)) {
+            canonicalProfileUrlByUserId.set(row.ownerUserId, `/u/${row.slug}`);
+          }
+        }
+
         const convRows = await db
           .select({
             id: marketplaceConversations.id,
@@ -1227,6 +1244,7 @@ export function registerSocialFeatures(app: Express) {
               state: partner.state ?? null,
               roles: partner.roles ?? null,
               role: partner.role ?? null,
+              canonicalProfileUrl: canonicalProfileUrlByUserId.get(partner.id) ?? null,
               connectedAt: connectedAt ? connectedAt.toISOString() : null,
               intent: permission.intent ?? null,
               authorityGate: permission.authorityGate ?? null,

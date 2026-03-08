@@ -1225,7 +1225,7 @@ export default function ProfileSettings() {
                 <Home className="h-5 w-5 text-ts-orange" />
                 Default home page
               </CardTitle>
-              <CardDescription>Pick the first workspace you see after login.</CardDescription>
+              <CardDescription>Pick the first page you see after login.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">

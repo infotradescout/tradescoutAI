@@ -45,7 +45,7 @@ export default function ProfileCompletionBanner() {
   const description =
     mode === "local_setup"
       ? "Pick your primary county so Scout can route correctly."
-      : "Tell Scout what you’re here to do so your workspace and matches are accurate.";
+      : "Tell Scout what you're here to do so your dashboard and matches fit what you need.";
   const ctaLabel = mode === "local_setup" ? "Continue setup" : "Confirm with Scout";
   const onClick = () => {
     if (mode === "local_setup") {

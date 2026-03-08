@@ -18,6 +18,7 @@ interface ConnectionUser {
   roles?: string[] | null;
   role?: string | null;
   followedAt?: string | null;
+  canonicalProfileUrl?: string | null;
 }
 
 interface ContactConnection {
@@ -35,6 +36,7 @@ interface ContactConnection {
   decisionScope?: string | null;
   countyFips?: string | null;
   threadId?: string | null;
+  canonicalProfileUrl?: string | null;
 }
 
 interface IncomingContactRequest {
@@ -86,6 +88,10 @@ function ConnectionList({ users }: { users: ConnectionUser[] }) {
             ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
             : "TradeScout User";
         const location = [u.city, u.state].filter(Boolean).join(", ") || "Location not set";
+        const profileHref =
+          typeof u.canonicalProfileUrl === "string" && u.canonicalProfileUrl.trim().length > 0
+            ? u.canonicalProfileUrl.trim()
+            : `/profile/${u.id}`;
 
         return (
           <div
@@ -105,7 +111,7 @@ function ConnectionList({ users }: { users: ConnectionUser[] }) {
                 <span className="text-xs text-muted-foreground">{location}</span>
               </div>
             </div>
-            <Link href={`/profile/${u.id}`}>
+            <Link href={profileHref}>
               <Button size="sm" variant="outline">
                 View profile
               </Button>
@@ -137,6 +143,10 @@ function ContactConnectionsList({ connections }: { connections: ContactConnectio
         const connectedAtLabel = c.connectedAt
           ? new Date(c.connectedAt).toLocaleDateString()
           : null;
+        const profileHref =
+          typeof c.canonicalProfileUrl === "string" && c.canonicalProfileUrl.trim().length > 0
+            ? c.canonicalProfileUrl.trim()
+            : `/profile/${c.id}`;
 
         return (
           <div
@@ -165,7 +175,7 @@ function ContactConnectionsList({ connections }: { connections: ContactConnectio
                   <Button size="sm">Message</Button>
                 </Link>
               ) : null}
-              <Link href={`/profile/${c.id}`}>
+              <Link href={profileHref}>
                 <Button size="sm" variant="outline">
                   View profile
                 </Button>

@@ -133,6 +133,7 @@ import {
   walletTransactions,
   marketplaceTransactions,
   userProfiles,
+  profiles,
   businessCounties,
   // Home Vault + Property Lifecycle OS (used by intent-gated home report sharing in messages)
   homeReportShares,
@@ -7357,6 +7358,23 @@ export async function registerRoutes(app: any) {
           )
           .limit(Math.min(limit, 2000));
 
+        const providerIds = rows.map((row) => String(row.providerId));
+        const profileRows = providerIds.length
+          ? await db
+              .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
+              .from(profiles)
+              .where(
+                and(inArray(profiles.ownerUserId, providerIds), eq(profiles.status, "published"))
+              )
+          : [];
+
+        const canonicalProfileUrlByProviderId = new Map<string, string>();
+        for (const row of profileRows) {
+          if (!canonicalProfileUrlByProviderId.has(row.ownerUserId)) {
+            canonicalProfileUrlByProviderId.set(row.ownerUserId, `/u/${row.slug}`);
+          }
+        }
+
         for (const row of rows) {
           const lat = Number(row.lat);
           const lng = Number(row.lng);
@@ -7374,7 +7392,9 @@ export async function registerRoutes(app: any) {
             lng,
             title: row.displayName,
             subtitle: verifiedStatus === "verified" ? "Verified provider" : "Provider",
-            href: `/profile/${encodeURIComponent(String(row.providerId))}`,
+            href:
+              canonicalProfileUrlByProviderId.get(String(row.providerId)) ??
+              `/profile/${encodeURIComponent(String(row.providerId))}`,
             meta: {
               role: row.role ?? null,
               verifiedStatus,
@@ -7787,7 +7807,30 @@ export async function registerRoutes(app: any) {
       }
 
       const users = await storage.getAllUsers();
-      res.json(users);
+      const userIds = users
+        .map((entry: any) => String(entry?.id || "").trim())
+        .filter((id: string) => id.length > 0);
+
+      const profileRows = userIds.length
+        ? await db
+            .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
+            .from(profiles)
+            .where(and(inArray(profiles.ownerUserId, userIds), eq(profiles.status, "published")))
+        : [];
+
+      const canonicalProfileUrlByUserId = new Map<string, string>();
+      for (const row of profileRows) {
+        if (!canonicalProfileUrlByUserId.has(row.ownerUserId)) {
+          canonicalProfileUrlByUserId.set(row.ownerUserId, `/u/${row.slug}`);
+        }
+      }
+
+      res.json(
+        users.map((entry: any) => ({
+          ...entry,
+          canonicalProfileUrl: canonicalProfileUrlByUserId.get(String(entry?.id || "")) ?? null,
+        }))
+      );
     } catch (error: any) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });

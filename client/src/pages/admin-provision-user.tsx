@@ -65,8 +65,8 @@ export default function AdminProvisionUser() {
     },
     {
       value: "customer_support",
-      label: "Customer support",
-      helper: "Support help needed for an existing customer.",
+      label: "Hire for someone else",
+      helper: "Create a request on behalf of someone else who needs help.",
     },
   ] as const;
 
