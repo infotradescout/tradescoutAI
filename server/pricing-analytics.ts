@@ -15,6 +15,7 @@ import {
   trades,
   userProfiles,
   users,
+  workRequests,
 } from "@shared/schema";
 
 export interface PricingAnalytics {
@@ -84,6 +85,14 @@ export class PricingAnalyticsService {
     return ((current - previous) / previous) * 100;
   }
 
+  private estimatePreviousFromTrend(current: number, trendPercent: number): number {
+    if (!Number.isFinite(current) || current <= 0) return 0;
+    if (!Number.isFinite(trendPercent)) return current;
+    const denominator = 1 + trendPercent / 100;
+    if (!Number.isFinite(denominator) || denominator <= 0) return current;
+    return current / denominator;
+  }
+
   /**
    * Get comprehensive pricing analytics for admin dashboard
    */
@@ -142,7 +151,87 @@ export class PricingAnalyticsService {
       });
     }
 
-    // Fallback: if no lead-based trade stats exist, use provider trade coverage so admins
+    // Fallback: derive trade pricing from real pricing catalog rows.
+    if (Object.keys(byTrade).length === 0) {
+      const midpointExpr = sql<number>`
+        case
+          when ${pricingData.baseLow} is not null and ${pricingData.baseHigh} is not null
+            then (cast(${pricingData.baseLow} as numeric) + cast(${pricingData.baseHigh} as numeric)) / 2
+          when ${pricingData.baseLow} is not null then cast(${pricingData.baseLow} as numeric)
+          when ${pricingData.baseHigh} is not null then cast(${pricingData.baseHigh} as numeric)
+          else null
+        end
+      `;
+
+      const currentCatalogRows = await db
+        .select({
+          service: pricingData.service,
+          count: sql<number>`count(*)::int`,
+          avgValue: sql<number>`coalesce(avg(${midpointExpr}), 0)::float`,
+        })
+        .from(pricingData)
+        .where(
+          sql`coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) >= ${currentStart}
+              and coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) < ${now}`
+        )
+        .groupBy(pricingData.service);
+
+      const previousCatalogRows = await db
+        .select({
+          service: pricingData.service,
+          avgValue: sql<number>`coalesce(avg(${midpointExpr}), 0)::float`,
+        })
+        .from(pricingData)
+        .where(
+          sql`coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) >= ${previousStart}
+              and coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) < ${currentStart}`
+        )
+        .groupBy(pricingData.service);
+
+      const previousCatalogMap = new Map<string, number>();
+      for (const row of previousCatalogRows) {
+        if (row.service) previousCatalogMap.set(String(row.service), this.toNumber(row.avgValue));
+      }
+
+      const services = currentCatalogRows
+        .map((row) => String(row.service || "").trim())
+        .filter(Boolean);
+      const uniqueServices = Array.from(new Set(services));
+      const tradeRows =
+        uniqueServices.length > 0
+          ? await db
+              .select({ slug: trades.slug, name: trades.name })
+              .from(trades)
+              .where(inArray(trades.slug, uniqueServices))
+          : [];
+      const serviceNameMap = new Map(tradeRows.map((t) => [String(t.slug), String(t.name)]));
+
+      for (const row of currentCatalogRows) {
+        const service = String(row.service || "").trim();
+        if (!service) continue;
+        const tradeName = serviceNameMap.get(service) || service;
+        const currentAvg = Math.round(this.toNumber(row.avgValue));
+        const previousAvg = previousCatalogMap.get(service) ?? currentAvg;
+        const trend = this.percentChange(currentAvg, previousAvg);
+
+        byTrade[tradeName] = {
+          average: currentAvg,
+          count: this.toNumber(row.count),
+          trend,
+        };
+
+        tradeFluctuations.push({
+          tradeId: service,
+          tradeName,
+          currentAvg,
+          previousAvg: Math.round(previousAvg),
+          percentChange: trend,
+          period: timeframe,
+        });
+      }
+    }
+
+    // Fallback: if no lead/catalog trade stats exist, use provider trade coverage so admins
     // still see tracked trades and onboarding signal.
     if (Object.keys(byTrade).length === 0) {
       const providerDeclarationRows = await db
@@ -280,6 +369,82 @@ export class PricingAnalyticsService {
     }
 
     if (Object.keys(byRegion).length === 0) {
+      const midpointExpr = sql<number>`
+        case
+          when ${pricingData.baseLow} is not null and ${pricingData.baseHigh} is not null
+            then (cast(${pricingData.baseLow} as numeric) + cast(${pricingData.baseHigh} as numeric)) / 2
+          when ${pricingData.baseLow} is not null then cast(${pricingData.baseLow} as numeric)
+          when ${pricingData.baseHigh} is not null then cast(${pricingData.baseHigh} as numeric)
+          else null
+        end
+      `;
+
+      const currentRegionCatalogRows = await db
+        .select({
+          fips: pricingData.fips,
+          countyName: counties.name,
+          stateCode: counties.stateCode,
+          count: sql<number>`count(*)::int`,
+          avgValue: sql<number>`coalesce(avg(${midpointExpr}), 0)::float`,
+        })
+        .from(pricingData)
+        .leftJoin(counties, eq(pricingData.fips, counties.fips))
+        .where(
+          sql`${pricingData.fips} <> '00000'
+              and coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) >= ${currentStart}
+              and coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) < ${now}`
+        )
+        .groupBy(pricingData.fips, counties.name, counties.stateCode);
+
+      const previousRegionCatalogRows = await db
+        .select({
+          fips: pricingData.fips,
+          avgValue: sql<number>`coalesce(avg(${midpointExpr}), 0)::float`,
+        })
+        .from(pricingData)
+        .where(
+          sql`${pricingData.fips} <> '00000'
+              and coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) >= ${previousStart}
+              and coalesce(${pricingData.updatedAt}, ${pricingData.createdAt}) < ${currentStart}`
+        )
+        .groupBy(pricingData.fips);
+
+      const previousRegionCatalogMap = new Map<string, number>();
+      for (const row of previousRegionCatalogRows) {
+        const fips = String(row.fips || "").trim();
+        if (!fips) continue;
+        previousRegionCatalogMap.set(fips, this.toNumber(row.avgValue));
+      }
+
+      for (const row of currentRegionCatalogRows) {
+        const fips = String(row.fips || "").trim();
+        if (!fips) continue;
+        const countyName = row.countyName || fips;
+        const stateCode = row.stateCode || "NA";
+        const key = `${countyName}, ${stateCode}`;
+        const currentAvg = Math.round(this.toNumber(row.avgValue));
+        const previousAvg = previousRegionCatalogMap.get(fips) ?? currentAvg;
+        const trend = this.percentChange(currentAvg, previousAvg);
+
+        byRegion[key] = {
+          average: currentAvg,
+          count: this.toNumber(row.count),
+          trend,
+        };
+
+        regionFluctuations.push({
+          countyId: fips,
+          countyName,
+          stateCode,
+          currentAvg,
+          previousAvg: Math.round(previousAvg),
+          percentChange: trend,
+          period: timeframe,
+        });
+      }
+    }
+
+    if (Object.keys(byRegion).length === 0) {
       const declarationRows = await db
         .select({ serviceAreas: providerDeclarations.serviceAreas })
         .from(providerDeclarations);
@@ -391,7 +556,7 @@ export class PricingAnalyticsService {
       if (row.projectType) previousProjectMap.set(row.projectType, this.toNumber(row.count));
     }
 
-    const popularProjects: PricingAnalytics["popularProjects"] = currentProjectRows
+    let popularProjects: PricingAnalytics["popularProjects"] = currentProjectRows
       .filter((row) => Boolean(row.projectType))
       .map((row) => {
         const projectType = row.projectType || "unknown";
@@ -407,6 +572,82 @@ export class PricingAnalyticsService {
       .sort((a, b) => b.quoteCount - a.quoteCount)
       .slice(0, 20);
 
+    // Fallback: derive project demand from real Direct Connect / work request traffic.
+    if (popularProjects.length === 0) {
+      const projectKeyExpr = sql<string>`
+        coalesce(
+          nullif(${workRequests.category}, ''),
+          nullif(${workRequests.tradeId}, ''),
+          'general'
+        )
+      `;
+      const budgetMidpointExpr = sql<number>`
+        case
+          when ${workRequests.budgetMin} is not null and ${workRequests.budgetMax} is not null
+            then (cast(${workRequests.budgetMin} as numeric) + cast(${workRequests.budgetMax} as numeric)) / 2
+          when ${workRequests.budgetMin} is not null then cast(${workRequests.budgetMin} as numeric)
+          when ${workRequests.budgetMax} is not null then cast(${workRequests.budgetMax} as numeric)
+          else null
+        end
+      `;
+
+      const currentWorkRows = await db
+        .select({
+          projectType: projectKeyExpr,
+          count: sql<number>`count(*)::int`,
+          avgValue: sql<number>`coalesce(avg(${budgetMidpointExpr}), 0)::float`,
+        })
+        .from(workRequests)
+        .where(and(gte(workRequests.createdAt, currentStart), lt(workRequests.createdAt, now)))
+        .groupBy(projectKeyExpr);
+
+      const previousWorkRows = await db
+        .select({
+          projectType: projectKeyExpr,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(workRequests)
+        .where(
+          and(gte(workRequests.createdAt, previousStart), lt(workRequests.createdAt, currentStart))
+        )
+        .groupBy(projectKeyExpr);
+
+      const previousWorkMap = new Map<string, number>();
+      for (const row of previousWorkRows) {
+        const key = String(row.projectType || "").trim();
+        if (!key) continue;
+        previousWorkMap.set(key, this.toNumber(row.count));
+      }
+
+      popularProjects = currentWorkRows
+        .map((row) => {
+          const projectType = String(row.projectType || "general");
+          const quoteCount = this.toNumber(row.count);
+          const previousCount = previousWorkMap.get(projectType) ?? 0;
+          return {
+            projectType,
+            quoteCount,
+            averageValue: Math.round(this.toNumber(row.avgValue)),
+            growth: this.percentChange(quoteCount, previousCount),
+          };
+        })
+        .sort((a, b) => b.quoteCount - a.quoteCount)
+        .slice(0, 20);
+    }
+
+    // Final fallback: use real trade activity as project proxy when project labels are sparse.
+    if (popularProjects.length === 0) {
+      popularProjects = Object.entries(byTrade)
+        .map(([projectType, value]) => ({
+          projectType,
+          quoteCount: this.toNumber(value.count),
+          averageValue: this.toNumber(value.average),
+          growth: this.toNumber(value.trend),
+        }))
+        .sort((a, b) => b.quoteCount - a.quoteCount)
+        .slice(0, 20);
+    }
+
     const byProject: Record<string, { average: number; count: number; trend: number }> = {};
     for (const row of popularProjects) {
       byProject[row.projectType] = {
@@ -414,6 +655,41 @@ export class PricingAnalyticsService {
         count: row.quoteCount,
         trend: row.growth,
       };
+    }
+
+    if (tradeFluctuations.length === 0) {
+      for (const [tradeName, value] of Object.entries(byTrade)) {
+        const currentAvg = this.toNumber(value.average);
+        const trend = this.toNumber(value.trend);
+        const previousAvg = Math.round(this.estimatePreviousFromTrend(currentAvg, trend));
+        tradeFluctuations.push({
+          tradeId: tradeName.toLowerCase().replace(/\s+/g, "-"),
+          tradeName,
+          currentAvg: Math.round(currentAvg),
+          previousAvg,
+          percentChange: trend,
+          period: timeframe,
+        });
+      }
+    }
+
+    if (regionFluctuations.length === 0) {
+      for (const [regionKey, value] of Object.entries(byRegion)) {
+        const [countyName, stateCodeRaw] = regionKey.split(",");
+        const stateCode = String(stateCodeRaw || "NA").trim();
+        const currentAvg = this.toNumber(value.average);
+        const trend = this.toNumber(value.trend);
+        const previousAvg = Math.round(this.estimatePreviousFromTrend(currentAvg, trend));
+        regionFluctuations.push({
+          countyId: regionKey.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          countyName: String(countyName || regionKey).trim(),
+          stateCode,
+          currentAvg: Math.round(currentAvg),
+          previousAvg,
+          percentChange: trend,
+          period: timeframe,
+        });
+      }
     }
 
     const topPerformingRegions = [...regionFluctuations]

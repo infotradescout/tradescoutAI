@@ -28,8 +28,6 @@ import { useToast } from "@/hooks/use-toast";
 import { isAdminTier } from "@/lib/roleChecks";
 
 interface PricingAnalytics {
-  dataMode?: "live" | "blended" | "starter";
-  starterDataUsed?: boolean;
   averageQuotes: {
     byTrade: Record<string, { average: number; count: number; trend: number }>;
     byRegion: Record<string, { average: number; count: number; trend: number }>;
@@ -376,18 +374,6 @@ export default function AdminPricingAnalytics() {
           <p className="text-white/70">
             Monitor system-wide market trends across all regions and update calculator pricing
           </p>
-          {analytics?.dataMode && analytics.dataMode !== "live" ? (
-            <div className="mt-2">
-              <Badge
-                variant="outline"
-                className="border-amber-500/50 bg-amber-500/10 text-amber-300"
-              >
-                {analytics.dataMode === "starter"
-                  ? "Starter baseline data"
-                  : "Blended live + baseline data"}
-              </Badge>
-            </div>
-          ) : null}
         </div>
 
         <div className="flex items-center gap-4">

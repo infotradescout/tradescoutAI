@@ -8717,12 +8717,9 @@ export async function registerRoutes(app: any) {
       try {
         const { timeframe = "30d" } = req.query;
         const { pricingAnalyticsService } = await import("./pricing-analytics");
-        const { hydratePricingAnalyticsWithStarterData } =
-          await import("./pricingAnalyticsStarter");
 
         const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
-        const hydrated = hydratePricingAnalyticsWithStarterData(analytics, timeframe as any);
-        res.json(hydrated);
+        res.json(analytics);
       } catch (error: any) {
         console.error("Error fetching pricing analytics:", error);
         res.status(500).json({ message: "Failed to fetch pricing analytics" });
@@ -8764,17 +8761,14 @@ export async function registerRoutes(app: any) {
       try {
         const { timeframe = "30d" } = req.query;
         const { pricingAnalyticsService } = await import("./pricing-analytics");
-        const { hydratePricingAnalyticsWithStarterData } =
-          await import("./pricingAnalyticsStarter");
 
         const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
-        const hydrated = hydratePricingAnalyticsWithStarterData(analytics, timeframe as any);
 
         // Convert analytics to CSV format
         const csvData = [];
 
         // Add trade data
-        for (const [tradeId, data] of Object.entries(hydrated.averageQuotes.byTrade)) {
+        for (const [tradeId, data] of Object.entries(analytics.averageQuotes.byTrade)) {
           csvData.push({
             type: "trade",
             id: tradeId,
@@ -8785,7 +8779,7 @@ export async function registerRoutes(app: any) {
         }
 
         // Add region data
-        for (const [regionKey, data] of Object.entries(hydrated.averageQuotes.byRegion)) {
+        for (const [regionKey, data] of Object.entries(analytics.averageQuotes.byRegion)) {
           csvData.push({
             type: "region",
             id: regionKey,
