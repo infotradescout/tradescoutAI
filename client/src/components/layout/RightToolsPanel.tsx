@@ -5,7 +5,6 @@ import {
   Users,
   Settings,
   Bell,
-  LayoutDashboard,
   MessageCircle,
   Bookmark,
   ClipboardList,
@@ -20,7 +19,6 @@ import {
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { safeNavigate } from "@/lib/safeNavigate";
-import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 
 type NavLinkProps = {
   href: string;
@@ -113,9 +111,6 @@ export function RightToolsPanel({
   };
 
   const displayName = (user as any)?.firstName || (user as any)?.name || "Guest";
-  const rawRole = typeof (user as any)?.role === "string" ? String((user as any).role) : "";
-  const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(rawRole);
-  const hasAdminAccess = hasAdminUiAccess(user);
 
   const locationLabel =
     (user as any)?.county && (user as any)?.state
@@ -264,30 +259,11 @@ export function RightToolsPanel({
             Shortcuts
           </div>
           <div className="space-y-2">
-            {isAuthenticated ? (
-              <NavLink
-                href="/admin"
-                icon={
-                  <LayoutDashboard
-                    className="h-3.5 w-3.5"
-                    style={{ color: "var(--theme-accent-primary)" }}
-                  />
-                }
-                label="Admin"
-                description={
-                  hasAdminAccess && isSuperAdmin
-                    ? "Full-site controls for TradeScout."
-                    : hasAdminAccess
-                      ? "Review admin tools and site operations."
-                      : "Open Admin. Access is enforced by your account permissions."
-                }
-                onNavigate={handleNavigate}
-              />
-            ) : (
+            {!isAuthenticated && (
               <NavLink
                 href="/scout"
                 icon={
-                  <LayoutDashboard
+                  <ClipboardList
                     className="h-3.5 w-3.5"
                     style={{ color: "var(--theme-accent-primary)" }}
                   />
