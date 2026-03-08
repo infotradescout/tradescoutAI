@@ -1083,33 +1083,37 @@ export async function registerRoutes(app: any) {
       return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
     };
 
-    const rolesRaw =
-      Array.isArray(user?.roles) && user.roles.length > 0
-        ? user.roles
-        : user?.role
-          ? [user.role]
-          : [];
+    const rolesRaw = Array.from(
+      new Set(
+        [...(Array.isArray(user?.roles) ? user.roles : []), user?.role, user?.activeRole].filter(
+          Boolean
+        )
+      )
+    );
     const roles = rolesRaw
       .map((r: any) => normalizeRole(r))
       .filter((r: string): r is SharedUserRole => Boolean(r)) as SharedUserRole[];
     const primaryRole: SharedUserRole | undefined = roles[0];
     const normalizedPrimaryRole = normalizeRole(user?.role);
+    const normalizedActiveRole = normalizeRole(user?.activeRole);
 
     const basePermissions = primaryRole ? ROLE_PERMISSIONS[primaryRole] : undefined;
 
     const computedIsAdmin =
       user.isAdmin === true ||
       ["super_admin", "moderator", "ops_admin"].includes(normalizedPrimaryRole) ||
+      ["super_admin", "moderator", "ops_admin"].includes(normalizedActiveRole) ||
       Boolean(
         basePermissions?.canAccessAdminPanel ||
         basePermissions?.canAccessSuperAdmin ||
-        (primaryRole && ["moderator", "ops_admin", "super_admin"].includes(primaryRole))
+        roles.some((role) => ["moderator", "ops_admin", "super_admin"].includes(role))
       );
 
     const computedIsSuperAdmin =
       user.isSuperAdmin === true ||
       normalizedPrimaryRole === "super_admin" ||
-      Boolean(primaryRole && primaryRole === "super_admin");
+      normalizedActiveRole === "super_admin" ||
+      roles.some((role) => role === "super_admin");
 
     const canonicalStateCodeRaw =
       (user as any).stateCode ?? (user as any).state_code ?? (user as any).state ?? null;
@@ -1137,6 +1141,7 @@ export async function registerRoutes(app: any) {
     return {
       ...user,
       role: normalizedPrimaryRole || user?.role,
+      activeRole: normalizedActiveRole || user?.activeRole,
       roles,
       badges: computeBadgesForUser(user),
       isAdmin: computedIsAdmin,

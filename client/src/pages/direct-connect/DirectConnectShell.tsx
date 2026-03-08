@@ -37,6 +37,7 @@ import {
   Paperclip,
   ImagePlus,
   FolderKanban,
+  ArrowRight,
   Clock3,
 } from "lucide-react";
 
@@ -50,6 +51,36 @@ const SECTION_LABELS: Record<Section, string> = {
   inbox: "Pros Responding",
   pros: "Find Pros",
   engagements: "Request Tracker",
+};
+
+type FlowMode = "start" | "manage";
+
+const FLOW_MODE_META: Record<
+  FlowMode,
+  {
+    title: string;
+    description: string;
+    target: Section;
+    sections: Section[];
+    icon: ReactNode;
+  }
+> = {
+  start: {
+    title: "Start a governed request",
+    description:
+      "Create a request with enough clarity that Scout can route it, providers can qualify it, and the board stays actionable.",
+    target: "post",
+    sections: ["post", "pros", "board", "employment"],
+    icon: <ClipboardPlus className="h-5 w-5" />,
+  },
+  manage: {
+    title: "Manage live requests",
+    description:
+      "Review what is open, what is getting routed, who has responded, and what next action is available without hunting through the portal.",
+    target: "engagements",
+    sections: ["engagements", "inbox"],
+    icon: <FolderKanban className="h-5 w-5" />,
+  },
 };
 
 const SECTION_META: Record<
@@ -134,6 +165,10 @@ function getSectionFromPath(path: string): Section {
 function buildHref(section: Section): string {
   if (section === "post") return "/direct-connect";
   return `/direct-connect/${section}`;
+}
+
+function getFlowMode(section: Section): FlowMode {
+  return section === "engagements" || section === "inbox" ? "manage" : "start";
 }
 
 function statusTone(status: string) {
@@ -1471,6 +1506,7 @@ export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
+  const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
 
   const defaultCountyFips = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1519,10 +1555,8 @@ export default function DirectConnectShell() {
   );
 
   const sectionMeta = SECTION_META[activeSection];
-  const isManageMode = activeSection === "engagements" || activeSection === "inbox";
-  const activeModeSections = isManageMode
-    ? (["engagements", "inbox"] as const)
-    : (["post", "pros", "board", "employment"] as const);
+  const activeModeMeta = FLOW_MODE_META[activeFlowMode];
+  const activeModeSections = activeModeMeta.sections;
   const isPostComposer = activeSection === "post";
 
   let centerContent: ReactNode = null;
@@ -1559,9 +1593,8 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)] mt-1">
-              {isManageMode
-                ? "Follow one governed path: send a request, wait for responses, then move accepted work into conversation."
-                : "Start a request, choose the right path, and keep local work moving through Scout."}
+              Start a governed request, then manage it from a request board that keeps status,
+              photos, and next actions in one place.
             </p>
           </div>
 
@@ -1569,7 +1602,7 @@ export default function DirectConnectShell() {
           <div
             className={cn("flex flex-wrap gap-2", activeSection === "post" ? "hidden sm:flex" : "")}
           >
-            {isManageMode ? (
+            {activeFlowMode === "manage" ? (
               <>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
                   <Zap className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
@@ -1614,35 +1647,93 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {activeModeSections.map((section) => {
-            const active = section === activeSection;
-            const count = navCounts[section] ?? 0;
+        <div className="grid gap-3 md:grid-cols-2">
+          {(
+            Object.entries(FLOW_MODE_META) as Array<[FlowMode, (typeof FLOW_MODE_META)[FlowMode]]>
+          ).map(([mode, meta]) => {
+            const active = mode === activeFlowMode;
             return (
               <button
-                key={section}
+                key={mode}
                 type="button"
-                onClick={() => navigateSection(section)}
+                onClick={() => navigateSection(meta.target)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors",
+                  "rounded-3xl border p-4 text-left transition-all duration-300",
                   active
-                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
-                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] hover:border-[color:var(--theme-accent-primary)]/50"
                 )}
               >
-                <span className="text-[color:var(--theme-accent-primary)]">
-                  {SECTION_ICONS[section]}
-                </span>
-                <span>{SECTION_LABELS[section]}</span>
-                {count > 0 && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    {count}
-                  </Badge>
-                )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--theme-accent-primary)]">
+                      {meta.icon}
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
+                        {meta.title}
+                      </h2>
+                      <p className="mt-1 text-sm text-[color:var(--text-secondary)]">
+                        {meta.description}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="mt-1 h-4 w-4 text-[color:var(--text-secondary)]" />
+                </div>
               </button>
             );
           })}
         </div>
+
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                  {activeFlowMode === "start" ? "Start mode" : "Manage mode"}
+                </p>
+                <p className="mt-1 text-sm text-[color:var(--text-primary)]">
+                  {activeModeMeta.description}
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-[color:var(--text-secondary)]">
+                <FolderKanban className="h-3.5 w-3.5" />
+                {activeFlowMode === "start"
+                  ? "Every posted request lands on Your Requests immediately."
+                  : "Manage mode keeps request state and response state together."}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeModeSections.map((section) => {
+                const active = section === activeSection;
+                const count = navCounts[section] ?? 0;
+                return (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => navigateSection(section)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors",
+                      active
+                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                    )}
+                  >
+                    <span className="text-[color:var(--theme-accent-primary)]">
+                      {SECTION_ICONS[section]}
+                    </span>
+                    <span>{SECTION_LABELS[section]}</span>
+                    {count > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="min-w-0 space-y-4">
           <Card
