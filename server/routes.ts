@@ -2597,10 +2597,73 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
       if (!user) {
         res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
+      }
+
+      const normalizeAdminRoleToken = (value: unknown): string => {
+        const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+        if (!raw) return "";
+        return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
+      };
+
+      const adminEmailAliases = Array.from(
+        new Set(
+          [
+            String(process.env.MASTER_ADMIN_EMAIL || "")
+              .trim()
+              .toLowerCase(),
+            ...String(process.env.SUPER_ADMIN_EMAIL_ALIASES || "")
+              .split(",")
+              .map((v) => v.trim().toLowerCase())
+              .filter(Boolean),
+            // Production fallback alias used for the canonical support/admin identity.
+            "contact@thetradescout.com",
+          ].filter(Boolean)
+        )
+      );
+
+      const userEmail = String((user as any)?.email || "")
+        .trim()
+        .toLowerCase();
+      const isAdminAliasEmail = userEmail.length > 0 && adminEmailAliases.includes(userEmail);
+      if (isAdminAliasEmail) {
+        const currentRoles = Array.from(
+          new Set(
+            [
+              ...(Array.isArray((user as any)?.roles) ? ((user as any).roles as unknown[]) : []),
+              (user as any)?.role,
+              (user as any)?.activeRole,
+            ]
+              .map((role) => normalizeAdminRoleToken(role))
+              .filter(Boolean)
+          )
+        );
+        const alreadyAdminTier =
+          (user as any)?.isSuperAdmin === true ||
+          (user as any)?.isAdmin === true ||
+          currentRoles.some((role) => ["super_admin", "ops_admin", "moderator"].includes(role));
+
+        if (!alreadyAdminTier || !currentRoles.includes("super_admin")) {
+          const nextRoles = Array.from(new Set([...currentRoles, "super_admin"]));
+          try {
+            user = await storage.updateUser(user.id, {
+              role: "super_admin",
+              activeRole: "super_admin",
+              roles: nextRoles as any,
+              isAdmin: true,
+              isSuperAdmin: true,
+            } as any);
+          } catch (adminAliasRepairError) {
+            console.error("[auth/user] Failed to reconcile super admin alias role", {
+              userId,
+              email: userEmail,
+              error: adminAliasRepairError,
+            });
+          }
+        }
       }
 
       const mergeSessionAuthority = (baseUser: any) => {
@@ -2608,12 +2671,6 @@ export async function registerRoutes(app: any) {
         if (!baseUser || !authUser) return baseUser;
         const authClaims =
           authUser?.claims && typeof authUser.claims === "object" ? authUser.claims : {};
-
-        const normalizeRoleToken = (value: unknown): string => {
-          const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
-          if (!raw) return "";
-          return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
-        };
 
         const claimsRolesRaw = Array.isArray((authClaims as any)?.roles)
           ? ((authClaims as any).roles as unknown[])
@@ -2634,7 +2691,7 @@ export async function registerRoutes(app: any) {
               (authClaims as any)?.role,
               (authClaims as any)?.activeRole,
             ]
-              .map((role) => normalizeRoleToken(role))
+              .map((role) => normalizeAdminRoleToken(role))
               .filter(Boolean)
           )
         );
@@ -2650,19 +2707,19 @@ export async function registerRoutes(app: any) {
               baseUser?.activeRole,
               baseUser?.role,
             ]
-              .map((role) => normalizeRoleToken(role))
+              .map((role) => normalizeAdminRoleToken(role))
               .filter(Boolean)
           )
         );
         const baseUserAdminRole = findFirstAdminRole(baseUserRoles);
 
         const resolvedRole =
-          normalizeRoleToken(baseUser?.activeRole) ||
-          normalizeRoleToken(baseUser?.role) ||
-          normalizeRoleToken(authUser?.activeRole) ||
-          normalizeRoleToken(authUser?.role) ||
-          normalizeRoleToken((authClaims as any)?.activeRole) ||
-          normalizeRoleToken((authClaims as any)?.role) ||
+          normalizeAdminRoleToken(baseUser?.activeRole) ||
+          normalizeAdminRoleToken(baseUser?.role) ||
+          normalizeAdminRoleToken(authUser?.activeRole) ||
+          normalizeAdminRoleToken(authUser?.role) ||
+          normalizeAdminRoleToken((authClaims as any)?.activeRole) ||
+          normalizeAdminRoleToken((authClaims as any)?.role) ||
           mergedRoles[0] ||
           "";
 
