@@ -148,4 +148,16 @@ TradeScout OS is fully formalized with nine governed engines:
 - HomeScout
 - Maps
 
+Authority hardening state:
+- Phase 1 complete and runtime-proven.
+- Phase 2A complete and runtime-proven.
+- Phase 2B complete and route-proven.
+
+Highest-value remaining risks:
+- Admin, support, and impersonation convenience-path drift.
+- Residual write-paths outside the primary owner ingress seams.
+
+Next enforcement pass:
+- Phase 2C: admin and support convenience-path fencing.
+
 This is the complete platform architecture.

@@ -10,6 +10,13 @@ import * as projectService from "./services/projectService.js";
 import { writeManualCacheFile } from "./services/knowledgeService.js";
 import { storage } from "./storage.js";
 import { webSearch } from "./services/webSearchService.js";
+import {
+  auditPrivilegedAction,
+  normalizeImmutableTargetId,
+  normalizePrivilegedReason,
+  resolvePrivilegedActor,
+  suppliedEmailMatchesTarget,
+} from "./utils/privilegedActions.js";
 
 /**
  * Assistant Actions - Backend operations the AI can perform
@@ -668,17 +675,53 @@ async function adminGetUserInfoAction(user: User | undefined, params?: Record<st
   }
 
   const { email, userId } = params || {};
-  if (!email && !userId) {
-    return { success: false, error: "Provide email or userId" };
+  const actor = resolvePrivilegedActor(user);
+  const targetUserId = normalizeImmutableTargetId(userId);
+  const targetEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!targetUserId) {
+    await auditPrivilegedAction({
+      action: "assistant_admin_get_user_info",
+      route: "assistant:admin_get_user_info",
+      operationType: "assistant_admin_get_user_info",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "user",
+      targetId: null,
+      resolutionSource: targetEmail ? "target_email_only" : "missing_target_user_id",
+      reason: "assistant_admin_get_user_info",
+      outcome: "denied",
+      lookupInput: { targetEmail: targetEmail || null },
+    });
+    return {
+      success: false,
+      error: "userId is required. email may be supplied only as lookup metadata.",
+    };
   }
 
   try {
-    const target = email
-      ? await (storage as any).getUserByEmail?.(email)
-      : await (storage as any).getUserById?.(userId);
+    const target = await (storage as any).getUser?.(targetUserId);
 
     if (!target) {
       return { success: false, error: "User not found" };
+    }
+    if (!suppliedEmailMatchesTarget(targetEmail, target)) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_get_user_info",
+        route: "assistant:admin_get_user_info",
+        operationType: "assistant_admin_get_user_info",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "user",
+        targetId: target.id,
+        resolutionSource: "param:userId",
+        reason: "assistant_admin_get_user_info",
+        outcome: "denied",
+        lookupInput: { targetEmail },
+        details: { mismatch: "target_email_does_not_match_target_user_id" },
+      });
+      return { success: false, error: "email does not match userId" };
     }
 
     const sanitized = {
@@ -697,6 +740,21 @@ async function adminGetUserInfoAction(user: User | undefined, params?: Record<st
       passwordResetEnabled: true,
     };
 
+    await auditPrivilegedAction({
+      action: "assistant_admin_get_user_info",
+      route: "assistant:admin_get_user_info",
+      operationType: "assistant_admin_get_user_info",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "user",
+      targetId: target.id,
+      resolutionSource: "param:userId",
+      reason: "assistant_admin_get_user_info",
+      outcome: "completed",
+      lookupInput: { targetEmail: targetEmail || null },
+    });
+
     return { success: true, data: sanitized };
   } catch (error: any) {
     console.error("adminGetUserInfoAction error", error);
@@ -710,23 +768,81 @@ async function adminResetUserPasswordAction(user: User | undefined, params?: Rec
   }
 
   const { email, userId, newPassword } = params || {};
+  const actor = resolvePrivilegedActor(user);
+  const targetUserId = normalizeImmutableTargetId(userId);
+  const targetEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  const reason = normalizePrivilegedReason(params?.reason, 12);
   if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
     return { success: false, error: "newPassword is required and must be at least 8 characters" };
   }
+  if (!targetUserId) {
+    await auditPrivilegedAction({
+      action: "assistant_admin_reset_user_password",
+      route: "assistant:admin_reset_user_password",
+      operationType: "assistant_admin_reset_user_password",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "user",
+      targetId: null,
+      resolutionSource: targetEmail ? "target_email_only" : "missing_target_user_id",
+      reason,
+      outcome: "denied",
+      lookupInput: { targetEmail: targetEmail || null },
+    });
+    return {
+      success: false,
+      error: "userId is required. email may be supplied only as lookup metadata.",
+    };
+  }
+  if (!reason) {
+    return { success: false, error: "reason is required and must be at least 12 characters" };
+  }
 
   try {
-    const target = email
-      ? await (storage as any).getUserByEmail?.(email)
-      : await (storage as any).getUserById?.(userId);
+    const target = await (storage as any).getUser?.(targetUserId);
 
     if (!target) {
       return { success: false, error: "User not found" };
+    }
+    if (!suppliedEmailMatchesTarget(targetEmail, target)) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_reset_user_password",
+        route: "assistant:admin_reset_user_password",
+        operationType: "assistant_admin_reset_user_password",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "user",
+        targetId: target.id,
+        resolutionSource: "param:userId",
+        reason,
+        outcome: "denied",
+        lookupInput: { targetEmail },
+        details: { mismatch: "target_email_does_not_match_target_user_id" },
+      });
+      return { success: false, error: "email does not match userId" };
     }
 
     const passwordHash = await (await import("./auth.js")).hashPassword(newPassword);
     await (storage as any).updateUser?.(target.id, {
       password: passwordHash,
       updatedAt: new Date(),
+    });
+
+    await auditPrivilegedAction({
+      action: "assistant_admin_reset_user_password",
+      route: "assistant:admin_reset_user_password",
+      operationType: "assistant_admin_reset_user_password",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "user",
+      targetId: target.id,
+      resolutionSource: "param:userId",
+      reason,
+      outcome: "completed",
+      lookupInput: { targetEmail: targetEmail || null },
     });
 
     return {

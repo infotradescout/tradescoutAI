@@ -20,6 +20,12 @@ import { getCountyCoverageSummary } from "../services/geographicCoverage";
 import { emailService } from "../services/emailService";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { getAdminAuditLog, logAdminAction } from "../services/adminAuditLogService";
+import {
+  actorHasPrivilegedCapability,
+  auditPrivilegedAction,
+  normalizePrivilegedReason,
+  resolvePrivilegedActor,
+} from "../utils/privilegedActions";
 import { spawn } from "child_process";
 import {
   businesses,
@@ -1566,12 +1572,13 @@ export function mountAdminRoutes(app: any) {
     async (req: Request & { user?: any }, res: Response) => {
       try {
         const { userId } = req.params;
-        const { reason } = (req.body ?? {}) as any;
+        const actor = resolvePrivilegedActor(req.user);
+        const reason = normalizePrivilegedReason((req.body ?? {}).reason, 12);
 
-        if (typeof reason !== "string" || reason.trim().length < 5) {
+        if (!reason) {
           return res
             .status(400)
-            .json({ message: "Impersonation reason is required (min 5 characters)" });
+            .json({ message: "Impersonation reason is required (min 12 characters)" });
         }
 
         const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
@@ -1579,8 +1586,26 @@ export function mountAdminRoutes(app: any) {
           return res.status(404).json({ message: "User not found" });
         }
 
+        if (!actorHasPrivilegedCapability(req.user, ["ops_admin", "super_admin"])) {
+          await auditPrivilegedAction({
+            action: "admin_impersonation_start_user",
+            route: "/api/admin/users/:userId/impersonate",
+            operationType: "impersonation_start",
+            actorId: actor.actorId,
+            actorRole: actor.actorRole,
+            actorRoles: actor.actorRoles,
+            targetType: "user",
+            targetId: targetUser.id,
+            resolutionSource: "route_param:user_id",
+            reason,
+            outcome: "denied",
+            details: { message: "insufficient_privileged_capability" },
+          });
+          return res.status(403).json({ message: "Ops admin or super admin access required" });
+        }
+
         const originalUser = req.user as any;
-        const adminId = originalUser?.id || originalUser?.claims?.sub;
+        const adminId = actor.actorId;
 
         (req.session as any).originalUser = {
           id: adminId,
@@ -1592,13 +1617,19 @@ export function mountAdminRoutes(app: any) {
         (req.session as any).impersonatedUserId = targetUser.id;
         (req.session as any).isImpersonating = true;
 
-        await logAdminAction({
-          type: "admin_impersonation_start_user",
-          adminId,
-          adminRole: originalUser?.role,
-          targetUserId: targetUser.id,
-          targetRole: targetUser.activeRole || targetUser.role,
-          reason: String(reason).trim(),
+        await auditPrivilegedAction({
+          action: "admin_impersonation_start_user",
+          route: "/api/admin/users/:userId/impersonate",
+          operationType: "impersonation_start",
+          actorId: adminId,
+          actorRole: actor.actorRole,
+          actorRoles: actor.actorRoles,
+          targetType: "user",
+          targetId: targetUser.id,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "started",
+          details: { targetRole: targetUser.activeRole || targetUser.role },
         });
 
         res.json({
@@ -1987,10 +2018,15 @@ export function mountAdminRoutes(app: any) {
     async (req: Request & { user?: any }, res: Response) => {
       try {
         const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub || null;
+        const actor = resolvePrivilegedActor(req.user);
+        const reason = normalizePrivilegedReason((req.body ?? {}).reason, 12);
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
         const listingId = String(req.params.id || "");
         if (!listingId) return res.status(400).json({ message: "listingId required" });
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 characters)" });
+        }
 
         const updated = await storage.approveHomeScoutListing({
           listingId,
@@ -1998,6 +2034,20 @@ export function mountAdminRoutes(app: any) {
         });
 
         if (!updated) return res.status(404).json({ message: "Listing not found" });
+
+        await auditPrivilegedAction({
+          action: "admin_homescout_listing_approve",
+          route: "/api/admin/homescout/listings/:id/approve",
+          operationType: "homescout_listing_approve",
+          actorId: actor.actorId,
+          actorRole: actor.actorRole,
+          actorRoles: actor.actorRoles,
+          targetType: "homescout_listing",
+          targetId: listingId,
+          resolutionSource: "route_param:listing_id",
+          reason,
+          outcome: "completed",
+        });
         res.json(updated);
       } catch (error: any) {
         console.error("Error approving HomeScout listing:", error);

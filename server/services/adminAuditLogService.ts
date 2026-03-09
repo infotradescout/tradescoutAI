@@ -8,3 +8,7 @@ export async function logAdminAction(event: any) {
 export async function getAdminAuditLog(limit = 100) {
   return auditLog.slice(-limit).reverse();
 }
+
+export async function clearAdminAuditLog() {
+  auditLog.length = 0;
+}

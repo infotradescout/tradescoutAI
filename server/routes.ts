@@ -70,6 +70,14 @@ import { passwordResetService } from "./services/passwordResetService";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
 import { logAdminAction } from "./services/adminAuditLogService";
+import {
+  actorHasPrivilegedCapability,
+  auditPrivilegedAction,
+  normalizeImmutableTargetId,
+  normalizePrivilegedReason,
+  resolvePrivilegedActor,
+  suppliedEmailMatchesTarget,
+} from "./utils/privilegedActions";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice } from "./device-auth";
@@ -205,6 +213,7 @@ import { antiScrapeShield } from "./middleware/antiScrape";
 import { ObjectStorageService } from "./objectStorage";
 import { notificationService } from "./notification-service";
 import { resolveCapabilities, type CapabilityStatus } from "./capabilities";
+import { redactContactDetails } from "./utils/workRequestShare";
 import {
   evaluateNotaryPaidRemoteGate,
   normalizeProfileBookingPrefs,
@@ -1095,6 +1104,14 @@ export async function registerRoutes(app: any) {
     return normalized.length ? normalized : null;
   };
 
+  const normalizeRedactedText = (value: unknown, maxLength = 4000): string =>
+    normalizeWhitespace(redactContactDetails(String(value || ""))).slice(0, maxLength);
+
+  const normalizeOptionalRedactedText = (value: unknown, maxLength = 4000): string | null => {
+    const normalized = normalizeRedactedText(value, maxLength);
+    return normalized.length ? normalized : null;
+  };
+
   const normalizeOptionalStateCode = (value: unknown): string | null => {
     const normalized = normalizeWhitespace(value).toUpperCase();
     return /^[A-Z]{2}$/.test(normalized) ? normalized : null;
@@ -1118,11 +1135,59 @@ export async function registerRoutes(app: any) {
     ).slice(0, maxItems);
   };
 
+  const normalizeRedactedStringArray = (
+    value: unknown,
+    maxItems = 50,
+    maxLength = 200
+  ): string[] => {
+    if (!Array.isArray(value)) return [];
+    return Array.from(
+      new Set(
+        value
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => normalizeRedactedText(item, maxLength))
+          .filter(Boolean)
+      )
+    ).slice(0, maxItems);
+  };
+
+  const sanitizeContactBearingValue = (value: unknown, depth = 0): unknown => {
+    if (value == null) return value;
+    if (depth > 4) return value;
+    if (typeof value === "string") {
+      return normalizeOptionalRedactedText(value, 1000);
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => sanitizeContactBearingValue(item, depth + 1))
+        .filter((item) => item != null)
+        .slice(0, 50);
+    }
+    if (typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .map(([key, item]) => [key, sanitizeContactBearingValue(item, depth + 1)])
+          .filter(([, item]) => item != null)
+      );
+    }
+    return value;
+  };
+
+  const hasOwnKeys = (value: unknown): value is Record<string, unknown> =>
+    Boolean(value) &&
+    typeof value === "object" &&
+    Object.keys(value as Record<string, unknown>).length > 0;
+
   const buildCanonicalHash = (...parts: Array<string | null | undefined>): string =>
     createHash("sha256")
       .update(parts.map((part) => normalizeWhitespace(part).toLowerCase()).join("|"))
       .digest("hex")
       .slice(0, 24);
+
+  const normalizeCanonicalIdentityPart = (value: unknown): string =>
+    normalizeWhitespace(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
 
   const buildMarketplaceIngressKey = (input: {
     sellerId: string;
@@ -1174,20 +1239,22 @@ export async function registerRoutes(app: any) {
   });
 
   const normalizeMarketplaceWritableFields = (input: any) => {
+    const sanitizedSpecifications = sanitizeContactBearingValue(input?.specifications);
     const normalized: any = {
       ...input,
-      title: normalizeWhitespace(input?.title),
-      description: normalizeWhitespace(input?.description),
+      title: normalizeRedactedText(input?.title, 200),
+      description: normalizeRedactedText(input?.description, 4000),
       county: normalizeWhitespace(input?.county),
       state: normalizeOptionalStateCode(input?.state),
       city: normalizeOptionalText(input?.city),
       zipCode: normalizeOptionalZipCode(input?.zipCode),
-      brand: normalizeOptionalText(input?.brand),
-      model: normalizeOptionalText(input?.model),
+      brand: normalizeOptionalRedactedText(input?.brand, 100),
+      model: normalizeOptionalRedactedText(input?.model, 100),
       videoUrl: normalizeOptionalText(input?.videoUrl),
-      metaDescription: normalizeOptionalText(input?.metaDescription),
-      tags: normalizeStringArray(input?.tags, 20, 64),
+      metaDescription: normalizeOptionalRedactedText(input?.metaDescription, 320),
+      tags: normalizeRedactedStringArray(input?.tags, 20, 64),
       images: normalizeStringArray(input?.images, 24, 1000),
+      specifications: hasOwnKeys(sanitizedSpecifications) ? sanitizedSpecifications : null,
     };
 
     if (!normalized.state) {
@@ -1210,20 +1277,29 @@ export async function registerRoutes(app: any) {
     countyFips: string;
     stateCode: string;
     address1?: string | null;
+    city?: string | null;
     zipCode?: string | null;
     sourceHomeId?: string | null;
-    title: string;
-    price: number;
   }) => {
+    const sourceHomeId = normalizeCanonicalIdentityPart(input.sourceHomeId);
+    const address1 = normalizeCanonicalIdentityPart(input.address1);
+    const city = normalizeCanonicalIdentityPart(input.city);
+    const zipCode = normalizeCanonicalIdentityPart(input.zipCode);
+    const countyFips = normalizeCanonicalIdentityPart(input.countyFips);
+    const stateCode = normalizeCanonicalIdentityPart(input.stateCode);
+
+    const identityAnchor = sourceHomeId || address1;
+    if (!identityAnchor) {
+      return null;
+    }
     const fingerprint = buildCanonicalHash(
       input.userId,
-      input.countyFips,
-      input.stateCode,
-      input.address1,
-      input.zipCode,
-      input.sourceHomeId,
-      input.title,
-      String(input.price)
+      countyFips,
+      stateCode,
+      sourceHomeId,
+      address1,
+      city,
+      zipCode
     );
     return {
       sourceListingId: `manual:${input.userId}:${fingerprint}`,
@@ -4064,54 +4140,33 @@ export async function registerRoutes(app: any) {
     requireRole(["ops_admin", "super_admin"]),
     async (req: Request, res: Response) => {
       try {
-        const { role, reason } = (req.body ?? {}) as any;
+        const actor = resolvePrivilegedActor(req.user);
+        const reason = normalizePrivilegedReason((req.body ?? {}).reason, 12);
 
-        if (typeof reason !== "string" || reason.trim().length < 5) {
+        if (!reason) {
           return res
             .status(400)
-            .json({ message: "Impersonation reason is required (min 5 characters)" });
+            .json({ message: "Impersonation reason is required (min 12 characters)" });
         }
 
-        // Validate the target role
-        const validRoles = ["homeowner", "contractor", "startup_founder", "moderator", "ops_admin"];
-        if (!validRoles.includes(role)) {
-          return res.status(400).json({ message: "Invalid role for impersonation" });
-        }
-
-        // Store original user info in session for restoration
-        const adminId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        (req.session as any).originalUser = {
-          id: adminId,
-          role: (req.user as any)?.role,
-          email: (req.user as any)?.email,
-        };
-
-        // Create a temporary impersonation session
-        (req.session as any).impersonatingRole = role;
-        (req.session as any).isImpersonating = true;
-
-        // Find a user with the target role for realistic testing
-        const targetUser = await storage.getUserByRole(role);
-        let userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || ""; // Default to admin's ID
-
-        if (targetUser) {
-          userId = targetUser.id;
-        }
-
-        await logAdminAction({
-          type: "admin_impersonation_start_role",
-          adminId,
-          adminRole: (req.user as any)?.role,
-          targetRole: role,
-          targetUserId: userId,
-          reason: String(reason).trim(),
+        await auditPrivilegedAction({
+          action: "admin_impersonation_start_role_denied",
+          route: "/api/admin/impersonate",
+          operationType: "impersonation_start",
+          actorId: actor.actorId,
+          actorRole: actor.actorRole,
+          actorRoles: actor.actorRoles,
+          targetType: "role",
+          targetId: null,
+          resolutionSource: "role_token",
+          reason,
+          outcome: "denied",
+          details: { message: "role_based_impersonation_disabled" },
         });
 
-        res.json({
-          message: `Impersonation started for role: ${role}`,
-          role,
-          userId,
-          isImpersonating: true,
+        return res.status(410).json({
+          message: "Role-based impersonation is disabled. Use immutable user targeting instead.",
+          reasonCode: "IMMUTABLE_TARGET_REQUIRED",
         });
       } catch (error: any) {
         console.error("Role impersonation error:", error);
@@ -4127,19 +4182,20 @@ export async function registerRoutes(app: any) {
     async (req: Request, res: Response) => {
       try {
         const { userId } = req.params as any;
-        const { reason } = (req.body ?? {}) as any;
+        const actor = resolvePrivilegedActor(req.user);
+        const reason = normalizePrivilegedReason((req.body ?? {}).reason, 12);
 
         if (!userId) {
           return res.status(400).json({ message: "Target user is required" });
         }
 
-        if (typeof reason !== "string" || reason.trim().length < 5) {
+        if (!reason) {
           return res
             .status(400)
-            .json({ message: "Impersonation reason is required (min 5 characters)" });
+            .json({ message: "Impersonation reason is required (min 12 characters)" });
         }
 
-        const adminId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const adminId = actor.actorId;
         const [targetUser] = await db
           .select()
           .from(users)
@@ -4147,6 +4203,34 @@ export async function registerRoutes(app: any) {
           .limit(1);
         if (!targetUser) {
           return res.status(404).json({ message: "Target user not found" });
+        }
+
+        if (!adminId || !actorHasPrivilegedCapability(req.user, ["ops_admin", "super_admin"])) {
+          await auditPrivilegedAction({
+            action: "admin_impersonation_start_user",
+            route: "/api/admin/impersonate/start/:userId",
+            operationType: "impersonation_start",
+            actorId: actor.actorId,
+            actorRole: actor.actorRole,
+            actorRoles: actor.actorRoles,
+            targetType: "user",
+            targetId: targetUser.id,
+            resolutionSource: "route_param:user_id",
+            reason,
+            outcome: "denied",
+            details: { message: "insufficient_privileged_capability" },
+          });
+          return res.status(403).json({ message: "Ops admin or super admin access required" });
+        }
+
+        if ((targetUser as any).isActive === false) {
+          return res.status(403).json({ message: "Cannot impersonate an inactive account" });
+        }
+
+        if (userHasProtectedAdminRole(targetUser) && !userIsSuperAdmin(req.user)) {
+          return res
+            .status(403)
+            .json({ message: "Only super admins can impersonate protected admin users" });
         }
 
         (req.session as any).originalUser = {
@@ -4159,13 +4243,19 @@ export async function registerRoutes(app: any) {
         (req.session as any).impersonatedUserId = targetUser.id;
         (req.session as any).isImpersonating = true;
 
-        await logAdminAction({
-          type: "admin_impersonation_start_user",
-          adminId,
-          adminRole: (req.user as any)?.role,
-          targetUserId: targetUser.id,
-          targetRole: targetUser.activeRole || targetUser.role,
-          reason: String(reason).trim(),
+        await auditPrivilegedAction({
+          action: "admin_impersonation_start_user",
+          route: "/api/admin/impersonate/start/:userId",
+          operationType: "impersonation_start",
+          actorId: adminId,
+          actorRole: actor.actorRole,
+          actorRoles: actor.actorRoles,
+          targetType: "user",
+          targetId: targetUser.id,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "started",
+          details: { targetRole: targetUser.activeRole || targetUser.role },
         });
 
         res.json({
@@ -4191,6 +4281,7 @@ export async function registerRoutes(app: any) {
         }
 
         const originalUser = (req.session as any).originalUser;
+        const targetUserId = normalizeImmutableTargetId((req.session as any).impersonatedUserId);
 
         // Clear impersonation from session
         delete (req.session as any).impersonatingRole;
@@ -4198,10 +4289,20 @@ export async function registerRoutes(app: any) {
         delete (req.session as any).isImpersonating;
         delete (req.session as any).originalUser;
 
-        await logAdminAction({
-          type: "admin_impersonation_stop",
-          adminId: originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub,
-          adminRole: originalUser?.role || (req.user as any)?.role,
+        await auditPrivilegedAction({
+          action: "admin_impersonation_stop",
+          route: "/api/admin/stop-impersonation",
+          operationType: "impersonation_stop",
+          actorId: normalizeImmutableTargetId(
+            originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub
+          ),
+          actorRole: String(originalUser?.role || (req.user as any)?.role || "") || null,
+          actorRoles: [String(originalUser?.role || (req.user as any)?.role || "")].filter(Boolean),
+          targetType: "user",
+          targetId: targetUserId,
+          resolutionSource: "session.impersonatedUserId",
+          reason: "stop_impersonation",
+          outcome: "stopped",
         });
 
         res.json({
@@ -4222,16 +4323,27 @@ export async function registerRoutes(app: any) {
       }
 
       const originalUser = (req.session as any).originalUser;
+      const targetUserId = normalizeImmutableTargetId((req.session as any).impersonatedUserId);
 
       delete (req.session as any).impersonatingRole;
       delete (req.session as any).impersonatedUserId;
       delete (req.session as any).isImpersonating;
       delete (req.session as any).originalUser;
 
-      await logAdminAction({
-        type: "admin_impersonation_stop",
-        adminId: originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        adminRole: originalUser?.role || (req.user as any)?.role,
+      await auditPrivilegedAction({
+        action: "admin_impersonation_stop",
+        route: "/api/admin/impersonate/stop",
+        operationType: "impersonation_stop",
+        actorId: normalizeImmutableTargetId(
+          originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub
+        ),
+        actorRole: String(originalUser?.role || (req.user as any)?.role || "") || null,
+        actorRoles: [String(originalUser?.role || (req.user as any)?.role || "")].filter(Boolean),
+        targetType: "user",
+        targetId: targetUserId,
+        resolutionSource: "session.impersonatedUserId",
+        reason: "stop_impersonation",
+        outcome: "stopped",
       });
 
       res.json({
@@ -4252,16 +4364,27 @@ export async function registerRoutes(app: any) {
       }
 
       const originalUser = (req.session as any).originalUser;
+      const targetUserId = normalizeImmutableTargetId((req.session as any).impersonatedUserId);
 
       delete (req.session as any).impersonatingRole;
       delete (req.session as any).impersonatedUserId;
       delete (req.session as any).isImpersonating;
       delete (req.session as any).originalUser;
 
-      await logAdminAction({
-        type: "admin_impersonation_stop",
-        adminId: originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub,
-        adminRole: originalUser?.role || (req.user as any)?.role,
+      await auditPrivilegedAction({
+        action: "admin_impersonation_stop",
+        route: "/api/admin/impersonate/exit",
+        operationType: "impersonation_stop",
+        actorId: normalizeImmutableTargetId(
+          originalUser?.id || (req.user as any)?.id || (req.user as any)?.claims?.sub
+        ),
+        actorRole: String(originalUser?.role || (req.user as any)?.role || "") || null,
+        actorRoles: [String(originalUser?.role || (req.user as any)?.role || "")].filter(Boolean),
+        targetType: "user",
+        targetId: targetUserId,
+        resolutionSource: "session.impersonatedUserId",
+        reason: "stop_impersonation",
+        outcome: "stopped",
       });
 
       res.json({
@@ -8426,9 +8549,17 @@ export async function registerRoutes(app: any) {
       try {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
+        const actorContext = resolvePrivilegedActor(adminUser);
+        const reason = normalizePrivilegedReason(
+          req.body?.reason ?? req.body?.adminSafety?.reason,
+          12
+        );
 
         if (!adminUser || !canRunOpsUserControls(adminUser)) {
           return res.status(403).json({ message: "Ops admin access required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
 
         const { userId } = req.params;
@@ -8447,6 +8578,21 @@ export async function registerRoutes(app: any) {
 
         const updated = await storage.updateUser(userId, {
           verificationStatus: "suspended" as any,
+        });
+
+        await auditPrivilegedAction({
+          action: "admin_user_suspend",
+          route: "/api/admin/user-controls/suspend/:userId",
+          operationType: "suspend_user",
+          actorId: normalizeImmutableTargetId(adminUserId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: userId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: { verificationStatus: "suspended" },
         });
 
         return res.json({
@@ -8468,9 +8614,17 @@ export async function registerRoutes(app: any) {
       try {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
+        const actorContext = resolvePrivilegedActor(adminUser);
+        const reason = normalizePrivilegedReason(
+          req.body?.reason ?? req.body?.adminSafety?.reason,
+          12
+        );
 
         if (!adminUser || !canRunOpsUserControls(adminUser)) {
           return res.status(403).json({ message: "Ops admin access required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
 
         const { userId } = req.params;
@@ -8492,6 +8646,21 @@ export async function registerRoutes(app: any) {
           verificationStatus: "pending" as any,
         });
 
+        await auditPrivilegedAction({
+          action: "admin_user_unsuspend",
+          route: "/api/admin/user-controls/unsuspend/:userId",
+          operationType: "unsuspend_user",
+          actorId: normalizeImmutableTargetId(adminUserId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: userId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: { verificationStatus: "pending" },
+        });
+
         return res.json({
           id: updated.id,
           role: updated.role,
@@ -8511,9 +8680,17 @@ export async function registerRoutes(app: any) {
       try {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
+        const actorContext = resolvePrivilegedActor(adminUser);
+        const reason = normalizePrivilegedReason(
+          req.body?.reason ?? req.body?.adminSafety?.reason,
+          12
+        );
 
         if (!adminUser || !canRunOpsUserControls(adminUser)) {
           return res.status(403).json({ message: "Ops admin access required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
 
         const { userId } = req.params;
@@ -8529,6 +8706,21 @@ export async function registerRoutes(app: any) {
         const updated = await storage.updateUser(userId, {
           verificationStatus: "approved" as any,
           addressVerified: true,
+        });
+
+        await auditPrivilegedAction({
+          action: "admin_user_verify",
+          route: "/api/admin/user-controls/verify/:userId",
+          operationType: "verify_user",
+          actorId: normalizeImmutableTargetId(adminUserId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: userId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: { verificationStatus: "approved", addressVerified: true },
         });
 
         return res.json({
@@ -8551,9 +8743,17 @@ export async function registerRoutes(app: any) {
       try {
         const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
         const adminUser = await storage.getUser(adminUserId);
+        const actorContext = resolvePrivilegedActor(adminUser);
+        const reason = normalizePrivilegedReason(
+          req.body?.reason ?? req.body?.adminSafety?.reason,
+          12
+        );
 
         if (!adminUser || !canRunOpsUserControls(adminUser)) {
           return res.status(403).json({ message: "Ops admin access required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
 
         const { userId } = req.params;
@@ -8568,6 +8768,21 @@ export async function registerRoutes(app: any) {
 
         const updated = await storage.updateUser(userId, {
           verificationStatus: "pending" as any,
+        });
+
+        await auditPrivilegedAction({
+          action: "admin_user_revoke_verify",
+          route: "/api/admin/user-controls/revoke-verify/:userId",
+          operationType: "revoke_user_verification",
+          actorId: normalizeImmutableTargetId(adminUserId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: userId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: { verificationStatus: "pending" },
         });
 
         return res.json({
@@ -8586,11 +8801,19 @@ export async function registerRoutes(app: any) {
     try {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
+      const actorContext = resolvePrivilegedActor(adminUser);
+      const reason = normalizePrivilegedReason(
+        req.body?.reason ?? req.body?.adminSafety?.reason,
+        12
+      );
 
       const actorIsSuper = Boolean(adminUser && hasRole(adminUser, "super_admin"));
       const actorIsOps = Boolean(adminUser && hasRole(adminUser, "ops_admin"));
       if (!adminUser || (!actorIsSuper && !actorIsOps)) {
         return res.status(403).json({ message: "Ops admin access required" });
+      }
+      if (!reason) {
+        return res.status(400).json({ message: "reason is required (min 12 chars)" });
       }
 
       const { userId } = req.params;
@@ -8666,6 +8889,24 @@ export async function registerRoutes(app: any) {
       }
 
       const updated = await storage.updateUser(userId, { role: newRole as any });
+
+      await auditPrivilegedAction({
+        action: "admin_user_role_update",
+        route: "/api/admin/user-controls/role/:userId",
+        operationType: "change_user_role",
+        actorId: normalizeImmutableTargetId(adminUserId),
+        actorRole: actorContext.actorRole,
+        actorRoles: actorContext.actorRoles,
+        targetType: "user",
+        targetId: userId,
+        resolutionSource: "route_param:user_id",
+        reason,
+        outcome: "completed",
+        details: {
+          oldRole: targetUser.role,
+          newRole,
+        },
+      });
 
       return res.json({
         id: updated.id,
@@ -12955,7 +13196,7 @@ export async function registerRoutes(app: any) {
   };
 
   // Admin Support Edit: safeguarded "edit user for them" endpoint.
-  // Requires explicit reason + confirm phrase. Optionally requires ADMIN_SAFETY_KEY if configured.
+  // Requires immutable target resolution, explicit reason, and audited outcome.
   app.post(
     "/api/admin/users/support-edit",
     isAuthenticated,
@@ -12971,7 +13212,7 @@ export async function registerRoutes(app: any) {
         const adminSafety =
           body.adminSafety && typeof body.adminSafety === "object" ? body.adminSafety : {};
 
-        const reason = String(adminSafety.reason || "").trim();
+        const reason = normalizePrivilegedReason(adminSafety.reason, 12);
         if (reason.length < 12) {
           return res.status(400).json({ message: "adminSafety.reason is required (min 12 chars)" });
         }
@@ -12993,28 +13234,62 @@ export async function registerRoutes(app: any) {
           }
         }
 
-        const targetUserId = String(body.targetUserId || "").trim();
+        const targetUserId = normalizeImmutableTargetId(body.targetUserId);
         const targetEmail = String(body.targetEmail || "")
           .trim()
           .toLowerCase();
 
-        if (!targetUserId && !targetEmail) {
-          return res.status(400).json({ message: "Provide targetUserId or targetEmail" });
+        if (!targetUserId) {
+          await auditPrivilegedAction({
+            action: "admin_support_user_edit",
+            route: "/api/admin/users/support-edit",
+            operationType: "support_user_edit",
+            actorId,
+            actorRole: resolvePrivilegedActor(req.user).actorRole,
+            actorRoles: resolvePrivilegedActor(req.user).actorRoles,
+            targetType: "user",
+            targetId: null,
+            resolutionSource: targetEmail ? "target_email_only" : "missing_target_user_id",
+            reason,
+            outcome: "denied",
+            lookupInput: { targetEmail: targetEmail || null },
+          });
+          return res.status(400).json({
+            message:
+              "targetUserId is required. targetEmail may be supplied only as lookup metadata.",
+          });
         }
 
-        const target = targetUserId
-          ? await storage.getUser(targetUserId)
-          : await storage.getUserByEmail(targetEmail);
+        const target = await storage.getUser(targetUserId);
 
         if (!target) {
           return res.status(404).json({ message: "Target user not found" });
         }
-        const targetResolutionSource = targetUserId ? "target_user_id" : "target_email";
+        if (!suppliedEmailMatchesTarget(targetEmail, target)) {
+          await auditPrivilegedAction({
+            action: "admin_support_user_edit",
+            route: "/api/admin/users/support-edit",
+            operationType: "support_user_edit",
+            actorId,
+            actorRole: resolvePrivilegedActor(req.user).actorRole,
+            actorRoles: resolvePrivilegedActor(req.user).actorRoles,
+            targetType: "user",
+            targetId: target.id,
+            resolutionSource: "target_user_id",
+            reason,
+            outcome: "denied",
+            lookupInput: { targetEmail },
+            details: { mismatch: "target_email_does_not_match_target_user_id" },
+          });
+          return res.status(409).json({ message: "targetEmail does not match targetUserId" });
+        }
+        const targetResolutionSource = "target_user_id";
 
         const actor = await storage.getUser(actorId);
         if (!actor) {
           return res.status(401).json({ message: "Actor not found" });
         }
+        const actorContext = resolvePrivilegedActor(actor);
 
         const targetProtected = userHasProtectedAdminRole(target);
         if (targetProtected) {
@@ -13230,18 +13505,26 @@ export async function registerRoutes(app: any) {
           });
         }
 
-        await logAdminAction({
+        await auditPrivilegedAction({
           action: "admin_support_user_edit",
-          actorUserId: actorId,
-          targetUserId: target.id,
-          targetEmail: target.email,
-          targetResolutionSource,
+          route: "/api/admin/users/support-edit",
+          operationType: "support_user_edit",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: target.id,
+          resolutionSource: targetResolutionSource,
           reason,
-          protectedTarget: targetProtected,
-          changedFields: [
-            ...changedUserKeys,
-            ...changedPreferenceKeys.map((k) => `preferences.${k}`),
-          ],
+          outcome: "completed",
+          lookupInput: { targetEmail: targetEmail || null },
+          details: {
+            protectedTarget: targetProtected,
+            changedFields: [
+              ...changedUserKeys,
+              ...changedPreferenceKeys.map((k) => `preferences.${k}`),
+            ],
+          },
         });
 
         return res.json({
@@ -17133,9 +17416,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.post("/api/marketplace/listings", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const parsedListing = insertMarketplaceListingSchema.safeParse(
-        pickMarketplaceWritableFields(req.body)
-      );
+      const parsedListing = insertMarketplaceListingSchema.safeParse({
+        ...pickMarketplaceWritableFields(req.body),
+        sellerId: String(user?.id || ""),
+      });
       if (!parsedListing.success) {
         return res.status(400).json({
           message: "Invalid marketplace listing payload",
@@ -17487,13 +17771,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       try {
         const user = req.user as any;
         const { id } = req.params;
-        const { notes } = req.body;
+        const moderationNotes = normalizeOptionalRedactedText(req.body?.notes, 1000);
 
         const listing = await storage.updateMarketplaceListing(id, {
           status: "active",
           approvedBy: user?.id,
           approvedAt: new Date(),
-          moderationNotes: notes,
+          moderationNotes,
         });
 
         // Trigger hyper-local notifications for nearby users when a listing goes live
@@ -17523,9 +17807,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       try {
         const user = req.user as any;
         const { id } = req.params;
-        const { reason, notes } = req.body;
+        const rejectionReason = normalizeOptionalRedactedText(req.body?.reason, 500);
+        const moderationNotes = normalizeOptionalRedactedText(req.body?.notes, 1000);
 
-        if (!reason) {
+        if (!rejectionReason) {
           return res.status(400).json({ message: "Rejection reason is required" });
         }
 
@@ -17533,8 +17818,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           status: "rejected",
           rejectedBy: user?.id,
           rejectedAt: new Date(),
-          rejectionReason: reason,
-          moderationNotes: notes,
+          rejectionReason,
+          moderationNotes,
         });
 
         res.json({
@@ -22963,11 +23248,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           countyFips,
           stateCode,
           address1: typeof body.address1 === "string" ? body.address1 : null,
+          city: typeof body.city === "string" ? body.city : null,
           zipCode: typeof body.zipCode === "string" ? body.zipCode : null,
           sourceHomeId: typeof body.sourceHomeId === "string" ? body.sourceHomeId.trim() : null,
-          title,
-          price,
         });
+
+        if (!manualSourceIdentity) {
+          return res.status(400).json({
+            message:
+              "HomeScout listings require a stable property identity via sourceHomeId or address1.",
+            reasonCode: "PROPERTY_IDENTITY_REQUIRED",
+          });
+        }
 
         const duplicateManualListing = await storage.getHomeScoutListingBySource({
           sourceKey: "manual",
@@ -22989,8 +23281,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           sourceKey: "manual",
           ...manualSourceIdentity,
           status: "pending_review" as any,
-          title,
-          description: normalizeOptionalText(body.description),
+          title: normalizeRedactedText(title, 200),
+          description: normalizeOptionalRedactedText(body.description, 4000),
           price: String(price) as any,
           pricePrevious: null,
           priceChangedAt: null,
@@ -23004,12 +23296,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           sqft: body.sqft != null ? Number(body.sqft) : null,
           lotSqft: body.lotSqft != null ? Number(body.lotSqft) : null,
           yearBuilt: body.yearBuilt != null ? Number(body.yearBuilt) : null,
-          features: Array.isArray(body.features)
-            ? body.features.filter((x: any) => typeof x === "string")
-            : null,
+          features: normalizeRedactedStringArray(body.features, 40, 200),
           countyFips,
           stateCode,
-          city: typeof body.city === "string" ? body.city : null,
+          city: normalizeOptionalText(body.city),
           zipCode: normalizeOptionalZipCode(body.zipCode),
           address1: normalizeOptionalText(body.address1),
           address2: normalizeOptionalText(body.address2),
@@ -23082,7 +23372,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const updates: any = {};
 
         if (typeof body.title === "string") {
-          const title = body.title.trim();
+          const title = normalizeRedactedText(body.title, 200);
           if (title.length < 10 || title.length > 200) {
             return res.status(400).json({ message: "title must be 10-200 characters" });
           }
@@ -23090,7 +23380,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         }
 
         if (typeof body.description === "string") {
-          updates.description = body.description;
+          updates.description = normalizeOptionalRedactedText(body.description, 4000);
         }
 
         if (body.price != null) {
@@ -23130,10 +23420,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         intField("yearBuilt", 1600, 2200);
 
         if (Array.isArray(body.features)) {
-          updates.features = body.features.filter((x: any) => typeof x === "string");
+          updates.features = normalizeRedactedStringArray(body.features, 40, 200);
         }
         if (Array.isArray(body.photos)) {
-          updates.photos = body.photos.filter((x: any) => typeof x === "string");
+          updates.photos = normalizeStringArray(body.photos, 24, 1000);
         }
 
         if (Object.keys(updates).length === 0) {
