@@ -19,6 +19,7 @@ import { emailService } from "../services/emailService";
 import { passwordResetService } from "../services/passwordResetService";
 import { emailVerificationService } from "../services/emailVerificationService";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
+import { logAdminAction } from "../services/adminAuditLogService";
 import {
   redactContactDetails,
   buildWorkRequestPreviewTitle,
@@ -1336,14 +1337,17 @@ export function registerDirectConnectRoutes(app: Express) {
         let activationLink: string | undefined;
         let verifyLink: string | undefined;
         let targetEmailForNotification: string | null = null;
+        let targetResolutionSource: "target_user_id" | "target_email" = "target_user_id";
         if (body.targetUserId) {
           targetUser = await storage.getUser(body.targetUserId);
           targetUserExisted = Boolean(targetUser);
+          targetResolutionSource = "target_user_id";
           if (targetUser?.email) {
             targetEmailForNotification = String(targetUser.email).trim().toLowerCase();
           }
         } else if (body.targetEmail) {
           const normalizedEmail = body.targetEmail.trim().toLowerCase();
+          targetResolutionSource = "target_email";
           targetEmailForNotification = normalizedEmail;
           targetUser = await storage.getUserByEmail(normalizedEmail);
           if (!targetUser) {
@@ -1460,6 +1464,7 @@ export function registerDirectConnectRoutes(app: Express) {
         if (!targetUser) {
           return res.status(404).json({ message: "Target user not found" });
         }
+        const resolvedTargetUserId = String(targetUser.id);
 
         const budgetMinNumber = body.budgetMin ?? NaN;
         const budgetMaxNumber = body.budgetMax ?? NaN;
@@ -1492,7 +1497,7 @@ export function registerDirectConnectRoutes(app: Express) {
         const [created] = await db
           .insert(workRequests)
           .values({
-            createdByUserId: String(targetUser.id),
+            createdByUserId: resolvedTargetUserId,
             title: sanitizedTitle,
             description: sanitizedDescription,
             category: resolvedAdminCategory,
@@ -1518,7 +1523,7 @@ export function registerDirectConnectRoutes(app: Express) {
               actorUserId: String(actorUserId),
               metadata: {
                 source: "direct_connect_admin",
-                createdForUserId: String(targetUser.id),
+                createdForUserId: resolvedTargetUserId,
                 requesterIntent: "hire_provider",
               },
             });
@@ -1528,7 +1533,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
           try {
             await notificationService.createNotification({
-              userId: String(targetUser.id),
+              userId: resolvedTargetUserId,
               type: "new_project_request",
               title: "A Direct Connect request was created for you",
               message: `Open Direct Connect to review: ${created.title}`,
@@ -1547,10 +1552,21 @@ export function registerDirectConnectRoutes(app: Express) {
 
           console.info("[direct-connect] Admin-created request", {
             requestId: created.id,
-            targetUserId: String(targetUser.id),
+            targetUserId: resolvedTargetUserId,
             targetEmail: targetEmailForNotification,
             setupEmailSent,
             requestEmailSent,
+            targetResolutionSource,
+          });
+
+          await logAdminAction({
+            action: "admin_direct_connect_target_resolved",
+            actorUserId: String(actorUserId),
+            targetUserId: resolvedTargetUserId,
+            targetEmail: targetEmailForNotification,
+            resolutionSource: targetResolutionSource,
+            targetUserProvisioned,
+            targetUserExisted,
           });
         }
 
@@ -1590,7 +1606,7 @@ export function registerDirectConnectRoutes(app: Express) {
                       contractorId: contractor.id,
                       contractorUserId: contractor.userId ?? null,
                       source: "direct_connect_admin",
-                      createdForUserId: String(targetUser.id),
+                      createdForUserId: resolvedTargetUserId,
                     },
                   }))
                 );

@@ -110,8 +110,6 @@ export function BusinessContext({
         location,
         verified,
         yearsInBusiness,
-        phone: contactInfo?.phone,
-        email: contactInfo?.email,
         website: contactInfo?.website,
       }}
       className="business-context"
@@ -123,8 +121,6 @@ export function BusinessContext({
         <span data-field="location">{location}</span>
         <span data-field="verification-status">{verified ? "verified" : "pending"}</span>
         <span data-field="experience-years">{yearsInBusiness}</span>
-        {contactInfo?.phone && <span data-field="phone">{contactInfo.phone}</span>}
-        {contactInfo?.email && <span data-field="email">{contactInfo.email}</span>}
         {contactInfo?.website && <span data-field="website">{contactInfo.website}</span>}
       </div>
 

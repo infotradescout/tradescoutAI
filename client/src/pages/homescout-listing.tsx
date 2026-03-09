@@ -10,10 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { uploadObject } from "@/lib/objectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import {
-  ContactOutcomeModal,
-  type ContactOutcome,
-} from "@/components/community/ContactOutcomeModal";
 
 type HomeScoutListing = {
   id: string;
@@ -38,7 +34,6 @@ type HomeScoutListing = {
   addressVisibility?: "exact" | "approximate" | string | null;
   listedAt?: string | null;
   createdAt?: string | null;
-  contactUserId?: string | null;
   sellerUserId?: string | null;
   agentUserId?: string | null;
   listingAuthorType?: string | null;
@@ -98,7 +93,6 @@ type HomeScoutInspectionRequest = {
 
 type ListingResponse = {
   listing: HomeScoutListing;
-  contactUserId: string | null;
   events: HomeScoutListingEvent[];
   marketBucket: HomeScoutMarketBucket | null;
   countyMetrics: CountyMetric[];
@@ -138,7 +132,6 @@ function safePhotos(input: unknown): string[] {
 export default function HomeScoutListingPage() {
   const [match, params] = useRoute("/homescout/listings/:id");
   const listingId = params?.id ? String(params.id) : "";
-  const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const [inspectionRequestMessage, setInspectionRequestMessage] = useState("");
   const [inspectionPreferredWindow, setInspectionPreferredWindow] = useState("");
   const [showInspectionInsights, setShowInspectionInsights] = useState(false);
@@ -172,7 +165,6 @@ export default function HomeScoutListingPage() {
   });
 
   const listing = data?.listing ?? null;
-  const contactUserId = data?.contactUserId ?? null;
   const events = Array.isArray(data?.events) ? data!.events : [];
   const marketBucket = data?.marketBucket ?? null;
   const countyMetrics = Array.isArray(data?.countyMetrics) ? data!.countyMetrics : [];
@@ -389,20 +381,6 @@ export default function HomeScoutListingPage() {
     },
   });
 
-  const { data: contactPublicProfile } = useQuery<any>({
-    queryKey: ["/api/users/public", contactUserId],
-    queryFn: async () => {
-      if (!contactUserId) return null;
-      const res = await fetch(`/api/users/${encodeURIComponent(contactUserId)}/public`, {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: Boolean(contactUserId),
-  });
-
   const primaryPhoto = useMemo(() => {
     const photos = safePhotos(listing?.photos);
     return photos.length > 0 ? photos[0] : null;
@@ -467,24 +445,9 @@ export default function HomeScoutListingPage() {
     return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   })();
 
-  const canContact = Boolean(contactUserId);
-  const targetName =
-    (contactPublicProfile as any)?.displayName ||
-    (contactPublicProfile as any)?.name ||
-    (contactPublicProfile as any)?.fullName ||
-    "Listing contact";
   const targetRole =
-    (contactPublicProfile as any)?.role ||
-    (contactPublicProfile as any)?.userRole ||
-    "Seller/Agent";
-  const realtorProfile = (contactPublicProfile as any)?.realtorProfile || null;
-  const contactProfileHref =
-    typeof (contactPublicProfile as any)?.canonicalProfileUrl === "string" &&
-    (contactPublicProfile as any).canonicalProfileUrl.trim().length > 0
-      ? String((contactPublicProfile as any).canonicalProfileUrl).trim()
-      : contactUserId
-        ? `/profile/${encodeURIComponent(String(contactUserId))}`
-        : null;
+    String((listing as any)?.listingAuthorType || "owner") === "agent" ? "Agent" : "Owner";
+  const targetName = targetRole === "Agent" ? "Listing agent" : "Listing owner";
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
@@ -1011,19 +974,8 @@ export default function HomeScoutListingPage() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-semibold truncate">{String(targetName)}</div>
-                  <div className="text-xs text-white/60 truncate">
-                    {realtorProfile?.brokerageName
-                      ? `Brokerage: ${String(realtorProfile.brokerageName)}`
-                      : String(targetRole)}
-                  </div>
+                  <div className="text-xs text-white/60 truncate">{String(targetRole)}</div>
                 </div>
-                {contactProfileHref ? (
-                  <Link href={contactProfileHref}>
-                    <Button size="sm" variant="outline">
-                      View profile
-                    </Button>
-                  </Link>
-                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -1183,30 +1135,17 @@ export default function HomeScoutListingPage() {
                 <div className="text-white font-semibold">{targetName}</div>
                 <div className="text-xs text-white/60">{String(targetRole).replace(/_/g, " ")}</div>
                 <div className="text-xs text-white/60">
-                  HomeScout never exposes direct contact without intent gating.
+                  HomeScout never exposes direct contact from listing discovery.
                 </div>
               </div>
-              <Button
-                className="w-full bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
-                disabled={!canContact}
-                onClick={() => {
-                  if (!contactUserId) return;
-                  setContactOutcome({
-                    targetUserId: contactUserId,
-                    targetUserName: targetName,
-                    targetRole: String(targetRole),
-                    targetLocation: locationLabel || undefined,
-                    suggestedIntent: "advise",
-                    reasonForContact: `Hi ${targetName} — I'm interested in this listing. Can we discuss next steps?`,
-                    riskFlags: [],
-                    decisionScope: `homescout_listing:${listing.id}`,
-                    decisionTitle: `HomeScout: ${listing.title}`,
-                  });
-                }}
+              <Link
+                href={`/scout?intent=homescout_contact&listingId=${encodeURIComponent(String(listing.id))}`}
               >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Request contact
-              </Button>
+                <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Request contact via Scout
+                </Button>
+              </Link>
               <Link href="/real-estate-marketplace">
                 <Button variant="outline" className="w-full">
                   Back to HomeScout
@@ -1216,10 +1155,6 @@ export default function HomeScoutListingPage() {
           </Card>
         </div>
       </div>
-
-      {contactOutcome && (
-        <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
-      )}
     </div>
   );
 }

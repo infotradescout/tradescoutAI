@@ -157,6 +157,17 @@ function sanitizeContractorPublic<T extends Record<string, any>>(
   void email;
   return rest;
 }
+
+function sanitizeHomeScoutPublicListing<T extends Record<string, any>>(
+  listing: T
+): Omit<T, "sellerUserId" | "agentUserId" | "contactUserId"> {
+  if (!listing || typeof listing !== "object") return listing as any;
+  const { sellerUserId, agentUserId, contactUserId, ...rest } = listing as any;
+  void sellerUserId;
+  void agentUserId;
+  void contactUserId;
+  return rest;
+}
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import { storage } from "./storage";
 import {
@@ -1017,6 +1028,61 @@ export async function registerRoutes(app: any) {
     if (!value) return undefined;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
+  };
+
+  const buildExposureAuthorityMap = async (userIds: string[]): Promise<Record<string, boolean>> => {
+    const uniqueUserIds = Array.from(
+      new Set(
+        userIds.map((value) => String(value || "").trim()).filter((value) => value.length > 0)
+      )
+    );
+
+    const authorityByUserId: Record<string, boolean> = {};
+    if (!uniqueUserIds.length) {
+      return authorityByUserId;
+    }
+
+    for (const userId of uniqueUserIds) {
+      authorityByUserId[userId] = false;
+    }
+
+    const [users, verificationSummary] = await Promise.all([
+      storage.getUsersByIds(uniqueUserIds),
+      storage.getUserVerificationSummary(uniqueUserIds),
+    ]);
+
+    const userMap = new Map<string, any>();
+    for (const user of users || []) {
+      const userId = String((user as any)?.id || "").trim();
+      if (userId) {
+        userMap.set(userId, user as any);
+      }
+    }
+
+    for (const userId of uniqueUserIds) {
+      const user = userMap.get(userId);
+      if (!user) continue;
+
+      const summary = verificationSummary?.[userId] ?? {
+        hasLicense: false,
+        hasInsurance: false,
+        hasEin: false,
+      };
+
+      const verificationStatus = String((user as any)?.verificationStatus || "").toLowerCase();
+      const hasIdentityGate =
+        verificationStatus === "approved" || verificationStatus === "verified";
+      const hasBusinessGate =
+        summary.hasLicense === true || summary.hasInsurance === true || summary.hasEin === true;
+      const hasAddressGate = (user as any)?.addressVerified === true;
+      const hasEmailGate = (user as any)?.emailVerified === true;
+
+      authorityByUserId[userId] = Boolean(
+        hasEmailGate && (hasAddressGate || hasIdentityGate || hasBusinessGate)
+      );
+    }
+
+    return authorityByUserId;
   };
 
   const getBetaWindow = () => {
@@ -10284,6 +10350,46 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
+        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
+          const conversation = await storage.getConversation(conversationId);
+          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
+
+          const boundConnections = await db
+            .select({
+              connectionId: workRequestAssignments.id,
+              workRequestId: workRequests.id,
+              assignmentStatus: workRequestAssignments.status,
+              requestStatus: workRequests.status,
+            })
+            .from(workRequestAssignments)
+            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+            .where(
+              and(
+                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                eq(workRequests.createdByUserId, conversation.homeownerId),
+                eq(workRequests.source, "direct_connect" as any),
+                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
+                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
+              )
+            )
+            .orderBy(desc(workRequestAssignments.updatedAt))
+            .limit(1);
+
+          const connection = boundConnections[0];
+          if (!connection) {
+            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
+          }
+
+          return {
+            ok: true as const,
+            conversation,
+            connectionId: String(connection.connectionId),
+            workRequestId: String(connection.workRequestId),
+            assignmentStatus: String(connection.assignmentStatus || ""),
+            requestStatus: String(connection.requestStatus || ""),
+          };
+        };
+
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
@@ -10305,8 +10411,17 @@ export async function registerRoutes(app: any) {
             return res.status(403).json({ message: "Access denied" });
           }
         } else {
-          const legacyConversation = await storage.getConversation(threadId);
-          if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
+          const authority = await resolveLegacyConversationConnectionAuthority(threadId);
+          if (!authority.ok) {
+            if (authority.reason === "THREAD_NOT_FOUND") {
+              return res.status(404).json({ message: "Thread not found" });
+            }
+            return res.status(403).json({
+              reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+              message: "Thread access requires an active Direct Connect connection.",
+            });
+          }
+          const legacyConversation = authority.conversation;
           threadType = "legacy";
           if (
             legacyConversation.homeownerId !== userId &&
@@ -10389,6 +10504,44 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
+        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
+          const conversation = await storage.getConversation(conversationId);
+          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
+
+          const boundConnections = await db
+            .select({
+              connectionId: workRequestAssignments.id,
+              workRequestId: workRequests.id,
+              assignmentStatus: workRequestAssignments.status,
+              requestStatus: workRequests.status,
+            })
+            .from(workRequestAssignments)
+            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+            .where(
+              and(
+                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                eq(workRequests.createdByUserId, conversation.homeownerId),
+                eq(workRequests.source, "direct_connect" as any),
+                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
+                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
+              )
+            )
+            .orderBy(desc(workRequestAssignments.updatedAt))
+            .limit(1);
+
+          const connection = boundConnections[0];
+          if (!connection) {
+            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
+          }
+
+          return {
+            ok: true as const,
+            conversation,
+            connectionId: String(connection.connectionId),
+            workRequestId: String(connection.workRequestId),
+          };
+        };
+
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) {
           return res.status(401).json({ message: "Authentication required" });
@@ -10414,10 +10567,17 @@ export async function registerRoutes(app: any) {
           return res.json({ message });
         }
 
-        const legacyConversation = await storage.getConversation(req.params.threadId);
-        if (!legacyConversation) {
-          return res.status(404).json({ message: "Thread not found" });
+        const authority = await resolveLegacyConversationConnectionAuthority(req.params.threadId);
+        if (!authority.ok) {
+          if (authority.reason === "THREAD_NOT_FOUND") {
+            return res.status(404).json({ message: "Thread not found" });
+          }
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Thread access requires an active Direct Connect connection.",
+          });
         }
+        const legacyConversation = authority.conversation;
         if (
           legacyConversation.homeownerId !== userId &&
           legacyConversation.contractorId !== userId
@@ -10432,7 +10592,11 @@ export async function registerRoutes(app: any) {
           senderType: senderType as any,
           content,
           messageType: messageType || "text",
-          metadata,
+          metadata: {
+            ...(metadata && typeof metadata === "object" ? metadata : {}),
+            connectionId: authority.connectionId,
+            workRequestId: authority.workRequestId,
+          },
         });
         res.json({ message });
       } catch (error: any) {
@@ -10448,10 +10612,53 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const conversation = await storage.getConversation(req.params.id);
-        if (!conversation) {
-          return res.status(404).json({ message: "Conversation not found" });
+        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
+          const conversation = await storage.getConversation(conversationId);
+          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
+
+          const boundConnections = await db
+            .select({
+              connectionId: workRequestAssignments.id,
+              workRequestId: workRequests.id,
+            })
+            .from(workRequestAssignments)
+            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+            .where(
+              and(
+                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                eq(workRequests.createdByUserId, conversation.homeownerId),
+                eq(workRequests.source, "direct_connect" as any),
+                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
+                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
+              )
+            )
+            .orderBy(desc(workRequestAssignments.updatedAt))
+            .limit(1);
+
+          const connection = boundConnections[0];
+          if (!connection) {
+            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
+          }
+
+          return {
+            ok: true as const,
+            conversation,
+            connectionId: String(connection.connectionId),
+            workRequestId: String(connection.workRequestId),
+          };
+        };
+
+        const authority = await resolveLegacyConversationConnectionAuthority(req.params.id);
+        if (!authority.ok) {
+          if (authority.reason === "THREAD_NOT_FOUND") {
+            return res.status(404).json({ message: "Conversation not found" });
+          }
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Conversation access requires an active Direct Connect connection.",
+          });
         }
+        const conversation = authority.conversation;
 
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
@@ -10522,12 +10729,55 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
+        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
+          const conversation = await storage.getConversation(conversationId);
+          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
+
+          const boundConnections = await db
+            .select({
+              connectionId: workRequestAssignments.id,
+              workRequestId: workRequests.id,
+            })
+            .from(workRequestAssignments)
+            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+            .where(
+              and(
+                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                eq(workRequests.createdByUserId, conversation.homeownerId),
+                eq(workRequests.source, "direct_connect" as any),
+                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
+                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
+              )
+            )
+            .orderBy(desc(workRequestAssignments.updatedAt))
+            .limit(1);
+
+          const connection = boundConnections[0];
+          if (!connection) {
+            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
+          }
+
+          return {
+            ok: true as const,
+            conversation,
+            connectionId: String(connection.connectionId),
+            workRequestId: String(connection.workRequestId),
+          };
+        };
+
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-        const conversation = await storage.getConversation(req.params.id);
-        if (!conversation) {
-          return res.status(404).json({ message: "Conversation not found" });
+        const authority = await resolveLegacyConversationConnectionAuthority(req.params.id);
+        if (!authority.ok) {
+          if (authority.reason === "THREAD_NOT_FOUND") {
+            return res.status(404).json({ message: "Conversation not found" });
+          }
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Conversation access requires an active Direct Connect connection.",
+          });
         }
+        const conversation = authority.conversation;
 
         if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
           return res.status(403).json({ message: "Access denied" });
@@ -10561,6 +10811,45 @@ export async function registerRoutes(app: any) {
 
   app.get("/api/conversations/:id/quotes", isAuthenticated, async (req: any, res: any) => {
     try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const boundConnections = await db
+        .select({
+          connectionId: workRequestAssignments.id,
+        })
+        .from(workRequestAssignments)
+        .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+        .where(
+          and(
+            eq(workRequestAssignments.contractorId, conversation.contractorId),
+            eq(workRequests.createdByUserId, conversation.homeownerId),
+            eq(workRequests.source, "direct_connect" as any),
+            inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
+            inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
+          )
+        )
+        .orderBy(desc(workRequestAssignments.updatedAt))
+        .limit(1);
+
+      if (!boundConnections[0]) {
+        return res.status(403).json({
+          reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+          message: "Conversation access requires an active Direct Connect connection.",
+        });
+      }
+
       const quotes = await storage.getQuotesByConversation(req.params.id);
       res.json(quotes);
     } catch (error: any) {
@@ -10582,6 +10871,45 @@ export async function registerRoutes(app: any) {
   // Material list endpoints (chat + project planning)
   app.get("/api/conversations/:id/material-lists", isAuthenticated, async (req: any, res: any) => {
     try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const boundConnections = await db
+        .select({
+          connectionId: workRequestAssignments.id,
+        })
+        .from(workRequestAssignments)
+        .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+        .where(
+          and(
+            eq(workRequestAssignments.contractorId, conversation.contractorId),
+            eq(workRequests.createdByUserId, conversation.homeownerId),
+            eq(workRequests.source, "direct_connect" as any),
+            inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
+            inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
+          )
+        )
+        .orderBy(desc(workRequestAssignments.updatedAt))
+        .limit(1);
+
+      if (!boundConnections[0]) {
+        return res.status(403).json({
+          reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+          message: "Conversation access requires an active Direct Connect connection.",
+        });
+      }
+
       const lists = await storage.getMaterialListsByConversation(req.params.id);
       res.json(lists);
     } catch (error: any) {
@@ -12514,6 +12842,7 @@ export async function registerRoutes(app: any) {
         if (!target) {
           return res.status(404).json({ message: "Target user not found" });
         }
+        const targetResolutionSource = targetUserId ? "target_user_id" : "target_email";
 
         const actor = await storage.getUser(actorId);
         if (!actor) {
@@ -12739,6 +13068,7 @@ export async function registerRoutes(app: any) {
           actorUserId: actorId,
           targetUserId: target.id,
           targetEmail: target.email,
+          targetResolutionSource,
           reason,
           protectedTarget: targetProtected,
           changedFields: [
@@ -16580,7 +16910,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       };
 
       const listings = await storage.getMarketplaceListings(filters);
-      res.json(listings);
+      const sellerUserIds = listings
+        .map((listing: any) => String(listing?.sellerId || "").trim())
+        .filter((value: string) => value.length > 0);
+      const authorityByUserId = await buildExposureAuthorityMap(sellerUserIds);
+      const gatedListings = listings.filter(
+        (listing: any) => authorityByUserId[String(listing?.sellerId || "").trim()] === true
+      );
+
+      res.json(gatedListings);
     } catch (error: any) {
       console.error("Error fetching marketplace listings:", error);
       res.status(500).json({ message: "Failed to fetch listings" });
@@ -21148,8 +21486,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         condition: condition as string,
         sortBy: sortBy as any,
       });
+      const sellerUserIds = searchResults
+        .map((listing: any) => String(listing?.sellerId || "").trim())
+        .filter((value: string) => value.length > 0);
+      const authorityByUserId = await buildExposureAuthorityMap(sellerUserIds);
+      const gatedSearchResults = searchResults.filter(
+        (listing: any) => authorityByUserId[String(listing?.sellerId || "").trim()] === true
+      );
 
-      res.json(searchResults);
+      res.json(gatedSearchResults);
     } catch (error: any) {
       console.error("Error performing search:", error);
       res.status(500).json({ message: "Failed to perform search" });
@@ -21221,8 +21566,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         limit: Number(limit),
         offset: Number(offset),
       });
+      const authorityUserIds = rows
+        .map((row: any) =>
+          String(row?.contactUserId || row?.agentUserId || row?.sellerUserId || "").trim()
+        )
+        .filter((value: string) => value.length > 0);
+      const authorityByUserId = await buildExposureAuthorityMap(authorityUserIds);
+      const gatedRows = rows
+        .filter((row: any) => {
+          const authorityUserId = String(
+            row?.contactUserId || row?.agentUserId || row?.sellerUserId || ""
+          ).trim();
+          return authorityByUserId[authorityUserId] === true;
+        })
+        .map((row: any) => sanitizeHomeScoutPublicListing(row as any));
 
-      res.json(rows);
+      res.json(gatedRows);
     } catch (error: any) {
       console.error("Error searching HomeScout listings:", error);
       res.status(500).json({ message: "Failed to search HomeScout listings" });
@@ -21251,8 +21610,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         limit: limitRaw != null ? Number(limitRaw) : 20,
         offset: offsetRaw != null ? Number(offsetRaw) : 0,
       });
+      const authorityUserIds = rows
+        .map((row: any) =>
+          String(row?.contactUserId || row?.agentUserId || row?.sellerUserId || "").trim()
+        )
+        .filter((value: string) => value.length > 0);
+      const authorityByUserId = await buildExposureAuthorityMap(authorityUserIds);
+      const gatedRows = rows
+        .filter((row: any) => {
+          const authorityUserId = String(
+            row?.contactUserId || row?.agentUserId || row?.sellerUserId || ""
+          ).trim();
+          return authorityByUserId[authorityUserId] === true;
+        })
+        .map((row: any) => sanitizeHomeScoutPublicListing(row as any));
 
-      return res.json(rows);
+      return res.json(gatedRows);
     } catch (error: any) {
       console.error("Error searching HomeScout county listings:", error);
       return res.status(500).json({ message: "Failed to search HomeScout county listings" });
@@ -21267,32 +21640,44 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         return res.status(404).json({ message: "Listing not found" });
       }
 
+      const viewerUserId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+      const viewer = viewerUserId ? await storage.getUser(String(viewerUserId)) : null;
+      const viewerRole = String((viewer as any)?.role || "");
+      const isAdminLikeViewer = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
+
+      const contactUserId =
+        (listing as any).contactUserId ||
+        (listing as any).agentUserId ||
+        (listing as any).sellerUserId;
+      const isOwnerViewer =
+        Boolean(viewerUserId) &&
+        (String(viewerUserId) === String((listing as any).sellerUserId || "") ||
+          String(viewerUserId) === String((listing as any).agentUserId || "") ||
+          String(viewerUserId) === String((listing as any).contactUserId || ""));
+      const canBypassExposureGate = isAdminLikeViewer || isOwnerViewer;
+
+      if (!canBypassExposureGate) {
+        const authorityByUserId = await buildExposureAuthorityMap(
+          contactUserId ? [String(contactUserId)] : []
+        );
+        if (authorityByUserId[String(contactUserId || "").trim()] !== true) {
+          return res.status(404).json({ message: "Listing not found" });
+        }
+      }
+
       // Only active listings are public. Pending/removed listings are visible only to:
       // - the seller/agent/contact user
       // - admins
       const status = String((listing as any).status || "active");
       if (status !== "active") {
-        const viewerId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
-        if (!viewerId) {
+        if (!viewerUserId) {
           return res.status(404).json({ message: "Listing not found" });
         }
 
-        const viewer = await storage.getUser(viewerId);
-        const viewerRole = (viewer as any)?.role || "";
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(String(viewerRole));
-        const isOwner =
-          viewerId === (listing as any).sellerUserId ||
-          viewerId === (listing as any).agentUserId ||
-          viewerId === (listing as any).contactUserId;
-
-        if (!isAdminLike && !isOwner) {
+        if (!isAdminLikeViewer && !isOwnerViewer) {
           return res.status(404).json({ message: "Listing not found" });
         }
       }
-      const contactUserId =
-        (listing as any).contactUserId ||
-        (listing as any).agentUserId ||
-        (listing as any).sellerUserId;
 
       const events = await storage.listHomeScoutListingEvents({
         listingId: String((listing as any).id),
@@ -21355,7 +21740,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } as any);
 
       // Authenticated viewers may see their own uploads (even if pending/private/removed).
-      const viewerId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+      const viewerId = viewerUserId;
       let myInspectionReports: any[] = [];
       let pendingInspectionReports: any[] = [];
       if (viewerId) {
@@ -21400,8 +21785,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       // Do not bypass privacy: consumers may optionally call /api/users/:userId/public.
       res.json({
-        listing,
-        contactUserId: contactUserId || null,
+        listing: sanitizeHomeScoutPublicListing(listing as any),
         events,
         marketBucket,
         countyMetrics,
