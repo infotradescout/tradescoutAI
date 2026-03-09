@@ -2,6 +2,10 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { desc, sql } from "drizzle-orm";
 
+// contact_permissions.authority_gate is varchar(30)
+const SUPER_ADMIN_AUTHORITY_GATE = "system_super_admin_auto";
+const SUPER_ADMIN_RESPONSE_REASON = "system_super_admin_auto_connection";
+
 type EnsureSuperAdminConnectionResult = {
   ensured: boolean;
   reason?: string;
@@ -76,23 +80,23 @@ export async function ensureSuperAdminConnectionForUser(
       ${normalizedUserId},
       ${superAdminUserId},
       'accepted',
-      'system_super_admin_auto_connection',
+      ${SUPER_ADMIN_AUTHORITY_GATE},
       'platform_support',
       'Platform support connection',
       now(),
       ${superAdminUserId},
-      'system_super_admin_auto_connection',
+      ${SUPER_ADMIN_RESPONSE_REASON},
       now()
     )
     on conflict (requester_id, target_user_id)
     do update set
       status = 'accepted',
-      authority_gate = 'system_super_admin_auto_connection',
+      authority_gate = ${SUPER_ADMIN_AUTHORITY_GATE},
       intent = 'platform_support',
       decision_scope = 'Platform support connection',
       responded_at = now(),
       responded_by = ${superAdminUserId},
-      response_reason = 'system_super_admin_auto_connection',
+      response_reason = ${SUPER_ADMIN_RESPONSE_REASON},
       updated_at = now()
   `);
 

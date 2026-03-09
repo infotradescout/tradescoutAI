@@ -468,6 +468,12 @@ export default function ScoutOS() {
   ]);
 
   const hasMessages = state.messages.length > 0;
+  const showThreadRegion =
+    hasMessages ||
+    state.status === "resolving_context" ||
+    state.status === "checking_documents" ||
+    state.status === "executing_action" ||
+    state.status === "ready";
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -3861,9 +3867,9 @@ export default function ScoutOS() {
                   the bottom of the viewport, with the input pinned just above
                   the global bottom nav. */}
               <div
-                className={`mt-1.5 flex flex-col flex-1 min-h-0 ${
-                  isMobile ? "space-y-2 order-1" : "space-y-2 order-1"
-                }`}
+                className={`mt-1.5 flex flex-col min-h-0 ${
+                  showThreadRegion ? "flex-1" : "flex-none"
+                } ${isMobile ? "space-y-2 order-1" : "space-y-2 order-1"}`}
                 style={{ paddingBottom: isMobile ? "0.75rem" : "1rem" }}
               >
                 {!hasUserMessages && (
@@ -3989,90 +3995,92 @@ export default function ScoutOS() {
                   />
                 )}
 
-                <ScoutThread
-                  messages={state.messages}
-                  status={state.status}
-                  mode={activeMode}
-                  showControllerExtras={effectiveViewMode === "chat_plus_controller"}
-                  onAction={handleClusterAction}
-                  onOverride={handleOverride}
-                  overridePendingScope={overridePendingScope}
-                  onSendMessage={handleOnboardingMessage}
-                  onQuickAction={(text) => {
-                    const trimmed = text.trim();
-                    setHasGuestInteracted(true);
-                    const localAction = resolveQuickActionIntent(trimmed);
+                {showThreadRegion && (
+                  <ScoutThread
+                    messages={state.messages}
+                    status={state.status}
+                    mode={activeMode}
+                    showControllerExtras={effectiveViewMode === "chat_plus_controller"}
+                    onAction={handleClusterAction}
+                    onOverride={handleOverride}
+                    overridePendingScope={overridePendingScope}
+                    onSendMessage={handleOnboardingMessage}
+                    onQuickAction={(text) => {
+                      const trimmed = text.trim();
+                      setHasGuestInteracted(true);
+                      const localAction = resolveQuickActionIntent(trimmed);
 
-                    if (localAction?.kind === "direct_connect_request") {
-                      if (!isAuthenticated) {
-                        navigate("/pre-scout-setup?mode=signin");
+                      if (localAction?.kind === "direct_connect_request") {
+                        if (!isAuthenticated) {
+                          navigate("/pre-scout-setup?mode=signin");
+                          return;
+                        }
+
+                        const lastUserMsg = [...state.messages]
+                          .reverse()
+                          .find((m) => m.role === "user" && typeof m.content === "string")?.content;
+                        const raw = String(lastUserMsg || "")
+                          .replace(/\s+/g, " ")
+                          .trim();
+
+                        if (!raw) {
+                          navigate("/direct-connect");
+                          return;
+                        }
+
+                        const title = raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
+                        const countyFips =
+                          typeof (user as any)?.countyFips === "string"
+                            ? String((user as any).countyFips)
+                            : typeof (user as any)?.county_fips === "string"
+                              ? String((user as any).county_fips)
+                              : undefined;
+                        const stateCode =
+                          typeof (user as any)?.stateCode === "string"
+                            ? String((user as any).stateCode)
+                            : typeof (user as any)?.state_code === "string"
+                              ? String((user as any).state_code)
+                              : undefined;
+
+                        setDcDraft({
+                          title,
+                          description: raw,
+                          countyFips,
+                          stateCode,
+                        });
+                        setDcConfirmOpen(true);
                         return;
                       }
 
-                      const lastUserMsg = [...state.messages]
-                        .reverse()
-                        .find((m) => m.role === "user" && typeof m.content === "string")?.content;
-                      const raw = String(lastUserMsg || "")
-                        .replace(/\s+/g, " ")
-                        .trim();
-
-                      if (!raw) {
-                        navigate("/direct-connect");
+                      if (localAction?.kind === "navigate") {
+                        recordActivity({
+                          type: "navigate",
+                          ts: new Date().toISOString(),
+                          path: location,
+                          to: localAction.to,
+                          label: trimmed,
+                        });
+                        if (!maybeOpenWorkAreaForRoute(localAction.to, trimmed)) {
+                          navigate(localAction.to);
+                        }
                         return;
                       }
 
-                      const title = raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
-                      const countyFips =
-                        typeof (user as any)?.countyFips === "string"
-                          ? String((user as any).countyFips)
-                          : typeof (user as any)?.county_fips === "string"
-                            ? String((user as any).county_fips)
-                            : undefined;
-                      const stateCode =
-                        typeof (user as any)?.stateCode === "string"
-                          ? String((user as any).stateCode)
-                          : typeof (user as any)?.state_code === "string"
-                            ? String((user as any).state_code)
-                            : undefined;
-
-                      setDcDraft({
-                        title,
-                        description: raw,
-                        countyFips,
-                        stateCode,
-                      });
-                      setDcConfirmOpen(true);
-                      return;
-                    }
-
-                    if (localAction?.kind === "navigate") {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: localAction.to,
-                        label: trimmed,
-                      });
-                      if (!maybeOpenWorkAreaForRoute(localAction.to, trimmed)) {
-                        navigate(localAction.to);
+                      if (localAction?.kind === "open_note") {
+                        recordActivity({
+                          type: "open_note",
+                          ts: new Date().toISOString(),
+                          path: location,
+                          label: trimmed,
+                        });
+                        void openFloatingNote("quick");
+                        return;
                       }
-                      return;
-                    }
 
-                    if (localAction?.kind === "open_note") {
-                      recordActivity({
-                        type: "open_note",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        label: trimmed,
-                      });
-                      void openFloatingNote("quick");
-                      return;
-                    }
-
-                    handleSend(trimmed);
-                  }}
-                />
+                      handleSend(trimmed);
+                    }}
+                  />
+                )}
 
                 {autoRoutePending && (
                   <Card

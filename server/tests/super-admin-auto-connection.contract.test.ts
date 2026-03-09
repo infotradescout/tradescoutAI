@@ -27,7 +27,15 @@ describe("super-admin auto-connection contracts", () => {
 
     expect(helperSource).toContain("insert into user_follows");
     expect(helperSource).toContain("'accepted'");
-    expect(helperSource).toContain("system_super_admin_auto_connection");
+    expect(helperSource).toContain("system_super_admin_auto");
     expect(helperSource).toContain("'platform_support'");
+  });
+
+  it("keeps super-admin authority gate within contact_permissions varchar(30)", () => {
+    const helperSource = read("server/utils/superAdminConnection.ts");
+    const match = helperSource.match(/SUPER_ADMIN_AUTHORITY_GATE\s*=\s*"([^"]+)"/);
+
+    expect(match?.[1]).toBeTruthy();
+    expect((match?.[1] ?? "").length).toBeLessThanOrEqual(30);
   });
 });

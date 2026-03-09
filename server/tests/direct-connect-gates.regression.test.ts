@@ -178,7 +178,7 @@ describe("direct-connect gate regressions", () => {
 
     expect(helperFile).toContain("insert into user_follows");
     expect(helperFile).toContain("contact_permissions");
-    expect(helperFile).toContain("system_super_admin_auto_connection");
+    expect(helperFile).toContain("system_super_admin_auto");
     expect(helperFile).toContain("platform_support");
   });
 });
