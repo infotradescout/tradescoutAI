@@ -3,6 +3,22 @@
 Status: Approved execution guide
 Owner intent: Remove privilege-escalation paths, preserve authority gating, and eliminate sensitive logging leakage without changing core discovery→intent→decision→contact behavior.
 
+## Phase 2C Hardening Registry
+
+- Phase: Phase 2C
+- Scope: Privileged Authority Fencing
+- Status: Partial slice complete, proven
+- Remaining:
+  - dedicated admin/support routers
+  - token impersonation parity checks
+  - audit payload shape continuity checks
+- Done criteria:
+  - all privileged mutation paths require immutable target authority
+  - all privileged actions require explicit reason
+  - all privileged actions emit uniform audit events
+  - all impersonation routes are bounded and tested
+  - no email-only privileged mutation authority remains
+
 ## 0) Scope lock (do not drift)
 
 ### In scope

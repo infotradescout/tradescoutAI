@@ -134,4 +134,28 @@ describeDb("Phase 2C privileged path hardening", () => {
     expect(auditEntry?.outcome).toBe("denied");
     expect(auditEntry?.resolutionSource).toBe("target_email_only");
   });
+
+  it("admin user-control audit payload follows the shared privileged contract shape", async () => {
+    const { agent: adminAgent } = await createAuthedAgent({ role: "super_admin" });
+    const targetUser = await createUserOnly({ role: "contractor" });
+
+    const response = await adminAgent
+      .post(`/api/admin/user-controls/suspend/${targetUser.id}`)
+      .send({
+        reason: "Suspend account after verified policy abuse investigation.",
+      });
+
+    expect(response.status).toBe(200);
+
+    const [auditEntry] = await getAdminAuditLog(5);
+    expect(auditEntry?.action).toBe("admin_user_suspend");
+    expect(auditEntry?.route).toBe("/api/admin/user-controls/suspend/:userId");
+    expect(auditEntry?.operationType).toBe("suspend_user");
+    expect(auditEntry?.targetType).toBe("user");
+    expect(String(auditEntry?.targetId || "")).toBe(String(targetUser.id));
+    expect(auditEntry?.resolutionSource).toBe("route_param:user_id");
+    expect(auditEntry?.outcome).toBe("completed");
+    expect(typeof auditEntry?.reason).toBe("string");
+    expect(Array.isArray(auditEntry?.actorRoles)).toBe(true);
+  });
 });

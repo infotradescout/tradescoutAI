@@ -151,13 +151,15 @@ TradeScout OS is fully formalized with nine governed engines:
 Authority hardening state:
 - Phase 1 complete and runtime-proven.
 - Phase 2A complete and runtime-proven.
-- Phase 2B complete and route-proven.
+- Phase 2B complete and integration-proven.
+- Phase 2C privileged-path slice complete and integration-proven.
 
 Highest-value remaining risks:
-- Admin, support, and impersonation convenience-path drift.
-- Residual write-paths outside the primary owner ingress seams.
+- Remaining dedicated admin/support router parity on the shared privileged contract.
+- Dedicated token impersonation router parity + proof continuity.
+- Audit payload shape continuity across all privileged mutation handlers.
 
 Next enforcement pass:
-- Phase 2C: admin and support convenience-path fencing.
+- Complete Phase 2C across all remaining privileged routers.
 
 This is the complete platform architecture.
