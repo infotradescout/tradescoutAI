@@ -6,7 +6,7 @@ import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import express from "express";
 import fs from "fs";
 import path from "path";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { generateGeminiTextWithFallback } from "./ai/geminiFallback";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
@@ -1083,6 +1083,152 @@ export async function registerRoutes(app: any) {
     }
 
     return authorityByUserId;
+  };
+
+  const normalizeWhitespace = (value: unknown): string =>
+    String(value || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const normalizeOptionalText = (value: unknown): string | null => {
+    const normalized = normalizeWhitespace(value);
+    return normalized.length ? normalized : null;
+  };
+
+  const normalizeOptionalStateCode = (value: unknown): string | null => {
+    const normalized = normalizeWhitespace(value).toUpperCase();
+    return /^[A-Z]{2}$/.test(normalized) ? normalized : null;
+  };
+
+  const normalizeOptionalZipCode = (value: unknown): string | null => {
+    const normalized = normalizeWhitespace(value);
+    return normalized.length ? normalized.slice(0, 10) : null;
+  };
+
+  const normalizeStringArray = (value: unknown, maxItems = 50, maxLength = 200): string[] => {
+    if (!Array.isArray(value)) return [];
+    return Array.from(
+      new Set(
+        value
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => normalizeWhitespace(item))
+          .filter(Boolean)
+          .map((item) => item.slice(0, maxLength))
+      )
+    ).slice(0, maxItems);
+  };
+
+  const buildCanonicalHash = (...parts: Array<string | null | undefined>): string =>
+    createHash("sha256")
+      .update(parts.map((part) => normalizeWhitespace(part).toLowerCase()).join("|"))
+      .digest("hex")
+      .slice(0, 24);
+
+  const buildMarketplaceIngressKey = (input: {
+    sellerId: string;
+    categoryId: string;
+    title: string;
+    county: string;
+    state: string;
+    price: string | number;
+  }) =>
+    buildCanonicalHash(
+      input.sellerId,
+      input.categoryId,
+      input.title,
+      input.county,
+      input.state,
+      String(input.price)
+    );
+
+  const pickMarketplaceWritableFields = (body: any) => ({
+    categoryId: body?.categoryId,
+    title: body?.title,
+    description: body?.description,
+    price: body?.price,
+    priceType: body?.priceType,
+    originalPrice: body?.originalPrice,
+    county: body?.county,
+    state: body?.state,
+    city: body?.city,
+    zipCode: body?.zipCode,
+    locationVisibility: body?.locationVisibility,
+    latitude: body?.latitude,
+    longitude: body?.longitude,
+    isLocalPickupOnly: body?.isLocalPickupOnly,
+    willShip: body?.willShip,
+    shippingCost: body?.shippingCost,
+    condition: body?.condition,
+    brand: body?.brand,
+    model: body?.model,
+    year: body?.year,
+    mileage: body?.mileage,
+    hours: body?.hours,
+    specifications: body?.specifications,
+    images: body?.images,
+    primaryImageIndex: body?.primaryImageIndex,
+    videoUrl: body?.videoUrl,
+    requiresBuyerVerification: body?.requiresBuyerVerification,
+    metaDescription: body?.metaDescription,
+    tags: body?.tags,
+  });
+
+  const normalizeMarketplaceWritableFields = (input: any) => {
+    const normalized: any = {
+      ...input,
+      title: normalizeWhitespace(input?.title),
+      description: normalizeWhitespace(input?.description),
+      county: normalizeWhitespace(input?.county),
+      state: normalizeOptionalStateCode(input?.state),
+      city: normalizeOptionalText(input?.city),
+      zipCode: normalizeOptionalZipCode(input?.zipCode),
+      brand: normalizeOptionalText(input?.brand),
+      model: normalizeOptionalText(input?.model),
+      videoUrl: normalizeOptionalText(input?.videoUrl),
+      metaDescription: normalizeOptionalText(input?.metaDescription),
+      tags: normalizeStringArray(input?.tags, 20, 64),
+      images: normalizeStringArray(input?.images, 24, 1000),
+    };
+
+    if (!normalized.state) {
+      delete normalized.state;
+    }
+
+    if (normalized.primaryImageIndex != null) {
+      const maxIndex = Math.max(0, normalized.images.length - 1);
+      normalized.primaryImageIndex = Math.max(
+        0,
+        Math.min(maxIndex, Number(normalized.primaryImageIndex) || 0)
+      );
+    }
+
+    return normalized;
+  };
+
+  const buildManualHomeScoutSourceListingId = (input: {
+    userId: string;
+    countyFips: string;
+    stateCode: string;
+    address1?: string | null;
+    zipCode?: string | null;
+    sourceHomeId?: string | null;
+    title: string;
+    price: number;
+  }) => {
+    const fingerprint = buildCanonicalHash(
+      input.userId,
+      input.countyFips,
+      input.stateCode,
+      input.address1,
+      input.zipCode,
+      input.sourceHomeId,
+      input.title,
+      String(input.price)
+    );
+    return {
+      sourceListingId: `manual:${input.userId}:${fingerprint}`,
+      dedupeKey: `manual:${fingerprint}`,
+    };
   };
 
   const getBetaWindow = () => {
@@ -4680,8 +4826,29 @@ export async function registerRoutes(app: any) {
   // Get public profile (respects privacy settings)
   app.get("/api/users/:userId/public", async (req: Request, res: Response) => {
     try {
-      const { userId } = req.params;
-      const user = await storage.getUser(userId);
+      const requestedId = String(req.params.userId || "").trim();
+      let resolvedUserId = requestedId;
+      let user = resolvedUserId ? await storage.getUser(resolvedUserId) : undefined;
+
+      // Back-compat: some legacy /profile/:id links still pass profile ids.
+      // Resolve those to the owning user id so public profile rendering works.
+      if (!user && resolvedUserId) {
+        try {
+          const ownerUserId = await storage.getProfileOwnerUserId(resolvedUserId);
+          if (ownerUserId) {
+            const ownerUser = await storage.getUser(ownerUserId);
+            if (ownerUser) {
+              user = ownerUser;
+              resolvedUserId = ownerUserId;
+            }
+          }
+        } catch (resolveError) {
+          console.warn("[public-profile] profile-id fallback resolution failed", {
+            requestedId: resolvedUserId,
+            error: resolveError,
+          });
+        }
+      }
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -16966,7 +17133,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.post("/api/marketplace/listings", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const parsedListing = insertMarketplaceListingSchema.safeParse(req.body);
+      const parsedListing = insertMarketplaceListingSchema.safeParse(
+        pickMarketplaceWritableFields(req.body)
+      );
       if (!parsedListing.success) {
         return res.status(400).json({
           message: "Invalid marketplace listing payload",
@@ -16974,7 +17143,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       }
 
-      const validatedData = parsedListing.data as any;
+      const validatedData = normalizeMarketplaceWritableFields(parsedListing.data as any);
 
       // Back-compat: some clients still send Exchange category slugs instead of a category UUID.
       const maybeCategoryId = String(validatedData.categoryId || "").trim();
@@ -17041,7 +17210,53 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         ...validatedData,
         sellerId: user?.id,
         status: "pending_approval", // Require approval for all new listings
+        isPromoted: false,
+        promotedUntil: null,
+        approvedBy: null,
+        approvedAt: null,
+        rejectedBy: null,
+        rejectedAt: null,
+        rejectionReason: null,
+        moderationNotes: null,
+        isSellerVerified: false,
+        verificationStatus: "none_required",
+        verificationNotes: null,
+        verifiedAt: null,
       };
+
+      const existingListings = await storage.getUserListings(String(user?.id || ""));
+      const incomingKey = buildMarketplaceIngressKey({
+        sellerId: String(user?.id || ""),
+        categoryId: String(normalizedData.categoryId || ""),
+        title: String(normalizedData.title || ""),
+        county: String(normalizedData.county || ""),
+        state: String(normalizedData.state || ""),
+        price: String(normalizedData.price || ""),
+      });
+
+      const duplicateListing = existingListings.find((listing: any) => {
+        const status = String(listing?.status || "").toLowerCase();
+        if (!["draft", "pending_approval", "active"].includes(status)) return false;
+
+        const existingKey = buildMarketplaceIngressKey({
+          sellerId: String(listing?.sellerId || ""),
+          categoryId: String(listing?.categoryId || ""),
+          title: String(listing?.title || ""),
+          county: String(listing?.county || ""),
+          state: String(listing?.state || ""),
+          price: String(listing?.price || ""),
+        });
+
+        return existingKey === incomingKey;
+      });
+
+      if (duplicateListing) {
+        return res.status(409).json({
+          message: "A matching marketplace listing is already pending or active.",
+          listingId: duplicateListing.id,
+          reasonCode: "DUPLICATE_MARKETPLACE_LISTING",
+        });
+      }
 
       if (preciousMetalsCategoryId && validatedData.categoryId === preciousMetalsCategoryId) {
         const metals = (validatedData as any)?.specifications?.metals ?? null;
@@ -17157,7 +17372,57 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         return res.status(403).json({ message: "Not authorized to edit this listing" });
       }
 
-      const updates = req.body;
+      const parsedUpdates = insertMarketplaceListingSchema
+        .partial()
+        .safeParse(pickMarketplaceWritableFields(req.body));
+
+      if (!parsedUpdates.success) {
+        return res.status(400).json({
+          message: "Invalid marketplace listing update payload",
+          issues: parsedUpdates.error.issues,
+        });
+      }
+
+      const updates = normalizeMarketplaceWritableFields(parsedUpdates.data as any);
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No permitted updates provided" });
+      }
+
+      const nextMarketplaceKey = buildMarketplaceIngressKey({
+        sellerId: String(user?.id || ""),
+        categoryId: String(updates.categoryId || existingListing.categoryId || ""),
+        title: String(updates.title || existingListing.title || ""),
+        county: String(updates.county || existingListing.county || ""),
+        state: String(updates.state || existingListing.state || ""),
+        price: String(updates.price || existingListing.price || ""),
+      });
+
+      const siblingListings = await storage.getUserListings(String(user?.id || ""));
+      const duplicateListing = siblingListings.find((listing: any) => {
+        if (String(listing?.id || "") === String(id)) return false;
+        const status = String(listing?.status || "").toLowerCase();
+        if (!["draft", "pending_approval", "active"].includes(status)) return false;
+
+        const existingKey = buildMarketplaceIngressKey({
+          sellerId: String(listing?.sellerId || ""),
+          categoryId: String(listing?.categoryId || ""),
+          title: String(listing?.title || ""),
+          county: String(listing?.county || ""),
+          state: String(listing?.state || ""),
+          price: String(listing?.price || ""),
+        });
+
+        return existingKey === nextMarketplaceKey;
+      });
+
+      if (duplicateListing) {
+        return res.status(409).json({
+          message: "A matching marketplace listing is already pending or active.",
+          listingId: duplicateListing.id,
+          reasonCode: "DUPLICATE_MARKETPLACE_LISTING",
+        });
+      }
+
       const listing = await storage.updateMarketplaceListing(id, updates);
       res.json(listing);
     } catch (error: any) {
@@ -22693,13 +22958,39 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           resolvedAuthorType = "agent";
         }
 
+        const manualSourceIdentity = buildManualHomeScoutSourceListingId({
+          userId: String(userId),
+          countyFips,
+          stateCode,
+          address1: typeof body.address1 === "string" ? body.address1 : null,
+          zipCode: typeof body.zipCode === "string" ? body.zipCode : null,
+          sourceHomeId: typeof body.sourceHomeId === "string" ? body.sourceHomeId.trim() : null,
+          title,
+          price,
+        });
+
+        const duplicateManualListing = await storage.getHomeScoutListingBySource({
+          sourceKey: "manual",
+          sourceListingId: manualSourceIdentity.sourceListingId,
+        });
+
+        if (
+          duplicateManualListing &&
+          String((duplicateManualListing as any).sellerUserId || "") === String(userId)
+        ) {
+          return res.status(409).json({
+            message: "A matching HomeScout listing is already pending or active.",
+            listingId: duplicateManualListing.id,
+            reasonCode: "DUPLICATE_HOMESCOUT_LISTING",
+          });
+        }
+
         const listing = await storage.createHomeScoutListing({
           sourceKey: "manual",
-          sourceListingId: null,
-          dedupeKey: null,
+          ...manualSourceIdentity,
           status: "pending_review" as any,
           title,
-          description: typeof body.description === "string" ? body.description : null,
+          description: normalizeOptionalText(body.description),
           price: String(price) as any,
           pricePrevious: null,
           priceChangedAt: null,
@@ -22719,17 +23010,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           countyFips,
           stateCode,
           city: typeof body.city === "string" ? body.city : null,
-          zipCode: typeof body.zipCode === "string" ? body.zipCode : null,
-          address1: typeof body.address1 === "string" ? body.address1 : null,
-          address2: typeof body.address2 === "string" ? body.address2 : null,
+          zipCode: normalizeOptionalZipCode(body.zipCode),
+          address1: normalizeOptionalText(body.address1),
+          address2: normalizeOptionalText(body.address2),
           addressVisibility: (body.addressVisibility === "approximate"
             ? "approximate"
             : "exact") as any,
           latitude: body.latitude != null ? String(Number(body.latitude)) : null,
           longitude: body.longitude != null ? String(Number(body.longitude)) : null,
-          photos: Array.isArray(body.photos)
-            ? body.photos.filter((x: any) => typeof x === "string")
-            : [],
+          photos: normalizeStringArray(body.photos, 24, 1000),
           sellerUserId: userId,
           agentUserId: resolvedAuthorType === "agent" ? userId : null,
           contactUserId: userId,

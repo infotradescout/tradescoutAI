@@ -16,6 +16,13 @@ describe("public profile compatibility contracts", () => {
     expect(source).toContain("canonicalProfileUrl: canonicalPublicProfile?.slug");
   });
 
+  it("legacy public profile API resolves profile-id links to owner user ids", () => {
+    const source = read("server/routes.ts");
+
+    expect(source).toContain("await storage.getProfileOwnerUserId(resolvedUserId)");
+    expect(source).toContain("profile-id fallback resolution failed");
+  });
+
   it("legacy /profile/:userId view redirects into canonical /u/:slug pages", () => {
     const source = read("client/src/pages/PublicProfileView.tsx");
 

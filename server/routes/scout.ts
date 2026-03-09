@@ -54,6 +54,10 @@ import {
   sanitizeScoutMessageForPolicy,
   sanitizeScoutSuggestionsForPolicy,
 } from "../services/scoutPolicy";
+import { UnifiedScoutRouter, type UnifiedScoutUserContext } from "../services/unifiedScoutRouter";
+import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
+import type { ScoutTrustContext } from "../services/scoutTrustIntegration";
+import type { ToneScenario } from "../services/scoutToneAwareBuilder";
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
 import {
@@ -143,6 +147,161 @@ function normalizeScoutRole(role?: string | null): InsertScoutInteraction["userR
   if (lower.includes("contractor") || lower.includes("service") || lower.includes("provider"))
     return "contractor";
   return "homeowner";
+}
+
+function buildUnifiedRouterContext(
+  req: Request,
+  incoming?: Partial<UnifiedScoutUserContext> | null
+): UnifiedScoutUserContext {
+  const user = (req as any)?.user;
+  const userId =
+    typeof user?.id === "string"
+      ? user.id
+      : typeof user?.claims?.sub === "string"
+        ? user.claims.sub
+        : undefined;
+
+  const rawRole = typeof user?.role === "string" ? user.role : incoming?.userRole;
+  const normalizedRole =
+    typeof rawRole === "string"
+      ? rawRole.trim().toLowerCase() === "owner"
+        ? "super_admin"
+        : rawRole.trim().toLowerCase() === "head_admin"
+          ? "super_admin"
+          : rawRole.trim().toLowerCase()
+      : undefined;
+
+  const trustLevel =
+    incoming?.trustLevel === "low" ||
+    incoming?.trustLevel === "medium" ||
+    incoming?.trustLevel === "high"
+      ? incoming.trustLevel
+      : undefined;
+
+  const location =
+    incoming?.location &&
+    typeof incoming.location === "object" &&
+    (typeof incoming.location.county === "string" ||
+      typeof incoming.location.state === "string" ||
+      typeof incoming.location.region === "string")
+      ? {
+          county:
+            typeof incoming.location.county === "string" ? incoming.location.county : undefined,
+          state: typeof incoming.location.state === "string" ? incoming.location.state : undefined,
+          region:
+            typeof incoming.location.region === "string" ? incoming.location.region : undefined,
+        }
+      : undefined;
+
+  return {
+    userId,
+    isAuthenticated: Boolean(userId),
+    userRole: normalizedRole,
+    trustLevel,
+    location,
+    permissions: Array.isArray(incoming?.permissions)
+      ? incoming?.permissions.filter((p): p is string => typeof p === "string")
+      : undefined,
+  };
+}
+
+function buildUnifiedRoutingOptions(body: unknown): {
+  situation?: Omit<SituationAnalysisInput, "intent" | "userContext">;
+  trust?: ScoutTrustContext;
+  tone?: {
+    scenario?: ToneScenario;
+    countyLabel?: string;
+    roleLabel?: string;
+    includeNextStep?: boolean;
+  };
+} {
+  const source = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const situationRaw =
+    source.situation && typeof source.situation === "object"
+      ? (source.situation as Record<string, unknown>)
+      : null;
+  const trustRaw =
+    source.trust && typeof source.trust === "object"
+      ? (source.trust as Record<string, unknown>)
+      : null;
+  const toneRaw =
+    source.tone && typeof source.tone === "object"
+      ? (source.tone as Record<string, unknown>)
+      : null;
+
+  const trust: ScoutTrustContext | undefined = trustRaw
+    ? {
+        userId: typeof trustRaw.userId === "string" ? trustRaw.userId : undefined,
+        countyFips: typeof trustRaw.countyFips === "string" ? trustRaw.countyFips : undefined,
+        cvsScore: Number.isFinite(Number(trustRaw.cvsScore))
+          ? Number(trustRaw.cvsScore)
+          : undefined,
+        verifiedJobsCount: Number.isFinite(Number(trustRaw.verifiedJobsCount))
+          ? Number(trustRaw.verifiedJobsCount)
+          : undefined,
+        verifiedRecommendationsCount: Number.isFinite(Number(trustRaw.verifiedRecommendationsCount))
+          ? Number(trustRaw.verifiedRecommendationsCount)
+          : undefined,
+        verificationStatus:
+          trustRaw.verificationStatus === "approved" ||
+          trustRaw.verificationStatus === "pending" ||
+          trustRaw.verificationStatus === "rejected" ||
+          trustRaw.verificationStatus === "suspended" ||
+          trustRaw.verificationStatus === "unknown"
+            ? trustRaw.verificationStatus
+            : undefined,
+        riskFlags: Array.isArray(trustRaw.riskFlags)
+          ? trustRaw.riskFlags.filter((v): v is string => typeof v === "string")
+          : undefined,
+        confidenceLevel:
+          trustRaw.confidenceLevel === "low" ||
+          trustRaw.confidenceLevel === "medium" ||
+          trustRaw.confidenceLevel === "high"
+            ? trustRaw.confidenceLevel
+            : undefined,
+      }
+    : undefined;
+
+  const situation = situationRaw
+    ? {
+        activeObjectives: Array.isArray(situationRaw.activeObjectives)
+          ? (situationRaw.activeObjectives as any[])
+          : undefined,
+        recentEvents: Array.isArray(situationRaw.recentEvents)
+          ? (situationRaw.recentEvents as any[])
+          : undefined,
+        urgencySignals: Array.isArray(situationRaw.urgencySignals)
+          ? (situationRaw.urgencySignals as any[])
+          : undefined,
+        now:
+          typeof situationRaw.now === "string" || situationRaw.now instanceof Date
+            ? new Date(String(situationRaw.now))
+            : undefined,
+      }
+    : undefined;
+
+  const tone = toneRaw
+    ? {
+        scenario:
+          toneRaw.scenario === "default" ||
+          toneRaw.scenario === "technical_fallback" ||
+          toneRaw.scenario === "confidence_low" ||
+          toneRaw.scenario === "blocked_action" ||
+          toneRaw.scenario === "next_step_prompt"
+            ? (toneRaw.scenario as ToneScenario)
+            : undefined,
+        countyLabel: typeof toneRaw.countyLabel === "string" ? toneRaw.countyLabel : undefined,
+        roleLabel: typeof toneRaw.roleLabel === "string" ? toneRaw.roleLabel : undefined,
+        includeNextStep:
+          typeof toneRaw.includeNextStep === "boolean" ? toneRaw.includeNextStep : undefined,
+      }
+    : undefined;
+
+  return {
+    situation,
+    trust,
+    tone,
+  };
 }
 
 function normalizeScoutIntent(
@@ -4423,6 +4582,86 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 /**
+ * Unified Scout routing endpoints
+ * POST /api/scout/routing/*
+ */
+router.post("/routing/resolve-intent", async (req: Request, res: Response) => {
+  try {
+    const intent = typeof req.body?.intent === "string" ? req.body.intent : "";
+    const trimmedIntent = intent.trim();
+    if (!trimmedIntent) {
+      return res.status(400).json({ error: "Intent is required" });
+    }
+
+    const userContext = buildUnifiedRouterContext(req, req.body?.userContext);
+    const options = buildUnifiedRoutingOptions(req.body);
+    const decision = UnifiedScoutRouter.resolveIntent(trimmedIntent, userContext, options);
+    if (!decision) {
+      return res.status(404).json({ error: "Intent not matched" });
+    }
+
+    return res.json(decision);
+  } catch (error) {
+    console.error("[scout.routing.resolve-intent] error", error);
+    return res.status(500).json({ error: "Failed to resolve intent" });
+  }
+});
+
+router.post("/routing/validate-action", async (req: Request, res: Response) => {
+  try {
+    const action = req.body?.action;
+    if (!action || typeof action.type !== "string") {
+      return res.status(400).json({ error: "Action type is required" });
+    }
+
+    const userContext = buildUnifiedRouterContext(req, req.body?.userContext);
+    const validation = UnifiedScoutRouter.validateAction(action, userContext);
+    return res.json(validation);
+  } catch (error) {
+    console.error("[scout.routing.validate-action] error", error);
+    return res.status(500).json({ error: "Failed to validate action" });
+  }
+});
+
+router.post("/routing/discover-features", async (req: Request, res: Response) => {
+  try {
+    const query = typeof req.body?.query === "string" ? req.body.query : "";
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      return res.status(400).json({ error: "Query is required" });
+    }
+
+    const userContext = buildUnifiedRouterContext(req, req.body?.userContext);
+    const options = buildUnifiedRoutingOptions(req.body);
+    const features = UnifiedScoutRouter.discoverFeatures(trimmedQuery, userContext, options);
+    return res.json(features);
+  } catch (error) {
+    console.error("[scout.routing.discover-features] error", error);
+    return res.status(500).json({ error: "Failed to discover features" });
+  }
+});
+
+router.post("/routing/generate-fallback", async (req: Request, res: Response) => {
+  try {
+    const originalIntent =
+      typeof req.body?.originalIntent === "string" ? req.body.originalIntent : "";
+    const failureReason =
+      typeof req.body?.failureReason === "string" ? req.body.failureReason : "route_unmatched";
+    const userContext = buildUnifiedRouterContext(req, req.body?.userContext);
+
+    const actions = UnifiedScoutRouter.generateFallbackActions(
+      originalIntent,
+      failureReason,
+      userContext
+    );
+    return res.json(actions);
+  } catch (error) {
+    console.error("[scout.routing.generate-fallback] error", error);
+    return res.status(500).json({ error: "Failed to generate fallback actions" });
+  }
+});
+
+/**
  * Execute guarded action endpoint
  * POST /api/scout/execute-action
  *
@@ -4455,6 +4694,18 @@ router.post("/execute-action", async (req: Request, res: Response) => {
       return res.status(401).json({
         success: false,
         message: "Sign in is required for this action",
+      });
+    }
+
+    // Unified router pre-validation: deterministic guardrail before deeper execution.
+    const routingContext = buildUnifiedRouterContext(req, req.body?.userContext);
+    const routingValidation = UnifiedScoutRouter.validateAction(action, routingContext);
+    if (!routingValidation.valid) {
+      const statusCode = routingValidation.metadata?.requiresAuth ? 401 : 403;
+      return res.status(statusCode).json({
+        success: false,
+        message: routingValidation.reason || "This action is blocked right now.",
+        metadata: routingValidation.metadata,
       });
     }
 

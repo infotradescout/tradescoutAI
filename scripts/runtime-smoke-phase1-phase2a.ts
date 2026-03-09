@@ -2,7 +2,7 @@ import request from "supertest";
 import { eq, and } from "drizzle-orm";
 import { createApp } from "../server/app";
 import { hashPassword } from "../server/auth";
-import { db } from "../server/db";
+import { db, pool } from "../server/db";
 import {
   users,
   counties,
@@ -11,7 +11,6 @@ import {
   homeScoutListings,
   contractors,
   conversations,
-  workRequests,
   workRequestAssignments,
   userHomes,
 } from "../shared/schema";
@@ -100,6 +99,70 @@ function pushResult(results: AssertionResult[], name: string, ok: boolean, detai
   results.push({ name, ok, details });
   const status = ok ? "PASS" : "FAIL";
   console.log(`${MARKER} ${status} ${name}${details ? ` :: ${details}` : ""}`);
+}
+
+function summarizeIds(rows: any[]): string {
+  return rows
+    .map((row) => String(row?.id || ""))
+    .filter(Boolean)
+    .join(",");
+}
+
+async function insertLifecycleWorkRequest(input: {
+  createdByUserId: string;
+  title: string;
+  description: string;
+  category: string;
+  countyFips: string;
+  stateCode: string;
+}) {
+  const result = await pool.query(
+    `
+      insert into work_requests (
+        created_by_user_id,
+        title,
+        description,
+        category,
+        county_fips,
+        state_code,
+        scope,
+        source,
+        status,
+        visibility,
+        exposure_mode,
+        competition_mode,
+        created_at,
+        updated_at
+      )
+      values (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'community',
+        'direct_connect',
+        'routed',
+        'community',
+        'guided',
+        'none',
+        now(),
+        now()
+      )
+      returning id
+    `,
+    [
+      input.createdByUserId,
+      input.title,
+      input.description,
+      input.category,
+      input.countyFips,
+      input.stateCode,
+    ]
+  );
+
+  return { id: String(result.rows[0].id) };
 }
 
 async function loginAgent(app: any, email: string, password: string) {
@@ -368,25 +431,14 @@ async function main() {
       } as any)
       .returning();
 
-    const [workRequestLifecycle] = await db
-      .insert(workRequests)
-      .values({
-        createdByUserId: homeownerLifecycle.id,
-        title: `Smoke Work Request ${RUN_ID}`,
-        description: "Lifecycle-authorized work request",
-        category: "service_request",
-        countyFips: String(county.fips),
-        stateCode: String(county.stateCode),
-        scope: "community",
-        source: "direct_connect",
-        status: "routed",
-        visibility: "community",
-        exposureMode: "guided",
-        competitionMode: "none",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any)
-      .returning();
+    const workRequestLifecycle = await insertLifecycleWorkRequest({
+      createdByUserId: homeownerLifecycle.id,
+      title: `Smoke Work Request ${RUN_ID}`,
+      description: "Lifecycle-authorized work request",
+      category: "service_request",
+      countyFips: String(county.fips),
+      stateCode: String(county.stateCode),
+    });
 
     await db.insert(workRequestAssignments).values({
       workRequestId: String(workRequestLifecycle.id),
@@ -426,7 +478,7 @@ async function main() {
 
     const searchRes = await request(app)
       .get(
-        `/api/homescout/search?countyFips=${county.fips}&stateCode=${county.stateCode}&query=${encodeURIComponent(`Smoke Home ${RUN_ID}`)}`
+        `/api/homescout/search?countyFips=${county.fips}&stateCode=${county.stateCode}&query=${encodeURIComponent(RUN_ID)}`
       )
       .send();
     const searchIds = Array.isArray(searchRes.body)
@@ -438,7 +490,7 @@ async function main() {
       searchRes.status === 200 &&
         searchIds.includes(String(homeAuthorized.id)) &&
         !searchIds.includes(String(homeUnauthorized.id)),
-      `status=${searchRes.status}`
+      `status=${searchRes.status} ids=${summarizeIds(Array.isArray(searchRes.body) ? searchRes.body : [])}`
     );
 
     const countySearchRes = await request(app)
@@ -512,7 +564,7 @@ async function main() {
     );
 
     const marketListRes = await request(app)
-      .get(`/api/marketplace/listings?search=${encodeURIComponent(`Smoke Market ${RUN_ID}`)}`)
+      .get(`/api/marketplace/listings?search=${encodeURIComponent(RUN_ID)}`)
       .send();
     const marketListIds = Array.isArray(marketListRes.body)
       ? marketListRes.body.map((row: any) => String(row?.id || ""))
@@ -523,11 +575,11 @@ async function main() {
       marketListRes.status === 200 &&
         marketListIds.includes(String(marketAuthorized.id)) &&
         !marketListIds.includes(String(marketUnauthorized.id)),
-      `status=${marketListRes.status}`
+      `status=${marketListRes.status} ids=${summarizeIds(Array.isArray(marketListRes.body) ? marketListRes.body : [])}`
     );
 
     const marketSearchRes = await request(app)
-      .get(`/api/marketplace/search?query=${encodeURIComponent(`Smoke Market ${RUN_ID}`)}`)
+      .get(`/api/marketplace/search?query=${encodeURIComponent(RUN_ID)}`)
       .send();
     const marketSearchIds = Array.isArray(marketSearchRes.body)
       ? marketSearchRes.body.map((row: any) => String(row?.id || ""))
@@ -538,7 +590,7 @@ async function main() {
       marketSearchRes.status === 200 &&
         marketSearchIds.includes(String(marketAuthorized.id)) &&
         !marketSearchIds.includes(String(marketUnauthorized.id)),
-      `status=${marketSearchRes.status}`
+      `status=${marketSearchRes.status} ids=${summarizeIds(Array.isArray(marketSearchRes.body) ? marketSearchRes.body : [])}`
     );
 
     const outsiderConvRes = await outsiderAgent.get(

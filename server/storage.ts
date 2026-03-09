@@ -6234,7 +6234,10 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    const fallbackRoles = Array.from(ROLE_TO_CATEGORY.keys());
+    // Keep legacy aliases for metadata parsing, but only query DB roles that exist in the canonical enum.
+    const fallbackRoles = Array.from(ROLE_TO_CATEGORY.keys()).filter((role) =>
+      (users.role.enumValues ?? []).includes(role as any)
+    );
     const fallbackUsers = await db
       .select({
         id: users.id,
