@@ -2,6 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 
+export interface VerificationBypassMetadata {
+  active: boolean;
+  privileged?: boolean;
+  reason?:
+    | "none"
+    | "role"
+    | "email_alias"
+    | "admin_flag"
+    | "direct_connect_demo_mode"
+    | "manual_direct_connect_override";
+  matchedRoles?: string[];
+  matchedEmail?: string | null;
+  directConnectDemoMode?: boolean;
+}
+
 export interface User {
   [key: string]: any;
   id: string;
@@ -50,6 +65,7 @@ export interface User {
   createdAt?: string | Date;
   updatedAt?: string | Date;
   communityFirst?: boolean;
+  verificationBypass?: VerificationBypassMetadata;
 }
 
 export function useAuth() {

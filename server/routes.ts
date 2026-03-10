@@ -57,6 +57,14 @@ import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
+import {
+  collectAuthorityRoles,
+  getPrivilegedAliasEmails,
+  isAdminTierRole,
+  isDirectConnectUnverifiedBypassEnabled,
+  normalizeAuthorityRole,
+  resolvePrivilegedVerificationBypass,
+} from "./utils/authorityPolicy";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
 import {
   getComputedProviderEligibilitiesForUser,
@@ -1365,37 +1373,23 @@ export async function registerRoutes(app: any) {
 
   const sanitizeUserForResponse = (user: any) => {
     if (!user) return user;
-
-    const normalizeRole = (role: unknown): string => {
-      const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
-      if (!raw) return "";
-      return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
-    };
-
-    const rolesRaw = Array.from(
-      new Set(
-        [...(Array.isArray(user?.roles) ? user.roles : []), user?.role, user?.activeRole].filter(
-          Boolean
-        )
-      )
-    );
-    const roles = rolesRaw
-      .map((r: any) => normalizeRole(r))
-      .filter((r: string): r is SharedUserRole => Boolean(r)) as SharedUserRole[];
-    const primaryRole: SharedUserRole | undefined = roles[0];
-    const normalizedPrimaryRole = normalizeRole(user?.role);
-    const normalizedActiveRole = normalizeRole(user?.activeRole);
+    const authorityRoles = collectAuthorityRoles(user);
+    const roles = authorityRoles.filter((r: string): r is SharedUserRole => Boolean(r));
+    const normalizedPrimaryRole = normalizeAuthorityRole(user?.role);
+    const normalizedActiveRole = normalizeAuthorityRole(user?.activeRole);
+    const primaryRole: SharedUserRole | undefined =
+      (normalizedPrimaryRole as SharedUserRole) || roles[0];
 
     const basePermissions = primaryRole ? ROLE_PERMISSIONS[primaryRole] : undefined;
 
     const computedIsAdmin =
       user.isAdmin === true ||
-      ["super_admin", "moderator", "ops_admin"].includes(normalizedPrimaryRole) ||
-      ["super_admin", "moderator", "ops_admin"].includes(normalizedActiveRole) ||
+      isAdminTierRole(normalizedPrimaryRole) ||
+      isAdminTierRole(normalizedActiveRole) ||
       Boolean(
         basePermissions?.canAccessAdminPanel ||
         basePermissions?.canAccessSuperAdmin ||
-        roles.some((role) => ["moderator", "ops_admin", "super_admin"].includes(role))
+        roles.some((role) => isAdminTierRole(role))
       );
 
     const computedIsSuperAdmin =
@@ -1404,17 +1398,7 @@ export async function registerRoutes(app: any) {
       normalizedActiveRole === "super_admin" ||
       roles.some((role) => role === "super_admin");
 
-    const adminAliasEmails = new Set<string>([
-      String(process.env.MASTER_ADMIN_EMAIL || "")
-        .trim()
-        .toLowerCase(),
-      ...String(process.env.SUPER_ADMIN_EMAIL_ALIASES || "")
-        .split(",")
-        .map((value) => value.trim().toLowerCase())
-        .filter(Boolean),
-      "info.tradescout@gmail.com",
-      "contact@thetradescout.com",
-    ]);
+    const adminAliasEmails = getPrivilegedAliasEmails();
     const normalizedEmail = String(user?.email || "")
       .trim()
       .toLowerCase();
@@ -2907,33 +2891,12 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const normalizeAdminRoleToken = (value: unknown): string => {
-        const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
-        if (!raw) return "";
-        return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
-      };
-
-      const adminEmailAliases = Array.from(
-        new Set(
-          [
-            String(process.env.MASTER_ADMIN_EMAIL || "")
-              .trim()
-              .toLowerCase(),
-            ...String(process.env.SUPER_ADMIN_EMAIL_ALIASES || "")
-              .split(",")
-              .map((v) => v.trim().toLowerCase())
-              .filter(Boolean),
-            "info.tradescout@gmail.com",
-            // Production fallback alias used for the canonical support/admin identity.
-            "contact@thetradescout.com",
-          ].filter(Boolean)
-        )
-      );
+      const adminEmailAliases = getPrivilegedAliasEmails();
 
       const userEmail = String((user as any)?.email || "")
         .trim()
         .toLowerCase();
-      const isAdminAliasEmail = userEmail.length > 0 && adminEmailAliases.includes(userEmail);
+      const isAdminAliasEmail = userEmail.length > 0 && adminEmailAliases.has(userEmail);
       if (isAdminAliasEmail) {
         const currentRoles = Array.from(
           new Set(
@@ -2942,14 +2905,14 @@ export async function registerRoutes(app: any) {
               (user as any)?.role,
               (user as any)?.activeRole,
             ]
-              .map((role) => normalizeAdminRoleToken(role))
+              .map((role) => normalizeAuthorityRole(role))
               .filter(Boolean)
           )
         );
         const alreadyAdminTier =
           (user as any)?.isSuperAdmin === true ||
           (user as any)?.isAdmin === true ||
-          currentRoles.some((role) => ["super_admin", "ops_admin", "moderator"].includes(role));
+          currentRoles.some((role) => isAdminTierRole(role));
 
         if (!alreadyAdminTier || !currentRoles.includes("super_admin")) {
           const nextRoles = Array.from(new Set([...currentRoles, "super_admin"]));
@@ -2996,14 +2959,13 @@ export async function registerRoutes(app: any) {
               (authClaims as any)?.role,
               (authClaims as any)?.activeRole,
             ]
-              .map((role) => normalizeAdminRoleToken(role))
+              .map((role) => normalizeAuthorityRole(role))
               .filter(Boolean)
           )
         );
 
-        const ADMIN_ROLE_SET = new Set(["super_admin", "ops_admin", "moderator"]);
         const findFirstAdminRole = (roles: string[]): string =>
-          roles.find((role) => ADMIN_ROLE_SET.has(role)) || "";
+          roles.find((role) => isAdminTierRole(role)) || "";
 
         const baseUserRoles = Array.from(
           new Set(
@@ -3012,34 +2974,30 @@ export async function registerRoutes(app: any) {
               baseUser?.activeRole,
               baseUser?.role,
             ]
-              .map((role) => normalizeAdminRoleToken(role))
+              .map((role) => normalizeAuthorityRole(role))
               .filter(Boolean)
           )
         );
         const baseUserAdminRole = findFirstAdminRole(baseUserRoles);
 
         const resolvedRole =
-          normalizeAdminRoleToken(baseUser?.activeRole) ||
-          normalizeAdminRoleToken(baseUser?.role) ||
-          normalizeAdminRoleToken(authUser?.activeRole) ||
-          normalizeAdminRoleToken(authUser?.role) ||
-          normalizeAdminRoleToken((authClaims as any)?.activeRole) ||
-          normalizeAdminRoleToken((authClaims as any)?.role) ||
+          normalizeAuthorityRole(baseUser?.activeRole) ||
+          normalizeAuthorityRole(baseUser?.role) ||
+          normalizeAuthorityRole(authUser?.activeRole) ||
+          normalizeAuthorityRole(authUser?.role) ||
+          normalizeAuthorityRole((authClaims as any)?.activeRole) ||
+          normalizeAuthorityRole((authClaims as any)?.role) ||
           mergedRoles[0] ||
           "";
 
-        const hasAdminRole = mergedRoles.some((role) =>
-          ["super_admin", "ops_admin", "moderator"].includes(role)
-        );
+        const hasAdminRole = mergedRoles.some((role) => isAdminTierRole(role));
         const hasSuperAdminRole = mergedRoles.includes("super_admin");
 
         // Data authority: if DB says this user is admin-tier, do not allow stale session role payloads
         // to downgrade admin surfaces in the app shell.
         const effectiveRole =
           baseUserAdminRole ||
-          (hasAdminRole && !ADMIN_ROLE_SET.has(resolvedRole)
-            ? findFirstAdminRole(mergedRoles)
-            : "") ||
+          (hasAdminRole && !isAdminTierRole(resolvedRole) ? findFirstAdminRole(mergedRoles) : "") ||
           resolvedRole;
 
         return {
@@ -3087,6 +3045,30 @@ export async function registerRoutes(app: any) {
         return baseUser;
       };
 
+      const buildAuthUserPayload = (baseUser: any) => {
+        const sanitized = sanitizeUserForResponse(baseUser);
+        const privilegedBypass = resolvePrivilegedVerificationBypass(baseUser);
+        const directConnectDemoBypass = isDirectConnectUnverifiedBypassEnabled();
+        const bypassActive = privilegedBypass.active || directConnectDemoBypass;
+        const bypassReason = privilegedBypass.active
+          ? privilegedBypass.reason
+          : directConnectDemoBypass
+            ? "direct_connect_demo_mode"
+            : "none";
+
+        return {
+          ...sanitized,
+          verificationBypass: {
+            active: bypassActive,
+            privileged: privilegedBypass.active,
+            reason: bypassReason,
+            matchedRoles: privilegedBypass.matchedRoles,
+            matchedEmail: privilegedBypass.matchedEmail,
+            directConnectDemoMode: directConnectDemoBypass,
+          },
+        };
+      };
+
       // Active profile resolution (session spine):
       // - If activeProfileId exists, keep it.
       // - Else if user owns exactly 1 profile, auto-set it.
@@ -3098,7 +3080,7 @@ export async function registerRoutes(app: any) {
             const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
             res.json({
               authenticated: true,
-              user: sanitizeUserForResponse(mergeSessionAuthority(applyImpersonation(updated))),
+              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(updated))),
             });
             return;
           }
@@ -3118,7 +3100,7 @@ export async function registerRoutes(app: any) {
             const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
             res.json({
               authenticated: true,
-              user: sanitizeUserForResponse(mergeSessionAuthority(applyImpersonation(updated))),
+              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(updated))),
             });
             return;
           }
@@ -3127,7 +3109,7 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      const finalUser = sanitizeUserForResponse(mergeSessionAuthority(applyImpersonation(user)));
+      const finalUser = buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(user)));
       // Graduate pilot: community-first experience is now default for all authenticated users.
       const communityFirst = true;
 
@@ -11416,23 +11398,16 @@ export async function registerRoutes(app: any) {
       return res.status(403).json({ message: "Admin access required" });
     }
 
-    const normalizeRole = (role: unknown): string => {
-      const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
-      if (!raw) return "";
-      return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
-    };
-
-    const activeRole = normalizeRole(req.user.activeRole);
-    const primaryRole = normalizeRole(req.user.role);
+    const activeRole = normalizeAuthorityRole(req.user.activeRole);
+    const primaryRole = normalizeAuthorityRole(req.user.role);
     const roles = Array.isArray(req.user.roles)
-      ? req.user.roles.map((r: any) => normalizeRole(r)).filter(Boolean)
+      ? req.user.roles.map((r: any) => normalizeAuthorityRole(r)).filter(Boolean)
       : [];
-    const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
     const hasAdmin =
       req.user.isAdmin === true ||
-      adminRoles.has(activeRole) ||
-      adminRoles.has(primaryRole) ||
-      roles.some((role: string) => adminRoles.has(role));
+      isAdminTierRole(activeRole) ||
+      isAdminTierRole(primaryRole) ||
+      roles.some((role: string) => isAdminTierRole(role));
 
     if (!hasAdmin) {
       return res.status(403).json({ message: "Admin access required" });

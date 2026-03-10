@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { db } from "../db";
+import { clearAdminAuditLog, getAdminAuditLog } from "../services/adminAuditLogService";
 import {
   contractorCounties,
   contractors,
@@ -46,6 +47,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
   it("allows unverified homeowner request creation when direct-connect demo bypass is enabled", async () => {
     const previous = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
     process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";
+    await clearAdminAuditLog();
 
     try {
       const { agent, user } = await createAuthedAgent({
@@ -66,6 +68,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       expect(res.status).toBe(201);
       const createdId = String(res.body?.id || "");
       expect(createdId.length).toBeGreaterThan(0);
+      expect(String(res.body?.status || "")).toBe("routed");
 
       const inserted = await db
         .select()
@@ -75,6 +78,16 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
         );
 
       expect(inserted).toHaveLength(1);
+
+      const auditLog = await getAdminAuditLog(20);
+      const bypassAudit = auditLog.find(
+        (entry: any) =>
+          entry?.action === "direct_connect_verification_bypass_applied" &&
+          entry?.operation === "create" &&
+          String(entry?.actorUserId || "") === String(user.id)
+      );
+      expect(bypassAudit).toBeTruthy();
+      expect(String((bypassAudit as any)?.bypassReason || "")).toBe("direct_connect_demo_mode");
     } finally {
       if (typeof previous === "undefined") {
         delete process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;

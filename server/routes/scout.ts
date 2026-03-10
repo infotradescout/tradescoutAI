@@ -3309,6 +3309,54 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     // The synthesized answer is our response with suggestedActions!
+    // --- TEMPORARY OVERRIDE: Expose admin-created Direct Connect requests as open to all contractors ---
+    // This block adds any admin/manual Direct Connect requests to publicEntities/ctaHints with canDirectConnect: true
+    // so that all contractors can see/respond for demo/pilot purposes. Remove when no longer needed.
+    const directConnectRequests = Array.isArray((knowledge.meta as any)?.directConnectRequests)
+      ? (knowledge.meta as any).directConnectRequests
+      : [];
+    const publicEntities = communityPostItems.slice(0, 6).map((p) => ({
+      type: "community_post",
+      id: String(p.id),
+      href: "/community?post=" + encodeURIComponent(String(p.id)),
+      authorId: p.authorId ?? p.author_id ?? null,
+      canDirectConnect: false,
+      canMessage: !!(p.authorId || p.author_id),
+    }));
+    const ctaHints = communityPostItems.slice(0, 6).map((p) => ({
+      type: "community_post",
+      id: String(p.id),
+      authorId: p.authorId ?? p.author_id ?? null,
+      canDirectConnect: false,
+      canMessage: !!(p.authorId || p.author_id),
+    }));
+
+    // --- BEGIN TEMPORARY OPEN ADMIN DIRECT CONNECT LOGIC ---
+    if (Array.isArray(directConnectRequests)) {
+      for (const req of directConnectRequests) {
+        // Detect admin/manual requests (example: req.createdByRole === 'admin' || req.isManual === true)
+        if (req && (req.createdByRole === "admin" || req.isManual === true)) {
+          publicEntities.push({
+            type: "community_post", // Use a valid type for the union
+            id: String(req.id),
+            href: "/direct-connect?request=" + encodeURIComponent(String(req.id)),
+            authorId: req.createdBy ?? null,
+            canDirectConnect: true, // OPEN TO ALL CONTRACTORS
+            canMessage: true,
+          });
+          ctaHints.push({
+            type: "community_post", // Use a valid type for the union
+            id: String(req.id),
+            authorId: req.createdBy ?? null,
+            canDirectConnect: true, // OPEN TO ALL CONTRACTORS
+            canMessage: true,
+            label: "Admin-created Direct Connect request (open)",
+          });
+        }
+      }
+    }
+    // --- END TEMPORARY OPEN ADMIN DIRECT CONNECT LOGIC ---
+
     const aiResponse: ScoutResponse = {
       message: prependLocalIntro(synthesized.message, {
         countyCode,
@@ -3320,21 +3368,8 @@ router.post("/", async (req: Request, res: Response) => {
       suggestedActions: synthesized.suggestedActions,
       actions: [],
       sponsored: null,
-      publicEntities: communityPostItems.slice(0, 6).map((p) => ({
-        type: "community_post",
-        id: String(p.id),
-        href: "/community?post=" + encodeURIComponent(String(p.id)),
-        authorId: p.authorId ?? p.author_id ?? null,
-        canDirectConnect: false,
-        canMessage: !!(p.authorId || p.author_id),
-      })),
-      ctaHints: communityPostItems.slice(0, 6).map((p) => ({
-        type: "community_post",
-        id: String(p.id),
-        authorId: p.authorId ?? p.author_id ?? null,
-        canDirectConnect: false,
-        canMessage: !!(p.authorId || p.author_id),
-      })),
+      publicEntities,
+      ctaHints,
       metadata: {
         intent: synthesized.intent,
         sourceUsed: sourceAudit.sourceUsed,

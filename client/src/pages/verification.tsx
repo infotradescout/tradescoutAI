@@ -79,6 +79,19 @@ const Verification = memo(function Verification() {
     : "required";
 
   const loading = loadingAddress || loadingMarketplace || loadingIdentity;
+  const bypass = user?.verificationBypass;
+  const bypassReasonLabel =
+    bypass?.reason === "role"
+      ? "staff role override"
+      : bypass?.reason === "email_alias"
+        ? "privileged alias override"
+        : bypass?.reason === "admin_flag"
+          ? "admin authority override"
+          : bypass?.reason === "manual_direct_connect_override"
+            ? "manual admin override"
+            : bypass?.reason === "direct_connect_demo_mode"
+              ? "direct connect demo mode"
+              : "platform override";
 
   return (
     <div className="px-4 py-4 md:px-6">
@@ -114,84 +127,103 @@ const Verification = memo(function Verification() {
                 </div>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div
-                  className={`rounded-lg border p-3 ${toneClass(profileComplete ? "complete" : "required")}`}
-                >
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                    <UserRound className="h-4 w-4" />
-                    Profile completion
+              <div className="space-y-3">
+                {bypass?.active && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        <p className="font-medium text-amber-100">
+                          Verification bypass is active ({bypassReasonLabel})
+                        </p>
+                        <p className="mt-1 text-amber-200/90">
+                          Your account can continue through protected flows while this override is
+                          active. Complete normal verification to return to standard trust mode.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <Badge variant="outline" className="mb-2 border-current/40 text-current">
-                    {toneLabel(profileComplete ? "complete" : "required")}
-                  </Badge>
-                  <p className="text-xs text-[color:var(--text-secondary)]">
-                    Required for public profile and better routing.
-                  </p>
-                </div>
+                )}
 
-                <div className={`rounded-lg border p-3 ${toneClass(addressTone)}`}>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Address verification
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div
+                    className={`rounded-lg border p-3 ${toneClass(profileComplete ? "complete" : "required")}`}
+                  >
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                      <UserRound className="h-4 w-4" />
+                      Profile completion
+                    </div>
+                    <Badge variant="outline" className="mb-2 border-current/40 text-current">
+                      {toneLabel(profileComplete ? "complete" : "required")}
+                    </Badge>
+                    <p className="text-xs text-[color:var(--text-secondary)]">
+                      Required for public profile and better routing.
+                    </p>
                   </div>
-                  <Badge variant="outline" className="mb-2 border-current/40 text-current">
-                    {toneLabel(addressTone)}
-                  </Badge>
-                  <p className="text-xs text-[color:var(--text-secondary)]">
-                    {addressStatus?.isVerified
-                      ? "Address confirmed."
-                      : addressStatus?.daysRemaining != null
-                        ? `${addressStatus.daysRemaining} day(s) remaining in verification window.`
-                        : "Required to unlock all messaging and routing paths."}
-                  </p>
-                </div>
 
-                <div className={`rounded-lg border p-3 ${toneClass(identityTone)}`}>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                    <ShieldCheck className="h-4 w-4" />
-                    Identity verification
+                  <div className={`rounded-lg border p-3 ${toneClass(addressTone)}`}>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Address verification
+                    </div>
+                    <Badge variant="outline" className="mb-2 border-current/40 text-current">
+                      {toneLabel(addressTone)}
+                    </Badge>
+                    <p className="text-xs text-[color:var(--text-secondary)]">
+                      {addressStatus?.isVerified
+                        ? "Address confirmed."
+                        : addressStatus?.daysRemaining != null
+                          ? `${addressStatus.daysRemaining} day(s) remaining in verification window.`
+                          : "Required to unlock all messaging and routing paths."}
+                    </p>
                   </div>
-                  <Badge variant="outline" className="mb-2 border-current/40 text-current">
-                    {toneLabel(identityTone)}
-                  </Badge>
-                  <p className="text-xs text-[color:var(--text-secondary)]">
-                    {identityStatus?.isVerified
-                      ? "Identity verified."
-                      : identityStatus?.verification
-                        ? "Submission received. Pending review."
-                        : "Required to initiate contact across the platform."}
-                  </p>
-                </div>
 
-                <div className={`rounded-lg border p-3 ${toneClass(professionalTone)}`}>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                    <ShieldCheck className="h-4 w-4" />
-                    Professional status
+                  <div className={`rounded-lg border p-3 ${toneClass(identityTone)}`}>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                      <ShieldCheck className="h-4 w-4" />
+                      Identity verification
+                    </div>
+                    <Badge variant="outline" className="mb-2 border-current/40 text-current">
+                      {toneLabel(identityTone)}
+                    </Badge>
+                    <p className="text-xs text-[color:var(--text-secondary)]">
+                      {identityStatus?.isVerified
+                        ? "Identity verified."
+                        : identityStatus?.verification
+                          ? "Submission received. Pending review."
+                          : "Required to initiate contact across the platform."}
+                    </p>
                   </div>
-                  <Badge variant="outline" className="mb-2 border-current/40 text-current">
-                    {toneLabel(professionalTone)}
-                  </Badge>
-                  <p className="text-xs text-[color:var(--text-secondary)]">
-                    {proStatus === "approved"
-                      ? "Professional verification approved."
-                      : "Submit license and insurance for trust weight upgrades."}
-                  </p>
-                </div>
 
-                <div className={`rounded-lg border p-3 ${toneClass(marketplaceTone)}`}>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                    <Clock3 className="h-4 w-4" />
-                    Marketplace verification
+                  <div className={`rounded-lg border p-3 ${toneClass(professionalTone)}`}>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                      <ShieldCheck className="h-4 w-4" />
+                      Professional status
+                    </div>
+                    <Badge variant="outline" className="mb-2 border-current/40 text-current">
+                      {toneLabel(professionalTone)}
+                    </Badge>
+                    <p className="text-xs text-[color:var(--text-secondary)]">
+                      {proStatus === "approved"
+                        ? "Professional verification approved."
+                        : "Submit license and insurance for trust weight upgrades."}
+                    </p>
                   </div>
-                  <Badge variant="outline" className="mb-2 border-current/40 text-current">
-                    {toneLabel(marketplaceTone)}
-                  </Badge>
-                  <p className="text-xs text-[color:var(--text-secondary)]">
-                    {marketplaceStatus?.vendorVerification?.status
-                      ? `Vendor status: ${marketplaceStatus.vendorVerification.status}`
-                      : "No marketplace verification submission on file yet."}
-                  </p>
+
+                  <div className={`rounded-lg border p-3 ${toneClass(marketplaceTone)}`}>
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                      <Clock3 className="h-4 w-4" />
+                      Marketplace verification
+                    </div>
+                    <Badge variant="outline" className="mb-2 border-current/40 text-current">
+                      {toneLabel(marketplaceTone)}
+                    </Badge>
+                    <p className="text-xs text-[color:var(--text-secondary)]">
+                      {marketplaceStatus?.vendorVerification?.status
+                        ? `Vendor status: ${marketplaceStatus.vendorVerification.status}`
+                        : "No marketplace verification submission on file yet."}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -246,7 +278,7 @@ const Verification = memo(function Verification() {
           </div>
         )}
 
-        {isAuthenticated && profileComplete && addressTone !== "complete" && (
+        {isAuthenticated && profileComplete && addressTone !== "complete" && !bypass?.active && (
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
             Next step required: finish address verification to unlock full trust eligibility.
           </div>

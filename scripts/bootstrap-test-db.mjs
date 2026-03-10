@@ -147,6 +147,11 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE work_requests
+      ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb
+    `);
+
+    await client.query(`
       ALTER TABLE businesses
       ADD COLUMN IF NOT EXISTS claim_status varchar(32) DEFAULT 'unclaimed'
     `);
@@ -609,7 +614,7 @@ async function main() {
   const fullSync = process.argv.includes("--full-sync");
 
   if (fullSync) {
-    const pushCode = await run("npx", ["drizzle-kit", "push"], env);
+    const pushCode = await run("npx", ["drizzle-kit", "push", "--force"], env);
     if (pushCode !== 0) {
       console.error("[bootstrap-test-db] drizzle-kit push failed.");
       process.exit(pushCode);

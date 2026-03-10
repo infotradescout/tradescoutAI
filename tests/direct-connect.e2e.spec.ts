@@ -11,6 +11,7 @@ test.describe("Direct Connect", () => {
   test("request can be created and routed from Direct Connect", async ({ page }) => {
     // Assumes global-setup logged in a test user via storageState.
     let countyFips = "04013";
+    let stateCode = "AZ";
     try {
       const countiesRes = await page.request.get("/api/counties");
       if (countiesRes.ok()) {
@@ -25,10 +26,36 @@ test.describe("Direct Connect", () => {
         if (typeof candidate === "string" && candidate.trim().length === 5) {
           countyFips = candidate.trim();
         }
+
+        const candidateState =
+          preferred?.stateCode || preferred?.state_code || preferred?.state || preferred?.stateAbbr;
+        if (typeof candidateState === "string" && candidateState.trim().length === 2) {
+          stateCode = candidateState.trim().toUpperCase();
+        }
       }
     } catch {
       // Keep fallback county.
     }
+
+    // Stabilize onboarding preconditions for this user so Direct Connect opens immediately.
+    // Some test accounts can still hit the "Quick profile check" gate if profile metadata drifts.
+    const profileRes = await page.request.put("/api/user/profile", {
+      data: {
+        firstName: "Playwright",
+        lastName: "E2E",
+        stateCode,
+        countyFips,
+      },
+    });
+    expect(profileRes.ok(), `profile update failed: ${profileRes.status()}`).toBeTruthy();
+
+    const onboardingRes = await page.request.post("/api/user/complete-onboarding", {
+      data: {},
+    });
+    expect(
+      onboardingRes.ok(),
+      `onboarding completion failed: ${onboardingRes.status()}`
+    ).toBeTruthy();
 
     await page.goto(`/direct-connect?county=${encodeURIComponent(countyFips)}`);
 

@@ -27,49 +27,100 @@ import {
   buildWorkRequestScopeSummary,
   formatBudgetRange,
 } from "../utils/workRequestShare";
-import { hasPrivilegedVerificationBypass } from "../utils/privilegedVerification";
+import type { PrivilegedBypassReason } from "../utils/authorityPolicy";
+import {
+  hasManualDirectConnectBypassRequest,
+  isDirectConnectUnverifiedBypassEnabled,
+  resolvePrivilegedVerificationBypass,
+} from "../utils/authorityPolicy";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
-function isTruthyFlag(value: unknown): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value === 1;
-  if (typeof value !== "string") return false;
-  return ["1", "true", "yes", "on", "enabled"].includes(value.trim().toLowerCase());
+type DirectConnectBypassSource = "none" | "privileged" | "environment" | "manual";
+
+interface DirectConnectVerificationBypassContext {
+  active: boolean;
+  source: DirectConnectBypassSource;
+  reason: PrivilegedBypassReason;
+  matchedRoles: string[];
+  matchedEmail: string | null;
 }
 
-function isDirectConnectUnverifiedBypassEnabled(): boolean {
-  return (
-    isTruthyFlag(process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED) ||
-    isTruthyFlag(process.env.DIRECT_CONNECT_DEMO_MODE) ||
-    isTruthyFlag(process.env.TRADE_SCOUT_DEMO_MODE)
-  );
+function resolveDirectConnectVerificationBypass(
+  req: Request,
+  viewer: any
+): DirectConnectVerificationBypassContext {
+  const privileged = resolvePrivilegedVerificationBypass(viewer);
+  const manualRequested = hasManualDirectConnectBypassRequest(req);
+
+  if (manualRequested && privileged.active) {
+    return {
+      active: true,
+      source: "manual",
+      reason: "manual_direct_connect_override",
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+    };
+  }
+
+  if (privileged.active) {
+    return {
+      active: true,
+      source: "privileged",
+      reason: privileged.reason,
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+    };
+  }
+
+  if (isDirectConnectUnverifiedBypassEnabled()) {
+    return {
+      active: true,
+      source: "environment",
+      reason: "direct_connect_demo_mode",
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+    };
+  }
+
+  return {
+    active: false,
+    source: "none",
+    reason: "none",
+    matchedRoles: privileged.matchedRoles,
+    matchedEmail: privileged.matchedEmail,
+  };
 }
 
-function hasManualDirectConnectBypassRequest(req: Request, viewer: any): boolean {
-  const body =
-    req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>) : {};
-  const query =
-    req.query && typeof req.query === "object" ? (req.query as Record<string, unknown>) : {};
+async function auditDirectConnectBypassUsage(params: {
+  req: Request;
+  actorUserId: string;
+  context: DirectConnectVerificationBypassContext;
+  operation: "create" | "route" | "admin_create";
+  requestId?: string;
+}) {
+  const { req, actorUserId, context, operation, requestId } = params;
+  if (!context.active) return;
 
-  const requested =
-    isTruthyFlag(body.allowUnverifiedDirectConnect) ||
-    isTruthyFlag(body.demoBypassVerification) ||
-    isTruthyFlag(query.allowUnverifiedDirectConnect) ||
-    isTruthyFlag(query.demoBypassVerification) ||
-    isTruthyFlag(req.headers["x-direct-connect-demo-bypass"]);
-
-  if (!requested) return false;
-  return hasPrivilegedVerificationBypass(viewer);
-}
-
-function shouldBypassDirectConnectVerification(req: Request, viewer: any): boolean {
-  if (hasPrivilegedVerificationBypass(viewer)) return true;
-  if (isDirectConnectUnverifiedBypassEnabled()) return true;
-  if (hasManualDirectConnectBypassRequest(req, viewer)) return true;
-  return false;
+  try {
+    await logAdminAction({
+      action: "direct_connect_verification_bypass_applied",
+      operation,
+      actorUserId,
+      requestId: requestId ?? null,
+      bypassSource: context.source,
+      bypassReason: context.reason,
+      matchedRoles: context.matchedRoles,
+      matchedEmail: context.matchedEmail,
+      requestPath: req.path,
+      requestMethod: req.method,
+      requestIdHeader: req.headers["x-request-id"] ?? null,
+    });
+  } catch (error) {
+    console.warn("[direct-connect] Failed to record verification bypass audit event", error);
+  }
 }
 
 const directConnectRequestSchema = z.object({
@@ -575,7 +626,8 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const viewer = await storage.getUser(String(userId));
-        const bypassVerificationGate = shouldBypassDirectConnectVerification(req, viewer);
+        const bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
+        const bypassVerificationGate = bypassContext.active;
 
         const requestId = String(req.params.id);
         const expandReach = String(req.query?.expand ?? "").toLowerCase() === "true";
@@ -618,6 +670,14 @@ export function registerDirectConnectRoutes(app: Express) {
         if (String(requestRow.createdByUserId) !== String(userId)) {
           return res.status(403).json({ message: "You can only route your own requests" });
         }
+
+        await auditDirectConnectBypassUsage({
+          req,
+          actorUserId: String(userId),
+          context: bypassContext,
+          operation: "route",
+          requestId,
+        });
 
         const routeResult = await routeRequestToTopContractors({
           requestRow,
@@ -1230,7 +1290,8 @@ export function registerDirectConnectRoutes(app: Express) {
         const viewer = await storage.getUser(String(userId));
         const requesterRole = (viewer as any)?.role || "homeowner";
 
-        const canBypassVerification = shouldBypassDirectConnectVerification(req, viewer);
+        const bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
+        const canBypassVerification = bypassContext.active;
         if (
           !canBypassVerification &&
           requesterRole === "homeowner" &&
@@ -1312,7 +1373,7 @@ export function registerDirectConnectRoutes(app: Express) {
             // Direct-to-provider requests should not be listed as "community board" jobs.
             scope: isDirectToProviders ? "personal" : "community",
             source: "direct_connect" as any,
-            status: "open",
+            status: shouldAutoRoute ? ("routed" as const) : ("open" as const),
             visibility: isDirectToProviders ? "private" : "community",
             exposureMode: "guided",
             competitionMode: "none",
@@ -1324,6 +1385,7 @@ export function registerDirectConnectRoutes(app: Express) {
           .returning();
 
         let createdResponse = created;
+        const createdRequestId = created?.id ? String(created.id) : undefined;
 
         if (created) {
           try {
@@ -1337,6 +1399,14 @@ export function registerDirectConnectRoutes(app: Express) {
             console.warn("[direct-connect] Failed to record work request created event", e);
           }
         }
+
+        await auditDirectConnectBypassUsage({
+          req,
+          actorUserId: String(userId),
+          context: bypassContext,
+          operation: "create",
+          requestId: createdRequestId,
+        });
 
         // Explicit targeting preserves requester choice; this is not automatic routing.
         if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
@@ -1645,8 +1715,8 @@ export function registerDirectConnectRoutes(app: Express) {
         const isDirectToProviders =
           Array.isArray(body.targetContractorIds) && body.targetContractorIds.length > 0;
         const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
-        const adminBypassVerification =
-          isDirectConnectUnverifiedBypassEnabled() || hasPrivilegedVerificationBypass(req.user);
+        const adminBypassContext = resolveDirectConnectVerificationBypass(req, req.user);
+        const adminBypassVerification = adminBypassContext.active;
 
         const [created] = await db
           .insert(workRequests)
@@ -1659,7 +1729,7 @@ export function registerDirectConnectRoutes(app: Express) {
             stateCode,
             scope: "community",
             source: "direct_connect" as any,
-            status: "open",
+            status: shouldAutoRoute ? ("routed" as const) : ("open" as const),
             visibility: "community",
             exposureMode: "guided",
             competitionMode: "none",
@@ -1670,6 +1740,7 @@ export function registerDirectConnectRoutes(app: Express) {
           .returning();
 
         let createdResponse = created;
+        const createdRequestId = created?.id ? String(created.id) : undefined;
 
         if (created) {
           try {
@@ -1725,6 +1796,14 @@ export function registerDirectConnectRoutes(app: Express) {
             targetUserExisted,
           });
         }
+
+        await auditDirectConnectBypassUsage({
+          req,
+          actorUserId: String(actorUserId),
+          context: adminBypassContext,
+          operation: "admin_create",
+          requestId: createdRequestId,
+        });
 
         // Staff-directed explicit targeting preserves individual choice for this request.
         if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {

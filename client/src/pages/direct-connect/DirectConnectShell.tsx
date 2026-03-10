@@ -1503,9 +1503,22 @@ function MyDirectConnectRequests() {
 
 export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
   const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
+  const verificationBypass = user?.verificationBypass;
+  const bypassReasonLabel =
+    verificationBypass?.reason === "role"
+      ? "staff role override"
+      : verificationBypass?.reason === "email_alias"
+        ? "privileged alias override"
+        : verificationBypass?.reason === "admin_flag"
+          ? "admin authority override"
+          : verificationBypass?.reason === "manual_direct_connect_override"
+            ? "manual admin override"
+            : verificationBypass?.reason === "direct_connect_demo_mode"
+              ? "direct connect demo mode"
+              : "platform override";
 
   const defaultCountyFips = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1595,6 +1608,13 @@ export default function DirectConnectShell() {
               Start a request, then keep track of replies, photos, and next steps in one place.
             </p>
           </div>
+
+          {isAuthenticated && verificationBypass?.active && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              Verification bypass is active ({bypassReasonLabel}). Your requests can still move live
+              while this override is enabled.
+            </div>
+          )}
 
           {/* Status Pills */}
           <div
