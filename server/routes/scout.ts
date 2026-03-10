@@ -1653,7 +1653,17 @@ interface ScoutPublicCommunityPost extends ScoutPublicEntityBase {
   canMessage?: boolean;
 }
 
-type ScoutPublicEntity = ScoutPublicTradeDeal | ScoutPublicCommunityPost;
+interface ScoutPublicDirectConnectRequest extends ScoutPublicEntityBase {
+  type: "direct_connect_request";
+  authorId?: string | null;
+  canDirectConnect?: boolean;
+  canMessage?: boolean;
+}
+
+type ScoutPublicEntity =
+  | ScoutPublicTradeDeal
+  | ScoutPublicCommunityPost
+  | ScoutPublicDirectConnectRequest;
 
 function isExternalFoodIntent(messageText: string) {
   if (!messageText) return false;
@@ -1668,7 +1678,7 @@ function coerceFiniteNumber(value: unknown): number | null {
 }
 
 interface ScoutCtaHintServer {
-  type: "trade_deal" | "community_post";
+  type: "trade_deal" | "community_post" | "direct_connect_request";
   id: string;
   ownerUserId?: string | null;
   authorId?: string | null;
@@ -3308,14 +3318,9 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // The synthesized answer is our response with suggestedActions!
-    // --- TEMPORARY OVERRIDE: Expose admin-created Direct Connect requests as open to all contractors ---
-    // This block adds any admin/manual Direct Connect requests to publicEntities/ctaHints with canDirectConnect: true
-    // so that all contractors can see/respond for demo/pilot purposes. Remove when no longer needed.
-    const directConnectRequests = Array.isArray((knowledge.meta as any)?.directConnectRequests)
-      ? (knowledge.meta as any).directConnectRequests
-      : [];
-    const publicEntities = communityPostItems.slice(0, 6).map((p) => ({
+    // The synthesized answer is our response with suggestedActions.
+    // Keep publicEntities/ctaHints constrained to community-post summaries.
+    const publicEntities: ScoutPublicEntity[] = communityPostItems.slice(0, 6).map((p) => ({
       type: "community_post",
       id: String(p.id),
       href: "/community?post=" + encodeURIComponent(String(p.id)),
@@ -3323,39 +3328,13 @@ router.post("/", async (req: Request, res: Response) => {
       canDirectConnect: false,
       canMessage: !!(p.authorId || p.author_id),
     }));
-    const ctaHints = communityPostItems.slice(0, 6).map((p) => ({
+    const ctaHints: ScoutCtaHintServer[] = communityPostItems.slice(0, 6).map((p) => ({
       type: "community_post",
       id: String(p.id),
       authorId: p.authorId ?? p.author_id ?? null,
       canDirectConnect: false,
       canMessage: !!(p.authorId || p.author_id),
     }));
-
-    // --- BEGIN TEMPORARY OPEN ADMIN DIRECT CONNECT LOGIC ---
-    if (Array.isArray(directConnectRequests)) {
-      for (const req of directConnectRequests) {
-        // Detect admin/manual requests (example: req.createdByRole === 'admin' || req.isManual === true)
-        if (req && (req.createdByRole === "admin" || req.isManual === true)) {
-          publicEntities.push({
-            type: "community_post", // Use a valid type for the union
-            id: String(req.id),
-            href: "/direct-connect?request=" + encodeURIComponent(String(req.id)),
-            authorId: req.createdBy ?? null,
-            canDirectConnect: true, // OPEN TO ALL CONTRACTORS
-            canMessage: true,
-          });
-          ctaHints.push({
-            type: "community_post", // Use a valid type for the union
-            id: String(req.id),
-            authorId: req.createdBy ?? null,
-            canDirectConnect: true, // OPEN TO ALL CONTRACTORS
-            canMessage: true,
-            label: "Admin-created Direct Connect request (open)",
-          });
-        }
-      }
-    }
-    // --- END TEMPORARY OPEN ADMIN DIRECT CONNECT LOGIC ---
 
     const aiResponse: ScoutResponse = {
       message: prependLocalIntro(synthesized.message, {

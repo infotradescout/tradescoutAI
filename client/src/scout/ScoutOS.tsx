@@ -106,6 +106,8 @@ const AUTO_ROUTE_DEFAULT_ENABLED = true;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
+const SCOUT_EVOLUTION_SURFACES_ENABLED =
+  String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -2575,90 +2577,94 @@ export default function ScoutOS() {
         // ==================================================================
         // FALLBACK: Use existing server flow if no intent matched
         // ==================================================================
-        // Unified router assist (situation + trust + tone) to surface a
-        // trust-aware decision card while the full Scout answer is generated.
-        try {
-          const resolve = await UnifiedScoutRouterClient.resolveIntent(
-            value,
-            {
-              userId: typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
-              isAuthenticated: Boolean(isAuthenticated),
-              userRole:
-                typeof (user as any)?.role === "string"
-                  ? String((user as any).role)
-                  : sessionRole || undefined,
-              location: {
-                county: locality?.county,
-                state: locality?.state,
-                region: undefined,
-              },
-              trustLevel: undefined,
-            },
-            {
-              situation: {
-                activeObjectives: activeObjective
-                  ? [
-                      {
-                        id: activeObjective.id,
-                        title: activeObjective.title,
-                        intentClass: activeObjective.intentClass,
-                        status: activeObjective.status,
-                        progressPct: objectiveStatusToProgress(activeObjective.status),
-                        updatedAt: activeObjective.updatedAt,
-                      },
-                    ]
-                  : [],
-                recentEvents: state.messages.slice(-6).map((m) => ({
-                  type: m.role === "assistant" ? "action_success" : "message_sent",
-                  timestamp: m.timestamp,
-                })),
-                urgencySignals: [
-                  {
-                    source: "direct_user_signal",
-                    level: /urgent|asap|today|now/i.test(value) ? 3 : 2,
-                  },
-                ],
-                now: new Date().toISOString(),
-              },
-              trust: {
+        // Unified router assist (situation + trust + tone) is production-gated.
+        if (SCOUT_EVOLUTION_SURFACES_ENABLED) {
+          try {
+            const resolve = await UnifiedScoutRouterClient.resolveIntent(
+              value,
+              {
                 userId:
                   typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
-                countyFips:
-                  typeof (user as any)?.countyFips === "string"
-                    ? String((user as any).countyFips)
-                    : typeof (user as any)?.county_fips === "string"
-                      ? String((user as any).county_fips)
-                      : undefined,
-                cvsScore:
-                  typeof (user as any)?.cvsScore === "number"
-                    ? Number((user as any).cvsScore)
-                    : typeof (user as any)?.trustScore === "number"
-                      ? Number((user as any).trustScore)
-                      : null,
-                verificationStatus:
-                  typeof (user as any)?.verificationStatus === "string"
-                    ? ((user as any).verificationStatus as any)
-                    : "unknown",
-                riskFlags: [],
-              },
-              tone: {
-                scenario: "next_step_prompt",
-                countyLabel: locality?.county,
-                roleLabel:
+                isAuthenticated: Boolean(isAuthenticated),
+                userRole:
                   typeof (user as any)?.role === "string"
                     ? String((user as any).role)
                     : sessionRole || undefined,
-                includeNextStep: true,
+                location: {
+                  county: locality?.county,
+                  state: locality?.state,
+                  region: undefined,
+                },
+                trustLevel: undefined,
               },
-            }
-          );
+              {
+                situation: {
+                  activeObjectives: activeObjective
+                    ? [
+                        {
+                          id: activeObjective.id,
+                          title: activeObjective.title,
+                          intentClass: activeObjective.intentClass,
+                          status: activeObjective.status,
+                          progressPct: objectiveStatusToProgress(activeObjective.status),
+                          updatedAt: activeObjective.updatedAt,
+                        },
+                      ]
+                    : [],
+                  recentEvents: state.messages.slice(-6).map((m) => ({
+                    type: m.role === "assistant" ? "action_success" : "message_sent",
+                    timestamp: m.timestamp,
+                  })),
+                  urgencySignals: [
+                    {
+                      source: "direct_user_signal",
+                      level: /urgent|asap|today|now/i.test(value) ? 3 : 2,
+                    },
+                  ],
+                  now: new Date().toISOString(),
+                },
+                trust: {
+                  userId:
+                    typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
+                  countyFips:
+                    typeof (user as any)?.countyFips === "string"
+                      ? String((user as any).countyFips)
+                      : typeof (user as any)?.county_fips === "string"
+                        ? String((user as any).county_fips)
+                        : undefined,
+                  cvsScore:
+                    typeof (user as any)?.cvsScore === "number"
+                      ? Number((user as any).cvsScore)
+                      : typeof (user as any)?.trustScore === "number"
+                        ? Number((user as any).trustScore)
+                        : null,
+                  verificationStatus:
+                    typeof (user as any)?.verificationStatus === "string"
+                      ? ((user as any).verificationStatus as any)
+                      : "unknown",
+                  riskFlags: [],
+                },
+                tone: {
+                  scenario: "next_step_prompt",
+                  countyLabel: locality?.county,
+                  roleLabel:
+                    typeof (user as any)?.role === "string"
+                      ? String((user as any).role)
+                      : sessionRole || undefined,
+                  includeNextStep: true,
+                },
+              }
+            );
 
-          if (resolve) {
-            setRoutingDecisionCard(resolve);
-          } else {
+            if (resolve) {
+              setRoutingDecisionCard(resolve);
+            } else {
+              setRoutingDecisionCard(null);
+            }
+          } catch {
             setRoutingDecisionCard(null);
           }
-        } catch {
+        } else {
           setRoutingDecisionCard(null);
         }
 
@@ -2907,54 +2913,58 @@ export default function ScoutOS() {
 
         applyServerResponse(msg, res.actions);
 
-        try {
-          const toneRes = await fetch("/api/scout/tone/build", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              scenario:
-                res.metadata?.resolvedContext?.confidence === "low"
-                  ? "confidence_low"
-                  : "next_step_prompt",
-              message: msg.content,
-              countyLabel: locality?.county,
-              roleLabel:
-                typeof (user as any)?.role === "string"
-                  ? String((user as any).role)
-                  : sessionRole || undefined,
-              confidenceBand:
-                res.metadata?.resolvedContext?.confidence === "low" ||
-                res.metadata?.resolvedContext?.confidence === "medium" ||
-                res.metadata?.resolvedContext?.confidence === "high"
-                  ? res.metadata.resolvedContext.confidence
-                  : "medium",
-              includeNextStep: true,
-              nextStepLabel: msg.navTarget ? "Open next step" : "Continue in Scout",
-              nextStepRoute: msg.navTarget || "/scout",
-            }),
-          });
-
-          if (toneRes.ok) {
-            const built = await toneRes.json();
-            setToneMessage({
-              message: String(built?.message || ""),
-              scenario: built?.scenario,
-              toneScore: typeof built?.toneScore === "number" ? built.toneScore : undefined,
-              guardrailFlags: Array.isArray(built?.guardrailFlags)
-                ? built.guardrailFlags
-                : undefined,
-              confidenceBand:
-                res.metadata?.resolvedContext?.confidence === "low" ||
-                res.metadata?.resolvedContext?.confidence === "medium" ||
-                res.metadata?.resolvedContext?.confidence === "high"
-                  ? res.metadata.resolvedContext.confidence
-                  : undefined,
+        if (SCOUT_EVOLUTION_SURFACES_ENABLED) {
+          try {
+            const toneRes = await fetch("/api/scout/tone/build", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                scenario:
+                  res.metadata?.resolvedContext?.confidence === "low"
+                    ? "confidence_low"
+                    : "next_step_prompt",
+                message: msg.content,
+                countyLabel: locality?.county,
+                roleLabel:
+                  typeof (user as any)?.role === "string"
+                    ? String((user as any).role)
+                    : sessionRole || undefined,
+                confidenceBand:
+                  res.metadata?.resolvedContext?.confidence === "low" ||
+                  res.metadata?.resolvedContext?.confidence === "medium" ||
+                  res.metadata?.resolvedContext?.confidence === "high"
+                    ? res.metadata.resolvedContext.confidence
+                    : "medium",
+                includeNextStep: true,
+                nextStepLabel: msg.navTarget ? "Open next step" : "Continue in Scout",
+                nextStepRoute: msg.navTarget || "/scout",
+              }),
             });
-          } else {
+
+            if (toneRes.ok) {
+              const built = await toneRes.json();
+              setToneMessage({
+                message: String(built?.message || ""),
+                scenario: built?.scenario,
+                toneScore: typeof built?.toneScore === "number" ? built.toneScore : undefined,
+                guardrailFlags: Array.isArray(built?.guardrailFlags)
+                  ? built.guardrailFlags
+                  : undefined,
+                confidenceBand:
+                  res.metadata?.resolvedContext?.confidence === "low" ||
+                  res.metadata?.resolvedContext?.confidence === "medium" ||
+                  res.metadata?.resolvedContext?.confidence === "high"
+                    ? res.metadata.resolvedContext.confidence
+                    : undefined,
+              });
+            } else {
+              setToneMessage(null);
+            }
+          } catch {
             setToneMessage(null);
           }
-        } catch {
+        } else {
           setToneMessage(null);
         }
 
@@ -3205,6 +3215,11 @@ export default function ScoutOS() {
   );
 
   const loadObjectiveOnboardingBundle = useCallback(async () => {
+    if (!SCOUT_EVOLUTION_SURFACES_ENABLED) {
+      setObjectiveOnboardingBundle(null);
+      return;
+    }
+
     try {
       const objectiveStates = activeObjective
         ? [
@@ -3246,6 +3261,11 @@ export default function ScoutOS() {
   }, [loadObjectiveOnboardingBundle]);
 
   const loadWatchdogResult = useCallback(async () => {
+    if (!SCOUT_EVOLUTION_SURFACES_ENABLED) {
+      setWatchdogResult(null);
+      return;
+    }
+
     try {
       const snapshot = {
         userId: typeof (user as any)?.id === "string" ? String((user as any).id) : "guest",
@@ -4338,7 +4358,7 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {objectiveOnboardingBundle && (
+                {SCOUT_EVOLUTION_SURFACES_ENABLED && objectiveOnboardingBundle && (
                   <ObjectiveOnboardingFlow
                     roleLabel={String(objectiveOnboardingBundle.role || "")}
                     suggestions={
@@ -4376,7 +4396,7 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {visibleWatchdogInterventions.length > 0 && (
+                {SCOUT_EVOLUTION_SURFACES_ENABLED && visibleWatchdogInterventions.length > 0 && (
                   <WatchdogInterventionBanner
                     interventions={visibleWatchdogInterventions}
                     engagementScore={
@@ -4407,7 +4427,8 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {routingDecisionCard?.action &&
+                {SCOUT_EVOLUTION_SURFACES_ENABLED &&
+                  routingDecisionCard?.action &&
                   routingDecisionCard.metadata?.trust?.trustSignals && (
                     <TrustAwareDecisionCard
                       title="Scout recommended route"
@@ -4469,7 +4490,7 @@ export default function ScoutOS() {
                     />
                   )}
 
-                {toneMessage?.message && (
+                {SCOUT_EVOLUTION_SURFACES_ENABLED && toneMessage?.message && (
                   <ToneAwareMessage
                     message={toneMessage.message}
                     scenario={toneMessage.scenario}

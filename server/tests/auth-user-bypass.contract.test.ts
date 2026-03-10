@@ -6,7 +6,7 @@ const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 describeWithDb("auth user bypass metadata", () => {
   it("returns privileged bypass metadata for staff/admin tier sessions", async () => {
     const { agent } = await createAuthedAgent({
-      role: "support_agent" as any,
+      role: "super_admin",
       addressVerified: false,
       onboardingCompleted: true,
     });

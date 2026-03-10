@@ -52,7 +52,7 @@ import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { recordActivity } from "@/agent/activity";
-import { TradeScoutIcon } from "@/components/TradeScoutIcons";
+import { TradeScoutIcon, TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { useLocation } from "wouter";
@@ -60,6 +60,10 @@ import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
 import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
 import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
+import {
+  ContactOutcomeModal,
+  type ContactOutcome,
+} from "@/components/community/ContactOutcomeModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
@@ -336,6 +340,24 @@ type ConnectionActivitySummary = {
   }>;
 };
 
+type ContactConnection = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  profileImageUrl: string | null;
+  city: string | null;
+  state: string | null;
+  roles: string[] | null;
+  role: string | null;
+  canonicalProfileUrl: string | null;
+  connectedAt: string | null;
+  intent: string | null;
+  authorityGate: string | null;
+  decisionScope: string | null;
+  countyFips: string | null;
+  threadId: string | null;
+};
+
 type TrendingTopic = {
   tag: string;
   posts?: number;
@@ -347,6 +369,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
+  const [activeContactOutcome, setActiveContactOutcome] = useState<ContactOutcome | null>(null);
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
   const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -834,6 +857,89 @@ const CommunityFeed = memo(function CommunityFeed() {
       : [];
     return list.slice(0, 12);
   }, [connectionActivityData]);
+
+  const { data: contactConnectionsData = [] } = useQuery<ContactConnection[]>({
+    queryKey: ["/api/social/contact-connections"],
+    enabled: Boolean(isAuthenticated),
+    queryFn: async () => {
+      const response = await fetch("/api/social/contact-connections", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch contact connections");
+      return response.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const connectionByUserId = useMemo(() => {
+    const byId = new Map<string, ContactConnection>();
+    for (const connection of contactConnectionsData) {
+      if (connection?.id) {
+        byId.set(connection.id, connection);
+      }
+    }
+    return byId;
+  }, [contactConnectionsData]);
+
+  const handleOpenActiveUserProfile = (neighborId: string) => {
+    const connection = connectionByUserId.get(neighborId);
+    const canonical = String(connection?.canonicalProfileUrl || "").trim();
+    if (canonical) {
+      navigate(canonical);
+      return;
+    }
+    navigate(`/community/u/${encodeURIComponent(neighborId)}`);
+  };
+
+  const handleOpenDirectConnectForActiveUser = (neighborId: string, neighborName: string) => {
+    const params = new URLSearchParams({
+      source: "community_active_now",
+      target: neighborId,
+    });
+    const trimmedName = String(neighborName || "").trim();
+    if (trimmedName) {
+      params.set("targetName", trimmedName);
+    }
+    if (countyFips) {
+      params.set("county", countyFips);
+    }
+    navigate(`/direct-connect?${params.toString()}`);
+  };
+
+  const handleCreateConnectionRequest = (
+    neighbor: ConnectionActivitySummary["activeToday"][number]
+  ) => {
+    const targetUserId = String(neighbor.id || "").trim();
+    if (!targetUserId) return;
+
+    const fullName = [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ").trim();
+    const targetUserName = fullName || "Community member";
+    const connection = connectionByUserId.get(targetUserId);
+    const roleCandidate =
+      String(connection?.role || "").trim() ||
+      (Array.isArray(connection?.roles) &&
+      connection?.roles.length > 0 &&
+      typeof connection.roles[0] === "string"
+        ? String(connection.roles[0]).trim()
+        : "");
+    const targetRole = roleCandidate || "Member";
+    const city = String(connection?.city || "").trim();
+    const state = String(connection?.state || "").trim();
+    const targetLocation = [city, state].filter(Boolean).join(", ") || undefined;
+
+    setActiveContactOutcome({
+      targetUserId,
+      targetUserName,
+      targetRole,
+      targetLocation,
+      suggestedIntent: "collaborate",
+      reasonForContact:
+        "I saw you active in Community and want to connect so we can coordinate directly.",
+      riskFlags: [],
+      decisionScope: `community_active_now:${targetUserId}`,
+      decisionTitle: "Community connection request",
+    });
+  };
 
   // Allow Scout to prefill the composer via /community?compose=1&prefill=...
   useEffect(() => {
@@ -1572,43 +1678,55 @@ const CommunityFeed = memo(function CommunityFeed() {
                         const name =
                           [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||
                           "Connection";
-                        const stableId = String(neighbor.id || "")
-                          .replace(/[^a-z0-9]/gi, "")
-                          .slice(0, 2)
-                          .toUpperCase();
-                        const fallback =
-                          stableId ||
-                          String(name || "")
-                            .trim()
-                            .split(/\s+/)
-                            .slice(0, 2)
-                            .map((p) => p[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase() ||
-                          "U";
 
                         return (
-                          <div
-                            key={neighbor.id}
-                            className="shrink-0 flex flex-col items-center gap-1 w-[54px]"
-                            title={name}
-                          >
-                            <div className="relative">
-                              <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70">
-                                <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
-                                <AvatarFallback className="bg-[color:var(--surface-intermediate)] text-white text-xs font-semibold">
-                                  {fallback}
-                                </AvatarFallback>
-                              </Avatar>
-                              {neighbor.isActiveNow && (
-                                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[color:var(--surface-card)]" />
-                              )}
-                            </div>
-                            <div className="w-full text-[10px] text-white/60 text-center truncate">
-                              {String(neighbor.firstName || name).split(" ")[0]}
-                            </div>
-                          </div>
+                          <DropdownMenu key={neighbor.id}>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="shrink-0 flex flex-col items-center gap-1 w-[54px] group"
+                                title={`${name} actions`}
+                                aria-label={`Open actions for ${name}`}
+                              >
+                                <div className="relative">
+                                  <Avatar className="h-11 w-11 ring-1 ring-ts-orange/70 transition-all group-hover:ring-ts-orange">
+                                    <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
+                                    <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                                      <TradeScoutLogo
+                                        size="sm"
+                                        className="h-8 w-8 bg-transparent ring-0"
+                                      />
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {neighbor.isActiveNow && (
+                                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[color:var(--surface-card)]" />
+                                  )}
+                                </div>
+                                <div className="w-full text-[10px] text-white/60 text-center truncate group-hover:text-white/80">
+                                  {String(neighbor.firstName || name).split(" ")[0]}
+                                </div>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-56">
+                              <DropdownMenuItem
+                                onClick={() => handleOpenActiveUserProfile(neighbor.id)}
+                              >
+                                View public profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleOpenDirectConnectForActiveUser(neighbor.id, name)
+                                }
+                              >
+                                Start Direct Connect request
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleCreateConnectionRequest(neighbor)}
+                              >
+                                Send connection request
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         );
                       })}
                     </div>
@@ -1958,6 +2076,12 @@ const CommunityFeed = memo(function CommunityFeed() {
           </div>
         </CountyRequiredGate>
       </div>
+      {activeContactOutcome && (
+        <ContactOutcomeModal
+          outcome={activeContactOutcome}
+          onClose={() => setActiveContactOutcome(null)}
+        />
+      )}
     </>
   );
 });

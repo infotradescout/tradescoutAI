@@ -1,6 +1,11 @@
 import { request } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import dotenv from "dotenv";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env.test") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 export default async function globalSetup() {
   const baseURL = process.env.E2E_BASE_URL || "http://localhost:5000";
@@ -10,7 +15,7 @@ export default async function globalSetup() {
 
   if (!email || !password) {
     throw new Error(
-      "Missing auth creds for E2E. Set E2E_EMAIL + E2E_PASSWORD (or MASTER_ADMIN_EMAIL + MASTER_ADMIN_PASSWORD).",
+      "Missing auth creds for E2E. Set E2E_EMAIL + E2E_PASSWORD (or MASTER_ADMIN_EMAIL + MASTER_ADMIN_PASSWORD)."
     );
   }
 

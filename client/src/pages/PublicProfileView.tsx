@@ -47,6 +47,7 @@ interface PublicProfile {
   createdAt?: string;
   verificationStatus?: string | null;
   addressVerified?: boolean;
+  isAdmin?: boolean;
   cvsScore?: number | string | null;
   preferences?: any;
   realtorProfile?: {

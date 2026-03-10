@@ -370,12 +370,24 @@ function RequestAttachmentStrip({
   );
 }
 
-function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips?: string }) {
+function DirectConnectRequestComposer({
+  defaultCountyFips,
+  prefillTargetUserId,
+  prefillTargetName,
+  prefillSource,
+}: {
+  defaultCountyFips?: string;
+  prefillTargetUserId?: string;
+  prefillTargetName?: string;
+  prefillSource?: string;
+}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const attachmentsRef = useRef<DraftAttachment[]>([]);
+  const initialTargetName = String(prefillTargetName || "").trim();
+  const prefillTargetLabel = initialTargetName || "selected member";
   const [requestType, setRequestType] = useState<
     | "service_request"
     | "business_request"
@@ -384,8 +396,14 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
     | "buy_sell"
     | "other"
   >("service_request");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(() =>
+    initialTargetName ? `Request for ${initialTargetName}` : ""
+  );
+  const [description, setDescription] = useState(() =>
+    initialTargetName
+      ? `This request started from Community and is intended for ${initialTargetName}.`
+      : ""
+  );
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [showOptional, setShowOptional] = useState(false);
@@ -581,6 +599,17 @@ function DirectConnectRequestComposer({ defaultCountyFips }: { defaultCountyFips
         <CardTitle className="text-base">New request</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {prefillTargetUserId && (
+          <div className="rounded-xl border border-ts-orange/30 bg-ts-orange/10 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">From Community</p>
+            <p className="mt-1 text-xs text-[color:var(--text-primary)]">
+              This request is scoped to <span className="font-semibold">{prefillTargetLabel}</span>.
+              {prefillSource === "community_active_now"
+                ? " They will see it in Direct Connect if they are eligible to respond."
+                : " The selected member context has been prefilled for you."}
+            </p>
+          </div>
+        )}
         <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10 p-2 text-[color:var(--theme-accent-primary)]">
@@ -1520,11 +1549,21 @@ export default function DirectConnectShell() {
               ? "direct connect demo mode"
               : "platform override";
 
-  const defaultCountyFips = useMemo(() => {
+  const requestPrefill = useMemo(() => {
     if (typeof window === "undefined") return undefined;
     const params = new URLSearchParams(window.location.search);
-    return params.get("county") || undefined;
+    const countyFips = params.get("county") || undefined;
+    const targetUserId = params.get("target") || undefined;
+    const targetName = params.get("targetName") || undefined;
+    const source = params.get("source") || undefined;
+    return {
+      countyFips,
+      targetUserId,
+      targetName,
+      source,
+    };
   }, [location]);
+  const defaultCountyFips = requestPrefill?.countyFips;
 
   const navigateSection = (section: Section) => {
     navigate(buildHref(section));
@@ -1574,7 +1613,14 @@ export default function DirectConnectShell() {
   let centerContent: ReactNode = null;
   switch (activeSection) {
     case "post":
-      centerContent = <DirectConnectRequestComposer defaultCountyFips={defaultCountyFips} />;
+      centerContent = (
+        <DirectConnectRequestComposer
+          defaultCountyFips={defaultCountyFips}
+          prefillTargetUserId={requestPrefill?.targetUserId}
+          prefillTargetName={requestPrefill?.targetName}
+          prefillSource={requestPrefill?.source}
+        />
+      );
       break;
     case "board":
       centerContent = (

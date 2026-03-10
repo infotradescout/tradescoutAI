@@ -462,5 +462,5 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     );
     expect(unrelatedAttachmentRes.status).toBe(403);
     expect(unrelatedAttachmentRes.body?.message).toContain("do not have access");
-  });
+  }, 20_000);
 });

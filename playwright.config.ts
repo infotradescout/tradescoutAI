@@ -19,8 +19,8 @@ const baseUrlPort = (() => {
 })();
 
 const serverCommand = hasTestDb
-  ? "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config server/index.ts"
-  : "cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts";
+  ? "node scripts/withTestDb.mjs tsx -r dotenv/config server/index.ts"
+  : "tsx -r dotenv/config server/index.ts";
 
 export default defineConfig({
   testDir: "./tests",
@@ -38,6 +38,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       PORT: baseUrlPort,
+      NODE_ENV: hasTestDb ? "test" : "development",
     },
   },
 

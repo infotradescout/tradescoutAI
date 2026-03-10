@@ -1551,7 +1551,7 @@ export function registerDirectConnectRoutes(app: Express) {
         let requestEmailSkippedReason: string | null = null;
         let setupEmailMessageId: string | undefined;
         let requestEmailMessageId: string | undefined;
-        let activationLinkIncluded = false;
+        const activationLinkIncluded = false;
         let verifyLinkIncluded = false;
         let activationLink: string | undefined;
         let verifyLink: string | undefined;
@@ -1596,63 +1596,42 @@ export function registerDirectConnectRoutes(app: Express) {
           const hasPassword =
             typeof targetUser.password === "string" && targetUser.password.length > 0;
           const isEmailVerified = targetUser.emailVerified === true;
-          const shouldSendSetupFlow =
-            body.forceSetupEmail === true ||
-            targetUserProvisioned ||
-            !hasPassword ||
-            !isEmailVerified;
-          const shouldSendActivation = shouldSendSetupFlow && !hasPassword;
-          const shouldSendVerification = shouldSendSetupFlow && !isEmailVerified;
-          activationLinkIncluded = shouldSendActivation;
+          // Always require email verification for all users, including admin-created requests
+          const shouldSendVerification = !isEmailVerified;
           verifyLinkIncluded = shouldSendVerification;
-
-          if (shouldSendActivation) {
-            const reset = passwordResetService.createToken(String(targetUser.id));
-            activationLink = `${publicBase}/reset-password?token=${reset.token}`;
-          }
           if (shouldSendVerification) {
             const verify = emailVerificationService.createToken(String(targetUser.id));
             verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
           }
-
           const canSendEmail = emailService.isConfigured();
           if (canSendEmail) {
-            if (shouldSendActivation || shouldSendVerification) {
+            if (shouldSendVerification) {
+              // If user is not verified, always send verification email
               const htmlParts: string[] = [
                 "<p>Your TradeScout Direct Connect request is ready.</p>",
-                "<p>Finish account setup to view and manage your request.</p>",
+                "<p>Verify your email to view and manage your request.</p>",
+                verifyLink ? `<p><a href=\"${verifyLink}\">Verify your email</a>.</p>` : "",
+                "<p>If you did not expect this, you can ignore this email.</p>",
               ];
-              if (activationLink && shouldSendActivation) {
-                htmlParts.push(`<p><a href="${activationLink}">Set your password</a>.</p>`);
-              }
-              if (verifyLink && shouldSendVerification) {
-                htmlParts.push(`<p><a href="${verifyLink}">Verify your email</a>.</p>`);
-              }
-              htmlParts.push("<p>If you did not expect this, you can ignore this email.</p>");
-
               const emailResult = await emailService.sendEmail({
                 to: targetEmailForNotification,
-                subject: "Your TradeScout Direct Connect request is ready",
+                subject: "Verify your email to access your Direct Connect request",
                 html: htmlParts.join("\n"),
-                text: [
-                  shouldSendActivation && activationLink ? `Set password: ${activationLink}` : null,
-                  shouldSendVerification && verifyLink ? `Verify email: ${verifyLink}` : null,
-                ]
-                  .filter(Boolean)
-                  .join("\n"),
-                purpose: "account_creation",
+                text: verifyLink ? `Verify email: ${verifyLink}` : "",
+                purpose: "account_verification",
               });
               setupEmailSent = emailResult.skipped !== true;
               setupEmailMessageId = emailResult.messageId;
               setupEmailSkippedReason =
                 emailResult.skipped === true ? "suppressed_or_unconfigured" : null;
             } else {
+              // User is already verified, just notify them of the new request
               const emailResult = await emailService.sendEmail({
                 to: targetEmailForNotification,
                 subject: "You have a new TradeScout Direct Connect request",
                 html: [
                   "<p>A Direct Connect request was created for your account.</p>",
-                  `<p><a href="${publicBase}/direct-connect">Open Direct Connect</a>.</p>`,
+                  `<p><a href=\"${publicBase}/direct-connect\">Open Direct Connect</a>.</p>`,
                   "<p>If you did not expect this, you can ignore this email.</p>",
                 ].join("\n"),
                 text: `Open Direct Connect: ${publicBase}/direct-connect`,
@@ -1666,13 +1645,13 @@ export function registerDirectConnectRoutes(app: Express) {
           } else if (process.env.NODE_ENV !== "production") {
             // In local/dev environments return links for manual testing.
             setupEmailSent = false;
-            if (shouldSendActivation || shouldSendVerification) {
+            if (shouldSendVerification) {
               setupEmailSkippedReason = "email_provider_not_configured";
             } else {
               requestEmailSkippedReason = "email_provider_not_configured";
             }
           } else {
-            if (shouldSendActivation || shouldSendVerification) {
+            if (shouldSendVerification) {
               setupEmailSkippedReason = "email_provider_not_configured";
             } else {
               requestEmailSkippedReason = "email_provider_not_configured";
