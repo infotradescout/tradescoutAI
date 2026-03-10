@@ -23,6 +23,21 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).not.toContain("if (compliantIds.length > 0)");
   });
 
+  it("resolves county context from requester profile before routing", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain("const requesterCountyIdRaw");
+    expect(routeFile).toContain(".from(counties)");
+    expect(routeFile).toContain("if (countyRecord && countyFips) {");
+  });
+
+  it("only allows expanded fallback routing when bypass mode is active", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain("if (!countyRecord && !bypassVerificationGate) {");
+    expect(routeFile).toContain("if (!baseContractors.length && bypassVerificationGate) {");
+  });
+
   it("returns verification-required as non-2xx with explicit code", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
 

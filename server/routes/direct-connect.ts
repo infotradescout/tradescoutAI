@@ -10,6 +10,7 @@ import {
   contractors,
   conversations,
   trades,
+  counties,
 } from "@shared/schema";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -32,6 +33,45 @@ type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
+function isTruthyFlag(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value !== "string") return false;
+  return ["1", "true", "yes", "on", "enabled"].includes(value.trim().toLowerCase());
+}
+
+function isDirectConnectUnverifiedBypassEnabled(): boolean {
+  return (
+    isTruthyFlag(process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED) ||
+    isTruthyFlag(process.env.DIRECT_CONNECT_DEMO_MODE) ||
+    isTruthyFlag(process.env.TRADE_SCOUT_DEMO_MODE)
+  );
+}
+
+function hasManualDirectConnectBypassRequest(req: Request, viewer: any): boolean {
+  const body =
+    req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>) : {};
+  const query =
+    req.query && typeof req.query === "object" ? (req.query as Record<string, unknown>) : {};
+
+  const requested =
+    isTruthyFlag(body.allowUnverifiedDirectConnect) ||
+    isTruthyFlag(body.demoBypassVerification) ||
+    isTruthyFlag(query.allowUnverifiedDirectConnect) ||
+    isTruthyFlag(query.demoBypassVerification) ||
+    isTruthyFlag(req.headers["x-direct-connect-demo-bypass"]);
+
+  if (!requested) return false;
+  return hasPrivilegedVerificationBypass(viewer);
+}
+
+function shouldBypassDirectConnectVerification(req: Request, viewer: any): boolean {
+  if (hasPrivilegedVerificationBypass(viewer)) return true;
+  if (isDirectConnectUnverifiedBypassEnabled()) return true;
+  if (hasManualDirectConnectBypassRequest(req, viewer)) return true;
+  return false;
+}
+
 const directConnectRequestSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
@@ -41,6 +81,7 @@ const directConnectRequestSchema = z.object({
   tradeId: z.string().min(1).optional(),
   countyFips: z.string().length(5).optional(),
   stateCode: z.string().length(2).optional(),
+  autoRoute: z.boolean().optional(),
   attachments: z.array(z.string().trim().min(10).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
 });
@@ -181,6 +222,350 @@ export function registerDirectConnectRoutes(app: Express) {
     return `${proto}://${host}`;
   };
 
+  const routeRequestToTopContractors = async ({
+    requestRow,
+    actorUserId,
+    expandReach,
+    bypassVerificationGate,
+  }: {
+    requestRow: any;
+    actorUserId: string;
+    expandReach: boolean;
+    bypassVerificationGate: boolean;
+  }): Promise<{ assignments: any[]; routed: boolean }> => {
+    const requestId = String(requestRow.id);
+    let countyFips = typeof requestRow.countyFips === "string" ? requestRow.countyFips.trim() : "";
+    let stateCode = typeof requestRow.stateCode === "string" ? requestRow.stateCode.trim() : "";
+    const tradeSlug = typeof requestRow.tradeId === "string" ? requestRow.tradeId : "";
+
+    let countyRecord = countyFips ? await storage.getCountyByFips(countyFips) : null;
+
+    // County resolution fallback for demo/pilot reliability:
+    // if request payload lacks county_fips but requester profile has county_id,
+    // resolve and persist canonical county_fips/state_code on the request.
+    if (!countyRecord) {
+      const requesterUserId = String(requestRow.createdByUserId || "");
+      if (requesterUserId) {
+        const requester = await storage.getUser(requesterUserId);
+        if (requester) {
+          const requesterCountyFipsRaw =
+            (requester as any).countyFips || (requester as any).county_fips;
+          const requesterCountyFips =
+            typeof requesterCountyFipsRaw === "string" ? requesterCountyFipsRaw.trim() : "";
+          if (!countyRecord && requesterCountyFips) {
+            countyFips = requesterCountyFips;
+            countyRecord = await storage.getCountyByFips(countyFips);
+          }
+
+          const requesterCountyIdRaw = (requester as any).countyId || (requester as any).county_id;
+          const requesterCountyId =
+            typeof requesterCountyIdRaw === "string" ? requesterCountyIdRaw.trim() : "";
+          if (!countyRecord && requesterCountyId) {
+            const [resolvedById] = await db
+              .select()
+              .from(counties)
+              .where(eq(counties.id, requesterCountyId))
+              .limit(1);
+            if (resolvedById) {
+              countyRecord = resolvedById as any;
+              countyFips = String((resolvedById as any).fips || "").trim();
+            }
+          }
+
+          const requesterStateRaw = (requester as any).stateCode || (requester as any).state_code;
+          const requesterState =
+            typeof requesterStateRaw === "string" ? requesterStateRaw.trim().toUpperCase() : "";
+          if (!stateCode && requesterState.length === 2) {
+            stateCode = requesterState;
+          }
+        }
+      }
+
+      if (countyRecord && countyFips) {
+        await db
+          .update(workRequests)
+          .set({
+            countyFips,
+            stateCode: stateCode || String((countyRecord as any).stateCode || "").toUpperCase(),
+            updatedAt: new Date(),
+          })
+          .where(eq(workRequests.id, requestId));
+      }
+    }
+
+    // Preserve county-scoped routing invariants unless an explicit bypass mode is active.
+    if (!countyRecord && !bypassVerificationGate) {
+      return { assignments: [], routed: false };
+    }
+
+    let tradeRecord: any = null;
+    if (tradeSlug) {
+      tradeRecord = await storage.getTradeBySlug(tradeSlug);
+      if (!tradeRecord) {
+        const [byId] = await db
+          .select()
+          .from(trades)
+          .where(eq(trades.id, String(tradeSlug)));
+        tradeRecord = byId || null;
+      }
+    }
+
+    const filters: any = {
+      limit: expandReach ? 15 : 5,
+    };
+    if (countyRecord?.id) {
+      filters.countyId = countyRecord.id;
+    }
+    if (tradeRecord?.id) {
+      filters.tradeIds = [tradeRecord.id];
+    }
+
+    let usedExpandedFallback = false;
+    let baseContractors = await storage.getContractors(filters);
+
+    // Demo/pilot fallback: if county-constrained routing yields no candidates and
+    // bypass mode is active, expand to platform-wide contractor candidates.
+    if (!baseContractors.length && bypassVerificationGate) {
+      const expandedFilters: any = {
+        limit: expandReach ? 15 : 5,
+      };
+      if (tradeRecord?.id) {
+        expandedFilters.tradeIds = [tradeRecord.id];
+      }
+      baseContractors = await storage.getContractors(expandedFilters);
+      usedExpandedFallback = true;
+    }
+
+    if (!baseContractors.length) {
+      return { assignments: [], routed: false };
+    }
+
+    // Compliance gate: only apply if this trade has explicit requirements.
+    // Must fail closed when no contractor satisfies required verification.
+    let gatedContractors = baseContractors;
+    const requirements = tradeRecord?.id
+      ? await storage.getTradeRequirementsByTradeId(tradeRecord.id)
+      : null;
+    if (!expandReach && requirements && !bypassVerificationGate) {
+      const requiresLicense = requirements.requiresLicense ?? false;
+      const requiresInsurance = requirements.requiresInsurance ?? false;
+      const requiresEin = requirements.requiresEin ?? false;
+      const hasExplicitRequirements = requiresLicense || requiresInsurance || requiresEin;
+
+      if (hasExplicitRequirements) {
+        const userIds = baseContractors
+          .map((c: any) => c.userId as string | undefined)
+          .filter((id): id is string => Boolean(id));
+        const compliance =
+          userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
+
+        const compliantIds = baseContractors
+          .filter((c: any) => {
+            if (!c.userId) return false;
+            const summary = compliance[c.userId];
+            if (!summary) return false;
+            if (requiresLicense && !summary.hasLicense) return false;
+            if (requiresInsurance && !summary.hasInsurance) return false;
+            if (requiresEin && !summary.hasEin) return false;
+            return true;
+          })
+          .map((c: any) => c.id as string);
+
+        gatedContractors = baseContractors.filter((c: any) => compliantIds.includes(c.id));
+      }
+    }
+
+    if (!gatedContractors.length) {
+      return { assignments: [], routed: false };
+    }
+
+    const serviceAreaCounts = await storage.getContractorServiceAreaCounts(
+      gatedContractors.map((c: any) => c.id)
+    );
+
+    const tierForCount = (count: number | undefined): "local" | "regional" | "wide" => {
+      const n = count ?? 0;
+      if (n <= 1) return "local";
+      if (n <= 5) return "regional";
+      return "wide";
+    };
+
+    type RankedContractor = {
+      id: string;
+      userId?: string | null;
+      companyName?: string | null;
+      positiveRecommendations?: number | null;
+      totalRecommendations?: number | null;
+      reachTier: "local" | "regional" | "wide";
+      localCredibilityScore: number;
+    };
+
+    const ranked: RankedContractor[] = [];
+    for (const contractor of gatedContractors) {
+      const stats = contractor.userId
+        ? await storage.getUserCredibilityStats(contractor.userId)
+        : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
+
+      const countyCount = serviceAreaCounts[contractor.id] ?? 0;
+      const reachTier = tierForCount(countyCount);
+
+      const localCredibilityScore =
+        (stats.jobsCompleted ?? 0) * 3 + (stats.peopleHelped ?? 0) * 2 + (stats.activeWeeks ?? 0);
+
+      ranked.push({
+        id: contractor.id,
+        userId: contractor.userId,
+        companyName: contractor.companyName,
+        positiveRecommendations:
+          contractor.positiveRecommendations ?? contractor.totalRecommendations ?? 0,
+        totalRecommendations:
+          contractor.totalRecommendations ?? contractor.positiveRecommendations ?? 0,
+        reachTier,
+        localCredibilityScore,
+      });
+    }
+
+    const tierRank: Record<"local" | "regional" | "wide", number> = {
+      local: 0,
+      regional: 1,
+      wide: 2,
+    };
+
+    ranked.sort((a, b) => {
+      const aTier = tierRank[a.reachTier] ?? 2;
+      const bTier = tierRank[b.reachTier] ?? 2;
+      if (aTier !== bTier) return aTier - bTier;
+      const aScore = a.localCredibilityScore ?? 0;
+      const bScore = b.localCredibilityScore ?? 0;
+      return bScore - aScore;
+    });
+
+    const topRanked = ranked.slice(0, filters.limit || 5);
+    if (!topRanked.length) {
+      return { assignments: [], routed: false };
+    }
+
+    const existingAssignments = await db
+      .select()
+      .from(workRequestAssignments)
+      .where(eq(workRequestAssignments.workRequestId, requestId));
+
+    const existingByContractor = new Set(
+      existingAssignments
+        .map((a: any) => a.contractorId)
+        .filter((id: any): id is string => Boolean(id))
+    );
+
+    const now = new Date();
+    const newAssignmentsPayload: any[] = [];
+    const providerSuggestedEvents: any[] = [];
+
+    for (const candidate of topRanked) {
+      if (!candidate.id || existingByContractor.has(candidate.id)) continue;
+
+      const recCount = Number(candidate.positiveRecommendations ?? 0) || 0;
+      const reasons: string[] = [];
+      if (usedExpandedFallback) {
+        reasons.push("Expanded provider reach (demo fallback)");
+      } else if (candidate.reachTier === "local") {
+        reasons.push("Local provider");
+      } else if (candidate.reachTier === "regional") {
+        reasons.push("Regional provider serving this county");
+      } else {
+        reasons.push("Serves this county and surrounding areas");
+      }
+      if (recCount > 0) {
+        reasons.push(`${recCount} neighbor recommendations`);
+      }
+
+      const scoreSnapshot = {
+        score: candidate.localCredibilityScore,
+        reasons,
+        tradeMatch: Boolean(tradeRecord),
+        recommendationCount: recCount,
+        routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
+      };
+
+      newAssignmentsPayload.push({
+        workRequestId: requestId,
+        contractorId: candidate.id,
+        status: "suggested" as const,
+        scoreSnapshot,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      providerSuggestedEvents.push({
+        workRequestId: requestId,
+        type: "provider_suggested" as const,
+        actorUserId: String(actorUserId),
+        metadata: {
+          contractorId: candidate.id,
+          contractorUserId: candidate.userId ?? null,
+          source: "direct_connect",
+          scoreSnapshot,
+        },
+      });
+    }
+
+    if (!newAssignmentsPayload.length) {
+      return { assignments: [], routed: false };
+    }
+
+    const insertedAssignments = await db
+      .insert(workRequestAssignments)
+      .values(newAssignmentsPayload)
+      .returning();
+
+    try {
+      await db.insert(workRequestEvents).values(providerSuggestedEvents);
+    } catch (e) {
+      console.warn("[direct-connect] Failed to record provider_suggested events", e);
+    }
+
+    await db
+      .update(workRequests)
+      .set({ status: "routed", updatedAt: now })
+      .where(eq(workRequests.id, requestId));
+
+    try {
+      const insertedContractorIds = new Set(
+        insertedAssignments
+          .map((a: any) => a.contractorId)
+          .filter((id: any): id is string => Boolean(id))
+      );
+      const contractorsToNotify = topRanked.filter(
+        (candidate) => candidate.id && insertedContractorIds.has(candidate.id)
+      );
+
+      await Promise.all(
+        contractorsToNotify.map(async (candidate) => {
+          if (!candidate.userId) return;
+
+          try {
+            await notificationService.createNotification({
+              userId: candidate.userId,
+              type: "new_project_request",
+              title: "New Direct Connect request",
+              message: `You have a new Direct Connect request: ${requestRow.title}`,
+              actionUrl: "/direct-connect/inbox",
+              actionText: "View in Direct Connect",
+              iconName: "briefcase",
+              iconColor: "orange",
+              deliveryMethods: ["in_app", "push"],
+            });
+          } catch (err) {
+            console.error("[direct-connect] Failed to notify contractor for routed request", err);
+          }
+        })
+      );
+    } catch (e) {
+      console.error("[direct-connect] Failed to send notifications for routed request", e);
+    }
+
+    return { assignments: insertedAssignments, routed: true };
+  };
+
   // Requester-facing: route an open Direct Connect request to top contractors
   app.post(
     "/api/direct-connect/requests/:id/route",
@@ -189,6 +574,8 @@ export function registerDirectConnectRoutes(app: Express) {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const viewer = await storage.getUser(String(userId));
+        const bypassVerificationGate = shouldBypassDirectConnectVerification(req, viewer);
 
         const requestId = String(req.params.id);
         const expandReach = String(req.query?.expand ?? "").toLowerCase() === "true";
@@ -232,277 +619,14 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(403).json({ message: "You can only route your own requests" });
         }
 
-        const countyFips = requestRow.countyFips;
-        const tradeSlug = requestRow.tradeId;
-
-        if (!countyFips || !tradeSlug) {
-          return res
-            .status(400)
-            .json({ message: "Request must have a trade and county set before routing" });
-        }
-
-        // Mirror the contractor ranking logic from /api/contractors/top
-        const countyRecord = await storage.getCountyByFips(countyFips as string);
-        let tradeRecord = await storage.getTradeBySlug(tradeSlug as string);
-
-        // Back-compat: some callers may store the DB trade id in work_requests.trade_id.
-        // Prefer slug, but allow resolving by id to avoid blocking routing.
-        if (!tradeRecord && tradeSlug) {
-          const [byId] = await db
-            .select()
-            .from(trades)
-            .where(eq(trades.id, String(tradeSlug)));
-          tradeRecord = byId;
-        }
-
-        if (!countyRecord || !tradeRecord) {
-          return res.status(400).json({ message: "Unable to resolve routing geography or trade" });
-        }
-
-        const filters: any = {
-          limit: expandReach ? 15 : 5,
-          countyId: countyRecord.id,
-          tradeIds: [tradeRecord.id],
-        };
-
-        const baseContractors = await storage.getContractors(filters);
-
-        if (!baseContractors.length) {
-          return res.status(200).json({ assignments: [], routed: false });
-        }
-
-        const contractorIds = baseContractors.map((c: any) => c.id);
-        const userIds = baseContractors
-          .map((c: any) => c.userId as string | undefined)
-          .filter((id): id is string => Boolean(id));
-
-        // Compliance gate: only apply if this trade has explicit requirements.
-        // Must fail closed when no contractor satisfies required verification.
-        let gatedContractors = baseContractors;
-        const requirements = await storage.getTradeRequirementsByTradeId(tradeRecord.id);
-        if (!expandReach && requirements) {
-          const requiresLicense = requirements.requiresLicense ?? false;
-          const requiresInsurance = requirements.requiresInsurance ?? false;
-          const requiresEin = requirements.requiresEin ?? false;
-          const hasExplicitRequirements = requiresLicense || requiresInsurance || requiresEin;
-
-          if (hasExplicitRequirements) {
-            const compliance =
-              userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
-
-            const compliantIds = baseContractors
-              .filter((c: any) => {
-                if (!c.userId) return false;
-                const summary = compliance[c.userId];
-                if (!summary) return false;
-                if (requiresLicense && !summary.hasLicense) return false;
-                if (requiresInsurance && !summary.hasInsurance) return false;
-                if (requiresEin && !summary.hasEin) return false;
-                return true;
-              })
-              .map((c: any) => c.id as string);
-
-            gatedContractors = baseContractors.filter((c: any) => compliantIds.includes(c.id));
-          }
-        }
-
-        if (!gatedContractors.length) {
-          return res.status(200).json({ assignments: [], routed: false });
-        }
-
-        // Reach tier classification based on service area size
-        const serviceAreaCounts = await storage.getContractorServiceAreaCounts(
-          gatedContractors.map((c: any) => c.id)
-        );
-
-        const tierForCount = (count: number | undefined): "local" | "regional" | "wide" => {
-          const n = count ?? 0;
-          if (n <= 1) return "local";
-          if (n <= 5) return "regional";
-          return "wide";
-        };
-
-        type RankedContractor = {
-          id: string;
-          userId?: string | null;
-          companyName?: string | null;
-          positiveRecommendations?: number | null;
-          totalRecommendations?: number | null;
-          reachTier: "local" | "regional" | "wide";
-          localCredibilityScore: number;
-        };
-
-        const ranked: RankedContractor[] = [];
-        for (const contractor of gatedContractors) {
-          const stats = contractor.userId
-            ? await storage.getUserCredibilityStats(contractor.userId)
-            : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
-
-          const countyCount = serviceAreaCounts[contractor.id] ?? 0;
-          const reachTier = tierForCount(countyCount);
-
-          const localCredibilityScore =
-            (stats.jobsCompleted ?? 0) * 3 +
-            (stats.peopleHelped ?? 0) * 2 +
-            (stats.activeWeeks ?? 0);
-
-          ranked.push({
-            id: contractor.id,
-            userId: contractor.userId,
-            companyName: contractor.companyName,
-            positiveRecommendations:
-              contractor.positiveRecommendations ?? contractor.totalRecommendations ?? 0,
-            totalRecommendations:
-              contractor.totalRecommendations ?? contractor.positiveRecommendations ?? 0,
-            reachTier,
-            localCredibilityScore,
-          });
-        }
-
-        const tierRank: Record<"local" | "regional" | "wide", number> = {
-          local: 0,
-          regional: 1,
-          wide: 2,
-        };
-
-        ranked.sort((a, b) => {
-          const aTier = tierRank[a.reachTier] ?? 2;
-          const bTier = tierRank[b.reachTier] ?? 2;
-          if (aTier !== bTier) return aTier - bTier;
-          const aScore = a.localCredibilityScore ?? 0;
-          const bScore = b.localCredibilityScore ?? 0;
-          return bScore - aScore;
+        const routeResult = await routeRequestToTopContractors({
+          requestRow,
+          actorUserId: String(userId),
+          expandReach,
+          bypassVerificationGate,
         });
 
-        const topRanked = ranked.slice(0, filters.limit || 5);
-
-        if (!topRanked.length) {
-          return res.status(200).json({ assignments: [], routed: false });
-        }
-
-        // Avoid duplicating assignments if any already exist for this request
-        const existingAssignments = await db
-          .select()
-          .from(workRequestAssignments)
-          .where(eq(workRequestAssignments.workRequestId, requestId));
-
-        const existingByContractor = new Set(
-          existingAssignments
-            .map((a: any) => a.contractorId)
-            .filter((id: any): id is string => Boolean(id))
-        );
-
-        const now = new Date();
-        const newAssignmentsPayload: any[] = [];
-        const providerSuggestedEvents: any[] = [];
-
-        for (const candidate of topRanked) {
-          if (!candidate.id || existingByContractor.has(candidate.id)) continue;
-
-          const recCount = Number(candidate.positiveRecommendations ?? 0) || 0;
-
-          const reasons: string[] = [];
-          if (candidate.reachTier === "local") {
-            reasons.push("Local provider");
-          } else if (candidate.reachTier === "regional") {
-            reasons.push("Regional provider serving this county");
-          } else {
-            reasons.push("Serves this county and surrounding areas");
-          }
-          if (recCount > 0) {
-            reasons.push(`${recCount} neighbor recommendations`);
-          }
-
-          const scoreSnapshot = {
-            score: candidate.localCredibilityScore,
-            reasons,
-            tradeMatch: true,
-            recommendationCount: recCount,
-          };
-
-          newAssignmentsPayload.push({
-            workRequestId: requestId,
-            contractorId: candidate.id,
-            status: "suggested" as const,
-            scoreSnapshot,
-            createdAt: now,
-            updatedAt: now,
-          });
-
-          providerSuggestedEvents.push({
-            workRequestId: requestId,
-            type: "provider_suggested" as const,
-            actorUserId: String(userId),
-            metadata: {
-              contractorId: candidate.id,
-              contractorUserId: candidate.userId ?? null,
-              source: "direct_connect",
-              scoreSnapshot,
-            },
-          });
-        }
-
-        if (!newAssignmentsPayload.length) {
-          return res.status(200).json({ assignments: [], routed: false });
-        }
-
-        const insertedAssignments = await db
-          .insert(workRequestAssignments)
-          .values(newAssignmentsPayload)
-          .returning();
-
-        try {
-          await db.insert(workRequestEvents).values(providerSuggestedEvents);
-        } catch (e) {
-          console.warn("[direct-connect] Failed to record provider_suggested events", e);
-        }
-
-        // Update the work request lifecycle state
-        await db
-          .update(workRequests)
-          .set({ status: "routed", updatedAt: now })
-          .where(eq(workRequests.id, requestId));
-
-        try {
-          const insertedContractorIds = new Set(
-            insertedAssignments
-              .map((a: any) => a.contractorId)
-              .filter((id: any): id is string => Boolean(id))
-          );
-          const contractorsToNotify = topRanked.filter(
-            (candidate) => candidate.id && insertedContractorIds.has(candidate.id)
-          );
-
-          // Notify each contractor that they have a new Direct Connect opportunity
-          await Promise.all(
-            contractorsToNotify.map(async (candidate) => {
-              if (!candidate.userId) return;
-
-              try {
-                await notificationService.createNotification({
-                  userId: candidate.userId,
-                  type: "new_project_request",
-                  title: "New Direct Connect request",
-                  message: `You have a new Direct Connect request: ${requestRow.title}`,
-                  actionUrl: "/direct-connect/inbox",
-                  actionText: "View in Direct Connect",
-                  iconName: "briefcase",
-                  iconColor: "orange",
-                  deliveryMethods: ["in_app", "push"],
-                });
-              } catch (err) {
-                console.error(
-                  "[direct-connect] Failed to notify contractor for routed request",
-                  err
-                );
-              }
-            })
-          );
-        } catch (e) {
-          console.error("[direct-connect] Failed to send notifications for routed request", e);
-        }
-
-        res.status(200).json({ assignments: insertedAssignments, routed: true });
+        res.status(200).json(routeResult);
       } catch (error: any) {
         console.error("Error routing direct connect request:", error);
         res
@@ -1106,7 +1230,7 @@ export function registerDirectConnectRoutes(app: Express) {
         const viewer = await storage.getUser(String(userId));
         const requesterRole = (viewer as any)?.role || "homeowner";
 
-        const canBypassVerification = hasPrivilegedVerificationBypass(viewer);
+        const canBypassVerification = shouldBypassDirectConnectVerification(req, viewer);
         if (
           !canBypassVerification &&
           requesterRole === "homeowner" &&
@@ -1174,6 +1298,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const isDirectToProviders =
           Array.isArray(body.targetContractorIds) && body.targetContractorIds.length > 0;
+        const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
 
         const [created] = await db
           .insert(workRequests)
@@ -1197,6 +1322,8 @@ export function registerDirectConnectRoutes(app: Express) {
             tradeId: body.tradeId,
           })
           .returning();
+
+        let createdResponse = created;
 
         if (created) {
           try {
@@ -1280,7 +1407,29 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        res.status(201).json(created ?? null);
+        // Default behavior: submit -> live. Non-targeted requests auto-route on create.
+        if (created && shouldAutoRoute) {
+          try {
+            await routeRequestToTopContractors({
+              requestRow: created,
+              actorUserId: String(userId),
+              expandReach: false,
+              bypassVerificationGate: canBypassVerification,
+            });
+            const [fresh] = await db
+              .select()
+              .from(workRequests)
+              .where(eq(workRequests.id, created.id))
+              .limit(1);
+            if (fresh) {
+              createdResponse = fresh as any;
+            }
+          } catch (e) {
+            console.error("[direct-connect] Failed to auto-route request on create", e);
+          }
+        }
+
+        res.status(201).json(createdResponse ?? null);
       } catch (error: any) {
         console.error("Error creating direct connect request:", error);
         if (isSchemaMismatchError(error)) {
@@ -1493,6 +1642,11 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyState) stateCode = bodyState;
 
         const resolvedTrade = await resolveOrCreateAdminTrade(body.tradeId);
+        const isDirectToProviders =
+          Array.isArray(body.targetContractorIds) && body.targetContractorIds.length > 0;
+        const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
+        const adminBypassVerification =
+          isDirectConnectUnverifiedBypassEnabled() || hasPrivilegedVerificationBypass(req.user);
 
         const [created] = await db
           .insert(workRequests)
@@ -1514,6 +1668,8 @@ export function registerDirectConnectRoutes(app: Express) {
             tradeId: resolvedTrade?.slug,
           })
           .returning();
+
+        let createdResponse = created;
 
         if (created) {
           try {
@@ -1649,8 +1805,29 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
+        if (created && shouldAutoRoute) {
+          try {
+            await routeRequestToTopContractors({
+              requestRow: created,
+              actorUserId: String(actorUserId),
+              expandReach: false,
+              bypassVerificationGate: adminBypassVerification,
+            });
+            const [fresh] = await db
+              .select()
+              .from(workRequests)
+              .where(eq(workRequests.id, created.id))
+              .limit(1);
+            if (fresh) {
+              createdResponse = fresh as any;
+            }
+          } catch (e) {
+            console.error("[direct-connect] Failed to auto-route admin-created request", e);
+          }
+        }
+
         return res.status(201).json({
-          request: created ?? null,
+          request: createdResponse ?? null,
           requesterIntent: "hire_provider",
           resolvedCategory: resolvedAdminCategory,
           createdForUser: {
