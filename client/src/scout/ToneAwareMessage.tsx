@@ -25,9 +25,9 @@ function scenarioLabel(scenario: ToneAwareMessageProps["scenario"]): string {
 
 function scoreColor(score?: number): string {
   if (typeof score !== "number") return "var(--text-secondary)";
-  if (score >= 85) return "#22c55e";
-  if (score >= 65) return "#f59e0b";
-  return "#ef4444";
+  if (score >= 85) return "var(--status-success)";
+  if (score >= 65) return "var(--status-warning)";
+  return "var(--status-error)";
 }
 
 function confidenceLabel(band?: ToneAwareMessageProps["confidenceBand"]): string {
@@ -106,7 +106,10 @@ export function ToneAwareMessage({
             type="button"
             onClick={onUseNextStep}
             className="rounded-md px-3 py-2 text-xs font-semibold"
-            style={{ color: "#111827", backgroundColor: "var(--theme-accent-primary)" }}
+            style={{
+              color: "var(--ts-text-on-accent)",
+              backgroundColor: "var(--theme-accent-primary)",
+            }}
           >
             Use next step
           </button>

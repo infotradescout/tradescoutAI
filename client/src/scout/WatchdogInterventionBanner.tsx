@@ -22,9 +22,9 @@ export interface WatchdogInterventionBannerProps {
 }
 
 function urgencyColor(urgency: WatchdogInterventionView["urgency"]): string {
-  if (urgency === "high") return "#ef4444";
-  if (urgency === "medium") return "#f59e0b";
-  return "#22c55e";
+  if (urgency === "high") return "var(--status-error)";
+  if (urgency === "medium") return "var(--status-warning)";
+  return "var(--status-success)";
 }
 
 function scoreLabel(score?: number): string {
@@ -84,7 +84,7 @@ export function WatchdogInterventionBanner({
         <span
           className="rounded-full px-2 py-1 text-[11px] font-semibold"
           style={{
-            color: "#111827",
+            color: "var(--ts-text-on-accent)",
             backgroundColor: urgencyColor(top.urgency),
           }}
         >
@@ -133,7 +133,7 @@ export function WatchdogInterventionBanner({
           type="button"
           className="rounded-md px-3 py-2 text-sm font-semibold"
           style={{
-            color: "#111827",
+            color: "var(--ts-text-on-accent)",
             backgroundColor: "var(--theme-accent-primary)",
           }}
           onClick={() => onOpenIntervention?.(top.ctaRoute, top.id)}

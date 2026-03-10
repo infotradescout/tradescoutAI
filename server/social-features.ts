@@ -1406,10 +1406,15 @@ export function registerSocialFeatures(app: Express) {
           });
         }
 
+        const partnerIdList = sql.join(
+          partnerIds.map((partnerId) => sql`${partnerId}`),
+          sql`, `
+        );
+
         const activeTodayCountResult = (await db.execute(sql`
             select count(distinct e.user_id)::int as count
             from events e
-            where e.user_id = any(${partnerIds}::text[])
+            where e.user_id in (${partnerIdList})
               and e.created_at >= ${today}
           `)) as any;
         const activeTodayCount = Number(activeTodayCountResult?.rows?.[0]?.count ?? 0);
@@ -1417,7 +1422,7 @@ export function registerSocialFeatures(app: Express) {
         const activeNowCountResult = (await db.execute(sql`
             select count(distinct e.user_id)::int as count
             from events e
-            where e.user_id = any(${partnerIds}::text[])
+            where e.user_id in (${partnerIdList})
               and e.created_at >= ${activeNowSince}
           `)) as any;
         const activeNowCount = Number(activeNowCountResult?.rows?.[0]?.count ?? 0);
@@ -1431,7 +1436,7 @@ export function registerSocialFeatures(app: Express) {
               max(e.created_at) as last_seen_at
             from events e
             inner join users u on u.id = e.user_id
-            where e.user_id = any(${partnerIds}::text[])
+            where e.user_id in (${partnerIdList})
               and e.created_at >= ${today}
             group by u.id, u.first_name, u.last_name, u.profile_image_url
             order by last_seen_at desc

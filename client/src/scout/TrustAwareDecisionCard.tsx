@@ -44,15 +44,15 @@ function actionTarget(action: ScoutAction): string {
 }
 
 function confidenceColor(confidenceBand?: "low" | "medium" | "high") {
-  if (confidenceBand === "high") return "#22c55e";
-  if (confidenceBand === "medium") return "#f59e0b";
-  return "#ef4444";
+  if (confidenceBand === "high") return "var(--status-success)";
+  if (confidenceBand === "medium") return "var(--status-warning)";
+  return "var(--status-error)";
 }
 
 function riskColor(riskLevel?: "low" | "medium" | "high") {
-  if (riskLevel === "high") return "#ef4444";
-  if (riskLevel === "medium") return "#f59e0b";
-  return "#22c55e";
+  if (riskLevel === "high") return "var(--status-error)";
+  if (riskLevel === "medium") return "var(--status-warning)";
+  return "var(--status-success)";
 }
 
 /**
@@ -153,7 +153,7 @@ export function TrustAwareDecisionCard({
       <div
         className="mb-3 rounded-md border p-2"
         style={{
-          borderColor: primaryAllowed ? "var(--border-subtle)" : "#ef4444",
+          borderColor: primaryAllowed ? "var(--border-subtle)" : "var(--status-error)",
           background: "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
         }}
       >
@@ -180,7 +180,7 @@ export function TrustAwareDecisionCard({
             disabled={!primaryAllowed}
             className="rounded-md px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"
             style={{
-              color: "#111827",
+              color: "var(--ts-text-on-accent)",
               background: "var(--theme-accent-primary)",
             }}
           >
@@ -189,7 +189,7 @@ export function TrustAwareDecisionCard({
         </div>
 
         {gateReason && (
-          <p className="mt-2 text-xs" style={{ color: "#fca5a5" }}>
+          <p className="mt-2 text-xs" style={{ color: "var(--status-error)" }}>
             {gateReason}
           </p>
         )}

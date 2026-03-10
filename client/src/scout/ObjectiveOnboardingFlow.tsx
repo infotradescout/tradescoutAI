@@ -50,18 +50,18 @@ export interface ObjectiveOnboardingFlowProps {
 }
 
 function badgeColor(category: ObjectiveCardCategory): string {
-  if (category === "seasonal") return "#f59e0b";
-  if (category === "maintenance") return "#0ea5e9";
-  if (category === "growth") return "#22c55e";
-  if (category === "community") return "#f97316";
-  if (category === "compliance") return "#ef4444";
-  return "#14b8a6";
+  if (category === "seasonal") return "var(--status-warning)";
+  if (category === "maintenance") return "var(--status-info)";
+  if (category === "growth") return "var(--status-success)";
+  if (category === "community") return "var(--theme-accent-primary)";
+  if (category === "compliance") return "var(--status-error)";
+  return "color-mix(in oklab, var(--theme-accent-primary) 60%, var(--status-info) 40%)";
 }
 
-function urgencyBadge(urgency: FastWinCardView["urgency"]): { label: string; color: string } {
-  if (urgency === "high") return { label: "High urgency", color: "#ef4444" };
-  if (urgency === "medium") return { label: "Medium urgency", color: "#f59e0b" };
-  return { label: "Low urgency", color: "#22c55e" };
+function urgencyBadge(urgency: FastWinCardView["urgency"]): { label: string; tone: string } {
+  if (urgency === "high") return { label: "High urgency", tone: "var(--status-error)" };
+  if (urgency === "medium") return { label: "Medium urgency", tone: "var(--status-warning)" };
+  return { label: "Low urgency", tone: "var(--status-success)" };
 }
 
 function statusLabel(state?: OnboardingStateView): string {
@@ -109,6 +109,7 @@ function ObjectiveSuggestionCard(props: {
   const { suggestion, state, isRecommended, onStartObjective, onOpenRoute } = props;
 
   const completion = pct(state?.completionPct ?? 0);
+  const categoryTone = badgeColor(suggestion.category);
 
   return (
     <article
@@ -123,8 +124,9 @@ function ObjectiveSuggestionCard(props: {
         <span
           className="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide"
           style={{
-            color: "#111827",
-            backgroundColor: badgeColor(suggestion.category),
+            color: "var(--text-primary)",
+            border: `1px solid color-mix(in oklab, ${categoryTone} 40%, var(--border-subtle))`,
+            background: `color-mix(in oklab, ${categoryTone} 20%, var(--surface-intermediate))`,
           }}
         >
           {suggestion.category}
@@ -192,7 +194,7 @@ function ObjectiveSuggestionCard(props: {
           onClick={() => onStartObjective?.(suggestion.id, suggestion.starterPrompt)}
           className="rounded-md px-3 py-2 text-sm font-semibold"
           style={{
-            color: "#111827",
+            color: "var(--ts-text-on-accent)",
             background: "var(--theme-accent-primary)",
           }}
         >
@@ -237,7 +239,11 @@ function FastWinCard(props: {
         </h5>
         <span
           className="rounded-full px-2 py-1 text-[11px] font-semibold"
-          style={{ color: "#111827", backgroundColor: urgency.color }}
+          style={{
+            color: urgency.tone,
+            border: `1px solid color-mix(in oklab, ${urgency.tone} 40%, var(--border-subtle))`,
+            background: `color-mix(in oklab, ${urgency.tone} 20%, var(--surface-intermediate))`,
+          }}
         >
           {urgency.label}
         </span>
@@ -270,7 +276,7 @@ function FastWinCard(props: {
             type="button"
             className="rounded-md px-2.5 py-1.5 text-xs font-semibold"
             style={{
-              color: "#111827",
+              color: "var(--ts-text-on-accent)",
               backgroundColor: "var(--theme-accent-primary)",
             }}
             onClick={() => onCompleteFastWin?.(card.objectiveId)}
@@ -485,7 +491,10 @@ export function ObjectiveOnboardingFlow({
                 onStartObjective?.(selectedSuggestion.id, selectedSuggestion.starterPrompt)
               }
               className="rounded-md px-3 py-2 text-xs font-semibold"
-              style={{ color: "#111827", backgroundColor: "var(--theme-accent-primary)" }}
+              style={{
+                color: "var(--ts-text-on-accent)",
+                backgroundColor: "var(--theme-accent-primary)",
+              }}
             >
               Send to Scout
             </button>

@@ -25,16 +25,16 @@ function statusLabel(status?: TrustSignalCardProps["verificationStatus"]): strin
 }
 
 function confidenceColor(level: TrustSignalCardProps["confidenceLevel"]): string {
-  if (level === "high") return "#22c55e";
-  if (level === "medium") return "#f59e0b";
-  return "#ef4444";
+  if (level === "high") return "var(--status-success)";
+  if (level === "medium") return "var(--status-warning)";
+  return "var(--status-error)";
 }
 
 function scoreColor(score: number | null): string {
-  if (score === null) return "#9ca3af";
-  if (score >= 80) return "#22c55e";
-  if (score >= 50) return "#f59e0b";
-  return "#ef4444";
+  if (score === null) return "var(--text-secondary)";
+  if (score >= 80) return "var(--status-success)";
+  if (score >= 50) return "var(--status-warning)";
+  return "var(--status-error)";
 }
 
 function Ring({ score }: { score: number | null }) {
@@ -44,7 +44,7 @@ function Ring({ score }: { score: number | null }) {
 
   return (
     <svg width="66" height="66" viewBox="0 0 66 66" role="img" aria-label="CVS score ring">
-      <circle cx="33" cy="33" r="20" fill="none" stroke="rgba(148,163,184,.25)" strokeWidth="6" />
+      <circle cx="33" cy="33" r="20" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
       <circle
         cx="33"
         cy="33"
@@ -85,7 +85,7 @@ export function TrustSignalCard({
     <section
       className="rounded-lg border p-3"
       style={{
-        borderColor: requiredReview ? "#ef4444" : "var(--border-subtle)",
+        borderColor: requiredReview ? "var(--status-error)" : "var(--border-subtle)",
         background:
           "linear-gradient(165deg, color-mix(in oklab, var(--surface-card) 96%, transparent), color-mix(in oklab, var(--surface-intermediate) 95%, transparent))",
       }}
@@ -172,10 +172,13 @@ export function TrustSignalCard({
       </div>
 
       {flags.length > 0 && (
-        <div className="mt-2 rounded-md border px-2 py-2" style={{ borderColor: "#ef4444" }}>
+        <div
+          className="mt-2 rounded-md border px-2 py-2"
+          style={{ borderColor: "var(--status-error)" }}
+        >
           <div
             className="text-[11px] font-semibold uppercase tracking-wide"
-            style={{ color: "#fca5a5" }}
+            style={{ color: "var(--status-error)" }}
           >
             Risk flags
           </div>
@@ -185,9 +188,10 @@ export function TrustSignalCard({
                 key={flag}
                 className="rounded-full px-2 py-1 text-[11px]"
                 style={{
-                  color: "#fecaca",
-                  background: "rgba(127,29,29,.45)",
-                  border: "1px solid rgba(239,68,68,.45)",
+                  color: "var(--text-primary)",
+                  background: "color-mix(in oklab, var(--status-error) 18%, var(--surface-card))",
+                  border:
+                    "1px solid color-mix(in oklab, var(--status-error) 55%, var(--border-subtle))",
                 }}
               >
                 {flag.replace(/_/g, " ")}
@@ -198,7 +202,7 @@ export function TrustSignalCard({
       )}
 
       {requiredReview && (
-        <div className="mt-2 text-xs font-medium" style={{ color: "#fca5a5" }}>
+        <div className="mt-2 text-xs font-medium" style={{ color: "var(--status-error)" }}>
           Trust review required before exposing sensitive contact actions.
         </div>
       )}
