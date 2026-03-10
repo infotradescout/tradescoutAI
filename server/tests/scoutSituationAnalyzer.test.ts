@@ -264,3 +264,53 @@ describe("UnifiedScoutRouter + situation integration", () => {
     expect(result?.metadata?.riskLevel).toBe("high");
   });
 });
+
+describe("ScoutSituationAnalyzer matrix coverage", () => {
+  const roles = ["guest", "homeowner", "contractor", "realtor", "admin", "other"] as const;
+  const intents = [
+    "open direct connect for repairs",
+    "show community activity",
+    "sell tools in marketplace",
+    "open maps near me",
+    "property listing support",
+    "start with scout and suggest next step",
+  ];
+  const urgencyLevels = [1, 2, 3] as const;
+
+  const matrix = roles.flatMap((role) =>
+    intents.flatMap((intent) =>
+      urgencyLevels.map((level) => ({
+        role,
+        intent,
+        level,
+      }))
+    )
+  );
+
+  it.each(matrix)(
+    "returns bounded deterministic analysis for role=%s intent=%s urgency=%s",
+    ({ role, intent, level }) => {
+      const base = buildInput({
+        intent,
+        userContext: {
+          userId: "matrix-user",
+          isAuthenticated: role !== "guest",
+          userRole: role,
+          trustLevel: level === 3 ? "high" : level === 2 ? "medium" : "low",
+        },
+        urgencySignals: [{ source: "direct_user_signal", level }],
+      });
+
+      const result = ScoutSituationAnalyzer.analyze(base);
+      const second = ScoutSituationAnalyzer.analyze(base);
+
+      expect(result.contextScore).toBeGreaterThanOrEqual(0);
+      expect(result.contextScore).toBeLessThanOrEqual(100);
+      expect(result.confidenceAdjustment).toBeGreaterThanOrEqual(-0.2);
+      expect(result.confidenceAdjustment).toBeLessThanOrEqual(0.2);
+      expect(result.recommendations.length).toBeGreaterThan(0);
+      expect(second.deterministicSignature).toBe(result.deterministicSignature);
+      expect(second.confidenceBand).toBe(result.confidenceBand);
+    }
+  );
+});

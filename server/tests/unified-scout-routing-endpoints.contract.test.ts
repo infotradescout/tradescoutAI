@@ -25,4 +25,13 @@ describe("unified scout routing endpoint contracts", () => {
       "const statusCode = routingValidation.metadata?.requiresAuth ? 401 : 403;"
     );
   });
+
+  it("exposes evolution endpoints for onboarding/watchdog/tone/trust integration", () => {
+    const source = read("server/routes/scout.ts");
+
+    expect(source).toContain('router.post("/onboarding/objective-bundle"');
+    expect(source).toContain('router.post("/watchdog/evaluate"');
+    expect(source).toContain('router.post("/tone/build"');
+    expect(source).toContain('router.post("/trust/enrich-routing"');
+  });
 });

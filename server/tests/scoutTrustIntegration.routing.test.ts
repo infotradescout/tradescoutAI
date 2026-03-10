@@ -169,3 +169,42 @@ describe("UnifiedScoutRouter trust-aware routing", () => {
     expect(decision?.metadata?.trust).toBeUndefined();
   });
 });
+
+describe("ScoutTrustIntegration matrix coverage", () => {
+  const scores = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  const features = ["direct_connect", "community", "exchange", "homescout", "maps"];
+  const verificationStatuses = ["approved", "suspended"] as const;
+
+  const matrix = features.flatMap((featureId) =>
+    scores.flatMap((score) =>
+      verificationStatuses.map((verificationStatus) => ({
+        featureId,
+        score,
+        verificationStatus,
+      }))
+    )
+  );
+
+  it.each(matrix)(
+    "evaluates trust gates for feature=%s score=%s status=%s",
+    ({ featureId, score, verificationStatus }) => {
+      const canAccess = ScoutTrustIntegration.canAccessFeature(featureId, {
+        cvsScore: score,
+        verificationStatus,
+        riskFlags: verificationStatus === "suspended" ? ["verification_suspended"] : [],
+      });
+
+      const warning = ScoutTrustIntegration.buildTrustWarning(featureId, {
+        cvsScore: score,
+        verificationStatus,
+        riskFlags: verificationStatus === "suspended" ? ["verification_suspended"] : [],
+      });
+
+      if (canAccess && verificationStatus === "approved") {
+        expect(warning).toBeNull();
+      } else {
+        expect(typeof warning).toBe("string");
+      }
+    }
+  );
+});

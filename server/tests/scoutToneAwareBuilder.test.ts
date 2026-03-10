@@ -170,3 +170,58 @@ describe("ScoutToneAwareBuilder", () => {
     }
   });
 });
+
+describe("ScoutToneAwareBuilder matrix coverage", () => {
+  const scenarios = [
+    "default",
+    "technical_fallback",
+    "confidence_low",
+    "blocked_action",
+    "next_step_prompt",
+  ] as const;
+  const bands: Array<"low" | "medium" | "high"> = ["low", "medium", "high"];
+  const messages = [
+    "Need a local next step.",
+    "As an AI system failure occurred.",
+    "Everyone agrees this is definitely correct.",
+  ];
+  const counties = ["Harris County", "Cook County"] as const;
+  const includeNextStep = [true, false] as const;
+
+  const matrix = scenarios.flatMap((scenario) =>
+    bands.flatMap((confidenceBand) =>
+      messages.flatMap((message) =>
+        counties.flatMap((countyLabel) =>
+          includeNextStep.map((nextStep) => ({
+            scenario,
+            confidenceBand,
+            message,
+            countyLabel,
+            nextStep,
+          }))
+        )
+      )
+    )
+  );
+
+  it.each(matrix)(
+    "builds guarded message for scenario=%s band=%s",
+    ({ scenario, confidenceBand, message, countyLabel, nextStep }) => {
+      const result = ScoutToneAwareBuilder.build({
+        scenario,
+        message,
+        countyLabel,
+        confidenceBand,
+        includeNextStep: nextStep,
+        nextStepLabel: "Open Direct Connect",
+        nextStepRoute: "/direct-connect",
+      });
+
+      expect(result.message.length).toBeGreaterThan(10);
+      expect(result.message.length).toBeLessThanOrEqual(360);
+      expect(result.toneScore).toBeGreaterThanOrEqual(0);
+      expect(result.toneScore).toBeLessThanOrEqual(100);
+      expect(result.message.toLowerCase()).toContain("out in the open");
+    }
+  );
+});

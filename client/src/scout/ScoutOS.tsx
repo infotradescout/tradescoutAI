@@ -83,6 +83,8 @@ import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 import ObjectiveChip from "./ObjectiveChip";
+import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
+import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -307,6 +309,22 @@ function enforceShortIntentDiscipline(
   return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}...`;
 }
 
+function objectiveStatusToOnboardingStatus(
+  status: Objective["status"]
+): "pending" | "in_progress" | "completed" | "skipped" {
+  if (status === "completed") return "completed";
+  if (status === "active") return "in_progress";
+  if (status === "paused") return "pending";
+  return "skipped";
+}
+
+function objectiveStatusToProgress(status: Objective["status"]): number {
+  if (status === "completed") return 100;
+  if (status === "paused") return 20;
+  if (status === "active") return 45;
+  return 0;
+}
+
 export default function ScoutOS() {
   const { user, isAuthenticated, refetch: refetchUser } = useAuth();
   const [location, navigate] = useLocation();
@@ -342,6 +360,9 @@ export default function ScoutOS() {
   }>(null);
   const [activeObjective, setActiveObjective] = useState<Objective | null>(null);
   const [objectiveBusy, setObjectiveBusy] = useState(false);
+  const [objectiveOnboardingBundle, setObjectiveOnboardingBundle] = useState<any | null>(null);
+  const [watchdogResult, setWatchdogResult] = useState<any | null>(null);
+  const [dismissedWatchdogId, setDismissedWatchdogId] = useState<string | null>(null);
 
   const [dcConfirmOpen, setDcConfirmOpen] = useState(false);
   const [dcDraft, setDcDraft] = useState<null | {
@@ -3012,6 +3033,157 @@ export default function ScoutOS() {
     ]
   );
 
+  const loadObjectiveOnboardingBundle = useCallback(async () => {
+    try {
+      const objectiveStates = activeObjective
+        ? [
+            {
+              objectiveId: activeObjective.id,
+              status: objectiveStatusToOnboardingStatus(activeObjective.status),
+              completionPct: objectiveStatusToProgress(activeObjective.status),
+              updatedAt: activeObjective.updatedAt,
+            },
+          ]
+        : [];
+
+      const response = await fetch("/api/scout/onboarding/objective-bundle", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: (user as any)?.role ?? sessionRole ?? undefined,
+          countyFips: (user as any)?.countyFips ?? (user as any)?.county_fips ?? undefined,
+          stateCode: (user as any)?.stateCode ?? (user as any)?.state_code ?? undefined,
+          objectiveStates,
+        }),
+      });
+
+      if (!response.ok) {
+        setObjectiveOnboardingBundle(null);
+        return;
+      }
+
+      const payload = await response.json();
+      setObjectiveOnboardingBundle(payload);
+    } catch {
+      setObjectiveOnboardingBundle(null);
+    }
+  }, [activeObjective, sessionRole, user]);
+
+  useEffect(() => {
+    void loadObjectiveOnboardingBundle();
+  }, [loadObjectiveOnboardingBundle]);
+
+  const loadWatchdogResult = useCallback(async () => {
+    try {
+      const snapshot = {
+        userId: typeof (user as any)?.id === "string" ? String((user as any).id) : "guest",
+        role: (user as any)?.role ?? sessionRole ?? undefined,
+        countyFips: (user as any)?.countyFips ?? (user as any)?.county_fips ?? undefined,
+        lastActiveAt: new Date().toISOString(),
+        objectives: activeObjective
+          ? [
+              {
+                id: activeObjective.id,
+                title: activeObjective.title,
+                intentClass: activeObjective.intentClass,
+                status: activeObjective.status,
+                completionPct:
+                  activeObjective.status === "completed"
+                    ? 100
+                    : activeObjective.status === "paused"
+                      ? 20
+                      : 45,
+                updatedAt: activeObjective.updatedAt,
+                route: "/scout",
+              },
+            ]
+          : [],
+        events: state.messages.slice(-8).map((message) => ({
+          type: message.role === "user" ? "message_sent" : "action_executed",
+          occurredAt: message.timestamp,
+        })),
+      };
+
+      const response = await fetch("/api/scout/watchdog/evaluate", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ snapshot }),
+      });
+
+      if (!response.ok) {
+        setWatchdogResult(null);
+        return;
+      }
+
+      const payload = await response.json();
+      setWatchdogResult(payload);
+    } catch {
+      setWatchdogResult(null);
+    }
+  }, [activeObjective, sessionRole, state.messages, user]);
+
+  useEffect(() => {
+    void loadWatchdogResult();
+  }, [loadWatchdogResult]);
+
+  const visibleWatchdogInterventions = useMemo(() => {
+    const all = Array.isArray(watchdogResult?.interventions) ? watchdogResult.interventions : [];
+    if (!dismissedWatchdogId) return all;
+    return all.filter((item: any) => String(item?.id || "") !== dismissedWatchdogId);
+  }, [dismissedWatchdogId, watchdogResult?.interventions]);
+
+  const handleOpenObjectiveRoute = useCallback(
+    (route: string) => {
+      recordActivity({
+        type: "navigate",
+        ts: new Date().toISOString(),
+        path: location,
+        to: route,
+        label: "objective_onboarding",
+      });
+      if (!maybeOpenWorkAreaForRoute(route, "Objective path")) {
+        navigate(route);
+      }
+    },
+    [location, maybeOpenWorkAreaForRoute, navigate]
+  );
+
+  const handleStartObjectiveSuggestion = useCallback(
+    (objectiveId: string, starterPrompt: string) => {
+      setHasGuestInteracted(true);
+      recordActivity({
+        type: "ask_scout",
+        ts: new Date().toISOString(),
+        path: location,
+        label: objectiveId,
+      });
+      void handleSend(starterPrompt);
+    },
+    [handleSend, location]
+  );
+
+  const handleCompleteFastWin = useCallback(
+    async (objectiveId: string) => {
+      if (activeObjective?.id && activeObjective.id === objectiveId) {
+        await updateObjective({ status: "completed" });
+      } else {
+        await refreshObjective();
+      }
+      setDismissedWatchdogId(null);
+      await loadWatchdogResult();
+      await loadObjectiveOnboardingBundle();
+    },
+    [
+      activeObjective?.id,
+      loadObjectiveOnboardingBundle,
+      loadWatchdogResult,
+      refreshObjective,
+      updateObjective,
+    ]
+  );
+
   // Auto-consume one-time onboarding marker set by post-signup/dashboard flows.
   // If present on first clean /scout load (no prior user messages and no intro
   // demo), send the onboarding token directly so the intent detector routes
@@ -3991,6 +4163,75 @@ export default function ScoutOS() {
                     }}
                     onDelete={async (_id) => {
                       await deleteObjective();
+                    }}
+                  />
+                )}
+
+                {objectiveOnboardingBundle && (
+                  <ObjectiveOnboardingFlow
+                    roleLabel={String(objectiveOnboardingBundle.role || "")}
+                    suggestions={
+                      Array.isArray(objectiveOnboardingBundle.suggestions)
+                        ? objectiveOnboardingBundle.suggestions
+                        : []
+                    }
+                    fastWins={
+                      Array.isArray(objectiveOnboardingBundle.fastWins)
+                        ? objectiveOnboardingBundle.fastWins
+                        : []
+                    }
+                    objectiveStates={
+                      activeObjective
+                        ? [
+                            {
+                              objectiveId: activeObjective.id,
+                              status: objectiveStatusToOnboardingStatus(activeObjective.status),
+                              completionPct: objectiveStatusToProgress(activeObjective.status),
+                              updatedAt: activeObjective.updatedAt,
+                            },
+                          ]
+                        : []
+                    }
+                    nextRecommendedObjectiveId={
+                      typeof objectiveOnboardingBundle.nextRecommendedObjectiveId === "string"
+                        ? objectiveOnboardingBundle.nextRecommendedObjectiveId
+                        : undefined
+                    }
+                    onStartObjective={handleStartObjectiveSuggestion}
+                    onOpenRoute={handleOpenObjectiveRoute}
+                    onCompleteFastWin={(objectiveId) => {
+                      void handleCompleteFastWin(objectiveId);
+                    }}
+                  />
+                )}
+
+                {visibleWatchdogInterventions.length > 0 && (
+                  <WatchdogInterventionBanner
+                    interventions={visibleWatchdogInterventions}
+                    engagementScore={
+                      typeof watchdogResult?.engagementScore === "number"
+                        ? watchdogResult.engagementScore
+                        : undefined
+                    }
+                    inactivityHours={
+                      typeof watchdogResult?.inactivityHours === "number"
+                        ? watchdogResult.inactivityHours
+                        : undefined
+                    }
+                    onOpenIntervention={(route, interventionId) => {
+                      recordActivity({
+                        type: "navigate",
+                        ts: new Date().toISOString(),
+                        path: location,
+                        to: route,
+                        label: `watchdog_${interventionId}`,
+                      });
+                      if (!maybeOpenWorkAreaForRoute(route, "Watchdog intervention")) {
+                        navigate(route);
+                      }
+                    }}
+                    onDismissIntervention={(interventionId) => {
+                      setDismissedWatchdogId(interventionId);
                     }}
                   />
                 )}

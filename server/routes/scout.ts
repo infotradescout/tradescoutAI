@@ -56,8 +56,10 @@ import {
 } from "../services/scoutPolicy";
 import { UnifiedScoutRouter, type UnifiedScoutUserContext } from "../services/unifiedScoutRouter";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
-import type { ScoutTrustContext } from "../services/scoutTrustIntegration";
-import type { ToneScenario } from "../services/scoutToneAwareBuilder";
+import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
+import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
+import ScoutProactiveWatchdog from "../services/scoutProactiveWatchdog";
+import ScoutToneAwareBuilder, { type ToneScenario } from "../services/scoutToneAwareBuilder";
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
 import {
@@ -4658,6 +4660,165 @@ router.post("/routing/generate-fallback", async (req: Request, res: Response) =>
   } catch (error) {
     console.error("[scout.routing.generate-fallback] error", error);
     return res.status(500).json({ error: "Failed to generate fallback actions" });
+  }
+});
+
+/**
+ * Objective onboarding bundle endpoint
+ * POST /api/scout/onboarding/objective-bundle
+ */
+router.post("/onboarding/objective-bundle", async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any)?.user;
+    const userId =
+      typeof authUser?.id === "string"
+        ? authUser.id
+        : typeof req.body?.userId === "string"
+          ? req.body.userId
+          : "guest";
+
+    const role =
+      typeof authUser?.role === "string"
+        ? authUser.role
+        : typeof req.body?.role === "string"
+          ? req.body.role
+          : undefined;
+
+    const bundle = ScoutObjectiveOnboarding.buildBundle({
+      userId,
+      role,
+      countyFips: typeof req.body?.countyFips === "string" ? req.body.countyFips : undefined,
+      stateCode: typeof req.body?.stateCode === "string" ? req.body.stateCode : undefined,
+      seasonHint:
+        req.body?.seasonHint === "spring" ||
+        req.body?.seasonHint === "summer" ||
+        req.body?.seasonHint === "fall" ||
+        req.body?.seasonHint === "winter"
+          ? req.body.seasonHint
+          : undefined,
+      objectiveStates: Array.isArray(req.body?.objectiveStates) ? req.body.objectiveStates : [],
+    });
+
+    return res.json(bundle);
+  } catch (error) {
+    console.error("[scout.onboarding.objective-bundle] error", error);
+    return res.status(500).json({ error: "Failed to build onboarding bundle" });
+  }
+});
+
+/**
+ * Proactive success watchdog endpoint
+ * POST /api/scout/watchdog/evaluate
+ */
+router.post("/watchdog/evaluate", async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as any)?.user;
+    const userId =
+      typeof authUser?.id === "string"
+        ? authUser.id
+        : typeof req.body?.snapshot?.userId === "string"
+          ? req.body.snapshot.userId
+          : "guest";
+
+    const snapshotBody =
+      req.body?.snapshot && typeof req.body.snapshot === "object"
+        ? req.body.snapshot
+        : ({} as Record<string, unknown>);
+
+    const snapshot = {
+      userId,
+      role:
+        typeof authUser?.role === "string"
+          ? authUser.role
+          : typeof snapshotBody.role === "string"
+            ? snapshotBody.role
+            : undefined,
+      countyFips:
+        typeof snapshotBody.countyFips === "string"
+          ? (snapshotBody.countyFips as string)
+          : undefined,
+      lastActiveAt:
+        typeof snapshotBody.lastActiveAt === "string"
+          ? (snapshotBody.lastActiveAt as string)
+          : undefined,
+      objectives: Array.isArray(snapshotBody.objectives) ? (snapshotBody.objectives as any[]) : [],
+      events: Array.isArray(snapshotBody.events) ? (snapshotBody.events as any[]) : [],
+    };
+
+    const now =
+      typeof req.body?.now === "string" || req.body?.now instanceof Date
+        ? new Date(String(req.body.now))
+        : new Date();
+
+    const result = ScoutProactiveWatchdog.evaluate(snapshot as any, now);
+    return res.json(result);
+  } catch (error) {
+    console.error("[scout.watchdog.evaluate] error", error);
+    return res.status(500).json({ error: "Failed to evaluate user success watchdog" });
+  }
+});
+
+/**
+ * Tone-aware response builder endpoint
+ * POST /api/scout/tone/build
+ */
+router.post("/tone/build", async (req: Request, res: Response) => {
+  try {
+    const message = typeof req.body?.message === "string" ? req.body.message : "";
+    if (!message.trim()) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    const result = ScoutToneAwareBuilder.build({
+      scenario:
+        req.body?.scenario === "default" ||
+        req.body?.scenario === "technical_fallback" ||
+        req.body?.scenario === "confidence_low" ||
+        req.body?.scenario === "blocked_action" ||
+        req.body?.scenario === "next_step_prompt"
+          ? req.body.scenario
+          : "default",
+      message,
+      countyLabel: typeof req.body?.countyLabel === "string" ? req.body.countyLabel : undefined,
+      roleLabel: typeof req.body?.roleLabel === "string" ? req.body.roleLabel : undefined,
+      confidenceBand:
+        req.body?.confidenceBand === "low" ||
+        req.body?.confidenceBand === "medium" ||
+        req.body?.confidenceBand === "high"
+          ? req.body.confidenceBand
+          : undefined,
+      includeNextStep:
+        typeof req.body?.includeNextStep === "boolean" ? req.body.includeNextStep : undefined,
+      nextStepLabel:
+        typeof req.body?.nextStepLabel === "string" ? req.body.nextStepLabel : undefined,
+      nextStepRoute:
+        typeof req.body?.nextStepRoute === "string" ? req.body.nextStepRoute : undefined,
+    });
+
+    return res.json(result);
+  } catch (error) {
+    console.error("[scout.tone.build] error", error);
+    return res.status(500).json({ error: "Failed to build tone-aware response" });
+  }
+});
+
+/**
+ * Trust metadata enrichment endpoint for decision cards
+ * POST /api/scout/trust/enrich-routing
+ */
+router.post("/trust/enrich-routing", async (req: Request, res: Response) => {
+  try {
+    const decision = req.body?.decision;
+    const trust = req.body?.trust;
+    if (!decision || typeof decision !== "object" || typeof decision.action?.type !== "string") {
+      return res.status(400).json({ error: "Routing decision with action is required" });
+    }
+
+    const enriched = ScoutTrustIntegration.attachTrustMetadata(decision, trust);
+    return res.json(enriched);
+  } catch (error) {
+    console.error("[scout.trust.enrich-routing] error", error);
+    return res.status(500).json({ error: "Failed to enrich routing with trust metadata" });
   }
 });
 

@@ -237,3 +237,56 @@ describe("ScoutProactiveWatchdog", () => {
     expect(result.engagementScore).toBeGreaterThanOrEqual(70);
   });
 });
+
+describe("ScoutProactiveWatchdog matrix coverage", () => {
+  const inactivityHours = [0, 6, 12, 24, 36, 48, 60, 72, 96, 120];
+  const statuses: Array<"active" | "paused" | "completed" | "abandoned"> = [
+    "active",
+    "paused",
+    "completed",
+    "abandoned",
+  ];
+  const failureCounts = [0, 2, 4] as const;
+
+  const matrix = inactivityHours.flatMap((hours) =>
+    statuses.flatMap((status) =>
+      failureCounts.map((failureCount) => ({
+        hours,
+        status,
+        failureCount,
+      }))
+    )
+  );
+
+  it.each(matrix)(
+    "evaluates bounded engagement for inactivity=%s status=%s",
+    ({ hours, status, failureCount }) => {
+      const failureEvents = Array.from({ length: failureCount }, (_, idx) => ({
+        type: "action_failed" as const,
+        occurredAt: new Date(NOW.getTime() - (idx + 1) * 60 * 60 * 1000).toISOString(),
+      }));
+
+      const snapshot = buildSnapshot({
+        lastActiveAt: new Date(NOW.getTime() - hours * 60 * 60 * 1000).toISOString(),
+        objectives: [
+          {
+            id: `obj_${hours}_${status}`,
+            title: `Objective ${hours}_${status}`,
+            status,
+            completionPct: status === "completed" ? 100 : status === "paused" ? 30 : 45,
+            updatedAt: new Date(NOW.getTime() - hours * 60 * 60 * 1000).toISOString(),
+            route: "/scout",
+          },
+        ],
+        events: failureEvents,
+      });
+
+      const result = ScoutProactiveWatchdog.evaluate(snapshot, NOW);
+      expect(result.inactivityHours).toBeGreaterThanOrEqual(0);
+      expect(result.engagementScore).toBeGreaterThanOrEqual(0);
+      expect(result.engagementScore).toBeLessThanOrEqual(100);
+      expect(result.interventions.length).toBeLessThanOrEqual(3);
+      expect(result.nextSteps.length).toBeGreaterThan(0);
+    }
+  );
+});

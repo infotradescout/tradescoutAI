@@ -235,3 +235,67 @@ describe("ScoutObjectiveOnboarding", () => {
     }
   });
 });
+
+describe("ScoutObjectiveOnboarding matrix coverage", () => {
+  const roles = ["homeowner", "contractor", "realtor", "super_admin", "guest", "other"];
+  const seasons = ["spring", "summer", "fall", "winter"] as const;
+  const withCounty = [true, false] as const;
+  const withCompletionSeed = [true, false] as const;
+
+  const matrix = roles.flatMap((role) =>
+    seasons.flatMap((seasonHint) =>
+      withCounty.flatMap((countyPresent) =>
+        withCompletionSeed.map((completionSeed) => ({
+          role,
+          seasonHint,
+          countyPresent,
+          completionSeed,
+        }))
+      )
+    )
+  );
+
+  it.each(matrix)(
+    "builds stable bundle for role=%s season=%s county=%s",
+    ({ role, seasonHint, countyPresent, completionSeed }) => {
+      const input: ObjectiveOnboardingInput = {
+        userId: `matrix_${role}_${seasonHint}_${countyPresent ? "c" : "n"}`,
+        role,
+        seasonHint,
+        countyFips: countyPresent ? "48201" : undefined,
+        stateCode: countyPresent ? "TX" : undefined,
+        objectiveStates: completionSeed
+          ? [
+              {
+                objectiveId: "homeowner_local_network",
+                status: "completed",
+                completionPct: 100,
+                updatedAt: "2026-03-08T18:00:00.000Z",
+              },
+            ]
+          : [],
+      };
+
+      const suggestions = ScoutObjectiveOnboarding.suggestObjectives(input);
+      const bundle = ScoutObjectiveOnboarding.buildBundle(input);
+      const fastWins = ScoutObjectiveOnboarding.buildFastWinCards(
+        bundle.role,
+        suggestions,
+        input.objectiveStates
+      );
+
+      expect(bundle.suggestions.length).toBeGreaterThan(0);
+      expect(bundle.fastWins.length).toBeGreaterThan(0);
+      expect(bundle.completionSummary.pendingCount).toBeGreaterThanOrEqual(0);
+      expect(
+        bundle.suggestions.every(
+          (s) =>
+            s.expectedValueScore >= 0 &&
+            s.expectedValueScore <= 100 &&
+            s.recommendedRoute.startsWith("/")
+        )
+      ).toBe(true);
+      expect(fastWins.every((card) => card.valueScore >= 1 && card.valueScore <= 100)).toBe(true);
+    }
+  );
+});

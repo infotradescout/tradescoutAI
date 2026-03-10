@@ -13315,7 +13315,7 @@ export async function registerRoutes(app: any) {
           body.adminSafety && typeof body.adminSafety === "object" ? body.adminSafety : {};
 
         const reason = normalizePrivilegedReason(adminSafety.reason, 12);
-        if (reason.length < 12) {
+        if (!reason || reason.length < 12) {
           return res.status(400).json({ message: "adminSafety.reason is required (min 12 chars)" });
         }
 
