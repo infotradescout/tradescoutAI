@@ -1526,16 +1526,19 @@ export default function ScoutOS() {
           "post",
         ];
         const contactKeywords = [
-          "contact",
-          "support",
+          "contact support",
+          "support ticket",
+          "support tickets",
           "help desk",
+          "help center",
+          "customer support",
+          "technical support",
           "reach out",
-          "call",
-          "phone",
-          "text",
-          "email",
-          "mail",
+          "request support",
+          "open support",
+          "contact",
         ];
+        const contactChannelKeywords = ["call", "phone", "text", "email"];
         const onboardingKeywords = [
           "get started",
           "start onboarding",
@@ -1551,7 +1554,18 @@ export default function ScoutOS() {
           lowerMsg.includes("__scout_onboarding__");
         const wantsContractor = contractorKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsMarketplace = marketplaceKeywords.some((kw) => lowerMsg.includes(kw));
-        const wantsContact = contactKeywords.some((kw) => lowerMsg.includes(kw));
+        const hasContactIntentKeyword = contactKeywords.some((kw) => {
+          if (kw.includes(" ")) return normalized.includes(kw);
+          return new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(normalized);
+        });
+        const hasContactChannelKeyword = contactChannelKeywords.some((kw) =>
+          new RegExp(`\\b${kw}\\b`).test(normalized)
+        );
+        const hasSupportTarget = /\b(support|help|ticket|team|admin|tradescout|you)\b/.test(
+          normalized
+        );
+        const wantsContact =
+          hasContactIntentKeyword || (hasContactChannelKeyword && hasSupportTarget);
         const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
         const wantsProviderPromotion = providerPromotionKeywords.some((kw) =>
