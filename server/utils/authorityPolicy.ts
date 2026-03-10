@@ -1,4 +1,5 @@
 import type { Request } from "express";
+import { getAuthorityConfig, parseTruthyToggle } from "./authorityConfig";
 
 export type PrivilegedBypassReason =
   | "none"
@@ -15,38 +16,8 @@ export interface PrivilegedBypassResolution {
   matchedEmail: string | null;
 }
 
-const DEFAULT_VERIFICATION_BYPASS_ROLES = [
-  "support_agent",
-  "content_moderator",
-  "territory_manager",
-  "contractor_success",
-  "content_seo",
-  "analytics_specialist",
-  "marketing_specialist",
-  "moderator",
-  "ops_admin",
-  "super_admin",
-];
-
-const ADMIN_TIER_ROLES = new Set(["moderator", "ops_admin", "super_admin"]);
-
-const DEFAULT_PRIVILEGED_ALIAS_EMAILS = ["info.tradescout@gmail.com", "contact@thetradescout.com"];
-
-function parseCsvSet(raw: unknown): Set<string> {
-  const value = typeof raw === "string" ? raw : "";
-  return new Set(
-    value
-      .split(",")
-      .map((entry) => entry.trim().toLowerCase())
-      .filter(Boolean)
-  );
-}
-
 export function isTruthyToggle(value: unknown): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value === 1;
-  if (typeof value !== "string") return false;
-  return ["1", "true", "yes", "on", "enabled"].includes(value.trim().toLowerCase());
+  return parseTruthyToggle(value);
 }
 
 export function normalizeAuthorityRole(role: unknown): string {
@@ -69,32 +40,18 @@ export function collectAuthorityRoles(user: any): string[] {
 }
 
 export function getVerificationBypassRoles(): Set<string> {
-  const configured = parseCsvSet(process.env.PRIVILEGED_VERIFICATION_BYPASS_ROLES);
-  if (configured.size > 0) return configured;
-  return new Set(DEFAULT_VERIFICATION_BYPASS_ROLES);
+  const config = getAuthorityConfig();
+  return new Set(config.verificationBypassRoles);
 }
 
 export function isAdminTierRole(role: unknown): boolean {
-  return ADMIN_TIER_ROLES.has(normalizeAuthorityRole(role));
+  const config = getAuthorityConfig();
+  return new Set(config.adminTierRoles).has(normalizeAuthorityRole(role));
 }
 
 export function getPrivilegedAliasEmails(): Set<string> {
-  const aliases = new Set<string>();
-  const configuredMasterAdmin = String(process.env.MASTER_ADMIN_EMAIL || "")
-    .trim()
-    .toLowerCase();
-  if (configuredMasterAdmin) aliases.add(configuredMasterAdmin);
-
-  for (const alias of parseCsvSet(process.env.SUPER_ADMIN_EMAIL_ALIASES)) {
-    aliases.add(alias);
-  }
-  for (const alias of parseCsvSet(process.env.PRIVILEGED_ALIAS_EMAILS)) {
-    aliases.add(alias);
-  }
-  for (const alias of DEFAULT_PRIVILEGED_ALIAS_EMAILS) {
-    aliases.add(alias);
-  }
-  return aliases;
+  const config = getAuthorityConfig();
+  return new Set(config.privilegedAliasEmails);
 }
 
 export function isPrivilegedAliasEmail(email: unknown): boolean {
@@ -155,11 +112,7 @@ export function resolvePrivilegedVerificationBypass(user: any): PrivilegedBypass
 }
 
 export function isDirectConnectUnverifiedBypassEnabled(): boolean {
-  return (
-    isTruthyToggle(process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED) ||
-    isTruthyToggle(process.env.DIRECT_CONNECT_DEMO_MODE) ||
-    isTruthyToggle(process.env.TRADE_SCOUT_DEMO_MODE)
-  );
+  return getAuthorityConfig().directConnectUnverifiedBypassEnabled;
 }
 
 export function hasManualDirectConnectBypassRequest(req: Request): boolean {

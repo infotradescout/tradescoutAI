@@ -4,8 +4,16 @@ import { db } from "../db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { isAuthenticated, requireRole } from "../auth";
 import { scoutOutcomeEvents, siteSettings } from "../../shared/schema";
+import { getAuthorityConfigAuditSnapshot, reloadAuthorityConfig } from "../utils/authorityConfig";
+import { logAdminAction } from "../services/adminAuditLogService";
 
 const router = Router();
+
+function getActorUserId(req: Request): string | null {
+  const user = (req as any)?.user || {};
+  const id = user?.id || user?.claims?.sub;
+  return typeof id === "string" && id.trim().length > 0 ? id : null;
+}
 
 router.get(
   "/observation-lock",
@@ -256,6 +264,59 @@ router.post(
     } catch (error) {
       console.error("Error updating unlock condition:", error);
       res.status(500).json({ error: "Failed to update unlock condition" });
+    }
+  }
+);
+
+router.get(
+  "/config",
+  isAuthenticated,
+  requireRole(["super_admin", "ops_admin"]),
+  async (req: Request, res: Response) => {
+    try {
+      const actorUserId = getActorUserId(req);
+      await logAdminAction({
+        action: "authority_config_viewed",
+        actorUserId,
+        metadata: {
+          route: "/api/admin/authority/config",
+          method: "GET",
+        },
+      });
+
+      res.json(getAuthorityConfigAuditSnapshot());
+    } catch (error) {
+      console.error("Error fetching authority config:", error);
+      res.status(500).json({ error: "Failed to fetch authority config" });
+    }
+  }
+);
+
+router.post(
+  "/config/reload",
+  isAuthenticated,
+  requireRole(["super_admin", "ops_admin"]),
+  async (req: Request, res: Response) => {
+    try {
+      const actorUserId = getActorUserId(req);
+      const config = reloadAuthorityConfig();
+      await logAdminAction({
+        action: "authority_config_reloaded",
+        actorUserId,
+        metadata: {
+          route: "/api/admin/authority/config/reload",
+          method: "POST",
+          fingerprint: config.fingerprint,
+        },
+      });
+
+      res.json({
+        success: true,
+        config: getAuthorityConfigAuditSnapshot(),
+      });
+    } catch (error) {
+      console.error("Error reloading authority config:", error);
+      res.status(500).json({ error: "Failed to reload authority config" });
     }
   }
 );

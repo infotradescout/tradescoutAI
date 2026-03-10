@@ -1,93 +1,46 @@
-# Verification Bypass Policy
+# TradeScout Verification & Authority Bypass Policy
 
 ## Purpose
-This policy defines when TradeScout may bypass verification gates and how those bypasses are audited.
+This document defines the canonical policy for privileged verification bypass and authority-related overrides in TradeScout.
 
-The goals are:
-- Keep normal trust gates intact for public users.
-- Allow controlled staff/admin operations for support and pilot workflows.
-- Keep all bypass behavior explicit, reversible, and observable.
+## Platform Law Guardrails
+- Visibility never grants contact.
+- Contact remains gated through intent and governed pathways.
+- Overrides are explicit, auditable, and reversible by policy.
+- Demo logic must be visible and intentionally enabled.
 
-## Canonical Configuration
-All role/email/env bypass evaluation is centralized in:
-- `server/utils/authorityPolicy.ts`
+## Canonical Runtime Source
+- Server runtime source: `server/utils/authorityConfig.ts`
+- Policy enforcement layer: `server/utils/authorityPolicy.ts`
+- Admin inspection endpoint: `GET /api/admin/authority/config`
+- Runtime refresh endpoint: `POST /api/admin/authority/config/reload`
 
-Primary helpers:
-- `resolvePrivilegedVerificationBypass(user)`
-- `isDirectConnectUnverifiedBypassEnabled()`
-- `hasManualDirectConnectBypassRequest(req)`
-- `normalizeAuthorityRole(role)`
-- `collectAuthorityRoles(user)`
+## Privileged Bypass Types
+- `role`: user role is in configured verification bypass role list.
+- `email_alias`: user email matches privileged alias list.
+- `admin_flag`: user carries admin/super-admin authority flag.
+- `direct_connect_demo_mode`: Direct Connect unverified demo mode is enabled.
+- `manual_direct_connect_override`: explicit manual admin override path.
 
-## Bypass Modes
-1. Privileged role bypass
-- Triggered when user has configured bypass role.
-- Env key: `PRIVILEGED_VERIFICATION_BYPASS_ROLES`
-- Defaults include support/admin roles.
+## Environment Variables
+- `MASTER_ADMIN_EMAIL`
+- `SUPER_ADMIN_EMAIL_ALIASES` (CSV)
+- `PRIVILEGED_ALIAS_EMAILS` (CSV)
+- `PRIVILEGED_VERIFICATION_BYPASS_ROLES` (CSV)
+- `DIRECT_CONNECT_ALLOW_UNVERIFIED`
+- `DIRECT_CONNECT_DEMO_MODE`
+- `TRADE_SCOUT_DEMO_MODE`
 
-2. Privileged alias bypass
-- Triggered when user email matches configured privileged aliases.
-- Env keys:
-  - `MASTER_ADMIN_EMAIL`
-  - `SUPER_ADMIN_EMAIL_ALIASES`
-  - `PRIVILEGED_ALIAS_EMAILS`
+## UI Transparency Requirements
+- Users with active bypass must see explicit in-app messaging.
+- Bypass reason must be labeled in plain language.
+- Admin surfaces must expose the currently loaded authority config and fingerprint.
 
-3. Admin-flag bypass
-- Triggered when `isAdmin` or `isSuperAdmin` is true.
+## Audit Requirements
+- Viewing authority config is logged.
+- Reloading authority config is logged.
+- Privileged overrides in contact/verification paths are logged by route-level handlers.
 
-4. Direct Connect demo bypass
-- Triggered by demo flags for pilot/demo environments.
-- Env keys:
-  - `DIRECT_CONNECT_ALLOW_UNVERIFIED`
-  - `DIRECT_CONNECT_DEMO_MODE`
-  - `TRADE_SCOUT_DEMO_MODE`
-
-5. Manual Direct Connect override
-- Triggered when explicit request override flag/header is present and actor is privileged.
-- Request signals:
-  - body/query `allowUnverifiedDirectConnect=true`
-  - body/query `demoBypassVerification=true`
-  - header `x-direct-connect-demo-bypass: true`
-
-## Precedence
-Direct Connect bypass resolution order:
-1. Manual privileged override
-2. Privileged bypass (role/email/admin)
-3. Environment demo bypass
-4. No bypass
-
-## API Surface
-`/api/auth/user` now returns:
-- `user.verificationBypass.active`
-- `user.verificationBypass.privileged`
-- `user.verificationBypass.reason`
-- `user.verificationBypass.matchedRoles`
-- `user.verificationBypass.matchedEmail`
-- `user.verificationBypass.directConnectDemoMode`
-
-This metadata is used for UI transparency (Verification and Direct Connect pages).
-
-## Audit Logging Requirements
-When bypass is applied for Direct Connect operations, routes must emit:
-- `action: "direct_connect_verification_bypass_applied"`
-- operation (`create`, `route`, `admin_create`)
-- actor user id
-- bypass source/reason
-- request id (when available)
-
-Current implementation:
-- `server/routes/direct-connect.ts`
-- `server/services/adminAuditLogService.ts`
-
-## Safety Constraints
-- Bypass does not grant contact authority by itself.
-- Visibility never implies access.
-- Contact still follows Intent -> Decision Card -> Contact invariants.
-- County routing and Trust/CVS logic remain unchanged.
-
-## Rollback
-To restore strict verification:
-1. Disable demo env flags listed above.
-2. Remove temporary privileged aliases/roles if used.
-3. Confirm `/api/auth/user` returns `verificationBypass.active=false` for standard users.
-4. Smoke test Direct Connect create/route with unverified homeowner (expect verification-required response).
+## Operational Notes
+- Runtime config auto-refreshes when authority env values change.
+- Manual reload endpoint is available for explicit operator action and audit trace.

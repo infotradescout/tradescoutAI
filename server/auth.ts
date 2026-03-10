@@ -13,6 +13,7 @@ import { getRolePermissions, getRoleHierarchyLevel, canUserPerformAction } from 
 import type { UserRole } from "@shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { desc, sql } from "drizzle-orm";
+import { isPrivilegedAliasEmail } from "./utils/authorityPolicy";
 
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
@@ -20,23 +21,6 @@ function normalizeLegacyRole(role: unknown): UserRole | null {
   // Legacy bootstrap accounts can still carry "owner"/"head_admin"; treat as top-level admin.
   if (normalized === "owner" || normalized === "head_admin") return "super_admin";
   return normalized as UserRole;
-}
-
-function isConfiguredSuperAdminAliasEmail(email: unknown): boolean {
-  const normalized = typeof email === "string" ? email.trim().toLowerCase() : "";
-  if (!normalized) return false;
-  const aliases = new Set<string>([
-    String(process.env.MASTER_ADMIN_EMAIL || "")
-      .trim()
-      .toLowerCase(),
-    ...String(process.env.SUPER_ADMIN_EMAIL_ALIASES || "")
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-    "info.tradescout@gmail.com",
-    "contact@thetradescout.com",
-  ]);
-  return aliases.has(normalized);
 }
 
 function parseCookieDomain(): string | undefined {
@@ -467,8 +451,8 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
   const normalizedRole = normalizeLegacyRole(anyUser.role);
   if (
     normalizedRole === "super_admin" ||
-    isConfiguredSuperAdminAliasEmail(anyUser?.email) ||
-    isConfiguredSuperAdminAliasEmail(anyUser?.claims?.email)
+    isPrivilegedAliasEmail(anyUser?.email) ||
+    isPrivilegedAliasEmail(anyUser?.claims?.email)
   ) {
     return next();
   }
@@ -507,8 +491,8 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
 
     const isAdminFlag = (user as any).isAdmin === true;
     const isAliasSuperAdmin =
-      isConfiguredSuperAdminAliasEmail((user as any)?.email) ||
-      isConfiguredSuperAdminAliasEmail((user as any)?.claims?.email);
+      isPrivilegedAliasEmail((user as any)?.email) ||
+      isPrivilegedAliasEmail((user as any)?.claims?.email);
 
     const candidateRoles = new Set<UserRole>();
     if (primaryRole) candidateRoles.add(primaryRole);
@@ -621,8 +605,7 @@ export const requireAdmin = (req: any, res: any, next: any) => {
   const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
   const isAdminFlag = user.isAdmin === true;
   const isAliasSuperAdmin =
-    isConfiguredSuperAdminAliasEmail(user?.email) ||
-    isConfiguredSuperAdminAliasEmail(user?.claims?.email);
+    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
 
   const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
   const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;

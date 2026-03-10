@@ -23,6 +23,8 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { share, shareToPlatform } from "@/utils/share";
+import { countyFipsToName } from "@/utils/countyFipsToName";
+import { VerificationBypassBanner } from "@/components/verification/VerificationBypassBanner";
 import {
   ClipboardPlus,
   LayoutList,
@@ -1039,7 +1041,7 @@ function DirectConnectInbox() {
                   {[
                     request?.status ? `Request ${String(request.status).replace("_", " ")}` : null,
                     request?.tradeId ? `Trade ${request.tradeId}` : null,
-                    request?.countyFips,
+                    request?.countyFips ? countyFipsToName(request.countyFips) : null,
                   ]
                     .filter(Boolean)
                     .join(" • ") || "Local match"}
@@ -1257,7 +1259,7 @@ function MyDirectConnectRequests() {
         const timelineStamp = r.dcLastEventAt || r.createdAt;
         const statusFacts = [
           r.tradeId ? `Trade ${r.tradeId}` : null,
-          r.countyFips ? `County ${r.countyFips}` : null,
+          r.countyFips ? countyFipsToName(r.countyFips) : null,
           typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
             ? `${r.dcSuggestedCount} routed`
             : null,
@@ -1536,18 +1538,6 @@ export default function DirectConnectShell() {
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
   const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
   const verificationBypass = user?.verificationBypass;
-  const bypassReasonLabel =
-    verificationBypass?.reason === "role"
-      ? "staff role override"
-      : verificationBypass?.reason === "email_alias"
-        ? "privileged alias override"
-        : verificationBypass?.reason === "admin_flag"
-          ? "admin authority override"
-          : verificationBypass?.reason === "manual_direct_connect_override"
-            ? "manual admin override"
-            : verificationBypass?.reason === "direct_connect_demo_mode"
-              ? "direct connect demo mode"
-              : "platform override";
 
   const requestPrefill = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1656,10 +1646,11 @@ export default function DirectConnectShell() {
           </div>
 
           {isAuthenticated && verificationBypass?.active && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
-              Verification bypass is active ({bypassReasonLabel}). Your requests can still move live
-              while this override is enabled.
-            </div>
+            <VerificationBypassBanner
+              bypass={verificationBypass}
+              context="direct_connect"
+              showPolicyLink={Boolean(user?.isAdmin || user?.isSuperAdmin)}
+            />
           )}
 
           {/* Status Pills */}

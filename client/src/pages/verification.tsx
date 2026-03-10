@@ -1,11 +1,12 @@
 import { memo, useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Clock3, AlertTriangle, ShieldCheck, UserRound } from "lucide-react";
+import { CheckCircle2, Clock3, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { VerificationBypassBanner } from "@/components/verification/VerificationBypassBanner";
 
 type StatusTone = "complete" | "pending" | "required";
 
@@ -80,18 +81,6 @@ const Verification = memo(function Verification() {
 
   const loading = loadingAddress || loadingMarketplace || loadingIdentity;
   const bypass = user?.verificationBypass;
-  const bypassReasonLabel =
-    bypass?.reason === "role"
-      ? "staff role override"
-      : bypass?.reason === "email_alias"
-        ? "privileged alias override"
-        : bypass?.reason === "admin_flag"
-          ? "admin authority override"
-          : bypass?.reason === "manual_direct_connect_override"
-            ? "manual admin override"
-            : bypass?.reason === "direct_connect_demo_mode"
-              ? "direct connect demo mode"
-              : "platform override";
 
   return (
     <div className="px-4 py-4 md:px-6">
@@ -129,20 +118,11 @@ const Verification = memo(function Verification() {
             ) : (
               <div className="space-y-3">
                 {bypass?.active && (
-                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <div>
-                        <p className="font-medium text-amber-100">
-                          Verification bypass is active ({bypassReasonLabel})
-                        </p>
-                        <p className="mt-1 text-amber-200/90">
-                          Your account can continue through protected flows while this override is
-                          active. Complete normal verification to return to standard trust mode.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <VerificationBypassBanner
+                    bypass={bypass}
+                    context="verification"
+                    showPolicyLink={Boolean(user?.isAdmin || user?.isSuperAdmin)}
+                  />
                 )}
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

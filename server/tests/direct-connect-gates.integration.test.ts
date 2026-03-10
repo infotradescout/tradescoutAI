@@ -17,6 +17,40 @@ import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 
 describeWithDb("direct-connect gate integration (no mocks)", () => {
+  it("creates non-targeted direct connect requests as live (routed) on submit", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const title = `Direct Connect live ${Date.now()}`;
+
+    const res = await agent.post("/api/direct-connect/requests").send({
+      title,
+      description: "Need a pro to inspect and repair a leaking outdoor faucet.",
+      category: "service_request",
+    });
+
+    expect(res.status).toBe(201);
+    expect(String(res.body?.status || "")).toBe("routed");
+
+    const requestId = String(res.body?.id || "");
+    expect(requestId.length).toBeGreaterThan(0);
+
+    const inserted = await db
+      .select()
+      .from(workRequests)
+      .where(
+        and(eq(workRequests.id, requestId), eq(workRequests.createdByUserId, String(user.id)))
+      );
+
+    expect(inserted).toHaveLength(1);
+    expect(String(inserted[0]?.status || "")).toBe("routed");
+    expect(String(inserted[0]?.source || "")).toBe("direct_connect");
+  });
+
   it("returns 428 and does not create a work request when homeowner is unverified", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",

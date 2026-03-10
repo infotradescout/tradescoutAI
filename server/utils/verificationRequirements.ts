@@ -13,18 +13,9 @@
  * - blocking: current behavior (true = hard blocks, false = no check today)
  * - C2_approach: how C2 will handle this
  */
+import { isDirectConnectUnverifiedBypassEnabled } from "./authorityPolicy";
 
-const DIRECT_CONNECT_UNVERIFIED_BYPASS_ENABLED = [
-  process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED,
-  process.env.DIRECT_CONNECT_DEMO_MODE,
-  process.env.TRADE_SCOUT_DEMO_MODE,
-]
-  .map((value) =>
-    String(value || "")
-      .trim()
-      .toLowerCase()
-  )
-  .some((value) => ["1", "true", "yes", "on", "enabled"].includes(value));
+const DIRECT_CONNECT_UNVERIFIED_BYPASS_ENABLED = isDirectConnectUnverifiedBypassEnabled();
 
 export const ACTION_VERIFICATION_REQUIREMENTS = {
   // ============================================================
