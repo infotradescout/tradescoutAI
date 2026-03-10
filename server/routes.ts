@@ -8413,13 +8413,21 @@ export async function registerRoutes(app: any) {
     try {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
+      const actorContext = resolvePrivilegedActor(adminUser);
       const { userId } = req.params;
       const { role } = (req.body ?? {}) as any;
+      const reason = normalizePrivilegedReason(
+        req.body?.reason ?? req.body?.adminSafety?.reason,
+        12
+      );
       const requestedRoleToken = normalizeAdminRoleToken(role);
       const actorRole = normalizeAdminRoleToken(adminUser?.role);
 
       if (!adminUser || !["super_admin", "moderator", "ops_admin"].includes(actorRole)) {
         return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!reason) {
+        return res.status(400).json({ message: "reason is required (min 12 chars)" });
       }
 
       if (!requestedRoleToken) {
@@ -8466,13 +8474,23 @@ export async function registerRoutes(app: any) {
 
       const updatedUser = await storage.updateUser(userId, { role: requestedRole });
 
-      await logAdminAction({
+      await auditPrivilegedAction({
         action: "admin_user_role_update",
-        actorUserId: adminUserId,
-        targetUserId: userId,
-        oldRole: targetUser.role,
-        newRole: requestedRole,
-        protectedTarget: targetProtected,
+        route: "/api/admin/users/:userId/role",
+        operationType: "change_user_role",
+        actorId: normalizeImmutableTargetId(adminUserId),
+        actorRole: actorContext.actorRole,
+        actorRoles: actorContext.actorRoles,
+        targetType: "user",
+        targetId: userId,
+        resolutionSource: "route_param:user_id",
+        reason,
+        outcome: "completed",
+        details: {
+          oldRole: targetUser.role,
+          newRole: requestedRole,
+          protectedTarget: targetProtected,
+        },
       });
 
       res.json(updatedUser);
@@ -8486,11 +8504,19 @@ export async function registerRoutes(app: any) {
     try {
       const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       const adminUser = await storage.getUser(adminUserId);
+      const actorContext = resolvePrivilegedActor(adminUser);
       const { userId } = req.params;
+      const reason = normalizePrivilegedReason(
+        req.body?.reason ?? req.body?.adminSafety?.reason,
+        12
+      );
       const actorRole = normalizeAdminRoleToken(adminUser?.role);
 
       if (!adminUser || !["super_admin", "moderator"].includes(actorRole)) {
         return res.status(403).json({ message: "Admin access required" });
+      }
+      if (!reason) {
+        return res.status(400).json({ message: "reason is required (min 12 chars)" });
       }
 
       const targetUser = await storage.getUser(userId);
@@ -8526,12 +8552,22 @@ export async function registerRoutes(app: any) {
 
       await storage.deleteUser(userId);
 
-      await logAdminAction({
+      await auditPrivilegedAction({
         action: "admin_user_delete",
-        actorUserId: adminUserId,
-        targetUserId: userId,
-        targetRole: targetUser.role,
-        protectedTarget: targetProtected,
+        route: "/api/admin/users/:userId",
+        operationType: "delete_user",
+        actorId: normalizeImmutableTargetId(adminUserId),
+        actorRole: actorContext.actorRole,
+        actorRoles: actorContext.actorRoles,
+        targetType: "user",
+        targetId: userId,
+        resolutionSource: "route_param:user_id",
+        reason,
+        outcome: "completed",
+        details: {
+          targetRole: targetUser.role,
+          protectedTarget: targetProtected,
+        },
       });
 
       res.status(204).send();
@@ -12855,22 +12891,66 @@ export async function registerRoutes(app: any) {
     async (req: any, res: any) => {
       try {
         const { email, userId, newPassword } = req.body || {};
+        const reason = normalizePrivilegedReason(req.body?.reason, 12);
+        const targetUserId = normalizeImmutableTargetId(userId);
+        const targetEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
         if (!newPassword || typeof newPassword !== "string" || newPassword.length < 8) {
           return res
             .status(400)
             .json({ error: "newPassword is required and must be at least 8 characters" });
         }
-
-        if (!email && !userId) {
-          return res.status(400).json({ error: "Provide email or userId" });
+        if (!reason) {
+          return res
+            .status(400)
+            .json({ error: "reason is required and must be at least 12 characters" });
         }
 
-        const target = email
-          ? await storage.getUserByEmail(String(email).toLowerCase())
-          : await storage.getUser(userId);
+        if (!targetUserId) {
+          await auditPrivilegedAction({
+            action: "admin_user_reset_password",
+            route: "/api/admin/users/reset-password",
+            operationType: "reset_user_password",
+            actorId: normalizeImmutableTargetId(
+              (req.user as any)?.id || (req.user as any)?.claims?.sub
+            ),
+            actorRole: resolvePrivilegedActor(req.user).actorRole,
+            actorRoles: resolvePrivilegedActor(req.user).actorRoles,
+            targetType: "user",
+            targetId: null,
+            resolutionSource: targetEmail ? "target_email_only" : "missing_target_user_id",
+            reason,
+            outcome: "denied",
+            lookupInput: { targetEmail: targetEmail || null },
+          });
+          return res.status(400).json({
+            error: "userId is required. email may be supplied only as lookup metadata.",
+          });
+        }
+
+        const target = await storage.getUser(targetUserId);
 
         if (!target) {
           return res.status(404).json({ error: "User not found" });
+        }
+        if (!suppliedEmailMatchesTarget(targetEmail, target)) {
+          await auditPrivilegedAction({
+            action: "admin_user_reset_password",
+            route: "/api/admin/users/reset-password",
+            operationType: "reset_user_password",
+            actorId: normalizeImmutableTargetId(
+              (req.user as any)?.id || (req.user as any)?.claims?.sub
+            ),
+            actorRole: resolvePrivilegedActor(req.user).actorRole,
+            actorRoles: resolvePrivilegedActor(req.user).actorRoles,
+            targetType: "user",
+            targetId: target.id,
+            resolutionSource: "param:userId",
+            reason,
+            outcome: "denied",
+            lookupInput: { targetEmail },
+            details: { mismatch: "target_email_does_not_match_target_user_id" },
+          });
+          return res.status(409).json({ error: "email does not match userId" });
         }
 
         const actorId = String(
@@ -12901,12 +12981,20 @@ export async function registerRoutes(app: any) {
           updatedAt: new Date(),
         });
 
-        await logAdminAction({
+        await auditPrivilegedAction({
           action: "admin_user_reset_password",
-          actorUserId: actorId,
-          targetUserId: target.id,
-          targetEmail: target.email,
-          protectedTarget: targetProtected,
+          route: "/api/admin/users/reset-password",
+          operationType: "reset_user_password",
+          actorId: normalizeImmutableTargetId(actorId),
+          actorRole: resolvePrivilegedActor(actor).actorRole,
+          actorRoles: resolvePrivilegedActor(actor).actorRoles,
+          targetType: "user",
+          targetId: target.id,
+          resolutionSource: "param:userId",
+          reason,
+          outcome: "completed",
+          lookupInput: { targetEmail: targetEmail || null },
+          details: { protectedTarget: targetProtected },
         });
 
         res.json({
@@ -12932,7 +13020,11 @@ export async function registerRoutes(app: any) {
     async (req: Request, res: Response) => {
       try {
         const targetUserId = String((req.params as any)?.userId || "").trim();
+        const reason = normalizePrivilegedReason((req.body as any)?.reason, 12);
         if (!targetUserId) return res.status(400).json({ message: "userId is required" });
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
+        }
 
         const existing = await storage.getUser(targetUserId);
         if (!existing) return res.status(404).json({ message: "User not found" });
@@ -13049,33 +13141,43 @@ export async function registerRoutes(app: any) {
           updatedAt: new Date(),
         } as any);
 
-        await logAdminAction({
+        await auditPrivilegedAction({
           action: "admin_user_profile_update",
-          actorUserId: actorId,
-          targetUserId,
-          protectedTarget: targetProtected,
-          changedFields: [
-            "firstName",
-            "lastName",
-            "phone",
-            "address",
-            "city",
-            "state",
-            "stateCode",
-            "zipCode",
-            "county",
-            "countyName",
-            "countyFips",
-            "countyId",
-            "latitude",
-            "longitude",
-            "profileImageUrl",
-            "emailVerified",
-            "addressVerified",
-            "onboardingCompleted",
-            "verificationStatus",
-            patchPreferences ? "preferencesPatch" : null,
-          ].filter(Boolean),
+          route: "/api/admin/users/:userId/profile",
+          operationType: "update_user_profile",
+          actorId: normalizeImmutableTargetId(actorId),
+          actorRole: resolvePrivilegedActor(actor).actorRole,
+          actorRoles: resolvePrivilegedActor(actor).actorRoles,
+          targetType: "user",
+          targetId: targetUserId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: {
+            protectedTarget: targetProtected,
+            changedFields: [
+              "firstName",
+              "lastName",
+              "phone",
+              "address",
+              "city",
+              "state",
+              "stateCode",
+              "zipCode",
+              "county",
+              "countyName",
+              "countyFips",
+              "countyId",
+              "latitude",
+              "longitude",
+              "profileImageUrl",
+              "emailVerified",
+              "addressVerified",
+              "onboardingCompleted",
+              "verificationStatus",
+              patchPreferences ? "preferencesPatch" : null,
+            ].filter(Boolean),
+          },
         });
 
         return res.json({ user: sanitizeUserForResponse(updated) });

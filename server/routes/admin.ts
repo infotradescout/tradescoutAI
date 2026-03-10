@@ -23,6 +23,7 @@ import { getAdminAuditLog, logAdminAction } from "../services/adminAuditLogServi
 import {
   actorHasPrivilegedCapability,
   auditPrivilegedAction,
+  normalizeImmutableTargetId,
   normalizePrivilegedReason,
   resolvePrivilegedActor,
 } from "../utils/privilegedActions";
@@ -1371,8 +1372,32 @@ export function mountAdminRoutes(app: any) {
     requireAdmin,
     async (req: Request, res: Response) => {
       try {
-        const { userId } = req.params;
+        const actorId = normalizeImmutableTargetId(
+          (req as any)?.user?.id || (req as any)?.user?.claims?.sub
+        );
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor || (req as any)?.user);
+        const targetUserId = normalizeImmutableTargetId((req.params as any)?.userId);
         const { roles, activeRole } = (req.body || {}) as any;
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12
+        );
+
+        if (!actorId) {
+          return res.status(401).json({ message: "Actor not found" });
+        }
+        if (!targetUserId) {
+          return res.status(400).json({ message: "userId is required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
+        }
+
+        const targetUser = await storage.getUser(targetUserId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
         if (!Array.isArray(roles) || roles.length === 0) {
           return res.status(400).json({ message: "Roles must be a non-empty array" });
@@ -1390,7 +1415,26 @@ export function mountAdminRoutes(app: any) {
             role: activeRole,
             updatedAt: new Date(),
           })
-          .where(eq(users.id, userId));
+          .where(eq(users.id, targetUserId));
+
+        await auditPrivilegedAction({
+          action: "admin_user_roles_update",
+          route: "/api/admin/users/:userId/roles",
+          operationType: "update_user_roles",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: targetUserId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: {
+            targetEmail: targetUser.email || null,
+            roleCount: roles.length,
+            activeRole,
+          },
+        });
 
         res.json({ message: "User roles updated successfully" });
       } catch (error: any) {
@@ -1406,14 +1450,59 @@ export function mountAdminRoutes(app: any) {
     requireAdmin,
     async (req: Request, res: Response) => {
       try {
-        const { userId } = req.params;
+        const actorId = normalizeImmutableTargetId(
+          (req as any)?.user?.id || (req as any)?.user?.claims?.sub
+        );
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor || (req as any)?.user);
+        const targetUserId = normalizeImmutableTargetId((req.params as any)?.userId);
         const { badges } = (req.body || {}) as any;
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12
+        );
+
+        if (!actorId) {
+          return res.status(401).json({ message: "Actor not found" });
+        }
+        if (!targetUserId) {
+          return res.status(400).json({ message: "userId is required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
+        }
+
+        const targetUser = await storage.getUser(targetUserId);
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
         if (!Array.isArray(badges)) {
           return res.status(400).json({ message: "Badges must be an array" });
         }
 
-        await db.update(users).set({ badges, updatedAt: new Date() }).where(eq(users.id, userId));
+        await db
+          .update(users)
+          .set({ badges, updatedAt: new Date() })
+          .where(eq(users.id, targetUserId));
+
+        await auditPrivilegedAction({
+          action: "admin_user_badges_update",
+          route: "/api/admin/users/:userId/badges",
+          operationType: "update_user_badges",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: targetUserId,
+          resolutionSource: "route_param:user_id",
+          reason,
+          outcome: "completed",
+          details: {
+            targetEmail: targetUser.email || null,
+            badgeCount: badges.length,
+          },
+        });
 
         res.json({ message: "Badges updated successfully", badges });
       } catch (error: any) {
@@ -1432,31 +1521,33 @@ export function mountAdminRoutes(app: any) {
     isSuperAdmin,
     async (req: Request & { user?: any }, res: Response) => {
       try {
-        const { userId } = req.params;
-        const { reason } = (req.body ?? {}) as { reason?: string };
-        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const targetUserId = normalizeImmutableTargetId((req.params as any)?.userId);
+        const adminUserId = normalizeImmutableTargetId(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub
+        );
         const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
-        let normalizedReason = typeof reason === "string" ? reason.trim() : "";
+        const actorContext = resolvePrivilegedActor(adminUser || req.user);
+        const normalizedReason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12
+        );
 
         const adminRole = adminUser?.role || "";
 
-        if (normalizedReason.length < 5) {
-          if (adminRole === "super_admin") {
-            normalizedReason = "unspecified (legacy)";
-          } else {
-            return res
-              .status(400)
-              .json({ message: "Deletion reason is required (min 5 characters)" });
-          }
+        if (!targetUserId) {
+          return res.status(400).json({ message: "userId is required" });
+        }
+        if (!normalizedReason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
 
         // Prevent self-deletion
-        if (userId === adminUserId) {
+        if (targetUserId === adminUserId) {
           return res.status(400).json({ message: "Cannot delete your own account" });
         }
 
         // Check if target user exists
-        const [targetUser] = await db.select().from(users).where(eq(users.id, userId));
+        const [targetUser] = await db.select().from(users).where(eq(users.id, targetUserId));
         if (!targetUser) {
           return res.status(404).json({ message: "User not found" });
         }
@@ -1472,20 +1563,38 @@ export function mountAdminRoutes(app: any) {
         }
 
         // Perform deletion
-        await storage.deleteUser(userId);
+        await storage.deleteUser(targetUserId);
+
+        await auditPrivilegedAction({
+          action: "admin_user_delete",
+          route: "/api/admin/users/:userId",
+          operationType: "delete_user",
+          actorId: adminUserId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: targetUserId,
+          resolutionSource: "route_param:user_id",
+          reason: normalizedReason,
+          outcome: "completed",
+          details: {
+            targetEmail: targetUser.email,
+            targetRole,
+          },
+        });
 
         await logAdminAction({
           type: "admin_user_delete",
           adminId: adminUserId,
           adminRole,
-          targetUserId: userId,
+          targetUserId,
           targetEmail: targetUser.email,
           targetRole,
           reason: normalizedReason,
         });
 
         console.log(
-          `[ADMIN_USER_DELETE] admin=${adminUserId} role=${adminRole} targetUser=${userId} targetEmail=${targetUser.email} targetRole=${targetRole} reason=${normalizedReason} timestamp=${new Date().toISOString()}`
+          `[ADMIN_USER_DELETE] admin=${adminUserId} role=${adminRole} targetUser=${targetUserId} targetEmail=${targetUser.email} targetRole=${targetRole} reason=${normalizedReason} timestamp=${new Date().toISOString()}`
         );
 
         res.json({
@@ -1508,21 +1617,23 @@ export function mountAdminRoutes(app: any) {
     isSuperAdmin,
     async (req: Request & { user?: any }, res: Response) => {
       try {
-        const { postId } = req.params;
-        const { reason } = (req.body ?? {}) as { reason?: string };
-        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const postId = normalizeImmutableTargetId((req.params as any)?.postId);
+        const adminUserId = normalizeImmutableTargetId(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub
+        );
         const adminUser = adminUserId ? await storage.getUser(adminUserId) : null;
+        const actorContext = resolvePrivilegedActor(adminUser || req.user);
         const adminRole = adminUser?.role || "";
-        let normalizedReason = typeof reason === "string" ? reason.trim() : "";
+        const normalizedReason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12
+        );
 
-        if (normalizedReason.length < 5) {
-          if (adminRole === "super_admin") {
-            normalizedReason = "unspecified (legacy)";
-          } else {
-            return res
-              .status(400)
-              .json({ message: "Deletion reason is required (min 5 characters)" });
-          }
+        if (!postId) {
+          return res.status(400).json({ message: "postId is required" });
+        }
+        if (!normalizedReason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
 
         const { communityPosts } = await import("../../shared/schema");
@@ -1540,6 +1651,23 @@ export function mountAdminRoutes(app: any) {
 
         // Delete the post
         await db.delete(communityPosts).where(eq(communityPosts.id, postId));
+
+        await auditPrivilegedAction({
+          action: "admin_community_post_delete",
+          route: "/api/admin/community/posts/:postId",
+          operationType: "delete_community_post",
+          actorId: adminUserId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "community_post",
+          targetId: postId,
+          resolutionSource: "route_param:post_id",
+          reason: normalizedReason,
+          outcome: "completed",
+          details: {
+            authorId: post.authorId,
+          },
+        });
 
         await logAdminAction({
           type: "admin_community_post_delete",
@@ -1701,8 +1829,27 @@ export function mountAdminRoutes(app: any) {
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        const { id } = req.params;
+        const actorId = normalizeImmutableTargetId(
+          (req as any)?.user?.id || (req as any)?.user?.claims?.sub
+        );
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor || (req as any)?.user);
+        const targetId = normalizeImmutableTargetId((req.params as any)?.id);
         const { commissionRate } = (req.body || {}) as any;
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12
+        );
+
+        if (!actorId) {
+          return res.status(401).json({ message: "Actor not found" });
+        }
+        if (!targetId) {
+          return res.status(400).json({ message: "Affiliate program id is required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
+        }
 
         if (commissionRate === undefined || commissionRate === null || commissionRate === "") {
           return res.status(400).json({ message: "commissionRate is required" });
@@ -1718,12 +1865,29 @@ export function mountAdminRoutes(app: any) {
         const [updated] = await db
           .update(affiliateAccounts)
           .set({ commissionRate: numeric.toString() })
-          .where(eq(affiliateAccounts.id, id))
+          .where(eq(affiliateAccounts.id, targetId))
           .returning();
 
         if (!updated) {
           return res.status(404).json({ message: "Affiliate program not found" });
         }
+
+        await auditPrivilegedAction({
+          action: "admin_affiliate_commission_rate_update",
+          route: "/api/admin/affiliates/:id/commission-rate",
+          operationType: "update_affiliate_commission_rate",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "affiliate_program",
+          targetId,
+          resolutionSource: "route_param:id",
+          reason,
+          outcome: "completed",
+          details: {
+            commissionRate: updated.commissionRate,
+          },
+        });
 
         res.json({
           id: updated.id,
@@ -1763,17 +1927,32 @@ export function mountAdminRoutes(app: any) {
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        const { id: affiliateProgramId } = req.params as { id: string };
+        const actorId = normalizeImmutableTargetId(
+          (req as any)?.user?.id || (req as any)?.user?.claims?.sub
+        );
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor || (req as any)?.user);
+        const affiliateProgramId = normalizeImmutableTargetId((req.params as any)?.id);
         const { amount, payoutMethod, note, status } = (req.body || {}) as {
           amount?: number | string;
           payoutMethod?: string;
           note?: string;
           status?: string;
         };
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12
+        );
 
         const totalAmount = Number(amount ?? 0);
+        if (!actorId) {
+          return res.status(401).json({ message: "Actor not found" });
+        }
         if (!affiliateProgramId) {
           return res.status(400).json({ message: "Affiliate program id is required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (min 12 chars)" });
         }
         if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
           return res.status(400).json({ message: "Positive payout amount is required" });
@@ -1785,6 +1964,25 @@ export function mountAdminRoutes(app: any) {
           payoutMethod: payoutMethod || "manual",
           status: status || "pending",
           notes: note,
+        });
+
+        await auditPrivilegedAction({
+          action: "admin_affiliate_payout_create",
+          route: "/api/admin/affiliates/:id/payout",
+          operationType: "create_affiliate_payout",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "affiliate_program",
+          targetId: affiliateProgramId,
+          resolutionSource: "route_param:id",
+          reason,
+          outcome: "completed",
+          details: {
+            amount: totalAmount.toFixed(2),
+            payoutMethod: payoutMethod || "manual",
+            status: status || "pending",
+          },
         });
 
         return res.status(201).json(payout);

@@ -611,14 +611,70 @@ async function adminOverrideCreateAction(user: User | undefined, params?: Record
   }
 
   try {
+    const actor = resolvePrivilegedActor(user);
     const { overrideType, key, value, county, state } = params || {};
+    const reason = normalizePrivilegedReason(params?.reason, 12);
+    const targetKey =
+      typeof overrideType === "string" && typeof key === "string" ? `${overrideType}:${key}` : null;
+    const targetId = normalizeImmutableTargetId(targetKey);
+
+    if (!reason) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_override_create",
+        route: "assistant:admin_override_create",
+        operationType: "assistant_admin_override_create",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "cache_override",
+        targetId,
+        resolutionSource: targetId ? "params:override_type_key" : "missing_target",
+        reason: "missing_reason",
+        outcome: "denied",
+      });
+      return { success: false, error: "reason is required (min 12 chars)" };
+    }
 
     if (!overrideType || !key || !value) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_override_create",
+        route: "assistant:admin_override_create",
+        operationType: "assistant_admin_override_create",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "cache_override",
+        targetId,
+        resolutionSource: targetId ? "params:override_type_key" : "missing_target",
+        reason,
+        outcome: "denied",
+        details: { missing: "overrideType|key|value" },
+      });
       return { success: false, error: "overrideType, key, and value are required" };
     }
 
     // Implementation: save override to manual cache
     // Types: "response", "fact", "county", "local_guide"
+
+    await auditPrivilegedAction({
+      action: "assistant_admin_override_create",
+      route: "assistant:admin_override_create",
+      operationType: "assistant_admin_override_create",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "cache_override",
+      targetId: normalizeImmutableTargetId(`${overrideType}:${key}`),
+      resolutionSource: "params:override_type_key",
+      reason,
+      outcome: "completed",
+      details: {
+        overrideType,
+        key,
+        county: county || null,
+        state: state || null,
+      },
+    });
 
     return {
       success: true,
@@ -644,13 +700,67 @@ async function adminOverrideDeleteAction(user: User | undefined, params?: Record
   }
 
   try {
+    const actor = resolvePrivilegedActor(user);
     const { overrideType, key } = params || {};
+    const reason = normalizePrivilegedReason(params?.reason, 12);
+    const targetKey =
+      typeof overrideType === "string" && typeof key === "string" ? `${overrideType}:${key}` : null;
+    const targetId = normalizeImmutableTargetId(targetKey);
+
+    if (!reason) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_override_delete",
+        route: "assistant:admin_override_delete",
+        operationType: "assistant_admin_override_delete",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "cache_override",
+        targetId,
+        resolutionSource: targetId ? "params:override_type_key" : "missing_target",
+        reason: "missing_reason",
+        outcome: "denied",
+      });
+      return { success: false, error: "reason is required (min 12 chars)" };
+    }
 
     if (!overrideType || !key) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_override_delete",
+        route: "assistant:admin_override_delete",
+        operationType: "assistant_admin_override_delete",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "cache_override",
+        targetId,
+        resolutionSource: targetId ? "params:override_type_key" : "missing_target",
+        reason,
+        outcome: "denied",
+        details: { missing: "overrideType|key" },
+      });
       return { success: false, error: "overrideType and key are required" };
     }
 
     // Implementation: delete override from manual cache
+
+    await auditPrivilegedAction({
+      action: "assistant_admin_override_delete",
+      route: "assistant:admin_override_delete",
+      operationType: "assistant_admin_override_delete",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "cache_override",
+      targetId: normalizeImmutableTargetId(`${overrideType}:${key}`),
+      resolutionSource: "params:override_type_key",
+      reason,
+      outcome: "completed",
+      details: {
+        overrideType,
+        key,
+      },
+    });
 
     return {
       success: true,
@@ -1215,9 +1325,42 @@ async function adminUpsertKnowledgeAction(user: User | undefined, params?: Recor
   }
 
   try {
+    const actor = resolvePrivilegedActor(user);
     const { key, content, scope = "global", countyCode, stateCode } = params || {};
+    const reason = normalizePrivilegedReason(params?.reason, 12);
+
+    if (!reason) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_upsert_knowledge",
+        route: "assistant:admin_upsert_knowledge",
+        operationType: "assistant_admin_upsert_knowledge",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "knowledge_key",
+        targetId: normalizeImmutableTargetId(key),
+        resolutionSource: key ? "params:key" : "missing_target",
+        reason: "missing_reason",
+        outcome: "denied",
+      });
+      return { success: false, error: "reason is required (min 12 chars)" };
+    }
 
     if (!key || !content) {
+      await auditPrivilegedAction({
+        action: "assistant_admin_upsert_knowledge",
+        route: "assistant:admin_upsert_knowledge",
+        operationType: "assistant_admin_upsert_knowledge",
+        actorId: actor.actorId,
+        actorRole: actor.actorRole,
+        actorRoles: actor.actorRoles,
+        targetType: "knowledge_key",
+        targetId: normalizeImmutableTargetId(key),
+        resolutionSource: key ? "params:key" : "missing_target",
+        reason,
+        outcome: "denied",
+        details: { missing: "key|content" },
+      });
       return { success: false, error: "key and content are required" };
     }
 
@@ -1237,6 +1380,25 @@ async function adminUpsertKnowledgeAction(user: User | undefined, params?: Recor
     };
 
     writeManualCacheFile(filename, payload);
+
+    await auditPrivilegedAction({
+      action: "assistant_admin_upsert_knowledge",
+      route: "assistant:admin_upsert_knowledge",
+      operationType: "assistant_admin_upsert_knowledge",
+      actorId: actor.actorId,
+      actorRole: actor.actorRole,
+      actorRoles: actor.actorRoles,
+      targetType: "knowledge_key",
+      targetId: normalizeImmutableTargetId(safeKey),
+      resolutionSource: "params:key",
+      reason,
+      outcome: "completed",
+      details: {
+        scope,
+        countyCode: countyCode || null,
+        stateCode: stateCode || null,
+      },
+    });
 
     return {
       success: true,
