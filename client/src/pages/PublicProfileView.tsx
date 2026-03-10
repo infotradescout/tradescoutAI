@@ -359,7 +359,25 @@ export default function PublicProfileView() {
       : profile.city || profile.state || "Location not set";
 
   const badges = profile.badges || [];
-  const distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
+  let distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
+
+  // Add Admin/Staff badges for authority labeling (not verification)
+  const roleLabels: string[] = [];
+  if (
+    profile.isAdmin ||
+    (Array.isArray(profile.roles) &&
+      profile.roles.some((r: string) => String(r).toLowerCase() === "admin"))
+  ) {
+    roleLabels.push("Admin");
+  }
+  if (
+    Array.isArray(profile.roles) &&
+    profile.roles.some((r: string) => String(r).toLowerCase() === "staff")
+  ) {
+    roleLabels.push("Staff");
+  }
+  // Only add if not already present
+  distinctBadges = [...distinctBadges, ...roleLabels.filter((l) => !distinctBadges.includes(l))];
   const showBadges = profile.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (profile.roles || []).includes("community_builder");
 

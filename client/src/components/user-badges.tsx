@@ -1,14 +1,6 @@
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
-import {
-  Award,
-  Shield,
-  Star,
-  Compass,
-  HeartHandshake,
-  Crown,
-  Sparkles,
-} from "lucide-react";
+import { Award, Shield, Star, Compass, HeartHandshake, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type BadgeSize = "sm" | "md" | "lg";
@@ -30,6 +22,8 @@ const badgeUiRegistry: Record<string, BadgeUiConfig> = {
   record_keeper: { icon: Award, rarity: "rare", priority: 22 },
   community_builder: { icon: Award, rarity: "epic", priority: 2 },
   secret: { icon: Sparkles, rarity: "secret", priority: 50 },
+  admin: { icon: Crown, rarity: "legendary", priority: 1 },
+  staff: { icon: Shield, rarity: "rare", priority: 2 },
 };
 
 function normalizeLabel(label: string): string {
@@ -41,6 +35,8 @@ function resolveBadgeKey(label: string): string {
 
   if (lower.startsWith("founder")) return "founder";
   if (lower.includes("community builder")) return "community_builder";
+  if (lower === "admin") return "admin";
+  if (lower === "staff") return "staff";
   if (lower.includes("verified")) return "verified";
   if (lower.includes("helper")) return "helper";
   if (lower.includes("explorer")) return "explorer";
@@ -163,13 +159,15 @@ export function UserBadges({
             className={cn(
               "inline-flex items-center justify-center rounded-full border shadow-sm",
               rarityClasses(config.rarity),
-              containerClass,
+              containerClass
             )}
             title={label}
           >
             <Icon className={iconClass} />
             {showLabels && (
-              <span className={cn("ml-2 max-w-[9rem] truncate font-medium", labelClass)}>{label}</span>
+              <span className={cn("ml-2 max-w-[9rem] truncate font-medium", labelClass)}>
+                {label}
+              </span>
             )}
           </div>
         );

@@ -164,7 +164,25 @@ export default function ProfilePage() {
     Array.isArray(badgesData?.labels) && badgesData.labels.length > 0
       ? badgesData.labels
       : user.badges || [];
-  const distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
+  let distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
+
+  // Add Admin/Staff badges for authority labeling (not verification)
+  const roleLabels: string[] = [];
+  if (
+    user.isAdmin ||
+    (Array.isArray(user.roles) &&
+      user.roles.some((r: string) => String(r).toLowerCase() === "admin"))
+  ) {
+    roleLabels.push("Admin");
+  }
+  if (
+    Array.isArray(user.roles) &&
+    user.roles.some((r: string) => String(r).toLowerCase() === "staff")
+  ) {
+    roleLabels.push("Staff");
+  }
+  // Only add if not already present
+  distinctBadges = [...distinctBadges, ...roleLabels.filter((l) => !distinctBadges.includes(l))];
   const showBadges = user.preferences?.badges?.show !== false;
   const hasCommunityBuilder = (user.roles || []).includes("community_builder");
 

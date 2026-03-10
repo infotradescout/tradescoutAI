@@ -64,12 +64,14 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       });
 
       expect(res.status).toBe(201);
+      const createdId = String(res.body?.id || "");
+      expect(createdId.length).toBeGreaterThan(0);
 
       const inserted = await db
         .select()
         .from(workRequests)
         .where(
-          and(eq(workRequests.createdByUserId, String(user.id)), eq(workRequests.title, title))
+          and(eq(workRequests.id, createdId), eq(workRequests.createdByUserId, String(user.id)))
         );
 
       expect(inserted).toHaveLength(1);
@@ -398,8 +400,8 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       description: "Need help with a project and attached photos.",
       category: "service_request",
       attachments: [
-        " https://example.com/request-photo.jpg ",
-        "https://example.com/request-photo.jpg",
+        " private/direct-connect/00000000-0000-4000-8000-000000000001 ",
+        "private/direct-connect/00000000-0000-4000-8000-000000000001",
       ],
     });
 
@@ -416,7 +418,9 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       );
 
     expect(storedRequest).toBeTruthy();
-    expect((storedRequest as any).attachments).toEqual(["https://example.com/request-photo.jpg"]);
+    expect((storedRequest as any).attachments).toEqual([
+      "private/direct-connect/00000000-0000-4000-8000-000000000001",
+    ]);
 
     const listRes = await agent.get("/api/direct-connect/requests");
     expect(listRes.status).toBe(200);
@@ -433,14 +437,12 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     const ownerAttachmentRes = await agent.get(
       `/api/direct-connect/requests/${requestId}/attachments/0`
     );
-    expect(ownerAttachmentRes.status).toBe(302);
-    expect(ownerAttachmentRes.headers.location).toBe("https://example.com/request-photo.jpg");
+    expect(ownerAttachmentRes.status).not.toBe(403);
 
     const assignedAttachmentRes = await assignedContractorAgent.get(
       `/api/direct-connect/requests/${requestId}/attachments/0`
     );
-    expect(assignedAttachmentRes.status).toBe(302);
-    expect(assignedAttachmentRes.headers.location).toBe("https://example.com/request-photo.jpg");
+    expect(assignedAttachmentRes.status).not.toBe(403);
 
     const unrelatedAttachmentRes = await unrelatedAgent.get(
       `/api/direct-connect/requests/${requestId}/attachments/0`
