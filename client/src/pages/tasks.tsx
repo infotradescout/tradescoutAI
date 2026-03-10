@@ -23,6 +23,8 @@ import { recordActivity } from "@/agent/activity";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
+import { formatCountyLabel, getCountyStateCode } from "@/utils/countyFipsToName";
+import { StateCountySelector } from "@/components/state-county-selector";
 
 type TopContractor = {
   id: string;
@@ -102,6 +104,13 @@ export default function TasksHub({
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | undefined>(
     defaultCountyFips || user?.countyFips || undefined
   );
+  const [countySelectorStateCode, setCountySelectorStateCode] = useState<string>(
+    user?.stateCode || ""
+  );
+  const [countySelectorFips, setCountySelectorFips] = useState<string>(selectedCountyFips || "");
+  const selectedCountyLabel = selectedCountyFips
+    ? formatCountyLabel(selectedCountyFips, user?.stateCode)
+    : "";
   const [showCountySelector, setShowCountySelector] = useState(false);
 
   const [taskTitle, setTaskTitle] = useState("");
@@ -189,6 +198,14 @@ export default function TasksHub({
       setShowProviderInvites(true);
     }
   }, [prefillProviderId]);
+
+  useEffect(() => {
+    if (!showCountySelector) return;
+    setCountySelectorFips(selectedCountyFips || "");
+    setCountySelectorStateCode(
+      getCountyStateCode(selectedCountyFips) || user?.stateCode || countySelectorStateCode || ""
+    );
+  }, [showCountySelector, selectedCountyFips, user?.stateCode]);
 
   // Telemetry: Track when county defaults are applied from URL params (Phase 1)
   useEffect(() => {
@@ -895,7 +912,7 @@ export default function TasksHub({
                             <div className="flex items-center gap-2">
                               <Input
                                 readOnly
-                                value={selectedCountyFips || ""}
+                                value={selectedCountyLabel}
                                 placeholder="Set county"
                                 className=""
                               />
@@ -1164,17 +1181,27 @@ export default function TasksHub({
             <div className="space-y-4 text-sm text-white/60">
               <p>
                 Your current area:{" "}
-                <span className="font-semibold text-white">{selectedCountyFips || "Not set"}</span>
+                <span className="font-semibold text-white">{selectedCountyLabel || "Not set"}</span>
               </p>
-              <Input
-                type="text"
-                placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"
-                defaultValue={selectedCountyFips || ""}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const newFips = (e.target as HTMLInputElement).value.trim();
+              <StateCountySelector
+                selectedState={countySelectorStateCode}
+                selectedCounty={countySelectorFips}
+                onStateChange={(stateCode) => setCountySelectorStateCode(stateCode)}
+                onCountyChange={(countyFips) => setCountySelectorFips(countyFips)}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  className="border-white/10 text-white hover:bg-black/30"
+                  onClick={() => setShowCountySelector(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                  onClick={() => {
+                    const newFips = countySelectorFips.trim();
                     if (newFips && newFips !== selectedCountyFips) {
-                      // Telemetry: dc.county_override (Enter key)
                       try {
                         recordActivity({
                           type: "dc.county_override",
@@ -1194,51 +1221,9 @@ export default function TasksHub({
                         // fire-and-forget: ignore telemetry failures
                       }
                       setSelectedCountyFips(newFips);
-                      setShowCountySelector(false);
                     }
-                  }
-                }}
-                className=""
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  className="border-white/10 text-white hover:bg-black/30"
-                  onClick={() => setShowCountySelector(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                  onClick={() => {
-                    const input = document.querySelector(
-                      'input[placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"]'
-                    ) as HTMLInputElement | null;
-                    if (input) {
-                      const newFips = input.value.trim();
-                      if (newFips && newFips !== selectedCountyFips) {
-                        // Telemetry: dc.county_override (button click)
-                        try {
-                          recordActivity({
-                            type: "dc.county_override",
-                            ts: new Date().toISOString(),
-                            path: typeof window !== "undefined" ? window.location.pathname : "",
-                            meta: {
-                              surface: "direct_connect",
-                              scope: "county",
-                              countyFips: newFips,
-                              source: "manual_change",
-                              sessionId: sessionStorage.getItem("sessionId") || crypto.randomUUID(),
-                              asOf: new Date().toISOString(),
-                              previousCounty: selectedCountyFips,
-                            },
-                          });
-                        } catch {
-                          // fire-and-forget: ignore telemetry failures
-                        }
-                        setSelectedCountyFips(newFips);
-                        setShowCountySelector(false);
-                      }
+                    if (newFips) {
+                      setShowCountySelector(false);
                     }
                   }}
                 >

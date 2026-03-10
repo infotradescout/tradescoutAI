@@ -23,7 +23,7 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { share, shareToPlatform } from "@/utils/share";
-import { countyFipsToName } from "@/utils/countyFipsToName";
+import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { VerificationBypassBanner } from "@/components/verification/VerificationBypassBanner";
 import {
   ClipboardPlus,
@@ -209,6 +209,7 @@ type DirectConnectInboxItem = {
     status: string;
     tradeId?: string | null;
     countyFips?: string | null;
+    stateCode?: string | null;
     createdAt?: string | null;
     attachmentCount?: number | null;
   } | null;
@@ -222,6 +223,7 @@ type DirectConnectRequest = {
   status: string;
   tradeId?: string | null;
   countyFips?: string | null;
+  stateCode?: string | null;
   budgetMin?: string | null;
   budgetMax?: string | null;
   createdAt?: string | null;
@@ -1041,7 +1043,9 @@ function DirectConnectInbox() {
                   {[
                     request?.status ? `Request ${String(request.status).replace("_", " ")}` : null,
                     request?.tradeId ? `Trade ${request.tradeId}` : null,
-                    request?.countyFips ? countyFipsToName(request.countyFips) : null,
+                    request?.countyFips
+                      ? formatCountyLabel(request.countyFips, request?.stateCode)
+                      : null,
                   ]
                     .filter(Boolean)
                     .join(" • ") || "Local match"}
@@ -1259,7 +1263,7 @@ function MyDirectConnectRequests() {
         const timelineStamp = r.dcLastEventAt || r.createdAt;
         const statusFacts = [
           r.tradeId ? `Trade ${r.tradeId}` : null,
-          r.countyFips ? countyFipsToName(r.countyFips) : null,
+          r.countyFips ? formatCountyLabel(r.countyFips, r.stateCode) : null,
           typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
             ? `${r.dcSuggestedCount} routed`
             : null,

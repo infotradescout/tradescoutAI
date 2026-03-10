@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useLocationContext";
 import { StateCountySelector } from "@/components/state-county-selector";
 import { Link } from "wouter";
+import { formatCountyLabel } from "@/utils/countyFipsToName";
 
 type TradeOption = {
   id: string;
@@ -254,7 +255,7 @@ export default function DirectConnectPros() {
                       </div>
                       <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
                         {county
-                          ? `${county.name}, ${county.stateCode} (FIPS ${county.fips})`
+                          ? formatCountyLabel(county.fips, county.stateCode)
                           : "County not specified"}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">

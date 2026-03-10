@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { RealEstateMarketplaceShell } from "@/shells/RealEstateMarketplaceShell";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { formatCountyLabel } from "@/utils/countyFipsToName";
 
 type HomeScoutListing = {
   id: string;
@@ -154,7 +155,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
     );
   }
 
-  const locationLabel = `${countyFips}, ${stateCode}`;
+  const locationLabel = formatCountyLabel(countyFips, stateCode);
 
   return (
     <RealEstateMarketplaceShell>
@@ -302,7 +303,9 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-white/70">
                       <MapPin className="h-4 w-4 text-white/60" />
-                      <span>{cityLabel || `${listing.countyFips}, ${listing.stateCode}`}</span>
+                      <span>
+                        {cityLabel || formatCountyLabel(listing.countyFips, listing.stateCode)}
+                      </span>
                     </div>
                   </div>
 

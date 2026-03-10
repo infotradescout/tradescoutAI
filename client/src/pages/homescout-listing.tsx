@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { uploadObject } from "@/lib/objectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { formatCountyLabel } from "@/utils/countyFipsToName";
 
 type HomeScoutListing = {
   id: string;
@@ -459,7 +460,7 @@ export default function HomeScoutListingPage() {
           </div>
           <div className="flex items-center gap-2 text-sm text-white/70">
             <MapPin className="h-4 w-4 text-white/60" />
-            <span>{locationLabel || `${listing.countyFips}, ${listing.stateCode}`}</span>
+            <span>{locationLabel || formatCountyLabel(listing.countyFips, listing.stateCode)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">

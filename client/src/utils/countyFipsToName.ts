@@ -11,6 +11,12 @@ function normalizeFips(fips: string): string {
   return /^\d+$/.test(trimmed) ? trimmed.padStart(5, "0") : trimmed;
 }
 
+function normalizeStateCode(stateCode: string | null | undefined): string {
+  if (!stateCode) return "";
+  const value = String(stateCode).trim().toUpperCase();
+  return value.length === 2 ? value : "";
+}
+
 const COUNTY_FIPS_LOOKUP: Map<string, CountyLookupValue> = (() => {
   const map = new Map<string, CountyLookupValue>();
   for (const state of US_STATES_COUNTIES) {
@@ -29,6 +35,26 @@ export function countyFipsToName(fips: string | null | undefined): string {
   const normalized = normalizeFips(String(fips));
   if (!normalized) return "";
   const county = COUNTY_FIPS_LOOKUP.get(normalized);
-  if (!county) return normalized;
+  if (!county) return "";
   return `${county.countyName}, ${county.stateCode}`;
+}
+
+export function getCountyStateCode(fips: string | null | undefined): string {
+  if (!fips) return "";
+  const normalized = normalizeFips(String(fips));
+  if (!normalized) return "";
+  return COUNTY_FIPS_LOOKUP.get(normalized)?.stateCode || "";
+}
+
+export function formatCountyLabel(
+  countyFips: string | null | undefined,
+  stateCode?: string | null
+): string {
+  const resolved = countyFipsToName(countyFips);
+  if (resolved) return resolved;
+
+  const normalizedState = normalizeStateCode(stateCode);
+  if (normalizedState) return `Local county, ${normalizedState}`;
+
+  return "Local area";
 }

@@ -22,19 +22,23 @@ export function logAdminAction(action: string, user: any, details: any = {}) {
 export function getAuditLog(limit = 100) {
   if (!fs.existsSync(AUDIT_LOG_PATH)) return [];
   const lines = fs.readFileSync(AUDIT_LOG_PATH, "utf8").trim().split("\n");
-  return lines.slice(-limit).map((line) => {
-    try {
-      return JSON.parse(line);
-    } catch {
-      return null;
-    }
-  }).filter(Boolean);
+  return lines
+    .slice(-limit)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
 // Simple in-memory analytics (replace with DB for production)
 const analytics = {
   queries: 0,
   fallbacks: 0,
+  fallbackReasons: {} as Record<string, number>,
   lastQuery: null as null | string,
 };
 
@@ -43,10 +47,18 @@ export function recordQuery() {
   analytics.lastQuery = new Date().toISOString();
 }
 
-export function recordFallback() {
+export function recordFallback(reason = "unknown") {
   analytics.fallbacks++;
+  analytics.fallbackReasons[reason] = (analytics.fallbackReasons[reason] || 0) + 1;
 }
 
 export function getAnalytics() {
   return { ...analytics };
+}
+
+export function __resetAnalyticsForTests() {
+  analytics.queries = 0;
+  analytics.fallbacks = 0;
+  analytics.fallbackReasons = {};
+  analytics.lastQuery = null;
 }

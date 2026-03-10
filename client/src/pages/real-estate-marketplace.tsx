@@ -20,6 +20,7 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { formatCountyLabel } from "@/utils/countyFipsToName";
 
 type HomeScoutListing = {
   id: string;
@@ -307,7 +308,9 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
             <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardContent className="p-4 md:p-6">
                 <div className="mb-4 md:mb-6">
-                  <h2 className="text-base md:text-lg font-semibold text-white">HomeScout Structure</h2>
+                  <h2 className="text-base md:text-lg font-semibold text-white">
+                    HomeScout Structure
+                  </h2>
                   <p className="mt-1 text-xs md:text-sm text-white/70">
                     Each item is a standalone HomeScout surface that stays in sync with county-first
                     discovery and intent-based contact.
@@ -498,7 +501,8 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                         <div className="flex items-center gap-2 text-sm text-white/70">
                           <MapPin className="h-4 w-4 text-white/60" />
                           <span>
-                            {locationLabel || `${listing.countyFips}, ${listing.stateCode}`}
+                            {locationLabel ||
+                              formatCountyLabel(listing.countyFips, listing.stateCode)}
                           </span>
                         </div>
                       </div>

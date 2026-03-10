@@ -21,6 +21,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { BriefcaseBusiness, UserRoundSearch, Sparkles, X } from "lucide-react";
+import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { StateCountySelector } from "@/components/state-county-selector";
 
 type EmploymentPostType = "job" | "resume";
 type EmploymentPostStatus = "open" | "closed";
@@ -84,8 +86,11 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | undefined>(
     defaultCountyFips || user?.countyFips || undefined
   );
+  const [selectedStateCode, setSelectedStateCode] = useState<string>(user?.stateCode || "");
+  const selectedCountyLabel = selectedCountyFips
+    ? formatCountyLabel(selectedCountyFips, selectedStateCode || user?.stateCode)
+    : "County not set";
   const [showCountySelector, setShowCountySelector] = useState(false);
-  const [countyInput, setCountyInput] = useState("");
 
   const [q, setQ] = useState("");
   const [selectedTrade, setSelectedTrade] = useState<string>("");
@@ -117,12 +122,6 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     if (!defaultCountyFips) return;
     setSelectedCountyFips((prev) => prev || defaultCountyFips);
   }, [defaultCountyFips]);
-
-  useEffect(() => {
-    if (showCountySelector) {
-      setCountyInput(selectedCountyFips || "");
-    }
-  }, [showCountySelector, selectedCountyFips]);
 
   const { data: trades = [] } = useQuery({
     queryKey: ["/api/trades"],
@@ -239,7 +238,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 <Sparkles className="h-4 w-4" />
                 Local board{" "}
                 <span className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]">
-                  {selectedCountyFips || "County not set"}
+                  {selectedCountyLabel}
                 </span>
               </div>
               <div className="text-sm text-[color:var(--text-secondary)]">{headerCopy}</div>
@@ -471,23 +470,14 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
             <p>
               Current county:{" "}
               <span className="font-semibold text-[color:var(--text-primary)]">
-                {selectedCountyFips || "Not set"}
+                {selectedCountyLabel}
               </span>
             </p>
-            <Input
-              type="text"
-              placeholder="Enter county FIPS code (e.g., 04013 for Maricopa, AZ)"
-              value={countyInput}
-              onChange={(e) => setCountyInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const next = countyInput.trim();
-                  if (next && next !== selectedCountyFips) {
-                    setSelectedCountyFips(next);
-                    setShowCountySelector(false);
-                  }
-                }
-              }}
+            <StateCountySelector
+              selectedState={selectedStateCode}
+              selectedCounty={selectedCountyFips || ""}
+              onStateChange={(value) => setSelectedStateCode(value)}
+              onCountyChange={(value) => setSelectedCountyFips(value || undefined)}
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowCountySelector(false)}>
@@ -495,9 +485,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               </Button>
               <Button
                 onClick={() => {
-                  const next = countyInput.trim();
-                  if (next && next !== selectedCountyFips) {
-                    setSelectedCountyFips(next);
+                  if (selectedCountyFips) {
                     setShowCountySelector(false);
                   }
                 }}
@@ -562,7 +550,7 @@ function PostList({
                     {pay && <Badge variant="outline">{pay}</Badge>}
                   </div>
                   <div className="mt-1 text-xs text-[color:var(--text-muted)]">
-                    County: {post.countyFips}
+                    County: {formatCountyLabel(post.countyFips, post.stateCode)}
                     {post.city ? ` • ${post.city}` : ""}
                   </div>
                 </div>

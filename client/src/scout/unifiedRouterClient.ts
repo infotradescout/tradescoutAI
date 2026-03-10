@@ -172,8 +172,28 @@ class RoutingCache {
 }
 
 export class UnifiedScoutRouterClient {
-  private static readonly apiBase = "/api/scout/routing";
+  private static readonly apiBases = ["/api/scout/routing", "/api/assistant/routing"] as const;
   private static readonly cache = new RoutingCache();
+
+  private static async postRouting(path: string, payload: Record<string, unknown>) {
+    for (const apiBase of this.apiBases) {
+      try {
+        const res = await fetch(`${apiBase}${path}`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.status === 404) {
+          continue;
+        }
+        return res;
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  }
 
   static async resolveIntent(
     intent: string,
@@ -184,17 +204,13 @@ export class UnifiedScoutRouterClient {
     if (cached) return cached;
 
     try {
-      const res = await fetch(`${this.apiBase}/resolve-intent`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intent, userContext, ...options }),
-      });
+      const res = await this.postRouting("/resolve-intent", { intent, userContext, ...options });
 
-      if (!res.ok) {
-        if (res.status === 404) return null;
+      if (!res) {
         return this.localFallbackDecision(intent);
       }
+
+      if (!res.ok) return this.localFallbackDecision(intent);
 
       const decision = (await res.json()) as UnifiedRoutingDecision;
       this.cache.set(intent, userContext.userRole, options, decision);
@@ -209,14 +225,9 @@ export class UnifiedScoutRouterClient {
     userContext: UnifiedRouterUserContext
   ): Promise<UnifiedActionValidation> {
     try {
-      const res = await fetch(`${this.apiBase}/validate-action`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, userContext }),
-      });
+      const res = await this.postRouting("/validate-action", { action, userContext });
 
-      if (!res.ok) return this.localValidate(action, userContext);
+      if (!res || !res.ok) return this.localValidate(action, userContext);
       return (await res.json()) as UnifiedActionValidation;
     } catch {
       return this.localValidate(action, userContext);
@@ -225,13 +236,8 @@ export class UnifiedScoutRouterClient {
 
   static async discoverFeatures(query: string, userContext: UnifiedRouterUserContext) {
     try {
-      const res = await fetch(`${this.apiBase}/discover-features`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, userContext }),
-      });
-      if (!res.ok) return [];
+      const res = await this.postRouting("/discover-features", { query, userContext });
+      if (!res || !res.ok) return [];
       return await res.json();
     } catch {
       return [];
@@ -244,13 +250,12 @@ export class UnifiedScoutRouterClient {
     userContext: UnifiedRouterUserContext
   ): Promise<ScoutAction[]> {
     try {
-      const res = await fetch(`${this.apiBase}/generate-fallback`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ originalIntent, failureReason, userContext }),
+      const res = await this.postRouting("/generate-fallback", {
+        originalIntent,
+        failureReason,
+        userContext,
       });
-      if (!res.ok) return this.localFallbackActions();
+      if (!res || !res.ok) return this.localFallbackActions();
       return (await res.json()) as ScoutAction[];
     } catch {
       return this.localFallbackActions();

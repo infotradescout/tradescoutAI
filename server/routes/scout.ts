@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Scout ingests dynamic JSON (LLM + integrations); harden types iteratively. */
 
-import { recordQuery, getAnalytics, getAuditLog } from "../services/adminAnalytics";
+import { recordQuery, recordFallback, getAnalytics, getAuditLog } from "../services/adminAnalytics";
 import { Router, type Request, Response } from "express";
 import {
   extractUserMessage,
@@ -11,7 +11,11 @@ import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCa
 import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
 import { GeminiProvider, VertexGeminiProvider, LLMProvider } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
+import {
+  GeminiRateLimitError,
+  generateGeminiTextWithFallback,
+  getGeminiFallbackRuntimeState,
+} from "../ai/geminiFallback";
 import type { User } from "../assistantActions";
 import {
   resolveKnowledge,
@@ -988,7 +992,11 @@ async function generateSmartSynthesis(
     return trimResponseToScreenFit(text, { mode: "intro" });
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
-    return "I encountered an error creating a comprehensive overview. Please try again.";
+    recordFallback(isGeminiRateLimitFailure(error) ? "intro_rate_limited" : "intro_error");
+    if (isGeminiRateLimitFailure(error)) {
+      return "Scout is seeing high demand right now. I can still orient you quickly: TradeScout is your county operating system where Scout routes people to trusted next steps across Direct Connect, Community, and Exchange without breaking trust gates.";
+    }
+    return "I couldn't generate the full overview right now, but I can still guide you through Direct Connect, Community, and Exchange from here.";
   }
 }
 
@@ -1005,6 +1013,39 @@ async function generateSmartSynthesis(
  */
 function buildSafeSynthesisFallbackMessage(): string {
   return "I'm having trouble generating a full answer right now, but I can still route you to the right next step.";
+}
+
+function isGeminiRateLimitFailure(error: unknown): boolean {
+  if (error instanceof GeminiRateLimitError) return true;
+  const status = Number((error as any)?.status || (error as any)?.response?.status || 0);
+  if (status === 429) return true;
+  const message = String((error as any)?.message || "")
+    .trim()
+    .toLowerCase();
+  return (
+    message.includes("too many requests") ||
+    message.includes("rate limit") ||
+    message.includes("quota") ||
+    message.includes("resource exhausted")
+  );
+}
+
+function buildContextualSynthesisFallbackMessage(
+  knowledgeAnswer: string | undefined,
+  opts?: { rateLimited?: boolean }
+): string {
+  const base = String(knowledgeAnswer || "").trim();
+  if (base.length > 0) {
+    const prefix = opts?.rateLimited
+      ? "I'm seeing heavy demand right now, so I'm using your current local context and known guidance:"
+      : "I couldn't complete full synthesis right now, so I'm using your current local context and known guidance:";
+    return trimResponseToScreenFit(`${prefix}\n\n${base}`);
+  }
+
+  if (opts?.rateLimited) {
+    return "I'm seeing heavy demand right now, but I can still route you to the right next step.";
+  }
+  return buildSafeSynthesisFallbackMessage();
 }
 
 async function synthesizeResponse(
@@ -1219,6 +1260,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         !parsed.suggestedActions
       ) {
         console.warn("[Scout] LLM response missing required schema fields, using fallback");
+        recordFallback("schema_violation");
         return {
           intent: "unknown",
           thought_flow: [
@@ -1271,6 +1313,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
     } catch (parseError) {
       console.error("[Scout] Failed to parse LLM JSON response:", parseError);
       console.error("[Scout] Raw response was:", rawResponse);
+      recordFallback("json_parse_error");
 
       // NO FALLBACK PATHS - Return structured error
       return {
@@ -1287,13 +1330,25 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
     }
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
+    const isRateLimited = isGeminiRateLimitFailure(error);
+    recordFallback(isRateLimited ? "synthesis_rate_limited" : "synthesis_system_error");
 
     // Even errors must follow the contract
     return {
-      intent: "system_error",
-      thought_flow: ["System error occurred during synthesis", "Returning safe fallback"],
-      decision: "System error fallback",
-      message: buildSafeSynthesisFallbackMessage(),
+      intent: isRateLimited ? "llm_rate_limited" : "system_error",
+      thought_flow: isRateLimited
+        ? [
+            "Gemini returned rate-limit signals",
+            "Switching to contextual local fallback",
+            "Returning actionable next steps without bypassing trust gates",
+          ]
+        : ["System error occurred during synthesis", "Returning safe fallback"],
+      decision: isRateLimited
+        ? "Rate-limit fallback using knowledge context"
+        : "System error fallback",
+      message: buildContextualSynthesisFallbackMessage(knowledge.answer, {
+        rateLimited: isRateLimited,
+      }),
       suggestedActions: DEFAULT_ACTIONS,
     };
   }
@@ -5040,6 +5095,7 @@ router.get("/admin/system-status", (req: Request, res: Response) => {
       cache: "healthy",
       database: process.env.DATABASE_URL ? "connected" : "not_configured",
       gemini: !!process.env.GEMINI_API_KEY ? "configured" : "missing",
+      geminiFallback: getGeminiFallbackRuntimeState(),
       uptime: process.uptime(),
       memoryUsage: process.memoryUsage(),
       nodeVersion: process.version,
