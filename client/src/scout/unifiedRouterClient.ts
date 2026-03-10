@@ -22,6 +22,31 @@ export interface UnifiedRoutingDecision {
     intentMatched?: string;
     alternativeActions?: ScoutAction[];
     riskLevel?: "low" | "medium" | "high";
+    confidenceBand?: "low" | "medium" | "high";
+    trust?: {
+      trustSignals?: {
+        cvsScore?: number | null;
+        confidenceLevel?: "low" | "medium" | "high";
+        confidenceNumeric?: number;
+        verifiedActivityProof?: string;
+        verificationStatus?: "approved" | "pending" | "rejected" | "suspended" | "unknown";
+        riskFlags?: string[];
+        trustBandLabel?: string;
+        requiredReview?: boolean;
+      };
+      minRequiredScore?: number;
+      trustFilterApplied?: boolean;
+    };
+    tone?: {
+      scenario?:
+        | "default"
+        | "technical_fallback"
+        | "confidence_low"
+        | "blocked_action"
+        | "next_step_prompt";
+      toneScore?: number;
+      guardrailFlags?: string[];
+    };
   };
 }
 
@@ -36,26 +61,105 @@ export interface UnifiedActionValidation {
   };
 }
 
+export interface UnifiedSituationObjective {
+  id: string;
+  title?: string;
+  intentClass?: string;
+  status: "active" | "paused" | "completed" | "abandoned";
+  progressPct?: number;
+  updatedAt?: string;
+}
+
+export interface UnifiedSituationEvent {
+  type:
+    | "route_success"
+    | "route_failure"
+    | "action_success"
+    | "action_failure"
+    | "objective_started"
+    | "objective_completed"
+    | "contact_requested"
+    | "contact_granted"
+    | "contact_blocked"
+    | "message_sent"
+    | "other";
+  timestamp: string;
+  weight?: number;
+}
+
+export interface UnifiedUrgencySignal {
+  source:
+    | "deadline"
+    | "stalled_objective"
+    | "unread_contact"
+    | "failed_action"
+    | "direct_user_signal"
+    | "other";
+  level: 1 | 2 | 3;
+  observedAt?: string;
+  note?: string;
+}
+
+export interface UnifiedResolveOptions {
+  situation?: {
+    activeObjectives?: UnifiedSituationObjective[];
+    recentEvents?: UnifiedSituationEvent[];
+    urgencySignals?: UnifiedUrgencySignal[];
+    now?: string;
+  };
+  trust?: {
+    userId?: string;
+    countyFips?: string;
+    cvsScore?: number | null;
+    verifiedJobsCount?: number | null;
+    verifiedRecommendationsCount?: number | null;
+    verificationStatus?: "approved" | "pending" | "rejected" | "suspended" | "unknown";
+    riskFlags?: string[];
+    confidenceLevel?: "low" | "medium" | "high";
+  };
+  tone?: {
+    scenario?:
+      | "default"
+      | "technical_fallback"
+      | "confidence_low"
+      | "blocked_action"
+      | "next_step_prompt";
+    countyLabel?: string;
+    roleLabel?: string;
+    includeNextStep?: boolean;
+  };
+}
+
 class RoutingCache {
   private readonly cache = new Map<string, { decision: UnifiedRoutingDecision; ts: number }>();
   private readonly ttlMs = 5 * 60 * 1000;
 
-  private key(intent: string, userRole?: string): string {
-    return `${intent.toLowerCase().trim()}::${(userRole || "guest").toLowerCase()}`;
+  private key(intent: string, userRole?: string, options?: UnifiedResolveOptions): string {
+    const signature = options ? JSON.stringify(options) : "";
+    return `${intent.toLowerCase().trim()}::${(userRole || "guest").toLowerCase()}::${signature}`;
   }
 
-  get(intent: string, userRole?: string): UnifiedRoutingDecision | null {
-    const entry = this.cache.get(this.key(intent, userRole));
+  get(
+    intent: string,
+    userRole?: string,
+    options?: UnifiedResolveOptions
+  ): UnifiedRoutingDecision | null {
+    const entry = this.cache.get(this.key(intent, userRole, options));
     if (!entry) return null;
     if (Date.now() - entry.ts > this.ttlMs) {
-      this.cache.delete(this.key(intent, userRole));
+      this.cache.delete(this.key(intent, userRole, options));
       return null;
     }
     return entry.decision;
   }
 
-  set(intent: string, userRole: string | undefined, decision: UnifiedRoutingDecision): void {
-    this.cache.set(this.key(intent, userRole), { decision, ts: Date.now() });
+  set(
+    intent: string,
+    userRole: string | undefined,
+    options: UnifiedResolveOptions | undefined,
+    decision: UnifiedRoutingDecision
+  ): void {
+    this.cache.set(this.key(intent, userRole, options), { decision, ts: Date.now() });
   }
 
   clear(): void {
@@ -73,9 +177,10 @@ export class UnifiedScoutRouterClient {
 
   static async resolveIntent(
     intent: string,
-    userContext: UnifiedRouterUserContext
+    userContext: UnifiedRouterUserContext,
+    options?: UnifiedResolveOptions
   ): Promise<UnifiedRoutingDecision | null> {
-    const cached = this.cache.get(intent, userContext.userRole);
+    const cached = this.cache.get(intent, userContext.userRole, options);
     if (cached) return cached;
 
     try {
@@ -83,7 +188,7 @@ export class UnifiedScoutRouterClient {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intent, userContext }),
+        body: JSON.stringify({ intent, userContext, ...options }),
       });
 
       if (!res.ok) {
@@ -92,7 +197,7 @@ export class UnifiedScoutRouterClient {
       }
 
       const decision = (await res.json()) as UnifiedRoutingDecision;
-      this.cache.set(intent, userContext.userRole, decision);
+      this.cache.set(intent, userContext.userRole, options, decision);
       return decision;
     } catch {
       return this.localFallbackDecision(intent);

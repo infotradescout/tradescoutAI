@@ -14,8 +14,12 @@ describe("Scout evolution wiring contracts", () => {
     expect(source).toContain(
       'import WatchdogInterventionBanner from "./WatchdogInterventionBanner"'
     );
+    expect(source).toContain('import TrustAwareDecisionCard from "./TrustAwareDecisionCard"');
+    expect(source).toContain('import ToneAwareMessage from "./ToneAwareMessage"');
     expect(source).toContain("<ObjectiveOnboardingFlow");
     expect(source).toContain("<WatchdogInterventionBanner");
+    expect(source).toContain("<TrustAwareDecisionCard");
+    expect(source).toContain("<ToneAwareMessage");
   });
 
   it("calls new Scout evolution endpoints from ScoutOS", () => {
@@ -23,6 +27,8 @@ describe("Scout evolution wiring contracts", () => {
 
     expect(source).toContain('"/api/scout/onboarding/objective-bundle"');
     expect(source).toContain('"/api/scout/watchdog/evaluate"');
+    expect(source).toContain('"/api/scout/tone/build"');
+    expect(source).toContain("UnifiedScoutRouterClient.resolveIntent(");
   });
 
   it("exposes server endpoints for onboarding, watchdog, tone, and trust", () => {

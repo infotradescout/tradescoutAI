@@ -84,7 +84,10 @@ import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./loc
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
+import ToneAwareMessage from "./ToneAwareMessage";
+import TrustAwareDecisionCard from "./TrustAwareDecisionCard";
 import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
+import { UnifiedScoutRouterClient, type UnifiedRoutingDecision } from "./unifiedRouterClient";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -363,6 +366,21 @@ export default function ScoutOS() {
   const [objectiveOnboardingBundle, setObjectiveOnboardingBundle] = useState<any | null>(null);
   const [watchdogResult, setWatchdogResult] = useState<any | null>(null);
   const [dismissedWatchdogId, setDismissedWatchdogId] = useState<string | null>(null);
+  const [routingDecisionCard, setRoutingDecisionCard] = useState<UnifiedRoutingDecision | null>(
+    null
+  );
+  const [toneMessage, setToneMessage] = useState<null | {
+    message: string;
+    scenario?:
+      | "default"
+      | "technical_fallback"
+      | "confidence_low"
+      | "blocked_action"
+      | "next_step_prompt";
+    toneScore?: number;
+    guardrailFlags?: string[];
+    confidenceBand?: "low" | "medium" | "high";
+  }>(null);
 
   const [dcConfirmOpen, setDcConfirmOpen] = useState(false);
   const [dcDraft, setDcDraft] = useState<null | {
@@ -2543,6 +2561,93 @@ export default function ScoutOS() {
         // ==================================================================
         // FALLBACK: Use existing server flow if no intent matched
         // ==================================================================
+        // Unified router assist (situation + trust + tone) to surface a
+        // trust-aware decision card while the full Scout answer is generated.
+        try {
+          const resolve = await UnifiedScoutRouterClient.resolveIntent(
+            value,
+            {
+              userId: typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
+              isAuthenticated: Boolean(isAuthenticated),
+              userRole:
+                typeof (user as any)?.role === "string"
+                  ? String((user as any).role)
+                  : sessionRole || undefined,
+              location: {
+                county: locality?.county,
+                state: locality?.state,
+                region: undefined,
+              },
+              trustLevel: undefined,
+            },
+            {
+              situation: {
+                activeObjectives: activeObjective
+                  ? [
+                      {
+                        id: activeObjective.id,
+                        title: activeObjective.title,
+                        intentClass: activeObjective.intentClass,
+                        status: activeObjective.status,
+                        progressPct: objectiveStatusToProgress(activeObjective.status),
+                        updatedAt: activeObjective.updatedAt,
+                      },
+                    ]
+                  : [],
+                recentEvents: state.messages.slice(-6).map((m) => ({
+                  type: m.role === "assistant" ? "action_success" : "message_sent",
+                  timestamp: m.timestamp,
+                })),
+                urgencySignals: [
+                  {
+                    source: "direct_user_signal",
+                    level: /urgent|asap|today|now/i.test(value) ? 3 : 2,
+                  },
+                ],
+                now: new Date().toISOString(),
+              },
+              trust: {
+                userId:
+                  typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
+                countyFips:
+                  typeof (user as any)?.countyFips === "string"
+                    ? String((user as any).countyFips)
+                    : typeof (user as any)?.county_fips === "string"
+                      ? String((user as any).county_fips)
+                      : undefined,
+                cvsScore:
+                  typeof (user as any)?.cvsScore === "number"
+                    ? Number((user as any).cvsScore)
+                    : typeof (user as any)?.trustScore === "number"
+                      ? Number((user as any).trustScore)
+                      : null,
+                verificationStatus:
+                  typeof (user as any)?.verificationStatus === "string"
+                    ? ((user as any).verificationStatus as any)
+                    : "unknown",
+                riskFlags: [],
+              },
+              tone: {
+                scenario: "next_step_prompt",
+                countyLabel: locality?.county,
+                roleLabel:
+                  typeof (user as any)?.role === "string"
+                    ? String((user as any).role)
+                    : sessionRole || undefined,
+                includeNextStep: true,
+              },
+            }
+          );
+
+          if (resolve) {
+            setRoutingDecisionCard(resolve);
+          } else {
+            setRoutingDecisionCard(null);
+          }
+        } catch {
+          setRoutingDecisionCard(null);
+        }
+
         // Once we start building the server payload and hitting /api/scout,
         // switch to CHECKING_DOCUMENTS to drive the loader animation.
         setStatus("checking_documents");
@@ -2788,6 +2893,57 @@ export default function ScoutOS() {
 
         applyServerResponse(msg, res.actions);
 
+        try {
+          const toneRes = await fetch("/api/scout/tone/build", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scenario:
+                res.metadata?.resolvedContext?.confidence === "low"
+                  ? "confidence_low"
+                  : "next_step_prompt",
+              message: msg.content,
+              countyLabel: locality?.county,
+              roleLabel:
+                typeof (user as any)?.role === "string"
+                  ? String((user as any).role)
+                  : sessionRole || undefined,
+              confidenceBand:
+                res.metadata?.resolvedContext?.confidence === "low" ||
+                res.metadata?.resolvedContext?.confidence === "medium" ||
+                res.metadata?.resolvedContext?.confidence === "high"
+                  ? res.metadata.resolvedContext.confidence
+                  : "medium",
+              includeNextStep: true,
+              nextStepLabel: msg.navTarget ? "Open next step" : "Continue in Scout",
+              nextStepRoute: msg.navTarget || "/scout",
+            }),
+          });
+
+          if (toneRes.ok) {
+            const built = await toneRes.json();
+            setToneMessage({
+              message: String(built?.message || ""),
+              scenario: built?.scenario,
+              toneScore: typeof built?.toneScore === "number" ? built.toneScore : undefined,
+              guardrailFlags: Array.isArray(built?.guardrailFlags)
+                ? built.guardrailFlags
+                : undefined,
+              confidenceBand:
+                res.metadata?.resolvedContext?.confidence === "low" ||
+                res.metadata?.resolvedContext?.confidence === "medium" ||
+                res.metadata?.resolvedContext?.confidence === "high"
+                  ? res.metadata.resolvedContext.confidence
+                  : undefined,
+            });
+          } else {
+            setToneMessage(null);
+          }
+        } catch {
+          setToneMessage(null);
+        }
+
         // Persist a lightweight "resume" snapshot so other surfaces can offer a
         // single-click "continue in Scout" affordance without the user having to
         // hunt for the last thread.
@@ -2935,6 +3091,7 @@ export default function ScoutOS() {
       state.messages,
       queueAutoRoute,
       refreshObjective,
+      activeObjective,
       user,
       userRoles,
     ]
@@ -4232,6 +4389,87 @@ export default function ScoutOS() {
                     }}
                     onDismissIntervention={(interventionId) => {
                       setDismissedWatchdogId(interventionId);
+                    }}
+                  />
+                )}
+
+                {routingDecisionCard?.action &&
+                  routingDecisionCard.metadata?.trust?.trustSignals && (
+                    <TrustAwareDecisionCard
+                      title="Scout recommended route"
+                      summary={routingDecisionCard.reasoning}
+                      primaryAction={routingDecisionCard.action}
+                      alternativeActions={routingDecisionCard.metadata?.alternativeActions}
+                      confidence={routingDecisionCard.confidence}
+                      confidenceBand={routingDecisionCard.metadata?.confidenceBand}
+                      riskLevel={routingDecisionCard.metadata?.riskLevel}
+                      trust={{
+                        trustSignals: {
+                          cvsScore:
+                            typeof routingDecisionCard.metadata?.trust?.trustSignals?.cvsScore ===
+                            "number"
+                              ? routingDecisionCard.metadata.trust.trustSignals.cvsScore
+                              : null,
+                          confidenceLevel:
+                            routingDecisionCard.metadata?.trust?.trustSignals?.confidenceLevel ||
+                            "medium",
+                          confidenceNumeric:
+                            typeof routingDecisionCard.metadata?.trust?.trustSignals
+                              ?.confidenceNumeric === "number"
+                              ? routingDecisionCard.metadata.trust.trustSignals.confidenceNumeric
+                              : 0.64,
+                          verifiedActivityProof:
+                            routingDecisionCard.metadata?.trust?.trustSignals
+                              ?.verifiedActivityProof || "No verified activity proof yet",
+                          verificationStatus:
+                            routingDecisionCard.metadata?.trust?.trustSignals?.verificationStatus ||
+                            "unknown",
+                          riskFlags: Array.isArray(
+                            routingDecisionCard.metadata?.trust?.trustSignals?.riskFlags
+                          )
+                            ? routingDecisionCard.metadata.trust.trustSignals.riskFlags
+                            : [],
+                          trustBandLabel:
+                            routingDecisionCard.metadata?.trust?.trustSignals?.trustBandLabel ||
+                            "CVS pending",
+                          requiredReview: Boolean(
+                            routingDecisionCard.metadata?.trust?.trustSignals?.requiredReview
+                          ),
+                        },
+                        minRequiredScore:
+                          typeof routingDecisionCard.metadata?.trust?.minRequiredScore === "number"
+                            ? routingDecisionCard.metadata.trust.minRequiredScore
+                            : 0,
+                        trustFilterApplied: Boolean(
+                          routingDecisionCard.metadata?.trust?.trustFilterApplied
+                        ),
+                      }}
+                      onAction={(action) => {
+                        void handleClusterAction(action);
+                      }}
+                      onOpenTrustModel={() => {
+                        if (!maybeOpenWorkAreaForRoute("/trust-model", "Trust model")) {
+                          navigate("/trust-model");
+                        }
+                      }}
+                    />
+                  )}
+
+                {toneMessage?.message && (
+                  <ToneAwareMessage
+                    message={toneMessage.message}
+                    scenario={toneMessage.scenario}
+                    toneScore={toneMessage.toneScore}
+                    guardrailFlags={toneMessage.guardrailFlags}
+                    confidenceBand={toneMessage.confidenceBand}
+                    onUseNextStep={() => {
+                      const target =
+                        routingDecisionCard?.action?.to || routingDecisionCard?.action?.path;
+                      if (typeof target === "string" && target.length > 0) {
+                        if (!maybeOpenWorkAreaForRoute(target, "Tone-aware next step")) {
+                          navigate(target);
+                        }
+                      }
                     }}
                   />
                 )}
