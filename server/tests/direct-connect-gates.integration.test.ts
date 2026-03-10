@@ -43,6 +43,45 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(inserted).toHaveLength(0);
   });
 
+  it("allows unverified homeowner request creation when direct-connect demo bypass is enabled", async () => {
+    const previous = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
+    process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";
+
+    try {
+      const { agent, user } = await createAuthedAgent({
+        role: "homeowner",
+        addressVerified: false,
+        emailVerified: true,
+        onboardingCompleted: true,
+      });
+
+      const title = `Gate bypass ${Date.now()}`;
+
+      const res = await agent.post("/api/direct-connect/requests").send({
+        title,
+        description: "Need help replacing a bathroom vanity and faucet.",
+        category: "service_request",
+      });
+
+      expect(res.status).toBe(201);
+
+      const inserted = await db
+        .select()
+        .from(workRequests)
+        .where(
+          and(eq(workRequests.createdByUserId, String(user.id)), eq(workRequests.title, title))
+        );
+
+      expect(inserted).toHaveLength(1);
+    } finally {
+      if (typeof previous === "undefined") {
+        delete process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
+      } else {
+        process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = previous;
+      }
+    }
+  });
+
   it("fails closed when trade requires verification and none of the candidate contractors qualify", async () => {
     const { agent, user: requester } = await createAuthedAgent({
       role: "homeowner",
@@ -150,6 +189,126 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       .from(workRequestAssignments)
       .where(eq(workRequestAssignments.workRequestId, requestRow.id));
     expect(assignments).toHaveLength(0);
+  });
+
+  it("routes requests even when trade has verification requirements if demo bypass is enabled", async () => {
+    const previous = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
+    process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";
+
+    try {
+      const { agent, user: requester } = await createAuthedAgent({
+        role: "homeowner",
+        addressVerified: false,
+        emailVerified: true,
+        onboardingCompleted: true,
+      });
+
+      const [county] = await db.select().from(counties).limit(1);
+      expect(county).toBeTruthy();
+
+      const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+      const tradeSlug = `gate-bypass-trade-${unique}`;
+      const [trade] = await db
+        .insert(trades)
+        .values({
+          name: `Gate Bypass Trade ${unique}`,
+          slug: tradeSlug,
+        } as any)
+        .returning();
+      expect(trade).toBeTruthy();
+
+      await db.insert(tradeRequirements).values({
+        tradeId: trade.id,
+        requiresLicense: true,
+        requiresInsurance: true,
+        requiresEin: true,
+        notes: "Integration bypass gate",
+      } as any);
+
+      const contractorUserA = await createUserOnly({
+        role: "contractor",
+        emailVerified: true,
+        addressVerified: false,
+        onboardingCompleted: true,
+      });
+      const contractorUserB = await createUserOnly({
+        role: "contractor",
+        emailVerified: true,
+        addressVerified: false,
+        onboardingCompleted: true,
+      });
+
+      const [contractorA] = await db
+        .insert(contractors)
+        .values({
+          userId: contractorUserA.id,
+          companyName: `Bypass A ${unique}`,
+          slug: `bypass-a-${unique}`,
+          isActive: true,
+        } as any)
+        .returning();
+      const [contractorB] = await db
+        .insert(contractors)
+        .values({
+          userId: contractorUserB.id,
+          companyName: `Bypass B ${unique}`,
+          slug: `bypass-b-${unique}`,
+          isActive: true,
+        } as any)
+        .returning();
+
+      await db
+        .insert(contractorTrades)
+        .values([
+          { contractorId: contractorA.id, tradeId: trade.id } as any,
+          { contractorId: contractorB.id, tradeId: trade.id } as any,
+        ]);
+
+      await db
+        .insert(contractorCounties)
+        .values([
+          { contractorId: contractorA.id, countyId: county.id } as any,
+          { contractorId: contractorB.id, countyId: county.id } as any,
+        ]);
+
+      const [requestRow] = await db
+        .insert(workRequests)
+        .values({
+          createdByUserId: requester.id,
+          title: `Route bypass ${unique}`,
+          description: "Route should bypass verification gates in demo mode.",
+          category: "service_request",
+          tradeId: trade.slug,
+          countyFips: county.fips,
+          stateCode: county.stateCode,
+          source: "direct_connect" as any,
+          scope: "community",
+          status: "open",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+        } as any)
+        .returning();
+
+      const res = await agent.post(`/api/direct-connect/requests/${requestRow.id}/route`).send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body?.routed).toBe(true);
+      expect(Array.isArray(res.body?.assignments)).toBe(true);
+      expect(res.body.assignments.length).toBeGreaterThan(0);
+
+      const assignments = await db
+        .select()
+        .from(workRequestAssignments)
+        .where(eq(workRequestAssignments.workRequestId, requestRow.id));
+      expect(assignments.length).toBeGreaterThan(0);
+    } finally {
+      if (typeof previous === "undefined") {
+        delete process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
+      } else {
+        process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = previous;
+      }
+    }
   });
 
   it("lists only direct_connect requests for the authenticated requester", async () => {

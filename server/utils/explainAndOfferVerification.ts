@@ -281,32 +281,33 @@ export function buildVerificationGateResponse(
  * Helper: Check if user is already verified for action
  * (Used in C2-3 to decide whether to show gate or proceed)
  */
+import { applyPrivilegedVerificationBypass } from "./privilegedVerification";
+
 export function isUserVerifiedFor(
   user: any,
   action: string,
   requirementsMap: Record<string, string[]>
 ): boolean {
-  if (hasPrivilegedVerificationBypass(user)) {
-    return true;
-  }
+  // Always apply privileged bypass: if admin/manual verified, treat as fully verified for all gates
+  const effectiveUser = applyPrivilegedVerificationBypass(user);
 
   const requirements = requirementsMap[action] || [];
 
   for (const req of requirements) {
     switch (req) {
       case "address":
-        if (!user.addressVerified) return false;
+        if (!effectiveUser.addressVerified) return false;
         break;
       case "license":
       case "insurance":
-        if (user.verificationStatus !== "approved") return false;
+        if (effectiveUser.verificationStatus !== "approved") return false;
         break;
       case "identity":
       case "tax_id":
-        if (!user.identityVerified) return false; // Future field
+        if (!effectiveUser.identityVerified) return false; // Future field
         break;
       case "bank_account":
-        if (!user.bankAccountVerified) return false; // Future field
+        if (!effectiveUser.bankAccountVerified) return false; // Future field
         break;
     }
   }

@@ -16,4 +16,10 @@ describe("runtime migration contracts", () => {
     expect(source).toContain("to_regtype('public.address_verification_status')::text");
     expect(source).toContain("const hasLegacyBaseSchema =");
   });
+
+  it("detects DML by statement-leading verbs (not FK ON DELETE/ON UPDATE clauses)", () => {
+    const source = read("server/runtimeMigrations.ts");
+    expect(source).toContain("Only treat statement-leading DML as mutating data.");
+    expect(source).toContain("return /(^|;\\s*)(insert|update|delete|truncate)\\s+/im.test(sql);");
+  });
 });

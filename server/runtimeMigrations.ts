@@ -129,7 +129,9 @@ const DUPLICATE_SCHEMA_ERROR_CODES = new Set([
 ]);
 
 function migrationContainsDml(sql: string): boolean {
-  return /\b(insert|update|delete|truncate)\b/i.test(sql);
+  // Only treat statement-leading DML as mutating data.
+  // This avoids false positives from FK clauses like "ON DELETE/ON UPDATE".
+  return /(^|;\s*)(insert|update|delete|truncate)\s+/im.test(sql);
 }
 
 async function schemaLooksInitialized(): Promise<boolean> {
