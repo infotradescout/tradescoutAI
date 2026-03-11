@@ -88,6 +88,7 @@ export function AuthorityOperations() {
   // Observation Mode Lock
   const { data: observationLock } = useQuery<ObservationLock>({
     queryKey: ["/api/admin/authority/observation-lock"],
+    retry: false,
   });
 
   const toggleObservationMutation = useMutation({
@@ -105,23 +106,31 @@ export function AuthorityOperations() {
   });
 
   // Decision Card Metrics
-  const { data: metrics } = useQuery<DecisionCardMetrics>({
+  const {
+    data: metrics,
+    isError: metricsFailed,
+    error: metricsError,
+  } = useQuery<DecisionCardMetrics>({
     queryKey: ["/api/admin/authority/decision-card-metrics"],
+    retry: false,
   });
 
   // Override Legitimacy Matrix
-  const { data: legitimacy } = useQuery<OverrideLegitimacy[]>({
+  const { data: legitimacy, isError: legitimacyFailed } = useQuery<OverrideLegitimacy[]>({
     queryKey: ["/api/admin/authority/override-legitimacy"],
+    retry: false,
   });
 
   // Cancel Signals
-  const { data: cancelSignals } = useQuery<CancelSignals>({
+  const { data: cancelSignals, isError: cancelSignalsFailed } = useQuery<CancelSignals>({
     queryKey: ["/api/admin/authority/cancel-signals"],
+    retry: false,
   });
 
   // Unlock Ledger
-  const { data: unlockLedger } = useQuery<UnlockCondition[]>({
+  const { data: unlockLedger, isError: unlockLedgerFailed } = useQuery<UnlockCondition[]>({
     queryKey: ["/api/admin/authority/unlock-ledger"],
+    retry: false,
   });
 
   const [unlockNotes, setUnlockNotes] = useState<Record<string, string>>({});
@@ -212,6 +221,15 @@ export function AuthorityOperations() {
           )}
         </Badge>
       </div>
+      {(metricsFailed || legitimacyFailed || cancelSignalsFailed || unlockLedgerFailed) && (
+        <div className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-200">
+          Some authority analytics endpoints are currently unavailable. Values shown below may be
+          incomplete for this session.
+          {metricsFailed
+            ? ` Metrics error: ${String((metricsError as any)?.message || "request failed")}.`
+            : ""}
+        </div>
+      )}
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="bg-white/5">
@@ -280,9 +298,11 @@ export function AuthorityOperations() {
               <CardDescription>Read-only metrics from authority contract exposure</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {metrics?.available === false && (
+              {(metricsFailed || metrics?.available === false) && (
                 <div className="rounded border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">
-                  {metrics.message || "Decision card analytics are not yet available."}
+                  {metricsFailed
+                    ? "Decision card analytics endpoint is unavailable."
+                    : metrics?.message || "Decision card analytics are not yet available."}
                 </div>
               )}
               {/* Total Shown */}
@@ -290,14 +310,14 @@ export function AuthorityOperations() {
                 <div className="p-4 bg-white/5 rounded-lg">
                   <div className="text-sm text-white/60">Total Decision Cards Shown</div>
                   <div className="text-3xl font-bold text-white mt-2">
-                    {metrics?.totalShown ?? 0}
+                    {metricsFailed ? "N/A" : (metrics?.totalShown ?? 0)}
                   </div>
                 </div>
                 <div className="p-4 bg-white/5 rounded-lg">
                   <div className="text-sm text-white/60">7-Day Trend</div>
                   <div className="text-2xl font-bold mt-2">
                     {metrics?.trend.shown_7d_change !== undefined
-                      ? renderTrend(metrics.trend.shown_7d_change)
+                      ? renderTrend(metrics?.trend?.shown_7d_change ?? 0)
                       : "—"}
                   </div>
                 </div>
@@ -362,7 +382,7 @@ export function AuthorityOperations() {
                       </TableCell>
                       <TableCell className="text-right">
                         {metrics?.trend.choice_7d_deltas?.contact_now !== undefined
-                          ? renderTrend(metrics.trend.choice_7d_deltas.contact_now)
+                          ? renderTrend(metrics?.trend?.choice_7d_deltas?.contact_now ?? 0)
                           : "—"}
                       </TableCell>
                     </TableRow>
@@ -373,7 +393,7 @@ export function AuthorityOperations() {
                       </TableCell>
                       <TableCell className="text-right">
                         {metrics?.trend.choice_7d_deltas?.ask_scout !== undefined
-                          ? renderTrend(metrics.trend.choice_7d_deltas.ask_scout)
+                          ? renderTrend(metrics?.trend?.choice_7d_deltas?.ask_scout ?? 0)
                           : "—"}
                       </TableCell>
                     </TableRow>
@@ -384,7 +404,7 @@ export function AuthorityOperations() {
                       </TableCell>
                       <TableCell className="text-right">
                         {metrics?.trend.choice_7d_deltas?.proceed_anyway !== undefined
-                          ? renderTrend(metrics.trend.choice_7d_deltas.proceed_anyway)
+                          ? renderTrend(metrics?.trend?.choice_7d_deltas?.proceed_anyway ?? 0)
                           : "—"}
                       </TableCell>
                     </TableRow>
@@ -395,7 +415,7 @@ export function AuthorityOperations() {
                       </TableCell>
                       <TableCell className="text-right">
                         {metrics?.trend.choice_7d_deltas?.cancel !== undefined
-                          ? renderTrend(metrics.trend.choice_7d_deltas.cancel)
+                          ? renderTrend(metrics?.trend?.choice_7d_deltas?.cancel ?? 0)
                           : "—"}
                       </TableCell>
                     </TableRow>
@@ -406,7 +426,7 @@ export function AuthorityOperations() {
                       </TableCell>
                       <TableCell className="text-right">
                         {metrics?.trend.choice_7d_deltas?.understand_risk !== undefined
-                          ? renderTrend(metrics.trend.choice_7d_deltas.understand_risk)
+                          ? renderTrend(metrics?.trend?.choice_7d_deltas?.understand_risk ?? 0)
                           : "—"}
                       </TableCell>
                     </TableRow>

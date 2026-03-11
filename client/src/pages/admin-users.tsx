@@ -482,16 +482,7 @@ export default function AdminUsers() {
         return;
     }
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-        headers: body ? { "Content-Type": "application/json" } : undefined,
-        body,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Action failed");
-      }
+      await apiRequest("POST", url, body ? JSON.parse(body) : undefined);
       toast({ title: successMsg });
       // Refresh users list reactively instead of full page reload
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
