@@ -666,7 +666,7 @@ export default function AdminProvisionUser() {
                   value={editTargetEmail}
                   onChange={(e) => setEditTargetEmail(e.target.value)}
                   placeholder="user@example.com"
-                  autoComplete="email"
+                  autoComplete="username"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
@@ -787,6 +787,7 @@ export default function AdminProvisionUser() {
                   value={editReason}
                   onChange={(e) => setEditReason(e.target.value)}
                   placeholder="User requested profile correction via support ticket..."
+                  autoComplete="off"
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>

@@ -431,26 +431,50 @@ export default function AdminUsers() {
     let url = "";
     let body: any = undefined;
     let successMsg = "";
+    const actionLabel =
+      action === "revoke_verify"
+        ? "revoke verification"
+        : action === "role"
+          ? "change role"
+          : action;
+    const reason = window.prompt(
+      `Enter reason for ${actionLabel} (min 12 characters):`,
+      "Admin support action requested by user."
+    );
+    if (!reason || reason.trim().length < 12) {
+      toast({
+        title: "Reason required",
+        description: "This action requires an audit reason (min 12 chars).",
+        variant: "destructive",
+      });
+      setPendingAction((prev) => ({ ...prev, [key]: false }));
+      return;
+    }
+    const reasonPayload = { reason: reason.trim() };
     switch (action) {
       case "suspend":
         url = `/api/admin/user-controls/suspend/${userId}`;
+        body = JSON.stringify(reasonPayload);
         successMsg = "User suspended";
         break;
       case "unsuspend":
         url = `/api/admin/user-controls/unsuspend/${userId}`;
+        body = JSON.stringify(reasonPayload);
         successMsg = "User unsuspended";
         break;
       case "verify":
         url = `/api/admin/user-controls/verify/${userId}`;
+        body = JSON.stringify(reasonPayload);
         successMsg = "User verified";
         break;
       case "revoke_verify":
         url = `/api/admin/user-controls/revoke-verify/${userId}`;
+        body = JSON.stringify(reasonPayload);
         successMsg = "Verification revoked";
         break;
       case "role":
         url = `/api/admin/user-controls/role/${userId}`;
-        body = JSON.stringify({ newRole });
+        body = JSON.stringify({ newRole, ...reasonPayload });
         successMsg = `Role updated to ${newRole?.replace("_", " ")}`;
         break;
       default:

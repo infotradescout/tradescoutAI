@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl, getApiBaseUrl } from "@/lib/apiBaseUrl";
+import { inferCountyForCityState } from "@/lib/countyInference";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine";
@@ -17,6 +18,7 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type AuthMode = "create" | "signin";
+type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
 function sanitizePostSetupNext(next: string) {
   if (!next.startsWith("/")) return "/scout?onboarding=true";
@@ -98,6 +100,9 @@ export default function PreScoutSetup() {
   const [stateCode, setStateCode] = useState(existingDraft?.stateCode || "");
   const [countyFips, setCountyFips] = useState(existingDraft?.countyFips || "");
   const [countyName, setCountyName] = useState<string | undefined>(existingDraft?.countyName);
+  const [city, setCity] = useState(existingDraft?.city || "");
+  const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
+  const [countyInferenceNote, setCountyInferenceNote] = useState("");
   const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
   const [submitting, setSubmitting] = useState(false);
 
@@ -117,8 +122,10 @@ export default function PreScoutSetup() {
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createErrorCode, setCreateErrorCode] = useState<string | null>(null);
   const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
     setCreateError(null);
+    setCreateErrorCode(null);
     setSignInError(null);
     setSignInErrorCode(null);
     try {
@@ -151,8 +158,62 @@ export default function PreScoutSetup() {
     setStateCode(existingDraft.stateCode || "");
     setCountyFips(existingDraft.countyFips || "");
     setCountyName(existingDraft.countyName);
+    setCity(existingDraft.city || "");
     setBusinessName(existingDraft.businessName || "");
   }, [existingDraft]);
+
+  useEffect(() => {
+    const normalizedCity = city.trim();
+    if (!/^[A-Z]{2}$/.test(stateCode) || normalizedCity.length < 2) {
+      setCountyInferenceStatus("idle");
+      setCountyInferenceNote("");
+      return;
+    }
+    if (countyFips) return;
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCountyInferenceStatus("loading");
+      setCountyInferenceNote("");
+      try {
+        const inferred = await inferCountyForCityState({
+          city: normalizedCity,
+          stateCode,
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (inferred?.inferred?.countyFips) {
+          setCountyFips(inferred.inferred.countyFips);
+          setCountyName(inferred.inferred.countyName || undefined);
+          setCountyInferenceStatus("inferred");
+          setCountyInferenceNote(
+            `Auto-selected ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}.`
+          );
+          return;
+        }
+        if (inferred?.ambiguous) {
+          setCountyInferenceStatus("ambiguous");
+          setCountyInferenceNote("Multiple counties match this city. Select your county manually.");
+          return;
+        }
+        setCountyInferenceStatus("error");
+        setCountyInferenceNote(
+          "Could not infer county from city and state. Select county manually."
+        );
+      } catch (error: any) {
+        if (cancelled || error?.name === "AbortError") return;
+        setCountyInferenceStatus("error");
+        setCountyInferenceNote("Could not infer county right now. Select county manually.");
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [city, countyFips, stateCode]);
 
   useEffect(() => {
     setAuthMode(requestedAuthMode);
@@ -335,6 +396,7 @@ export default function PreScoutSetup() {
     }
     if (authSubmitting) return;
     setCreateError(null);
+    setCreateErrorCode(null);
 
     const email = createEmail.trim();
     const phone = createPhone.trim();
@@ -426,17 +488,28 @@ export default function PreScoutSetup() {
       toast({ title: "Account created", description: "Continue with local setup." });
       navigate(buildAuthReturnPath("create"));
     } catch (error: any) {
+      const code = typeof error?.code === "string" ? error.code : null;
       const message = error?.message || "Unable to create account.";
-      if (String(message).toLowerCase().includes("already exists")) {
-        const explicitMessage = "An account with this email already exists. Sign in to continue.";
-        setCreateError(explicitMessage);
+      const accountExists =
+        code === "AUTH_ACCOUNT_EXISTS" ||
+        code === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY" ||
+        String(message).toLowerCase().includes("already exists");
+      if (accountExists) {
+        const explicitMessage =
+          code === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY"
+            ? "An account with this email already exists. Sign in with Google/Facebook or reset your password."
+            : "An account with this email already exists. Sign in to continue.";
+        setAuthModeAndSyncUrl("signin");
+        setSignInEmail(email);
+        setSignInError(explicitMessage);
+        setSignInErrorCode(code);
         toast({
           title: "Account exists",
           description: explicitMessage,
         });
-        setSignInEmail(email);
       } else {
         setCreateError(message);
+        setCreateErrorCode(code);
         toast({
           title: "Create account failed",
           description: message,
@@ -460,6 +533,7 @@ export default function PreScoutSetup() {
         stateCode,
         countyFips,
         countyName: countyName || undefined,
+        city: city.trim() || undefined,
         businessName: presenceType === "represent_business" ? businessName.trim() : undefined,
         serviceAreas: [
           {
@@ -492,6 +566,7 @@ export default function PreScoutSetup() {
               stateCode,
               countyFips,
               countyName: countyName || undefined,
+              city: city.trim() || undefined,
               label: countyName ? `${countyName}, ${stateCode}` : `${stateCode} ${countyFips}`,
               committedAt: new Date().toISOString(),
             })
@@ -754,7 +829,10 @@ export default function PreScoutSetup() {
                           value={createFirstName}
                           onChange={(e) => {
                             setCreateFirstName(e.target.value);
-                            if (createError) setCreateError(null);
+                            if (createError) {
+                              setCreateError(null);
+                              setCreateErrorCode(null);
+                            }
                           }}
                           autoComplete="given-name"
                           placeholder="First"
@@ -772,7 +850,10 @@ export default function PreScoutSetup() {
                           value={createLastName}
                           onChange={(e) => {
                             setCreateLastName(e.target.value);
-                            if (createError) setCreateError(null);
+                            if (createError) {
+                              setCreateError(null);
+                              setCreateErrorCode(null);
+                            }
                           }}
                           autoComplete="family-name"
                           placeholder="Last"
@@ -793,7 +874,10 @@ export default function PreScoutSetup() {
                         value={createEmail}
                         onChange={(e) => {
                           setCreateEmail(e.target.value);
-                          if (createError) setCreateError(null);
+                          if (createError) {
+                            setCreateError(null);
+                            setCreateErrorCode(null);
+                          }
                         }}
                         autoComplete="email"
                         placeholder="you@example.com"
@@ -811,7 +895,10 @@ export default function PreScoutSetup() {
                         value={createPhone}
                         onChange={(e) => {
                           setCreatePhone(e.target.value);
-                          if (createError) setCreateError(null);
+                          if (createError) {
+                            setCreateError(null);
+                            setCreateErrorCode(null);
+                          }
                         }}
                         autoComplete="tel"
                         placeholder="(555) 555-5555"
@@ -832,7 +919,10 @@ export default function PreScoutSetup() {
                           value={createPassword}
                           onChange={(e) => {
                             setCreatePassword(e.target.value);
-                            if (createError) setCreateError(null);
+                            if (createError) {
+                              setCreateError(null);
+                              setCreateErrorCode(null);
+                            }
                           }}
                           autoComplete="new-password"
                           placeholder="At least 8 characters"
@@ -851,7 +941,10 @@ export default function PreScoutSetup() {
                           value={createConfirmPassword}
                           onChange={(e) => {
                             setCreateConfirmPassword(e.target.value);
-                            if (createError) setCreateError(null);
+                            if (createError) {
+                              setCreateError(null);
+                              setCreateErrorCode(null);
+                            }
                           }}
                           autoComplete="new-password"
                           placeholder="Repeat password"
@@ -866,7 +959,10 @@ export default function PreScoutSetup() {
                         checked={acceptTerms}
                         onChange={(e) => {
                           setAcceptTerms(e.target.checked);
-                          if (createError) setCreateError(null);
+                          if (createError) {
+                            setCreateError(null);
+                            setCreateErrorCode(null);
+                          }
                         }}
                         className="mt-0.5 h-4 w-4 rounded border-white/10 bg-black/20 text-ts-orange focus:ring-ts-orange/70/60"
                       />
@@ -875,7 +971,8 @@ export default function PreScoutSetup() {
                     {createError && (
                       <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
                         <p className="text-xs text-destructive">{createError}</p>
-                        {createError.toLowerCase().includes("already exists") && (
+                        {(createErrorCode === "AUTH_ACCOUNT_EXISTS" ||
+                          createErrorCode === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY") && (
                           <button
                             type="button"
                             className="mt-1 text-xs font-medium underline underline-offset-2 text-white"
@@ -983,6 +1080,24 @@ export default function PreScoutSetup() {
 
                 <div className="space-y-2">
                   <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                    City (for auto county)
+                  </Label>
+                  <Input
+                    value={city}
+                    onChange={(e) => {
+                      setCity(e.target.value);
+                      if (countyInferenceStatus === "inferred" && countyFips) {
+                        setCountyFips("");
+                        setCountyName(undefined);
+                      }
+                    }}
+                    placeholder="Enter city"
+                    className="h-10 border-white/10 bg-black/30 text-white placeholder:text-white/60 focus-visible:ring-ts-orange/70"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                     Primary county
                   </Label>
                   <StateCountySelector
@@ -995,6 +1110,21 @@ export default function PreScoutSetup() {
                       setCountyName(county?.name);
                     }}
                   />
+                  {countyInferenceStatus !== "idle" && countyInferenceNote && (
+                    <p
+                      className={`text-[11px] ${
+                        countyInferenceStatus === "inferred"
+                          ? "text-emerald-300"
+                          : countyInferenceStatus === "loading"
+                            ? "text-white/60"
+                            : "text-amber-300"
+                      }`}
+                    >
+                      {countyInferenceStatus === "loading"
+                        ? "Detecting county from city..."
+                        : countyInferenceNote}
+                    </p>
+                  )}
                 </div>
 
                 {presenceType === "represent_business" && (
@@ -1014,7 +1144,9 @@ export default function PreScoutSetup() {
 
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] text-white/60">
-                    {canContinue ? "Ready." : "Select state and county."}
+                    {canContinue
+                      ? "Ready."
+                      : "Select state and county, or enter city to auto-detect county."}
                   </p>
                   <Button type="submit" disabled={!canContinue || submitting}>
                     {submitting ? "Saving..." : "Continue"}

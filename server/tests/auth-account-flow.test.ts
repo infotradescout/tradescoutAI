@@ -74,5 +74,79 @@ if (!hasTestDb) {
         expect(userResAfter.body.user.emailVerified).toBe(true);
       }
     });
+
+    it("returns AUTH_ACCOUNT_EXISTS on duplicate /api/auth/register", async () => {
+      const email = `dup+${crypto.randomUUID()}@tradescout.test`;
+      const password = `P@ssw0rd-${crypto.randomUUID()}`;
+
+      const createRes = await request(app)
+        .post("/api/auth/register")
+        .set("Content-Type", "application/json")
+        .send({
+          email,
+          password,
+          firstName: "First",
+          lastName: "User",
+          phone: "(555) 000-1000",
+          acceptTerms: true,
+          userTypes: ["homeowner"],
+        });
+      expect(createRes.status).toBe(200);
+
+      const duplicateRes = await request(app)
+        .post("/api/auth/register")
+        .set("Content-Type", "application/json")
+        .send({
+          email,
+          password,
+          firstName: "Second",
+          lastName: "User",
+          phone: "(555) 000-1001",
+          acceptTerms: true,
+          userTypes: ["homeowner"],
+        });
+
+      expect(duplicateRes.status).toBe(409);
+      expect(duplicateRes.body?.code).toBe("AUTH_ACCOUNT_EXISTS");
+      expect(Array.isArray(duplicateRes.body?.availableAuthMethods)).toBe(true);
+      expect(duplicateRes.body?.availableAuthMethods).toContain("password");
+    });
+
+    it("returns AUTH_ACCOUNT_EXISTS on duplicate /api/auth/register-multi", async () => {
+      const email = `dup-multi+${crypto.randomUUID()}@tradescout.test`;
+      const password = `P@ssw0rd-${crypto.randomUUID()}`;
+
+      const createRes = await request(app)
+        .post("/api/auth/register")
+        .set("Content-Type", "application/json")
+        .send({
+          email,
+          password,
+          firstName: "Multi",
+          lastName: "Owner",
+          phone: "(555) 000-2000",
+          acceptTerms: true,
+          userTypes: ["homeowner"],
+        });
+      expect(createRes.status).toBe(200);
+
+      const duplicateRes = await request(app)
+        .post("/api/auth/register-multi")
+        .set("Content-Type", "application/json")
+        .send({
+          email,
+          password: `P@ssw0rd-${crypto.randomUUID()}`,
+          firstName: "Multi",
+          lastName: "Owner",
+          phone: "(555) 000-2001",
+          acceptTerms: true,
+          profiles: [{ userIntent: "person" }],
+        });
+
+      expect(duplicateRes.status).toBe(409);
+      expect(duplicateRes.body?.code).toBe("AUTH_ACCOUNT_EXISTS");
+      expect(Array.isArray(duplicateRes.body?.availableAuthMethods)).toBe(true);
+      expect(duplicateRes.body?.availableAuthMethods).toContain("password");
+    });
   });
 }

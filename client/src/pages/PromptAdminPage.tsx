@@ -28,7 +28,7 @@ export function PromptAdminPage() {
       setLoading(true);
       setError(null);
 
-      const data = await apiRequest("GET", "/api/prompt-admin");
+      const data = await apiRequest("GET", "/api/admin/prompt-admin");
       setContent(data?.content || "");
       setStatus(data?.status || null);
       setSuccess("System prompt loaded successfully");
@@ -58,7 +58,7 @@ export function PromptAdminPage() {
       setError(null);
       setSuccess(null);
 
-      const data = await apiRequest("POST", "/api/prompt-admin", { content });
+      const data = await apiRequest("POST", "/api/admin/prompt-admin", { content });
       setSuccess(data?.message || "System prompt saved and reloaded successfully!");
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
@@ -78,7 +78,7 @@ export function PromptAdminPage() {
       setError(null);
       setSuccess(null);
 
-      const data = await apiRequest("POST", "/api/prompt-admin/reload");
+      const data = await apiRequest("POST", "/api/admin/prompt-admin/reload");
       setSuccess(data?.message || "Prompt reloaded from disk");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {

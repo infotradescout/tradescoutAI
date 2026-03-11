@@ -7,6 +7,7 @@ import { db, pool } from "../db";
 import {
   affiliateAccounts,
   counties as countiesTable,
+  events,
   states as statesTable,
   users,
   type AffiliateAccount,
@@ -1163,6 +1164,185 @@ export function mountAdminRoutes(app: any) {
       } catch (error: any) {
         console.error("Error fetching users:", error);
         res.status(500).json({ message: "Failed to fetch users" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/activity/daily-users",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const daysRaw = Number(req.query.days ?? 30);
+        const days = Number.isFinite(daysRaw) ? Math.max(7, Math.min(90, daysRaw)) : 30;
+        const userLimitRaw = Number(req.query.userLimit ?? 20);
+        const userLimit = Number.isFinite(userLimitRaw)
+          ? Math.max(5, Math.min(100, userLimitRaw))
+          : 20;
+
+        const timezoneRaw = String(req.query.timezone || "America/Chicago").trim();
+        const timezone = timezoneRaw.length > 0 ? timezoneRaw : "America/Chicago";
+
+        const dailyRows = await db.execute(sql<{
+          day_key: string;
+          active_users: number;
+          event_count: number;
+        }>`
+          SELECT
+            to_char(date_trunc('day', e.created_at AT TIME ZONE ${timezone}), 'YYYY-MM-DD') AS day_key,
+            COUNT(DISTINCT e.user_id)::int AS active_users,
+            COUNT(*)::int AS event_count
+          FROM events e
+          WHERE e.user_id IS NOT NULL
+            AND e.created_at >= now() - (${days}::int * interval '1 day')
+          GROUP BY 1
+          ORDER BY 1 DESC
+        `);
+
+        const todayRows = await db.execute(sql<{
+          id: string;
+          email: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          profile_image_url: string | null;
+          last_event_at: string;
+          event_count: number;
+        }>`
+          WITH today_activity AS (
+            SELECT
+              e.user_id::text AS user_id,
+              MAX(e.created_at) AS last_event_at,
+              COUNT(*)::int AS event_count
+            FROM events e
+            WHERE e.user_id IS NOT NULL
+              AND date_trunc('day', e.created_at AT TIME ZONE ${timezone}) =
+                  date_trunc('day', now() AT TIME ZONE ${timezone})
+            GROUP BY e.user_id
+          )
+          SELECT
+            ta.user_id AS id,
+            u.email,
+            u.first_name,
+            u.last_name,
+            u.profile_image_url,
+            ta.last_event_at::text AS last_event_at,
+            ta.event_count
+          FROM today_activity ta
+          LEFT JOIN users u ON u.id = ta.user_id
+          ORDER BY ta.last_event_at DESC
+          LIMIT ${userLimit}
+        `);
+
+        const topActiveRows = await db.execute(sql<{
+          id: string;
+          email: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          profile_image_url: string | null;
+          active_days: number;
+          total_events: number;
+          last_event_at: string;
+        }>`
+          WITH windowed AS (
+            SELECT
+              e.user_id::text AS user_id,
+              COUNT(DISTINCT date_trunc('day', e.created_at AT TIME ZONE ${timezone}))::int AS active_days,
+              COUNT(*)::int AS total_events,
+              MAX(e.created_at) AS last_event_at
+            FROM events e
+            WHERE e.user_id IS NOT NULL
+              AND e.created_at >= now() - (${days}::int * interval '1 day')
+            GROUP BY e.user_id
+          )
+          SELECT
+            w.user_id AS id,
+            u.email,
+            u.first_name,
+            u.last_name,
+            u.profile_image_url,
+            w.active_days,
+            w.total_events,
+            w.last_event_at::text AS last_event_at
+          FROM windowed w
+          LEFT JOIN users u ON u.id = w.user_id
+          ORDER BY w.active_days DESC, w.last_event_at DESC
+          LIMIT ${userLimit}
+        `);
+
+        const rowMap = new Map<string, { activeUsers: number; events: number }>();
+        for (const row of (dailyRows.rows || []) as any[]) {
+          const day = String(row.day_key || "");
+          if (!day) continue;
+          rowMap.set(day, {
+            activeUsers: Number(row.active_users || 0),
+            events: Number(row.event_count || 0),
+          });
+        }
+
+        const now = new Date();
+        const daySeries: Array<{ day: string; activeUsers: number; events: number }> = [];
+        for (let i = 0; i < days; i += 1) {
+          const cursor = new Date(now);
+          cursor.setUTCDate(now.getUTCDate() - i);
+          const key = cursor.toISOString().slice(0, 10);
+          const bucket = rowMap.get(key) || { activeUsers: 0, events: 0 };
+          daySeries.push({
+            day: key,
+            activeUsers: bucket.activeUsers,
+            events: bucket.events,
+          });
+        }
+
+        const trailing7 = daySeries.slice(0, 7);
+        const trailing30 = daySeries.slice(0, Math.min(30, daySeries.length));
+        const trailing7DayAverage =
+          trailing7.reduce((sum, item) => sum + item.activeUsers, 0) /
+          Math.max(1, trailing7.length);
+        const trailing30DayAverage =
+          trailing30.reduce((sum, item) => sum + item.activeUsers, 0) /
+          Math.max(1, trailing30.length);
+
+        const today = daySeries[0] || {
+          day: new Date().toISOString().slice(0, 10),
+          activeUsers: 0,
+          events: 0,
+        };
+
+        res.json({
+          timezone,
+          days,
+          series: daySeries,
+          trailing7DayAverage: Number(trailing7DayAverage.toFixed(2)),
+          trailing30DayAverage: Number(trailing30DayAverage.toFixed(2)),
+          today: {
+            day: today.day,
+            activeUsers: today.activeUsers,
+            events: today.events,
+            users: (todayRows.rows || []).map((row: any) => ({
+              id: String(row.id || ""),
+              email: row.email ? String(row.email) : "",
+              firstName: row.first_name ? String(row.first_name) : "",
+              lastName: row.last_name ? String(row.last_name) : "",
+              profileImageUrl: row.profile_image_url ? String(row.profile_image_url) : null,
+              lastEventAt: row.last_event_at ? String(row.last_event_at) : null,
+              eventCount: Number(row.event_count || 0),
+            })),
+          },
+          topActiveUsers: (topActiveRows.rows || []).map((row: any) => ({
+            id: String(row.id || ""),
+            email: row.email ? String(row.email) : "",
+            firstName: row.first_name ? String(row.first_name) : "",
+            lastName: row.last_name ? String(row.last_name) : "",
+            profileImageUrl: row.profile_image_url ? String(row.profile_image_url) : null,
+            activeDays: Number(row.active_days || 0),
+            totalEvents: Number(row.total_events || 0),
+            lastEventAt: row.last_event_at ? String(row.last_event_at) : null,
+          })),
+        });
+      } catch (error: any) {
+        console.error("Error fetching admin daily user activity:", error);
+        res.status(500).json({ message: "Failed to fetch daily user activity" });
       }
     }
   );

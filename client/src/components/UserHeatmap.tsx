@@ -11,7 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Map as MapIcon, Users, TrendingUp, MapPin } from "lucide-react";
+import {
+  Map as MapIcon,
+  Users,
+  TrendingUp,
+  MapPin,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { isSuperAdminLike } from "@/lib/roleChecks";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
@@ -171,6 +179,17 @@ function CountyHeatmapMap({
   const [hovered, setHovered] = useState<HoveredCounty>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const dragRef = useRef({
+    active: false,
+    startClientX: 0,
+    startClientY: 0,
+    startPanX: 0,
+    startPanY: 0,
+    moved: false,
+  });
 
   const counties = useMemo(() => {
     const topo = usCounties as any;
@@ -180,6 +199,7 @@ function CountyHeatmapMap({
 
   const projection = useMemo(() => geoAlbersUsa().scale(1300).translate([487.5, 305]), []);
   const path = useMemo(() => geoPath(projection), [projection]);
+  const viewportCenter = useMemo(() => ({ x: 975 / 2, y: 610 / 2 }), []);
 
   const allCounties = useMemo<CountySearchResult[]>(() => {
     const results: CountySearchResult[] = [];
@@ -200,15 +220,107 @@ function CountyHeatmapMap({
       .slice(0, 8);
   }, [allCounties, searchQuery]);
 
+  const centerOnCounty = (fips: string) => {
+    const target = counties.find((county) => String(county.id || "").padStart(5, "0") === fips);
+    if (!target) return;
+    const centroid = path.centroid(target as any);
+    if (!Array.isArray(centroid) || centroid.length !== 2) return;
+    const [cx, cy] = centroid;
+    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return;
+
+    const nextZoom = Math.max(zoom, 2.5);
+    setZoom(nextZoom);
+    setPan({
+      x: viewportCenter.x - cx * nextZoom,
+      y: viewportCenter.y - cy * nextZoom,
+    });
+  };
+
   const handleSelect = (fips: string) => {
     if (!fips) return;
     onSelectCounty?.(fips);
+    centerOnCounty(fips);
+  };
+
+  const clampZoom = (value: number) => Math.min(8, Math.max(1, value));
+
+  const clientToSvgPoint = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: ((clientX - rect.left) / rect.width) * 975,
+      y: ((clientY - rect.top) / rect.height) * 610,
+    };
+  };
+
+  const zoomAtClientPoint = (clientX: number, clientY: number, requestedZoom: number) => {
+    const anchor = clientToSvgPoint(clientX, clientY);
+    if (!anchor) return;
+    const nextZoom = clampZoom(requestedZoom);
+    if (Math.abs(nextZoom - zoom) < 0.001) return;
+    const worldX = (anchor.x - pan.x) / zoom;
+    const worldY = (anchor.y - pan.y) / zoom;
+    setZoom(nextZoom);
+    setPan({
+      x: anchor.x - worldX * nextZoom,
+      y: anchor.y - worldY * nextZoom,
+    });
   };
 
   return (
     <div className="relative w-full h-[420px] bg-tsCard rounded-lg overflow-hidden border border-white/10">
-      <svg viewBox="0 0 975 610" className="w-full h-full">
-        <g>
+      <svg
+        ref={svgRef}
+        viewBox="0 0 975 610"
+        className="w-full h-full select-none"
+        style={{ cursor: dragRef.current.active ? "grabbing" : "grab", touchAction: "none" }}
+        onWheel={(event) => {
+          event.preventDefault();
+          const factor = event.deltaY > 0 ? 0.85 : 1.15;
+          zoomAtClientPoint(event.clientX, event.clientY, zoom * factor);
+        }}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          dragRef.current.active = true;
+          dragRef.current.startClientX = event.clientX;
+          dragRef.current.startClientY = event.clientY;
+          dragRef.current.startPanX = pan.x;
+          dragRef.current.startPanY = pan.y;
+          dragRef.current.moved = false;
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (!dragRef.current.active) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+          const scaleX = 975 / rect.width;
+          const scaleY = 610 / rect.height;
+          const dx = (event.clientX - dragRef.current.startClientX) * scaleX;
+          const dy = (event.clientY - dragRef.current.startClientY) * scaleY;
+          if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+            dragRef.current.moved = true;
+          }
+          setPan({
+            x: dragRef.current.startPanX + dx,
+            y: dragRef.current.startPanY + dy,
+          });
+        }}
+        onPointerUp={(event) => {
+          if (dragRef.current.active) {
+            dragRef.current.active = false;
+            event.currentTarget.releasePointerCapture(event.pointerId);
+            window.setTimeout(() => {
+              dragRef.current.moved = false;
+            }, 0);
+          }
+        }}
+        onPointerLeave={() => {
+          dragRef.current.active = false;
+        }}
+      >
+        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {counties.map((c) => {
             const fips =
               typeof c.id === "string" || typeof c.id === "number"
@@ -272,7 +384,13 @@ function CountyHeatmapMap({
                   setHovered({ ...hovered, clientX: evt.clientX, clientY: evt.clientY });
                 }}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => handleSelect(fips)}
+                onClick={(event) => {
+                  if (dragRef.current.moved) {
+                    event.preventDefault();
+                    return;
+                  }
+                  handleSelect(fips);
+                }}
               />
             );
           })}
@@ -314,7 +432,43 @@ function CountyHeatmapMap({
       )}
 
       <div className="absolute bottom-3 left-3 rounded bg-tsCard/95 px-2 py-1 text-[10px] text-white/70 border border-white/10">
-        {metricLabel} per county (log scale)
+        {metricLabel} per county (log scale) · scroll to zoom · drag to pan
+      </div>
+
+      <div className="absolute top-3 right-3 rounded-md bg-tsCard/95 border border-white/10 shadow-md p-1.5 flex items-center gap-1">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
+          onClick={() => setZoom((current) => clampZoom(current * 1.2))}
+          aria-label="Zoom in"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
+          onClick={() => setZoom((current) => clampZoom(current / 1.2))}
+          aria-label="Zoom out"
+        >
+          <ZoomOut className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
+          onClick={() => {
+            setZoom(1);
+            setPan({ x: 0, y: 0 });
+          }}
+          aria-label="Reset map"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       <div className="absolute top-3 left-3 w-64">

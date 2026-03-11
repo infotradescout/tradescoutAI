@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { StateCountySelector } from "@/components/state-county-selector";
 import { apiRequest } from "@/lib/queryClient";
+import { inferCountyForCityState } from "@/lib/countyInference";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -28,6 +29,8 @@ function sanitizeNext(next: string) {
 function buildIntentRoute(next: string) {
   return `/onboarding/intent?next=${encodeURIComponent(next)}`;
 }
+
+type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
 export default function OnboardingProfile() {
   const { user, isAuthenticated, isLoading, refetch } = useAuth();
@@ -49,6 +52,9 @@ export default function OnboardingProfile() {
   const [stateCode, setStateCode] = useState("");
   const [countyFips, setCountyFips] = useState("");
   const [countyName, setCountyName] = useState<string | undefined>(undefined);
+  const [city, setCity] = useState("");
+  const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
+  const [countyInferenceNote, setCountyInferenceNote] = useState("");
 
   useEffect(() => {
     if (!user || !isAuthenticated) return;
@@ -73,7 +79,61 @@ export default function OnboardingProfile() {
     setStateCode(anyUser.stateCode || "");
     setCountyFips(anyUser.countyFips || "");
     setCountyName(anyUser.countyName || undefined);
+    setCity(anyUser.city || "");
   }, [user, isAuthenticated, navigate, postProfileNext]);
+
+  useEffect(() => {
+    const normalizedCity = city.trim();
+    if (!/^[A-Z]{2}$/.test(stateCode) || normalizedCity.length < 2) {
+      setCountyInferenceStatus("idle");
+      setCountyInferenceNote("");
+      return;
+    }
+    if (countyFips) return;
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCountyInferenceStatus("loading");
+      setCountyInferenceNote("");
+      try {
+        const inferred = await inferCountyForCityState({
+          city: normalizedCity,
+          stateCode,
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (inferred?.inferred?.countyFips) {
+          setCountyFips(inferred.inferred.countyFips);
+          setCountyName(inferred.inferred.countyName || undefined);
+          setCountyInferenceStatus("inferred");
+          setCountyInferenceNote(
+            `Auto-selected ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}.`
+          );
+          return;
+        }
+        if (inferred?.ambiguous) {
+          setCountyInferenceStatus("ambiguous");
+          setCountyInferenceNote("Multiple counties match this city. Select your county manually.");
+          return;
+        }
+        setCountyInferenceStatus("error");
+        setCountyInferenceNote(
+          "Could not infer county from city and state. Select county manually."
+        );
+      } catch (error: any) {
+        if (cancelled || error?.name === "AbortError") return;
+        setCountyInferenceStatus("error");
+        setCountyInferenceNote("Could not infer county right now. Select county manually.");
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [city, countyFips, stateCode]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -96,6 +156,7 @@ export default function OnboardingProfile() {
       return apiRequest("PUT", "/api/user/profile", {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        city: city.trim() || undefined,
         stateCode,
         countyFips,
         countyName,
@@ -185,6 +246,24 @@ export default function OnboardingProfile() {
 
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                  City (for auto county)
+                </Label>
+                <Input
+                  value={city}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    if (countyInferenceStatus === "inferred" && countyFips) {
+                      setCountyFips("");
+                      setCountyName(undefined);
+                    }
+                  }}
+                  placeholder="Enter city"
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                   Primary county
                 </Label>
                 <StateCountySelector
@@ -195,11 +274,28 @@ export default function OnboardingProfile() {
                   className="gap-2"
                   onCountySelected={(county) => setCountyName(county?.name)}
                 />
+                {countyInferenceStatus !== "idle" && countyInferenceNote && (
+                  <p
+                    className={`text-[11px] ${
+                      countyInferenceStatus === "inferred"
+                        ? "text-emerald-300"
+                        : countyInferenceStatus === "loading"
+                          ? "text-white/60"
+                          : "text-amber-300"
+                    }`}
+                  >
+                    {countyInferenceStatus === "loading"
+                      ? "Detecting county from city..."
+                      : countyInferenceNote}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-white/60">
-                  {canContinue ? "Ready." : "Complete name and county."}
+                  {canContinue
+                    ? "Ready."
+                    : "Complete name and county (or enter city to auto-detect county)."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
                   {updateProfile.isPending ? "Saving..." : "Save and continue"}

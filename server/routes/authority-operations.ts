@@ -82,7 +82,27 @@ router.get(
   requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
-      return res.status(503).json({ error: "Decision card analytics are not yet available" });
+      return res.json({
+        available: false,
+        totalShown: 0,
+        guidanceDistribution: {
+          COMPLY: 0,
+          DEFER: 0,
+          BLOCK: 0,
+        },
+        choiceSplit: {
+          contact_now: 0,
+          ask_scout: 0,
+          proceed_anyway: 0,
+          cancel: 0,
+          understand_risk: 0,
+        },
+        trend: {
+          shown_7d_change: 0,
+          choice_7d_deltas: {},
+        },
+        message: "Decision card analytics are not yet available",
+      });
     } catch (error) {
       console.error("Error fetching decision card metrics:", error);
       res.status(500).json({ error: "Failed to fetch metrics" });

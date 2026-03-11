@@ -79,6 +79,7 @@ import { passwordResetService } from "./services/passwordResetService";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
 import { logAdminAction } from "./services/adminAuditLogService";
+import { inferCountyFromCityState } from "./services/countyInferenceService";
 import {
   actorHasPrivilegedCapability,
   auditPrivilegedAction,
@@ -1493,6 +1494,49 @@ export async function registerRoutes(app: any) {
   const dedupeStrings = (values: string[]) =>
     Array.from(new Set(values.map((v) => String(v || "").trim()).filter((v) => v.length > 0)));
 
+  type AuthMethod = "password" | "google" | "facebook";
+  const getAvailableAuthMethodsForUser = (user: any): AuthMethod[] => {
+    const methods = new Set<AuthMethod>();
+    const provider = String(user?.provider || "")
+      .trim()
+      .toLowerCase();
+    const hasPassword = typeof user?.password === "string" && user.password.trim().length > 0;
+
+    if (hasPassword) methods.add("password");
+    if (provider === "google" || (typeof user?.googleId === "string" && user.googleId.trim())) {
+      methods.add("google");
+    }
+    if (
+      provider === "facebook" ||
+      (typeof user?.facebookId === "string" && user.facebookId.trim())
+    ) {
+      methods.add("facebook");
+    }
+
+    if (methods.size === 0) {
+      // Keep behavior resilient for legacy rows where provider metadata is sparse.
+      methods.add("password");
+    }
+
+    return Array.from(methods);
+  };
+
+  const sendAccountExistsConflict = (res: Response, existingUser: any) => {
+    const availableAuthMethods = getAvailableAuthMethodsForUser(existingUser);
+    const hasPassword = availableAuthMethods.includes("password");
+    const hasSocial =
+      availableAuthMethods.includes("google") || availableAuthMethods.includes("facebook");
+    const socialOnly = !hasPassword && hasSocial;
+
+    return res.status(409).json({
+      message: socialOnly
+        ? "An account with this email already exists. Sign in with Google/Facebook or reset your password."
+        : "An account with this email already exists. Sign in to continue.",
+      code: socialOnly ? "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY" : "AUTH_ACCOUNT_EXISTS",
+      availableAuthMethods,
+    });
+  };
+
   // Authentication routes
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
@@ -1605,7 +1649,7 @@ export async function registerRoutes(app: any) {
 
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
+        return sendAccountExistsConflict(res, existingUser);
       }
 
       type ProfileRole = "homeowner" | "business_owner" | "contractor";
@@ -1831,6 +1875,20 @@ export async function registerRoutes(app: any) {
         });
       });
     } catch (error: any) {
+      if (String(error?.code || "") === "23505") {
+        const duplicateEmail =
+          typeof req.body?.email === "string" ? String(req.body.email).trim().toLowerCase() : "";
+        const existingUser = duplicateEmail ? await storage.getUserByEmail(duplicateEmail) : null;
+        if (existingUser) {
+          return sendAccountExistsConflict(res, existingUser);
+        }
+        return res.status(409).json({
+          message: "An account with this email already exists. Sign in to continue.",
+          code: "AUTH_ACCOUNT_EXISTS",
+          availableAuthMethods: ["password"],
+        });
+      }
+
       console.error("Multi-profile registration error:", error);
       sendAutoClassifiedError(res, error, "Registration failed", {});
     }
@@ -1849,7 +1907,7 @@ export async function registerRoutes(app: any) {
       );
 
       const body = (req.body || {}) as any;
-      const email = typeof body.email === "string" ? body.email.trim() : "";
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       const password = typeof body.password === "string" ? body.password : "";
       const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
       const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
@@ -1943,7 +2001,7 @@ export async function registerRoutes(app: any) {
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
+        return sendAccountExistsConflict(res, existingUser);
       }
 
       // Referral attribution (cookie-first) — best-effort, never blocks signup.
@@ -2178,6 +2236,20 @@ export async function registerRoutes(app: any) {
         });
       });
     } catch (error: any) {
+      if (String(error?.code || "") === "23505") {
+        const duplicateEmail =
+          typeof req.body?.email === "string" ? String(req.body.email).trim().toLowerCase() : "";
+        const existingUser = duplicateEmail ? await storage.getUserByEmail(duplicateEmail) : null;
+        if (existingUser) {
+          return sendAccountExistsConflict(res, existingUser);
+        }
+        return res.status(409).json({
+          message: "An account with this email already exists. Sign in to continue.",
+          code: "AUTH_ACCOUNT_EXISTS",
+          availableAuthMethods: ["password"],
+        });
+      }
+
       console.error("Registration error:", error);
       const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
       sendAutoClassifiedError(res, error, "Registration failed", { userId });
@@ -6692,6 +6764,83 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching counties:", error);
       res.status(500).json({ message: "Failed to fetch counties" });
+    }
+  });
+
+  // Infer county by city + state, then return canonical county records.
+  app.get("/api/counties/infer", async (req: any, res: any) => {
+    try {
+      const city = typeof req.query?.city === "string" ? req.query.city.trim() : "";
+      const stateCode =
+        typeof req.query?.state === "string" ? req.query.state.trim().toUpperCase() : "";
+      const zipCode = typeof req.query?.zip === "string" ? req.query.zip.trim() : "";
+
+      if (city.length < 2) {
+        return res.status(400).json({ message: "city is required" });
+      }
+      if (!/^[A-Z]{2}$/.test(stateCode)) {
+        return res.status(400).json({ message: "valid state code is required" });
+      }
+
+      const inferred = await inferCountyFromCityState({ city, stateCode, zipCode });
+
+      const canonicalByFips = new Map<
+        string,
+        {
+          countyFips: string;
+          countyName: string;
+          stateCode: string;
+          cityMatch: boolean;
+        }
+      >();
+
+      for (const candidate of inferred.candidates) {
+        const countyRecord = await storage.getCountyByFips(candidate.countyFips);
+        if (!countyRecord) continue;
+        if (String(countyRecord.stateCode || "").toUpperCase() !== stateCode) continue;
+
+        const normalized = {
+          countyFips: countyRecord.fips,
+          countyName: countyRecord.name,
+          stateCode: countyRecord.stateCode,
+          cityMatch: candidate.cityMatch,
+        };
+
+        const existing = canonicalByFips.get(normalized.countyFips);
+        if (!existing || (normalized.cityMatch && !existing.cityMatch)) {
+          canonicalByFips.set(normalized.countyFips, normalized);
+        }
+      }
+
+      const candidates = Array.from(canonicalByFips.values()).sort((left, right) => {
+        if (left.cityMatch !== right.cityMatch) return left.cityMatch ? -1 : 1;
+        return left.countyName.localeCompare(right.countyName);
+      });
+
+      let inferredCounty: (typeof candidates)[number] | null = null;
+      if (candidates.length === 1) {
+        inferredCounty = candidates[0];
+      } else {
+        const cityMatches = candidates.filter((candidate) => candidate.cityMatch);
+        if (cityMatches.length === 1) inferredCounty = cityMatches[0];
+      }
+
+      const ambiguous = !inferredCounty && candidates.length > 1;
+      const confidence: "high" | "medium" | "low" =
+        inferredCounty && candidates.length === 1 ? "high" : inferredCounty ? "medium" : "low";
+
+      return res.json({
+        query: { city, stateCode, zipCode: zipCode || undefined },
+        inferred: inferredCounty,
+        candidates,
+        ambiguous,
+        confidence,
+        source: inferred.source,
+        cached: inferred.cached,
+      });
+    } catch (error: any) {
+      console.error("Error inferring county:", error);
+      return res.status(500).json({ message: "Failed to infer county" });
     }
   });
 
@@ -25350,6 +25499,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Register prompt admin routes (super admin only)
   const promptAdminRouter = (await import("./routes/promptAdmin")).default;
   app.use("/api/prompt-admin", promptAdminRouter);
+  app.use("/api/admin/prompt-admin", promptAdminRouter);
 
   // Register AI Scout routes (with assistant alias for backward compatibility)
   app.use("/api/scout", scoutRoute);

@@ -201,16 +201,27 @@ export default function CreateAccountPortal() {
       navigate("/pre-scout-setup");
     },
     onError: (error: any) => {
+      const code = typeof error?.code === "string" ? error.code : null;
       const msg = error?.message || "Signup failed. Please try again.";
+      const accountExists =
+        code === "AUTH_ACCOUNT_EXISTS" ||
+        code === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY" ||
+        String(msg).toLowerCase().includes("already exists");
 
-      if (msg.includes("already exists")) {
+      if (accountExists) {
+        const email = basicData?.email || "";
+        const target = `/pre-scout-setup?mode=signin${email ? `&email=${encodeURIComponent(email)}` : ""}`;
+        const description =
+          code === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY"
+            ? "This email already has an account. Sign in with Google/Facebook or reset your password."
+            : "This email already has an account. Please sign in instead.";
         toast({
           title: "Account exists",
-          description: "Please log in instead.",
+          description,
           variant: "destructive",
         });
         setTimeout(() => {
-          navigate("/pre-scout-setup?mode=signin");
+          navigate(target);
         }, 1500);
         return;
       }

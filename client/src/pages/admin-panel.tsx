@@ -1405,66 +1405,79 @@ function LLMAdminPanel() {
 
           <Separator className="bg-white/5" />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-1">
-              <Label className="text-white/70">Email</Label>
-              <Input
-                value={resetInput.email}
-                onChange={(e) => setResetInput((p) => ({ ...p, email: e.target.value }))}
-                placeholder="user@example.com"
-                className="bg-tsCard border-white/10"
-              />
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              resetPasswordMutation.mutate();
+            }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-1">
+                <Label className="text-white/70">Email</Label>
+                <Input
+                  value={resetInput.email}
+                  onChange={(e) => setResetInput((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="user@example.com"
+                  autoComplete="username"
+                  className="bg-tsCard border-white/10"
+                />
+              </div>
+              <div className="md:col-span-1">
+                <Label className="text-white/70">User ID</Label>
+                <Input
+                  value={resetInput.userId}
+                  onChange={(e) => setResetInput((p) => ({ ...p, userId: e.target.value }))}
+                  placeholder="uuid"
+                  autoComplete="off"
+                  className="bg-tsCard border-white/10"
+                />
+              </div>
+              <div className="md:col-span-1">
+                <Label className="text-white/70">New Password</Label>
+                <Input
+                  type="password"
+                  value={resetInput.newPassword}
+                  onChange={(e) => setResetInput((p) => ({ ...p, newPassword: e.target.value }))}
+                  placeholder="min 8 chars"
+                  autoComplete="new-password"
+                  className="bg-tsCard border-white/10"
+                />
+              </div>
             </div>
-            <div className="md:col-span-1">
-              <Label className="text-white/70">User ID</Label>
-              <Input
-                value={resetInput.userId}
-                onChange={(e) => setResetInput((p) => ({ ...p, userId: e.target.value }))}
-                placeholder="uuid"
-                className="bg-tsCard border-white/10"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-white/70">Audit Reason</Label>
+                <Input
+                  value={resetReason}
+                  onChange={(e) => setResetReason(e.target.value)}
+                  placeholder="Why this reset is needed"
+                  autoComplete="off"
+                  className="bg-tsCard border-white/10"
+                />
+              </div>
+              <div>
+                <Label className="text-white/70">Safety Key (optional)</Label>
+                <Input
+                  type="password"
+                  value={resetSafetyKey}
+                  onChange={(e) => setResetSafetyKey(e.target.value)}
+                  placeholder="Required only when strict safety key mode is enabled"
+                  autoComplete="current-password"
+                  className="bg-tsCard border-white/10"
+                />
+              </div>
             </div>
-            <div className="md:col-span-1">
-              <Label className="text-white/70">New Password</Label>
-              <Input
-                type="password"
-                value={resetInput.newPassword}
-                onChange={(e) => setResetInput((p) => ({ ...p, newPassword: e.target.value }))}
-                placeholder="min 8 chars"
-                className="bg-tsCard border-white/10"
-              />
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                className="bg-ts-orange-dark hover:bg-ts-orange-dark"
+                disabled={resetPasswordMutation.isPending}
+              >
+                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+              </Button>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-white/70">Audit Reason</Label>
-              <Input
-                value={resetReason}
-                onChange={(e) => setResetReason(e.target.value)}
-                placeholder="Why this reset is needed"
-                className="bg-tsCard border-white/10"
-              />
-            </div>
-            <div>
-              <Label className="text-white/70">Safety Key (optional)</Label>
-              <Input
-                type="password"
-                value={resetSafetyKey}
-                onChange={(e) => setResetSafetyKey(e.target.value)}
-                placeholder="Required only when strict safety key mode is enabled"
-                className="bg-tsCard border-white/10"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
-              disabled={resetPasswordMutation.isPending}
-              onClick={() => resetPasswordMutation.mutate()}
-            >
-              {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
-            </Button>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>

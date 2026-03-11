@@ -48,6 +48,7 @@ import {
   UtensilsCrossed,
   Truck,
   Wine,
+  Activity,
 } from "lucide-react";
 
 interface User {
@@ -63,6 +64,48 @@ interface User {
   addressVerified: boolean;
   createdAt: string;
   facebookId: string | null;
+}
+
+interface DailyUserActivityPoint {
+  day: string;
+  activeUsers: number;
+  events: number;
+}
+
+interface DailyActiveUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+  lastEventAt: string | null;
+  eventCount: number;
+}
+
+interface ConsistentActiveUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  profileImageUrl: string | null;
+  activeDays: number;
+  totalEvents: number;
+  lastEventAt: string | null;
+}
+
+interface AdminDailyActivityResponse {
+  timezone: string;
+  days: number;
+  series: DailyUserActivityPoint[];
+  trailing7DayAverage: number;
+  trailing30DayAverage: number;
+  today: {
+    day: string;
+    activeUsers: number;
+    events: number;
+    users: DailyActiveUser[];
+  };
+  topActiveUsers: ConsistentActiveUser[];
 }
 
 const AVAILABLE_ROLES = [
@@ -137,6 +180,15 @@ export default function UserManagement() {
     queryKey: ["/api/admin/users"],
     retry: false,
   });
+
+  const { data: dailyActivity, isLoading: isLoadingDailyActivity } =
+    useQuery<AdminDailyActivityResponse>({
+      queryKey: ["/api/admin/activity/daily-users", 30],
+      queryFn: async () => {
+        return apiRequest("/api/admin/activity/daily-users?days=30&userLimit=12");
+      },
+      retry: false,
+    });
 
   const updateUserRoles = useMutation({
     mutationFn: async ({
@@ -244,6 +296,12 @@ export default function UserManagement() {
       `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.roles?.some((role) => role.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const formatDayLabel = (day: string) => {
+    const parsed = new Date(`${day}T00:00:00Z`);
+    if (Number.isNaN(parsed.getTime())) return day;
+    return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
 
   const getRoleInfo = (roleName: string) => {
     return (
@@ -441,6 +499,100 @@ export default function UserManagement() {
           </div>
 
           <div className="rounded-md border">
+            <div className="border-b p-4 bg-black/20">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-ts-orange" />
+                    Daily Active Users (30 days)
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Track daily active users and the most consistently active accounts.
+                  </p>
+                </div>
+                {dailyActivity && (
+                  <div className="text-xs text-muted-foreground">
+                    Timezone: {dailyActivity.timezone}
+                  </div>
+                )}
+              </div>
+
+              {isLoadingDailyActivity ? (
+                <div className="text-sm text-muted-foreground">Loading activity metrics...</div>
+              ) : dailyActivity ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
+                      <div className="text-xs text-muted-foreground">Active today</div>
+                      <div className="text-xl font-semibold">{dailyActivity.today.activeUsers}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {dailyActivity.today.events} events
+                      </div>
+                    </div>
+                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
+                      <div className="text-xs text-muted-foreground">7-day average</div>
+                      <div className="text-xl font-semibold">
+                        {dailyActivity.trailing7DayAverage.toFixed(1)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">users/day</div>
+                    </div>
+                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
+                      <div className="text-xs text-muted-foreground">30-day average</div>
+                      <div className="text-xl font-semibold">
+                        {dailyActivity.trailing30DayAverage.toFixed(1)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">users/day</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
+                      <div className="text-xs font-medium mb-2">Recent daily counts</div>
+                      <div className="space-y-1 max-h-44 overflow-auto pr-1">
+                        {(dailyActivity.series || []).slice(0, 14).map((point) => (
+                          <div
+                            key={point.day}
+                            className="flex items-center justify-between text-xs border-b border-white/5 pb-1"
+                          >
+                            <span className="text-muted-foreground">
+                              {formatDayLabel(point.day)}
+                            </span>
+                            <span>
+                              {point.activeUsers} users · {point.events} events
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-md border border-white/10 bg-black/20 p-3">
+                      <div className="text-xs font-medium mb-2">Most consistently active (30d)</div>
+                      <div className="space-y-2 max-h-44 overflow-auto pr-1">
+                        {(dailyActivity.topActiveUsers || []).slice(0, 8).map((entry) => (
+                          <div key={entry.id} className="text-xs border-b border-white/5 pb-1">
+                            <div className="font-medium">
+                              {entry.firstName || entry.lastName
+                                ? `${entry.firstName} ${entry.lastName}`.trim()
+                                : entry.email}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {entry.activeDays} active days · {entry.totalEvents} events
+                            </div>
+                          </div>
+                        ))}
+                        {!dailyActivity.topActiveUsers?.length && (
+                          <div className="text-xs text-muted-foreground">
+                            No activity recorded in the selected window.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No activity metrics available.</div>
+              )}
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
