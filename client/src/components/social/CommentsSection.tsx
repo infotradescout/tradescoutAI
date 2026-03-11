@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +20,22 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, Reply, MoreHorizontal, Flag, MessageCircle, Send, Loader2 } from "lucide-react";
+import {
+  ContactOutcomeModal,
+  type ContactOutcome,
+} from "@/components/community/ContactOutcomeModal";
+import {
+  Heart,
+  Reply,
+  MoreHorizontal,
+  Flag,
+  MessageCircle,
+  Send,
+  Loader2,
+  UserRound,
+  Briefcase,
+  UserPlus,
+} from "lucide-react";
 
 const commentSchema = z.object({
   content: z
@@ -44,8 +60,10 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(level === 0);
+  const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const [isLiked, setIsLiked] = useState(Boolean(comment.userReaction || comment.isLiked));
   const [likeCount, setLikeCount] = useState(
     (comment._count && typeof comment._count.reactions === "number"
@@ -147,26 +165,76 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
   const maxNestingLevel = 3;
   const shouldIndent = level < maxNestingLevel;
 
+  const targetUserId = String(comment?.author?.id || comment?.authorId || "").trim();
+  const targetUserName = [comment?.author?.firstName, comment?.author?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const handleOpenProfile = () => {
+    if (!targetUserId) return;
+    navigate(`/community/u/${encodeURIComponent(targetUserId)}`);
+  };
+
+  const handleOpenDirectConnect = () => {
+    if (!targetUserId) return;
+    const params = new URLSearchParams({
+      source: "social_comment",
+      target: targetUserId,
+    });
+    if (targetUserName) {
+      params.set("targetName", targetUserName);
+    }
+    navigate(`/direct-connect?${params.toString()}`);
+  };
+
+  const handleConnectionRequest = () => {
+    if (!targetUserId) return;
+    setContactOutcome({
+      targetUserId,
+      targetUserName: targetUserName || "Community member",
+      targetRole: String(comment?.author?.role || "Member"),
+      suggestedIntent: "collaborate",
+      reasonForContact: "I saw your comment in Community and want to connect.",
+      riskFlags: [],
+      decisionScope: `social_comment:${comment.id}`,
+      decisionTitle: "Community connection request",
+    });
+  };
+
   return (
     <div className={`space-y-3 ${shouldIndent ? "ml-4 pl-4 border-l-2 border-white/10" : ""}`}>
       {/* Comment */}
       <div className="flex items-start space-x-3">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={comment.author.profileImageUrl} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-            {comment.author.firstName?.[0]}
-            {comment.author.lastName?.[0]}
-          </AvatarFallback>
-        </Avatar>
+        <button
+          type="button"
+          onClick={handleOpenProfile}
+          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange/70"
+          title="View public profile"
+          aria-label={`View ${targetUserName || "member"} profile`}
+        >
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={comment.author.profileImageUrl} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+              {comment.author.firstName?.[0]}
+              {comment.author.lastName?.[0]}
+            </AvatarFallback>
+          </Avatar>
+        </button>
 
         <div className="flex-1 space-y-2">
           {/* Author & Content */}
           <div className="bg-tsCard rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center space-x-2">
-                <span className="font-medium text-sm">
+                <button
+                  type="button"
+                  onClick={handleOpenProfile}
+                  className="font-medium text-sm hover:text-ts-orange text-left"
+                  title="View public profile"
+                >
                   {comment.author.firstName} {comment.author.lastName}
-                </span>
+                </button>
                 <Badge
                   variant="secondary"
                   className={`text-xs px-1.5 py-0.5 ${
@@ -192,6 +260,24 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {targetUserId && (
+                    <DropdownMenuItem onClick={handleOpenProfile}>
+                      <UserRound className="h-3 w-3 mr-2" />
+                      View public profile
+                    </DropdownMenuItem>
+                  )}
+                  {targetUserId && (
+                    <DropdownMenuItem onClick={handleOpenDirectConnect}>
+                      <Briefcase className="h-3 w-3 mr-2" />
+                      Start Direct Connect request
+                    </DropdownMenuItem>
+                  )}
+                  {targetUserId && (
+                    <DropdownMenuItem onClick={handleConnectionRequest}>
+                      <UserPlus className="h-3 w-3 mr-2" />
+                      Send connection request
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem>
                     <Flag className="h-3 w-3 mr-2" />
                     Report
@@ -308,6 +394,9 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
               ))
             : null}
         </div>
+      )}
+      {contactOutcome && (
+        <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
       )}
     </div>
   );

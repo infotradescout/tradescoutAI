@@ -41,6 +41,31 @@ type TopContractor = {
 
 type PostIntent = "work_request" | "job_listing";
 
+function looksLikeHiddenOrTestRequest(request: WorkRequest): boolean {
+  const title = String((request as any)?.title || "").toLowerCase();
+  const description = String((request as any)?.description || "").toLowerCase();
+  const body = `${title} ${description}`;
+  if (body.includes("[hidden]")) return true;
+  const markers = [
+    "playwright",
+    "smoke test",
+    "e2e test",
+    "qa test",
+    "test request",
+    "integration test",
+  ];
+  return markers.some((marker) => body.includes(marker));
+}
+
+function isCurrentLiveRequest(request: WorkRequest): boolean {
+  const status = String((request as any)?.status || "").toLowerCase();
+  if (!["open", "routed", "in_progress"].includes(status)) return false;
+  const ts = (request as any)?.updatedAt || (request as any)?.createdAt;
+  if (!ts) return false;
+  const ageMs = Date.now() - new Date(ts).getTime();
+  return Number.isFinite(ageMs) && ageMs <= 120 * 24 * 60 * 60 * 1000;
+}
+
 function mapTaskCategoryToTradeSlug(categoryId: string | null | undefined): string | null {
   if (!categoryId) return null;
 
@@ -400,18 +425,26 @@ export default function TasksHub({
   const filteredRequests = useMemo(() => {
     if (!workRequests) return [];
 
-    return workRequests.filter((request) => {
-      const matchesSearch =
-        !searchQuery ||
-        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return workRequests
+      .filter((request) => !looksLikeHiddenOrTestRequest(request))
+      .filter((request) => isCurrentLiveRequest(request))
+      .filter((request) => {
+        const matchesSearch =
+          !searchQuery ||
+          request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      if (selectedCategory && request.category !== selectedCategory) {
-        return false;
-      }
+        if (selectedCategory && request.category !== selectedCategory) {
+          return false;
+        }
 
-      return matchesSearch;
-    });
+        return matchesSearch;
+      })
+      .sort((a, b) => {
+        const aTs = new Date((a as any).updatedAt || (a as any).createdAt || 0).getTime();
+        const bTs = new Date((b as any).updatedAt || (b as any).createdAt || 0).getTime();
+        return bTs - aTs;
+      });
   }, [workRequests, searchQuery, selectedCategory]);
 
   const shellClass = embedded
@@ -593,8 +626,20 @@ export default function TasksHub({
                       <button
                         type="button"
                         className="w-full text-left"
-                        onClick={() => setSelectedBoardRequest(request)}
-                        aria-label={`Open request details for ${request.title}`}
+                        onClick={() => {
+                          const landingUrl = String(
+                            (request as any)?.dcMiniLandingUrl ||
+                              ((request as any)?.shareToken
+                                ? `/r/${encodeURIComponent(String((request as any).shareToken))}`
+                                : "")
+                          ).trim();
+                          if (landingUrl) {
+                            navigate(landingUrl);
+                            return;
+                          }
+                          setSelectedBoardRequest(request);
+                        }}
+                        aria-label={`Open request landing page for ${request.title}`}
                       >
                         <div
                           className={
@@ -639,9 +684,11 @@ export default function TasksHub({
                           </span>
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-ts-orange/90">Tap to open</span>
+                          <span className="text-[10px] text-ts-orange/90">
+                            Tap to open landing page
+                          </span>
                           <span className="inline-flex items-center rounded-md border border-ts-orange/40 bg-ts-orange/10 px-2 py-1 text-[10px] font-medium text-ts-orange">
-                            Open details
+                            Open request page
                           </span>
                         </div>
                       </button>

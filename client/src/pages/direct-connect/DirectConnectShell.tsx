@@ -22,7 +22,6 @@ import { WhyThisJobModal } from "./WhyThisJobModal";
 import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
-import { share, shareToPlatform } from "@/utils/share";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import {
   ClipboardPlus,
@@ -226,11 +225,13 @@ type DirectConnectRequest = {
   budgetMin?: string | null;
   budgetMax?: string | null;
   createdAt?: string | null;
+  updatedAt?: string | null;
   attachmentCount?: number | null;
   dcSuggestedCount?: number | null;
   dcAcceptedAssignmentId?: string | null;
   dcConversationThreadId?: string | null;
   dcLastEventAt?: string | null;
+  dcMiniLandingUrl?: string | null;
 };
 
 type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";
@@ -317,6 +318,29 @@ function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilt
   if (filter === "in_progress") return stage === "active_conversation";
   if (filter === "completed") return stage === "completed";
   return stage === "cancelled";
+}
+
+function looksLikeHiddenOrTestRequest(request: DirectConnectRequest): boolean {
+  const title = String(request.title || "").toLowerCase();
+  const description = String(request.description || "").toLowerCase();
+  const body = `${title} ${description}`;
+  if (body.includes("[hidden]")) return true;
+  const markers = [
+    "playwright",
+    "smoke test",
+    "e2e test",
+    "qa test",
+    "test request",
+    "integration test",
+  ];
+  return markers.some((marker) => body.includes(marker));
+}
+
+function isCurrentRequest(request: DirectConnectRequest): boolean {
+  const ts = request.dcLastEventAt || request.updatedAt || request.createdAt;
+  if (!ts) return false;
+  const ageMs = Date.now() - new Date(ts).getTime();
+  return Number.isFinite(ageMs) && ageMs <= 120 * 24 * 60 * 60 * 1000;
 }
 
 function countRequestsByStage(
@@ -1107,7 +1131,7 @@ function MyDirectConnectRequests() {
   const { data: requestsData, isLoading } = useQuery<DirectConnectRequest[]>({
     queryKey: ["/api/direct-connect/requests"],
     queryFn: async () => {
-      const res = await fetch("/api/direct-connect/requests");
+      const res = await fetch("/api/direct-connect/requests?scope=local");
       if (!res.ok) return [];
       return res.json();
     },
@@ -1116,7 +1140,15 @@ function MyDirectConnectRequests() {
 
   const filteredRequests = useMemo(() => {
     if (!requestsData) return [];
-    return requestsData.filter((request) => matchesRequestFilter(request, requestFilter));
+    return requestsData
+      .filter((request) => !looksLikeHiddenOrTestRequest(request))
+      .filter((request) => isCurrentRequest(request))
+      .filter((request) => matchesRequestFilter(request, requestFilter))
+      .sort((a, b) => {
+        const aTs = new Date(a.dcLastEventAt || a.updatedAt || a.createdAt || 0).getTime();
+        const bTs = new Date(b.dcLastEventAt || b.updatedAt || b.createdAt || 0).getTime();
+        return bTs - aTs;
+      });
   }, [requestsData, requestFilter]);
 
   const routeMutation = useMutation({
@@ -1160,6 +1192,12 @@ function MyDirectConnectRequests() {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       toast({ title: "Request reopened" });
+    },
+  });
+
+  const shareLandingMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest("GET", `/api/direct-connect/requests/${requestId}/share`);
     },
   });
 
@@ -1265,6 +1303,7 @@ function MyDirectConnectRequests() {
           stage === "waiting_on_pros" ||
           stage === "active_conversation";
         const canReopen = stage === "cancelled";
+        const canShare = stage !== "cancelled" && stage !== "completed";
         const isExpanded = expandedRequestId === r.id;
         const isMobileActionOpen = mobileActionRequestId === r.id;
         const timelineStamp = r.dcLastEventAt || r.createdAt;
@@ -1278,44 +1317,86 @@ function MyDirectConnectRequests() {
             ? `${r.attachmentCount} photos`
             : null,
         ].filter(Boolean);
+
+        const handleOpenRequest = async () => {
+          if (canShare) {
+            try {
+              let shareUrl = String(r.dcMiniLandingUrl || "").trim();
+              if (!shareUrl) {
+                const payload = await shareLandingMutation.mutateAsync(r.id);
+                shareUrl = String(payload?.shareUrl || "").trim();
+              }
+              if (shareUrl) {
+                window.location.href = shareUrl;
+                return;
+              }
+            } catch {
+              // fall through to non-share behavior
+            }
+          }
+
+          if (canMessage) {
+            const threadId = r.dcConversationThreadId;
+            window.location.href = threadId
+              ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+              : "/messages";
+            return;
+          }
+          setExpandedRequestId((current) => (current === r.id ? null : r.id));
+        };
+
         return (
           <Card
             key={r.id}
             className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] transition-colors hover:border-[color:var(--theme-accent-primary)]/50"
           >
             <CardContent className="space-y-4 p-4 md:p-5">
-              <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/75 p-3 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0 flex-1 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      {getRequestStageLabel(stage)}
+              <button
+                type="button"
+                onClick={handleOpenRequest}
+                className="w-full text-left"
+                aria-label={`Open request ${r.title}`}
+              >
+                <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/75 p-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                        {getRequestStageLabel(stage)}
+                      </p>
+                      {timelineStamp && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
+                          <Clock3 className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(timelineStamp), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
+                      {r.title}
+                    </h3>
+                    <p className="text-sm text-[color:var(--text-secondary)]">
+                      {interpreted.primaryPhrase}
                     </p>
-                    {timelineStamp && (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
-                        <Clock3 className="h-3 w-3" />
-                        {formatDistanceToNow(new Date(timelineStamp), { addSuffix: true })}
-                      </span>
+                    {interpreted.secondaryPhrase && (
+                      <p className="text-xs text-[color:var(--text-secondary)]/90">
+                        {interpreted.secondaryPhrase}
+                      </p>
                     )}
-                  </div>
-                  <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
-                    {r.title}
-                  </h3>
-                  <p className="text-sm text-[color:var(--text-secondary)]">
-                    {interpreted.primaryPhrase}
-                  </p>
-                  {interpreted.secondaryPhrase && (
-                    <p className="text-xs text-[color:var(--text-secondary)]/90">
-                      {interpreted.secondaryPhrase}
+                    <p className="text-[11px] text-ts-orange/90">
+                      {canShare
+                        ? "Tap to open mini landing page"
+                        : canMessage
+                          ? "Tap to open messages"
+                          : "Tap to open details"}
                     </p>
-                  )}
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn("h-fit uppercase text-[10px]", statusTone(status))}
+                  >
+                    {status.replace("_", " ")}
+                  </Badge>
                 </div>
-                <Badge
-                  variant="outline"
-                  className={cn("h-fit uppercase text-[10px]", statusTone(status))}
-                >
-                  {status.replace("_", " ")}
-                </Badge>
-              </div>
+              </button>
 
               <div className="space-y-2">
                 <p className="text-sm text-[color:var(--text-primary)]">{r.description}</p>
@@ -1349,9 +1430,10 @@ function MyDirectConnectRequests() {
                     size="sm"
                     variant="ghost"
                     className="h-8 px-2 text-xs"
-                    onClick={() =>
-                      setExpandedRequestId((current) => (current === r.id ? null : r.id))
-                    }
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setExpandedRequestId((current) => (current === r.id ? null : r.id));
+                    }}
                   >
                     {isExpanded ? "Hide details" : "Show details"}
                   </Button>
@@ -1363,9 +1445,10 @@ function MyDirectConnectRequests() {
                   size="sm"
                   variant="outline"
                   className="h-8 px-2 text-xs"
-                  onClick={() =>
-                    setMobileActionRequestId((current) => (current === r.id ? null : r.id))
-                  }
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setMobileActionRequestId((current) => (current === r.id ? null : r.id));
+                  }}
                 >
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>

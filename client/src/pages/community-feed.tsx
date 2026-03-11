@@ -941,6 +941,60 @@ const CommunityFeed = memo(function CommunityFeed() {
     });
   };
 
+  const handleOpenCommunityMemberProfile = (userId?: string | null) => {
+    const targetUserId = String(userId || "").trim();
+    if (!targetUserId) return;
+    const connection = connectionByUserId.get(targetUserId);
+    const canonical = String(connection?.canonicalProfileUrl || "").trim();
+    if (canonical) {
+      navigate(canonical);
+      return;
+    }
+    navigate(`/community/u/${encodeURIComponent(targetUserId)}`);
+  };
+
+  const handleOpenDirectConnectForCommunityMember = (
+    userId?: string | null,
+    displayName?: string | null
+  ) => {
+    const targetUserId = String(userId || "").trim();
+    if (!targetUserId) return;
+    const params = new URLSearchParams({
+      source: "community_feed",
+      target: targetUserId,
+    });
+    const name = String(displayName || "").trim();
+    if (name) {
+      params.set("targetName", name);
+    }
+    if (countyFips) {
+      params.set("county", countyFips);
+    }
+    navigate(`/direct-connect?${params.toString()}`);
+  };
+
+  const handleRequestCommunityMemberConnection = (post: any) => {
+    const targetUserId = String(post?.author?.id || "").trim();
+    if (!targetUserId) return;
+
+    const name = String(getAuthorName(post) || "").trim() || "Community member";
+    const location = String(post?.location || post?.author?.location || "").trim() || undefined;
+    const role = String(post?.author?.role || "Member").trim() || "Member";
+
+    setActiveContactOutcome({
+      targetUserId,
+      targetUserName: name,
+      targetRole: role,
+      targetLocation: location,
+      suggestedIntent: "collaborate",
+      reasonForContact:
+        "I saw your activity in Community and want to connect so we can coordinate directly.",
+      riskFlags: [],
+      decisionScope: `community_feed:${targetUserId}`,
+      decisionTitle: "Community connection request",
+    });
+  };
+
   // Allow Scout to prefill the composer via /community?compose=1&prefill=...
   useEffect(() => {
     if (!route) return;
@@ -1026,17 +1080,34 @@ const CommunityFeed = memo(function CommunityFeed() {
                           <TradeScoutIcon size="sm" variant="gradient" className="text-black" />
                         </div>
                       ) : (
-                        <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-ts-orange/70">
-                          <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
-                          <AvatarFallback>{getAuthorInitials(post)}</AvatarFallback>
-                        </Avatar>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
+                          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange/70"
+                          title="View public profile"
+                          aria-label={`View ${getAuthorName(post)} profile`}
+                        >
+                          <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-ts-orange/70">
+                            <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
+                            <AvatarFallback>{getAuthorInitials(post)}</AvatarFallback>
+                          </Avatar>
+                        </button>
                       )}
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-white font-semibold text-sm md:text-base">
-                            {isSystemPost ? "Scout" : getAuthorName(post)}
-                          </h3>
+                          {isSystemPost ? (
+                            <h3 className="text-white font-semibold text-sm md:text-base">Scout</h3>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
+                              className="text-white font-semibold text-sm md:text-base hover:text-ts-orange text-left"
+                              title="View public profile"
+                            >
+                              {getAuthorName(post)}
+                            </button>
+                          )}
                           {!isSystemPost && post.author?.verified !== undefined && (
                             <Badge
                               variant="outline"
@@ -1092,6 +1163,32 @@ const CommunityFeed = memo(function CommunityFeed() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
+                          {!isSystemPost && post.author?.id && (
+                            <DropdownMenuItem
+                              onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
+                            >
+                              View public profile
+                            </DropdownMenuItem>
+                          )}
+                          {!isSystemPost && post.author?.id && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleOpenDirectConnectForCommunityMember(
+                                  post.author?.id,
+                                  getAuthorName(post)
+                                )
+                              }
+                            >
+                              Start Direct Connect request
+                            </DropdownMenuItem>
+                          )}
+                          {!isSystemPost && post.author?.id && (
+                            <DropdownMenuItem
+                              onClick={() => handleRequestCommunityMemberConnection(post)}
+                            >
+                              Send connection request
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem>
                             <Flag className="h-4 w-4 mr-2" />
                             Report

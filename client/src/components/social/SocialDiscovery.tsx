@@ -1,14 +1,27 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, HelpCircle, Users, Loader2, AlertCircle, X } from "lucide-react";
+import {
+  Search,
+  HelpCircle,
+  Users,
+  Loader2,
+  AlertCircle,
+  X,
+  UserRound,
+  Briefcase,
+  UserPlus,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  ContactOutcomeModal,
+  type ContactOutcome,
+} from "@/components/community/ContactOutcomeModal";
 
 export interface UserProfile {
   id: string;
@@ -53,6 +66,7 @@ export const SocialDiscovery = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [scope, setScope] = useState<"county" | "state">("county");
   const [intentModal, setIntentModal] = useState<IntentModalState>({ isOpen: false });
+  const [activeContactOutcome, setActiveContactOutcome] = useState<ContactOutcome | null>(null);
 
   // Search users
   const { data: searchResults, isLoading: isSearching } = useQuery<SearchResult>({
@@ -104,6 +118,45 @@ export const SocialDiscovery = () => {
     }
   };
 
+  const handleOpenProfile = (userId: string) => {
+    if (!userId) return;
+    navigate(`/community/u/${encodeURIComponent(userId)}`);
+  };
+
+  const handleOpenDirectConnect = (userProfile: UserProfile) => {
+    const params = new URLSearchParams({
+      source: "social_discovery",
+      target: userProfile.id,
+    });
+    const trimmedName = String(userProfile.name || "").trim();
+    if (trimmedName) {
+      params.set("targetName", trimmedName);
+    }
+    navigate(`/direct-connect?${params.toString()}`);
+  };
+
+  const handleConnectionRequest = (userProfile: UserProfile) => {
+    const targetUserId = String(userProfile.id || "").trim();
+    if (!targetUserId) return;
+
+    const targetUserName = String(userProfile.name || "").trim() || "Community member";
+    const targetRole = String(userProfile.role || "").trim() || "Member";
+    const targetLocation = String(userProfile.location || "").trim() || undefined;
+
+    setActiveContactOutcome({
+      targetUserId,
+      targetUserName,
+      targetRole,
+      targetLocation,
+      suggestedIntent: "collaborate",
+      reasonForContact:
+        "I found your profile in Community and want to connect so we can coordinate directly.",
+      riskFlags: [],
+      decisionScope: `social_discovery:${targetUserId}`,
+      decisionTitle: "Community connection request",
+    });
+  };
+
   const renderUserCard = (userProfile: UserProfile) => (
     <Card
       key={userProfile.id}
@@ -112,18 +165,33 @@ export const SocialDiscovery = () => {
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={userProfile.avatar} />
-              <AvatarFallback>
-                {userProfile.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange/70"
+              onClick={() => handleOpenProfile(userProfile.id)}
+              aria-label={`Open ${userProfile.name} profile`}
+              title="View public profile"
+            >
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={userProfile.avatar} />
+                <AvatarFallback>
+                  {userProfile.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </button>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-white truncate">{userProfile.name}</h3>
+              <button
+                type="button"
+                className="font-semibold text-white truncate hover:text-ts-orange text-left"
+                onClick={() => handleOpenProfile(userProfile.id)}
+                title="View public profile"
+              >
+                {userProfile.name}
+              </button>
               {userProfile.role && (
                 <p className="text-xs text-[color:var(--text-secondary)] capitalize">
                   {userProfile.role}
@@ -148,6 +216,35 @@ export const SocialDiscovery = () => {
           >
             {userProfile.verified ? "Verified" : "Unverified"}
           </Badge>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[color:var(--border-subtle)] text-xs"
+            onClick={() => handleOpenProfile(userProfile.id)}
+          >
+            <UserRound className="h-3.5 w-3.5 mr-1" />
+            Profile
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[color:var(--border-subtle)] text-xs"
+            onClick={() => handleOpenDirectConnect(userProfile)}
+          >
+            <Briefcase className="h-3.5 w-3.5 mr-1" />
+            Direct
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[color:var(--border-subtle)] text-xs"
+            onClick={() => handleConnectionRequest(userProfile)}
+          >
+            <UserPlus className="h-3.5 w-3.5 mr-1" />
+            Connect
+          </Button>
         </div>
 
         <Button
@@ -307,6 +404,13 @@ export const SocialDiscovery = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {activeContactOutcome && (
+        <ContactOutcomeModal
+          outcome={activeContactOutcome}
+          onClose={() => setActiveContactOutcome(null)}
+        />
       )}
     </div>
   );

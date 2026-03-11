@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +19,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
 import {
+  ContactOutcomeModal,
+  type ContactOutcome,
+} from "@/components/community/ContactOutcomeModal";
+import {
   Heart,
   MessageCircle,
   Share2,
@@ -29,6 +34,9 @@ import {
   MapPin,
   Users,
   TrendingUp,
+  UserRound,
+  Briefcase,
+  UserPlus,
 } from "lucide-react";
 
 interface PostCardProps {
@@ -39,10 +47,12 @@ export function PostCard({ post }: PostCardProps) {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const [isLiked, setIsLiked] = useState(Boolean(post.userReaction || post.isLiked));
   const [likeCount, setLikeCount] = useState(
     (post._count && typeof post._count.reactions === "number"
@@ -132,6 +142,46 @@ export function PostCard({ post }: PostCardProps) {
     setShowReportModal(true);
   };
 
+  const targetUserId = String(post?.author?.id || post?.authorId || "").trim();
+  const targetUserName = [post?.author?.firstName, post?.author?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const handleOpenProfile = () => {
+    if (!targetUserId) return;
+    navigate(`/community/u/${encodeURIComponent(targetUserId)}`);
+  };
+
+  const handleOpenDirectConnect = () => {
+    if (!targetUserId) return;
+    const params = new URLSearchParams({
+      source: "social_post_card",
+      target: targetUserId,
+    });
+    if (targetUserName) {
+      params.set("targetName", targetUserName);
+    }
+    navigate(`/direct-connect?${params.toString()}`);
+  };
+
+  const handleConnectionRequest = () => {
+    if (!targetUserId) return;
+    setContactOutcome({
+      targetUserId,
+      targetUserName: targetUserName || "Community member",
+      targetRole: String(post?.author?.role || "Member"),
+      targetLocation: post?.location || undefined,
+      suggestedIntent: "collaborate",
+      reasonForContact: post?.title
+        ? `I saw your post "${post.title}" and want to connect.`
+        : "I saw your post and want to connect.",
+      riskFlags: [],
+      decisionScope: `social_post:${post.id}`,
+      decisionTitle: "Community connection request",
+    });
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -171,19 +221,32 @@ export function PostCard({ post }: PostCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={post.author.profileImageUrl} />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {post.author.firstName?.[0]}
-                {post.author.lastName?.[0]}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              onClick={handleOpenProfile}
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange/70"
+              title="View public profile"
+              aria-label={`View ${targetUserName || "member"} profile`}
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={post.author.profileImageUrl} />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {post.author.firstName?.[0]}
+                  {post.author.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+            </button>
 
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h4 className="font-semibold text-sm">
+                <button
+                  type="button"
+                  className="font-semibold text-sm hover:text-ts-orange text-left"
+                  onClick={handleOpenProfile}
+                  title="View public profile"
+                >
                   {post.author.firstName} {post.author.lastName}
-                </h4>
+                </button>
                 <Badge
                   variant="secondary"
                   className={`text-xs px-1.5 py-0.5 ${
@@ -229,6 +292,24 @@ export function PostCard({ post }: PostCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {targetUserId && (
+                  <DropdownMenuItem onClick={handleOpenProfile}>
+                    <UserRound className="h-4 w-4 mr-2" />
+                    View public profile
+                  </DropdownMenuItem>
+                )}
+                {targetUserId && (
+                  <DropdownMenuItem onClick={handleOpenDirectConnect}>
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Start Direct Connect request
+                  </DropdownMenuItem>
+                )}
+                {targetUserId && (
+                  <DropdownMenuItem onClick={handleConnectionRequest}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Send connection request
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleSave}>
                   <BookmarkPlus className="h-4 w-4 mr-2" />
                   Save post
@@ -354,6 +435,10 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         )}
       </CardContent>
+
+      {contactOutcome && (
+        <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
+      )}
 
       {/* Share Modal */}
       <ShareModal open={showShareModal} onOpenChange={setShowShareModal} post={post} />

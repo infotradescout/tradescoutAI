@@ -52,6 +52,16 @@ export async function buildWorkRequestShareHtml({
     return null;
   }
 
+  const status = String((requestRow as any).status || "").toLowerCase();
+  const shareable = status === "open" || status === "routed" || status === "in_progress";
+  if (!shareable) {
+    await db
+      .update(workRequests)
+      .set({ shareToken: null, updatedAt: new Date() })
+      .where(eq(workRequests.id, String((requestRow as any).id)));
+    return null;
+  }
+
   const trade = requestRow.tradeId
     ? await storage.getTradeBySlug(String(requestRow.tradeId))
     : null;

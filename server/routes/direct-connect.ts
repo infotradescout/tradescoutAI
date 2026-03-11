@@ -187,6 +187,9 @@ const toTradeDisplayName = (value: string): string => {
 export function registerDirectConnectRoutes(app: Express) {
   const makeShareToken = () => randomBytes(16).toString("hex");
   const ACTIVE_BOARD_STATUSES = new Set(["open", "routed", "in_progress"]);
+  const ACTIVE_SHARE_STATUSES = new Set(["open", "routed", "in_progress"]);
+  const isShareableRequestStatus = (status: unknown) =>
+    ACTIVE_SHARE_STATUSES.has(String(status || "").toLowerCase());
   const isSchemaMismatchError = (error: unknown): boolean => {
     const err = error as { code?: string; message?: string } | null;
     const code = String(err?.code || "").trim();
@@ -293,6 +296,40 @@ export function registerDirectConnectRoutes(app: Express) {
     const proto = protoHeader || req.protocol || "https";
     const host = req.get("host") || "www.thetradescout.com";
     return `${proto}://${host}`;
+  };
+
+  const ensureShareTokenForRequest = async (
+    requestId: string,
+    tx: typeof db | any = db
+  ): Promise<string | null> => {
+    const [requestRow] = await tx
+      .select()
+      .from(workRequests)
+      .where(eq(workRequests.id, requestId))
+      .limit(1);
+    if (!requestRow) return null;
+    if (!isShareableRequestStatus((requestRow as any).status)) return null;
+
+    const existing = String((requestRow as any).shareToken || "").trim();
+    if (existing) return existing;
+
+    let shareToken = "";
+    let attempts = 0;
+    while (!shareToken && attempts < 5) {
+      attempts += 1;
+      const candidate = makeShareToken();
+      try {
+        await tx
+          .update(workRequests)
+          .set({ shareToken: candidate, updatedAt: new Date() })
+          .where(eq(workRequests.id, requestId));
+        shareToken = candidate;
+      } catch {
+        // Retry on collision/transient DB errors.
+      }
+    }
+
+    return shareToken || null;
   };
 
   const routeRequestToTopContractors = async ({
@@ -792,13 +829,34 @@ export function registerDirectConnectRoutes(app: Express) {
 
             return true;
           })
-          .map((row: any) => ({
-            ...row,
-            attachmentCount: getAttachmentCount(row),
-            isMine: String(row.createdByUserId || "") === String(userId),
-          }));
+          .map((row: any) => ({ ...row }));
 
-        return res.json(board);
+        for (const row of board as any[]) {
+          const hasToken = String(row.shareToken || "").trim().length > 0;
+          if (isShareableRequestStatus(row.status)) {
+            if (!hasToken) {
+              const token = await ensureShareTokenForRequest(String(row.id));
+              if (token) row.shareToken = token;
+            }
+          } else if (hasToken) {
+            await db
+              .update(workRequests)
+              .set({ shareToken: null, updatedAt: new Date() })
+              .where(eq(workRequests.id, String(row.id)));
+            row.shareToken = null;
+          }
+        }
+
+        const boardWithMeta = board.map((row: any) => ({
+          ...row,
+          attachmentCount: getAttachmentCount(row),
+          isMine: String(row.createdByUserId || "") === String(userId),
+          dcMiniLandingUrl: String(row.shareToken || "").trim()
+            ? `${resolveOrigin(req)}/r/${encodeURIComponent(String(row.shareToken))}`
+            : null,
+        }));
+
+        return res.json(boardWithMeta);
       } catch (error: any) {
         console.error("Error fetching direct connect board:", error);
         return res.status(500).json({
@@ -818,13 +876,27 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+        const viewer = await storage.getUser(String(userId));
+        const viewerCountyFips = String(
+          (viewer as any)?.countyFips || (viewer as any)?.county_fips || ""
+        ).trim();
+
         const statusRaw = typeof req.query?.status === "string" ? (req.query.status as string) : "";
         const status = statusRaw.trim() as WorkRequest["status"] | "";
+        const scopeRaw = typeof req.query?.scope === "string" ? String(req.query.scope) : "";
+        const scope = scopeRaw.trim().toLowerCase();
+        const localOnly = scope !== "all";
+        const queryCountyFips =
+          typeof req.query?.countyFips === "string" ? String(req.query.countyFips).trim() : "";
+        const effectiveCountyFips = queryCountyFips || viewerCountyFips;
 
         const filters: any[] = [
           eq(workRequests.createdByUserId, String(userId)),
           eq(workRequests.source, "direct_connect" as any),
         ];
+        if (localOnly && effectiveCountyFips) {
+          filters.push(eq(workRequests.countyFips, effectiveCountyFips));
+        }
         if (status) {
           filters.push(eq(workRequests.status, status));
         }
@@ -837,7 +909,7 @@ export function registerDirectConnectRoutes(app: Express) {
             .select()
             .from(workRequests)
             .where(whereClause)
-            .orderBy(desc(workRequests.createdAt));
+            .orderBy(desc(workRequests.updatedAt), desc(workRequests.createdAt));
         } catch (error) {
           if (isSchemaMismatchError(error)) {
             console.warn(
@@ -853,7 +925,46 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.json([]);
         }
 
-        const requestIds = requests.map((r: any) => r.id);
+        const nowMs = Date.now();
+        const maxAgeMs = 120 * 24 * 60 * 60 * 1000; // keep requests current by default (120 days)
+        const validStatuses = new Set(["open", "routed", "in_progress", "completed", "cancelled"]);
+        const filteredRequests = requests.filter((row: any) => {
+          const normalizedStatus = String(row.status || "").toLowerCase();
+          if (!validStatuses.has(normalizedStatus)) return false;
+          if (normalizedStatus === "draft") return false;
+          if (looksLikeHiddenOrTestRequest(row)) return false;
+
+          const ts = row.updatedAt || row.createdAt;
+          if (!ts) return false;
+          const ageMs = nowMs - new Date(ts).getTime();
+          if (Number.isFinite(ageMs) && ageMs > maxAgeMs) return false;
+          return true;
+        });
+
+        if (!filteredRequests.length) {
+          return res.json([]);
+        }
+
+        // Keep share token lifecycle strict:
+        // - live requests get/keep a token
+        // - closed requests lose tokens
+        for (const row of filteredRequests as any[]) {
+          const hasToken = String(row.shareToken || "").trim().length > 0;
+          if (isShareableRequestStatus(row.status)) {
+            if (!hasToken) {
+              const token = await ensureShareTokenForRequest(String(row.id));
+              if (token) row.shareToken = token;
+            }
+          } else if (hasToken) {
+            await db
+              .update(workRequests)
+              .set({ shareToken: null, updatedAt: new Date() })
+              .where(eq(workRequests.id, String(row.id)));
+            row.shareToken = null;
+          }
+        }
+
+        const requestIds = filteredRequests.map((r: any) => r.id);
 
         // Aggregate assignments per request for requester visibility
         let assignments: any[] = [];
@@ -955,7 +1066,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        const enriched = requests.map((r: any) => {
+        const enriched = filteredRequests.map((r: any) => {
           const a = assignmentsByRequest.get(String(r.id)) || [];
           const suggestedCount = a.filter(
             (x: any) => x.status === "suggested" || x.status === "invited"
@@ -975,7 +1086,16 @@ export function registerDirectConnectRoutes(app: Express) {
             dcAcceptedAssignmentId: accepted?.id ?? null,
             dcConversationThreadId: conversationThreadId,
             dcLastEventAt: lastEventByRequest.get(String(r.id))?.toISOString() ?? null,
+            dcMiniLandingUrl: String((r as any).shareToken || "").trim()
+              ? `${resolveOrigin(req)}/r/${encodeURIComponent(String((r as any).shareToken))}`
+              : null,
           };
+        });
+
+        enriched.sort((a: any, b: any) => {
+          const aTs = new Date(a.dcLastEventAt || a.updatedAt || a.createdAt || 0).getTime();
+          const bTs = new Date(b.dcLastEventAt || b.updatedAt || b.createdAt || 0).getTime();
+          return bTs - aTs;
         });
 
         res.json(enriched);
@@ -1013,27 +1133,23 @@ export function registerDirectConnectRoutes(app: Express) {
             .json({ message: "Only Direct Connect requests can be shared here" });
         }
 
+        if (!isShareableRequestStatus((requestRow as any).status)) {
+          if (String((requestRow as any).shareToken || "").trim()) {
+            await db
+              .update(workRequests)
+              .set({ shareToken: null, updatedAt: new Date() })
+              .where(eq(workRequests.id, requestId));
+          }
+          return res
+            .status(409)
+            .json({ message: "This request is closed and no longer shareable." });
+        }
+
         if (String(requestRow.createdByUserId) !== String(userId)) {
           return res.status(403).json({ message: "You can only share your own requests" });
         }
 
-        let shareToken = String((requestRow as any).shareToken || "");
-        if (!shareToken) {
-          let attempts = 0;
-          while (!shareToken && attempts < 5) {
-            attempts += 1;
-            const candidate = makeShareToken();
-            try {
-              await db
-                .update(workRequests)
-                .set({ shareToken: candidate, updatedAt: new Date() })
-                .where(eq(workRequests.id, requestId));
-              shareToken = candidate;
-            } catch {
-              // Retry on collision/constraint issues.
-            }
-          }
-        }
+        const shareToken = await ensureShareTokenForRequest(requestId);
 
         if (!shareToken) {
           return res.status(500).json({ message: "Failed to create share link" });
@@ -1163,6 +1279,14 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(404).json({ message: "Shared request not found" });
       }
 
+      if (!isShareableRequestStatus((requestRow as any).status)) {
+        await db
+          .update(workRequests)
+          .set({ shareToken: null, updatedAt: new Date() })
+          .where(eq(workRequests.id, String((requestRow as any).id)));
+        return res.status(404).json({ message: "Shared request not found" });
+      }
+
       const trade = requestRow.tradeId
         ? await storage.getTradeBySlug(String(requestRow.tradeId))
         : null;
@@ -1255,7 +1379,7 @@ export function registerDirectConnectRoutes(app: Express) {
         await db.transaction(async (tx) => {
           await tx
             .update(workRequests)
-            .set({ status: "cancelled", updatedAt: now })
+            .set({ status: "cancelled", shareToken: null, updatedAt: now })
             .where(eq(workRequests.id, requestId));
 
           // Mark any outstanding suggested/invited/accepted assignments as withdrawn
@@ -1365,7 +1489,14 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         });
 
-        res.status(200).json({ status: "open" });
+        const shareToken = await ensureShareTokenForRequest(requestId);
+        res.status(200).json({
+          status: "open",
+          shareToken: shareToken || null,
+          dcMiniLandingUrl: shareToken
+            ? `${resolveOrigin(req)}/r/${encodeURIComponent(String(shareToken))}`
+            : null,
+        });
       } catch (error: any) {
         console.error("Error reopening direct connect request:", error);
         res
@@ -1609,6 +1740,15 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           } catch (e) {
             console.error("[direct-connect] Failed to auto-route request on create", e);
+          }
+        }
+
+        if (created?.id) {
+          const shareToken = await ensureShareTokenForRequest(String(created.id));
+          if (shareToken && createdResponse) {
+            (createdResponse as any).shareToken = shareToken;
+            (createdResponse as any).dcMiniLandingUrl =
+              `${resolveOrigin(req)}/r/${encodeURIComponent(String(shareToken))}`;
           }
         }
 
@@ -2008,6 +2148,15 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           } catch (e) {
             console.error("[direct-connect] Failed to auto-route admin-created request", e);
+          }
+        }
+
+        if (created?.id) {
+          const shareToken = await ensureShareTokenForRequest(String(created.id));
+          if (shareToken && createdResponse) {
+            (createdResponse as any).shareToken = shareToken;
+            (createdResponse as any).dcMiniLandingUrl =
+              `${resolveOrigin(req)}/r/${encodeURIComponent(String(shareToken))}`;
           }
         }
 
