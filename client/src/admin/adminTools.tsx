@@ -216,6 +216,7 @@ const AdminVaultContributions = React.lazy(() => import("@/pages/admin-vault-con
 const PromptAdminPage = React.lazy(() =>
   import("@/pages/PromptAdminPage").then((m) => ({ default: m.PromptAdminPage }))
 );
+const AdminKnowledgeUploadPage = React.lazy(() => import("@/pages/admin-knowledge-upload"));
 const AdminPanelContent = React.lazy(() => import("@/pages/admin-panel"));
 
 // Component-based tools
@@ -654,7 +655,8 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         path: "/admin/system-prompt",
         icon: Bot,
         visibleIf: { roles: ["super_admin"] },
-        render: () => <PromptAdminPage />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/llm" />,
       }),
       tool({
         id: "llm-admin",
@@ -662,7 +664,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         path: "/admin/llm",
         icon: Bot,
         visibleIf: { roles: ["super_admin"] },
-        render: () => <RedirectToAdminPanelTab tab="llm-admin" />,
+        render: () => <PromptAdminPage />,
       }),
       tool({
         id: "knowledge",
@@ -670,7 +672,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         path: "/admin/knowledge",
         icon: FileUp,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <RedirectToAdminPanelTab tab="llm-admin" />,
+        render: () => <AdminKnowledgeUploadPage />,
       }),
     ],
   },
