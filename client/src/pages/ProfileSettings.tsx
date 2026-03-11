@@ -976,10 +976,18 @@ export default function ProfileSettings() {
         className="space-y-6"
       >
         <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-4">
-          <TabsTrigger value="identity">Identity</TabsTrigger>
-          <TabsTrigger value="routing">Routing</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="booking">Booking</TabsTrigger>
+          <TabsTrigger value="identity" data-testid="profile-settings-tab-identity">
+            Identity
+          </TabsTrigger>
+          <TabsTrigger value="routing" data-testid="profile-settings-tab-routing">
+            Routing
+          </TabsTrigger>
+          <TabsTrigger value="appearance" data-testid="profile-settings-tab-appearance">
+            Appearance
+          </TabsTrigger>
+          <TabsTrigger value="booking" data-testid="profile-settings-tab-booking">
+            Booking
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="identity" className="space-y-6">
@@ -1011,6 +1019,7 @@ export default function ProfileSettings() {
                       id="profile-photo-upload"
                       type="file"
                       accept="image/*"
+                      data-testid="profile-settings-identity-photo-input"
                       onChange={handleProfilePhotoSelected}
                       disabled={loading}
                     />
@@ -1022,6 +1031,7 @@ export default function ProfileSettings() {
                 <div className="space-y-1">
                   <Label>First name</Label>
                   <Input
+                    data-testid="profile-settings-identity-first-name"
                     value={profileBasics.firstName}
                     onChange={(e) =>
                       setProfileBasics((prev) => ({ ...prev, firstName: e.target.value }))
@@ -1032,6 +1042,7 @@ export default function ProfileSettings() {
                 <div className="space-y-1">
                   <Label>Last name</Label>
                   <Input
+                    data-testid="profile-settings-identity-last-name"
                     value={profileBasics.lastName}
                     onChange={(e) =>
                       setProfileBasics((prev) => ({ ...prev, lastName: e.target.value }))
@@ -1042,7 +1053,12 @@ export default function ProfileSettings() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="button" onClick={saveProfileBasics} disabled={loading}>
+                <Button
+                  type="button"
+                  data-testid="profile-settings-identity-save-basics"
+                  onClick={saveProfileBasics}
+                  disabled={loading}
+                >
                   {loading ? "Saving..." : "Save profile basics"}
                 </Button>
               </div>
@@ -1109,6 +1125,7 @@ export default function ProfileSettings() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    data-testid="profile-settings-identity-open-profile-editor"
                     onClick={() =>
                       profileSlug ? navigate(`/u/${profileSlug}/edit`) : navigate("/profile")
                     }
@@ -1120,6 +1137,7 @@ export default function ProfileSettings() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      data-testid="profile-settings-identity-view-live-profile"
                       onClick={() => profileSlug && navigate(`/u/${profileSlug}`)}
                     >
                       View live page
@@ -1129,6 +1147,7 @@ export default function ProfileSettings() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      data-testid="profile-settings-identity-open-editor-to-publish"
                       disabled={!profileSlug}
                       onClick={() => profileSlug && navigate(`/u/${profileSlug}/edit`)}
                     >
@@ -1150,6 +1169,7 @@ export default function ProfileSettings() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        data-testid="profile-settings-identity-view-live-business"
                         onClick={() => navigate(`/business/${encodeURIComponent(businessSlug)}`)}
                       >
                         View live page
@@ -1158,6 +1178,7 @@ export default function ProfileSettings() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        data-testid="profile-settings-identity-open-business-editor"
                         onClick={() =>
                           navigate(`/business/${encodeURIComponent(businessSlug)}/edit`)
                         }
@@ -1170,6 +1191,7 @@ export default function ProfileSettings() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      data-testid="profile-settings-identity-setup-business-page"
                       onClick={() => navigate("/settings?tab=roles")}
                     >
                       Set up business page
@@ -1195,7 +1217,20 @@ export default function ProfileSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div
+                data-testid="profile-settings-row-visibility"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  void updateProfileVisibility(!(preferences.profileVisibility === "public"))
+                }
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  void updateProfileVisibility(!(preferences.profileVisibility === "public"));
+                }}
+              >
                 <div className="min-w-0 space-y-0.5">
                   <Label>Make profile public</Label>
                   <p className="text-sm text-white/60">
@@ -1204,9 +1239,11 @@ export default function ProfileSettings() {
                 </div>
                 <div className="self-end sm:self-auto shrink-0">
                   <Switch
+                    data-testid="profile-settings-switch-visibility"
                     checked={preferences.profileVisibility === "public"}
                     onCheckedChange={updateProfileVisibility}
                     disabled={loading}
+                    onClick={(event) => event.stopPropagation()}
                   />
                 </div>
               </div>
@@ -1216,6 +1253,7 @@ export default function ProfileSettings() {
                   type="button"
                   variant={preferences.profileVisibility === "public" ? "default" : "outline"}
                   size="sm"
+                  data-testid="profile-settings-identity-make-public"
                   disabled={loading || preferences.profileVisibility === "public"}
                   onClick={() => updateProfileVisibility(true)}
                 >
@@ -1225,6 +1263,7 @@ export default function ProfileSettings() {
                   type="button"
                   variant={preferences.profileVisibility === "private" ? "default" : "outline"}
                   size="sm"
+                  data-testid="profile-settings-identity-make-private"
                   disabled={loading || preferences.profileVisibility === "private"}
                   onClick={() => updateProfileVisibility(false)}
                 >
@@ -1235,6 +1274,7 @@ export default function ProfileSettings() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    data-testid="profile-settings-identity-view-public-page"
                     onClick={() => navigate(`/u/${profileSlug}`)}
                   >
                     View public page
@@ -1269,7 +1309,7 @@ export default function ProfileSettings() {
                   onValueChange={updateDefaultHome}
                   disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="profile-settings-routing-default-home">
                     <SelectValue placeholder="Choose your landing page" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1300,6 +1340,7 @@ export default function ProfileSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea
+                data-testid="profile-settings-routing-services-description"
                 value={preferences.servicesDescription || ""}
                 onChange={(e) =>
                   setPreferences((prev) => ({
@@ -1311,7 +1352,12 @@ export default function ProfileSettings() {
                 placeholder="Example: I specialize in small residential plumbing repairs, water heater replacements, and leak detection."
               />
               <div className="flex justify-end">
-                <Button type="button" onClick={saveServicesDescription} disabled={loading}>
+                <Button
+                  type="button"
+                  data-testid="profile-settings-routing-save-services"
+                  onClick={saveServicesDescription}
+                  disabled={loading}
+                >
                   Save services
                 </Button>
               </div>
@@ -1332,7 +1378,24 @@ export default function ProfileSettings() {
               {profileSectionOptions.map((item) => (
                 <div
                   key={item.key}
+                  data-testid={`profile-settings-row-section-${item.key}`}
                   className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    void updateProfileSection(
+                      item.key,
+                      !(preferences.profileSections?.[item.key] !== false)
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    void updateProfileSection(
+                      item.key,
+                      !(preferences.profileSections?.[item.key] !== false)
+                    );
+                  }}
                 >
                   <div className="min-w-0 space-y-0.5">
                     <Label>{item.label}</Label>
@@ -1340,9 +1403,11 @@ export default function ProfileSettings() {
                   </div>
                   <div className="self-end sm:self-auto shrink-0">
                     <Switch
+                      data-testid={`profile-settings-switch-section-${item.key}`}
                       checked={preferences.profileSections?.[item.key] !== false}
                       onCheckedChange={(value) => updateProfileSection(item.key, value)}
                       disabled={loading}
+                      onClick={(event) => event.stopPropagation()}
                     />
                   </div>
                 </div>
@@ -1384,7 +1449,12 @@ export default function ProfileSettings() {
                 ))}
               </div>
               <div className="flex justify-end border-t border-white/10 pt-2">
-                <Button type="button" onClick={savePalette} disabled={loading}>
+                <Button
+                  type="button"
+                  data-testid="profile-settings-appearance-save-palette"
+                  onClick={savePalette}
+                  disabled={loading}
+                >
                   {loading ? "Saving..." : "Save palette"}
                 </Button>
               </div>
@@ -1409,6 +1479,7 @@ export default function ProfileSettings() {
                     preferences.colorScheme.preset !== "default" && (
                       <button
                         type="button"
+                        data-testid="profile-settings-appearance-reset-preset"
                         onClick={() => handlePresetChange("default")}
                         disabled={loading}
                         className="text-xs text-ts-orange underline underline-offset-2 transition-colors disabled:opacity-50"
@@ -1422,7 +1493,7 @@ export default function ProfileSettings() {
                   onValueChange={handlePresetChange}
                   disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="profile-settings-appearance-color-preset">
                     <SelectValue placeholder="Choose a color scheme" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1557,7 +1628,12 @@ export default function ProfileSettings() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="button" onClick={saveCustomColors} disabled={loading}>
+                  <Button
+                    type="button"
+                    data-testid="profile-settings-appearance-save-custom-colors"
+                    onClick={saveCustomColors}
+                    disabled={loading}
+                  >
                     {loading ? "Saving..." : "Save custom colors"}
                   </Button>
                 </div>
@@ -1579,7 +1655,20 @@ export default function ProfileSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                data-testid="profile-settings-row-booking-enabled"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  updateProfileBooking({ enabled: !(profileBooking.enabled === true) })
+                }
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  updateProfileBooking({ enabled: !(profileBooking.enabled === true) });
+                }}
+              >
                 <div className="min-w-0 space-y-0.5">
                   <Label>Enable booking on public profile</Label>
                   <p className="text-sm text-white/60">
@@ -1588,14 +1677,29 @@ export default function ProfileSettings() {
                 </div>
                 <div className="self-end sm:self-auto shrink-0">
                   <Switch
+                    data-testid="profile-settings-switch-booking-enabled"
                     checked={profileBooking.enabled === true}
                     onCheckedChange={(value) => updateProfileBooking({ enabled: value })}
                     disabled={loading}
+                    onClick={(event) => event.stopPropagation()}
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                data-testid="profile-settings-row-booking-paid"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  updateProfileBooking({ paidBookings: !(profileBooking.paidBookings === true) })
+                }
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  updateProfileBooking({ paidBookings: !(profileBooking.paidBookings === true) });
+                }}
+              >
                 <div className="min-w-0 space-y-0.5">
                   <Label>Enable paid bookings</Label>
                   <p className="text-sm text-white/60">
@@ -1604,9 +1708,11 @@ export default function ProfileSettings() {
                 </div>
                 <div className="self-end sm:self-auto shrink-0">
                   <Switch
+                    data-testid="profile-settings-switch-booking-paid"
                     checked={profileBooking.paidBookings === true}
                     onCheckedChange={(value) => updateProfileBooking({ paidBookings: value })}
                     disabled={loading || profileBooking.enabled !== true}
+                    onClick={(event) => event.stopPropagation()}
                   />
                 </div>
               </div>
@@ -1615,6 +1721,7 @@ export default function ProfileSettings() {
                 <div className="space-y-2">
                   <Label>Booking deposit (USD)</Label>
                   <Input
+                    data-testid="profile-settings-booking-deposit"
                     type="number"
                     min={0}
                     step="0.01"
@@ -1636,7 +1743,7 @@ export default function ProfileSettings() {
                     updateProfileBooking({ calendarVisibility: value as "public" | "private" })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="profile-settings-booking-calendar-visibility">
                     <SelectValue placeholder="Choose calendar visibility" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1649,6 +1756,7 @@ export default function ProfileSettings() {
               <div className="space-y-2">
                 <Label>Calendar timezone</Label>
                 <Input
+                  data-testid="profile-settings-booking-timezone"
                   value={profileBooking.timezone || "America/Chicago"}
                   onChange={(e) => updateProfileBooking({ timezone: e.target.value })}
                   placeholder="America/Chicago"
@@ -1661,6 +1769,7 @@ export default function ProfileSettings() {
                   <Button
                     type="button"
                     variant="outline"
+                    data-testid="profile-settings-booking-add-slot"
                     onClick={addBookingSlot}
                     disabled={loading}
                   >
@@ -1674,7 +1783,11 @@ export default function ProfileSettings() {
                 ) : (
                   <div className="space-y-3">
                     {(profileBooking.slots || []).map((slot) => (
-                      <div key={slot.id} className="grid items-end gap-2 md:grid-cols-5">
+                      <div
+                        key={slot.id}
+                        className="grid items-end gap-2 md:grid-cols-5"
+                        data-testid={`profile-settings-booking-slot-${slot.id}`}
+                      >
                         <div className="space-y-1">
                           <Label className="text-xs">Day</Label>
                           <Select
@@ -1683,7 +1796,9 @@ export default function ProfileSettings() {
                               upsertBookingSlot(slot.id, { dayOfWeek: Number(value) })
                             }
                           >
-                            <SelectTrigger>
+                            <SelectTrigger
+                              data-testid={`profile-settings-booking-slot-day-${slot.id}`}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1699,6 +1814,7 @@ export default function ProfileSettings() {
                           <Label className="text-xs">Start</Label>
                           <Input
                             type="time"
+                            data-testid={`profile-settings-booking-slot-start-${slot.id}`}
                             value={slot.startTime}
                             onChange={(e) =>
                               upsertBookingSlot(slot.id, { startTime: e.target.value })
@@ -1709,6 +1825,7 @@ export default function ProfileSettings() {
                           <Label className="text-xs">End</Label>
                           <Input
                             type="time"
+                            data-testid={`profile-settings-booking-slot-end-${slot.id}`}
                             value={slot.endTime}
                             onChange={(e) =>
                               upsertBookingSlot(slot.id, { endTime: e.target.value })
@@ -1718,6 +1835,7 @@ export default function ProfileSettings() {
                         <div className="space-y-1">
                           <Label className="text-xs">Label (optional)</Label>
                           <Input
+                            data-testid={`profile-settings-booking-slot-label-${slot.id}`}
                             value={slot.label || ""}
                             onChange={(e) => upsertBookingSlot(slot.id, { label: e.target.value })}
                             placeholder="Morning"
@@ -1726,6 +1844,7 @@ export default function ProfileSettings() {
                         <Button
                           type="button"
                           variant="outline"
+                          data-testid={`profile-settings-booking-slot-remove-${slot.id}`}
                           onClick={() => removeBookingSlot(slot.id)}
                           disabled={loading}
                         >
@@ -1737,7 +1856,24 @@ export default function ProfileSettings() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                data-testid="profile-settings-row-pricing-table"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  updateProfileBooking({
+                    pricingTableEnabled: !(profileBooking.pricingTableEnabled === true),
+                  })
+                }
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  updateProfileBooking({
+                    pricingTableEnabled: !(profileBooking.pricingTableEnabled === true),
+                  });
+                }}
+              >
                 <div className="min-w-0 space-y-0.5">
                   <Label>Show pricing table</Label>
                   <p className="text-sm text-white/60">
@@ -1746,11 +1882,13 @@ export default function ProfileSettings() {
                 </div>
                 <div className="self-end sm:self-auto shrink-0">
                   <Switch
+                    data-testid="profile-settings-switch-pricing-table"
                     checked={profileBooking.pricingTableEnabled === true}
                     onCheckedChange={(value) =>
                       updateProfileBooking({ pricingTableEnabled: value })
                     }
                     disabled={loading}
+                    onClick={(event) => event.stopPropagation()}
                   />
                 </div>
               </div>
@@ -1762,6 +1900,7 @@ export default function ProfileSettings() {
                     <Button
                       type="button"
                       variant="outline"
+                      data-testid="profile-settings-pricing-add-row"
                       onClick={addPricingRow}
                       disabled={loading}
                     >
@@ -1773,10 +1912,15 @@ export default function ProfileSettings() {
                   ) : (
                     <div className="space-y-3">
                       {(profileBooking.pricingRows || []).map((row) => (
-                        <div key={row.id} className="grid items-end gap-2 md:grid-cols-4">
+                        <div
+                          key={row.id}
+                          className="grid items-end gap-2 md:grid-cols-4"
+                          data-testid={`profile-settings-pricing-row-${row.id}`}
+                        >
                           <div className="space-y-1">
                             <Label className="text-xs">Service</Label>
                             <Input
+                              data-testid={`profile-settings-pricing-name-${row.id}`}
                               value={row.name}
                               onChange={(e) => upsertPricingRow(row.id, { name: e.target.value })}
                               placeholder="General service"
@@ -1785,6 +1929,7 @@ export default function ProfileSettings() {
                           <div className="space-y-1">
                             <Label className="text-xs">Price</Label>
                             <Input
+                              data-testid={`profile-settings-pricing-price-${row.id}`}
                               value={row.priceLabel}
                               onChange={(e) =>
                                 upsertPricingRow(row.id, { priceLabel: e.target.value })
@@ -1795,6 +1940,7 @@ export default function ProfileSettings() {
                           <div className="space-y-1">
                             <Label className="text-xs">Description</Label>
                             <Input
+                              data-testid={`profile-settings-pricing-description-${row.id}`}
                               value={row.description || ""}
                               onChange={(e) =>
                                 upsertPricingRow(row.id, { description: e.target.value })
@@ -1805,6 +1951,7 @@ export default function ProfileSettings() {
                           <Button
                             type="button"
                             variant="outline"
+                            data-testid={`profile-settings-pricing-remove-${row.id}`}
                             onClick={() => removePricingRow(row.id)}
                             disabled={loading}
                           >
@@ -1818,7 +1965,12 @@ export default function ProfileSettings() {
               )}
 
               <div className="flex justify-end">
-                <Button type="button" onClick={saveProfileBooking} disabled={loading}>
+                <Button
+                  type="button"
+                  data-testid="profile-settings-booking-save"
+                  onClick={saveProfileBooking}
+                  disabled={loading}
+                >
                   Save booking setup
                 </Button>
               </div>

@@ -749,48 +749,56 @@ export default function Settings() {
             <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-8">
               <TabsTrigger
                 value="profile"
+                data-testid="settings-tab-profile"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Profile
               </TabsTrigger>
               <TabsTrigger
                 value="roles"
+                data-testid="settings-tab-roles"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Roles
               </TabsTrigger>
               <TabsTrigger
                 value="navigation"
+                data-testid="settings-tab-navigation"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Navigation
               </TabsTrigger>
               <TabsTrigger
                 value="appearance"
+                data-testid="settings-tab-appearance"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Appearance
               </TabsTrigger>
               <TabsTrigger
                 value="notifications"
+                data-testid="settings-tab-notifications"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Notifications
               </TabsTrigger>
               <TabsTrigger
                 value="privacy"
+                data-testid="settings-tab-privacy"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Privacy
               </TabsTrigger>
               <TabsTrigger
                 value="security"
+                data-testid="settings-tab-security"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Security
               </TabsTrigger>
               <TabsTrigger
                 value="tools"
+                data-testid="settings-tab-tools"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
               >
                 Financial Tools
@@ -812,6 +820,7 @@ export default function Settings() {
                         </div>
                         <Button
                           variant="destructive"
+                          data-testid="settings-profile-leave-hoa"
                           disabled={leaveHoAMutation.isPending}
                           onClick={() => {
                             const reason = window.prompt(
@@ -884,6 +893,7 @@ export default function Settings() {
                           type="button"
                           size="sm"
                           variant="outline"
+                          data-testid="settings-profile-upload-photo"
                           className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                           onClick={handleUploadClick}
                         >
@@ -893,6 +903,7 @@ export default function Settings() {
                           ref={fileInputRef}
                           type="file"
                           accept="image/*"
+                          data-testid="settings-profile-photo-input"
                           className="hidden"
                           onChange={handlePhotoSelected}
                         />
@@ -907,6 +918,7 @@ export default function Settings() {
                         </Label>
                         <Input
                           id="firstName"
+                          data-testid="settings-profile-first-name"
                           value={profileForm.firstName}
                           onChange={(e) =>
                             setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))
@@ -921,6 +933,7 @@ export default function Settings() {
                         </Label>
                         <Input
                           id="lastName"
+                          data-testid="settings-profile-last-name"
                           value={profileForm.lastName}
                           onChange={(e) =>
                             setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))
@@ -960,6 +973,7 @@ export default function Settings() {
                       </Label>
                       <Textarea
                         id="bio"
+                        data-testid="settings-profile-bio"
                         placeholder="Tell us about yourself..."
                         value={profileForm.bio}
                         onChange={(e) =>
@@ -977,6 +991,7 @@ export default function Settings() {
                     <div className="flex items-center gap-3 pt-4 border-t border-white/10">
                       <Button
                         type="button"
+                        data-testid="settings-profile-save"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                         onClick={() => updateProfileMutation.mutate()}
                         disabled={updateProfileMutation.isPending}
@@ -994,6 +1009,7 @@ export default function Settings() {
                       <Button
                         type="button"
                         variant="outline"
+                        data-testid="settings-profile-cancel"
                         className="border-white/10 text-white/70 hover:bg-tsBg"
                         onClick={() =>
                           setProfileForm({
@@ -1039,6 +1055,8 @@ export default function Settings() {
                     <StateCountySelector
                       selectedState={locationStateCode}
                       selectedCounty={locationCountyFips}
+                      stateTestId="settings-profile-location-state"
+                      countyTestId="settings-profile-location-county"
                       onStateChange={(code) => {
                         setLocationStateCode(code);
                         setLocationCountyFips("");
@@ -1055,6 +1073,7 @@ export default function Settings() {
                       </p>
                       <Button
                         type="button"
+                        data-testid="settings-profile-save-location"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                         disabled={
                           updateLocationMutation.isPending ||
@@ -1097,6 +1116,7 @@ export default function Settings() {
                       </p>
                       <Button
                         asChild
+                        data-testid="settings-profile-open-home-vault"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                       >
                         <Link href="/homes">Open Home Vault</Link>
@@ -1127,6 +1147,7 @@ export default function Settings() {
                       </p>
                       <Button
                         asChild
+                        data-testid="settings-profile-open-vehicle-vault"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
                       >
                         <Link href="/vehicles">Open Vehicle Vault</Link>
@@ -1238,6 +1259,7 @@ export default function Settings() {
                     <div className="flex justify-end pt-4 border-t border-white/10 mt-2">
                       <Button
                         type="button"
+                        data-testid="settings-roles-save-account-types"
                         onClick={saveUserTypes}
                         disabled={
                           updateUserTypesMutation.isPending || selectedUserTypes.length === 0
@@ -1362,6 +1384,7 @@ export default function Settings() {
                       <Button
                         type="button"
                         variant="outline"
+                        data-testid="settings-appearance-reset-default"
                         className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
                         onClick={async () => {
                           try {
@@ -1411,6 +1434,7 @@ export default function Settings() {
                       <Button
                         type="button"
                         variant={handedness === "right" ? "default" : "outline"}
+                        data-testid="settings-appearance-handedness-right"
                         className={
                           handedness === "right"
                             ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
@@ -1423,6 +1447,7 @@ export default function Settings() {
                       <Button
                         type="button"
                         variant={handedness === "left" ? "default" : "outline"}
+                        data-testid="settings-appearance-handedness-left"
                         className={
                           handedness === "left"
                             ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
@@ -1436,6 +1461,7 @@ export default function Settings() {
                     <div className="flex justify-end pt-2 border-t border-white/10 mt-2">
                       <Button
                         type="button"
+                        data-testid="settings-appearance-save-handedness"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                         disabled={updateHandednessMutation.isPending}
                         onClick={() => updateHandednessMutation.mutate(handedness)}
@@ -1477,6 +1503,7 @@ export default function Settings() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         type="button"
+                        data-testid="settings-appearance-repair-reload"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
                         onClick={() => {
                           try {
@@ -1493,6 +1520,7 @@ export default function Settings() {
                       <Button
                         type="button"
                         variant="outline"
+                        data-testid="settings-appearance-normal-reload"
                         className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
                         onClick={() => window.location.reload()}
                       >
@@ -1585,6 +1613,7 @@ export default function Settings() {
                     return (
                       <div
                         key={key}
+                        data-testid={`settings-notification-row-${key}`}
                         className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 hover:border-ts-orange/30 transition-all sm:flex-row sm:items-center sm:justify-between"
                         role="button"
                         tabIndex={0}
@@ -1620,6 +1649,7 @@ export default function Settings() {
                           onClick={(event) => event.stopPropagation()}
                         >
                           <Switch
+                            data-testid={`settings-notification-switch-${key}`}
                             checked={isChecked}
                             disabled={pushDisabled}
                             onCheckedChange={(checked) => {
@@ -1642,6 +1672,7 @@ export default function Settings() {
                     <Button
                       type="button"
                       variant="outline"
+                      data-testid="settings-notifications-open-advanced"
                       className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-4"
                       onClick={() => setAdvancedNotificationPrefsOpen(true)}
                     >
@@ -1651,6 +1682,7 @@ export default function Settings() {
 
                   <div className="flex justify-end pt-4 border-t border-white/10">
                     <Button
+                      data-testid="settings-notifications-save"
                       onClick={() => updateNotificationsMutation.mutate()}
                       disabled={updateNotificationsMutation.isPending}
                       className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
@@ -1680,6 +1712,7 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div
+                    data-testid="settings-privacy-row-profile-visibility"
                     className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
                     role="button"
                     tabIndex={0}
@@ -1716,6 +1749,7 @@ export default function Settings() {
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Switch
+                        data-testid="settings-privacy-switch-profile-visibility"
                         checked={privacy.profileVisibility === "public"}
                         onCheckedChange={(checked) =>
                           setPrivacy((prev) => ({
@@ -1728,6 +1762,7 @@ export default function Settings() {
                   </div>
 
                   <div
+                    data-testid="settings-privacy-row-show-in-search"
                     className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
                     role="button"
                     tabIndex={0}
@@ -1756,6 +1791,7 @@ export default function Settings() {
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Switch
+                        data-testid="settings-privacy-switch-show-in-search"
                         checked={privacy.showInSearch}
                         onCheckedChange={(checked) =>
                           setPrivacy((prev) => ({ ...prev, showInSearch: checked }))
@@ -1780,7 +1816,10 @@ export default function Settings() {
                         setPrivacy((prev) => ({ ...prev, contactPolicy: value }))
                       }
                     >
-                      <SelectTrigger className="relative z-10 bg-tsCard border-white/10 text-white h-11">
+                      <SelectTrigger
+                        data-testid="settings-privacy-contact-policy"
+                        className="relative z-10 bg-tsCard border-white/10 text-white h-11"
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-tsCard border-white/10">
@@ -1794,6 +1833,7 @@ export default function Settings() {
 
                   <div className="flex justify-end pt-2">
                     <Button
+                      data-testid="settings-privacy-save"
                       onClick={() => updatePrivacyMutation.mutate(privacy)}
                       disabled={updatePrivacyMutation.isPending}
                       className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
@@ -1837,6 +1877,7 @@ export default function Settings() {
                         <Label className="text-white font-medium">Current Password</Label>
                         <Input
                           type="password"
+                          data-testid="settings-security-current-password"
                           placeholder="Enter current password"
                           value={passwordForm.currentPassword}
                           onChange={(e) =>
@@ -1852,6 +1893,7 @@ export default function Settings() {
                         <Label className="text-white font-medium">New Password</Label>
                         <Input
                           type="password"
+                          data-testid="settings-security-new-password"
                           placeholder="Enter new password"
                           value={passwordForm.newPassword}
                           onChange={(e) =>
@@ -1864,6 +1906,7 @@ export default function Settings() {
                         <Label className="text-white font-medium">Confirm New Password</Label>
                         <Input
                           type="password"
+                          data-testid="settings-security-confirm-password"
                           placeholder="Confirm new password"
                           value={passwordForm.confirmNewPassword}
                           onChange={(e) =>
@@ -1876,6 +1919,7 @@ export default function Settings() {
                         />
                       </div>
                       <Button
+                        data-testid="settings-security-update-password"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full mt-2 shadow-lg"
                         disabled={
                           changePasswordMutation.isPending ||
@@ -1914,6 +1958,7 @@ export default function Settings() {
                     </div>
                     <Button
                       variant="outline"
+                      data-testid="settings-security-toggle-2fa"
                       className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-6"
                       onClick={() => {
                         const nextPrivacy = {
@@ -1959,6 +2004,7 @@ export default function Settings() {
                         </p>
                         <a
                           href="/finances/invoices"
+                          data-testid="settings-tools-open-invoices"
                           className="text-ts-orange underline hover:text-ts-orange text-sm"
                         >
                           Open Invoices
@@ -1975,6 +2021,7 @@ export default function Settings() {
                         </p>
                         <a
                           href="/quote-calculator"
+                          data-testid="settings-tools-open-quote-calculator"
                           className="text-ts-orange underline hover:text-ts-orange text-sm"
                         >
                           Open Quote Calculator
@@ -1989,6 +2036,7 @@ export default function Settings() {
                         </p>
                         <a
                           href="/finances/expenses"
+                          data-testid="settings-tools-open-expenses"
                           className="text-ts-orange underline hover:text-ts-orange text-sm"
                         >
                           Open Expenses

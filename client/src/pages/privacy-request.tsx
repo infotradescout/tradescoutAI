@@ -97,7 +97,7 @@ export default function PrivacyRequest() {
                 privacy settings.
               </p>
               <Button asChild className="btn-primary">
-                <a href={downloadHref}>
+                <a href={downloadHref} data-testid="privacy-request-download-zip">
                   <Download className="h-4 w-4 mr-2" />
                   Download My Data (ZIP)
                 </a>
@@ -124,6 +124,7 @@ export default function PrivacyRequest() {
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Reason (optional)</label>
                 <Textarea
+                  data-testid="privacy-request-reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Tell us why you're requesting deletion (optional)"
@@ -133,6 +134,7 @@ export default function PrivacyRequest() {
 
               <div className="flex items-start gap-3">
                 <Checkbox
+                  data-testid="privacy-request-confirm-delete"
                   checked={confirmDelete}
                   onCheckedChange={(v) => setConfirmDelete(v === true)}
                   className="border-white/10"
@@ -145,6 +147,7 @@ export default function PrivacyRequest() {
 
               <Button
                 variant="destructive"
+                data-testid="privacy-request-submit-delete"
                 disabled={!confirmDelete || isSubmittingDelete}
                 onClick={submitDeletionRequest}
               >

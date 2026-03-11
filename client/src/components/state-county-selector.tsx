@@ -32,6 +32,8 @@ interface StateCountySelectorProps {
   onCountySelected?: (county: County | null) => void;
   disabled?: boolean;
   className?: string;
+  stateTestId?: string;
+  countyTestId?: string;
 }
 
 export function StateCountySelector({
@@ -42,6 +44,8 @@ export function StateCountySelector({
   onCountySelected,
   disabled = false,
   className = "",
+  stateTestId,
+  countyTestId,
 }: StateCountySelectorProps) {
   const [currentState, setCurrentState] = useState(selectedState || "");
   const [currentCounty, setCurrentCounty] = useState(selectedCounty || "");
@@ -116,7 +120,7 @@ export function StateCountySelector({
           onValueChange={handleStateChange}
           disabled={disabled || statesLoading || Boolean(statesError)}
         >
-          <SelectTrigger className="form-field">
+          <SelectTrigger className="form-field" data-testid={stateTestId}>
             <SelectValue
               placeholder={
                 statesLoading
@@ -152,7 +156,7 @@ export function StateCountySelector({
           onValueChange={handleCountyChange}
           disabled={disabled || !currentState || countiesLoading || Boolean(countiesError)}
         >
-          <SelectTrigger className="form-field">
+          <SelectTrigger className="form-field" data-testid={countyTestId}>
             <SelectValue
               placeholder={
                 !currentState

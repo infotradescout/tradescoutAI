@@ -217,7 +217,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          data-testid="notification-pref-enable-notifications"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -238,7 +242,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          data-testid="notification-pref-enable-email"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -259,7 +267,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          data-testid="notification-pref-enable-sms"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -280,7 +292,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          data-testid="notification-pref-enable-push"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -307,6 +323,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                       <FormControl>
                         <Input
                           type="time"
+                          data-testid="notification-pref-quiet-start"
                           {...field}
                           className="bg-tsCard border-white/10 text-white"
                         />
@@ -327,6 +344,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                       <FormControl>
                         <Input
                           type="time"
+                          data-testid="notification-pref-quiet-end"
                           {...field}
                           className="bg-tsCard border-white/10 text-white"
                         />
@@ -361,6 +379,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                           <p className="text-white/60 text-sm">{type.description}</p>
                         </div>
                         <Switch
+                          data-testid={`notification-pref-type-enabled-${type.key}`}
                           checked={currentPrefs.enabled}
                           onCheckedChange={(enabled) => {
                             form.setValue(`typePreferences.${type.key}`, {
@@ -383,6 +402,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                                 <button
                                   key={method.key}
                                   type="button"
+                                  data-testid={`notification-pref-type-${type.key}-method-${method.key}`}
                                   onClick={() => {
                                     const newMethods = isSelected
                                       ? currentPrefs.delivery_methods.filter(
@@ -437,7 +457,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          data-testid="notification-pref-daily-digest"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -455,7 +479,11 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch
+                          data-testid="notification-pref-weekly-digest"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -471,6 +499,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
                     <FormControl>
                       <Input
                         type="time"
+                        data-testid="notification-pref-digest-time"
                         {...field}
                         className="bg-tsCard border-white/10 text-white max-w-xs"
                       />
@@ -487,6 +516,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
               <Button
                 type="button"
                 variant="outline"
+                data-testid="notification-pref-cancel"
                 onClick={() => onOpenChange(false)}
                 className="border-white/10 text-white hover:bg-tsCard"
               >
@@ -494,6 +524,7 @@ export function NotificationPreferences({ open, onOpenChange }: NotificationPref
               </Button>
               <Button
                 type="submit"
+                data-testid="notification-pref-save"
                 disabled={updatePreferencesMutation.isPending}
                 className="bg-ts-orange text-white hover:bg-ts-orange-dark"
               >

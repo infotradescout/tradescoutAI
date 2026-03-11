@@ -196,8 +196,12 @@ export default function Notifications() {
             <CardContent className="space-y-4">
               <Tabs value={filter} onValueChange={(value) => setFilter(value as "all" | "unread")}>
                 <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="unread">Unread</TabsTrigger>
+                  <TabsTrigger value="all" data-testid="notifications-filter-all">
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="unread" data-testid="notifications-filter-unread">
+                    Unread
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
               <div className="rounded-lg border border-muted/50 bg-muted/20 p-3 text-xs text-muted-foreground">

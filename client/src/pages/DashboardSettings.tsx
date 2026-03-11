@@ -159,13 +159,13 @@ export default function DashboardSettings() {
                               <div
                                 ref={draggableProvided.innerRef}
                                 {...draggableProvided.draggableProps}
-                                className={`flex items-center justify-between p-4 rounded-lg bg-tsBg dark:bg-white/10 hover:bg-white/5 dark:hover:bg-white/10 transition-colors border ${
+                                className={`flex flex-col gap-3 p-4 rounded-lg bg-tsBg dark:bg-white/10 hover:bg-white/5 dark:hover:bg-white/10 transition-colors border sm:flex-row sm:items-center sm:justify-between ${
                                   snapshot.isDragging
                                     ? "border-ts-orange/30 shadow-md"
                                     : "border-transparent"
                                 }`}
                               >
-                                <div className="flex items-center gap-3 flex-1">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
                                   <button
                                     type="button"
                                     aria-label="Reorder widget"
@@ -188,12 +188,14 @@ export default function DashboardSettings() {
                                     )}
                                   </div>
                                 </div>
-                                <Switch
-                                  id={widget.id}
-                                  checked={isEnabled}
-                                  onCheckedChange={() => handleToggleWidget(widget.id)}
-                                  data-testid={`switch-${widget.id}`}
-                                />
+                                <div className="self-end sm:self-auto shrink-0">
+                                  <Switch
+                                    id={widget.id}
+                                    checked={isEnabled}
+                                    onCheckedChange={() => handleToggleWidget(widget.id)}
+                                    data-testid={`switch-${widget.id}`}
+                                  />
+                                </div>
                               </div>
                             )}
                           </Draggable>

@@ -571,6 +571,7 @@ const DragDropNavigationPreferences = memo(
             </div>
             <Switch
               id="swipe-navigation"
+              data-testid="nav-prefs-swipe-toggle"
               checked={swipeEnabled}
               onCheckedChange={toggleSwipeNavigation}
             />
@@ -585,6 +586,7 @@ const DragDropNavigationPreferences = memo(
               <Button
                 variant="outline"
                 size="sm"
+                data-testid="nav-prefs-reset"
                 onClick={resetToDefaults}
                 className="h-8 bg-tsCard border-white/10 text-white hover:bg-tsCard"
                 disabled={updateNavigationMutation.isPending}
@@ -610,6 +612,7 @@ const DragDropNavigationPreferences = memo(
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
+                            data-testid={`nav-prefs-item-${item.id}`}
                             className={`flex items-center justify-between p-3 bg-tsCard border border-white/10 rounded-lg transition-all ${
                               snapshot.isDragging
                                 ? "shadow-lg border-ts-orange/30 bg-tsCard"
@@ -639,6 +642,7 @@ const DragDropNavigationPreferences = memo(
                               onClick={() => toggleItemVisibility(item.id)}
                               className="text-white/60 hover:text-white p-1"
                               data-tutorial="visibility-toggle"
+                              data-testid={`nav-prefs-visibility-${item.id}`}
                             >
                               {item.visible ? (
                                 <Eye className="h-4 w-4" />
