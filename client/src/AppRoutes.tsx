@@ -416,14 +416,10 @@ const APIIntegrations = React.lazy(() => import("./pages/api-integrations"));
 
 // Admin Interactive Features
 const ContractorVerification = React.lazy(() => import("./pages/contractor-verification"));
-const ContentModeration = React.lazy(() => import("./pages/content-moderation"));
-const SystemSettings = React.lazy(() => import("./pages/system-settings"));
 const SupportTickets = React.lazy(() => import("./pages/support-tickets"));
 
 // Interactive Action Pages
 const ScheduleConsultation = React.lazy(() => import("./pages/schedule-consultation"));
-const PlatformAnalytics = React.lazy(() => import("./pages/platform-analytics"));
-const ManageUsers = React.lazy(() => import("./pages/manage-users"));
 const PaymentProcessing = React.lazy(() => import("./pages/payment-processing"));
 const FileManagement = React.lazy(() => import("./pages/file-management"));
 
@@ -1477,11 +1473,13 @@ export const AppRoutes = memo(function AppRoutes({
               </ProtectedRoute>
             </Route>
             <Route path="/content-moderation">
-              <LazyPage Component={ContentModeration} />
+              <ProtectedRoute adminOnly>
+                <RedirectTo to="/admin/moderation" />
+              </ProtectedRoute>
             </Route>
             <Route path="/system-settings">
               <ProtectedRoute adminOnly>
-                <LazyPage Component={SystemSettings} />
+                <RedirectTo to="/admin/site-settings" />
               </ProtectedRoute>
             </Route>
             <Route path="/support-tickets">
@@ -1489,12 +1487,12 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/platform-analytics">
               <ProtectedRoute adminOnly>
-                <LazyPage Component={PlatformAnalytics} />
+                <RedirectTo to="/admin/platform-analytics" />
               </ProtectedRoute>
             </Route>
             <Route path="/manage-users">
               <ProtectedRoute adminOnly>
-                <LazyPage Component={ManageUsers} />
+                <RedirectTo to="/admin/users" />
               </ProtectedRoute>
             </Route>
             <Route path="/payment-processing">

@@ -8,6 +8,7 @@ import {
   workRequestEvents,
   workRequestAssignments,
   contractors,
+  contractorCounties,
   conversations,
   trades,
   counties,
@@ -767,12 +768,44 @@ export function registerDirectConnectRoutes(app: Express) {
         const viewer = await storage.getUser(String(userId));
         const queryCounty =
           typeof req.query?.countyFips === "string" ? String(req.query.countyFips).trim() : "";
-        const countyFips =
-          queryCounty ||
-          String((viewer as any)?.countyFips || (viewer as any)?.county_fips || "").trim();
+        const viewerCountyFips = String(
+          (viewer as any)?.countyFips || (viewer as any)?.county_fips || ""
+        ).trim();
 
-        if (!countyFips) {
+        // Build the complete set of counties this user is allowed to operate in.
+        // For provider accounts, this is all declared contractor service counties.
+        // For non-provider accounts, fallback to the user's primary county.
+        const allowedCountyFips = new Set<string>();
+        if (viewerCountyFips) {
+          allowedCountyFips.add(viewerCountyFips);
+        }
+
+        const viewerContractor = await storage.getContractorByUserId(String(userId));
+        if (viewerContractor?.id) {
+          const providerCountyRows = await db
+            .select({ fips: counties.fips })
+            .from(contractorCounties)
+            .innerJoin(counties, eq(contractorCounties.countyId, counties.id))
+            .where(eq(contractorCounties.contractorId, String(viewerContractor.id)));
+
+          for (const row of providerCountyRows) {
+            const fips = String((row as any).fips || "").trim();
+            if (fips) {
+              allowedCountyFips.add(fips);
+            }
+          }
+        }
+
+        if (!allowedCountyFips.size) {
           return res.json([]);
+        }
+
+        let effectiveCountyFipsList = Array.from(allowedCountyFips);
+        if (queryCounty) {
+          if (!allowedCountyFips.has(queryCounty)) {
+            return res.json([]);
+          }
+          effectiveCountyFipsList = [queryCounty];
         }
 
         const category =
@@ -781,7 +814,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const filters: any[] = [
           eq(workRequests.source, "direct_connect" as any),
-          eq(workRequests.countyFips, countyFips),
+          inArray(workRequests.countyFips, effectiveCountyFipsList as any),
           inArray(workRequests.status, activeStatuses as any),
         ];
 

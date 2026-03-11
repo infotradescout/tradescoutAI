@@ -38,28 +38,32 @@ export default function AdminControl() {
   const { user } = useAuth();
   const isSuperAdmin = !!user && isSuperAdminLike(user.role || "");
 
-  const { data: authorityMetrics } = useQuery<DecisionCardMetrics>({
+  const {
+    data: authorityMetrics,
+    isError: authorityMetricsFailed,
+    error: authorityMetricsError,
+  } = useQuery<DecisionCardMetrics>({
     queryKey: ["/api/admin/authority/decision-card-metrics"],
     queryFn: async () => apiRequest("GET", "/api/admin/authority/decision-card-metrics"),
     enabled: isSuperAdmin,
     retry: false,
   });
 
-  const { data: testingSettings } = useQuery<TestingSettings>({
+  const { data: testingSettings, isError: testingSettingsFailed } = useQuery<TestingSettings>({
     queryKey: ["/api/admin/testing-settings"],
     queryFn: async () => apiRequest("GET", "/api/admin/testing-settings"),
     enabled: isSuperAdmin,
     retry: false,
   });
 
-  const { data: featureFlags } = useQuery<any[]>({
+  const { data: featureFlags, isError: featureFlagsFailed } = useQuery<any[]>({
     queryKey: ["/api/admin/feature-flags"],
     queryFn: async () => apiRequest("GET", "/api/admin/feature-flags"),
     enabled: isSuperAdmin,
     retry: false,
   });
 
-  const { data: emailDiagnostics } = useQuery<EmailDiagnostics>({
+  const { data: emailDiagnostics, isError: emailDiagnosticsFailed } = useQuery<EmailDiagnostics>({
     queryKey: ["/api/admin/email/diagnostics"],
     queryFn: async () => apiRequest("GET", "/api/admin/email/diagnostics"),
     enabled: isSuperAdmin,
@@ -70,6 +74,11 @@ export default function AdminControl() {
     () => (Array.isArray(featureFlags) ? featureFlags.filter((f) => f?.enabled).length : 0),
     [featureFlags]
   );
+
+  const authorityUnavailable = authorityMetricsFailed || authorityMetrics?.available === false;
+  const authorityMessage = authorityMetricsFailed
+    ? "Decision analytics endpoint is currently unavailable"
+    : authorityMetrics?.message || "Decision analytics unavailable";
 
   if (!isSuperAdmin) {
     return (
@@ -90,12 +99,17 @@ export default function AdminControl() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold text-white">{authorityMetrics?.totalShown ?? 0}</p>
-            <p className="text-xs text-white/60 mt-1">
-              {authorityMetrics?.available === false
-                ? authorityMetrics.message || "Decision analytics unavailable"
-                : "Decision cards shown"}
+            <p className="text-2xl font-semibold text-white">
+              {authorityUnavailable ? "N/A" : (authorityMetrics?.totalShown ?? 0)}
             </p>
+            <p className="text-xs text-white/60 mt-1">
+              {authorityUnavailable ? authorityMessage : "Decision cards shown"}
+            </p>
+            {authorityMetricsFailed ? (
+              <p className="text-[11px] text-red-300 mt-2">
+                {String((authorityMetricsError as any)?.message || "Request failed")}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -107,8 +121,12 @@ export default function AdminControl() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold text-white">{enabledFlags}</p>
-            <p className="text-xs text-white/60 mt-1">Flags enabled</p>
+            <p className="text-2xl font-semibold text-white">
+              {featureFlagsFailed ? "N/A" : enabledFlags}
+            </p>
+            <p className="text-xs text-white/60 mt-1">
+              {featureFlagsFailed ? "Feature flags endpoint unavailable" : "Flags enabled"}
+            </p>
           </CardContent>
         </Card>
 
@@ -120,14 +138,28 @@ export default function AdminControl() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <Badge variant={testingSettings?.testingModeEnabled ? "default" : "outline"}>
-              testing mode: {testingSettings?.testingModeEnabled ? "on" : "off"}
+            <Badge
+              variant={
+                !testingSettingsFailed && testingSettings?.testingModeEnabled
+                  ? "default"
+                  : "outline"
+              }
+            >
+              testing mode:{" "}
+              {testingSettingsFailed
+                ? "unknown"
+                : testingSettings?.testingModeEnabled
+                  ? "on"
+                  : "off"}
             </Badge>
             <Badge
-              variant={testingSettings?.bugReportEnabled ? "default" : "outline"}
+              variant={
+                !testingSettingsFailed && testingSettings?.bugReportEnabled ? "default" : "outline"
+              }
               className="ml-2"
             >
-              bug reports: {testingSettings?.bugReportEnabled ? "on" : "off"}
+              bug reports:{" "}
+              {testingSettingsFailed ? "unknown" : testingSettings?.bugReportEnabled ? "on" : "off"}
             </Badge>
           </CardContent>
         </Card>
@@ -143,15 +175,22 @@ export default function AdminControl() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Badge variant={emailDiagnostics?.configured ? "default" : "outline"}>
-              configured: {emailDiagnostics?.configured ? "yes" : "no"}
+            <Badge
+              variant={
+                !emailDiagnosticsFailed && emailDiagnostics?.configured ? "default" : "outline"
+              }
+            >
+              configured:{" "}
+              {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.configured ? "yes" : "no"}
             </Badge>
             <Badge variant="outline" className="ml-2">
-              provider: {emailDiagnostics?.provider || "unknown"}
+              provider:{" "}
+              {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.provider || "unknown"}
             </Badge>
             <div className="text-xs text-white/60">
-              mode: {emailDiagnostics?.mode || "unknown"} · from:{" "}
-              {emailDiagnostics?.defaultFrom || "unknown"}
+              mode: {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.mode || "unknown"} -
+              from:{" "}
+              {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.defaultFrom || "unknown"}
             </div>
           </CardContent>
         </Card>

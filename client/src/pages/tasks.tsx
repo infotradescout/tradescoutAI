@@ -121,6 +121,11 @@ export default function TasksHub({
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
   const MAX_DIRECT_PROS = 3;
+  const normalizedRole = String((user as any)?.role || "").toLowerCase();
+  const isMultiCountyProvider =
+    normalizedRole.includes("contractor") ||
+    normalizedRole.includes("helper") ||
+    normalizedRole.includes("provider");
 
   const [activeTab, setActiveTab] = useState<"browse" | "post">(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,7 +133,7 @@ export default function TasksHub({
 
   // Phase 1: County selection (defaults to user.countyFips or URL param, with override affordance)
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | undefined>(
-    defaultCountyFips || user?.countyFips || undefined
+    defaultCountyFips || (isMultiCountyProvider ? undefined : user?.countyFips) || undefined
   );
   const [countySelectorStateCode, setCountySelectorStateCode] = useState<string>(
     user?.stateCode || ""
@@ -515,7 +520,21 @@ export default function TasksHub({
                       {embedded ? "Requests" : "Live requests"}
                     </h2>
                   </div>
-                  {selectedCountyFips && (
+                  <div className="flex items-center gap-2">
+                    {isMultiCountyProvider && (
+                      <Button
+                        size="sm"
+                        variant={selectedCountyFips ? "outline" : "default"}
+                        className={
+                          selectedCountyFips
+                            ? "border-white/10 text-white hover:bg-black/30"
+                            : "bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                        }
+                        onClick={() => setSelectedCountyFips(undefined)}
+                      >
+                        All allowed counties
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -524,7 +543,7 @@ export default function TasksHub({
                     >
                       Change area
                     </Button>
-                  )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className={embedded ? "pt-1 px-3 pb-3" : ""}>
