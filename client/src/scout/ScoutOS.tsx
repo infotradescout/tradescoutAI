@@ -261,6 +261,13 @@ function sanitizeScoutMessage(raw: unknown): string {
     .replace(/_([^_\n]+)_/g, "$1")
     .replace(/`([^`\n]+)`/g, "$1");
 
+  const internalSpecDump =
+    /recommended by this analysis|trigger examples\s*:|implementation trust signals|auto-persist|safe path|ownership pressure|increases drop-?off|phase\s+\d+\s*:/i.test(
+      markdownStripped
+    ) ||
+    ((markdownStripped.match(/:/g) || []).length >= 7 && markdownStripped.length > 260);
+  if (internalSpecDump) return fallback;
+
   const internalLinePattern =
     /^(source:|knowledge base:|available knowledge base:|reasoning:|analysis:|thought[_\s-]*flow:|decision:|render order:|state injection\b|ui emphasis\b)/i;
 

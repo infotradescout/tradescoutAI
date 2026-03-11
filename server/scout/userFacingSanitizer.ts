@@ -81,6 +81,26 @@ function pushFlag(flags: string[], flag: string) {
   if (!flags.includes(flag)) flags.push(flag);
 }
 
+function isInternalSpecDump(input: string): boolean {
+  const text = input.toLowerCase();
+  const colonCount = (input.match(/:/g) || []).length;
+  const numberedStageCount = (input.match(/\bphase\s+\d+\s*:/gi) || []).length;
+  const suspiciousSignals = [
+    /recommended by this analysis/i,
+    /\btrigger examples\s*:/i,
+    /\bimplementation trust signals\b/i,
+    /\bauto-persist\b/i,
+    /\bsafe path\b/i,
+    /\bownership pressure\b/i,
+    /\bincreases drop-?off\b/i,
+  ];
+
+  if (suspiciousSignals.some((pattern) => pattern.test(text))) return true;
+  if (numberedStageCount >= 1 && text.length > 180) return true;
+  if (colonCount >= 7 && text.length > 260) return true;
+  return false;
+}
+
 export function sanitizeScoutUserFacingText(
   input: string,
   opts: ScoutUserFacingSanitizerOptions = {}
@@ -96,6 +116,13 @@ export function sanitizeScoutUserFacingText(
 
   const markdownStripped = stripMarkdownSyntax(raw);
   if (markdownStripped !== raw) pushFlag(flags, "markdown_removed");
+  if (isInternalSpecDump(markdownStripped)) {
+    return {
+      text: fallback,
+      flags: [...flags, "internal_spec_dump_replaced"],
+      removedLines: 0,
+    };
+  }
 
   const filteredLines: string[] = [];
   let removedLines = 0;

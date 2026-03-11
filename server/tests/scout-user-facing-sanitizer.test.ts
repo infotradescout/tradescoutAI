@@ -49,4 +49,15 @@ describe("sanitizeScoutUserFacingText", () => {
     expect(result.text).toBe(raw);
     expect(result.flags).toEqual([]);
   });
+
+  it("replaces internal spec dumps with fallback", () => {
+    const raw =
+      "Shifts overhead: users feel ownership pressure. Safe Path (recommended by this analysis): Auto-persist. Trigger Examples: roof repair. Phase 1: Implementation trust signals.";
+    const result = sanitizeScoutUserFacingText(raw, {
+      fallback: "fallback text",
+    });
+
+    expect(result.text).toBe("fallback text");
+    expect(result.flags).toContain("internal_spec_dump_replaced");
+  });
 });
