@@ -162,6 +162,38 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     };
   };
 
+  type DailyUserActivityResponse = {
+    timezone: string;
+    days: number;
+    series: Array<{ day: string; activeUsers: number; events: number }>;
+    trailing7DayAverage: number;
+    trailing30DayAverage: number;
+    today: {
+      day: string;
+      activeUsers: number;
+      events: number;
+      users: Array<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        profileImageUrl: string | null;
+        lastEventAt: string | null;
+        eventCount: number;
+      }>;
+    };
+    topActiveUsers: Array<{
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      profileImageUrl: string | null;
+      activeDays: number;
+      totalEvents: number;
+      lastEventAt: string | null;
+    }>;
+  };
+
   const { data: adminStats } = useQuery<AdminStatsResponse>({
     queryKey: ["/api/admin/stats"],
     queryFn: () => apiRequest("GET", "/api/admin/stats"),
@@ -188,6 +220,13 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     queryFn: () => apiRequest("GET", "/api/admin/observability/summary"),
     enabled: adminRolesAllowed,
     staleTime: 30 * 1000,
+  });
+
+  const { data: dailyUserActivity } = useQuery<DailyUserActivityResponse>({
+    queryKey: ["/api/admin/activity/daily-users", 30, 20],
+    queryFn: () => apiRequest("GET", "/api/admin/activity/daily-users?days=30&userLimit=20"),
+    enabled: adminRolesAllowed,
+    staleTime: 60 * 1000,
   });
 
   if (!adminRolesAllowed) {
@@ -867,6 +906,79 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users2 className="h-5 w-5" />
+                    Daily Active Users
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
+                    <span className="text-white">Today</span>
+                    <span className="text-white font-bold">
+                      {(dailyUserActivity?.today.activeUsers || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
+                    <span className="text-white">7-day avg</span>
+                    <span className="text-white font-bold">
+                      {Number(dailyUserActivity?.trailing7DayAverage || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
+                    <span className="text-white">30-day avg</span>
+                    <span className="text-white font-bold">
+                      {Number(dailyUserActivity?.trailing30DayAverage || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Active Today ({dailyUserActivity?.today.day || "today"})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {(dailyUserActivity?.today.users || []).length === 0 ? (
+                      <p className="text-sm text-white/60">No activity recorded yet today.</p>
+                    ) : (
+                      (dailyUserActivity?.today.users || []).map((activeUser) => {
+                        const displayName =
+                          `${activeUser.firstName || ""} ${activeUser.lastName || ""}`.trim();
+                        return (
+                          <div
+                            key={activeUser.id}
+                            className="flex items-center justify-between rounded-lg border border-white/10 bg-tsCard px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm text-white font-medium truncate">
+                                {displayName || activeUser.email || activeUser.id}
+                              </p>
+                              <p className="text-xs text-white/60 truncate">{activeUser.email}</p>
+                            </div>
+                            <div className="text-right text-xs text-white/70">
+                              <p>{activeUser.eventCount} events</p>
+                              <p>
+                                {activeUser.lastEventAt
+                                  ? new Date(activeUser.lastEventAt).toLocaleTimeString()
+                                  : "recent"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
                 <CardHeader>
