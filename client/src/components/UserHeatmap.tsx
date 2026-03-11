@@ -201,6 +201,29 @@ function CountyHeatmapMap({
   const path = useMemo(() => geoPath(projection), [projection]);
   const viewportCenter = useMemo(() => ({ x: 975 / 2, y: 610 / 2 }), []);
 
+  const clampPanForZoom = (candidate: { x: number; y: number }, zoomLevel: number) => {
+    const scaledWidth = 975 * zoomLevel;
+    const scaledHeight = 610 * zoomLevel;
+
+    // When zoomed out or at 1x, keep map centered in viewport.
+    if (scaledWidth <= 975 && scaledHeight <= 610) {
+      return {
+        x: (975 - scaledWidth) / 2,
+        y: (610 - scaledHeight) / 2,
+      };
+    }
+
+    const minX = 975 - scaledWidth;
+    const maxX = 0;
+    const minY = 610 - scaledHeight;
+    const maxY = 0;
+
+    return {
+      x: Math.min(maxX, Math.max(minX, candidate.x)),
+      y: Math.min(maxY, Math.max(minY, candidate.y)),
+    };
+  };
+
   const allCounties = useMemo<CountySearchResult[]>(() => {
     const results: CountySearchResult[] = [];
     for (const [fips, info] of Array.from(FIPS_LOOKUP.entries())) {
@@ -230,10 +253,15 @@ function CountyHeatmapMap({
 
     const nextZoom = Math.max(zoom, 2.5);
     setZoom(nextZoom);
-    setPan({
-      x: viewportCenter.x - cx * nextZoom,
-      y: viewportCenter.y - cy * nextZoom,
-    });
+    setPan(
+      clampPanForZoom(
+        {
+          x: viewportCenter.x - cx * nextZoom,
+          y: viewportCenter.y - cy * nextZoom,
+        },
+        nextZoom
+      )
+    );
   };
 
   const handleSelect = (fips: string) => {
@@ -263,11 +291,20 @@ function CountyHeatmapMap({
     const worldX = (anchor.x - pan.x) / zoom;
     const worldY = (anchor.y - pan.y) / zoom;
     setZoom(nextZoom);
-    setPan({
-      x: anchor.x - worldX * nextZoom,
-      y: anchor.y - worldY * nextZoom,
-    });
+    setPan(
+      clampPanForZoom(
+        {
+          x: anchor.x - worldX * nextZoom,
+          y: anchor.y - worldY * nextZoom,
+        },
+        nextZoom
+      )
+    );
   };
+
+  useEffect(() => {
+    setPan((current) => clampPanForZoom(current, zoom));
+  }, [zoom]);
 
   return (
     <div className="relative w-full h-[420px] bg-tsCard rounded-lg overflow-hidden border border-white/10">
@@ -280,6 +317,10 @@ function CountyHeatmapMap({
           event.preventDefault();
           const factor = event.deltaY > 0 ? 0.85 : 1.15;
           zoomAtClientPoint(event.clientX, event.clientY, zoom * factor);
+        }}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          zoomAtClientPoint(event.clientX, event.clientY, zoom * 1.5);
         }}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
@@ -302,10 +343,15 @@ function CountyHeatmapMap({
           if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
             dragRef.current.moved = true;
           }
-          setPan({
-            x: dragRef.current.startPanX + dx,
-            y: dragRef.current.startPanY + dy,
-          });
+          setPan(
+            clampPanForZoom(
+              {
+                x: dragRef.current.startPanX + dx,
+                y: dragRef.current.startPanY + dy,
+              },
+              zoom
+            )
+          );
         }}
         onPointerUp={(event) => {
           if (dragRef.current.active) {
@@ -432,7 +478,7 @@ function CountyHeatmapMap({
       )}
 
       <div className="absolute bottom-3 left-3 rounded bg-tsCard/95 px-2 py-1 text-[10px] text-white/70 border border-white/10">
-        {metricLabel} per county (log scale) · scroll to zoom · drag to pan
+        {metricLabel} per county (log scale) · scroll/double-click to zoom · drag to pan
       </div>
 
       <div className="absolute top-3 right-3 rounded-md bg-tsCard/95 border border-white/10 shadow-md p-1.5 flex items-center gap-1">
@@ -463,7 +509,7 @@ function CountyHeatmapMap({
           className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
           onClick={() => {
             setZoom(1);
-            setPan({ x: 0, y: 0 });
+            setPan(clampPanForZoom({ x: 0, y: 0 }, 1));
           }}
           aria-label="Reset map"
         >
