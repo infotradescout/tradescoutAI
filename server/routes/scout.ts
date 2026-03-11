@@ -1041,16 +1041,25 @@ function buildContextualSynthesisFallbackMessage(
   });
   const base = scrubbed.text.trim();
   if (base.length > 0) {
-    const prefix = opts?.rateLimited
-      ? "I'm seeing heavy demand right now, so I'm using your current local context and known guidance:"
-      : "I couldn't complete full synthesis right now, so I'm using your current local context and known guidance:";
-    return trimResponseToScreenFit(`${prefix}\n\n${base}`);
+    if (opts?.rateLimited) {
+      // Only show 'heavy demand' if truly rate limited
+      const prefix =
+        "I'm seeing heavy demand right now, so I'm using your current local context and known guidance:";
+      return trimResponseToScreenFit(`${prefix}\n\n${base}`);
+    } else {
+      // Honest fallback for other errors
+      const prefix =
+        "I'm having trouble generating a full answer right now, so I'm using your current local context and known guidance:";
+      return trimResponseToScreenFit(`${prefix}\n\n${base}`);
+    }
   }
 
   if (opts?.rateLimited) {
+    // Only show 'heavy demand' if truly rate limited
     return "I'm seeing heavy demand right now, but I can still route you to the right next step.";
   }
-  return buildSafeSynthesisFallbackMessage();
+  // Honest fallback for other errors
+  return "I'm having trouble generating a full answer right now, but I can still route you to the right next step.";
 }
 
 async function synthesizeResponse(
