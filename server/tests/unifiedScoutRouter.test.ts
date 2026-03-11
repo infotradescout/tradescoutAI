@@ -74,6 +74,40 @@ describe("UnifiedScoutRouter", () => {
       const result = UnifiedScoutRouter.resolveIntent("This has no known feature words", guest);
       expect(result).toBeNull();
     });
+
+    it("routes trade quote language to direct connect", () => {
+      const result = UnifiedScoutRouter.resolveIntent(
+        "I need a roofing quote in my county",
+        homeowner
+      );
+      expect(result).not.toBeNull();
+      expect(result?.action.type).toBe("NAVIGATE");
+      expect(result?.action.to).toBe("/direct-connect");
+      expect(result?.sourceLayer).toBe("deterministic");
+    });
+
+    it("routes jobs workspace language to finances jobs", () => {
+      const result = UnifiedScoutRouter.resolveIntent("open my jobs workspace", homeowner);
+      expect(result).not.toBeNull();
+      expect(result?.action.type).toBe("NAVIGATE");
+      expect(result?.action.to).toBe("/finances/jobs");
+      expect(result?.action.label).toBe("Open jobs workspace");
+    });
+
+    it("scrubs routing reasoning before returning to user-facing surfaces", () => {
+      const result = UnifiedScoutRouter.resolveIntent("open direct connect", homeowner, {
+        tone: {
+          scenario: "next_step_prompt",
+          countyLabel: "### [docs] BEHAVIORAL_CENTER.md",
+          includeNextStep: true,
+        },
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.reasoning).not.toContain("###");
+      expect(result?.reasoning).not.toContain("[docs]");
+      expect(result?.reasoning).not.toContain(".md");
+    });
   });
 
   describe("feature discovery + fallbacks", () => {

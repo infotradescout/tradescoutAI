@@ -231,53 +231,59 @@ function sanitizeScoutMessage(raw: unknown): string {
 
   const trimmed = raw.trim();
 
-  // Block entire JSON responses that contain internal reasoning fields
-  if (
-    trimmed.startsWith("{") &&
-    (trimmed.includes('"intent"') ||
-      trimmed.includes('"thought_flow"') ||
-      trimmed.includes('"reasoning"') ||
-      trimmed.includes('"decision"') ||
-      trimmed.includes('"step-by-step"'))
-  ) {
-    console.warn("[Scout] Blocked internal reasoning leakage in response", { raw });
-    return "I can help with that. Here's what TradeScout can do for your community:";
+  const fallback = "Let's keep this practical and local. Pick a next step and I'll route it.";
+
+  // If response looks like JSON, recover user-facing message fields.
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const candidate =
+        (typeof parsed?.message === "string" && parsed.message) ||
+        (typeof parsed?.answer === "string" && parsed.answer) ||
+        (typeof parsed?.response === "string" && parsed.response) ||
+        "";
+      if (candidate.trim()) return sanitizeScoutMessage(candidate);
+      return fallback;
+    } catch {
+      return fallback;
+    }
   }
 
-  // If response looks like JSON with reasoning fields anywhere, strip and use fallback
-  try {
-    if (trimmed.startsWith("{")) {
-      const parsed = JSON.parse(trimmed);
-      if (parsed.intent || parsed.thought_flow || parsed.reasoning || parsed.decision) {
-        console.warn("[Scout] Blocked JSON response with reasoning fields", {
-          parsed,
-        });
-        return (
-          parsed.message ||
-          parsed.answer ||
-          "I can help with that. Here's what TradeScout can do for your community:"
-        );
-      }
-    }
-  } catch {
-    // Not JSON, continue with string validation
-  }
-  // Strip obvious internal reasoning sections from plain-text responses.
-  const withoutInternal = trimmed
+  const markdownStripped = trimmed
+    .replace(/```[a-zA-Z0-9_-]*\n?/g, "")
+    .replace(/```/g, "")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .replace(/_([^_\n]+)_/g, "$1")
+    .replace(/`([^`\n]+)`/g, "$1");
+
+  const internalLinePattern =
+    /^(source:|knowledge base:|available knowledge base:|reasoning:|analysis:|thought[_\s-]*flow:|decision:|render order:|state injection\b|ui emphasis\b)/i;
+
+  const withoutInternal = markdownStripped
     .split("\n")
     .filter((line) => {
-      const lower = line.trim().toLowerCase();
-      if (!lower) return true;
-      if (lower.startsWith("reasoning:")) return false;
-      if (lower.startsWith("internal reasoning:")) return false;
-      if (lower.startsWith("thought process:")) return false;
-      if (lower.startsWith("analysis:")) return false;
-      return true;
+      const text = line.trim();
+      if (!text) return true;
+      if (/\[(docs?|source)\]/i.test(text)) return false;
+      if (/\b[\w/-]+\.md\b/i.test(text)) return false;
+      if (/\bbehavioral_center\.md\b/i.test(text)) return false;
+      if (/\bbehavioral\s+center\b/i.test(text)) return false;
+      if (/^admins?$/i.test(text)) return false;
+      if (/pick\s+a\s+button\s+below/i.test(text)) return false;
+      if (/for\s*90%\+\s*of\s*users/i.test(text)) return false;
+      return !internalLinePattern.test(text);
     })
     .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
     .trim();
 
-  return withoutInternal || trimmed;
+  return withoutInternal || fallback;
 }
 
 function enforceShortIntentDiscipline(
@@ -1012,6 +1018,7 @@ export default function ScoutOS() {
   };
 
   const hasAdminAccess = hasAdminUiAccess(user);
+  const showEvolutionSurfaces = SCOUT_EVOLUTION_SURFACES_ENABLED && hasAdminAccess;
 
   // We no longer surface the separate "Trending" tab at the bottom; all
   // focus stays on the main Scout thread and input.
@@ -2578,7 +2585,7 @@ export default function ScoutOS() {
         // FALLBACK: Use existing server flow if no intent matched
         // ==================================================================
         // Unified router assist (situation + trust + tone) is production-gated.
-        if (SCOUT_EVOLUTION_SURFACES_ENABLED) {
+        if (showEvolutionSurfaces) {
           try {
             const resolve = await UnifiedScoutRouterClient.resolveIntent(
               value,
@@ -2913,7 +2920,7 @@ export default function ScoutOS() {
 
         applyServerResponse(msg, res.actions);
 
-        if (SCOUT_EVOLUTION_SURFACES_ENABLED) {
+        if (showEvolutionSurfaces) {
           try {
             const toneRes = await fetch("/api/scout/tone/build", {
               method: "POST",
@@ -3115,6 +3122,7 @@ export default function ScoutOS() {
       state.messages,
       queueAutoRoute,
       refreshObjective,
+      showEvolutionSurfaces,
       activeObjective,
       user,
       userRoles,
@@ -3215,7 +3223,7 @@ export default function ScoutOS() {
   );
 
   const loadObjectiveOnboardingBundle = useCallback(async () => {
-    if (!SCOUT_EVOLUTION_SURFACES_ENABLED) {
+    if (!showEvolutionSurfaces) {
       setObjectiveOnboardingBundle(null);
       return;
     }
@@ -3254,14 +3262,14 @@ export default function ScoutOS() {
     } catch {
       setObjectiveOnboardingBundle(null);
     }
-  }, [activeObjective, sessionRole, user]);
+  }, [activeObjective, sessionRole, showEvolutionSurfaces, user]);
 
   useEffect(() => {
     void loadObjectiveOnboardingBundle();
   }, [loadObjectiveOnboardingBundle]);
 
   const loadWatchdogResult = useCallback(async () => {
-    if (!SCOUT_EVOLUTION_SURFACES_ENABLED) {
+    if (!showEvolutionSurfaces) {
       setWatchdogResult(null);
       return;
     }
@@ -3313,7 +3321,7 @@ export default function ScoutOS() {
     } catch {
       setWatchdogResult(null);
     }
-  }, [activeObjective, sessionRole, state.messages, user]);
+  }, [activeObjective, sessionRole, showEvolutionSurfaces, state.messages, user]);
 
   useEffect(() => {
     void loadWatchdogResult();
@@ -4391,7 +4399,7 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {SCOUT_EVOLUTION_SURFACES_ENABLED && objectiveOnboardingBundle && (
+                {showEvolutionSurfaces && objectiveOnboardingBundle && (
                   <ObjectiveOnboardingFlow
                     roleLabel={String(objectiveOnboardingBundle.role || "")}
                     suggestions={
@@ -4429,7 +4437,7 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {SCOUT_EVOLUTION_SURFACES_ENABLED && visibleWatchdogInterventions.length > 0 && (
+                {showEvolutionSurfaces && visibleWatchdogInterventions.length > 0 && (
                   <WatchdogInterventionBanner
                     interventions={visibleWatchdogInterventions}
                     engagementScore={
@@ -4460,7 +4468,7 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {SCOUT_EVOLUTION_SURFACES_ENABLED &&
+                {showEvolutionSurfaces &&
                   routingDecisionCard?.action &&
                   routingDecisionCard.metadata?.trust?.trustSignals && (
                     <TrustAwareDecisionCard
@@ -4523,7 +4531,7 @@ export default function ScoutOS() {
                     />
                   )}
 
-                {SCOUT_EVOLUTION_SURFACES_ENABLED && toneMessage?.message && (
+                {showEvolutionSurfaces && toneMessage?.message && (
                   <ToneAwareMessage
                     message={toneMessage.message}
                     scenario={toneMessage.scenario}

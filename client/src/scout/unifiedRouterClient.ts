@@ -184,9 +184,8 @@ export class UnifiedScoutRouterClient {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (res.status === 404) {
-          return res;
-        }
+        // Try next base when a routing namespace is missing.
+        if (res.status === 404) continue;
         return res;
       } catch {
         continue;
@@ -272,11 +271,41 @@ export class UnifiedScoutRouterClient {
 
   private static localFallbackDecision(intent: string): UnifiedRoutingDecision | null {
     const lower = intent.toLowerCase();
+    if (
+      lower.includes("jobs workspace") ||
+      lower.includes("job workspace") ||
+      lower.includes("project tracker") ||
+      lower.includes("deal room") ||
+      lower.includes("job room") ||
+      lower.includes("open my jobs")
+    ) {
+      return {
+        action: { type: "NAVIGATE", to: "/finances/jobs", label: "Open jobs workspace" },
+        confidence: 0.65,
+        reasoning: "Local fallback matched jobs-workspace intent",
+        sourceLayer: "fallback",
+      };
+    }
     if (lower.includes("direct") || lower.includes("connect")) {
       return {
         action: { type: "NAVIGATE", to: "/direct-connect", label: "Direct Connect" },
         confidence: 0.65,
         reasoning: "Local fallback matched direct-connect intent",
+        sourceLayer: "fallback",
+      };
+    }
+    if (
+      lower.includes("quote") ||
+      lower.includes("estimate") ||
+      lower.includes("roofing") ||
+      lower.includes("plumbing") ||
+      lower.includes("hvac") ||
+      lower.includes("electrical")
+    ) {
+      return {
+        action: { type: "NAVIGATE", to: "/direct-connect", label: "Direct Connect" },
+        confidence: 0.65,
+        reasoning: "Local fallback matched quote/trade intent",
         sourceLayer: "fallback",
       };
     }

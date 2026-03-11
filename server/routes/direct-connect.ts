@@ -698,6 +698,93 @@ export function registerDirectConnectRoutes(app: Express) {
 
   // Requester-facing: list Direct Connect requests for the current user
   app.get(
+    "/api/direct-connect/board",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const viewer = await storage.getUser(String(userId));
+        const queryCounty =
+          typeof req.query?.countyFips === "string" ? String(req.query.countyFips).trim() : "";
+        const countyFips =
+          queryCounty ||
+          String((viewer as any)?.countyFips || (viewer as any)?.county_fips || "").trim();
+
+        if (!countyFips) {
+          return res.json([]);
+        }
+
+        const category =
+          typeof req.query?.category === "string" ? String(req.query.category).trim() : "";
+        const activeStatuses = ["open", "routed", "in_progress"] as const;
+
+        const filters: any[] = [
+          eq(workRequests.source, "direct_connect" as any),
+          eq(workRequests.countyFips, countyFips),
+          inArray(workRequests.status, activeStatuses as any),
+        ];
+
+        if (category) {
+          filters.push(eq(workRequests.category, category as any));
+        }
+
+        const whereClause = filters.length === 1 ? filters[0] : and(...filters);
+
+        let rows: any[] = [];
+        try {
+          rows = await db
+            .select()
+            .from(workRequests)
+            .where(whereClause)
+            .orderBy(desc(workRequests.updatedAt), desc(workRequests.createdAt));
+        } catch (error) {
+          if (isSchemaMismatchError(error)) {
+            console.warn(
+              "[direct-connect] work_requests schema mismatch while listing board requests; returning empty list",
+              error
+            );
+            return res.json([]);
+          }
+          throw error;
+        }
+
+        const nowMs = Date.now();
+        const maxAgeMs = 60 * 24 * 60 * 60 * 1000; // keep board current (60 days)
+
+        const board = rows
+          .filter((row: any) => {
+            const visibility = String(row.visibility || "").toLowerCase();
+            const scope = String(row.scope || "").toLowerCase();
+            if (visibility === "private" || scope === "personal") return false;
+
+            const ts = row.updatedAt || row.createdAt;
+            if (!ts) return false;
+            const ageMs = nowMs - new Date(ts).getTime();
+            if (Number.isFinite(ageMs) && ageMs > maxAgeMs) return false;
+
+            return true;
+          })
+          .map((row: any) => ({
+            ...row,
+            attachmentCount: getAttachmentCount(row),
+            isMine: String(row.createdByUserId || "") === String(userId),
+          }));
+
+        return res.json(board);
+      } catch (error: any) {
+        console.error("Error fetching direct connect board:", error);
+        return res.status(500).json({
+          message: "Failed to fetch board requests",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  // Requester-facing: list Direct Connect requests for the current user
+  app.get(
     "/api/direct-connect/requests",
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {

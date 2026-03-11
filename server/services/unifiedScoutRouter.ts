@@ -10,6 +10,7 @@ import {
   type TrustAwareRoutingMetadata,
 } from "./scoutTrustIntegration";
 import { ScoutToneAwareBuilder, type ToneScenario } from "./scoutToneAwareBuilder";
+import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 
 export interface UnifiedScoutUserContext {
   userId?: string;
@@ -235,7 +236,56 @@ export const FEATURE_ROUTING_MAP: Record<string, PlatformFeatureRoute> = {
     ],
     roleRequirements: [],
     authRequired: false,
-    keywords: ["direct connect", "direct", "connect", "contractor", "pro", "provider", "request"],
+    keywords: [
+      "direct connect",
+      "direct",
+      "connect",
+      "contractor",
+      "contractors",
+      "pro",
+      "provider",
+      "request",
+      "quote",
+      "estimate",
+      "repair",
+      "fix",
+      "project help",
+      "roof",
+      "roofing",
+      "plumber",
+      "plumbing",
+      "hvac",
+      "electrical",
+      "electrician",
+      "foundation",
+      "concrete",
+      "framing",
+      "drywall",
+      "painting",
+      "landscaping",
+    ],
+  },
+  jobs_workspace: {
+    featureId: "jobs_workspace",
+    name: "Jobs Workspace",
+    primaryAction: { type: "NAVIGATE", to: "/finances/jobs", label: "Open jobs workspace" },
+    alternativeActions: [
+      { type: "NAVIGATE", to: "/direct-connect", label: "Open Direct Connect" },
+      { type: "NAVIGATE", to: "/messages", label: "Open Messages" },
+    ],
+    roleRequirements: [],
+    authRequired: false,
+    keywords: [
+      "jobs workspace",
+      "job workspace",
+      "job room",
+      "deal room",
+      "project tracker",
+      "open jobs",
+      "open my jobs",
+      "open deal room",
+      "open project tracker",
+    ],
   },
   community: {
     featureId: "community",
@@ -433,6 +483,12 @@ export class UnifiedScoutRouter {
           },
         };
       }
+
+      const scrubbedReasoning = sanitizeScoutUserFacingText(decision.reasoning, {
+        fallback: "Matched your request to the clearest next step.",
+        maxChars: 360,
+      });
+      decision.reasoning = scrubbedReasoning.text;
 
       return decision;
     }

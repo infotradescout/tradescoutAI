@@ -134,6 +134,7 @@ export default function TasksHub({
 
   const [selectedProviderIds, setSelectedProviderIds] = useState<string[]>([]);
   const [prefillProviderId, setPrefillProviderId] = useState<string | null>(null);
+  const [selectedBoardRequest, setSelectedBoardRequest] = useState<WorkRequest | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     description?: string;
@@ -234,12 +235,13 @@ export default function TasksHub({
   }, [defaultCountyFips, user]);
 
   const { data: workRequests, isLoading: requestsLoading } = useQuery<WorkRequest[]>({
-    queryKey: ["/api/direct-connect/requests", selectedCategory],
+    queryKey: ["/api/direct-connect/board", selectedCountyFips || null, selectedCategory || "all"],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCategory) params.append("category", selectedCategory);
+      if (selectedCountyFips) params.append("countyFips", selectedCountyFips);
 
-      const response = await fetch(`/api/direct-connect/requests?${params.toString()}`);
+      const response = await fetch(`/api/direct-connect/board?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch work requests");
       return response.json();
     },
@@ -356,6 +358,7 @@ export default function TasksHub({
       setPostIntentLocked(false);
       setShowProviderInvites(false);
       setActiveTab("browse");
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "my"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
@@ -582,46 +585,61 @@ export default function TasksHub({
                 }
               >
                 {filteredRequests.map((request) => (
-                  <Card key={request.id} className="border-white/10 bg-tsCard/90">
+                  <Card
+                    key={request.id}
+                    className="border-white/10 bg-tsCard/90 transition-colors hover:border-ts-orange/50"
+                  >
                     <CardContent className={embedded ? "p-3" : "p-4"}>
-                      <div
-                        className={
-                          embedded
-                            ? "mb-1.5 flex items-start justify-between"
-                            : "flex items-start justify-between mb-2"
-                        }
+                      <button
+                        type="button"
+                        className="w-full text-left"
+                        onClick={() => setSelectedBoardRequest(request)}
+                        aria-label={`Open request details for ${request.title}`}
                       >
-                        <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-white mb-1">{request.title}</h3>
-                          <p className="text-white/60 text-xs line-clamp-1">
-                            {request.description}
-                          </p>
+                        <div
+                          className={
+                            embedded
+                              ? "mb-1.5 flex items-start justify-between"
+                              : "flex items-start justify-between mb-2"
+                          }
+                        >
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-white mb-1">
+                              {request.title}
+                            </h3>
+                            <p className="text-white/60 text-xs line-clamp-1">
+                              {request.description}
+                            </p>
+                          </div>
+                          <span className="ml-3 text-xs px-2 py-1 rounded-full border border-white/10 text-white bg-black/25 capitalize">
+                            {request.status?.replace("_", " ") || "open"}
+                          </span>
                         </div>
-                        <span className="ml-3 text-xs px-2 py-1 rounded-full border border-white/10 text-white bg-black/25 capitalize">
-                          {request.status?.replace("_", " ") || "open"}
-                        </span>
-                      </div>
 
-                      <div
-                        className={
-                          embedded
-                            ? "mt-2 flex items-center justify-between text-[10px] text-white/60"
-                            : "flex items-center justify-between mt-3 text-[11px] text-white/60"
-                        }
-                      >
-                        <span>
-                          Budget:{" "}
-                          {request.budgetMin || request.budgetMax
-                            ? `$${request.budgetMin || request.budgetMax}`
-                            : "Not specified"}
-                        </span>
-                        <span>
-                          Created{" "}
-                          {request.createdAt
-                            ? new Date(request.createdAt as any).toLocaleDateString()
-                            : "recently"}
-                        </span>
-                      </div>
+                        <div
+                          className={
+                            embedded
+                              ? "mt-2 flex items-center justify-between text-[10px] text-white/60"
+                              : "flex items-center justify-between mt-3 text-[11px] text-white/60"
+                          }
+                        >
+                          <span>
+                            Budget:{" "}
+                            {request.budgetMin || request.budgetMax
+                              ? `$${request.budgetMin || request.budgetMax}`
+                              : "Not specified"}
+                          </span>
+                          <span>
+                            Updated{" "}
+                            {request.updatedAt
+                              ? new Date(request.updatedAt as any).toLocaleDateString()
+                              : request.createdAt
+                                ? new Date(request.createdAt as any).toLocaleDateString()
+                                : "recently"}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-[10px] text-ts-orange/90">Tap to open</div>
+                      </button>
                     </CardContent>
                   </Card>
                 ))}
@@ -630,8 +648,12 @@ export default function TasksHub({
                     <Card className="border-white/10 bg-tsCard/90">
                       <CardContent className={embedded ? "p-5 text-center" : "p-8 text-center"}>
                         <Briefcase className="h-12 w-12 text-white/60 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-white mb-2">No requests yet</h3>
-                        <p className="text-white/60">Post your first request.</p>
+                        <h3 className="text-lg font-semibold text-white mb-2">
+                          No local requests yet
+                        </h3>
+                        <p className="text-white/60">
+                          Try changing your area or post a new request.
+                        </p>
                       </CardContent>
                     </Card>
                   </div>
@@ -1173,6 +1195,84 @@ export default function TasksHub({
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog
+          open={Boolean(selectedBoardRequest)}
+          onOpenChange={(open) => {
+            if (!open) setSelectedBoardRequest(null);
+          }}
+        >
+          <DialogContent className="border-white/10 bg-tsCard/95">
+            <DialogHeader>
+              <DialogTitle className="text-white">
+                {selectedBoardRequest?.title || "Request details"}
+              </DialogTitle>
+            </DialogHeader>
+            {selectedBoardRequest && (
+              <div className="space-y-3 text-sm text-white/80">
+                <p className="text-white/70">{selectedBoardRequest.description}</p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full border border-white/10 bg-black/25 px-2 py-1 capitalize">
+                    {String(selectedBoardRequest.status || "open").replace("_", " ")}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-black/25 px-2 py-1">
+                    {selectedBoardRequest.budgetMin || selectedBoardRequest.budgetMax
+                      ? `Budget $${selectedBoardRequest.budgetMin || selectedBoardRequest.budgetMax}`
+                      : "Budget not specified"}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-black/25 px-2 py-1">
+                    {selectedBoardRequest.countyFips
+                      ? formatCountyLabel(
+                          String(selectedBoardRequest.countyFips),
+                          selectedBoardRequest.stateCode || user?.stateCode
+                        )
+                      : "Local area"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    className="border-white/10 text-white hover:bg-black/30"
+                    onClick={() => setSelectedBoardRequest(null)}
+                  >
+                    Close
+                  </Button>
+                  {(selectedBoardRequest as any)?.isMine === true && (
+                    <Button
+                      variant="outline"
+                      className="border-white/10 text-white hover:bg-black/30"
+                      onClick={() => {
+                        setSelectedBoardRequest(null);
+                        navigate("/direct-connect/engagements");
+                      }}
+                    >
+                      Open my requests
+                    </Button>
+                  )}
+                  <Button
+                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    onClick={() => {
+                      setTaskTitle(String(selectedBoardRequest.title || ""));
+                      setTaskDescription(String(selectedBoardRequest.description || ""));
+                      setTaskCategoryId(String(selectedBoardRequest.category || ""));
+                      setSelectedTradeSlug(String(selectedBoardRequest.tradeId || ""));
+                      setPostStep(0);
+                      setPostIntentLocked(false);
+                      setFieldErrors({});
+                      if (selectedBoardRequest.countyFips) {
+                        setSelectedCountyFips(String(selectedBoardRequest.countyFips));
+                      }
+                      setSelectedBoardRequest(null);
+                      setActiveTab("post");
+                    }}
+                  >
+                    Start a request like this
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* County Selector Dialog - Phase 1 Telemetry Support */}
         <Dialog open={showCountySelector} onOpenChange={setShowCountySelector}>

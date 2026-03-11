@@ -138,7 +138,7 @@ describe("UnifiedScoutRouterClient", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("returns null on 404 resolve response", async () => {
+  it("returns null when all routing bases return 404", async () => {
     const fetchMock = mockFetchOnce({ error: "Intent not matched" }, 404);
 
     const result = await UnifiedScoutRouterClient.resolveIntent(
@@ -147,7 +147,33 @@ describe("UnifiedScoutRouterClient", () => {
     );
 
     expect(result).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls through to backup routing base when primary returns 404", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: vi.fn().mockResolvedValue({ error: "Not found" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({
+          action: { type: "NAVIGATE", to: "/direct-connect", label: "Direct Connect" },
+          confidence: 0.9,
+          reasoning: "Matched",
+          sourceLayer: "deterministic",
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock as any);
+
+    const result = await UnifiedScoutRouterClient.resolveIntent("open direct connect", userContext);
+
+    expect(result?.action.to).toBe("/direct-connect");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("falls back locally when resolve endpoint errors", async () => {
@@ -161,6 +187,33 @@ describe("UnifiedScoutRouterClient", () => {
 
     expect(result?.sourceLayer).toBe("fallback");
     expect(result?.action.to).toBe("/exchange");
+  });
+
+  it("falls back to jobs workspace for jobs-workspace phrasing when resolve errors", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("network"));
+    vi.stubGlobal("fetch", fetchMock as any);
+
+    const result = await UnifiedScoutRouterClient.resolveIntent(
+      "open my jobs workspace",
+      userContext
+    );
+
+    expect(result?.sourceLayer).toBe("fallback");
+    expect(result?.action.to).toBe("/finances/jobs");
+    expect(result?.action.label).toBe("Open jobs workspace");
+  });
+
+  it("falls back to direct connect for quote/trade phrasing when resolve errors", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("network"));
+    vi.stubGlobal("fetch", fetchMock as any);
+
+    const result = await UnifiedScoutRouterClient.resolveIntent(
+      "I need a roofing quote",
+      userContext
+    );
+
+    expect(result?.sourceLayer).toBe("fallback");
+    expect(result?.action.to).toBe("/direct-connect");
   });
 
   it("validateAction falls back locally if api fails", async () => {

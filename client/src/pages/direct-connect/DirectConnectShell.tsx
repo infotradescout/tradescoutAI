@@ -24,7 +24,6 @@ import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { share, shareToPlatform } from "@/utils/share";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
-import { VerificationBypassBanner } from "@/components/verification/VerificationBypassBanner";
 import {
   ClipboardPlus,
   LayoutList,
@@ -545,6 +544,7 @@ function DirectConnectRequestComposer({
       setBudgetMax("");
       setShowOptional(false);
       clearAttachments();
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
       navigate("/direct-connect/engagements");
@@ -1124,6 +1124,7 @@ function MyDirectConnectRequests() {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       toast({ title: "Request sent out" });
     },
@@ -1134,6 +1135,7 @@ function MyDirectConnectRequests() {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route?expand=true`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       toast({ title: "Search widened" });
     },
@@ -1144,6 +1146,7 @@ function MyDirectConnectRequests() {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/cancel`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       toast({ title: "Request canceled" });
     },
@@ -1154,6 +1157,7 @@ function MyDirectConnectRequests() {
       return apiRequest("POST", `/api/direct-connect/requests/${requestId}/reopen`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       toast({ title: "Request reopened" });
     },
@@ -1544,7 +1548,6 @@ export default function DirectConnectShell() {
   const { isAuthenticated, user } = useAuth();
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
   const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
-  const verificationBypass = user?.verificationBypass;
 
   const requestPrefill = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -1651,14 +1654,6 @@ export default function DirectConnectShell() {
               Start a request, then keep track of replies, photos, and next steps in one place.
             </p>
           </div>
-
-          {isAuthenticated && verificationBypass?.active && (
-            <VerificationBypassBanner
-              bypass={verificationBypass}
-              context="direct_connect"
-              showPolicyLink={Boolean(user?.isAdmin || user?.isSuperAdmin)}
-            />
-          )}
 
           {/* Status Pills */}
           <div

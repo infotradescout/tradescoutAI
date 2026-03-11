@@ -409,6 +409,143 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(res.body.every((row: any) => String(row.source || "") === "direct_connect")).toBe(true);
   });
 
+  it("lists only current local community requests on the direct-connect board endpoint", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const countyRows = await db.select().from(counties).limit(2);
+    expect(countyRows.length).toBeGreaterThan(0);
+
+    const localCounty = countyRows[0] as any;
+    const otherCounty = (countyRows[1] as any) ?? {
+      fips: "99999",
+      stateCode: String(localCounty.stateCode || "TX"),
+    };
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const staleDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    const inserted = await db
+      .insert(workRequests)
+      .values([
+        {
+          createdByUserId: user.id,
+          title: `Board local open ${unique}`,
+          description: "Should be visible on local board.",
+          category: "service_request",
+          countyFips: localCounty.fips,
+          stateCode: localCounty.stateCode,
+          source: "direct_connect" as any,
+          scope: "community",
+          status: "open",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+        } as any,
+        {
+          createdByUserId: user.id,
+          title: `Board local routed ${unique}`,
+          description: "Should be visible on local board.",
+          category: "service_request",
+          countyFips: localCounty.fips,
+          stateCode: localCounty.stateCode,
+          source: "direct_connect" as any,
+          scope: "community",
+          status: "routed",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+        } as any,
+        {
+          createdByUserId: user.id,
+          title: `Board local cancelled ${unique}`,
+          description: "Should not be visible because cancelled.",
+          category: "service_request",
+          countyFips: localCounty.fips,
+          stateCode: localCounty.stateCode,
+          source: "direct_connect" as any,
+          scope: "community",
+          status: "cancelled",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+        } as any,
+        {
+          createdByUserId: user.id,
+          title: `Board local private ${unique}`,
+          description: "Should not be visible because private.",
+          category: "service_request",
+          countyFips: localCounty.fips,
+          stateCode: localCounty.stateCode,
+          source: "direct_connect" as any,
+          scope: "personal",
+          status: "open",
+          visibility: "private",
+          exposureMode: "guided",
+          competitionMode: "none",
+        } as any,
+        {
+          createdByUserId: user.id,
+          title: `Board other county ${unique}`,
+          description: "Should not be visible because out-of-county.",
+          category: "service_request",
+          countyFips: otherCounty.fips,
+          stateCode: otherCounty.stateCode,
+          source: "direct_connect" as any,
+          scope: "community",
+          status: "open",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+        } as any,
+        {
+          createdByUserId: user.id,
+          title: `Board stale local ${unique}`,
+          description: "Should not be visible because stale.",
+          category: "service_request",
+          countyFips: localCounty.fips,
+          stateCode: localCounty.stateCode,
+          source: "direct_connect" as any,
+          scope: "community",
+          status: "open",
+          visibility: "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+          createdAt: staleDate,
+          updatedAt: staleDate,
+        } as any,
+      ])
+      .returning();
+
+    const localOpen = inserted.find((row: any) => String(row.title).includes("local open"));
+    const localRouted = inserted.find((row: any) => String(row.title).includes("local routed"));
+    const localCancelled = inserted.find((row: any) =>
+      String(row.title).includes("local cancelled")
+    );
+    const localPrivate = inserted.find((row: any) => String(row.title).includes("local private"));
+    const outOfCounty = inserted.find((row: any) => String(row.title).includes("other county"));
+    const staleLocal = inserted.find((row: any) => String(row.title).includes("stale local"));
+
+    const res = await agent.get(`/api/direct-connect/board?countyFips=${localCounty.fips}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+
+    const ids = (res.body as any[]).map((row) => String(row.id));
+    expect(ids).toContain(String(localOpen?.id));
+    expect(ids).toContain(String(localRouted?.id));
+    expect(ids).not.toContain(String(localCancelled?.id));
+    expect(ids).not.toContain(String(localPrivate?.id));
+    expect(ids).not.toContain(String(outOfCounty?.id));
+    expect(ids).not.toContain(String(staleLocal?.id));
+    expect(
+      (res.body as any[]).every((row) => ["open", "routed", "in_progress"].includes(row.status))
+    ).toBe(true);
+  });
+
   it("persists request attachments and scopes attachment access to the requester or assigned contractor", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",

@@ -53,6 +53,7 @@ import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
 import { recordScoutInteraction } from "../services/missionControl";
 import { logCompletedAction } from "../services/preferredSource";
 import { ensureFollowUpQuestion } from "../scout/responseShape";
+import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 import {
   sanitizeScoutActionsForPolicy,
   sanitizeScoutMessageForPolicy,
@@ -1034,7 +1035,11 @@ function buildContextualSynthesisFallbackMessage(
   knowledgeAnswer: string | undefined,
   opts?: { rateLimited?: boolean }
 ): string {
-  const base = String(knowledgeAnswer || "").trim();
+  const scrubbed = sanitizeScoutUserFacingText(String(knowledgeAnswer || ""), {
+    fallback: "",
+    maxChars: 520,
+  });
+  const base = scrubbed.text.trim();
   if (base.length > 0) {
     const prefix = opts?.rateLimited
       ? "I'm seeing heavy demand right now, so I'm using your current local context and known guidance:"
@@ -4521,6 +4526,26 @@ router.post("/", async (req: Request, res: Response) => {
 
           onboardingMeta.sessionId = clientSessionId;
         }
+      }
+    }
+
+    const userFacingSanitized = sanitizeScoutUserFacingText(finalMessage || "", {
+      fallback: buildSafeSynthesisFallbackMessage(),
+      maxChars: 600,
+    });
+    finalMessage = userFacingSanitized.text;
+    if (userFacingSanitized.flags.length > 0) {
+      try {
+        await storage.logEvent("scout_response_sanitized", {
+          userId: userId || null,
+          countyCode: countyCode || null,
+          stateCode: stateCode || null,
+          flags: userFacingSanitized.flags,
+          removedLines: userFacingSanitized.removedLines,
+          requestId: (req as any).requestId || null,
+        });
+      } catch (sanitizeLogErr) {
+        console.error("[Scout] failed to log response sanitation", sanitizeLogErr);
       }
     }
 

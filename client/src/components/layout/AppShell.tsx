@@ -38,7 +38,6 @@ import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
-import { VerificationBypassBanner } from "@/components/verification/VerificationBypassBanner";
 
 export type NavItem = {
   label: string;
@@ -171,8 +170,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const hasAdminAliasBypass =
     verificationBypass?.active === true && verificationBypass?.reason === "email_alias";
   const shouldShowAdminNav = hasAdminAccess || isSuperAdmin || hasAdminAliasBypass;
-  const showGlobalBypassBanner =
-    Boolean(isAuthenticated) && Boolean(verificationBypass?.active) && !isAuthOrSetupSurface;
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
@@ -622,14 +619,6 @@ export function AppShell({ children, footer }: AppShellProps) {
         }}
       >
         <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
-          {showGlobalBypassBanner && (
-            <VerificationBypassBanner
-              bypass={verificationBypass}
-              context="global"
-              showPolicyLink={shouldShowAdminNav}
-              className="mx-3 mt-3 md:mx-6"
-            />
-          )}
           {isMobile && isScoutSurface && showMobileScoutHero && renderMobileHero()}
           {children}
         </div>

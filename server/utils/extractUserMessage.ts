@@ -11,6 +11,7 @@
  * - Backend metadata preserved for logging/analytics
  * - Future-proof: prompt changes cannot break UI
  */
+import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 
 export type RawScoutOutput =
   | string
@@ -39,20 +40,20 @@ export interface ExtractedMessage {
 const MAX_CHARS = 700;
 
 const LEAKAGE_PATTERNS = [
-  /^\s*\{/, // Starts with JSON
-  /"intent"\s*:/i, // JSON intent field
-  /"thought_flow"\s*:/i, // JSON thought_flow field
-  /"reasoning"\s*:/i, // JSON reasoning field
-  /"analysis"\s*:/i, // JSON analysis field
-  /"decision"\s*:/i, // JSON decision field
-  /step\s*\d+:/i, // Step-by-step breakdown
-  /^analysis:/im, // Analysis: prefix
-  /^reasoning:/im, // Reasoning: prefix
-  /^decision:/im, // Decision: prefix
-  /^thought process:/im, // Internal deliberation
+  /"intent"\s*:/i,
+  /"thought_flow"\s*:/i,
+  /"reasoning"\s*:/i,
+  /"analysis"\s*:/i,
+  /"decision"\s*:/i,
+  /step\s*\d+:/i,
+  /^analysis:/im,
+  /^reasoning:/im,
+  /^decision:/im,
+  /^thought process:/im,
 ];
 
-const FALLBACK_MESSAGE = "I can help with that. Here's how TradeScout can support you right now:";
+const FALLBACK_MESSAGE =
+  "Let's keep this simple and local. I can route you to one clear next step right now.";
 
 /**
  * Extract user-facing message from raw model output.
@@ -60,10 +61,10 @@ const FALLBACK_MESSAGE = "I can help with that. Here's how TradeScout can suppor
  * Handles:
  * - Plain strings
  * - JSON objects with message/final_answer/response fields
- * - Reasoning leakage (blocked)
+ * - Reasoning leakage (scrubbed)
  * - Length enforcement (700 char cap)
  *
- * Returns fallback if any leakage detected or extraction fails.
+ * Returns fallback if extraction fails.
  */
 export function extractUserMessage(
   raw: RawScoutOutput,
@@ -73,7 +74,7 @@ export function extractUserMessage(
 
   // Case 1: Plain string input
   if (typeof raw === "string") {
-    const sanitized = sanitizeString(raw, leakageFields);
+    const sanitized = sanitizeString(raw, leakageFields, fallback);
     return {
       message: sanitized,
       isClean: leakageFields.length === 0,
@@ -84,21 +85,13 @@ export function extractUserMessage(
 
   // Case 2: Object input (expected to be JSON from model)
   if (typeof raw === "object" && raw !== null) {
-    // Check for reasoning fields that should never be rendered
+    // Mark reasoning fields for telemetry, but continue if safe message is present.
     const reasoningKeys = ["intent", "thought_flow", "reasoning", "decision", "analysis"];
     const foundReasoningFields = reasoningKeys.filter(
       (key) => key in raw && raw[key as keyof typeof raw] !== undefined
     );
 
-    if (foundReasoningFields.length > 0) {
-      leakageFields.push(...foundReasoningFields);
-      return {
-        message: fallback,
-        isClean: false,
-        hadLeakage: true,
-        leakageFields,
-      };
-    }
+    if (foundReasoningFields.length > 0) leakageFields.push(...foundReasoningFields);
 
     // Try to extract message from known safe fields (priority order)
     const candidate =
@@ -109,7 +102,7 @@ export function extractUserMessage(
       "";
 
     if (candidate.trim()) {
-      const sanitized = sanitizeString(candidate, leakageFields);
+      const sanitized = sanitizeString(candidate, leakageFields, fallback);
       return {
         message: sanitized,
         isClean: leakageFields.length === 0,
@@ -133,29 +126,53 @@ export function extractUserMessage(
  * Checks for:
  * - JSON-like structures
  * - Reasoning keywords (step-by-step, analysis, etc.)
- * - Excessive length (cap at MAX_CHARS)
+ * - Internal doc/source leakage and markdown artifacts
  */
-function sanitizeString(text: string, leakageFields: string[] = []): string {
+function sanitizeString(
+  text: string,
+  leakageFields: string[] = [],
+  fallback = FALLBACK_MESSAGE
+): string {
   const trimmed = text.trim();
   if (!trimmed) {
     leakageFields.push("empty");
-    return FALLBACK_MESSAGE;
+    return fallback;
   }
 
-  // Check for leakage patterns
-  for (const pattern of LEAKAGE_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      leakageFields.push(pattern.source);
-      return FALLBACK_MESSAGE;
+  // If the model emitted JSON as text, recover from known response fields.
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      const candidate =
+        (typeof parsed.message === "string" && parsed.message) ||
+        (typeof parsed.final_answer === "string" && parsed.final_answer) ||
+        (typeof parsed.response === "string" && parsed.response) ||
+        (typeof parsed.answer === "string" && parsed.answer) ||
+        "";
+      if (candidate.trim()) {
+        leakageFields.push("json_wrapped_message");
+        return sanitizeString(candidate, leakageFields, fallback);
+      }
+    } catch {
+      leakageFields.push("json_parse_failed");
+      return fallback;
     }
   }
 
-  // Enforce length limit for UX
-  if (trimmed.length > MAX_CHARS) {
-    return trimmed.slice(0, MAX_CHARS).trimEnd() + "…";
+  // Check for leakage patterns that indicate hidden internals surfaced to user.
+  for (const pattern of LEAKAGE_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      leakageFields.push(pattern.source);
+      return fallback;
+    }
   }
 
-  return trimmed;
+  const scrubbed = sanitizeScoutUserFacingText(trimmed, {
+    fallback,
+    maxChars: MAX_CHARS,
+  });
+  leakageFields.push(...scrubbed.flags);
+  return scrubbed.text;
 }
 
 /**

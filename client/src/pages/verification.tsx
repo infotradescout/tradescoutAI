@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { VerificationBypassBanner } from "@/components/verification/VerificationBypassBanner";
 
 type StatusTone = "complete" | "pending" | "required";
 
@@ -80,8 +79,6 @@ const Verification = memo(function Verification() {
     : "required";
 
   const loading = loadingAddress || loadingMarketplace || loadingIdentity;
-  const bypass = user?.verificationBypass;
-
   return (
     <div className="px-4 py-4 md:px-6">
       <div className="mx-auto w-full max-w-6xl space-y-4">
@@ -117,14 +114,6 @@ const Verification = memo(function Verification() {
               </div>
             ) : (
               <div className="space-y-3">
-                {bypass?.active && (
-                  <VerificationBypassBanner
-                    bypass={bypass}
-                    context="verification"
-                    showPolicyLink={Boolean(user?.isAdmin || user?.isSuperAdmin)}
-                  />
-                )}
-
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div
                     className={`rounded-lg border p-3 ${toneClass(profileComplete ? "complete" : "required")}`}
@@ -258,7 +247,7 @@ const Verification = memo(function Verification() {
           </div>
         )}
 
-        {isAuthenticated && profileComplete && addressTone !== "complete" && !bypass?.active && (
+        {isAuthenticated && profileComplete && addressTone !== "complete" && (
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
             Next step required: finish address verification to unlock full trust eligibility.
           </div>
