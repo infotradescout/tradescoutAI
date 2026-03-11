@@ -65,6 +65,7 @@ import {
   normalizeAuthorityRole,
   resolvePrivilegedVerificationBypass,
 } from "./utils/authorityPolicy";
+import { getAuthorityPhaseGateState } from "./utils/authorityPhaseGates";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
 import {
   getComputedProviderEligibilitiesForUser,
@@ -18636,6 +18637,24 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Social Features API Routes
 
+  app.get("/api/community/authority-surfaces", async (_req: any, res: any) => {
+    try {
+      const state = await getAuthorityPhaseGateState();
+      res.json({
+        observationModeEnabled: state.observationModeEnabled,
+        phase2bAuthorityLabelsEnabled: state.phase2bAuthorityLabelsEnabled,
+        phase2cOutcomeWeightingEnabled: state.phase2cOutcomeWeightingEnabled,
+      });
+    } catch (error: any) {
+      console.error("Error fetching community authority surfaces:", error);
+      res.status(500).json({
+        observationModeEnabled: true,
+        phase2bAuthorityLabelsEnabled: false,
+        phase2cOutcomeWeightingEnabled: false,
+      });
+    }
+  });
+
   // Community Posts
   app.get("/api/community/posts", async (req: any, res: any) => {
     try {
@@ -18847,24 +18866,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       }
 
-      // NOTE: Outcome-based feed weighting is intentionally disabled (Phase 2C).
-      // REASONING:
-      // - Weighting implies earned trust before outcome data is reliable.
-      // - CTA gating (Phase 2A) generates the foundation outcomes.
-      // - Feed influence should follow, not precede, action gating validation.
-      // ENABLE WHEN:
-      // - >= 50 completed outcomes recorded
-      // - Outcome variance across posts is measurable
-      // - Admin diagnostics show stable override/regret calibration
-      // STATUS: DISABLED - waiting for Phase 2A data
-      const ENABLE_OUTCOME_WEIGHTING = false;
-      if (ENABLE_OUTCOME_WEIGHTING) {
+      // Phase 2B/2C authority surfaces are guarded by observation mode and explicit toggles.
+      // - Phase 2B: render interpretive labels
+      // - Phase 2C: apply ranking weights (requires Phase 2B)
+      const phaseState = await getAuthorityPhaseGateState();
+      if (phaseState.phase2bAuthorityLabelsEnabled || phaseState.phase2cOutcomeWeightingEnabled) {
         const { applyOutcomeWeighting, sortByOutcomeScore } =
           await import("./community/outcomeScoring");
         await applyOutcomeWeighting(posts);
 
-        // If sorting by recommended, re-sort by outcome score
-        if (normalizedScope === "recommendations" || normalizedScope === "forYou") {
+        // Phase 2C can influence ranking for recommendation-focused scopes only.
+        if (
+          phaseState.phase2cOutcomeWeightingEnabled &&
+          (normalizedScope === "recommendations" || normalizedScope === "forYou")
+        ) {
           sortByOutcomeScore(posts);
         }
       }
@@ -22276,6 +22291,19 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         (listing as any).contactUserId ||
         (listing as any).agentUserId ||
         (listing as any).sellerUserId;
+      let canonicalProfileUrl: string | null = null;
+      if (contactUserId) {
+        const [canonicalProfile] = await db
+          .select({ slug: profiles.slug })
+          .from(profiles)
+          .where(
+            and(eq(profiles.ownerUserId, String(contactUserId)), eq(profiles.status, "published"))
+          )
+          .limit(1);
+        if (canonicalProfile?.slug) {
+          canonicalProfileUrl = `/u/${encodeURIComponent(String(canonicalProfile.slug))}`;
+        }
+      }
       const isOwnerViewer =
         Boolean(viewerUserId) &&
         (String(viewerUserId) === String((listing as any).sellerUserId || "") ||
@@ -22411,8 +22439,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } as any);
 
       // Do not bypass privacy: consumers may optionally call /api/users/:userId/public.
+      const sanitizedListing = sanitizeHomeScoutPublicListing(listing as any);
       res.json({
-        listing: sanitizeHomeScoutPublicListing(listing as any),
+        listing: {
+          ...(sanitizedListing as any),
+          canonicalProfileUrl,
+        },
         events,
         marketBucket,
         countyMetrics,

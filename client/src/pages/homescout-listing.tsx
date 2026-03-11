@@ -38,6 +38,7 @@ type HomeScoutListing = {
   sellerUserId?: string | null;
   agentUserId?: string | null;
   listingAuthorType?: string | null;
+  canonicalProfileUrl?: string | null;
   latitude?: string | number | null;
   longitude?: string | number | null;
 };
@@ -449,6 +450,12 @@ export default function HomeScoutListingPage() {
   const targetRole =
     String((listing as any)?.listingAuthorType || "owner") === "agent" ? "Agent" : "Owner";
   const targetName = targetRole === "Agent" ? "Listing agent" : "Listing owner";
+  const canonicalProfileUrl =
+    typeof (listing as any)?.canonicalProfileUrl === "string" &&
+    String((listing as any).canonicalProfileUrl).trim().length > 0
+      ? String((listing as any).canonicalProfileUrl).trim()
+      : null;
+  const contactProfileHref = canonicalProfileUrl || "/community";
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
@@ -1139,6 +1146,13 @@ export default function HomeScoutListingPage() {
                   HomeScout never exposes direct contact from listing discovery.
                 </div>
               </div>
+              {canonicalProfileUrl ? (
+                <Link href={contactProfileHref}>
+                  <Button variant="outline" className="w-full">
+                    View public profile
+                  </Button>
+                </Link>
+              ) : null}
               <Link
                 href={`/scout?intent=homescout_contact&listingId=${encodeURIComponent(String(listing.id))}`}
               >

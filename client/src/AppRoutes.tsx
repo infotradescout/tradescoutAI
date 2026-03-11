@@ -4,7 +4,10 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 import { AppShell } from "./components/layout/AppShell";
-import { CommunityShell } from "./components/layout/CommunityShell";
+import { CommunityPageShell } from "./shells/CommunityPageShell";
+import { GroupsShell } from "./shells/GroupsShell";
+import { HOADashboardShell } from "./shells/HOADashboardShell";
+import { HOAManagementShell } from "./shells/HOAManagementShell";
 import ScoutOS from "./scout";
 import SmartHome from "./SmartHome";
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -858,18 +861,18 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             {/* Groups routes */}
             <Route path="/groups">
-              <CommunityShell sectionLabel="Groups">
+              <GroupsShell>
                 <LazyPage Component={Groups} />
-              </CommunityShell>
+              </GroupsShell>
             </Route>
             <Route path="/group/:id">
               <LazyPage Component={GroupDetail} />
             </Route>
             <Route path="/hoa-management">
               <ProtectedRoute>
-                <CommunityShell sectionLabel="HOA">
+                <HOAManagementShell>
                   <LazyPage Component={HoaManagement} />
-                </CommunityShell>
+                </HOAManagementShell>
               </ProtectedRoute>
             </Route>
             <Route path="/hoa/residents">
@@ -884,14 +887,14 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             {/* Community tab should show the rich Nextdoor-style feed */}
             <Route path="/community">
-              <CommunityShell sectionLabel="Community">
+              <CommunityPageShell>
                 <LazyPage Component={CommunityFeed} />
-              </CommunityShell>
+              </CommunityPageShell>
             </Route>
             <Route path="/community-feed">
-              <CommunityShell sectionLabel="Community Feed">
+              <CommunityPageShell>
                 <LazyPage Component={CommunityFeed} />
-              </CommunityShell>
+              </CommunityPageShell>
             </Route>
             <Route path="/community/u/:userId">
               <LazyPage Component={CommunityProfile} />
@@ -1073,9 +1076,9 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/messages">
               <ProtectedRoute>
-                <CommunityShell sectionLabel="Messages">
+                <CommunityPageShell>
                   <LazyPage Component={Messages} />
-                </CommunityShell>
+                </CommunityPageShell>
               </ProtectedRoute>
             </Route>
             <Route path="/saved-ads">
@@ -1349,16 +1352,16 @@ export const AppRoutes = memo(function AppRoutes({
             {/* Additional Features */}
             <Route path="/hoa-dashboard">
               <ProtectedRoute>
-                <CommunityShell sectionLabel="HOA Dashboard">
+                <HOADashboardShell>
                   <LazyPage Component={HOADashboard} />
-                </CommunityShell>
+                </HOADashboardShell>
               </ProtectedRoute>
             </Route>
             <Route path="/hoa-dashboard/:hoaId">
               <ProtectedRoute>
-                <CommunityShell sectionLabel="HOA Dashboard">
+                <HOADashboardShell>
                   <LazyPage Component={HOADashboard} />
-                </CommunityShell>
+                </HOADashboardShell>
               </ProtectedRoute>
             </Route>
             <Route path="/membership-portal">

@@ -152,6 +152,11 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE home_scout_listings
+      ADD COLUMN IF NOT EXISTS listing_author_type varchar(16) NOT NULL DEFAULT 'owner'
+    `);
+
+    await client.query(`
       ALTER TABLE businesses
       ADD COLUMN IF NOT EXISTS claim_status varchar(32) DEFAULT 'unclaimed'
     `);

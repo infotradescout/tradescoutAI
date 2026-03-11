@@ -14,10 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
-
-// NOTE: Authority labels intentionally disabled (Phase 2B).
-// See CommunitySnapshotRail.tsx for full rationale.
-const ENABLE_AUTHORITY_LABELS = false;
+import { useCommunityAuthoritySurfaces } from "@/hooks/useCommunityAuthoritySurfaces";
 import {
   MapPin,
   MessageSquare,
@@ -159,8 +156,10 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
 
 export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPostCardProps) {
   const { toast } = useToast();
+  const { data: authoritySurfaces } = useCommunityAuthoritySurfaces();
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const showAuthorityLabels = authoritySurfaces?.phase2bAuthorityLabelsEnabled === true;
   const isAuthor =
     !!user && !!post.author?.id && String(post.author.id) === String((user as any).id);
   const initialWorkBoardState = (() => {
@@ -719,8 +718,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               />
 
               {/* Authority label - interpretive guidance from Scout */}
-              {/* DISABLED (Phase 2B): See ENABLE_AUTHORITY_LABELS flag */}
-              {ENABLE_AUTHORITY_LABELS && post.authorityLabel && (
+              {showAuthorityLabels && post.authorityLabel && (
                 <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2">
                   <Info className="h-4 w-4 text-white/60 mt-0.5 shrink-0" />
                   <span className="text-xs text-white/60 italic leading-relaxed">

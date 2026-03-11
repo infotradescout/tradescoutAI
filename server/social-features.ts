@@ -704,13 +704,13 @@ export function registerSocialFeatures(app: Express) {
           }
         }
 
-        // Legacy compatibility:
-        // scout_recommendation flows may not carry a persisted recommendation ID.
+        // D3: scout recommendation authority must include a source id.
         if (authorityGate === "scout_recommendation" && !normalizedScoutRecommendationId) {
-          console.warn(
-            "[Messaging] scout_recommendation authority without source id; allowing legacy-safe fallback",
-            { userId, targetUserId, intent }
-          );
+          return res.status(400).json({
+            reasonCode: "MISSING_SCOUT_RECOMMENDATION_ID",
+            message:
+              "Scout recommendation ID required when authorityGate is 'scout_recommendation'",
+          });
         }
 
         // ========================================
@@ -783,9 +783,7 @@ export function registerSocialFeatures(app: Express) {
               authorityGate,
               sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
               sourceScoutRecommendationId:
-                authorityGate === "scout_recommendation"
-                  ? normalizedScoutRecommendationId || "scout-governed-legacy"
-                  : null,
+                authorityGate === "scout_recommendation" ? normalizedScoutRecommendationId : null,
               decisionScope: decisionScope || null,
               confidenceScore: confidenceScore != null ? Number(confidenceScore) : null,
               riskFlags: Array.isArray(req.body?.riskFlags)
@@ -817,9 +815,7 @@ export function registerSocialFeatures(app: Express) {
             authorityGate,
             sourceDecisionCardId: authorityGate === "decision_card" ? sourceDecisionCardId : null,
             sourceScoutRecommendationId:
-              authorityGate === "scout_recommendation"
-                ? normalizedScoutRecommendationId || "scout-governed-legacy"
-                : "first-contact-approved",
+              authorityGate === "scout_recommendation" ? normalizedScoutRecommendationId : null,
             confidenceScore: confidenceScore != null ? String(confidenceScore) : null,
             decisionScope: decisionScope || "Direct contact approved",
           })

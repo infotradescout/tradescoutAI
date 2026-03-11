@@ -1124,6 +1124,7 @@ export const affiliateAccounts = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => [
+    uniqueIndex("uq_affiliate_accounts_affiliate_id").on(table.affiliateId),
     index("idx_affiliate_accounts_affiliate").on(table.affiliateId),
     index("idx_affiliate_accounts_referral_code").on(table.referralCode),
   ]

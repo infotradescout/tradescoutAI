@@ -547,6 +547,27 @@
       "when": 1755004020776,
       "tag": "0075_direct_connect_request_attachments",
       "breakpoints": false
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1755004021776,
+      "tag": "0075_expand_accounting_document_types",
+      "breakpoints": false
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1755004022776,
+      "tag": "0076_accounting_clients",
+      "breakpoints": false
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1755004023776,
+      "tag": "0077_affiliate_accounts_uniqueness",
+      "breakpoints": false
     }
   ]
 }

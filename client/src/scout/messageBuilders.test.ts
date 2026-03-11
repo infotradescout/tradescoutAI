@@ -121,4 +121,22 @@ describe("messageBuilders", () => {
     expect(actions.some((action) => action.to === "/community")).toBe(true);
     expect(actions.some((action) => action.type === "ASK_SCOUT")).toBe(true);
   });
+
+  it("includes routing workflow help when the prompt asks why routing is blocked", () => {
+    const { actions } = buildConnectionFallback(
+      {
+        contractorsRoute: "/contractors",
+        communityRoute: "/community",
+      },
+      "Why is this not routed yet?"
+    );
+
+    expect(
+      actions.some(
+        (action) =>
+          action.type === "NAVIGATE" &&
+          action.to === "/help/how-tradescout-works#direct-connect-workflow"
+      )
+    ).toBe(true);
+  });
 });

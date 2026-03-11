@@ -556,7 +556,10 @@ function DirectConnectRequestComposer({
       if (isVerificationGate) {
         toast({
           title: "Address verification required",
-          description: error?.message || "Finish verification before sending a request.",
+          description: formatUserFacingErrorMessage(
+            error,
+            "Finish verification before sending a request."
+          ),
           variant: "destructive",
         });
         navigate("/verification");

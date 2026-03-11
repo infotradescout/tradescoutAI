@@ -21,11 +21,16 @@ test.describe("Scout routing explainer", () => {
       await controllerToggle.click();
     }
 
-    const input = page.getByRole("textbox").first();
+    const input = page.getByPlaceholder(
+      /describe the local outcome, problem, or task you need to move forward/i
+    );
     await input.click();
     await input.fill("Why is this not routed yet?");
 
-    const sendButton = page.getByRole("button", { name: /send/i });
+    const sendButton = page
+      .locator(".scout-composer-dock")
+      .getByRole("button", { name: /^send$/i })
+      .first();
     await sendButton.click();
 
     // Controller actions are collapsible; expand so cluster cards are in the DOM.
@@ -34,16 +39,15 @@ test.describe("Scout routing explainer", () => {
       await controllerShow.click();
     }
 
-    // Wait for a Scout explainer cluster to appear.
-    const clusterCard = page.locator(".scout-card").first();
-    await expect(clusterCard).toBeVisible({ timeout: 30_000 });
-
-    // Click the help deep-link action (NAVIGATE).
-    const helpButton = clusterCard.getByRole("button", {
-      name: /routing workflow|direct connect/i,
-    });
-    await expect(helpButton.first()).toBeVisible();
-    await helpButton.first().click();
+    // Wait for the explicit routing workflow action and click it.
+    const helpButton = page
+      .locator(".scout-card")
+      .getByRole("button", {
+        name: /open direct connect guide|direct connect routing workflow|routing workflow/i,
+      })
+      .first();
+    await expect(helpButton).toBeVisible({ timeout: 30_000 });
+    await helpButton.click();
 
     // Assert navigation to the canonical Direct Connect workflow help anchor.
     await expect(page).toHaveURL(

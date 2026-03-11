@@ -47,7 +47,12 @@ export function buildConnectionFallback(
   userMessage?: string,
   meta?: MessageMeta
 ): { message: ScoutMessage; actions: ScoutAction[] } {
+  const routingHelpPath = "/help/how-tradescout-works#direct-connect-workflow";
   const lower = String(userMessage || "").toLowerCase();
+  const wantsRoutingWorkflowHelp =
+    /not\s+routed\s+yet/i.test(lower) ||
+    (lower.includes("why") && lower.includes("routed")) ||
+    (lower.includes("routing") && lower.includes("why"));
   const tokens = lower.split(/\s+/).filter(Boolean);
   const hasStrongIntentVerb =
     /\b(open|show|find|hire|buy|sell|post|route|connect|message|need|want|looking)\b/.test(lower);
@@ -88,6 +93,13 @@ export function buildConnectionFallback(
     label: "Keep this in Scout",
     prompt: stayInScoutPrompt,
   });
+  if (wantsRoutingWorkflowHelp) {
+    candidateActions.push({
+      type: "NAVIGATE",
+      label: "See the Direct Connect routing workflow",
+      to: routingHelpPath,
+    });
+  }
 
   if (useAmbiguityBundle) {
     candidateActions.push(

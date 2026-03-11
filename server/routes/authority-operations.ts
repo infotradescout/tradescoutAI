@@ -5,6 +5,11 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { isAuthenticated, requireRole } from "../auth";
 import { scoutOutcomeEvents, siteSettings } from "../../shared/schema";
 import { getAuthorityConfigAuditSnapshot, reloadAuthorityConfig } from "../utils/authorityConfig";
+import {
+  getAuthorityPhaseGateState,
+  invalidateAuthorityPhaseGateCache,
+  setAuthorityPhaseToggle,
+} from "../utils/authorityPhaseGates";
 import { logAdminAction } from "../services/adminAuditLogService";
 
 const router = Router();
@@ -62,6 +67,7 @@ router.post(
           },
         });
 
+      invalidateAuthorityPhaseGateCache();
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating observation lock:", error);
@@ -197,30 +203,99 @@ router.get(
   requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
-      const conditions = await db
-        .select()
-        .from(siteSettings)
-        .where(eq(siteSettings.category, "authority_unlock"));
+      const [conditions, state] = await Promise.all([
+        db.select().from(siteSettings).where(eq(siteSettings.category, "authority_unlock")),
+        getAuthorityPhaseGateState({ forceRefresh: true }),
+      ]);
 
       res.json([
         {
           phase: "Phase 2B: Authority Labels",
-          status: "LOCKED" as const,
+          status: state.phase2bAuthorityLabelsEnabled ? ("UNLOCKED" as const) : ("LOCKED" as const),
           condition:
             (conditions.find((c: any) => c.key === "phase_2b_unlock")?.value as string) ||
             "Unlock only after override to regret pattern stabilizes (>=100 overrides, regret rate >60%)",
+          blockedReason: state.phase2bBlockedReason,
         },
         {
           phase: "Phase 2C: Outcome Weighting",
-          status: "LOCKED" as const,
+          status: state.phase2cOutcomeWeightingEnabled
+            ? ("UNLOCKED" as const)
+            : ("LOCKED" as const),
           condition:
             (conditions.find((c: any) => c.key === "phase_2c_unlock")?.value as string) ||
             "Unlock only after labels prove predictive (AUC >0.75 for 30 days)",
+          blockedReason: state.phase2cBlockedReason,
         },
       ]);
     } catch (error) {
       console.error("Error fetching unlock ledger:", error);
       res.status(500).json({ error: "Failed to fetch unlock ledger" });
+    }
+  }
+);
+
+router.post(
+  "/unlock-phase",
+  isAuthenticated,
+  requireRole(["super_admin", "ops_admin"]),
+  async (req: Request, res: Response) => {
+    try {
+      const actorUserId = getActorUserId(req);
+      const phase = String(req.body?.phase || "");
+      const enabled = req.body?.enabled === true;
+      const phaseMap: Record<string, "phase2b" | "phase2c"> = {
+        "Phase 2B: Authority Labels": "phase2b",
+        "Phase 2C: Outcome Weighting": "phase2c",
+      };
+
+      const targetPhase = phaseMap[phase];
+      if (!targetPhase) {
+        return res.status(400).json({ error: "Invalid phase" });
+      }
+
+      const preState = await getAuthorityPhaseGateState({ forceRefresh: true });
+      if (enabled && preState.observationModeEnabled) {
+        return res.status(409).json({
+          error:
+            "Observation mode is enabled. Disable observation lock before unlocking this phase.",
+          code: "OBSERVATION_MODE_LOCKED",
+        });
+      }
+
+      if (enabled && targetPhase === "phase2c" && !preState.phase2bAuthorityLabelsEnabled) {
+        return res.status(409).json({
+          error: "Phase 2B must be unlocked before enabling Phase 2C.",
+          code: "PHASE_2B_REQUIRED",
+        });
+      }
+
+      await setAuthorityPhaseToggle(targetPhase, enabled);
+      const postState = await getAuthorityPhaseGateState({ forceRefresh: true });
+
+      await logAdminAction({
+        action: enabled ? "authority_phase_unlocked" : "authority_phase_locked",
+        actorUserId,
+        metadata: {
+          route: "/api/admin/authority/unlock-phase",
+          method: "POST",
+          phase,
+          enabled,
+          observationModeEnabled: postState.observationModeEnabled,
+          phase2bAuthorityLabelsEnabled: postState.phase2bAuthorityLabelsEnabled,
+          phase2cOutcomeWeightingEnabled: postState.phase2cOutcomeWeightingEnabled,
+        },
+      });
+
+      return res.json({
+        success: true,
+        phase,
+        enabled,
+        state: postState,
+      });
+    } catch (error) {
+      console.error("Error unlocking phase:", error);
+      return res.status(500).json({ error: "Failed to unlock phase" });
     }
   }
 );

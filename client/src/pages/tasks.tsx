@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { recordActivity } from "@/agent/activity";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -365,9 +366,10 @@ export default function TasksHub({
       if (isVerificationGate) {
         toast({
           title: "Address verification required",
-          description:
-            err?.message ||
-            "Complete verification to send contractor requests through Direct Connect.",
+          description: formatUserFacingErrorMessage(
+            err,
+            "Complete verification to send contractor requests through Direct Connect."
+          ),
           variant: "destructive",
         });
         navigate("/verification");
@@ -386,7 +388,7 @@ export default function TasksHub({
       }
       toast({
         title: "Couldn't create Direct Connect request",
-        description: message,
+        description: formatUserFacingErrorMessage(err, message),
         variant: "destructive",
       });
     },

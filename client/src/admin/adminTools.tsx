@@ -207,6 +207,7 @@ const ContentModeration = React.lazy(() => import("@/pages/content-moderation"))
 const StaffShareLinksPage = React.lazy(() => import("@/pages/staff-share-links"));
 const AdminObservability = React.lazy(() => import("@/pages/admin-observability"));
 const AdminToolDiscovery = React.lazy(() => import("@/pages/admin-tool-discovery"));
+const AdminScoutResilience = React.lazy(() => import("@/pages/admin-scout-resilience"));
 const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-coverage"));
 const AdminProfessionalVerification = React.lazy(
   () => import("@/pages/admin-professional-verification")
@@ -630,6 +631,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Brain,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminObservability />,
+      }),
+      tool({
+        id: "scout-resilience",
+        label: "Scout Resilience",
+        path: "/admin/scout-resilience",
+        icon: Bot,
+        visibleIf: { roles: ["super_admin"] },
+        render: () => <AdminScoutResilience />,
       }),
       tool({
         id: "tool-discovery",

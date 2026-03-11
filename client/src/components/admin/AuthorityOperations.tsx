@@ -27,6 +27,7 @@ import {
   Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface DecisionCardMetrics {
   totalShown: number;
@@ -74,6 +75,7 @@ interface UnlockCondition {
   phase: string;
   status: "LOCKED" | "UNLOCKED";
   condition: string;
+  blockedReason?: string | null;
 }
 
 export function AuthorityOperations() {
@@ -130,6 +132,25 @@ export function AuthorityOperations() {
       toast({
         title: "Unlock Condition Updated",
         description: "Condition saved to ledger",
+      });
+    },
+  });
+
+  const togglePhaseMutation = useMutation({
+    mutationFn: async ({ phase, enabled }: { phase: string; enabled: boolean }) =>
+      apiRequest("POST", "/api/admin/authority/unlock-phase", { phase, enabled }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/authority/unlock-ledger"] });
+      toast({
+        title: variables.enabled ? "Phase Unlocked" : "Phase Locked",
+        description: `${variables.phase} is now ${variables.enabled ? "enabled" : "disabled"}.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Unable to update phase",
+        description: formatUserFacingErrorMessage(error, "Phase toggle failed."),
+        variant: "destructive",
       });
     },
   });
@@ -512,7 +533,25 @@ export function AuthorityOperations() {
                           {item.status}
                         </Badge>
                       </div>
+                      <Button
+                        size="sm"
+                        variant={item.status === "LOCKED" ? "default" : "outline"}
+                        onClick={() =>
+                          togglePhaseMutation.mutate({
+                            phase: item.phase,
+                            enabled: item.status === "LOCKED",
+                          })
+                        }
+                        disabled={togglePhaseMutation.isPending}
+                      >
+                        {item.status === "LOCKED" ? "Enable phase" : "Disable phase"}
+                      </Button>
                     </div>
+                    {item.blockedReason && item.status === "LOCKED" && (
+                      <div className="text-xs text-amber-300/90 bg-amber-950/40 border border-amber-800/50 rounded-md px-2.5 py-2">
+                        {item.blockedReason}
+                      </div>
+                    )}
                     <div>
                       <Label className="text-white/60 text-xs">Unlock Condition</Label>
                       <Textarea

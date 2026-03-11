@@ -94,6 +94,19 @@
       "riskPrevented": "Social-feed expectations that conflict with authority model."
     },
     {
+      "id": "client.community-builder-donation-intent",
+      "surface": "client",
+      "label": "COMMUNITY BUILDER INTENT: donation + contribution flow",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/messageBuilders.test.ts"
+      ],
+      "targetBelief": "County contribution and donation actions are intentional and governed.",
+      "targetBehavior": "User follows Community Builder proposal and county-vault donation paths.",
+      "psychologicalPrinciples": ["guided-choice", "trust-legibility"],
+      "riskPrevented": "Ungoverned donation assumptions that bypass county-context intent flow."
+    },
+    {
       "id": "client.contractor-search-intent",
       "surface": "client",
       "label": "CONTRACTOR SEARCH INTENT",

@@ -185,7 +185,7 @@ export class UnifiedScoutRouterClient {
           body: JSON.stringify(payload),
         });
         if (res.status === 404) {
-          continue;
+          return res;
         }
         return res;
       } catch {

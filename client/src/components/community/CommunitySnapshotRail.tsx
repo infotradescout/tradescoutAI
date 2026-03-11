@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { CommunityCTA } from "./CommunityCTA";
+import { useCommunityAuthoritySurfaces } from "@/hooks/useCommunityAuthoritySurfaces";
 import {
   Tag,
   Users2,
@@ -15,19 +15,6 @@ import {
   Vault,
   Info,
 } from "lucide-react";
-
-// NOTE: Authority labels intentionally disabled (Phase 2B).
-// These signals imply validated judgment before outcomes exist.
-// REASONING:
-// - CTA gating (Phase 2A) is now the primary authority seam.
-// - Labels should only render after we observe override + outcome data.
-// - Premature labels pollute learning data and bias user expectations.
-// ENABLE WHEN:
-// - >= 100 gated CTAs have executed
-// - >= 20 overrides recorded
-// - Clear override/regret correlation visible in admin diagnostics
-// See: COMMUNITY_AUTHORITY_INTEGRATION_COMPLETE.md
-const ENABLE_AUTHORITY_LABELS = false;
 
 // Card types that can appear in the snapshot
 export type SnapshotCardType =
@@ -107,6 +94,8 @@ export const CommunitySnapshotRail: React.FC<{
   onFilterChange,
 }) => {
   const [, navigate] = useLocation();
+  const { data: authoritySurfaces } = useCommunityAuthoritySurfaces();
+  const showAuthorityLabels = authoritySurfaces?.phase2bAuthorityLabelsEnabled === true;
   const [cards, setCards] = useState<SnapshotCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -356,6 +345,14 @@ export const CommunitySnapshotRail: React.FC<{
         {isTradeDeal && card.canDirectConnect && (
           <div className="relative z-10 mt-2">
             <div className="text-[10px] text-ts-orange font-medium">Quick Connect</div>
+          </div>
+        )}
+        {showAuthorityLabels && card.authorityLabel && (
+          <div className="relative z-10 mt-1 rounded-md border border-white/10 bg-black/30 px-1.5 py-1 text-[9px] text-white/70 leading-tight line-clamp-2">
+            <span className="inline-flex items-center gap-1">
+              <Info className="h-3 w-3 shrink-0 text-white/60" />
+              <span>{card.authorityLabel}</span>
+            </span>
           </div>
         )}
       </div>

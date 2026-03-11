@@ -35,7 +35,7 @@ function deriveDeterministicIntentInternal(message: string): DeterministicIntent
     return "sign_contract";
   }
   // Open jobs workspace / project tracker
-  if (/open (the )?(deal\s*room|project\s*tracker|job\s*room)/.test(lower)) {
+  if (/open (my |the )?(deal\s*room|project\s*tracker|job\s*room|jobs?\s*workspace)/.test(lower)) {
     return "open_deal_room";
   }
   return null;
