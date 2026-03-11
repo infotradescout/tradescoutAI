@@ -30,6 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 interface DecisionCardMetrics {
+  available?: boolean;
+  message?: string;
   totalShown: number;
   guidanceDistribution: {
     COMPLY: number;
@@ -278,6 +280,11 @@ export function AuthorityOperations() {
               <CardDescription>Read-only metrics from authority contract exposure</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {metrics?.available === false && (
+                <div className="rounded border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">
+                  {metrics.message || "Decision card analytics are not yet available."}
+                </div>
+              )}
               {/* Total Shown */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 bg-white/5 rounded-lg">

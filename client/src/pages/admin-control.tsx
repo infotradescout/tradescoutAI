@@ -11,6 +11,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { isSuperAdminLike } from "@/lib/roleChecks";
 
 type DecisionCardMetrics = {
+  available?: boolean;
+  message?: string;
   totalShown: number;
   guidanceDistribution: {
     COMPLY: number;
@@ -89,7 +91,11 @@ export default function AdminControl() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold text-white">{authorityMetrics?.totalShown ?? 0}</p>
-            <p className="text-xs text-white/60 mt-1">Decision cards shown</p>
+            <p className="text-xs text-white/60 mt-1">
+              {authorityMetrics?.available === false
+                ? authorityMetrics.message || "Decision analytics unavailable"
+                : "Decision cards shown"}
+            </p>
           </CardContent>
         </Card>
 
