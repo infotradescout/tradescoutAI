@@ -955,30 +955,28 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        const enriched = requests
-          .filter((r: any) => !looksLikeHiddenOrTestRequest(r))
-          .map((r: any) => {
-            const a = assignmentsByRequest.get(String(r.id)) || [];
-            const suggestedCount = a.filter(
-              (x: any) => x.status === "suggested" || x.status === "invited"
-            ).length;
-            const accepted = a.find((x: any) => x.status === "accepted");
-            const acceptedContractorId = accepted?.contractorId
-              ? String(accepted.contractorId)
-              : null;
-            const conversationThreadId = acceptedContractorId
-              ? conversationByContractorId.get(acceptedContractorId) || null
-              : null;
+        const enriched = requests.map((r: any) => {
+          const a = assignmentsByRequest.get(String(r.id)) || [];
+          const suggestedCount = a.filter(
+            (x: any) => x.status === "suggested" || x.status === "invited"
+          ).length;
+          const accepted = a.find((x: any) => x.status === "accepted");
+          const acceptedContractorId = accepted?.contractorId
+            ? String(accepted.contractorId)
+            : null;
+          const conversationThreadId = acceptedContractorId
+            ? conversationByContractorId.get(acceptedContractorId) || null
+            : null;
 
-            return {
-              ...r,
-              attachmentCount: getAttachmentCount(r),
-              dcSuggestedCount: suggestedCount,
-              dcAcceptedAssignmentId: accepted?.id ?? null,
-              dcConversationThreadId: conversationThreadId,
-              dcLastEventAt: lastEventByRequest.get(String(r.id))?.toISOString() ?? null,
-            };
-          });
+          return {
+            ...r,
+            attachmentCount: getAttachmentCount(r),
+            dcSuggestedCount: suggestedCount,
+            dcAcceptedAssignmentId: accepted?.id ?? null,
+            dcConversationThreadId: conversationThreadId,
+            dcLastEventAt: lastEventByRequest.get(String(r.id))?.toISOString() ?? null,
+          };
+        });
 
         res.json(enriched);
       } catch (error: any) {
