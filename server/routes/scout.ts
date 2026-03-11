@@ -9,7 +9,12 @@ import {
 } from "../utils/extractUserMessage";
 import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCapabilities";
 import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
-import { GeminiProvider, VertexGeminiProvider, LLMProvider } from "../services/llmProvider";
+import {
+  GeminiProvider,
+  VertexGeminiProvider,
+  LLMProvider,
+  generateWithFallback,
+} from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   GeminiRateLimitError,
@@ -121,6 +126,33 @@ function ensureFailureReason(
   reason: InsertScoutInteraction["failureReason"] | null | undefined
 ): InsertScoutInteraction["failureReason"] {
   return normalizeFailureReason(reason) ?? "unclear_copy";
+}
+
+type ScoutTurnFailureClass =
+  | "none"
+  | "input_error"
+  | "auth_required"
+  | "governor_blocked"
+  | "governor_redirect"
+  | "provider_fallback"
+  | "route_unmatched"
+  | "system_error"
+  | "unknown";
+
+function deriveScoutTurnFailureClass(
+  statusCode: number,
+  interaction: InsertScoutInteraction | null,
+  explicit: ScoutTurnFailureClass
+): ScoutTurnFailureClass {
+  if (explicit !== "none") return explicit;
+  if (statusCode >= 500) return "system_error";
+  if (statusCode < 400) return "none";
+
+  const reason = interaction?.failureReason;
+  if (reason === "missing_data") return "input_error";
+  if (reason === "permission") return "auth_required";
+  if (reason === "no_route") return "route_unmatched";
+  return "unknown";
 }
 
 router.use((req, res, next) => {
@@ -928,11 +960,15 @@ function isIntroQuestion(message: string): boolean {
  */
 async function generateSmartSynthesis(
   message: string,
-  gemini: GoogleGenerativeAI | null,
+  _gemini: GoogleGenerativeAI | null,
   llmProviders: LLMProvider[]
-): Promise<string> {
-  if (!gemini || !llmProviders.some((p) => p.isConfigured())) {
-    return "I need the Gemini API configured to provide a comprehensive overview.";
+): Promise<{ message: string; provider: string }> {
+  if (!llmProviders.some((p) => p.isConfigured())) {
+    return {
+      message:
+        "Scout can orient you right now: TradeScout is your county operating system where Scout routes people to trusted next steps across Direct Connect, Community, and Exchange.",
+      provider: "fallback",
+    };
   }
 
   try {
@@ -988,16 +1024,27 @@ async function generateSmartSynthesis(
 
   Now write an inspiring but concrete orientation that helps this person immediately understand what TradeScout is, who it serves, and how Scout will run the operating system for their community:`;
 
-    const { text } = await generateGeminiTextWithFallback(gemini, synthPrompt);
+    const { text, provider } = await generateWithFallback(synthPrompt, llmProviders);
     // Allow a richer, orientation-style answer for intro questions
-    return trimResponseToScreenFit(text, { mode: "intro" });
+    return {
+      message: trimResponseToScreenFit(text, { mode: "intro" }),
+      provider,
+    };
   } catch (error) {
     console.error("[Scout] Synthesis error:", error);
     recordFallback(isGeminiRateLimitFailure(error) ? "intro_rate_limited" : "intro_error");
     if (isGeminiRateLimitFailure(error)) {
-      return "Scout is seeing high demand right now. I can still orient you quickly: TradeScout is your county operating system where Scout routes people to trusted next steps across Direct Connect, Community, and Exchange without breaking trust gates.";
+      return {
+        message:
+          "Scout is seeing high demand right now. I can still orient you quickly: TradeScout is your county operating system where Scout routes people to trusted next steps across Direct Connect, Community, and Exchange without breaking trust gates.",
+        provider: "fallback",
+      };
     }
-    return "I couldn't generate the full overview right now, but I can still guide you through Direct Connect, Community, and Exchange from here.";
+    return {
+      message:
+        "I couldn't generate the full overview right now, but I can still guide you through Direct Connect, Community, and Exchange from here.",
+      provider: "fallback",
+    };
   }
 }
 
@@ -1065,7 +1112,8 @@ function buildContextualSynthesisFallbackMessage(
 async function synthesizeResponse(
   userMessage: string,
   knowledge: { answer: string; sources: string[]; layer: number; confidence: string },
-  gemini: GoogleGenerativeAI | null,
+  _gemini: GoogleGenerativeAI | null,
+  llmProviders: LLMProvider[],
   systemPrompt: string,
   conversationHistory: string,
   userContext?: any,
@@ -1086,6 +1134,7 @@ async function synthesizeResponse(
   intent?: string;
   thought_flow?: string[];
   decision?: string;
+  provider?: string;
 }> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
@@ -1093,10 +1142,11 @@ async function synthesizeResponse(
     "Start Community Builder",
   ];
 
-  if (!gemini) {
+  if (!llmProviders.some((p) => p.isConfigured())) {
     return {
       message: knowledge.answer,
       suggestedActions: DEFAULT_ACTIONS,
+      provider: "fallback",
     }; // Fall back to raw knowledge if no Gemini
   }
 
@@ -1249,9 +1299,9 @@ ${knowledge.layer === 4 ? "You don't have reliable info - be honest about it in 
 
 RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
-    const { text: rawGeneratedText } = await generateGeminiTextWithFallback(
-      gemini,
-      synthesisPrompt
+    const { text: rawGeneratedText, provider } = await generateWithFallback(
+      synthesisPrompt,
+      llmProviders
     );
     let rawResponse = rawGeneratedText;
 
@@ -1323,6 +1373,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         decision: parsed.decision,
         message: parsed.message,
         suggestedActions: finalActions,
+        provider,
       };
     } catch (parseError) {
       console.error("[Scout] Failed to parse LLM JSON response:", parseError);
@@ -1340,6 +1391,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         decision: "Cannot process - LLM failed to follow schema",
         message: "I encountered a system error. Please try rephrasing your question.",
         suggestedActions: DEFAULT_ACTIONS,
+        provider: "fallback",
       };
     }
   } catch (error) {
@@ -1364,6 +1416,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         rateLimited: isRateLimited,
       }),
       suggestedActions: DEFAULT_ACTIONS,
+      provider: "fallback",
     };
   }
 }
@@ -2531,11 +2584,26 @@ router.post("/", async (req: Request, res: Response) => {
     /scoutbot/i.test(userAgent) ||
     Boolean((requestUser as any)?.isTestAccount);
   let scoutInteractionLog: InsertScoutInteraction | null = null;
+  const scoutTurnTelemetry: {
+    provider: string;
+    intent: string;
+    sourceUsed: string;
+    failureClass: ScoutTurnFailureClass;
+    fallbackUsed: boolean;
+  } = {
+    provider: "unknown",
+    intent: "unknown",
+    sourceUsed: "unknown",
+    failureClass: "none",
+    fallbackUsed: false,
+  };
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
     const message = rawBody.message;
 
     const normalizedMessage = typeof message === "string" ? message : "";
+    scoutTurnTelemetry.intent =
+      normalizeScoutIntent(rawBody.intent, normalizedMessage) || "unknown";
     const countyCandidate =
       (rawBody.countyHint as string | undefined) ||
       (rawBody.countyCode as string | undefined) ||
@@ -2593,6 +2661,24 @@ router.post("/", async (req: Request, res: Response) => {
               console.error("[Scout][PreferredSource] failed to log completed action", err);
             });
           }
+
+          const telemetryFailureClass = deriveScoutTurnFailureClass(
+            res.statusCode,
+            scoutInteractionLog,
+            scoutTurnTelemetry.failureClass
+          );
+          await storage.logEvent("scout_turn_telemetry", {
+            userId: (requestUser as any)?.id || null,
+            requestId: (req as any)?.requestId || null,
+            statusCode: res.statusCode,
+            provider: scoutTurnTelemetry.provider,
+            sourceUsed: scoutTurnTelemetry.sourceUsed,
+            intent: scoutTurnTelemetry.intent,
+            outcome: scoutInteractionLog.outcome,
+            failureReason: scoutInteractionLog.failureReason || null,
+            failureClass: telemetryFailureClass,
+            fallbackUsed: Boolean(scoutTurnTelemetry.fallbackUsed),
+          });
         } catch (err) {
           console.error("[Scout][MissionControl] failed to record scout interaction", err);
         }
@@ -2604,6 +2690,9 @@ router.post("/", async (req: Request, res: Response) => {
         scoutInteractionLog.outcome = "blocked";
         scoutInteractionLog.failureReason = "missing_data";
       }
+      scoutTurnTelemetry.provider = "none";
+      scoutTurnTelemetry.sourceUsed = "input_validation";
+      scoutTurnTelemetry.failureClass = "input_error";
       return res.status(400).json({
         error: "Invalid Scout request",
         details: "Missing or invalid 'message' in request body",
@@ -2711,6 +2800,9 @@ router.post("/", async (req: Request, res: Response) => {
               fallbackUsed: false,
               confidenceBand: enhancedConfidence,
             };
+            scoutTurnTelemetry.provider = "enhanced_v4";
+            scoutTurnTelemetry.sourceUsed = "enhanced_v4";
+            scoutTurnTelemetry.fallbackUsed = false;
 
             return res.json({
               message: enhancedMessage,
@@ -2816,8 +2908,14 @@ router.post("/", async (req: Request, res: Response) => {
       try {
         const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
         await syncObjectiveBestEffort({ intent });
+        scoutTurnTelemetry.provider = synthesisResponse.provider;
+        scoutTurnTelemetry.sourceUsed = "intro_synthesis";
+        scoutTurnTelemetry.fallbackUsed = synthesisResponse.provider === "fallback";
+        if (synthesisResponse.provider === "fallback") {
+          scoutTurnTelemetry.failureClass = "provider_fallback";
+        }
         return res.json({
-          message: synthesisResponse,
+          message: synthesisResponse.message,
           actions: [],
           actionResults: [],
           knowledge: {
@@ -2825,7 +2923,7 @@ router.post("/", async (req: Request, res: Response) => {
             sources: ["Comprehensive Knowledge Base (All Documents)"],
             confidence: "high",
           },
-          llmProvider: "gemini",
+          llmProvider: synthesisResponse.provider,
           promptVersion: loadSystemPrompt().version,
           timestamp: new Date().toISOString(),
         });
@@ -2899,6 +2997,9 @@ router.post("/", async (req: Request, res: Response) => {
       };
 
       await syncObjectiveBestEffort({ intent: "auth_required" });
+      scoutTurnTelemetry.provider = "governor";
+      scoutTurnTelemetry.sourceUsed = "auth_preflight";
+      scoutTurnTelemetry.failureClass = "auth_required";
       return res.json({
         ...gated,
         knowledge: {
@@ -3024,6 +3125,14 @@ router.post("/", async (req: Request, res: Response) => {
       };
 
       await syncObjectiveBestEffort({ intent });
+      scoutTurnTelemetry.provider = "governor";
+      scoutTurnTelemetry.sourceUsed = "governor_intervention";
+      scoutTurnTelemetry.failureClass =
+        intervention.action === "BLOCK"
+          ? "governor_blocked"
+          : intervention.action === "REDIRECT"
+            ? "governor_redirect"
+            : scoutTurnTelemetry.failureClass;
       return res.json({
         ...aiResponse,
         knowledge: {
@@ -3233,6 +3342,9 @@ router.post("/", async (req: Request, res: Response) => {
       };
 
       await syncObjectiveBestEffort({ intent });
+      scoutTurnTelemetry.provider = "deterministic";
+      scoutTurnTelemetry.sourceUsed = "deterministic_router";
+      scoutTurnTelemetry.fallbackUsed = false;
       return res.json({
         ...aiResponse,
         knowledge: {
@@ -3254,6 +3366,7 @@ router.post("/", async (req: Request, res: Response) => {
       message,
       knowledge,
       geminiClient,
+      llmProviders,
       systemPromptWithLocalGuides,
       conversationHistory,
       userContext,
@@ -3282,7 +3395,8 @@ router.post("/", async (req: Request, res: Response) => {
             geminiClient,
             llmProviders
           );
-          synthesized.message = trimResponseToScreenFit(synthesisResponse);
+          synthesized.message = trimResponseToScreenFit(synthesisResponse.message);
+          synthesized.provider = synthesisResponse.provider;
         } catch (error) {
           console.error("[Scout] Brand-guard override synthesis failed", error);
           synthesized.message = trimResponseToScreenFit(
@@ -3374,6 +3488,10 @@ router.post("/", async (req: Request, res: Response) => {
       };
 
       await syncObjectiveBestEffort({ intent: synthesized.intent });
+      scoutTurnTelemetry.provider = synthesized.provider || "fallback";
+      scoutTurnTelemetry.sourceUsed = sourceAudit.sourceUsed;
+      scoutTurnTelemetry.fallbackUsed = Boolean(sourceAudit.fallbackUsed);
+      scoutTurnTelemetry.failureClass = "auth_required";
       return res.json({
         ...aiResponse,
         knowledge: {
@@ -3381,7 +3499,7 @@ router.post("/", async (req: Request, res: Response) => {
           sources: knowledge.sources,
           confidence: knowledge.confidence,
         },
-        llmProvider: "gemini",
+        llmProvider: synthesized.provider || "fallback",
         promptVersion,
         timestamp: new Date().toISOString(),
       });
@@ -4605,6 +4723,13 @@ router.post("/", async (req: Request, res: Response) => {
       : undefined;
 
     await syncObjectiveBestEffort({ intent: synthesized.intent });
+    scoutTurnTelemetry.provider = synthesized.provider || "fallback";
+    scoutTurnTelemetry.sourceUsed = sourceAudit.sourceUsed;
+    scoutTurnTelemetry.fallbackUsed =
+      Boolean(sourceAudit.fallbackUsed) || scoutTurnTelemetry.provider === "fallback";
+    if (scoutTurnTelemetry.provider === "fallback" && scoutTurnTelemetry.failureClass === "none") {
+      scoutTurnTelemetry.failureClass = "provider_fallback";
+    }
     res.json({
       message: finalMessage,
       suggestedActions: aiResponse.suggestedActions ?? [],
@@ -4626,7 +4751,7 @@ router.post("/", async (req: Request, res: Response) => {
         sources: responseKnowledgeSources,
         confidence: knowledge.confidence,
       },
-      llmProvider: "gemini",
+      llmProvider: synthesized.provider || "fallback",
       promptVersion,
       timestamp: new Date().toISOString(),
       onboarding: onboardingMeta.onboardingQuestion ? onboardingMeta : undefined,
@@ -4638,6 +4763,10 @@ router.post("/", async (req: Request, res: Response) => {
         scoutInteractionLog.failureReason || "no_route"
       );
     }
+    scoutTurnTelemetry.provider = "fallback";
+    scoutTurnTelemetry.sourceUsed = "exception_handler";
+    scoutTurnTelemetry.failureClass = "system_error";
+    scoutTurnTelemetry.fallbackUsed = true;
     console.error("Scout API error:", error);
     const fallbackMessage = "Scout is in navigation-only mode right now. Pick an action:";
 
@@ -4702,7 +4831,16 @@ router.post("/routing/resolve-intent", async (req: Request, res: Response) => {
     const options = buildUnifiedRoutingOptions(req.body);
     const decision = UnifiedScoutRouter.resolveIntent(trimmedIntent, userContext, options);
     if (!decision) {
-      return res.status(404).json({ error: "Intent not matched" });
+      return res.json({
+        action: {
+          type: "NAVIGATE",
+          to: "/direct-connect",
+          label: "Open Direct Connect",
+        },
+        confidence: 0.4,
+        reasoning: "No deterministic match; using server fallback routing.",
+        sourceLayer: "fallback",
+      });
     }
 
     return res.json(decision);

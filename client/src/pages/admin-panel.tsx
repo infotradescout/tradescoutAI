@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,9 +56,6 @@ import {
   Image,
   BarChart3,
   DollarSign,
-  Wrench,
-  MapPin,
-  Clock,
   Bot,
   Shield,
   AlertTriangle,
@@ -67,9 +64,6 @@ import {
   Lock,
   Crown,
   Globe,
-  Upload,
-  KeyRound,
-  Info,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
@@ -171,7 +165,6 @@ export default function AdminPanel() {
         "ai-fixes",
         "pricing",
         "finance",
-        "llm-admin",
       ]);
       if (tab === "authority" || tab === "testing-controls") {
         setLocation("/admin/control");
@@ -1056,10 +1049,6 @@ export default function AdminPanel() {
           <AICodeFixingDashboard />
         </TabsContent>
 
-        <TabsContent value="llm-admin" className="space-y-6">
-          <LLMAdminPanel />
-        </TabsContent>
-
         <TabsContent value="pricing" className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             <Card className="bg-tsCard border-white/10">
@@ -1089,43 +1078,12 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-tsCard border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white/70 text-sm">Active Trades</p>
-                      <p className="text-2xl font-bold text-white">24</p>
-                    </div>
-                    <Wrench className="h-8 w-8 text-ts-orange" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-tsCard border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white/70 text-sm">Regions Tracked</p>
-                      <p className="text-2xl font-bold text-white">156</p>
-                    </div>
-                    <MapPin className="h-8 w-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-tsCard border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white/70 text-sm">Last Update</p>
-                      <p className="text-2xl font-bold text-white">2h</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="bg-tsCard border-white/10">
+              <CardContent className="p-6 text-sm text-white/70">
+                Live pricing metrics moved to the dedicated Pricing Analytics workspace to avoid
+                stale values in Admin Panel. Use the button above to view current data.
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -1178,311 +1136,6 @@ export default function AdminPanel() {
 }
 
 export const AdminPanelContent = AdminPanel;
-
-function LLMAdminPanel() {
-  const { toast } = useToast();
-  const [files, setFiles] = useState<File[]>([]);
-  const [uploadSummary, setUploadSummary] = useState<any>(null);
-  const [infoInput, setInfoInput] = useState({ email: "", userId: "" });
-  const [userInfo, setUserInfo] = useState<any>(null);
-  const [resetInput, setResetInput] = useState({ email: "", userId: "", newPassword: "" });
-  const [resetReason, setResetReason] = useState("Support password reset requested by user");
-  const [resetSafetyKey, setResetSafetyKey] = useState("");
-
-  const uploadMutation = useMutation({
-    mutationFn: async (selected: File[]) => {
-      const allowedTypes = [
-        "application/json",
-        "text/markdown",
-        "text/plain",
-        "image/png",
-        "image/jpeg",
-        "image/webp",
-      ];
-      const maxSizeMb = 10;
-      const filtered = selected.filter((f) => {
-        const okType =
-          allowedTypes.includes(f.type) ||
-          f.name.endsWith(".md") ||
-          f.name.endsWith(".json") ||
-          f.name.endsWith(".txt");
-        const okSize = f.size <= maxSizeMb * 1024 * 1024;
-        return okType && okSize;
-      });
-      if (!filtered.length) {
-        throw new Error("No valid files. Allowed: json/md/txt/png/jpg/webp, max 10MB each.");
-      }
-      const formData = new FormData();
-      filtered.forEach((f) => formData.append("files", f));
-      const res = await fetch("/api/admin/knowledge/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Upload failed");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setUploadSummary(data.summary || null);
-      toast({ title: "Upload complete", description: "Files sorted into knowledge cache" });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Upload failed",
-        description: formatUserFacingErrorMessage(error, "Upload failed."),
-        variant: "destructive",
-      });
-    },
-  });
-
-  const userInfoMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/users/info", {
-        email: infoInput.email || undefined,
-        userId: infoInput.userId || undefined,
-      });
-      return res;
-    },
-    onSuccess: (data) => {
-      setUserInfo(data.user);
-      toast({ title: "User loaded", description: data.user?.email });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Lookup failed",
-        description: formatUserFacingErrorMessage(error, "Lookup failed."),
-        variant: "destructive",
-      });
-    },
-  });
-
-  const resetPasswordMutation = useMutation({
-    mutationFn: async () => {
-      if (!resetInput.newPassword || resetInput.newPassword.length < 8) {
-        throw new Error("Password must be at least 8 characters");
-      }
-      if (!resetReason || resetReason.trim().length < 12) {
-        throw new Error("Reason is required and must be at least 12 characters");
-      }
-      const res = await apiRequest("POST", "/api/admin/users/reset-password", {
-        email: resetInput.email || undefined,
-        userId: resetInput.userId || undefined,
-        newPassword: resetInput.newPassword,
-        adminSafety: {
-          reason: resetReason.trim(),
-          confirmPhrase: ADMIN_SAFETY_CONFIRM_PHRASE,
-          safetyKey: resetSafetyKey.trim() || undefined,
-        },
-      });
-      return res;
-    },
-    onSuccess: (data) => {
-      toast({ title: "Password reset", description: data.email || data.userId });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Reset failed",
-        description: formatUserFacingErrorMessage(error, "Reset failed."),
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const list = e.target.files ? Array.from(e.target.files) : [];
-    setFiles(list);
-  };
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Upload className="w-5 h-5 text-ts-orange" /> Knowledge Upload
-          </CardTitle>
-          <CardDescription>
-            Upload files (json, md, text, images). Backend will sort into overrides, county guides,
-            or bulk.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Input
-            type="file"
-            multiple
-            onChange={onFileChange}
-            className="bg-tsCard border-white/10"
-          />
-          <div className="flex items-center justify-between text-sm text-white/70">
-            <span>{files.length} files selected</span>
-            <Button
-              size="sm"
-              className="bg-ts-orange-dark hover:bg-ts-orange-dark"
-              disabled={uploadMutation.isPending || files.length === 0}
-              onClick={() => uploadMutation.mutate(files)}
-            >
-              {uploadMutation.isPending ? "Uploading..." : "Upload & Ingest"}
-            </Button>
-          </div>
-          {uploadSummary && (
-            <div className="text-xs text-white/70 space-y-1 bg-tsCard p-3 rounded border border-white/10">
-              <div className="flex items-center gap-2 text-ts-orange font-semibold">
-                <Info className="w-4 h-4" /> Ingest Summary
-              </div>
-              <div>Processed: {uploadSummary.processed}</div>
-              <div>Overrides merged: {uploadSummary.overridesMerged}</div>
-              <div>County files: {uploadSummary.countyFiles}</div>
-              <div>Guides: {uploadSummary.guides}</div>
-              <div>Bulk stored: {uploadSummary.bulkStored}</div>
-              <div>Errors: {uploadSummary.errors?.length || 0}</div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/10" style={{ backgroundColor: "var(--surface-card)" }}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <KeyRound className="w-5 h-5 text-ts-orange" /> User Lookup & Password Reset
-          </CardTitle>
-          <CardDescription>
-            Super-admin tools: fetch user info and set a new password.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-white/70">Email</Label>
-              <Input
-                value={infoInput.email}
-                onChange={(e) => setInfoInput((p) => ({ ...p, email: e.target.value }))}
-                placeholder="user@example.com"
-                className="bg-tsCard border-white/10"
-              />
-            </div>
-            <div>
-              <Label className="text-white/70">User ID</Label>
-              <Input
-                value={infoInput.userId}
-                onChange={(e) => setInfoInput((p) => ({ ...p, userId: e.target.value }))}
-                placeholder="uuid"
-                className="bg-tsCard border-white/10"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => userInfoMutation.mutate()}
-              disabled={userInfoMutation.isPending || (!infoInput.email && !infoInput.userId)}
-            >
-              {userInfoMutation.isPending ? "Loading..." : "Lookup User"}
-            </Button>
-          </div>
-          {userInfo && (
-            <div className="text-xs text-white/70 bg-tsCard p-3 rounded border border-white/10 space-y-1">
-              <div className="font-semibold">User</div>
-              <div>ID: {userInfo.id}</div>
-              <div>Email: {userInfo.email}</div>
-              {userInfo.phone && <div>Phone: {userInfo.phone}</div>}
-              <div>
-                Name: {[userInfo.firstName, userInfo.lastName].filter(Boolean).join(" ") || "—"}
-              </div>
-              <div>
-                Location:{" "}
-                {[userInfo.city, userInfo.county, userInfo.state, userInfo.zipCode]
-                  .filter(Boolean)
-                  .join(", ") || "—"}
-              </div>
-              <div>Roles: {(userInfo.roles || []).join(", ")}</div>
-              <div>Active: {userInfo.activeRole}</div>
-              <div>Verification: {userInfo.verificationStatus}</div>
-              <div>Badges: {(userInfo.badges || []).join(", ")}</div>
-            </div>
-          )}
-
-          <Separator className="bg-white/5" />
-
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              resetPasswordMutation.mutate();
-            }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-1">
-                <Label className="text-white/70">Email</Label>
-                <Input
-                  value={resetInput.email}
-                  onChange={(e) => setResetInput((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="user@example.com"
-                  autoComplete="username"
-                  className="bg-tsCard border-white/10"
-                />
-              </div>
-              <div className="md:col-span-1">
-                <Label className="text-white/70">User ID</Label>
-                <Input
-                  value={resetInput.userId}
-                  onChange={(e) => setResetInput((p) => ({ ...p, userId: e.target.value }))}
-                  placeholder="uuid"
-                  autoComplete="off"
-                  className="bg-tsCard border-white/10"
-                />
-              </div>
-              <div className="md:col-span-1">
-                <Label className="text-white/70">New Password</Label>
-                <Input
-                  type="password"
-                  value={resetInput.newPassword}
-                  onChange={(e) => setResetInput((p) => ({ ...p, newPassword: e.target.value }))}
-                  placeholder="min 8 chars"
-                  autoComplete="new-password"
-                  className="bg-tsCard border-white/10"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label className="text-white/70">Audit Reason</Label>
-                <Input
-                  value={resetReason}
-                  onChange={(e) => setResetReason(e.target.value)}
-                  placeholder="Why this reset is needed"
-                  autoComplete="off"
-                  className="bg-tsCard border-white/10"
-                />
-              </div>
-              <div>
-                <Label className="text-white/70">Safety Key (optional)</Label>
-                <Input
-                  type="password"
-                  value={resetSafetyKey}
-                  onChange={(e) => setResetSafetyKey(e.target.value)}
-                  placeholder="Required only when strict safety key mode is enabled"
-                  autoComplete="current-password"
-                  className="bg-tsCard border-white/10"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                className="bg-ts-orange-dark hover:bg-ts-orange-dark"
-                disabled={resetPasswordMutation.isPending}
-              >
-                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 function AdminItemForm({
   type,

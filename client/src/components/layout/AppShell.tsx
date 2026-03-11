@@ -148,6 +148,13 @@ export function AppShell({ children, footer }: AppShellProps) {
   useLocationUpgrade();
 
   const isScoutSurface = location === "/" || location.startsWith("/scout");
+  const isSettingsSurface =
+    location.startsWith("/settings") ||
+    location.startsWith("/profile-settings") ||
+    location.startsWith("/dashboard-settings") ||
+    location.startsWith("/notifications") ||
+    location.startsWith("/privacy") ||
+    location.startsWith("/privacy-request");
   const showMobileScoutHero = location === "/";
   const isAuthSurface =
     location.startsWith("/create-account") ||
@@ -179,6 +186,8 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
   const showFeatureNav = !isAuthOrSetupSurface;
+  const shouldPinRightTools =
+    !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
@@ -607,12 +616,11 @@ export function AppShell({ children, footer }: AppShellProps) {
         style={{
           top: "var(--top-nav-h)",
           bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0,
-          paddingRight:
-            !isMobile && !isScoutSurface && !isAuthOrSetupSurface
-              ? isRightToolsCollapsed
-                ? RIGHT_TOOLS_COLLAPSED_W
-                : "var(--right-nav-w)"
-              : undefined,
+          paddingRight: shouldPinRightTools
+            ? isRightToolsCollapsed
+              ? RIGHT_TOOLS_COLLAPSED_W
+              : "var(--right-nav-w)"
+            : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
           color: "var(--text-primary)",
@@ -625,7 +633,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       </main>
 
       {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
-      {!isMobile && !isAuthOrSetupSurface && !isScoutSurface && (
+      {shouldPinRightTools && (
         <aside
           className="fixed z-40"
           style={{
@@ -646,32 +654,35 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* Scout-only: keep the chat surface clean; open the tools panel only on demand. */}
-      {!isMobile && isScoutSurface && isToolsOpen && !isAuthOrSetupSurface && (
-        <div
-          className="fixed inset-0 z-50 flex"
-          style={{ top: "var(--top-nav-h)", bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0 }}
-        >
-          <button
-            type="button"
-            aria-label="Close tools panel"
-            className="flex-1 bg-black/40"
-            onClick={() => setIsToolsOpen(false)}
-          />
-          <aside
-            className="h-full"
-            style={{
-              width: "var(--right-nav-w)",
-              background: "var(--surface-intermediate)",
-              color: "var(--text-primary)",
-            }}
+      {!isMobile &&
+        isToolsOpen &&
+        !isAuthOrSetupSurface &&
+        (isScoutSurface || isSettingsSurface) && (
+          <div
+            className="fixed inset-0 z-50 flex"
+            style={{ top: "var(--top-nav-h)", bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0 }}
           >
-            <RightToolsPanel
-              contactRequestCount={contactRequestCount}
-              onNavigate={() => setIsToolsOpen(false)}
+            <button
+              type="button"
+              aria-label="Close tools panel"
+              className="flex-1 bg-black/40"
+              onClick={() => setIsToolsOpen(false)}
             />
-          </aside>
-        </div>
-      )}
+            <aside
+              className="h-full"
+              style={{
+                width: "var(--right-nav-w)",
+                background: "var(--surface-intermediate)",
+                color: "var(--text-primary)",
+              }}
+            >
+              <RightToolsPanel
+                contactRequestCount={contactRequestCount}
+                onNavigate={() => setIsToolsOpen(false)}
+              />
+            </aside>
+          </div>
+        )}
 
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       {showFeatureNav && (

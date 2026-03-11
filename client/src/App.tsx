@@ -61,6 +61,7 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/landing/") ||
     pathOnly === "/lp" ||
     pathOnly.startsWith("/lp/");
+  const isShareRoute = pathOnly.startsWith("/r/");
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -215,7 +216,11 @@ const AppLayout = memo(function AppLayout() {
 
         <main className={mainClassName}>
           <ErrorBoundary fallback={<PageLoader />}>
-            <AppRoutes isLiteScoutRoute={isLiteScoutRoute} isLandingRoute={isLandingRoute} />
+            <AppRoutes
+              isLiteScoutRoute={isLiteScoutRoute}
+              isLandingRoute={isLandingRoute}
+              isShareRoute={isShareRoute}
+            />
           </ErrorBoundary>
         </main>
       </div>
@@ -232,10 +237,12 @@ const AppLayout = memo(function AppLayout() {
       {FEATURE_HOLD_INTRO_TUTORIAL && <HoldIntroTutorial />}
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
-      {!isLlmRoute && !isLandingRoute && !FEATURE_EDUCATION_REPLACEMENT && <SimpleSubtleHints />}
+      {!isLlmRoute && !isLandingRoute && !isShareRoute && !FEATURE_EDUCATION_REPLACEMENT && (
+        <SimpleSubtleHints />
+      )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
-      {!isLlmRoute && !isLandingRoute && <ProfileCompletionBanner />}
+      {!isLlmRoute && !isLandingRoute && !isShareRoute && <ProfileCompletionBanner />}
 
       {/* Bug report tool - always available */}
       <SimpleBugReportTool />

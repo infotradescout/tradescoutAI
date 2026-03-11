@@ -746,7 +746,7 @@ export default function Settings() {
             }}
             className="space-y-6"
           >
-            <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-7">
+            <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-8">
               <TabsTrigger
                 value="profile"
                 className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
@@ -1551,16 +1551,57 @@ export default function Settings() {
                     const isPush = key === "push";
                     const pushDisabled =
                       isPush && (!pushStatus.supported || pushStatus.permission === "denied");
+                    const settingKey = key as keyof typeof notifications;
+                    const isChecked = notifications[settingKey];
+                    const applyNotificationToggle = async (checked: boolean) => {
+                      if (isPush && pushDisabled) return;
+                      setNotifications((prev) => ({ ...prev, [key]: checked }));
+                      if (isPush) {
+                        if (checked) {
+                          const sub = await registerPushNotifications();
+                          const permission =
+                            typeof Notification !== "undefined"
+                              ? Notification.permission
+                              : pushStatus.permission;
+                          setPushStatus((prev) => ({
+                            ...prev,
+                            registered: !!sub,
+                            permission,
+                          }));
+                        } else {
+                          await unregisterPushSubscription();
+                          const permission =
+                            typeof Notification !== "undefined"
+                              ? Notification.permission
+                              : pushStatus.permission;
+                          setPushStatus((prev) => ({
+                            ...prev,
+                            registered: false,
+                            permission,
+                          }));
+                        }
+                      }
+                    };
                     return (
                       <div
                         key={key}
-                        className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-white/10 hover:border-ts-orange/30 transition-all"
+                        className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 hover:border-ts-orange/30 transition-all sm:flex-row sm:items-center sm:justify-between"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          void applyNotificationToggle(!isChecked);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.preventDefault();
+                          void applyNotificationToggle(!isChecked);
+                        }}
                       >
-                        <div className="flex items-center space-x-4">
+                        <div className="flex min-w-0 items-center space-x-4">
                           <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Icon className="w-5 h-5 text-ts-orange" />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-white font-medium">{config.label}</p>
                             <p className="text-white/60 text-sm">{config.desc}</p>
                             {isPush && (
@@ -1574,39 +1615,18 @@ export default function Settings() {
                             )}
                           </div>
                         </div>
-                        <Switch
-                          checked={notifications[key as keyof typeof notifications]}
-                          disabled={pushDisabled}
-                          onCheckedChange={async (checked) => {
-                            if (isPush && pushDisabled) return;
-                            setNotifications((prev) => ({ ...prev, [key]: checked }));
-                            if (isPush) {
-                              if (checked) {
-                                const sub = await registerPushNotifications();
-                                const permission =
-                                  typeof Notification !== "undefined"
-                                    ? Notification.permission
-                                    : pushStatus.permission;
-                                setPushStatus((prev) => ({
-                                  ...prev,
-                                  registered: !!sub,
-                                  permission,
-                                }));
-                              } else {
-                                await unregisterPushSubscription();
-                                const permission =
-                                  typeof Notification !== "undefined"
-                                    ? Notification.permission
-                                    : pushStatus.permission;
-                                setPushStatus((prev) => ({
-                                  ...prev,
-                                  registered: false,
-                                  permission,
-                                }));
-                              }
-                            }
-                          }}
-                        />
+                        <div
+                          className="self-end sm:self-auto shrink-0"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Switch
+                            checked={isChecked}
+                            disabled={pushDisabled}
+                            onCheckedChange={(checked) => {
+                              void applyNotificationToggle(checked);
+                            }}
+                          />
+                        </div>
                       </div>
                     );
                   })}
@@ -1659,47 +1679,89 @@ export default function Settings() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
-                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-white/10">
-                    <div className="flex items-center gap-4">
+                  <div
+                    className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      setPrivacy((prev) => ({
+                        ...prev,
+                        profileVisibility:
+                          prev.profileVisibility === "public" ? "private" : "public",
+                      }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      setPrivacy((prev) => ({
+                        ...prev,
+                        profileVisibility:
+                          prev.profileVisibility === "public" ? "private" : "public",
+                      }));
+                    }}
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
                       <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-ts-orange" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-white font-medium">Profile Visibility</p>
                         <p className="text-white/60 text-sm">
                           Make your profile visible to other users
                         </p>
                       </div>
                     </div>
-                    <Switch
-                      checked={privacy.profileVisibility === "public"}
-                      onCheckedChange={(checked) =>
-                        setPrivacy((prev) => ({
-                          ...prev,
-                          profileVisibility: checked ? "public" : "private",
-                        }))
-                      }
-                    />
+                    <div
+                      className="self-end sm:self-auto shrink-0"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Switch
+                        checked={privacy.profileVisibility === "public"}
+                        onCheckedChange={(checked) =>
+                          setPrivacy((prev) => ({
+                            ...prev,
+                            profileVisibility: checked ? "public" : "private",
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-tsBg rounded-xl border border-white/10">
-                    <div className="flex items-center gap-4">
+                  <div
+                    className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      setPrivacy((prev) => ({ ...prev, showInSearch: !prev.showInSearch }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      setPrivacy((prev) => ({ ...prev, showInSearch: !prev.showInSearch }));
+                    }}
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
                       <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Globe className="w-5 h-5 text-ts-orange" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-white font-medium">Show in Search Results</p>
                         <p className="text-white/60 text-sm">
                           Allow others to find you through search
                         </p>
                       </div>
                     </div>
-                    <Switch
-                      checked={privacy.showInSearch}
-                      onCheckedChange={(checked) =>
-                        setPrivacy((prev) => ({ ...prev, showInSearch: checked }))
-                      }
-                    />
+                    <div
+                      className="self-end sm:self-auto shrink-0"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Switch
+                        checked={privacy.showInSearch}
+                        onCheckedChange={(checked) =>
+                          setPrivacy((prev) => ({ ...prev, showInSearch: checked }))
+                        }
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-3 p-4 bg-tsBg rounded-xl border border-white/10">
@@ -1718,7 +1780,7 @@ export default function Settings() {
                         setPrivacy((prev) => ({ ...prev, contactPolicy: value }))
                       }
                     >
-                      <SelectTrigger className="bg-tsCard border-white/10 text-white h-11">
+                      <SelectTrigger className="relative z-10 bg-tsCard border-white/10 text-white h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-tsCard border-white/10">

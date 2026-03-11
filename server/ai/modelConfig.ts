@@ -1,4 +1,4 @@
-export const GEMINI_MODEL_DEFAULT = "gemini-1.5-flash";
+export const GEMINI_MODEL_DEFAULT = "gemini-2.5-flash";
 
 const KNOWN_BAD_MODEL_NAMES = new Set([
   "gemini-3.1-flash-lite",
@@ -6,15 +6,7 @@ const KNOWN_BAD_MODEL_NAMES = new Set([
   "gemini-3.1-pro",
 ]);
 
-const GEMINI_MODEL_FALLBACKS_DEFAULT = [
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
-  "gemini-1.5-pro",
-  "gemini-1.5-pro-latest",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-exp",
-  "gemini-2.5-flash",
-];
+const GEMINI_MODEL_FALLBACKS_DEFAULT = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
 
 function splitModels(raw: string | undefined): string[] {
   return String(raw || "")

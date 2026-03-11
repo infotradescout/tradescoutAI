@@ -505,9 +505,11 @@ const LazyPage = memo(function LazyPage({
 export const AppRoutes = memo(function AppRoutes({
   isLiteScoutRoute,
   isLandingRoute,
+  isShareRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
+  isShareRoute: boolean;
 }) {
   return (
     <>
@@ -517,6 +519,15 @@ export const AppRoutes = memo(function AppRoutes({
             <LandingAccessGate>
               <LazyPage Component={ScoutLandingLite} />
             </LandingAccessGate>
+          </Route>
+          <Route path=":rest*">
+            <LazyPage Component={NotFound} />
+          </Route>
+        </Switch>
+      ) : isShareRoute ? (
+        <Switch>
+          <Route path="/r/:shareToken">
+            <LazyPage Component={DirectConnectSharePage} />
           </Route>
           <Route path=":rest*">
             <LazyPage Component={NotFound} />
@@ -1528,9 +1539,6 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/direct-connect/:rest*">
               <LazyPage Component={DirectConnectShell} />
-            </Route>
-            <Route path="/r/:shareToken">
-              <LazyPage Component={DirectConnectSharePage} />
             </Route>
             <Route path="/tasks">
               <RedirectTo to="/direct-connect" />

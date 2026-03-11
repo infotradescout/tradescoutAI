@@ -8,25 +8,25 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  AlertTriangle, 
-  Bug, 
-  Zap, 
-  Eye, 
-  Layout, 
-  CheckCircle, 
-  Clock, 
-  X, 
+import {
+  AlertTriangle,
+  Bug,
+  Zap,
+  Eye,
+  Layout,
+  CheckCircle,
+  Clock,
+  X,
   RefreshCw,
   TrendingUp,
   Users,
-  Monitor
+  Monitor,
 } from "lucide-react";
 
 interface UIIssue {
   id: string;
-  type: 'bug' | 'ux_issue' | 'performance' | 'accessibility' | 'layout';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: "bug" | "ux_issue" | "performance" | "accessibility" | "layout";
+  severity: "low" | "medium" | "high" | "critical";
   title: string;
   description: string;
   element?: string;
@@ -34,7 +34,7 @@ interface UIIssue {
   timestamp: Date;
   userAgent: string;
   suggestions: string[];
-  status?: 'new' | 'investigating' | 'resolved' | 'ignored';
+  status?: "new" | "investigating" | "resolved" | "ignored";
 }
 
 interface UIIssuesResponse {
@@ -75,10 +75,10 @@ interface AIAnalysis {
 }
 
 const severityColors = {
-  low: 'bg-blue-500',
-  medium: 'bg-yellow-500',
-  high: 'bg-ts-orange',
-  critical: 'bg-red-500'
+  low: "bg-blue-500",
+  medium: "bg-yellow-500",
+  high: "bg-ts-orange",
+  critical: "bg-red-500",
 };
 
 const typeIcons = {
@@ -86,60 +86,69 @@ const typeIcons = {
   ux_issue: Users,
   performance: Zap,
   accessibility: Eye,
-  layout: Layout
+  layout: Layout,
 };
 
 export function UIMonitoringDashboard() {
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const queryClient = useQueryClient();
 
   // Fetch UI issues
-  const { data: issuesData, isLoading, refetch } = useQuery<UIIssuesResponse>({
-    queryKey: ['/api/admin/ui-issues'],
+  const {
+    data: issuesData,
+    isLoading,
+    isError: issuesFailed,
+    error: issuesError,
+    refetch,
+  } = useQuery<UIIssuesResponse>({
+    queryKey: ["/api/admin/ui-issues"],
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: false,
   });
 
   // Fetch AI analysis
-  const { data: analysis } = useQuery<AIAnalysis>({
-    queryKey: ['/api/admin/ui-analysis'],
+  const { data: analysis, isError: analysisFailed } = useQuery<AIAnalysis>({
+    queryKey: ["/api/admin/ui-analysis"],
     refetchInterval: 60000, // Refresh every minute
+    retry: false,
   });
 
   // Update issue status
   const updateIssueMutation = useMutation({
     mutationFn: async ({ issueId, status }: { issueId: string; status: string }) => {
-      return apiRequest('PATCH', `/api/admin/ui-issues/${issueId}`, { status });
+      return apiRequest("PATCH", `/api/admin/ui-issues/${issueId}`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/ui-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/ui-analysis'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ui-issues"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ui-analysis"] });
+    },
   });
 
   // Delete issue
   const deleteIssueMutation = useMutation({
     mutationFn: async (issueId: string) => {
-      return apiRequest('DELETE', `/api/admin/ui-issues/${issueId}`);
+      return apiRequest("DELETE", `/api/admin/ui-issues/${issueId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/ui-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/ui-analysis'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ui-issues"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ui-analysis"] });
+    },
   });
 
-  const filteredIssues = issuesData?.issues.filter(issue => {
-    if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'critical') return issue.severity === 'critical';
-    if (selectedFilter === 'unresolved') return issue.status !== 'resolved';
-    return issue.type === selectedFilter;
-  }) || [];
+  const filteredIssues =
+    issuesData?.issues.filter((issue) => {
+      if (selectedFilter === "all") return true;
+      if (selectedFilter === "critical") return issue.severity === "critical";
+      if (selectedFilter === "unresolved") return issue.status !== "resolved";
+      return issue.type === selectedFilter;
+    }) || [];
 
   const handleUpdateStatus = (issueId: string, status: string) => {
     updateIssueMutation.mutate({ issueId, status });
   };
 
   const handleDeleteIssue = (issueId: string) => {
-    if (confirm('Are you sure you want to delete this issue?')) {
+    if (confirm("Are you sure you want to delete this issue?")) {
       deleteIssueMutation.mutate(issueId);
     }
   };
@@ -166,6 +175,19 @@ export function UIMonitoringDashboard() {
         </Button>
       </div>
 
+      {(issuesFailed || analysisFailed) && (
+        <Alert className="border-amber-500/70 bg-amber-500/10">
+          <AlertTriangle className="h-4 w-4 text-amber-300" />
+          <AlertTitle className="text-amber-200">Monitoring data unavailable</AlertTitle>
+          <AlertDescription className="text-amber-100/90">
+            Some monitoring endpoints failed. Values below may be incomplete.
+            {issuesFailed
+              ? ` ${String((issuesError as any)?.message || "UI issues request failed")}`
+              : ""}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Critical Issues Alert */}
       {analysis && analysis.summary.criticalIssues > 0 && (
         <Alert className="border-red-500 bg-red-500/10">
@@ -185,7 +207,9 @@ export function UIMonitoringDashboard() {
               <Monitor className="h-8 w-8 text-ts-orange" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-white/70">Total Issues</p>
-                <p className="text-2xl font-bold text-white">{issuesData?.stats.totalIssues || 0}</p>
+                <p className="text-2xl font-bold text-white">
+                  {issuesFailed ? "N/A" : (issuesData?.stats.totalIssues ?? 0)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -197,7 +221,9 @@ export function UIMonitoringDashboard() {
               <AlertTriangle className="h-8 w-8 text-red-500" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-white/70">Critical</p>
-                <p className="text-2xl font-bold text-white">{issuesData?.stats.criticalIssues || 0}</p>
+                <p className="text-2xl font-bold text-white">
+                  {issuesFailed ? "N/A" : (issuesData?.stats.criticalIssues ?? 0)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -209,7 +235,9 @@ export function UIMonitoringDashboard() {
               <CheckCircle className="h-8 w-8 text-green-500" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-white/70">Resolved</p>
-                <p className="text-2xl font-bold text-white">{issuesData?.stats.resolvedIssues || 0}</p>
+                <p className="text-2xl font-bold text-white">
+                  {issuesFailed ? "N/A" : (issuesData?.stats.resolvedIssues ?? 0)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -221,7 +249,9 @@ export function UIMonitoringDashboard() {
               <TrendingUp className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-white/70">Resolution Rate</p>
-                <p className="text-2xl font-bold text-white">{analysis?.summary.resolutionRate || '0'}%</p>
+                <p className="text-2xl font-bold text-white">
+                  {analysisFailed ? "N/A" : `${analysis?.summary.resolutionRate || "0"}%`}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -230,43 +260,50 @@ export function UIMonitoringDashboard() {
 
       <Tabs value="issues" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-tsCard">
-          <TabsTrigger value="issues" className="data-[state=active]:bg-ts-orange">Issues</TabsTrigger>
-          <TabsTrigger value="analysis" className="data-[state=active]:bg-ts-orange">AI Analysis</TabsTrigger>
-          <TabsTrigger value="patterns" className="data-[state=active]:bg-ts-orange">Patterns</TabsTrigger>
+          <TabsTrigger value="issues" className="data-[state=active]:bg-ts-orange">
+            Issues
+          </TabsTrigger>
+          <TabsTrigger value="analysis" className="data-[state=active]:bg-ts-orange">
+            AI Analysis
+          </TabsTrigger>
+          <TabsTrigger value="patterns" className="data-[state=active]:bg-ts-orange">
+            Patterns
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="issues" className="space-y-4">
           {/* Filters */}
           <div className="flex gap-2 flex-wrap">
             <Button
-              variant={selectedFilter === 'all' ? 'default' : 'outline'}
-              onClick={() => setSelectedFilter('all')}
-              className={selectedFilter === 'all' ? 'bg-ts-orange hover:bg-ts-orange-dark' : ''}
+              variant={selectedFilter === "all" ? "default" : "outline"}
+              onClick={() => setSelectedFilter("all")}
+              className={selectedFilter === "all" ? "bg-ts-orange hover:bg-ts-orange-dark" : ""}
             >
               All ({issuesData?.issues.length || 0})
             </Button>
             <Button
-              variant={selectedFilter === 'critical' ? 'default' : 'outline'}
-              onClick={() => setSelectedFilter('critical')}
-              className={selectedFilter === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
+              variant={selectedFilter === "critical" ? "default" : "outline"}
+              onClick={() => setSelectedFilter("critical")}
+              className={selectedFilter === "critical" ? "bg-red-500 hover:bg-red-600" : ""}
             >
               Critical ({issuesData?.summary.bySeverity.critical || 0})
             </Button>
             <Button
-              variant={selectedFilter === 'unresolved' ? 'default' : 'outline'}
-              onClick={() => setSelectedFilter('unresolved')}
-              className={selectedFilter === 'unresolved' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+              variant={selectedFilter === "unresolved" ? "default" : "outline"}
+              onClick={() => setSelectedFilter("unresolved")}
+              className={selectedFilter === "unresolved" ? "bg-yellow-500 hover:bg-yellow-600" : ""}
             >
-              Unresolved ({(issuesData?.summary.total || 0) - (issuesData?.summary.byStatus.resolved || 0)})
+              Unresolved (
+              {(issuesData?.summary.total || 0) - (issuesData?.summary.byStatus.resolved || 0)})
             </Button>
             {Object.entries(issuesData?.summary.byType || {}).map(([type, count]) => (
               <Button
                 key={type}
-                variant={selectedFilter === type ? 'default' : 'outline'}
+                variant={selectedFilter === type ? "default" : "outline"}
                 onClick={() => setSelectedFilter(type)}
-                className={selectedFilter === type ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                className={selectedFilter === type ? "bg-blue-500 hover:bg-blue-600" : ""}
               >
-                {type.replace('_', ' ')} ({count})
+                {type.replace("_", " ")} ({count})
               </Button>
             ))}
           </div>
@@ -289,7 +326,7 @@ export function UIMonitoringDashboard() {
                                 {issue.severity}
                               </Badge>
                               <Badge variant="outline" className="text-white/70">
-                                {issue.type.replace('_', ' ')}
+                                {issue.type.replace("_", " ")}
                               </Badge>
                             </div>
                             <p className="text-white/70 text-sm mb-2">{issue.description}</p>
@@ -300,7 +337,9 @@ export function UIMonitoringDashboard() {
                             </div>
                             {issue.suggestions.length > 0 && (
                               <div className="mt-3">
-                                <p className="text-sm font-medium text-ts-orange mb-1">Suggestions:</p>
+                                <p className="text-sm font-medium text-ts-orange mb-1">
+                                  Suggestions:
+                                </p>
                                 <ul className="text-xs text-white/70 space-y-1">
                                   {issue.suggestions.map((suggestion, idx) => (
                                     <li key={idx}>• {suggestion}</li>
@@ -311,20 +350,20 @@ export function UIMonitoringDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {issue.status !== 'resolved' && (
+                          {issue.status !== "resolved" && (
                             <Button
                               size="sm"
-                              onClick={() => handleUpdateStatus(issue.id, 'resolved')}
+                              onClick={() => handleUpdateStatus(issue.id, "resolved")}
                               className="bg-green-500 hover:bg-green-600"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
                           )}
-                          {issue.status !== 'investigating' && issue.status !== 'resolved' && (
+                          {issue.status !== "investigating" && issue.status !== "resolved" && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleUpdateStatus(issue.id, 'investigating')}
+                              onClick={() => handleUpdateStatus(issue.id, "investigating")}
                             >
                               <Clock className="h-4 w-4" />
                             </Button>
@@ -356,7 +395,10 @@ export function UIMonitoringDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {analysis.priorities.map((priority, idx) => (
-                    <Alert key={idx} className={`border-${priority.level === 'critical' ? 'red' : priority.level === 'high' ? 'orange' : 'blue'}-500`}>
+                    <Alert
+                      key={idx}
+                      className={`border-${priority.level === "critical" ? "red" : priority.level === "high" ? "orange" : "blue"}-500`}
+                    >
                       <AlertTriangle className="h-4 w-4" />
                       <AlertTitle>{priority.title}</AlertTitle>
                       <AlertDescription>

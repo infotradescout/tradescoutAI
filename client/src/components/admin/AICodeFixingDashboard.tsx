@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, CheckCircle, XCircle, Clock, Zap, FileCode, Shield } from "lucide-react";
+import {
+  Bot,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Zap,
+  FileCode,
+  Shield,
+  AlertTriangle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CodeFix {
@@ -17,7 +25,7 @@ interface CodeFix {
   originalCode: string;
   fixedCode: string;
   confidence: number;
-  status: 'pending' | 'applied' | 'failed' | 'rejected';
+  status: "pending" | "applied" | "failed" | "rejected";
   timestamp: Date;
   aiReasoning: string;
 }
@@ -30,18 +38,24 @@ export function AICodeFixingDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: fixes = { fixes: [] }, isLoading } = useQuery<FixesResponse>({
+  const {
+    data: fixes = { fixes: [] },
+    isLoading,
+    isError,
+    error,
+  } = useQuery<FixesResponse>({
     queryKey: ["/api/ai/fixes"],
     refetchInterval: 10000, // Refresh every 10 seconds
+    retry: false,
   });
 
   const applyFixMutation = useMutation({
     mutationFn: async (fixId: string) => {
       const response = await fetch(`/api/ai/apply-fix/${fixId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error('Failed to apply fix');
+      if (!response.ok) throw new Error("Failed to apply fix");
       return response.json();
     },
     onSuccess: (data) => {
@@ -63,11 +77,11 @@ export function AICodeFixingDashboard() {
 
   const autoFixMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/ai/auto-fix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      const response = await fetch("/api/ai/auto-fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error('Failed to auto-apply fixes');
+      if (!response.ok) throw new Error("Failed to auto-apply fixes");
       return response.json();
     },
     onSuccess: () => {
@@ -81,22 +95,27 @@ export function AICodeFixingDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'applied': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'rejected': return <XCircle className="h-4 w-4 text-white/60" />;
-      default: return <Clock className="h-4 w-4" />;
+      case "pending":
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case "applied":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "failed":
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case "rejected":
+        return <XCircle className="h-4 w-4 text-white/60" />;
+      default:
+        return <Clock className="h-4 w-4" />;
     }
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.9) return 'bg-green-500';
-    if (confidence >= 0.7) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (confidence >= 0.9) return "bg-green-500";
+    if (confidence >= 0.7) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
-  const pendingFixes = fixes?.fixes?.filter((fix: CodeFix) => fix.status === 'pending') || [];
-  const appliedFixes = fixes?.fixes?.filter((fix: CodeFix) => fix.status === 'applied') || [];
+  const pendingFixes = fixes?.fixes?.filter((fix: CodeFix) => fix.status === "pending") || [];
+  const appliedFixes = fixes?.fixes?.filter((fix: CodeFix) => fix.status === "applied") || [];
   const highConfidencePending = pendingFixes.filter((fix: CodeFix) => fix.confidence >= 0.9);
 
   if (isLoading) {
@@ -139,6 +158,18 @@ export function AICodeFixingDashboard() {
         </CardContent>
       </Card>
 
+      {isError && (
+        <Card className="bg-amber-500/10 border-amber-500/60">
+          <CardContent className="p-4 text-sm text-amber-100 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-300" />
+            <span>
+              AI fix feed is currently unavailable. Counts below may be incomplete.{" "}
+              {String((error as any)?.message || "Request failed")}
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-tsCard border-white/10">
@@ -147,7 +178,9 @@ export function AICodeFixingDashboard() {
               <Clock className="h-5 w-5 text-yellow-500" />
               <div>
                 <p className="text-white/70 text-sm">Pending Fixes</p>
-                <p className="text-2xl font-bold text-white">{pendingFixes.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  {isError ? "N/A" : pendingFixes.length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -159,7 +192,9 @@ export function AICodeFixingDashboard() {
               <CheckCircle className="h-5 w-5 text-green-500" />
               <div>
                 <p className="text-white/70 text-sm">Applied Fixes</p>
-                <p className="text-2xl font-bold text-white">{appliedFixes.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  {isError ? "N/A" : appliedFixes.length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -171,7 +206,9 @@ export function AICodeFixingDashboard() {
               <Shield className="h-5 w-5 text-blue-500" />
               <div>
                 <p className="text-white/70 text-sm">High Confidence</p>
-                <p className="text-2xl font-bold text-white">{highConfidencePending.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  {isError ? "N/A" : highConfidencePending.length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -183,7 +220,9 @@ export function AICodeFixingDashboard() {
               <FileCode className="h-5 w-5 text-purple-500" />
               <div>
                 <p className="text-white/70 text-sm">Total Fixes</p>
-                <p className="text-2xl font-bold text-white">{fixes?.fixes?.length || 0}</p>
+                <p className="text-2xl font-bold text-white">
+                  {isError ? "N/A" : fixes?.fixes?.length || 0}
+                </p>
               </div>
             </div>
           </CardContent>

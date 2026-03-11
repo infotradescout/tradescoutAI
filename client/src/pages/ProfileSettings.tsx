@@ -1195,18 +1195,20 @@ export default function ProfileSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className="min-w-0 space-y-0.5">
                   <Label>Make profile public</Label>
                   <p className="text-sm text-white/60">
                     Allow your profile to appear in search and assistant responses.
                   </p>
                 </div>
-                <Switch
-                  checked={preferences.profileVisibility === "public"}
-                  onCheckedChange={updateProfileVisibility}
-                  disabled={loading}
-                />
+                <div className="self-end sm:self-auto shrink-0">
+                  <Switch
+                    checked={preferences.profileVisibility === "public"}
+                    onCheckedChange={updateProfileVisibility}
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1328,16 +1330,21 @@ export default function ProfileSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               {profileSectionOptions.map((item) => (
-                <div key={item.key} className="flex items-center justify-between gap-4">
-                  <div className="space-y-0.5">
+                <div
+                  key={item.key}
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                >
+                  <div className="min-w-0 space-y-0.5">
                     <Label>{item.label}</Label>
                     <p className="text-sm text-white/60">{item.description}</p>
                   </div>
-                  <Switch
-                    checked={preferences.profileSections?.[item.key] !== false}
-                    onCheckedChange={(value) => updateProfileSection(item.key, value)}
-                    disabled={loading}
-                  />
+                  <div className="self-end sm:self-auto shrink-0">
+                    <Switch
+                      checked={preferences.profileSections?.[item.key] !== false}
+                      onCheckedChange={(value) => updateProfileSection(item.key, value)}
+                      disabled={loading}
+                    />
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -1572,32 +1579,36 @@ export default function ProfileSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-0.5">
                   <Label>Enable booking on public profile</Label>
                   <p className="text-sm text-white/60">
                     Show booking controls to visitors on your public page.
                   </p>
                 </div>
-                <Switch
-                  checked={profileBooking.enabled === true}
-                  onCheckedChange={(value) => updateProfileBooking({ enabled: value })}
-                  disabled={loading}
-                />
+                <div className="self-end sm:self-auto shrink-0">
+                  <Switch
+                    checked={profileBooking.enabled === true}
+                    onCheckedChange={(value) => updateProfileBooking({ enabled: value })}
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-0.5">
                   <Label>Enable paid bookings</Label>
                   <p className="text-sm text-white/60">
                     Require a Stripe deposit before confirmation.
                   </p>
                 </div>
-                <Switch
-                  checked={profileBooking.paidBookings === true}
-                  onCheckedChange={(value) => updateProfileBooking({ paidBookings: value })}
-                  disabled={loading || profileBooking.enabled !== true}
-                />
+                <div className="self-end sm:self-auto shrink-0">
+                  <Switch
+                    checked={profileBooking.paidBookings === true}
+                    onCheckedChange={(value) => updateProfileBooking({ paidBookings: value })}
+                    disabled={loading || profileBooking.enabled !== true}
+                  />
+                </div>
               </div>
 
               {profileBooking.paidBookings === true && (
@@ -1726,18 +1737,22 @@ export default function ProfileSettings() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-0.5">
                   <Label>Show pricing table</Label>
                   <p className="text-sm text-white/60">
                     Publish a simple price list on your public profile.
                   </p>
                 </div>
-                <Switch
-                  checked={profileBooking.pricingTableEnabled === true}
-                  onCheckedChange={(value) => updateProfileBooking({ pricingTableEnabled: value })}
-                  disabled={loading}
-                />
+                <div className="self-end sm:self-auto shrink-0">
+                  <Switch
+                    checked={profileBooking.pricingTableEnabled === true}
+                    onCheckedChange={(value) =>
+                      updateProfileBooking({ pricingTableEnabled: value })
+                    }
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               {profileBooking.pricingTableEnabled === true && (

@@ -163,6 +163,14 @@ function normalizeForMatch(input: string): string {
     .trim();
 }
 
+function normalizeForRepetitionCheck(input: string): string {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function tokenOverlapScore(query: string, candidate: string): number {
   const q = normalizeForMatch(query);
   const c = normalizeForMatch(candidate);
@@ -2884,6 +2892,46 @@ export default function ScoutOS() {
           content: preliminaryContent,
           hasActionOptions,
         });
+
+        // Guardrail: if Scout falls into repeated generic fallback language
+        // without actions, force a concrete recovery response with explicit paths.
+        const previousAssistant = [...state.messages]
+          .reverse()
+          .find((m) => m.role === "assistant")?.content;
+        const repeatedResponse =
+          normalizeForRepetitionCheck(previousAssistant || "") !== "" &&
+          normalizeForRepetitionCheck(previousAssistant || "") ===
+            normalizeForRepetitionCheck(resolvedContent);
+        const genericRoutingFallback =
+          /i(?:'|’)m having trouble generating a full answer|i(?:'|’)m seeing heavy demand right now|i can still route you to the right next step|which option should i run first/i.test(
+            resolvedContent
+          );
+
+        if (!hasActionOptions && (repeatedResponse || genericRoutingFallback)) {
+          const { message: fallbackMessage, actions: fallbackActions } = buildConnectionFallback(
+            {
+              contractorsRoute: "/direct-connect/pros",
+              communityRoute: "/community",
+              exchangeRoute: "/exchange",
+            },
+            value,
+            { contextRoles: getContextRoles(value) }
+          );
+
+          applyServerResponse(fallbackMessage, fallbackActions);
+          setToneMessage(null);
+          setStatus("idle");
+
+          const latencyMs = performance.now() - start;
+          logScoutInsight({
+            message: value,
+            mode,
+            locality,
+            success: true,
+            latencyMs,
+          });
+          return;
+        }
 
         // Attach CTA hints from server (community posts, trade deals, etc.)
         if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {

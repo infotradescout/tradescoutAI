@@ -76,5 +76,9 @@ export async function generateWithFallback(
       console.error(`[LLM Fallback] ${provider.name} failed:`, e);
     }
   }
-  throw new Error("All LLM providers failed");
+  // Deterministic non-LLM safety net to avoid blank/dead-end responses in production.
+  return {
+    text: "I'm having trouble generating a full answer right now, but I can still route you to the right next step.",
+    provider: "fallback",
+  };
 }
