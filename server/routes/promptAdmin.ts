@@ -54,7 +54,16 @@ function requireSuperAdmin(req: Request, res: Response, next: () => void) {
 router.get("/", requireSuperAdmin, (req: Request, res: Response) => {
   try {
     if (!fs.existsSync(PROMPT_PATH)) {
-      return res.status(404).json({ error: "system_prompt.md not found" });
+      const status = getPromptStatus();
+      return res.json({
+        content: "",
+        status: {
+          ...status,
+          exists: false,
+          promptPath: PROMPT_PATH,
+        },
+        message: "System prompt file not found yet. Save a prompt to initialize it.",
+      });
     }
 
     const content = fs.readFileSync(PROMPT_PATH, "utf8");
@@ -92,6 +101,7 @@ router.post("/", requireSuperAdmin, (req: Request, res: Response) => {
     }
 
     // Write to disk
+    fs.mkdirSync(path.dirname(PROMPT_PATH), { recursive: true });
     fs.writeFileSync(PROMPT_PATH, content, "utf8");
 
     // Hot reload

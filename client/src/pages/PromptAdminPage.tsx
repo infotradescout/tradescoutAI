@@ -23,12 +23,28 @@ export function PromptAdminPage() {
     loadPrompt();
   }, []);
 
+  async function requestWithPromptAdminFallback(
+    method: "GET" | "POST",
+    suffix = "",
+    payload?: unknown
+  ) {
+    const adminPath = `/api/admin/prompt-admin${suffix}`;
+    try {
+      return await apiRequest(method, adminPath, payload as any);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        return apiRequest(method, `/api/prompt-admin${suffix}`, payload as any);
+      }
+      throw err;
+    }
+  }
+
   async function loadPrompt() {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await apiRequest("GET", "/api/admin/prompt-admin");
+      const data = await requestWithPromptAdminFallback("GET");
       setContent(data?.content || "");
       setStatus(data?.status || null);
       setSuccess("System prompt loaded successfully");
@@ -58,7 +74,7 @@ export function PromptAdminPage() {
       setError(null);
       setSuccess(null);
 
-      const data = await apiRequest("POST", "/api/admin/prompt-admin", { content });
+      const data = await requestWithPromptAdminFallback("POST", "", { content });
       setSuccess(data?.message || "System prompt saved and reloaded successfully!");
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
@@ -78,7 +94,7 @@ export function PromptAdminPage() {
       setError(null);
       setSuccess(null);
 
-      const data = await apiRequest("POST", "/api/admin/prompt-admin/reload");
+      const data = await requestWithPromptAdminFallback("POST", "/reload");
       setSuccess(data?.message || "Prompt reloaded from disk");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
