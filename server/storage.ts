@@ -13903,6 +13903,8 @@ export class DatabaseStorage implements IStorage {
       countyFips: profileDraft.countyFips,
       countyName: profileDraft.countyName || null,
       city: profileDraft.city || null,
+      address: profileDraft.address || null,
+      zipCode: profileDraft.zipCode || null,
       stateCode: profileDraft.stateCode,
       serviceAreas: profileDraft.serviceAreas?.map((sa: any) => sa.countyFips) || [
         profileDraft.countyFips,
@@ -13946,6 +13948,8 @@ export class DatabaseStorage implements IStorage {
       countyFips: profile.countyFips,
       countyName: profile.countyName,
       city: profile.city,
+      address: profile.address ?? null,
+      zipCode: profile.zipCode ?? null,
       businessName: profile.name,
       description: profile.description,
       website: profile.website,

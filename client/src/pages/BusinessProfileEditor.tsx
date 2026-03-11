@@ -549,9 +549,12 @@ export default function BusinessProfileEditor() {
                 </AlertDescription>
               </Alert>
               <p className="text-sm text-muted-foreground">
-                Your primary coverage area is based on your location during signup. To change this,
-                please contact support.
+                Coverage and address settings are now managed in the unified Edit Public Profile
+                flow so user and business addresses stay separate.
               </p>
+              <Button variant="outline" onClick={() => navigate(`/u/${profile.slug}/edit`)}>
+                Open unified public profile settings
+              </Button>
             </TabsContent>
 
             <TabsContent value="contact" className="space-y-4 mt-6">

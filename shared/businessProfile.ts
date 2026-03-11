@@ -17,6 +17,8 @@ export interface BusinessProfile {
   countyFips: string; // Primary county FIPS code
   countyName?: string | null; // Primary county name
   city?: string | null; // City name (optional)
+  address?: string | null; // Street/business address (optional)
+  zipCode?: string | null; // Postal code (optional)
   stateCode: string; // State abbreviation (e.g., "TX")
   serviceAreas: string[]; // Array of county FIPS codes
   website?: string | null; // External website (optional)
@@ -45,6 +47,8 @@ export interface PublishProfilePayload {
   countyFips: string;
   countyName?: string | null;
   city?: string | null;
+  address?: string | null;
+  zipCode?: string | null;
   stateCode: string;
   serviceAreas?: string[];
   website?: string | null;
@@ -58,7 +62,12 @@ export interface UpdateProfilePayload {
   headline?: string | null; // PHASE 3e-A.1
   description?: string | null;
   services?: string[] | null; // PHASE 3e-A.1
+  countyFips?: string;
+  countyName?: string | null;
   city?: string | null;
+  stateCode?: string;
+  address?: string | null;
+  zipCode?: string | null;
   serviceAreas?: string[];
   website?: string | null;
 }

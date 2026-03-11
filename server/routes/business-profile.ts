@@ -175,6 +175,8 @@ export function registerBusinessProfileRoutes(app: Express) {
           countyFips: payload.countyFips,
           countyName: payload.countyName || null,
           city: payload.city || null,
+          address: payload.address || null,
+          zipCode: payload.zipCode || null,
           stateCode: payload.stateCode,
           serviceAreas: payload.serviceAreas || [payload.countyFips],
           website: payload.website || null,
@@ -284,12 +286,32 @@ export function registerBusinessProfileRoutes(app: Express) {
       }
 
       const updates = req.body as UpdateProfilePayload;
+      const nextStateCode =
+        typeof updates.stateCode === "string" && updates.stateCode.trim().length > 0
+          ? updates.stateCode.trim().toUpperCase()
+          : existing.stateCode;
+      const nextCountyFips =
+        typeof updates.countyFips === "string" && updates.countyFips.trim().length > 0
+          ? updates.countyFips.trim()
+          : existing.countyFips;
+
+      if (nextStateCode && !/^[A-Z]{2}$/.test(nextStateCode)) {
+        return res.status(400).json({ message: "stateCode must be a 2-letter code" });
+      }
+      if (nextCountyFips && !/^\d{5}$/.test(nextCountyFips)) {
+        return res.status(400).json({ message: "countyFips must be a 5-digit FIPS value" });
+      }
 
       const updatedProfile: BusinessProfile = {
         ...existing,
         name: updates.name ?? existing.name,
         description: updates.description !== undefined ? updates.description : existing.description,
+        countyFips: nextCountyFips,
+        countyName: updates.countyName !== undefined ? updates.countyName : existing.countyName,
         city: updates.city !== undefined ? updates.city : existing.city,
+        stateCode: nextStateCode,
+        address: updates.address !== undefined ? updates.address : existing.address || null,
+        zipCode: updates.zipCode !== undefined ? updates.zipCode : existing.zipCode || null,
         serviceAreas: updates.serviceAreas ?? existing.serviceAreas,
         website: updates.website !== undefined ? updates.website : existing.website,
         updatedAt: new Date().toISOString(),

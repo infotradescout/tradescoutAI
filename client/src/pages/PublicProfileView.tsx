@@ -130,6 +130,8 @@ export default function PublicProfileView() {
   const [kickDialogOpen, setKickDialogOpen] = useState(false);
   const [kickReason, setKickReason] = useState("");
   const [kicking, setKicking] = useState(false);
+  const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -474,9 +476,6 @@ export default function PublicProfileView() {
     if (verificationStatus === "suspended") return "Verification Suspended";
     return "Verification Pending";
   })();
-
-  const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
-  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
 
   const handleBookingDeposit = () => {
     if (!paidBookings || bookingPriceUsd <= 0 || !profile?.id) return;

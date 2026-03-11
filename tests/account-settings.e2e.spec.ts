@@ -64,6 +64,22 @@ async function clickTwice(locator: ReturnType<Page["locator"]>) {
   await locator.click();
 }
 
+async function openFirstProfileEditor(page: Page) {
+  const response = await page.request.get("/api/profiles");
+  if (!response.ok()) {
+    return null;
+  }
+  const profiles = (await response.json()) as Array<{ slug?: string }>;
+  const slug = profiles.find(
+    (entry) => typeof entry?.slug === "string" && entry.slug.length > 0
+  )?.slug;
+  if (!slug) {
+    return null;
+  }
+  await page.goto(`/u/${slug}/edit`);
+  return slug;
+}
+
 test.describe("Account settings interactions", () => {
   test("all settings tabs expose interactive options", async ({ page }) => {
     await bestEffortCompleteOnboarding(page);
@@ -305,6 +321,76 @@ test.describe("Account settings interactions", () => {
     await expect(page.getByRole("tab", { name: "Unread", selected: true })).toBeVisible();
     await page.getByTestId("notifications-filter-all").click();
     await expect(page.getByRole("tab", { name: "All", selected: true })).toBeVisible();
+  });
+
+  test("public profile editor centralizes profile-facing settings", async ({ page }) => {
+    await bestEffortCompleteOnboarding(page);
+    const slug = await openFirstProfileEditor(page);
+    test.skip(!slug, "No owned profile exists for this account");
+
+    await expect(page.getByRole("heading", { name: "Edit Profile Site" })).toBeVisible();
+    await expect(page.getByTestId("profile-editor-public-settings")).toBeVisible();
+
+    await page.getByTestId("profile-editor-user-address").fill("123 Demo St");
+    await page.getByTestId("profile-editor-user-city").fill("Demo City");
+    await page.getByTestId("profile-editor-user-zip").fill("70433");
+    const userStateTrigger = page.getByTestId("profile-editor-user-state");
+    if (await userStateTrigger.isVisible()) {
+      await chooseFirstSelectOption(page, userStateTrigger);
+      const userCountyTrigger = page.getByTestId("profile-editor-user-county");
+      if (await userCountyTrigger.isEnabled()) {
+        await chooseFirstSelectOption(page, userCountyTrigger);
+      }
+    }
+    await expect(page.getByTestId("profile-editor-user-location-save")).toBeVisible();
+
+    await page
+      .getByTestId("profile-editor-services-description")
+      .fill("Profile editor services coverage.");
+    await expect(page.getByTestId("profile-editor-services-save")).toBeVisible();
+
+    const businessSave = page.getByTestId("profile-editor-business-location-save");
+    if (await businessSave.isVisible()) {
+      await page.getByTestId("profile-editor-business-address").fill("456 Business Ave");
+      await page.getByTestId("profile-editor-business-city").fill("Biz City");
+      await page.getByTestId("profile-editor-business-zip").fill("70434");
+      const businessStateTrigger = page.getByTestId("profile-editor-business-state");
+      if (await businessStateTrigger.isVisible()) {
+        await chooseFirstSelectOption(page, businessStateTrigger);
+        const businessCountyTrigger = page.getByTestId("profile-editor-business-county");
+        if (await businessCountyTrigger.isEnabled()) {
+          await chooseFirstSelectOption(page, businessCountyTrigger);
+        }
+      }
+      await expect(businessSave).toBeVisible();
+    }
+
+    const sectionSwitches = page.locator('[data-testid^="profile-editor-section-"]');
+    if ((await sectionSwitches.count()) > 0) {
+      await toggleSwitchControl(sectionSwitches.first());
+    }
+
+    const presetTrigger = page.getByTestId("profile-editor-color-preset");
+    await chooseSelectOption(page, presetTrigger, "default");
+    await expect(page.getByTestId("profile-editor-color-save")).toBeVisible();
+
+    await toggleSwitchControl(page.getByTestId("profile-editor-booking-enabled"));
+    await page.getByTestId("profile-editor-booking-timezone").fill("America/Chicago");
+    await page.getByTestId("profile-editor-booking-add-slot").click();
+    const slotStarts = page.locator('[data-testid^="profile-editor-booking-slot-start-"]');
+    if ((await slotStarts.count()) > 0) {
+      await slotStarts.first().fill("10:30");
+    }
+    const pricingToggle = page.getByTestId("profile-editor-pricing-enabled");
+    if ((await pricingToggle.getAttribute("aria-checked")) !== "true") {
+      await pricingToggle.click();
+    }
+    await page.getByTestId("profile-editor-pricing-add-row").click();
+    const pricingNames = page.locator('[data-testid^="profile-editor-pricing-name-"]');
+    if ((await pricingNames.count()) > 0) {
+      await pricingNames.first().fill("Consultation");
+    }
+    await expect(page.getByTestId("profile-editor-booking-save")).toBeVisible();
   });
 
   test("privacy request controls remain interactive", async ({ page }) => {
