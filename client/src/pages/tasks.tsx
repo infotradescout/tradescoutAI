@@ -638,7 +638,12 @@ export default function TasksHub({
                                 : "recently"}
                           </span>
                         </div>
-                        <div className="mt-2 text-[10px] text-ts-orange/90">Tap to open</div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-ts-orange/90">Tap to open</span>
+                          <span className="inline-flex items-center rounded-md border border-ts-orange/40 bg-ts-orange/10 px-2 py-1 text-[10px] font-medium text-ts-orange">
+                            Open details
+                          </span>
+                        </div>
                       </button>
                     </CardContent>
                   </Card>

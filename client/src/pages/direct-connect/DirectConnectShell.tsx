@@ -267,7 +267,7 @@ function getRequestFilterLabel(filter: RequestFilter): string {
     case "all":
       return "All";
     case "open":
-      return "Ready to send";
+      return "Live · open";
     case "routed":
       return "Waiting on pros";
     case "in_progress":
@@ -282,7 +282,7 @@ function getRequestFilterLabel(filter: RequestFilter): string {
 function getRequestStageLabel(stage: RequestWorkflowStage): string {
   switch (stage) {
     case "ready_to_send":
-      return "Ready to send";
+      return "Live · open";
     case "waiting_on_pros":
       return "Waiting on pros";
     case "active_conversation":
@@ -297,7 +297,7 @@ function getRequestStageLabel(stage: RequestWorkflowStage): string {
 function getRequestStageSummary(stage: RequestWorkflowStage): string {
   switch (stage) {
     case "ready_to_send":
-      return "This request is saved on your board and still needs to be sent to matching pros.";
+      return "This request is already live on your board for your area. Route to more pros anytime.";
     case "waiting_on_pros":
       return "TradeScout has already sent this request out. You're waiting to see who responds.";
     case "active_conversation":
@@ -1443,7 +1443,7 @@ function MyDirectConnectRequests() {
                     disabled={routeMutation.isPending}
                     onClick={() => routeMutation.mutate(r.id)}
                   >
-                    Send to pros
+                    Route to more pros
                   </Button>
                 )}
                 {stage === "waiting_on_pros" && (
@@ -1493,7 +1493,7 @@ function MyDirectConnectRequests() {
                       disabled={routeMutation.isPending}
                       onClick={() => routeMutation.mutate(r.id)}
                     >
-                      Send to pros
+                      Route to more pros
                     </Button>
                   )}
                   {stage === "waiting_on_pros" && (
@@ -1663,7 +1663,7 @@ export default function DirectConnectShell() {
               <>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
                   <Zap className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Ready to send</span>
+                  <span className="text-[color:var(--text-secondary)]">Live · open</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {requestSummary.readyToSend}
                   </span>
