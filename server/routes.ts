@@ -1373,6 +1373,44 @@ export async function registerRoutes(app: any) {
     return Array.from(merged);
   };
 
+  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-logo-circle.png?v=6";
+  const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
+    "/tradescout-logo.png",
+    "/tradescout-logo.jpg",
+    "/tradescout-logo-circle.png",
+    "/logo.png",
+    "/favicon.ico",
+    "/favicon.svg",
+    "/favicon-16x16.png",
+    "/favicon-32x32.png",
+    "/favicon-48x48.png",
+    "/apple-touch-icon.png",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/icon-192-maskable.png",
+    "/icon-512-maskable.png",
+  ]);
+
+  const normalizeProfileImageUrl = (candidate: unknown): string => {
+    if (typeof candidate !== "string" || !candidate.trim()) {
+      return CANONICAL_DEFAULT_PROFILE_IMAGE_URL;
+    }
+
+    const trimmed = candidate.trim();
+    if (trimmed.startsWith("data:")) return trimmed;
+
+    try {
+      const parsed = new URL(trimmed, "https://www.thetradescout.com");
+      if (PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS.has(parsed.pathname.toLowerCase())) {
+        return CANONICAL_DEFAULT_PROFILE_IMAGE_URL;
+      }
+    } catch {
+      // Fall through to string return
+    }
+
+    return trimmed;
+  };
+
   const sanitizeUserForResponse = (user: any) => {
     if (!user) return user;
     const authorityRoles = collectAuthorityRoles(user);
@@ -1446,6 +1484,7 @@ export async function registerRoutes(app: any) {
       // county-level location. All UX prompts should key off this,
       // not off ad-hoc context checks.
       locationCommitted: hasCanonicalLocation,
+      profileImageUrl: normalizeProfileImageUrl((user as any)?.profileImageUrl),
       profileVersion:
         typeof (user as any).profileVersion === "number" ? (user as any).profileVersion : 0,
       password: undefined,
@@ -5303,7 +5342,7 @@ export async function registerRoutes(app: any) {
           : null,
         firstName: user.firstName,
         lastName: user.lastName,
-        profileImageUrl: user.profileImageUrl,
+        profileImageUrl: normalizeProfileImageUrl(user.profileImageUrl),
         city: user.city,
         state: user.state,
         roles: user.roles || [user.role],
