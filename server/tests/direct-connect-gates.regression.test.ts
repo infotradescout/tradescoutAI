@@ -167,7 +167,7 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain(
       "Manage mode keeps request state and response state together."
     );
-    expect(directConnectShellFile).toContain("Send to pros");
+    expect(directConnectShellFile).toContain("Route to more pros");
     expect(directConnectShellFile).toContain("Check replies");
   });
 
