@@ -1920,9 +1920,10 @@ export async function registerRoutes(app: any) {
       const county = typeof body.county === "string" ? body.county.trim() : undefined;
 
       // Canonical location fields (preferred)
-      const stateCode = typeof body.stateCode === "string" ? body.stateCode.trim() : state;
-      const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : undefined;
-      const countyName = typeof body.countyName === "string" ? body.countyName.trim() : county;
+      let stateCode = typeof body.stateCode === "string" ? body.stateCode.trim() : state;
+      stateCode = typeof stateCode === "string" ? stateCode.toUpperCase() : stateCode;
+      let countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : undefined;
+      let countyName = typeof body.countyName === "string" ? body.countyName.trim() : county;
 
       const phone = typeof body.phone === "string" ? body.phone.trim() : "";
       const claimBusinessId =
@@ -1996,6 +1997,51 @@ export async function registerRoutes(app: any) {
 
       if (!acceptTerms) {
         return res.status(400).json({ message: "You must accept the Terms of Service" });
+      }
+
+      // Fail-soft county inference for signup flows where users skip county selection.
+      if (
+        (!countyFips || !/^\d{5}$/.test(countyFips)) &&
+        city &&
+        /^[A-Z]{2}$/.test(String(stateCode || ""))
+      ) {
+        try {
+          const inferred = await inferCountyFromCityState({
+            city,
+            stateCode: String(stateCode),
+            zipCode: zipCode || "",
+          });
+
+          const canonicalCandidates: Array<{
+            countyFips: string;
+            countyName: string;
+            cityMatch: boolean;
+          }> = [];
+          for (const candidate of inferred.candidates || []) {
+            const countyRecord = await storage.getCountyByFips(String(candidate.countyFips || ""));
+            if (!countyRecord) continue;
+            if (String(countyRecord.stateCode || "").toUpperCase() !== String(stateCode)) continue;
+            canonicalCandidates.push({
+              countyFips: countyRecord.fips,
+              countyName: countyRecord.name,
+              cityMatch: Boolean(candidate.cityMatch),
+            });
+          }
+
+          const deduped = Array.from(
+            new Map(canonicalCandidates.map((entry) => [entry.countyFips, entry])).values()
+          );
+          const cityMatches = deduped.filter((entry) => entry.cityMatch);
+          const inferredCounty =
+            deduped.length === 1 ? deduped[0] : cityMatches.length === 1 ? cityMatches[0] : null;
+
+          if (inferredCounty) {
+            countyFips = inferredCounty.countyFips;
+            if (!countyName) countyName = inferredCounty.countyName;
+          }
+        } catch (inferenceError) {
+          console.warn("[auth/register] Failed to infer county from city/state", inferenceError);
+        }
       }
 
       // Check if user already exists

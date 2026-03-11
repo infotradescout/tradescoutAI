@@ -36,8 +36,9 @@ const registerSchema = z
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     address: z.string().min(5, "Please enter your address for neighborhood verification"),
+    city: z.string().min(2, "City is required"),
     state: z.string().min(2, "State is required"),
-    county: z.string().min(2, "County is required"),
+    county: z.string().optional(),
     userTypes: z.array(z.string()).min(1, "Please select at least one user type"),
     acceptTerms: z.boolean().refine((val) => val === true, "You must accept the Terms of Service"),
   })
@@ -70,6 +71,7 @@ export default function Register() {
       firstName: "",
       lastName: "",
       address: "",
+      city: "",
       state: "",
       county: "",
       userTypes: [],
@@ -95,12 +97,38 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: Omit<RegisterFormData, "confirmPassword">) => {
+      const stateCode = String(data.state || "")
+        .trim()
+        .toUpperCase();
+      let resolvedCountyFips = String(selectedCountyFips || "").trim();
+      let resolvedCountyName = String(selectedCountyName || data.county || "").trim();
+
+      // Allow county selection to be skipped by inferring from city + state.
+      if (!resolvedCountyFips && data.city.trim().length >= 2 && /^[A-Z]{2}$/.test(stateCode)) {
+        try {
+          const params = new URLSearchParams({
+            city: data.city.trim(),
+            state: stateCode,
+          });
+          const inferRes = await fetch(`/api/counties/infer?${params.toString()}`);
+          if (inferRes.ok) {
+            const inferred = await inferRes.json();
+            if (inferred?.inferred?.countyFips) {
+              resolvedCountyFips = String(inferred.inferred.countyFips).trim();
+              resolvedCountyName = String(inferred.inferred.countyName || "").trim();
+            }
+          }
+        } catch {
+          // Fail-soft: server-side registration also attempts county inference.
+        }
+      }
+
       const payload: any = {
         ...data,
         // Include canonical location fields
-        stateCode: data.state, // StateCountySelector sets 'state' to the stateCode
-        countyFips: selectedCountyFips,
-        countyName: selectedCountyName || data.county,
+        stateCode, // StateCountySelector sets 'state' to the stateCode
+        countyFips: resolvedCountyFips || undefined,
+        countyName: resolvedCountyName || undefined,
       };
       if (createdViaScout) {
         payload.source = "scout";
@@ -360,6 +388,27 @@ export default function Register() {
                 </div>
 
                 <div>
+                  <Label htmlFor="city" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    City
+                  </Label>
+                  <Input
+                    id="city"
+                    {...form.register("city")}
+                    className="mt-1"
+                    placeholder="Austin"
+                  />
+                  {form.formState.errors.city && (
+                    <p className="text-red-400 text-sm mt-1">
+                      {form.formState.errors.city.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div />
+                <div>
                   <Label className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     State / County
@@ -405,7 +454,7 @@ export default function Register() {
               <div>
                 <p className="text-xs text-white/50 mt-1">
                   We use your state and county for neighborhood verification, local feeds, and
-                  matching. You can update this later in your profile settings.
+                  matching. If you skip county, TradeScout will auto-detect it from city and state.
                 </p>
               </div>
 
