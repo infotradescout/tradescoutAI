@@ -303,6 +303,19 @@ export default function UserManagement() {
     return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   };
 
+  const formatRelativeDateTime = (iso: string | null) => {
+    if (!iso) return "Unknown";
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return "Unknown";
+    return parsed.toLocaleString();
+  };
+
+  const openUserFromActivity = (entry: { id: string }) => {
+    const matched = users.find((user) => user.id === entry.id);
+    if (!matched) return;
+    openEditDialog(matched);
+  };
+
   const getRoleInfo = (roleName: string) => {
     return (
       AVAILABLE_ROLES.find((role) => role.value === roleName) || {
@@ -566,26 +579,66 @@ export default function UserManagement() {
                     </div>
 
                     <div className="rounded-md border border-white/10 bg-black/20 p-3">
-                      <div className="text-xs font-medium mb-2">Most consistently active (30d)</div>
+                      <div className="text-xs font-medium mb-2">Active today users</div>
                       <div className="space-y-2 max-h-44 overflow-auto pr-1">
-                        {(dailyActivity.topActiveUsers || []).slice(0, 8).map((entry) => (
+                        {(dailyActivity.today.users || []).slice(0, 10).map((entry) => (
                           <div key={entry.id} className="text-xs border-b border-white/5 pb-1">
-                            <div className="font-medium">
-                              {entry.firstName || entry.lastName
-                                ? `${entry.firstName} ${entry.lastName}`.trim()
-                                : entry.email}
+                            <div className="flex items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openUserFromActivity(entry)}
+                                className="font-medium text-left hover:text-ts-orange transition-colors"
+                              >
+                                {entry.firstName || entry.lastName
+                                  ? `${entry.firstName} ${entry.lastName}`.trim()
+                                  : entry.email}
+                              </button>
+                              <span className="text-muted-foreground">
+                                {entry.eventCount} events
+                              </span>
                             </div>
                             <div className="text-muted-foreground">
-                              {entry.activeDays} active days · {entry.totalEvents} events
+                              Last active: {formatRelativeDateTime(entry.lastEventAt)}
                             </div>
                           </div>
                         ))}
-                        {!dailyActivity.topActiveUsers?.length && (
+                        {!dailyActivity.today.users?.length && (
                           <div className="text-xs text-muted-foreground">
-                            No activity recorded in the selected window.
+                            No users active yet today.
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-white/10 bg-black/20 p-3">
+                    <div className="text-xs font-medium mb-2">Most consistently active (30d)</div>
+                    <div className="space-y-2 max-h-44 overflow-auto pr-1">
+                      {(dailyActivity.topActiveUsers || []).slice(0, 8).map((entry) => (
+                        <div key={entry.id} className="text-xs border-b border-white/5 pb-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openUserFromActivity(entry)}
+                              className="font-medium text-left hover:text-ts-orange transition-colors"
+                            >
+                              {entry.firstName || entry.lastName
+                                ? `${entry.firstName} ${entry.lastName}`.trim()
+                                : entry.email}
+                            </button>
+                            <span className="text-muted-foreground">{entry.activeDays} days</span>
+                          </div>
+                          <div className="text-muted-foreground">
+                            {entry.totalEvents} events total · last active{" "}
+                            {formatRelativeDateTime(entry.lastEventAt)}
+                          </div>
+                        </div>
+                      ))}
+                      {!dailyActivity.topActiveUsers?.length && (
+                        <div className="text-xs text-muted-foreground">
+                          No activity recorded in the selected window.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
