@@ -499,10 +499,11 @@ export default function PreScoutSetup() {
           code === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY"
             ? "An account with this email already exists. Sign in with Google/Facebook or reset your password."
             : "An account with this email already exists. Sign in to continue.";
-        setAuthModeAndSyncUrl("signin");
+        // Keep create-account mode active so users see the exact failure context
+        // and can choose to switch modes explicitly.
+        setCreateError(explicitMessage);
+        setCreateErrorCode(code ?? "AUTH_ACCOUNT_EXISTS");
         setSignInEmail(email);
-        setSignInError(explicitMessage);
-        setSignInErrorCode(code);
         toast({
           title: "Account exists",
           description: explicitMessage,
