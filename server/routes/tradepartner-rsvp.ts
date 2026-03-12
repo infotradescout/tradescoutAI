@@ -5,7 +5,6 @@ import { emailService } from "../services/emailService";
 
 const router = Router();
 
-const PARTNER_SLUG = "cumulus-media";
 const EVENT_LABEL = "TradeScout x Cumulus Media Lunch + Local Business Meetup";
 
 const RSVP_COUNTIES: Record<string, string> = {
@@ -61,8 +60,9 @@ function userText(user: Record<string, unknown>, key: string, maxLen: number): s
 }
 
 router.post("/", async (req: Request, res: Response) => {
+  const partnerSlug = cleanString(req.body?.partnerSlug, 120).toLowerCase() || "cumulus-media";
   const countySlug = cleanString(req.body?.countySlug, 80).toLowerCase();
-  const countyLabel = RSVP_COUNTIES[countySlug];
+  let countyLabel = RSVP_COUNTIES[countySlug];
 
   if (!countySlug || !countyLabel) {
     return res.status(400).json({ error: "Please select a supported county meeting." });
@@ -133,11 +133,34 @@ router.post("/", async (req: Request, res: Response) => {
 
   try {
     await ensureTradePartnerTables();
+    const meetingLookup = await pool.query(
+      `
+      SELECT county_label, event_label
+      FROM tradepartner_campaign_meetings
+      WHERE partner_slug = $1
+        AND county_slug = $2
+        AND meeting_date = $3::date
+        AND is_active = TRUE
+      LIMIT 1
+      `,
+      [partnerSlug, countySlug, meetingDate]
+    );
+
+    if (meetingLookup.rows.length > 0) {
+      const row = meetingLookup.rows[0] as Record<string, unknown>;
+      countyLabel = cleanString(row.county_label, 120) || countyLabel;
+    } else if (!countyLabel) {
+      return res.status(400).json({ error: "Please select a supported county meeting." });
+    }
+
+    const eventLabelFromMeeting =
+      cleanString((meetingLookup.rows[0] as any)?.event_label, 220) || EVENT_LABEL;
+
     const insertResult = await pool.query(insertQuery, [
-      PARTNER_SLUG,
+      partnerSlug,
       countySlug,
       countyLabel,
-      EVENT_LABEL,
+      eventLabelFromMeeting,
       meetingDate,
       businessName,
       contactName,
@@ -170,9 +193,9 @@ router.post("/", async (req: Request, res: Response) => {
       void emailService
         .sendEmail({
           to: recipients,
-          subject: `New Cumulus RSVP: ${businessName} (${countyLabel})`,
+          subject: `New TradePartner RSVP: ${businessName} (${countyLabel})`,
           html: `<h2>New TradePartner RSVP</h2>
-<p><strong>Partner:</strong> Cumulus Media</p>
+<p><strong>Partner:</strong> ${escapeHtml(partnerSlug)}</p>
 <p><strong>County meeting:</strong> ${safeCounty}</p>
 <p><strong>Meeting date:</strong> ${safeMeetingDate}</p>
 <p><strong>Business:</strong> ${safeBusiness}</p>
@@ -184,7 +207,7 @@ router.post("/", async (req: Request, res: Response) => {
 <p><strong>Notes:</strong><br>${safeNotes}</p>`,
           text: [
             "New TradePartner RSVP",
-            "Partner: Cumulus Media",
+            `Partner: ${partnerSlug}`,
             `County meeting: ${countyLabel}`,
             `Meeting date: ${meetingDate}`,
             `Business: ${businessName}`,

@@ -25823,6 +25823,34 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     deletePromotionHandler as any
   );
 
+  const {
+    getTradePartnerCampaignPublicHandler,
+    listTradePartnerCampaignsAdminHandler,
+    getTradePartnerCampaignAdminHandler,
+    upsertTradePartnerCampaignAdminHandler,
+  } = await import("./routes/tradepartner-campaigns");
+
+  // TradePartner campaign system (public + super-admin controls)
+  app.get("/api/tradepartner-campaigns/:partnerSlug", getTradePartnerCampaignPublicHandler as any);
+  app.get(
+    "/api/admin/tradepartner-campaigns",
+    isAuthenticated,
+    isSuperAdmin,
+    listTradePartnerCampaignsAdminHandler as any
+  );
+  app.get(
+    "/api/admin/tradepartner-campaigns/:partnerSlug",
+    isAuthenticated,
+    isSuperAdmin,
+    getTradePartnerCampaignAdminHandler as any
+  );
+  app.put(
+    "/api/admin/tradepartner-campaigns/:partnerSlug",
+    isAuthenticated,
+    isSuperAdmin,
+    upsertTradePartnerCampaignAdminHandler as any
+  );
+
   // Phase 2: Boost System Routes for Realtors & Dealers
   const { getAvailableBoosts, purchaseBoost, getUserBoosts, getBoostAnalytics, cancelBoost } =
     await import("./routes/boosts");

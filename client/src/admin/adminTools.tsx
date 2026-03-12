@@ -200,6 +200,7 @@ const AdminAuditLog = React.lazy(() => import("@/pages/admin-audit-log"));
 const AdminAuthorityPolicy = React.lazy(() => import("@/pages/admin-authority-policy"));
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
 const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
+const AdminTradePartnerCampaigns = React.lazy(() => import("@/pages/admin-tradepartner-campaigns"));
 const AdminTradePartnerInterest = React.lazy(() => import("@/pages/admin-tradepartner-interest"));
 const AdminControl = React.lazy(() => import("@/pages/admin-control"));
 const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"));
@@ -544,6 +545,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Megaphone,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminPromotions />,
+      }),
+      tool({
+        id: "tradepartner-campaigns",
+        label: "TradePartner Campaigns",
+        path: "/admin/tradepartner-campaigns",
+        icon: Megaphone,
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <AdminTradePartnerCampaigns />,
       }),
       tool({
         id: "platform-analytics",

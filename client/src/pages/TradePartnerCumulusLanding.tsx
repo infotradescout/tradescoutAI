@@ -14,6 +14,7 @@ const DEAL_AMOUNT = 2000;
 const RSVP_RETURN_PATH = "/tradepartners/cumulus-media?rsvp=1";
 const POST_RSVP_NEXT = "/scout?onboarding=true";
 const CUMULUS_BASE_PATH = "/tradepartners/cumulus-media";
+const PARTNER_SLUG = "cumulus-media";
 
 type CountySeoConfig = {
   slug: string;
@@ -22,6 +23,37 @@ type CountySeoConfig = {
   displayLabel: string;
   localFocus: string;
   neighborhoods: string[];
+};
+
+type CampaignMeeting = {
+  meetingId: string;
+  countySlug: string;
+  countyLabel: string;
+  meetingDate: string;
+  dateLabel: string;
+  teaser: string;
+  eventLabel?: string;
+  sortOrder?: number;
+};
+
+type CampaignConfig = {
+  partnerSlug: string;
+  partnerName: string;
+  campaignTitle: string;
+  heroKicker: string;
+  heroHeadline: string;
+  heroSubhead: string;
+  dealAmountUsd: number;
+  dealTerms: string;
+  coverageScope: string;
+  focusNote: string;
+  ctaLabel: string;
+  ctaUrl?: string;
+  seoKeywords?: string;
+  benefits: string[];
+  counties: CountySeoConfig[];
+  meetings: CampaignMeeting[];
+  isActive: boolean;
 };
 
 const COUNTY_SEO: Record<string, CountySeoConfig> = {
@@ -171,11 +203,13 @@ function buildStructuredData(args: {
   canonicalUrl: string;
   activeCounty: CountySeoConfig | null;
   visibleSlots: Array<(typeof MEETING_SLOTS)[number]>;
+  partnerName: string;
+  dealAmountUsd: number;
 }) {
-  const { canonicalUrl, activeCounty, visibleSlots } = args;
+  const { canonicalUrl, activeCounty, visibleSlots, partnerName, dealAmountUsd } = args;
   const webPageName = activeCounty
-    ? `TradeScout x Cumulus Media in ${activeCounty.displayLabel}`
-    : "TradeScout x Cumulus Media County Meetings";
+    ? `TradeScout x ${partnerName} in ${activeCounty.displayLabel}`
+    : `TradeScout x ${partnerName} County Meetings`;
 
   const faqItems = [
     {
@@ -183,7 +217,7 @@ function buildStructuredData(args: {
       name: "Is the $2,000 ad credit really unconditional?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. The TradeDeal is presented as no catch, no minimum spend, and no hidden terms.",
+        text: `Yes. The TradeDeal is presented as unconditional ($${dealAmountUsd.toLocaleString()}) with no catch, no minimum spend, and no hidden terms.`,
       },
     },
     {
@@ -206,7 +240,7 @@ function buildStructuredData(args: {
 
   const events = visibleSlots.map((slot) => ({
     "@type": "Event",
-    name: `TradeScout x Cumulus Meeting - ${slot.countyLabel}`,
+    name: `TradeScout x ${partnerName} Meeting - ${slot.countyLabel}`,
     startDate: `${slot.meetingDate}T12:00:00-05:00`,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     eventStatus: "https://schema.org/EventScheduled",
@@ -241,8 +275,8 @@ function buildStructuredData(args: {
         name: webPageName,
         url: canonicalUrl,
         description: activeCounty
-          ? `Cumulus Media $2,000 free ad TradeDeal for ${activeCounty.displayLabel}. RSVP for local meeting + free lunch.`
-          : "Cumulus Media $2,000 free ad TradeDeal with county meeting RSVP and free lunch.",
+          ? `${partnerName} $${dealAmountUsd.toLocaleString()} free ad TradeDeal for ${activeCounty.displayLabel}. RSVP for local meeting + free lunch.`
+          : `${partnerName} $${dealAmountUsd.toLocaleString()} free ad TradeDeal with county meeting RSVP and free lunch.`,
       },
       {
         "@type": "FAQPage",
@@ -257,6 +291,7 @@ export default function TradePartnerCumulusLanding() {
   const [location, navigate] = useLocation();
   const { user, isAuthenticated, refetch } = useAuth();
   const queryClient = useQueryClient();
+  const [campaignConfig, setCampaignConfig] = useState<CampaignConfig | null>(null);
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -268,9 +303,44 @@ export default function TradePartnerCumulusLanding() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadCampaign = async () => {
+      try {
+        const campaign = (await apiRequest(
+          "GET",
+          `/api/tradepartner-campaigns/${encodeURIComponent(PARTNER_SLUG)}`
+        )) as CampaignConfig;
+        if (!cancelled && campaign && campaign.isActive) {
+          setCampaignConfig(campaign);
+        }
+      } catch {
+        if (!cancelled) setCampaignConfig(null);
+      }
+    };
+    void loadCampaign();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const pathOnly = useMemo(() => getPathname(String(location || "")), [location]);
+  const fallbackCounties = useMemo(() => Object.values(COUNTY_SEO), []);
+  const campaignCounties = useMemo(() => {
+    if (Array.isArray(campaignConfig?.counties) && campaignConfig.counties.length > 0) {
+      return campaignConfig.counties;
+    }
+    return fallbackCounties;
+  }, [campaignConfig?.counties, fallbackCounties]);
+  const campaignCountyBySlug = useMemo(() => {
+    return campaignCounties.reduce<Record<string, CountySeoConfig>>((acc, county) => {
+      acc[county.slug] = county;
+      return acc;
+    }, {});
+  }, [campaignCounties]);
+
   const activeCountySlug = useMemo(() => getCountySlugFromPath(pathOnly), [pathOnly]);
-  const activeCounty = activeCountySlug ? COUNTY_SEO[activeCountySlug] : null;
+  const activeCounty = activeCountySlug ? campaignCountyBySlug[activeCountySlug] || null : null;
 
   const locationParams = useMemo(() => {
     const rawLocation = String(location || "");
@@ -278,12 +348,26 @@ export default function TradePartnerCumulusLanding() {
     return new URLSearchParams(search);
   }, [location]);
 
+  const campaignMeetings = useMemo(() => {
+    if (Array.isArray(campaignConfig?.meetings) && campaignConfig.meetings.length > 0) {
+      return campaignConfig.meetings.map((meeting) => ({
+        id: meeting.meetingId,
+        countySlug: meeting.countySlug,
+        countyLabel: meeting.countyLabel,
+        meetingDate: meeting.meetingDate,
+        dateLabel: meeting.dateLabel,
+        teaser: meeting.teaser,
+      }));
+    }
+    return MEETING_SLOTS;
+  }, [campaignConfig?.meetings]);
+
   const visibleMeetingSlots = useMemo(
     () =>
       activeCounty
-        ? MEETING_SLOTS.filter((slot) => slot.countySlug === activeCounty.slug)
-        : MEETING_SLOTS,
-    [activeCounty]
+        ? campaignMeetings.filter((slot) => slot.countySlug === activeCounty.slug)
+        : campaignMeetings,
+    [activeCounty, campaignMeetings]
   );
 
   useEffect(() => {
@@ -305,24 +389,42 @@ export default function TradePartnerCumulusLanding() {
   const prefilledBusinessName = getUserBusinessName(userRecord);
   const emailVerified = userRecord?.emailVerified === true;
   const signInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(rsvpReturnPath)}`;
+  const campaignName = campaignConfig?.partnerName || "Cumulus Media";
+  const campaignDealAmount =
+    typeof campaignConfig?.dealAmountUsd === "number" && campaignConfig.dealAmountUsd > 0
+      ? campaignConfig.dealAmountUsd
+      : DEAL_AMOUNT;
+  const campaignBenefits =
+    Array.isArray(campaignConfig?.benefits) && campaignConfig.benefits.length > 0
+      ? campaignConfig.benefits
+      : BENEFITS;
+  const campaignHeroHeadline = campaignConfig?.heroHeadline?.trim() || "TradeScout x Cumulus Media";
+  const campaignHeroSubhead = campaignConfig?.heroSubhead?.trim() || "";
+  const campaignFocusNote = campaignConfig?.focusNote?.trim() || "";
+  const campaignCoverageScope = campaignConfig?.coverageScope || "national";
+  const computedCoverageNote =
+    campaignCoverageScope === "national"
+      ? campaignFocusNote ||
+        "Offer applies across Cumulus markets. Current launch focus is Mobile County AL, Escambia County FL, and Okaloosa County FL."
+      : campaignFocusNote;
 
   const seoTitle = activeCounty
-    ? `$2,000 Free Ads + Cumulus RSVP | ${activeCounty.displayLabel}`
-    : "$2,000 Free Ads + Cumulus County RSVP";
+    ? `$${campaignDealAmount.toLocaleString()} Free Ads + ${campaignName} RSVP | ${activeCounty.displayLabel}`
+    : `$${campaignDealAmount.toLocaleString()} Free Ads + ${campaignName} County RSVP`;
 
   const seoDescription = activeCounty
-    ? `TradeScout x Cumulus Media in ${activeCounty.displayLabel}. Claim the unconditional $2,000 free-ad TradeDeal, RSVP for free lunch, and connect with local businesses and corporate partners.`
-    : "TradeScout x Cumulus Media: unconditional $2,000 free-ad TradeDeal, county meeting RSVP, and free lunch in Mobile, Escambia, and Okaloosa counties.";
+    ? `TradeScout x ${campaignName} in ${activeCounty.displayLabel}. Claim the unconditional $${campaignDealAmount.toLocaleString()} free-ad TradeDeal, RSVP for free lunch, and connect with local businesses and corporate partners.`
+    : `TradeScout x ${campaignName}: unconditional $${campaignDealAmount.toLocaleString()} free-ad TradeDeal, county meeting RSVP, and free lunch in Mobile, Escambia, and Okaloosa counties.`;
 
   const seoCanonicalPath = activeCounty
     ? `${CUMULUS_BASE_PATH}/${activeCounty.slug}`
     : CUMULUS_BASE_PATH;
   const seoCanonical = `https://www.thetradescout.com${seoCanonicalPath}`;
   const seoKeywords = activeCounty
-    ? `${DEFAULT_KEYWORDS}, ${activeCounty.countyName} ${activeCounty.stateCode}, ${activeCounty.neighborhoods.join(
+    ? `${campaignConfig?.seoKeywords || DEFAULT_KEYWORDS}, ${activeCounty.countyName} ${activeCounty.stateCode}, ${activeCounty.neighborhoods.join(
         ", "
       )}`
-    : DEFAULT_KEYWORDS;
+    : campaignConfig?.seoKeywords || DEFAULT_KEYWORDS;
 
   const structuredData = useMemo(
     () =>
@@ -330,17 +432,19 @@ export default function TradePartnerCumulusLanding() {
         canonicalUrl: seoCanonical,
         activeCounty,
         visibleSlots: visibleMeetingSlots,
+        partnerName: campaignName,
+        dealAmountUsd: campaignDealAmount,
       }),
-    [seoCanonical, activeCounty, visibleMeetingSlots]
+    [seoCanonical, activeCounty, visibleMeetingSlots, campaignName, campaignDealAmount]
   );
 
   const countyLandingLinks = useMemo(
     () =>
-      Object.values(COUNTY_SEO).map((county) => ({
+      campaignCounties.map((county) => ({
         label: county.displayLabel,
         href: `${CUMULUS_BASE_PATH}/${county.slug}`,
       })),
-    []
+    [campaignCounties]
   );
 
   useEffect(() => {
@@ -464,6 +568,7 @@ export default function TradePartnerCumulusLanding() {
     try {
       setSubmitting(true);
       await apiRequest("POST", "/api/tradepartner-rsvp", {
+        partnerSlug: campaignConfig?.partnerSlug || PARTNER_SLUG,
         countySlug: selectedSlot.countySlug,
         meetingDate: selectedSlot.meetingDate,
         businessName: prefilledBusinessName,
@@ -512,14 +617,15 @@ export default function TradePartnerCumulusLanding() {
           <p className="tpc-kicker">TradePartner Campaign</p>
           <h1>
             {activeCounty
-              ? `TradeScout x Cumulus Media | ${activeCounty.displayLabel}`
-              : "TradeScout x Cumulus Media"}
+              ? `${campaignHeroHeadline} | ${activeCounty.displayLabel}`
+              : campaignHeroHeadline}
           </h1>
           <p className="tpc-subhead">
-            Cumulus Media is providing an unconditional{" "}
-            <strong>${DEAL_AMOUNT.toLocaleString()} in free ads</strong> to the TradeScout network.
-            No catch. No minimum spend. No hidden terms.
+            {campaignHeroSubhead || `${campaignName} is providing an unconditional `}
+            <strong>${campaignDealAmount.toLocaleString()} in free ads</strong> to the TradeScout
+            network. {campaignConfig?.dealTerms || "No catch. No minimum spend. No hidden terms."}
             {activeCounty ? ` This page is scoped to ${activeCounty.displayLabel}.` : ""}
+            {!activeCounty && computedCoverageNote ? ` ${computedCoverageNote}` : ""}
           </p>
           <div className="tpc-hero-actions">
             <button
@@ -545,7 +651,7 @@ export default function TradePartnerCumulusLanding() {
             <Megaphone size={22} />
           </div>
           <div>
-            <h2>TradeDeal: ${DEAL_AMOUNT.toLocaleString()} Free Ad Credit</h2>
+            <h2>TradeDeal: ${campaignDealAmount.toLocaleString()} Free Ad Credit</h2>
             <p>
               Every participating TradeScout county network gets access to the ad credit allocation.
               The deal is direct and unconditional so local businesses can activate marketing
@@ -783,14 +889,14 @@ export default function TradePartnerCumulusLanding() {
         ) : null}
 
         <section className="tpc-panel tpc-rise tpc-delay-2">
-          <h2>Why Market With Cumulus</h2>
+          <h2>Why Market With {campaignName}</h2>
           <p>
-            Cumulus combines local station influence with large-scale audio network distribution.
-            That gives small and mid-sized businesses practical county reach and larger growth
-            options on one partner stack.
+            {campaignName} combines local station influence with large-scale audio network
+            distribution. That gives small and mid-sized businesses practical county reach and
+            larger growth options on one partner stack.
           </p>
           <div className="tpc-benefit-grid">
-            {BENEFITS.map((benefit) => (
+            {campaignBenefits.map((benefit) => (
               <article key={benefit} className="tpc-benefit-card">
                 <Radio size={16} />
                 <span>{benefit}</span>
