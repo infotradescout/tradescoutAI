@@ -52,6 +52,7 @@ import preferredSourceRouter from "./routes/preferred-source";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import tradePartnerLandingRouter from "./routes/tradepartner-landing";
 import partnerInterestRouter from "./routes/partner-interest";
+import tradePartnerRsvpRouter from "./routes/tradepartner-rsvp";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
@@ -25584,6 +25585,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/admin/community-builder", adminCommunityBuilderRouter);
   app.use("/api/tradepartner-landing", tradePartnerLandingRouter);
   app.use("/api/partner-interest", partnerInterestRouter);
+  app.use("/api/tradepartner-rsvp", tradePartnerRsvpRouter);
 
   // Register Community Vault MVP routes (profile-scoped)
   app.use("/api/community-vault", communityVaultRouter);

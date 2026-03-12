@@ -1069,6 +1069,32 @@ export const tradepartnerInterestSubmissions = pgTable(
   ]
 );
 
+export const tradepartnerRsvpSubmissions = pgTable(
+  "tradepartner_rsvp_submissions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    partnerSlug: text("partner_slug").notNull(),
+    countySlug: text("county_slug").notNull(),
+    countyLabel: text("county_label").notNull(),
+    eventLabel: text("event_label").notNull(),
+    meetingDate: date("meeting_date"),
+    businessName: text("business_name").notNull(),
+    contactName: text("contact_name").notNull(),
+    contactEmail: text("contact_email").notNull(),
+    contactPhone: text("contact_phone"),
+    attendeeCount: integer("attendee_count").notNull().default(1),
+    lunchAttendees: integer("lunch_attendees").notNull().default(1),
+    notes: text("notes"),
+    userAgent: text("user_agent"),
+    ipAddress: text("ip_address"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_tradepartner_rsvp_partner_county").on(table.partnerSlug, table.countySlug),
+    index("idx_tradepartner_rsvp_created_at").on(table.createdAt),
+  ]
+);
+
 // Trusted devices table for master admin persistent sessions
 export const trustedDevices = pgTable(
   "trusted_devices",

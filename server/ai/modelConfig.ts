@@ -1,14 +1,21 @@
-export const GEMINI_MODEL_DEFAULT = "gemini-2.5-flash";
+export const GEMINI_MODEL_DEFAULT = "gemini-3.1-flash-lite";
 
-const ALLOWED_GEMINI_MODELS = new Set(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"]);
-
-const KNOWN_BAD_MODEL_NAMES = new Set([
+const ALLOWED_GEMINI_MODELS = new Set([
   "gemini-3.1-flash-lite",
   "gemini-3.1-flash",
-  "gemini-3.1-pro",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.5-pro",
 ]);
 
-const GEMINI_MODEL_FALLBACKS_DEFAULT = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
+const KNOWN_BAD_MODEL_NAMES = new Set(["gemini-3.0-flash-exp", "gemini-2.0-flash-exp"]);
+
+const GEMINI_MODEL_FALLBACKS_DEFAULT = [
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.5-pro",
+];
 
 function splitModels(raw: string | undefined): string[] {
   return String(raw || "")
@@ -36,7 +43,6 @@ function normalizeCandidate(modelName: string): string | null {
     .replace(/^models\//, "");
   if (!normalized) return null;
   if (KNOWN_BAD_MODEL_NAMES.has(normalized)) return null;
-  if (/^gemini-3(\.|$)/.test(normalized)) return null;
   if (!isAllowedGeminiModel(normalized)) return null;
   return normalized;
 }

@@ -38,6 +38,34 @@ CREATE INDEX IF NOT EXISTS idx_tradepartner_interest_county_slug
 
 CREATE INDEX IF NOT EXISTS idx_tradepartner_interest_created_at
   ON tradepartner_interest_submissions(created_at);
+
+CREATE TABLE IF NOT EXISTS tradepartner_rsvp_submissions (
+  id BIGSERIAL PRIMARY KEY,
+  partner_slug TEXT NOT NULL,
+  county_slug TEXT NOT NULL,
+  county_label TEXT NOT NULL,
+  event_label TEXT NOT NULL,
+  meeting_date DATE,
+  business_name TEXT NOT NULL,
+  contact_name TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  contact_phone TEXT,
+  attendee_count INTEGER NOT NULL DEFAULT 1,
+  lunch_attendees INTEGER NOT NULL DEFAULT 1,
+  notes TEXT,
+  user_agent TEXT,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS meeting_date DATE;
+
+CREATE INDEX IF NOT EXISTS idx_tradepartner_rsvp_partner_county
+  ON tradepartner_rsvp_submissions(partner_slug, county_slug);
+
+CREATE INDEX IF NOT EXISTS idx_tradepartner_rsvp_created_at
+  ON tradepartner_rsvp_submissions(created_at);
 `;
 
 let ensurePromise: Promise<void> | null = null;
