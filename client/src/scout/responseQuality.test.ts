@@ -58,4 +58,16 @@ describe("enforceResponseQualityContract", () => {
     expect(questionCount).toBe(1);
     expect(result).toContain("Want me to open Direct Connect now?");
   });
+
+  it("does not force generic action copy on recovery/system messages", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "what can you do for me",
+      content: "I'm having trouble generating a full answer right now, but I can still route you.",
+      hasActionOptions: true,
+    });
+
+    expect(result).not.toContain("Next: pick a button below.");
+    expect(result).not.toContain("Which option should I run first?");
+    expect(result).toContain("having trouble generating");
+  });
 });

@@ -37,6 +37,7 @@ import { UserBadges } from "@/components/user-badges";
 import { CommunityCTA } from "./CommunityCTA";
 import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
+import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 
 const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
 const UPLOAD_FALLBACK_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"] as const;
@@ -404,7 +405,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-ts-orange/70 group-hover:ring-ts-orange/70">
                     <AvatarImage src={post.author.avatar} />
                     <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                      {post.author.name?.[0] || "U"}
+                      <TradeScoutLogo size="sm" className="h-8 w-8 bg-transparent ring-0" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="space-y-1">
@@ -483,7 +484,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                   <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-ts-orange/70">
                     <AvatarImage src={post.author?.avatar} />
                     <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                      {post.author?.name?.[0] || "U"}
+                      <TradeScoutLogo size="sm" className="h-8 w-8 bg-transparent ring-0" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="space-y-1">

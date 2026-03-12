@@ -120,6 +120,35 @@ export default function DirectConnectPros() {
     },
   });
 
+  const showStateDirectoryFallback =
+    showEmptyState &&
+    !directoryFallbackLoading &&
+    directoryFallback.length === 0 &&
+    /^[A-Z]{2}$/.test(String(stateCode || "").toUpperCase());
+
+  const { data: stateDirectoryFallback = [], isLoading: stateDirectoryFallbackLoading } = useQuery<
+    DirectoryBusinessFallback[]
+  >({
+    queryKey: ["/api/businesses", "public-directory-state-fallback", stateCode, effectiveTradeSlug],
+    enabled: showStateDirectoryFallback,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("public", "1");
+      params.set("claimed", "any");
+      params.set("limit", "12");
+      params.set("offset", "0");
+      params.set("stateCode", String(stateCode || "").toUpperCase());
+      if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+
+      const payload = (await apiRequest(
+        "GET",
+        `/api/businesses?${params.toString()}`
+      )) as DirectoryResponse;
+      return Array.isArray(payload?.items) ? payload.items : [];
+    },
+  });
+
   const handleStateChange = (value: string) => {
     setStateCode(value);
   };
@@ -261,6 +290,68 @@ export default function DirectConnectPros() {
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <Badge variant="secondary">Not verified</Badge>
                         <Badge variant="outline">County directory</Badge>
+                        {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
+                          <Badge variant="outline">Claimed profile</Badge>
+                        ) : (
+                          <Badge variant="outline">Unclaimed listing</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <Link href={`/business/${encodeURIComponent(business.slug)}`}>
+                        <Button size="sm" variant="outline">
+                          View listing
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {showStateDirectoryFallback && stateDirectoryFallbackLoading && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-3 p-6">
+            <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
+            <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
+            <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
+          </CardContent>
+        </Card>
+      )}
+
+      {showStateDirectoryFallback && stateDirectoryFallback.length > 0 && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardHeader>
+            <CardTitle className="text-sm">More businesses in {stateCode.toUpperCase()}</CardTitle>
+            <p className="text-xs text-[color:var(--text-secondary)]">
+              These listings are active in your state. Some may still need county assignment before
+              they appear in county-only routing.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {stateDirectoryFallback.map((business) => {
+              const county = business.counties?.[0];
+              return (
+                <div
+                  key={business.id}
+                  className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                        {business.name}
+                      </div>
+                      <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                        {county
+                          ? formatCountyLabel(county.fips, county.stateCode)
+                          : "County assignment pending"}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Badge variant="secondary">Not verified</Badge>
+                        <Badge variant="outline">State directory</Badge>
                         {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                           <Badge variant="outline">Claimed profile</Badge>
                         ) : (

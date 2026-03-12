@@ -18,6 +18,15 @@ const DEAD_END_PATTERNS = [
   /\btry again later\b/i,
 ];
 
+const RECOVERY_COPY_PATTERNS = [
+  /\bsystem error\b/i,
+  /\bhaving trouble generating\b/i,
+  /\bcouldn'?t generate\b/i,
+  /\bheavy demand\b/i,
+  /\brate limit\b/i,
+  /\bplease try rephrasing\b/i,
+];
+
 function collapseWhitespace(input: string): string {
   return input
     .replace(/\s+/g, " ")
@@ -35,6 +44,10 @@ function stripFiller(input: string): string {
 
 function appearsDeadEnd(input: string): boolean {
   return DEAD_END_PATTERNS.some((pattern) => pattern.test(input));
+}
+
+function isRecoveryCopy(input: string): boolean {
+  return RECOVERY_COPY_PATTERNS.some((pattern) => pattern.test(input));
 }
 
 function hasActionableLanguage(input: string): boolean {
@@ -83,6 +96,10 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
 
   if (appearsDeadEnd(output)) {
     output = "I found the best available path for this.";
+  }
+
+  if (isRecoveryCopy(output)) {
+    return collapseWhitespace(output);
   }
 
   if (hasActionOptions && !hasActionableLanguage(output)) {

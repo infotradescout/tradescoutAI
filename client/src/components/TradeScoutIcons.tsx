@@ -18,7 +18,7 @@ const sizeClasses = {
 // Central logo asset path – stored under client/public so it is served
 // as a public static asset by Vite and the production server.
 // Canonical default avatar/logo file: client/public/tradescout-logo-circle.png
-const BRAND_LOGO_URL = "/tradescout-logo-circle.png?v=6";
+const BRAND_LOGO_URL = "/tradescout-logo-circle.png?v=7";
 
 export function TradeScoutLogo({ className = "", size = "md" }: IconProps) {
   const sizeClass = sizeClasses[size];

@@ -79,7 +79,7 @@ afterEach(() => {
 
 describe("generateGeminiTextWithFallback resilience", () => {
   it("skips unavailable model (404) and succeeds on next candidate", async () => {
-    process.env.GEMINI_MODEL = "gemini-1.5-flash,gemini-1.5-flash-latest";
+    process.env.GEMINI_MODEL = "gemini-2.5-flash,gemini-2.0-flash";
     process.env.GEMINI_MODEL_FALLBACKS = "";
     process.env.GEMINI_RATE_LIMIT_RETRIES = "0";
     process.env.GEMINI_TRANSIENT_RETRIES = "0";
@@ -87,35 +87,35 @@ describe("generateGeminiTextWithFallback resilience", () => {
     process.env.GEMINI_MODEL_UNAVAILABLE_TTL_MS = "60000";
 
     const stub = createGeminiStub({
-      "gemini-1.5-flash": async () => {
+      "gemini-2.5-flash": async () => {
         throw { status: 404, message: "model not found" };
       },
-      "gemini-1.5-flash-latest": async () => "ok from fallback model",
+      "gemini-2.0-flash": async () => "ok from fallback model",
     });
 
     const result = await generateGeminiTextWithFallback(stub.gemini as any, "test prompt");
 
     expect(result.text).toBe("ok from fallback model");
-    expect(result.model).toBe("gemini-1.5-flash-latest");
-    expect(stub.countFor("gemini-1.5-flash")).toBe(1);
-    expect(stub.countFor("gemini-1.5-flash-latest")).toBe(1);
+    expect(result.model).toBe("gemini-2.0-flash");
+    expect(stub.countFor("gemini-2.5-flash")).toBe(1);
+    expect(stub.countFor("gemini-2.0-flash")).toBe(1);
 
     const second = await generateGeminiTextWithFallback(stub.gemini as any, "test prompt 2");
     expect(second.text).toBe("ok from fallback model");
     // First model should be skipped due to temporary unavailable cache.
-    expect(stub.countFor("gemini-1.5-flash")).toBe(1);
-    expect(stub.countFor("gemini-1.5-flash-latest")).toBe(2);
+    expect(stub.countFor("gemini-2.5-flash")).toBe(1);
+    expect(stub.countFor("gemini-2.0-flash")).toBe(2);
   });
 
   it("retries on 429 before succeeding on the same model", async () => {
-    process.env.GEMINI_MODEL = "gemini-1.5-flash";
+    process.env.GEMINI_MODEL = "gemini-2.5-flash";
     process.env.GEMINI_MODEL_FALLBACKS = "";
     process.env.GEMINI_RATE_LIMIT_RETRIES = "2";
     process.env.GEMINI_TRANSIENT_RETRIES = "0";
     process.env.GEMINI_RETRY_BACKOFF_MS = "1";
 
     const stub = createGeminiStub({
-      "gemini-1.5-flash": async ({ attempt }) => {
+      "gemini-2.5-flash": async ({ attempt }) => {
         if (attempt < 3) {
           throw { status: 429, message: "Too Many Requests" };
         }
@@ -126,12 +126,12 @@ describe("generateGeminiTextWithFallback resilience", () => {
     const result = await generateGeminiTextWithFallback(stub.gemini as any, "retry prompt");
 
     expect(result.text).toBe("ok after retries");
-    expect(result.model).toBe("gemini-1.5-flash");
-    expect(stub.countFor("gemini-1.5-flash")).toBe(3);
+    expect(result.model).toBe("gemini-2.5-flash");
+    expect(stub.countFor("gemini-2.5-flash")).toBe(3);
   });
 
   it("throws GeminiRateLimitError when all candidate models are rate-limited", async () => {
-    process.env.GEMINI_MODEL = "gemini-1.5-flash,gemini-2.0-flash";
+    process.env.GEMINI_MODEL = "gemini-2.5-flash,gemini-2.0-flash";
     process.env.GEMINI_MODEL_FALLBACKS = "";
     process.env.GEMINI_RATE_LIMIT_RETRIES = "0";
     process.env.GEMINI_TRANSIENT_RETRIES = "0";
@@ -155,7 +155,7 @@ describe("generateGeminiTextWithFallback resilience", () => {
   });
 
   it("short-circuits during active rate-limit cooldown and resumes after cooldown", async () => {
-    process.env.GEMINI_MODEL = "gemini-1.5-flash";
+    process.env.GEMINI_MODEL = "gemini-2.5-flash";
     process.env.GEMINI_MODEL_FALLBACKS = "";
     process.env.GEMINI_RATE_LIMIT_RETRIES = "0";
     process.env.GEMINI_TRANSIENT_RETRIES = "0";
@@ -163,7 +163,7 @@ describe("generateGeminiTextWithFallback resilience", () => {
     process.env.GEMINI_RATE_LIMIT_COOLDOWN_MS = "30";
 
     const stub = createGeminiStub({
-      "gemini-1.5-flash": async ({ attempt }) => {
+      "gemini-2.5-flash": async ({ attempt }) => {
         if (attempt === 1) throw { status: 429, message: "Too Many Requests" };
         return "ok after cooldown";
       },
@@ -172,14 +172,14 @@ describe("generateGeminiTextWithFallback resilience", () => {
     await expect(
       generateGeminiTextWithFallback(stub.gemini as any, "cooldown prompt")
     ).rejects.toBeInstanceOf(GeminiRateLimitError);
-    expect(stub.countFor("gemini-1.5-flash")).toBe(1);
+    expect(stub.countFor("gemini-2.5-flash")).toBe(1);
     expect(getGeminiFallbackRuntimeState().rateLimitCooldownRemainingMs).toBeGreaterThan(0);
 
     await expect(
       generateGeminiTextWithFallback(stub.gemini as any, "cooldown prompt second")
     ).rejects.toBeInstanceOf(GeminiRateLimitError);
     // Should not call provider again while cooldown is active.
-    expect(stub.countFor("gemini-1.5-flash")).toBe(1);
+    expect(stub.countFor("gemini-2.5-flash")).toBe(1);
 
     await new Promise((resolve) => setTimeout(resolve, 45));
 
@@ -188,19 +188,19 @@ describe("generateGeminiTextWithFallback resilience", () => {
       "cooldown prompt third"
     );
     expect(result.text).toBe("ok after cooldown");
-    expect(stub.countFor("gemini-1.5-flash")).toBe(2);
+    expect(stub.countFor("gemini-2.5-flash")).toBe(2);
     expect(getGeminiFallbackRuntimeState().rateLimitCooldownRemainingMs).toBe(0);
   });
 
   it("fails fast on fatal auth errors without cascading through all models", async () => {
-    process.env.GEMINI_MODEL = "gemini-1.5-flash,gemini-2.0-flash";
+    process.env.GEMINI_MODEL = "gemini-2.5-flash,gemini-2.0-flash";
     process.env.GEMINI_MODEL_FALLBACKS = "";
     process.env.GEMINI_RATE_LIMIT_RETRIES = "0";
     process.env.GEMINI_TRANSIENT_RETRIES = "0";
     process.env.GEMINI_RETRY_BACKOFF_MS = "1";
 
     const stub = createGeminiStub({
-      "gemini-1.5-flash": async () => {
+      "gemini-2.5-flash": async () => {
         throw { status: 401, message: "invalid API key" };
       },
       "gemini-2.0-flash": async () => "should not be used",
@@ -209,7 +209,7 @@ describe("generateGeminiTextWithFallback resilience", () => {
     await expect(
       generateGeminiTextWithFallback(stub.gemini as any, "auth prompt")
     ).rejects.toMatchObject({ status: 401 });
-    expect(stub.countFor("gemini-1.5-flash")).toBe(1);
+    expect(stub.countFor("gemini-2.5-flash")).toBe(1);
     expect(stub.countFor("gemini-2.0-flash")).toBe(0);
   });
 });

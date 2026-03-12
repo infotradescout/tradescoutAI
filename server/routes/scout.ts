@@ -10,10 +10,10 @@ import {
 import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCapabilities";
 import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
 import {
-  GeminiProvider,
-  VertexGeminiProvider,
   LLMProvider,
+  buildScoutLlmProviders,
   generateWithFallback,
+  getLlmProviderFailoverRuntimeState,
 } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
@@ -943,7 +943,12 @@ async function getCachedComprehensiveKnowledge(): Promise<string> {
 function isIntroQuestion(message: string): boolean {
   const lower = message.toLowerCase();
   const introPatterns = [
+    /what\s+can\s+you\s+do(\s+for\s+me)?/i,
+    /what\s+can\s+scout\s+do(\s+for\s+me)?/i,
     /what\s+can\s+tradescout\s+do/i,
+    /how\s+can\s+you\s+help(\s+me)?/i,
+    /how\s+can\s+scout\s+help(\s+me)?/i,
+    /help\s+me\s+understand\s+what\s+(you|scout|tradescout)\s+can\s+do/i,
     /what\s+is\s+tradescout/i,
     /how\s+does\s+tradescout\s+work/i,
     /tell\s+me\s+about\s+tradescout/i,
@@ -1313,7 +1318,15 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
     // Parse JSON response with enforced schema
     try {
-      const parsed = JSON.parse(rawResponse);
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(rawResponse);
+      } catch (strictParseError) {
+        // Recovery path: some providers wrap JSON with prefatory/trailing text.
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw strictParseError;
+        parsed = JSON.parse(jsonMatch[0]);
+      }
 
       // Validate schema
       if (
@@ -1386,10 +1399,10 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         thought_flow: [
           "LLM response was not valid JSON",
           "This violates the execution contract",
-          "System needs attention",
+          "Returning contextual fallback response",
         ],
-        decision: "Cannot process - LLM failed to follow schema",
-        message: "I encountered a system error. Please try rephrasing your question.",
+        decision: "Cannot process JSON contract - using contextual fallback",
+        message: buildContextualSynthesisFallbackMessage(knowledge.answer),
         suggestedActions: DEFAULT_ACTIONS,
         provider: "fallback",
       };
@@ -1682,11 +1695,7 @@ Return JSON with keys autoPrompt (string) and suggestions (string array).`;
 }
 
 // Initialize LLM providers (add more as needed)
-const llmProviders: LLMProvider[] = [
-  new VertexGeminiProvider(),
-  new GeminiProvider(process.env.GEMINI_API_KEY || ""),
-  // Add new OpenAIProvider(process.env.OPENAI_API_KEY) here if needed
-];
+const llmProviders: LLMProvider[] = buildScoutLlmProviders();
 
 // Dedicated Gemini client for knowledge layer (internet search)
 const geminiClient = process.env.GEMINI_API_KEY
@@ -5268,6 +5277,7 @@ router.get("/admin/system-status", (req: Request, res: Response) => {
       database: process.env.DATABASE_URL ? "connected" : "not_configured",
       gemini: !!process.env.GEMINI_API_KEY ? "configured" : "missing",
       geminiFallback: getGeminiFallbackRuntimeState(),
+      llmFailover: getLlmProviderFailoverRuntimeState(),
       uptime: process.uptime(),
       memoryUsage: process.memoryUsage(),
       nodeVersion: process.version,

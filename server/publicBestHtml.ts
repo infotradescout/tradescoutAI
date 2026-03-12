@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, or, sql } from "drizzle-orm";
+﻿import { and, asc, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
@@ -56,7 +56,7 @@ function buildMeta(args: {
   keywords: string[];
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
-  const imageUrl = `${args.origin}/tradescout-logo.png?v=4`;
+  const imageUrl = `${args.origin}/tradescout-logo-circle.png?v=7`;
   return {
     title: formatTradeScoutTitle(args.title).slice(0, 120),
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 300),

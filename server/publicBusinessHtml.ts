@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+﻿import { storage } from "./storage";
 import { db } from "./db";
 import { counties, users } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -91,7 +91,7 @@ function buildBusinessMeta(args: {
     .slice(0, 300);
 
   const canonical = `${args.origin}/business/${encodeURIComponent(args.slug)}`;
-  const imageUrl = `${args.origin}/tradescout-logo.png?v=4`;
+  const imageUrl = `${args.origin}/tradescout-logo-circle.png?v=7`;
   const keywords = [
     name,
     args.countyName || "",

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+﻿import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { workRequests } from "@shared/schema";
 import { storage } from "./storage";
@@ -92,7 +92,7 @@ export async function buildWorkRequestShareHtml({
   const description = descriptionParts.join(" ");
 
   const canonical = `${origin}/r/${encodeURIComponent(shareToken)}`;
-  const imageUrl = `${origin}/tradescout-logo.png?v=4`;
+  const imageUrl = `${origin}/tradescout-logo-circle.png?v=7`;
 
   const structuredData = {
     "@context": "https://schema.org",

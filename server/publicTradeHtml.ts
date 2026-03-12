@@ -1,4 +1,4 @@
-import { and, asc, eq, or, sql } from "drizzle-orm";
+﻿import { and, asc, eq, or, sql } from "drizzle-orm";
 import { db, pool } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import {
@@ -101,7 +101,7 @@ function buildTradeMeta(args: {
   keywords: string[];
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
-  const imageUrl = `${args.origin}/tradescout-logo.png?v=4`;
+  const imageUrl = `${args.origin}/tradescout-logo-circle.png?v=7`;
   return {
     title: args.title.slice(0, 120),
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 300),
@@ -532,11 +532,11 @@ export async function buildPublicTradeCountyHtml(
     <p>${escapeHtml(description)}</p>
     <p>
       <a href="/trade/${encodeURIComponent(canonicalSlug)}">All states</a>
-      &nbsp;•&nbsp;
+      &nbsp;â€¢&nbsp;
       <a href="/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(
         stateCode.toLowerCase()
       )}">${escapeHtml(state.name)} counties</a>
-      &nbsp;•&nbsp;
+      &nbsp;â€¢&nbsp;
       <a href="/county/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
         countySlug
       )}">County page</a>

@@ -1,5 +1,7 @@
 export const GEMINI_MODEL_DEFAULT = "gemini-2.5-flash";
 
+const ALLOWED_GEMINI_MODELS = new Set(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"]);
+
 const KNOWN_BAD_MODEL_NAMES = new Set([
   "gemini-3.1-flash-lite",
   "gemini-3.1-flash",
@@ -15,6 +17,18 @@ function splitModels(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function readBoolEnv(name: string): boolean {
+  const raw = String(process.env[name] || "")
+    .trim()
+    .toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+function isAllowedGeminiModel(modelName: string): boolean {
+  if (ALLOWED_GEMINI_MODELS.has(modelName)) return true;
+  return readBoolEnv("GEMINI_MODEL_ALLOW_UNLISTED");
+}
+
 function normalizeCandidate(modelName: string): string | null {
   const normalized = modelName
     .trim()
@@ -23,6 +37,7 @@ function normalizeCandidate(modelName: string): string | null {
   if (!normalized) return null;
   if (KNOWN_BAD_MODEL_NAMES.has(normalized)) return null;
   if (/^gemini-3(\.|$)/.test(normalized)) return null;
+  if (!isAllowedGeminiModel(normalized)) return null;
   return normalized;
 }
 
@@ -44,5 +59,6 @@ export function getGeminiModelCandidates(): string[] {
 
 export function getVertexGeminiModelName(): string {
   const configured = String(process.env.GOOGLE_VERTEX_GEMINI_MODEL || "").trim();
-  return configured || getGeminiModelName();
+  const normalized = normalizeCandidate(configured);
+  return normalized || getGeminiModelName();
 }

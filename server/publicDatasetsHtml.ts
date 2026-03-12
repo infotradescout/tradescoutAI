@@ -1,4 +1,4 @@
-import { PRIMARY_TRADE_SLUGS, getTradeBySlug, slugifyCountyName } from "@shared/tradeSeo";
+﻿import { PRIMARY_TRADE_SLUGS, getTradeBySlug, slugifyCountyName } from "@shared/tradeSeo";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { storage } from "./storage";
 
@@ -36,7 +36,7 @@ function buildMeta(args: {
   keywords: string[];
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
-  const imageUrl = `${args.origin}/tradescout-logo.png?v=4`;
+  const imageUrl = `${args.origin}/tradescout-logo-circle.png?v=7`;
   return {
     title: formatTradeScoutTitle(args.title).slice(0, 120),
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 300),

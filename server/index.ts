@@ -1,4 +1,4 @@
-// Load dotenv configuration before anything else (safe in all envs)
+﻿// Load dotenv configuration before anything else (safe in all envs)
 import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
@@ -401,7 +401,7 @@ if (!isProductionEnv) {
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // No origin (curl/server-side) → allow
+    // No origin (curl/server-side) â†’ allow
     if (!origin) return callback(null, true);
     const normalized = origin.toLowerCase();
 
@@ -448,7 +448,7 @@ app.use(cors(corsOptions));
 // Preflight handler
 app.options("*", cors(corsOptions));
 
-// Core body parsing – MUST come before any API routes
+// Core body parsing â€“ MUST come before any API routes
 const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
 app.use(express.json({ limit: bodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
@@ -779,14 +779,14 @@ app.use(botReadOnlyGuard);
     <meta charset="UTF-8" />
     <meta http-equiv="refresh" content="2;url=/?__fresh=${fresh}" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Resetting TradeScout…</title>
+    <title>Resetting TradeScoutâ€¦</title>
     <style>
       body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;padding:24px;max-width:720px;margin:0 auto;line-height:1.5}
       code{background:#1118270d;padding:2px 6px;border-radius:6px}
     </style>
   </head>
   <body>
-    <h1>Resetting TradeScout…</h1>
+    <h1>Resetting TradeScoutâ€¦</h1>
     <p>Your browser cache and service worker are being cleared.</p>
     <p>If you are not redirected automatically, open <a href="/?__fresh=${fresh}">the homepage</a>.</p>
   </body>
@@ -803,7 +803,7 @@ app.use(botReadOnlyGuard);
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Resetting Theme…</title>
+    <title>Resetting Themeâ€¦</title>
     <style>
       body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;padding:24px;max-width:720px;margin:0 auto;line-height:1.5}
       code{background:#1118270d;padding:2px 6px;border-radius:6px}
@@ -811,9 +811,9 @@ app.use(botReadOnlyGuard);
     </style>
   </head>
   <body>
-    <h1>Resetting theme…</h1>
+    <h1>Resetting themeâ€¦</h1>
     <p class="muted">Resetting your saved color scheme + theme preference back to default.</p>
-    <pre id="log" class="muted">Working…</pre>
+    <pre id="log" class="muted">Workingâ€¦</pre>
     <script>
       (async () => {
         const logEl = document.getElementById('log');
@@ -878,7 +878,7 @@ app.use(botReadOnlyGuard);
 
               // Legacy social preview image path compatibility.
               app.get("/tradescout-logo.jpg", (_req, res) => {
-                res.redirect(301, "/tradescout-logo.png?v=4");
+                res.redirect(301, "/tradescout-logo-circle.png?v=7");
               });
 
               app.get(Array.from(identityAssets), (req, res, next) => {
@@ -1462,7 +1462,7 @@ app.use(botReadOnlyGuard);
                 }
 
                 // If an asset was requested but not found by express.static, do NOT
-                // return index.html – this would surface as a MIME-type error in the browser.
+                // return index.html â€“ this would surface as a MIME-type error in the browser.
                 if (reqPath.startsWith("/assets")) {
                   // Avoid caching missing hashed chunks. Some CDNs/proxies will cache 404s,
                   // which can make a partial deploy look "permanently broken".

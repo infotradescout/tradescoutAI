@@ -142,17 +142,17 @@ router.get("/api/businesses", async (req, res, next) => {
       const offsetRaw = Number(cacheParams.offset);
       const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.min(5_000, offsetRaw)) : 0;
 
-      if (!countyFips) {
-        return res.status(400).json({ message: "countyFips is required (5-digit FIPS)" });
+      if (!countyFips && !stateCode) {
+        return res
+          .status(400)
+          .json({ message: "countyFips or stateCode is required for public business search" });
       }
       if (stateCode && !/^[A-Z]{2}$/.test(stateCode)) {
         return res.status(400).json({ message: "stateCode must be a 2-letter code (e.g., FL)" });
       }
 
-      const whereClauses: any[] = [
-        eq(counties.fips, countyFips),
-        eq(businesses.status, "active" as any),
-      ];
+      const whereClauses: any[] = [eq(businesses.status, "active" as any)];
+      if (countyFips) whereClauses.push(eq(counties.fips, countyFips));
       if (stateCode) whereClauses.push(eq(counties.stateCode, stateCode));
       if (claimed !== "any") whereClauses.push(eq(businesses.claimStatus, claimed));
       if (q) whereClauses.push(ilike(businesses.name, `%${q}%`));

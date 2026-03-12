@@ -231,8 +231,8 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
         <div className="flex items-start gap-2">
           <Avatar className="w-8 h-8">
             <AvatarImage src={user?.avatar as string | undefined} />
-            <AvatarFallback>
-              {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+            <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+              <TradeScoutLogo size="sm" className="h-6 w-6 bg-transparent ring-0" />
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 flex flex-col gap-2">
@@ -277,8 +277,8 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
             <div key={comment.id} className="flex items-start gap-2 text-xs md:text-sm">
               <Avatar className="w-7 h-7">
                 <AvatarImage src={comment.author?.avatar || undefined} />
-                <AvatarFallback>
-                  {(comment.author?.name || "U").substring(0, 2).toUpperCase()}
+                <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                  <TradeScoutLogo size="sm" className="h-5 w-5 bg-transparent ring-0" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
@@ -822,15 +822,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     );
   }
 
-  function getAuthorInitials(post: any) {
-    const name = String(getAuthorName(post)).trim();
-    if (!name) return "CM";
-    const parts = name.split(/\s+/).filter(Boolean);
-    return parts.length > 1
-      ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-      : name.slice(0, 2).toUpperCase();
-  }
-
   const { data: connectionActivityData } = useQuery<ConnectionActivitySummary>({
     queryKey: ["/api/social/contact-connections/activity"],
     enabled: Boolean(isAuthenticated),
@@ -1089,7 +1080,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                         >
                           <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-ts-orange/70">
                             <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
-                            <AvatarFallback>{getAuthorInitials(post)}</AvatarFallback>
+                            <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                              <TradeScoutLogo size="sm" className="h-8 w-8 bg-transparent ring-0" />
+                            </AvatarFallback>
                           </Avatar>
                         </button>
                       )}
@@ -1366,8 +1359,8 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <div className="mt-3 flex items-center gap-2">
                     <Avatar className="w-7 h-7">
                       <AvatarImage src={user?.avatar as string | undefined} />
-                      <AvatarFallback>
-                        {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+                      <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                        <TradeScoutLogo size="sm" className="h-5 w-5 bg-transparent ring-0" />
                       </AvatarFallback>
                     </Avatar>
                     <button
@@ -1909,8 +1902,11 @@ const CommunityFeed = memo(function CommunityFeed() {
                         <div className="flex gap-4">
                           <Avatar className="w-10 h-10 md:w-11 md:h-11">
                             <AvatarImage src={user?.avatar as string | undefined} />
-                            <AvatarFallback>
-                              {(user?.username || user?.email || "U").substring(0, 2).toUpperCase()}
+                            <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                              <TradeScoutLogo
+                                size="sm"
+                                className="h-7 w-7 md:h-8 md:w-8 bg-transparent ring-0"
+                              />
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 space-y-3">

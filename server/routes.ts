@@ -1373,7 +1373,7 @@ export async function registerRoutes(app: any) {
     return Array.from(merged);
   };
 
-  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-logo-circle.png?v=6";
+  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-logo-circle.png?v=7";
   const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
     "/tradescout-logo.png",
     "/tradescout-logo.jpg",
@@ -19073,7 +19073,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         )
           .filter(Boolean)
           .slice(0, 12);
-        return { ...post, tags: merged };
+        const author =
+          post?.author && typeof post.author === "object"
+            ? {
+                ...post.author,
+                profileImageUrl: normalizeProfileImageUrl(
+                  post.author.profileImageUrl ?? post.author.avatar
+                ),
+                avatar: normalizeProfileImageUrl(post.author.avatar ?? post.author.profileImageUrl),
+              }
+            : post?.author;
+        return { ...post, author, tags: merged };
       });
 
       // Phase 1: Fail-safe field stripping for global scope (posts-only)
@@ -20065,7 +20075,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               id: author.id,
               name:
                 `${author.firstName || ""} ${author.lastName || ""}`.trim() || "Community member",
-              avatar: author.profileImageUrl,
+              avatar: normalizeProfileImageUrl(author.profileImageUrl),
               role: author.role,
               verified: Boolean(author.verified),
             }
