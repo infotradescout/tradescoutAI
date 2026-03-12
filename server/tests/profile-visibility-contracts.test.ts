@@ -22,13 +22,16 @@ describe("profile visibility contract guards", () => {
     const profileSiteEditor = read("client/src/pages/ProfileSiteEditor.tsx");
     const settings = read("client/src/pages/settings.tsx");
 
-    expect(profileSettings).toContain("allowProceedUnverified");
-    expect(profileSettings).toContain("proceedUnverified: true");
+    expect(profileSettings).toContain("Open editor to manage publishing");
+    expect(profileSettings).not.toContain("profile-settings-switch-visibility");
 
     expect(profileSiteEditor).toContain("allowProceedUnverified");
     expect(profileSiteEditor).toContain("proceedUnverified: true");
 
-    expect(settings).toContain("proceedUnverified: true");
+    expect(settings).toContain('navigate("/profile-settings")');
+    expect(settings).toContain('queryKey: ["/api/profiles"]');
+    expect(settings).toContain("Edit public profile site");
+    expect(settings).toContain("View public profile");
   });
 
   it("admin profile editor defaults unknown visibility to private", () => {

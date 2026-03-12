@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
-import { SEOHelmet } from "@/components/SEOHelmet";
+import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 
 type StateRow = { code: string; name: string };
 type CountyRow = { id: string; name: string; stateCode: string; fips: string };
@@ -88,12 +88,33 @@ const CountyDirectory = memo(function CountyDirectory() {
     return list;
   }, [counties, searchQuery]);
 
+  const structuredData = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "CollectionPage",
+          name: "TradeScout County Directory",
+          description:
+            "Browse U.S. county pages by state to reach county hubs, trade pages, community activity, and local business discovery.",
+          url: "https://www.thetradescout.com/county-directory",
+        },
+        createBreadcrumbStructuredData([
+          { name: "TradeScout", url: "/" },
+          { name: "County Directory", url: "/county-directory" },
+        ]),
+      ],
+    }),
+    []
+  );
+
   return (
     <div className="text-white">
       <SEOHelmet
         title="County Directory | Browse U.S. Counties on TradeScout"
         description="Browse TradeScout county pages by state and open local county hubs for community activity, trade partners, and verified business discovery."
         canonical="https://www.thetradescout.com/county-directory"
+        structuredData={structuredData}
       />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">

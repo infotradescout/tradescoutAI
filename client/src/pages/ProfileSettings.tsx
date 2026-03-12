@@ -19,7 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPresets";
-import { Palette, Home, Eye, EyeOff, LayoutTemplate, Calendar } from "lucide-react";
+import { Palette, Home, LayoutTemplate, Calendar } from "lucide-react";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -102,14 +102,6 @@ type StoredThemeColors = {
 type ApiErrorPayload = {
   message?: string;
   code?: string;
-};
-
-type ProfileVisibilityResponse = {
-  message?: string;
-  allowProceedUnverified?: boolean;
-  profileId?: string | null;
-  profileSlug?: string | null;
-  profileStatus?: "draft" | "published" | string | null;
 };
 
 type UserPreferencesResponse = {
@@ -539,72 +531,6 @@ export default function ProfileSettings() {
       toast({
         title: "Error",
         description: "Failed to update home page",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateProfileVisibility = async (isPublic: boolean) => {
-    setLoading(true);
-    const visibility = isPublic ? "public" : "private";
-
-    try {
-      const requestVisibility = async (proceed = false) => {
-        const response = await fetch("/api/users/profile-visibility", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            profileVisibility: visibility,
-            ...(proceed ? { proceedUnverified: true } : {}),
-          }),
-        });
-
-        const payload = (await response.json().catch(() => ({}))) as ProfileVisibilityResponse;
-        return { response, payload };
-      };
-
-      const { response, payload } = await requestVisibility(false);
-
-      if (!response.ok) throw new Error(payload.message || `Request failed (${response.status})`);
-
-      if (payload?.allowProceedUnverified && visibility === "public") {
-        const proceed = window.confirm(
-          "Verification is recommended before publishing. Publish publicly now anyway?"
-        );
-        if (!proceed) {
-          toast({
-            title: "Verification recommended",
-            description: "Profile visibility was not changed.",
-          });
-          return;
-        }
-
-        const retry = await requestVisibility(true);
-        if (!retry.response.ok) {
-          throw new Error(retry.payload.message || `Request failed (${retry.response.status})`);
-        }
-      }
-
-      setPreferences((prev) => ({ ...prev, profileVisibility: visibility }));
-      if (typeof payload?.profileSlug === "string" && payload.profileSlug.trim().length > 0) {
-        setProfileSlug(payload.profileSlug);
-      }
-      if (payload?.profileStatus === "draft" || payload?.profileStatus === "published") {
-        setProfileStatus(payload.profileStatus);
-      }
-      await refetch();
-
-      toast({
-        title: "Profile visibility updated",
-        description: `Your profile is now ${visibility}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: formatUserFacingErrorMessage(error, "Failed to update visibility"),
         variant: "destructive",
       });
     } finally {
@@ -1213,72 +1139,39 @@ export default function ProfileSettings() {
 
           <Card className="border-white/10 bg-tsCard">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {preferences.profileVisibility === "public" ? (
-                  <Eye className="h-5 w-5 text-ts-orange" />
-                ) : (
-                  <EyeOff className="h-5 w-5 text-ts-orange" />
-                )}
-                Profile visibility
-              </CardTitle>
+              <CardTitle>Public profile publishing</CardTitle>
               <CardDescription>
-                Choose whether your profile can be discovered by users and Scout.
+                Publication and visibility now live in the profile site editor so there is one
+                canonical place to manage your public page.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div
-                data-testid="profile-settings-row-visibility"
-                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                role="button"
-                tabIndex={0}
-                onClick={() =>
-                  void updateProfileVisibility(!(preferences.profileVisibility === "public"))
-                }
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") return;
-                  event.preventDefault();
-                  void updateProfileVisibility(!(preferences.profileVisibility === "public"));
-                }}
-              >
-                <div className="min-w-0 space-y-0.5">
-                  <Label>Make profile public</Label>
-                  <p className="text-sm text-white/60">
-                    Allow your profile to appear in search and assistant responses.
-                  </p>
-                </div>
-                <div className="self-end sm:self-auto shrink-0">
-                  <Switch
-                    data-testid="profile-settings-switch-visibility"
-                    checked={preferences.profileVisibility === "public"}
-                    onCheckedChange={updateProfileVisibility}
-                    disabled={loading}
-                    onClick={(event) => event.stopPropagation()}
-                  />
-                </div>
+              <div className="rounded-lg border border-white/10 p-4 text-sm text-white/70">
+                Current state:{" "}
+                <span className="text-white">
+                  {preferences.profileVisibility === "public"
+                    ? "Public visibility"
+                    : "Private visibility"}
+                </span>
+                {" · "}
+                <span className="text-white">
+                  {profileStatus === "published" ? "Published profile" : "Draft profile"}
+                </span>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  variant={preferences.profileVisibility === "public" ? "default" : "outline"}
                   size="sm"
-                  data-testid="profile-settings-identity-make-public"
-                  disabled={loading || preferences.profileVisibility === "public"}
-                  onClick={() => updateProfileVisibility(true)}
+                  data-testid="profile-settings-identity-open-editor-to-manage-publishing"
+                  className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                  onClick={() =>
+                    profileSlug ? navigate(`/u/${profileSlug}/edit`) : navigate("/profile")
+                  }
                 >
-                  Make public
+                  {profileSlug ? "Open editor to manage publishing" : "Open profile setup"}
                 </Button>
-                <Button
-                  type="button"
-                  variant={preferences.profileVisibility === "private" ? "default" : "outline"}
-                  size="sm"
-                  data-testid="profile-settings-identity-make-private"
-                  disabled={loading || preferences.profileVisibility === "private"}
-                  onClick={() => updateProfileVisibility(false)}
-                >
-                  Make private
-                </Button>
-                {profileSlug && (
+                {profileSlug && profileStatus === "published" ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -1288,15 +1181,8 @@ export default function ProfileSettings() {
                   >
                     View public page
                   </Button>
-                )}
+                ) : null}
               </div>
-
-              {preferences.profileVisibility === "public" && (
-                <div className="rounded-lg border border-ts-orange/20 bg-ts-orange/10 p-4 text-sm text-white">
-                  Your profile is your website. Public mode surfaces your profile in discovery flows
-                  while keeping contact gated through TradeScout rules.
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

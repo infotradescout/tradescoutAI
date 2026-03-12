@@ -171,11 +171,7 @@ test.describe("Account settings interactions", () => {
     await expect(page.getByTestId("settings-notifications-save")).toBeVisible();
 
     await page.getByTestId("settings-tab-privacy").click();
-    await toggleRowSwitch(
-      page,
-      "settings-privacy-row-profile-visibility",
-      "settings-privacy-switch-profile-visibility"
-    );
+    await expect(page.getByTestId("settings-privacy-open-profile-settings")).toBeVisible();
     await toggleRowSwitch(
       page,
       "settings-privacy-row-show-in-search",
@@ -211,15 +207,11 @@ test.describe("Account settings interactions", () => {
     await page.getByTestId("profile-settings-tab-identity").click();
     await page.getByTestId("profile-settings-identity-first-name").fill("Play");
     await page.getByTestId("profile-settings-identity-last-name").fill("Wright");
-    await toggleRowSwitch(
-      page,
-      "profile-settings-row-visibility",
-      "profile-settings-switch-visibility"
-    );
     await expect(page.getByTestId("profile-settings-identity-save-basics")).toBeVisible();
     await expect(page.getByTestId("profile-settings-identity-open-profile-editor")).toBeVisible();
-    await expect(page.getByTestId("profile-settings-identity-make-public")).toBeVisible();
-    await expect(page.getByTestId("profile-settings-identity-make-private")).toBeVisible();
+    await expect(
+      page.getByTestId("profile-settings-identity-open-editor-to-manage-publishing")
+    ).toBeVisible();
 
     await page.getByTestId("profile-settings-tab-routing").click();
     const defaultHome = page.getByTestId("profile-settings-routing-default-home");

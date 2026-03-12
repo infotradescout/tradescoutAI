@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { GroupsShell } from "@/shells/GroupsShell";
-import { SEOHelmet } from "@/components/SEOHelmet";
+import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 
 interface Group {
   id: string;
@@ -108,6 +108,22 @@ export default function Groups() {
   });
 
   const groups: Group[] = (data?.groups as Group[]) ?? [];
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        name: "TradeScout Community Groups",
+        description:
+          "County and HOA collaboration spaces for homeowners, pros, and local community members.",
+        url: "https://www.thetradescout.com/groups",
+      },
+      createBreadcrumbStructuredData([
+        { name: "TradeScout", url: "/" },
+        { name: "Groups", url: "/groups" },
+      ]),
+    ],
+  };
 
   const joinGroupMutation = useMutation({
     mutationFn: async (groupId: string) => {
@@ -241,6 +257,7 @@ export default function Groups() {
         title="Community Groups | County and HOA Collaboration"
         description="Browse TradeScout community groups and county-scoped collaboration spaces for local homeowners, pros, and HOA members."
         canonical="https://www.thetradescout.com/groups"
+        structuredData={structuredData}
       />
       <div className="max-w-7xl mx-auto space-y-8" data-testid="groups-page">
         {/* Header */}

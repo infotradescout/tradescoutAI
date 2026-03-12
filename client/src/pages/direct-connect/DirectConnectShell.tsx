@@ -23,7 +23,11 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
-import { SEOHelmet } from "@/components/SEOHelmet";
+import {
+  SEOHelmet,
+  createBreadcrumbStructuredData,
+  createServiceStructuredData,
+} from "@/components/SEOHelmet";
 import {
   ClipboardPlus,
   LayoutList,
@@ -263,6 +267,30 @@ function getRequestWorkflowStage(request: DirectConnectRequest): RequestWorkflow
   if (status === "routed") return "waiting_on_pros";
   return "ready_to_send";
 }
+
+const DIRECT_CONNECT_STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      name: "Direct Connect",
+      description:
+        "Post local requests, review provider replies, and move work forward through county-aware gated flows.",
+      url: "https://www.thetradescout.com/direct-connect",
+    },
+    createServiceStructuredData({
+      name: "TradeScout Direct Connect",
+      description:
+        "County-aware request routing that lets members post needs, receive replies, and move into gated contact flows.",
+      category: "Local contractor request platform",
+      areaServed: "United States",
+    }),
+    createBreadcrumbStructuredData([
+      { name: "TradeScout", url: "/" },
+      { name: "Direct Connect", url: "/direct-connect" },
+    ]),
+  ],
+};
 
 function getRequestFilterLabel(filter: RequestFilter): string {
   switch (filter) {
@@ -1731,6 +1759,7 @@ export default function DirectConnectShell() {
         title="Direct Connect | Request Local Help and Manage Replies"
         description="Use TradeScout Direct Connect to post local requests, review provider replies, and move work forward through gated county-aware flows."
         canonical="https://www.thetradescout.com/direct-connect"
+        structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />
       <div className="mx-auto w-full max-w-6xl space-y-4 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
         {/* Header Section */}

@@ -13,7 +13,7 @@ import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { CommunityComposerInline } from "@/components/community/CommunityComposerInline";
 import { CommunityEmptyState } from "@/components/community/CommunityEmptyState";
-import { SEOHelmet } from "@/components/SEOHelmet";
+import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 
 interface CommunityPost {
@@ -358,12 +358,33 @@ export default function Community() {
     return [...pinned, ...trending, ...regular];
   }, [posts, activeTab]);
 
+  const structuredData = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "CollectionPage",
+          name: "TradeScout Community",
+          description:
+            "County-scoped community feed for local posts, recommendations, project updates, and events.",
+          url: "https://www.thetradescout.com/community",
+        },
+        createBreadcrumbStructuredData([
+          { name: "TradeScout", url: "/" },
+          { name: "Community", url: "/community" },
+        ]),
+      ],
+    }),
+    []
+  );
+
   return (
     <CommunityPageShell>
       <SEOHelmet
         title="TradeScout Community | Local Posts, Recommendations, and County Updates"
         description="Join your county TradeScout community feed to share updates, ask for recommendations, and discover local project conversations."
         canonical="https://www.thetradescout.com/community"
+        structuredData={structuredData}
       />
       <CountyRequiredGate locationOverride={location}>
         <div className="pb-16 lg:pb-0">

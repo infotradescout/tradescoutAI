@@ -37,15 +37,19 @@
 - Resolved in this pass for the audited core route set (38/38 now have page-level metadata).
 
 ## P1 Findings (Quality/Consistency)
-- Recent and best pages currently rely on default canonical behavior (works after shared canonical normalization), but should set explicit canonicals for long-term route stability:
+- Best/recent templates already define explicit canonicals in current source:
   - `client/src/pages/best/BestTradeCountyPage.tsx`
   - `client/src/pages/best/BestTradeCityPage.tsx`
   - `client/src/pages/recent/CountyRecentPage.tsx`
   - `client/src/pages/recent/CityRecentPage.tsx`
   - `client/src/pages/recent/TradeCountyRecentPage.tsx`
   - `client/src/pages/recent/TradeCityRecentPage.tsx`
-- Add structured data coverage for high-intent local intent pages currently missing it:
-  - `community`, `direct-connect`, `groups`, `county-directory`, `tradepartners/:countySlug`
+- Structured data coverage added for high-intent public pages:
+  - `community`
+  - `direct-connect`
+  - `groups`
+  - `county-directory`
+  - `tradepartners/cumulus-media`
 
 ## P2 Findings (Operational SEO)
 - Create CI guardrail test that enforces SEO metadata on all routes in `CORE_STATIC_PATHS`.

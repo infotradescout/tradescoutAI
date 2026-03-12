@@ -53,6 +53,7 @@ import { registerPushNotifications, unregisterPushSubscription } from "@/lib/pus
 import { getRoleUiConfig, SELF_SERVICE_ROLE_KEYS } from "@/lib/roleUiConfig";
 import UserTypeSelect from "@/components/UserTypeSelect";
 import { ACCOUNT_CREATION_USER_TYPES } from "@shared/userTypes";
+import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 
 type HandednessPreference = "right" | "left";
 
@@ -64,6 +65,12 @@ type HoaMembership = {
   stateCode: string | null;
   countyFips: string | null;
   groupType?: string;
+};
+
+type ProfileListItem = {
+  id: string;
+  slug: string;
+  status?: "draft" | "published" | string;
 };
 
 export default function Settings() {
@@ -275,6 +282,36 @@ export default function Settings() {
   const memberships = hoaMembershipData?.memberships ?? [];
   const activeHoaId = memberships[0]?.hoaId;
   const activeHoaName = memberships[0]?.hoaName;
+
+  const { data: profileList = [] } = useQuery<ProfileListItem[]>({
+    queryKey: ["/api/profiles"],
+    enabled: Boolean(user),
+    retry: false,
+    queryFn: async () => {
+      const response = await fetch("/api/profiles", { credentials: "include" });
+      if (!response.ok) {
+        throw new Error("Failed to load profiles");
+      }
+      const payload = await response.json();
+      return Array.isArray(payload) ? payload : [];
+    },
+  });
+
+  const activeProfile = useMemo(() => {
+    if (!Array.isArray(profileList) || profileList.length === 0) return null;
+    const activeProfileId = String((user as any)?.activeProfileId || "").trim();
+    return (
+      profileList.find((profile) => String(profile?.id || "") === activeProfileId) ||
+      profileList.find((profile) => String(profile?.status || "") === "published") ||
+      profileList[0] ||
+      null
+    );
+  }, [profileList, user]);
+
+  const publicProfileUrl = activeProfile?.slug
+    ? `${getCanonicalAppOrigin()}/u/${encodeURIComponent(String(activeProfile.slug))}`
+    : "";
+  const publicProfileStatus = String(activeProfile?.status || "draft").toLowerCase();
 
   const selfServiceRoleKeys = useMemo(() => new Set(SELF_SERVICE_ROLE_KEYS), []);
 
@@ -592,11 +629,6 @@ export default function Settings() {
 
   const updatePrivacyMutation = useMutation({
     mutationFn: async (nextPrivacy: typeof privacy) => {
-      // profileVisibility has a dedicated endpoint (also updates prefs internally)
-      await apiRequest("PATCH", "/api/users/profile-visibility", {
-        profileVisibility: nextPrivacy.profileVisibility,
-        ...(nextPrivacy.profileVisibility === "public" ? { proceedUnverified: true } : {}),
-      });
       return apiRequest("PATCH", "/api/users/preferences", {
         showInSearch: nextPrivacy.showInSearch,
         contactPolicy: nextPrivacy.contactPolicy,
@@ -606,6 +638,7 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/preferences"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
       toast({ title: "Saved", description: "Privacy preferences updated." });
     },
     onError: (err: any) => {
@@ -616,19 +649,6 @@ export default function Settings() {
       });
     },
   });
-
-  const setProfileVisibility = (checked: boolean) => {
-    const previous = privacy;
-    const next: typeof privacy = {
-      ...previous,
-      profileVisibility: checked ? "public" : "private",
-    };
-
-    setPrivacy(next);
-    updatePrivacyMutation.mutate(next, {
-      onError: () => setPrivacy(previous),
-    });
-  };
 
   const updateHandednessMutation = useMutation({
     mutationFn: async (nextHandedness: HandednessPreference) => {
@@ -1726,29 +1746,110 @@ export default function Settings() {
                 <CardContent className="space-y-6 pt-6">
                   <div
                     data-testid="settings-privacy-row-profile-visibility"
-                    className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
+                    className="rounded-xl border border-white/10 bg-tsBg p-4 space-y-3"
                   >
-                    <div className="flex min-w-0 items-center gap-4">
+                    <div className="flex min-w-0 items-start gap-4">
                       <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-ts-orange" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-white font-medium">Profile Visibility</p>
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-white font-medium">Public profile management</p>
                         <p className="text-white/60 text-sm">
-                          Make your profile visible to other users
+                          Visibility, publication status, sections, and SEO now live in the
+                          dedicated profile settings flow.
                         </p>
                       </div>
                     </div>
-                    <div
-                      className="self-end sm:self-auto shrink-0"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <Switch
-                        data-testid="settings-privacy-switch-profile-visibility"
-                        checked={privacy.profileVisibility === "public"}
-                        onCheckedChange={setProfileVisibility}
-                        disabled={updatePrivacyMutation.isPending}
-                      />
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        data-testid="settings-privacy-open-profile-settings"
+                        className="border-white/15 text-white hover:bg-white/5"
+                        onClick={() => navigate("/profile-settings")}
+                      >
+                        Open profile settings
+                      </Button>
+                      {activeProfile?.slug ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          data-testid="settings-privacy-open-profile-editor"
+                          className="border-white/15 text-white hover:bg-white/5"
+                          onClick={() =>
+                            navigate(`/u/${encodeURIComponent(activeProfile.slug)}/edit`)
+                          }
+                        >
+                          Edit public profile site
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-tsBg p-4 space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-white font-medium">Public profile site</p>
+                        <p className="text-white/60 text-sm">
+                          Publication requires both a public visibility setting and a published
+                          profile site.
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="w-fit">
+                        {publicProfileStatus === "published" ? "Published" : "Draft"}
+                      </Badge>
+                    </div>
+
+                    <div className="text-sm text-white/70 space-y-1">
+                      <p>
+                        Visibility:{" "}
+                        <span className="text-white">
+                          {privacy.profileVisibility === "public" ? "Public" : "Private"}
+                        </span>
+                      </p>
+                      <p>
+                        URL:{" "}
+                        {publicProfileUrl ? (
+                          <a
+                            href={publicProfileUrl}
+                            className="text-ts-orange underline-offset-4 hover:underline"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {publicProfileUrl}
+                          </a>
+                        ) : (
+                          <span className="text-white/50">No public slug yet</span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      {activeProfile?.slug ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-white/15 text-white hover:bg-white/5"
+                          onClick={() =>
+                            navigate(`/u/${encodeURIComponent(activeProfile.slug)}/edit`)
+                          }
+                        >
+                          Edit public profile site
+                        </Button>
+                      ) : null}
+                      {activeProfile?.slug &&
+                      privacy.profileVisibility === "public" &&
+                      publicProfileStatus === "published" ? (
+                        <Button
+                          type="button"
+                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                          onClick={() =>
+                            window.open(publicProfileUrl, "_blank", "noopener,noreferrer")
+                          }
+                        >
+                          View public profile
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
 
