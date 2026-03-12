@@ -61,6 +61,40 @@
   font-weight: 700;
 }
 
+.tpc-brand-lockup {
+  margin: 0 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 36, 24, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 6px 11px 6px 7px;
+}
+
+.tpc-brand-lockup img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 999px;
+}
+
+.tpc-brand-lockup .tpc-brand-mark {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 999px;
+}
+
+.tpc-brand-lockup span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #184e41;
+  font-weight: 700;
+}
+
 .tpc-hero {
   border: 1px solid var(--tpc-line);
   border-radius: 22px;
@@ -512,6 +546,42 @@
   margin-top: 10px !important;
   font-size: 0.8rem;
   color: #567264 !important;
+}
+
+.tpc-chip-row {
+  margin-top: 11px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tpc-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(0, 95, 115, 0.2);
+  background: rgba(0, 95, 115, 0.08);
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  color: #0f5668;
+  font-weight: 600;
+}
+
+.tpc-county-links {
+  margin-top: 10px !important;
+  font-size: 0.82rem;
+  color: #3f5c4f !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tpc-county-links a {
+  color: #0d5b6d;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(13, 91, 109, 0.38);
+}
+
+.tpc-county-links a:hover {
+  border-bottom-color: rgba(13, 91, 109, 0.78);
 }
 
 .tpc-footer {

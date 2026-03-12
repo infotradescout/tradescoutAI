@@ -107,6 +107,9 @@ type ApiErrorPayload = {
 type ProfileVisibilityResponse = {
   message?: string;
   allowProceedUnverified?: boolean;
+  profileId?: string | null;
+  profileSlug?: string | null;
+  profileStatus?: "draft" | "published" | string | null;
 };
 
 type UserPreferencesResponse = {
@@ -586,6 +589,12 @@ export default function ProfileSettings() {
       }
 
       setPreferences((prev) => ({ ...prev, profileVisibility: visibility }));
+      if (typeof payload?.profileSlug === "string" && payload.profileSlug.trim().length > 0) {
+        setProfileSlug(payload.profileSlug);
+      }
+      if (payload?.profileStatus === "draft" || payload?.profileStatus === "published") {
+        setProfileStatus(payload.profileStatus);
+      }
       await refetch();
 
       toast({
@@ -911,7 +920,7 @@ export default function ProfileSettings() {
     : "No business page yet. Add a business persona in account settings to create one.";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 pb-20 pt-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 pb-6 pt-6">
       <Card className="border-white/10 bg-tsCard">
         <CardContent className="p-5 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

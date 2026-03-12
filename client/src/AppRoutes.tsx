@@ -1340,6 +1340,15 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/tradepartners/cumulus-media">
               <LazyPage Component={TradePartnerCumulusLanding} />
             </Route>
+            <Route path="/tradepartners/cumulus-media/mobile-county-al">
+              <LazyPage Component={TradePartnerCumulusLanding} />
+            </Route>
+            <Route path="/tradepartners/cumulus-media/escambia-county-fl">
+              <LazyPage Component={TradePartnerCumulusLanding} />
+            </Route>
+            <Route path="/tradepartners/cumulus-media/okaloosa-county-fl">
+              <LazyPage Component={TradePartnerCumulusLanding} />
+            </Route>
             <Route path="/tradepartners/:countySlug/:categorySlug">
               <LazyPage Component={TradePartnerCountyLanding} />
             </Route>
@@ -1701,6 +1710,16 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/legal/dispute-resolution">
               <RedirectTo to="/terms" />
+            </Route>
+            {/* Legacy commerce URL aliases (old storefront links). */}
+            <Route path="/collections/:collectionSlug/products/:productSlug">
+              <RedirectTo to="/trade-deals" />
+            </Route>
+            <Route path="/collections/:rest*">
+              <RedirectTo to="/trade-deals" />
+            </Route>
+            <Route path="/products/:productSlug">
+              <RedirectTo to="/trade-deals" />
             </Route>
 
             {/* 404 - this should be last */}

@@ -5658,6 +5658,69 @@ export async function registerRoutes(app: any) {
           }
         }
 
+        const ensurePublishedActiveProfile = async () => {
+          const list = await storage.listProfilesByOwner(userId);
+          const activeProfileId = (currentUser as any)?.activeProfileId as string | undefined;
+          let targetProfile = activeProfileId
+            ? list.find((profile: any) => String(profile?.id || "") === String(activeProfileId))
+            : undefined;
+
+          if (!targetProfile) {
+            targetProfile = list.find(
+              (profile: any) => String(profile?.status || "") === "published"
+            );
+          }
+
+          if (!targetProfile) {
+            targetProfile = list[0];
+          }
+
+          if (!targetProfile) {
+            const fullName = [currentUser.firstName, currentUser.lastName]
+              .filter((value) => typeof value === "string" && value.trim().length > 0)
+              .join(" ")
+              .trim();
+            const emailLocal = String(currentUser.email || "")
+              .split("@")[0]
+              ?.trim();
+            const displayName = fullName || emailLocal || "TradeScout Profile";
+            const roleContextRaw = String(
+              (currentUser as any)?.activeRole || currentUser.role || "homeowner"
+            ).trim();
+            const roleContext = roleContextRaw.length >= 2 ? roleContextRaw : "homeowner";
+
+            targetProfile = await storage.createProfileForOwner(userId, {
+              ownerUserId: userId as any,
+              roleContext: roleContext as any,
+              slug: displayName,
+              displayName,
+              headline: null,
+              contentBlocks: [],
+              ctaConfig: {},
+              seoMeta: {},
+              status: "published" as any,
+            } as any);
+          } else if (String(targetProfile.status || "").toLowerCase() !== "published") {
+            targetProfile = await storage.updateProfileForOwner(userId, String(targetProfile.id), {
+              status: "published" as any,
+            } as any);
+          }
+
+          if (
+            targetProfile?.id &&
+            String((currentUser as any)?.activeProfileId || "") !== String(targetProfile.id)
+          ) {
+            await storage.setUserActiveProfile(userId, String(targetProfile.id));
+          }
+
+          return targetProfile;
+        };
+
+        let ensuredProfile: any = null;
+        if (profileVisibility === "public") {
+          ensuredProfile = await ensurePublishedActiveProfile();
+        }
+
         const currentPrefs = currentUser.preferences || {};
         const updatedPreferences = {
           ...currentPrefs,
@@ -5669,7 +5732,12 @@ export async function registerRoutes(app: any) {
           updatedAt: new Date(),
         });
 
-        res.json({ profileVisibility: user.preferences?.profileVisibility });
+        res.json({
+          profileVisibility: user.preferences?.profileVisibility,
+          profileId: ensuredProfile?.id || null,
+          profileSlug: ensuredProfile?.slug || null,
+          profileStatus: ensuredProfile?.status || null,
+        });
       } catch (error: any) {
         console.error("Error updating profile visibility:", error);
         res.status(500).json({ message: "Failed to update profile visibility" });
@@ -10295,6 +10363,8 @@ export async function registerRoutes(app: any) {
   // Exchange routes
   app.get("/api/exchange/items", async (req: any, res: any) => {
     try {
+      const EXCHANGE_FORBIDDEN_TEXT =
+        /\b(smoke\s*market|unauthorized|demo\s*listing|test\s*listing|sample\s*listing|placeholder)\b/i;
       const rawCategoryId =
         typeof req.query.categoryId === "string" ? String(req.query.categoryId).trim() : "";
 
@@ -10404,54 +10474,60 @@ export async function registerRoutes(app: any) {
 
       const sellerById = new Map<string, any>(sellers.map((s: any) => [String(s.id), s]));
 
-      const mapped = (listings || []).map((listing: any) => {
-        const seller = sellerById.get(String(listing?.sellerId || "")) || {};
-        const firstName = String(seller?.firstName || "").trim();
-        const lastName = String(seller?.lastName || "").trim();
-        const sellerName =
-          `${firstName} ${lastName}`.trim() ||
-          (String(seller?.id || "").trim() ? "TradeScout Member" : "Unknown seller");
+      const mapped = (listings || [])
+        .filter((listing: any) => {
+          const haystack = `${String(listing?.title || "")} ${String(listing?.description || "")}`;
+          return !EXCHANGE_FORBIDDEN_TEXT.test(haystack);
+        })
+        .map((listing: any) => {
+          const seller = sellerById.get(String(listing?.sellerId || "")) || {};
+          const firstName = String(seller?.firstName || "").trim();
+          const lastName = String(seller?.lastName || "").trim();
+          const sellerName =
+            `${firstName} ${lastName}`.trim() ||
+            (String(seller?.id || "").trim() ? "TradeScout Member" : "Unknown seller");
 
-        const trustScore = Number(seller?.trustScore ?? 10);
-        const rating = Number.isFinite(trustScore)
-          ? Math.max(3, Math.min(5, 3 + trustScore / 20))
-          : 4.0;
+          const trustScore = Number(seller?.trustScore ?? 10);
+          const rating = Number.isFinite(trustScore)
+            ? Math.max(3, Math.min(5, 3 + trustScore / 20))
+            : 4.0;
 
-        const city = String(listing?.city || "").trim();
-        const county = String(listing?.county || "").trim();
-        const state = String(listing?.state || "").trim();
-        const location = city
-          ? `${city}${state ? `, ${state}` : ""}`
-          : `${county || "Local pickup"}${state ? `, ${state}` : ""}`.trim();
+          const cityRaw = String(listing?.city || "").trim();
+          const county = String(listing?.county || "").trim();
+          const state = String(listing?.state || "").trim();
+          const city = /^\d{5}$/.test(cityRaw) || /^[A-Z0-9]{3,8}$/.test(cityRaw) ? "" : cityRaw;
+          const location = city
+            ? `${city}${state ? `, ${state}` : ""}`
+            : `${county || "Local pickup"}${state ? `, ${state}` : ""}`.trim();
 
-        const promotedUntil = listing?.promotedUntil ? new Date(listing.promotedUntil) : null;
-        const featured =
-          Boolean(listing?.isPromoted) ||
-          Boolean(promotedUntil && promotedUntil.getTime() > Date.now());
+          const promotedUntil = listing?.promotedUntil ? new Date(listing.promotedUntil) : null;
+          const featured =
+            Boolean(listing?.isPromoted) ||
+            Boolean(promotedUntil && promotedUntil.getTime() > Date.now());
 
-        return {
-          id: String(listing.id),
-          title: listing.title,
-          description: listing.description,
-          price: Number(listing.price),
-          category: String(rawCategoryId || listing.categoryId || ""),
-          condition: listing.condition,
-          images: Array.isArray(listing.images) ? listing.images : [],
-          location,
-          seller: {
-            id: String(listing.sellerId),
-            name: sellerName,
-            rating,
-            verified: Boolean(
-              seller?.verifiedBadge || (seller?.emailVerified && seller?.addressVerified)
-            ),
-          },
-          createdAt: listing.createdAt,
-          featured,
-          views: Number(listing.viewCount || 0),
-          favorites: Number(listing.favoriteCount || 0),
-        };
-      });
+          return {
+            id: String(listing.id),
+            title: listing.title,
+            description: listing.description,
+            price: Number(listing.price),
+            category: String(rawCategoryId || listing.categoryId || ""),
+            condition: listing.condition,
+            images: Array.isArray(listing.images) ? listing.images : [],
+            location,
+            seller: {
+              id: String(listing.sellerId),
+              name: sellerName,
+              rating,
+              verified: Boolean(
+                seller?.verifiedBadge || (seller?.emailVerified && seller?.addressVerified)
+              ),
+            },
+            createdAt: listing.createdAt,
+            featured,
+            views: Number(listing.viewCount || 0),
+            favorites: Number(listing.favoriteCount || 0),
+          };
+        });
 
       res.json(mapped);
     } catch (error: any) {
@@ -17728,6 +17804,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.post("/api/marketplace/listings", isAuthenticated, async (req: any, res: any) => {
     try {
+      const MARKETPLACE_FORBIDDEN_TEXT =
+        /\b(mock|demo|sample|test|placeholder|unauthorized|smoke\s*market)\b/i;
       const user = req.user as any;
       const parsedListing = insertMarketplaceListingSchema.safeParse({
         ...pickMarketplaceWritableFields(req.body),
@@ -17741,6 +17819,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       const validatedData = normalizeMarketplaceWritableFields(parsedListing.data as any);
+      const listingText = `${String((validatedData as any)?.title || "")} ${String((validatedData as any)?.description || "")}`;
+      if (MARKETPLACE_FORBIDDEN_TEXT.test(listingText)) {
+        return res.status(400).json({
+          message: "Listing title/description contains placeholder or prohibited text.",
+          reasonCode: "INVALID_LISTING_TEXT",
+        });
+      }
 
       // Back-compat: some clients still send Exchange category slugs instead of a category UUID.
       const maybeCategoryId = String(validatedData.categoryId || "").trim();

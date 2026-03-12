@@ -1,5 +1,4 @@
 import React from "react";
-import { Link } from "wouter";
 
 const ComingSoon: React.FC = () => {
   return (
@@ -12,15 +11,10 @@ const ComingSoon: React.FC = () => {
           The full TradeScout experience is under construction
         </h1>
         <p className="mt-3 text-base text-white/60">
-          Scout is live today to guide you. The broader site features are being wired in behind the scenes. In the meantime, use Scout to navigate, plan, and log what you need.
+          Scout is live today to guide you. The broader site features are being wired in behind the
+          scenes. In the meantime, use Scout to navigate, plan, and log what you need.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-full bg-ts-orange px-4 py-2 text-sm font-semibold text-black shadow-md shadow-orange-500/30 transition hover:-translate-y-px hover:shadow-orange-500/50"
-          >
-            Return to Scout
-          </Link>
           <a
             href="/help"
             className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-tsCard"

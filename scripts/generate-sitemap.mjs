@@ -63,6 +63,10 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/membership-portal', priority: 0.6, changefreq: 'weekly' },
   { path: '/training-center', priority: 0.6, changefreq: 'weekly' },
   { path: '/affiliate', priority: 0.6, changefreq: 'monthly' },
+  { path: '/tradepartners/cumulus-media', priority: 0.8, changefreq: 'weekly' },
+  { path: '/tradepartners/cumulus-media/mobile-county-al', priority: 0.8, changefreq: 'weekly' },
+  { path: '/tradepartners/cumulus-media/escambia-county-fl', priority: 0.8, changefreq: 'weekly' },
+  { path: '/tradepartners/cumulus-media/okaloosa-county-fl', priority: 0.8, changefreq: 'weekly' },
 ];
 
 const PUBLIC_ROUTES = (() => {

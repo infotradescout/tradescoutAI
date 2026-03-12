@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, UserPlus, Mail, Lock, User, MapPin, Phone } from "lucide-react";
+import { UserPlus, Mail, Lock, User, MapPin, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,16 +178,6 @@ export default function Register() {
     <div className="flex items-center justify-center px-4 py-8 text-white font-body">
       <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-[1.1fr_minmax(0,1fr)] gap-8">
         <div className="space-y-6 order-2 lg:order-1">
-          <Link href="/">
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/5 pl-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Scout
-            </Button>
-          </Link>
-
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1">
               <span className="text-sm font-medium text-ts-orange uppercase tracking-[0.18em]">

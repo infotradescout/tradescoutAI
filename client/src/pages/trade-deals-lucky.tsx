@@ -114,7 +114,7 @@ export default function TradeDealsLuckyPage() {
     return (
       <>
         {seo}
-        <div className="pb-24 py-12" style={{ backgroundColor: "var(--surface-base)" }}>
+        <div className="pb-2 py-12" style={{ backgroundColor: "var(--surface-base)" }}>
           <div className="max-w-4xl mx-auto px-4 space-y-8">
             {/* Header */}
             <div className="text-center space-y-3">
@@ -374,7 +374,7 @@ export default function TradeDealsLuckyPage() {
   return (
     <>
       {seo}
-      <div className="pb-24 py-6" style={{ backgroundColor: "var(--surface-base)" }}>
+      <div className="pb-2 py-6" style={{ backgroundColor: "var(--surface-base)" }}>
         <div className="max-w-7xl mx-auto px-4 space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">

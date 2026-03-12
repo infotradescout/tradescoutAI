@@ -617,6 +617,19 @@ export default function Settings() {
     },
   });
 
+  const setProfileVisibility = (checked: boolean) => {
+    const previous = privacy;
+    const next: typeof privacy = {
+      ...previous,
+      profileVisibility: checked ? "public" : "private",
+    };
+
+    setPrivacy(next);
+    updatePrivacyMutation.mutate(next, {
+      onError: () => setPrivacy(previous),
+    });
+  };
+
   const updateHandednessMutation = useMutation({
     mutationFn: async (nextHandedness: HandednessPreference) => {
       const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
@@ -721,7 +734,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="pb-20 lg:pb-0">
+    <div className="pb-6">
       <div className="container mx-auto px-4 py-6 lg:py-10">
         <div className="max-w-5xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
           {/* Modern Header */}
@@ -1714,24 +1727,6 @@ export default function Settings() {
                   <div
                     data-testid="settings-privacy-row-profile-visibility"
                     className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() =>
-                      setPrivacy((prev) => ({
-                        ...prev,
-                        profileVisibility:
-                          prev.profileVisibility === "public" ? "private" : "public",
-                      }))
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      setPrivacy((prev) => ({
-                        ...prev,
-                        profileVisibility:
-                          prev.profileVisibility === "public" ? "private" : "public",
-                      }));
-                    }}
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1751,12 +1746,8 @@ export default function Settings() {
                       <Switch
                         data-testid="settings-privacy-switch-profile-visibility"
                         checked={privacy.profileVisibility === "public"}
-                        onCheckedChange={(checked) =>
-                          setPrivacy((prev) => ({
-                            ...prev,
-                            profileVisibility: checked ? "public" : "private",
-                          }))
-                        }
+                        onCheckedChange={setProfileVisibility}
+                        disabled={updatePrivacyMutation.isPending}
                       />
                     </div>
                   </div>
@@ -1764,16 +1755,6 @@ export default function Settings() {
                   <div
                     data-testid="settings-privacy-row-show-in-search"
                     className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() =>
-                      setPrivacy((prev) => ({ ...prev, showInSearch: !prev.showInSearch }))
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      setPrivacy((prev) => ({ ...prev, showInSearch: !prev.showInSearch }));
-                    }}
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">

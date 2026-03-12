@@ -29,6 +29,8 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { share } from "@/utils/share";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 function getDefaultHomePageLabel(value?: string) {
   if (!value || value === "llm") return "Scout";
@@ -79,10 +81,12 @@ function formatActivityReason(reason: string) {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refetch } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
+  const [activatingPublic, setActivatingPublic] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,6 +214,36 @@ export default function ProfilePage() {
     });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const enablePublicProfile = async () => {
+    if (activatingPublic) return;
+    setActivatingPublic(true);
+
+    try {
+      const result = (await apiRequest("PATCH", "/api/users/profile-visibility", {
+        profileVisibility: "public",
+        proceedUnverified: true,
+      })) as { profileSlug?: string | null };
+
+      if (result?.profileSlug) {
+        setProfileSlug(String(result.profileSlug));
+      }
+
+      await refetch();
+      toast({
+        title: "Profile is now public",
+        description: "Your public profile has been activated and is now discoverable.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not make profile public",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    } finally {
+      setActivatingPublic(false);
+    }
   };
 
   return (
@@ -630,10 +664,11 @@ export default function ProfilePage() {
                     and Scout. Share your URL instead of maintaining a separate website.
                   </p>
                   <Button
-                    onClick={() => setLocation("/profile-settings")}
+                    onClick={enablePublicProfile}
+                    disabled={activatingPublic}
                     className="bg-ts-orange text-white hover:bg-ts-orange/90"
                   >
-                    Enable Public Profile
+                    {activatingPublic ? "Activating..." : "Enable Public Profile"}
                   </Button>
                 </div>
               </div>

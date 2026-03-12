@@ -90,14 +90,15 @@ export default function AdminPromotionsPage() {
       .filter(Boolean);
 
     createMutation.mutate({
-      title: draftTitle,
-      shortDescription: draftDescription,
+      title: draftTitle.trim(),
+      shortDescription: draftDescription.trim(),
       type: "trade_deal",
       exclusive: true,
+      tier: "paid_campaign",
       status: "active",
       countyFips: countyList,
-      ctaLabel: draftCtaLabel,
-      ctaUrl: draftCtaUrl,
+      ctaLabel: draftCtaLabel.trim(),
+      ctaUrl: draftCtaUrl.trim(),
       placementCommunitySnapshot: draftSnapshot,
       placementCommunityFeed: false,
       placementScout: false,

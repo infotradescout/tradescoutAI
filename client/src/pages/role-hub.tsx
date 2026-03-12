@@ -1,7 +1,7 @@
 import React from "react";
 import { useRoute, Link } from "wouter";
 import { getUserTypeMetadata } from "@shared/userTypes";
-import { Layout, ArrowLeft } from "lucide-react";
+import { Layout } from "lucide-react";
 
 export default function RoleHubPage() {
   const [match, params] = useRoute("/roles/:roleKey");
@@ -13,13 +13,6 @@ export default function RoleHubPage() {
       <div className=" text-white flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-lg">Role not found.</p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-ts-orange hover:text-ts-orange"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Scout</span>
-          </Link>
         </div>
       </div>
     );
@@ -33,7 +26,7 @@ export default function RoleHubPage() {
   return (
     <div className=" text-white">
       <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
-        <header className="flex items-center justify-between mb-6">
+        <header className="flex items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-ts-orange/10 flex items-center justify-center border border-ts-orange/40">
               <Layout className="h-4 w-4 text-ts-orange" />
@@ -43,13 +36,6 @@ export default function RoleHubPage() {
               <h1 className="text-xl md:text-2xl font-semibold text-white">{label}</h1>
             </div>
           </div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs md:text-sm text-white/60 hover:text-ts-orange"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Scout</span>
-          </Link>
         </header>
 
         <div className="grid gap-6 md:grid-cols-3">

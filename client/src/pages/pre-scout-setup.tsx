@@ -1027,14 +1027,6 @@ export default function PreScoutSetup() {
       />
       <div className="flex justify-center px-3 py-4 md:px-4 md:py-8 text-white">
         <div className="w-full max-w-3xl space-y-3">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/scout")}
-            className="px-0 text-white/60 hover:text-white hover:bg-transparent"
-          >
-            Back to Scout
-          </Button>
-
           <Card className="rounded-2xl border border-white/10 bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
             <CardHeader className="space-y-2">
               <div className="flex items-start justify-between gap-3">

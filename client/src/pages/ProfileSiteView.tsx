@@ -131,11 +131,6 @@ export default function ProfileSiteView() {
             <p className="text-white/70">
               This profile may be private, unpublished, or unavailable.
             </p>
-            <Link href="/">
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                Back to Scout
-              </Button>
-            </Link>
           </CardContent>
         </Card>
       </div>
