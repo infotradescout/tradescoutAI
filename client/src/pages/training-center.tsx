@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 const TrainingCenter = memo(function TrainingCenter() {
   const [activeTab, setActiveTab] = useState("courses");
@@ -183,6 +184,11 @@ const TrainingCenter = memo(function TrainingCenter() {
 
   return (
     <div className="h-full gradient-bg text-foreground">
+      <SEOHelmet
+        title="Training Center | Courses and Certifications"
+        description="Build trade skills in the TradeScout training center with structured courses, certifications, and practical professional learning tracks."
+        canonical="https://www.thetradescout.com/training-center"
+      />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

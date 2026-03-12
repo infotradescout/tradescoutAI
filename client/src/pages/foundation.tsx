@@ -38,6 +38,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 interface Cause {
   id: string;
@@ -290,6 +291,11 @@ export default function Foundation() {
 
   return (
     <div className="max-w-6xl mx-auto ts-surface px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+      <SEOHelmet
+        title="TradeScout Foundation | County Vault Projects and Community Giveback"
+        description="Track county-level TradeScout Foundation activity, project funding, and verified local giveback progress."
+        canonical="https://www.thetradescout.com/foundation"
+      />
       <div className="mb-6">
         <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-6 sm:px-7 sm:py-7">
           <div className="absolute inset-0 pointer-events-none opacity-40">
@@ -357,11 +363,7 @@ export default function Foundation() {
                 {vaultSnapshot?.sourcesBreakdown &&
                 Object.keys(vaultSnapshot.sourcesBreakdown).length > 0 ? (
                   Object.entries(vaultSnapshot.sourcesBreakdown).map(([source, amount]) => (
-                    <Badge
-                      key={source}
-                      variant="outline"
-                      className="border-white/15 text-white/70"
-                    >
+                    <Badge key={source} variant="outline" className="border-white/15 text-white/70">
                       {source.replace(/_/g, " ")} · {formatCurrency(amount as number)}
                     </Badge>
                   ))

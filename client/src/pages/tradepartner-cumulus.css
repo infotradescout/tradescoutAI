@@ -259,6 +259,15 @@
   color: #114656;
 }
 
+.tpc-county-served {
+  margin: 6px 0 0 !important;
+  font-size: 0.79rem !important;
+  font-weight: 700;
+  color: #3f5f52 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .tpc-county-card p {
   margin: 6px 0 0;
   font-size: 0.9rem;
@@ -267,6 +276,13 @@
 .tpc-county-date {
   font-weight: 700;
   color: #0d5565;
+  font-size: 0.82rem !important;
+}
+
+.tpc-county-time {
+  margin: 6px 0 0 !important;
+  font-weight: 700;
+  color: #184e41 !important;
   font-size: 0.82rem !important;
 }
 
@@ -515,6 +531,63 @@
   margin-top: 2px;
 }
 
+.tpc-check-grid,
+.tpc-proof-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.tpc-check-card {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 36, 24, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 10px 11px;
+  color: #234637;
+  font-size: 0.91rem;
+}
+
+.tpc-check-card svg {
+  color: #0c5e71;
+  margin-top: 2px;
+}
+
+.tpc-proof-card {
+  border-radius: 14px;
+  border: 1px solid rgba(16, 36, 24, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 14px;
+}
+
+.tpc-proof-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #114656;
+}
+
+.tpc-proof-card p {
+  margin: 8px 0 0;
+}
+
+.tpc-proof-kicker {
+  font-size: 0.82rem;
+  color: #0d5565 !important;
+  font-weight: 700;
+}
+
+.tpc-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--tpc-muted);
+  display: grid;
+  gap: 6px;
+  line-height: 1.58;
+}
+
 .tpc-stats {
   margin-top: 14px;
   display: grid;
@@ -644,6 +717,8 @@
     align-items: start;
   }
 
+  .tpc-check-grid,
+  .tpc-proof-grid,
   .tpc-benefit-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

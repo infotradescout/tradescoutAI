@@ -1,6 +1,14 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Megaphone, Radio, Salad, UserRoundPlus, Users2 } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Megaphone,
+  Radio,
+  Salad,
+  UserRoundPlus,
+  Users2,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { SEOHelmet } from "@/components/SEOHelmet";
@@ -29,8 +37,11 @@ type CampaignMeeting = {
   meetingId: string;
   countySlug: string;
   countyLabel: string;
+  meetingCity?: string;
   meetingDate: string;
   dateLabel: string;
+  timeLabel?: string;
+  startDateTime?: string;
   teaser: string;
   eventLabel?: string;
   sortOrder?: number;
@@ -84,44 +95,156 @@ const COUNTY_SEO: Record<string, CountySeoConfig> = {
 };
 
 const DEFAULT_KEYWORDS =
-  "TradeScout, Cumulus Media, free ads, local business marketing, Mobile County AL marketing, Escambia County FL marketing, Okaloosa County FL marketing, county business meetup, TradePartner, Westwood One";
+  "TradeScout, Cumulus Media, free ads, local business marketing, Mobile County AL marketing, Escambia County FL marketing, Okaloosa County FL marketing, Google Search Ads, Facebook Ads, Instagram Ads, Connected TV Advertising, Streaming Audio Ads, Westwood One";
 
 const MEETING_SLOTS = [
   {
-    id: "mobile-2026-03-24",
+    id: "mobile-2026-03-24-1145",
     countySlug: "mobile-county-al",
     countyLabel: "Mobile County, AL",
+    meetingCity: "Mobile, AL",
     meetingDate: "2026-03-24",
     dateLabel: "Tuesday, March 24, 2026",
-    teaser: "Gulf Coast business networking + Cumulus partnership briefing.",
+    timeLabel: "11:45 AM",
+    startDateTime: "2026-03-24T11:45:00-05:00",
+    teaser:
+      "Mobile, AL session with free lunch, local businesses, and Cumulus partnership briefing.",
   },
   {
-    id: "escambia-2026-03-25",
+    id: "mobile-2026-03-24-1400",
+    countySlug: "mobile-county-al",
+    countyLabel: "Mobile County, AL",
+    meetingCity: "Mobile, AL",
+    meetingDate: "2026-03-24",
+    dateLabel: "Tuesday, March 24, 2026",
+    timeLabel: "2:00 PM",
+    startDateTime: "2026-03-24T14:00:00-05:00",
+    teaser:
+      "Mobile, AL session with free lunch, local businesses, and Cumulus partnership briefing.",
+  },
+  {
+    id: "escambia-2026-03-25-1145",
     countySlug: "escambia-county-fl",
     countyLabel: "Escambia County, FL",
+    meetingCity: "Pensacola, FL",
     meetingDate: "2026-03-25",
     dateLabel: "Wednesday, March 25, 2026",
-    teaser: "Regional lunch meetup focused on local growth planning.",
+    timeLabel: "11:45 AM",
+    startDateTime: "2026-03-25T11:45:00-05:00",
+    teaser: "Pensacola, FL session focused on Gulf Coast business growth and campaign planning.",
   },
   {
-    id: "okaloosa-2026-03-26",
+    id: "escambia-2026-03-25-1400",
+    countySlug: "escambia-county-fl",
+    countyLabel: "Escambia County, FL",
+    meetingCity: "Pensacola, FL",
+    meetingDate: "2026-03-25",
+    dateLabel: "Wednesday, March 25, 2026",
+    timeLabel: "2:00 PM",
+    startDateTime: "2026-03-25T14:00:00-05:00",
+    teaser: "Pensacola, FL session focused on Gulf Coast business growth and campaign planning.",
+  },
+  {
+    id: "okaloosa-2026-03-26-1145",
     countySlug: "okaloosa-county-fl",
     countyLabel: "Okaloosa County, FL",
+    meetingCity: "Fort Walton Beach, FL",
     meetingDate: "2026-03-26",
     dateLabel: "Thursday, March 26, 2026",
-    teaser: "County-wide workshop with Cumulus corporate partners.",
+    timeLabel: "11:45 AM",
+    startDateTime: "2026-03-26T11:45:00-05:00",
+    teaser:
+      "Fort Walton Beach, FL session with Cumulus corporate partners and regional networking.",
+  },
+  {
+    id: "okaloosa-2026-03-26-1400",
+    countySlug: "okaloosa-county-fl",
+    countyLabel: "Okaloosa County, FL",
+    meetingCity: "Fort Walton Beach, FL",
+    meetingDate: "2026-03-26",
+    dateLabel: "Thursday, March 26, 2026",
+    timeLabel: "2:00 PM",
+    startDateTime: "2026-03-26T14:00:00-05:00",
+    teaser:
+      "Fort Walton Beach, FL session with Cumulus corporate partners and regional networking.",
   },
 ];
 
 const BENEFITS = [
-  "Unconditional $2,000 in free ads for the TradeScout network.",
-  "Local radio reach plus strategic amplification across digital channels.",
-  "One of the largest audio footprints in the U.S. market.",
-  "Westwood One network access for broader regional and national campaign options.",
-  "County-level campaign planning tailored to local business demand.",
-  "Creative support and messaging help from experienced Cumulus teams.",
-  "Brand credibility through trusted local personalities and station audiences.",
-  "Integrated campaign options across on-air, stream, podcast, and digital touchpoints.",
+  "Unconditional $2,000 advertising credit for local businesses in the TradeScout network.",
+  "Campaigns can run across Google Search, display, paid social, streaming audio, connected TV, video, and native advertising.",
+  "Geo-targeted planning for county-level and Gulf Coast business growth.",
+  "Real audience targeting using identity-backed and behavioral signals, not anonymous cookie-only audiences.",
+  "One of the largest audio and digital media footprints in the U.S. with Westwood One network reach.",
+  "Creative support and campaign messaging help from experienced Cumulus teams.",
+  "Cross-device reach built to drive visibility, leads, store visits, and measurable business response.",
+  "Regional meetings with free lunch and direct access to local businesses, TradeScout operators, and Cumulus partners.",
+];
+
+const CHANNELS = [
+  "Google Search Ads",
+  "Display Advertising",
+  "Facebook & Instagram Ads",
+  "Streaming Audio Ads",
+  "Connected TV Advertising",
+  "Video Advertising",
+  "Native Advertising",
+  "Geo-targeted campaigns",
+];
+
+const TARGETING_SIGNALS = [
+  "Geographic location",
+  "Household income ranges",
+  "Purchase behavior",
+  "Lifestyle interests",
+  "Life stage signals",
+];
+
+const PERFORMANCE_EXAMPLES = [
+  {
+    title: "Home Improvement Industry Example",
+    stats: [
+      "Display ads: 1.24% CTR vs 0.49% industry average",
+      "Social campaigns: 1.40% CTR vs 0.70% industry average",
+      "Google search campaigns: 8.84% CTR vs 5.59% industry average",
+    ],
+  },
+  {
+    title: "HVAC & Plumbing Example",
+    stats: [
+      "Display campaigns: 1.06% CTR vs 0.50% industry average",
+      "Social campaigns: 10.23% CTR vs 7.95% industry average",
+      "Google campaigns: 0.39% CTR vs 0.11% industry average",
+    ],
+  },
+];
+
+const CASE_STUDIES = [
+  {
+    title: "Burton Pools & Spas",
+    investment: "Campaign investment: $21,000",
+    results: ["70+ online service requests", "134 in-store visits", "$1.6M+ revenue generated"],
+  },
+  {
+    title: "Act 1 Flooring",
+    investment: "Annual campaign investment: $72,600",
+    results: ["124 verified sales matched directly to the campaign audience"],
+  },
+];
+
+const REGIONAL_OFFICES = [
+  {
+    city: "Fort Walton Beach",
+    addressLine1: "225 Hollywood Blvd NW",
+    addressLine2: "Fort Walton Beach, FL 32548",
+    phone: "(850) 243-7676",
+  },
+  {
+    city: "Pensacola",
+    addressLine1: "6565 North W Street #270",
+    addressLine2: "Pensacola, FL 32505",
+    phone: "(850) 478-6011",
+  },
 ];
 
 function cleanField(form: FormData, key: string, maxLen: number): string {
@@ -241,12 +364,12 @@ function buildStructuredData(args: {
   const events = visibleSlots.map((slot) => ({
     "@type": "Event",
     name: `TradeScout x ${partnerName} Meeting - ${slot.countyLabel}`,
-    startDate: `${slot.meetingDate}T12:00:00-05:00`,
+    startDate: slot.startDateTime || `${slot.meetingDate}T12:00:00-05:00`,
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     eventStatus: "https://schema.org/EventScheduled",
     location: {
       "@type": "Place",
-      name: slot.countyLabel,
+      name: slot.meetingCity || slot.countyLabel,
       address: {
         "@type": "PostalAddress",
         addressRegion: slot.countyLabel.split(",")[1]?.trim() || "US",
@@ -354,8 +477,11 @@ export default function TradePartnerCumulusLanding() {
         id: meeting.meetingId,
         countySlug: meeting.countySlug,
         countyLabel: meeting.countyLabel,
+        meetingCity: meeting.meetingCity || "",
         meetingDate: meeting.meetingDate,
         dateLabel: meeting.dateLabel,
+        timeLabel: meeting.timeLabel || "",
+        startDateTime: meeting.startDateTime || "",
         teaser: meeting.teaser,
       }));
     }
@@ -617,13 +743,18 @@ export default function TradePartnerCumulusLanding() {
           <p className="tpc-kicker">TradePartner Campaign</p>
           <h1>
             {activeCounty
-              ? `${campaignHeroHeadline} | ${activeCounty.displayLabel}`
-              : campaignHeroHeadline}
+              ? `TradeScout x Cumulus Media | $${campaignDealAmount.toLocaleString()} Local Advertising Credit | ${activeCounty.displayLabel}`
+              : `TradeScout x Cumulus Media Partnership | $${campaignDealAmount.toLocaleString()} Local Advertising Credit`}
           </h1>
           <p className="tpc-subhead">
-            {campaignHeroSubhead || `${campaignName} is providing an unconditional `}
-            <strong>${campaignDealAmount.toLocaleString()} in free ads</strong> to the TradeScout
-            network. {campaignConfig?.dealTerms || "No catch. No minimum spend. No hidden terms."}
+            {campaignHeroSubhead ||
+              `TradeScout has partnered with ${campaignName}, a national broadcast and digital media network, to help local businesses reach customers across the Gulf Coast region.`}{" "}
+            Local businesses can receive an{" "}
+            <strong>
+              unconditional $${campaignDealAmount.toLocaleString()} advertising credit
+            </strong>{" "}
+            toward a Cumulus digital marketing campaign.{" "}
+            {campaignConfig?.dealTerms || "No catch. No minimum spend. No hidden terms."}
             {activeCounty ? ` This page is scoped to ${activeCounty.displayLabel}.` : ""}
             {!activeCounty && computedCoverageNote ? ` ${computedCoverageNote}` : ""}
           </p>
@@ -653,10 +784,26 @@ export default function TradePartnerCumulusLanding() {
           <div>
             <h2>TradeDeal: ${campaignDealAmount.toLocaleString()} Free Ad Credit</h2>
             <p>
-              Every participating TradeScout county network gets access to the ad credit allocation.
-              The deal is direct and unconditional so local businesses can activate marketing
-              faster.
+              This credit is designed to help local companies increase visibility, attract new
+              customers, and test targeted advertising across multiple media channels. It is direct
+              and unconditional for the TradeScout network.
             </p>
+          </div>
+        </section>
+
+        <section className="tpc-panel tpc-rise tpc-delay-1">
+          <h2>What the ${campaignDealAmount.toLocaleString()} Credit Can Be Used For</h2>
+          <p>
+            Cumulus campaigns reach real people across devices and media platforms, not anonymous
+            cookie audiences.
+          </p>
+          <div className="tpc-check-grid">
+            {CHANNELS.map((channel) => (
+              <article key={channel} className="tpc-check-card">
+                <CheckCircle2 size={16} />
+                <span>{channel}</span>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -670,9 +817,11 @@ export default function TradePartnerCumulusLanding() {
             <div className="tpc-county-list">
               {visibleMeetingSlots.map((slot) => (
                 <article key={slot.id} className="tpc-county-card">
-                  <h3>{slot.countyLabel}</h3>
+                  <h3>{slot.meetingCity || slot.countyLabel}</h3>
+                  <p className="tpc-county-served">Serving {slot.countyLabel}</p>
                   <p>{slot.teaser}</p>
                   <p className="tpc-county-date">{slot.dateLabel}</p>
+                  <p className="tpc-county-time">RSVP time: {slot.timeLabel || "TBD"}</p>
                   <div className="tpc-county-meta">
                     <span>
                       <Salad size={14} />
@@ -833,8 +982,14 @@ export default function TradePartnerCumulusLanding() {
                               required
                             />
                             <div>
-                              <strong>{slot.dateLabel}</strong>
-                              <span>{slot.countyLabel}</span>
+                              <strong>
+                                {slot.dateLabel}
+                                {slot.timeLabel ? ` at ${slot.timeLabel}` : ""}
+                              </strong>
+                              <span>
+                                {slot.meetingCity || slot.countyLabel}
+                                {slot.meetingCity ? ` | Serving ${slot.countyLabel}` : ""}
+                              </span>
                             </div>
                           </label>
                         ))}
@@ -889,6 +1044,22 @@ export default function TradePartnerCumulusLanding() {
         ) : null}
 
         <section className="tpc-panel tpc-rise tpc-delay-2">
+          <h2>How Cumulus Targeting Works</h2>
+          <p>
+            Campaign audiences can be built using verified identity data and behavioral signals.
+            Cumulus connects campaigns to a database of more than 250 million verified adults to
+            help advertisers reach real audiences and measure results accurately.
+          </p>
+          <div className="tpc-chip-row">
+            {TARGETING_SIGNALS.map((signal) => (
+              <span key={signal} className="tpc-chip">
+                {signal}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="tpc-panel tpc-rise tpc-delay-2">
           <h2>Why Market With {campaignName}</h2>
           <p>
             {campaignName} combines local station influence with large-scale audio network
@@ -925,6 +1096,81 @@ export default function TradePartnerCumulusLanding() {
             Market footprint figures above are based on Cumulus Media and Westwood One public
             materials verified on March 12, 2026.
           </p>
+        </section>
+
+        <section className="tpc-panel tpc-rise tpc-delay-2">
+          <h2>Proven Campaign Performance</h2>
+          <div className="tpc-proof-grid">
+            {PERFORMANCE_EXAMPLES.map((example) => (
+              <article key={example.title} className="tpc-proof-card">
+                <h3>{example.title}</h3>
+                <ul className="tpc-list">
+                  {example.stats.map((stat) => (
+                    <li key={stat}>{stat}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="tpc-panel tpc-rise tpc-delay-2">
+          <h2>Real Business Results</h2>
+          <div className="tpc-proof-grid">
+            {CASE_STUDIES.map((study) => (
+              <article key={study.title} className="tpc-proof-card">
+                <h3>{study.title}</h3>
+                <p className="tpc-proof-kicker">{study.investment}</p>
+                <ul className="tpc-list">
+                  {study.results.map((result) => (
+                    <li key={result}>{result}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="tpc-panel tpc-rise tpc-delay-2">
+          <h2>Regional Offices Supporting This Program</h2>
+          <div className="tpc-proof-grid">
+            {REGIONAL_OFFICES.map((office) => (
+              <article key={office.city} className="tpc-proof-card">
+                <h3>{office.city}</h3>
+                <p>{office.addressLine1}</p>
+                <p>{office.addressLine2}</p>
+                <p>{office.phone}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="tpc-panel tpc-rise tpc-delay-2">
+          <h2>Claim Your ${campaignDealAmount.toLocaleString()} Advertising Credit</h2>
+          <p>
+            Apply through TradeScout to create your account, verify your email, and RSVP for the
+            upcoming regional session. After RSVP, you will continue into the normal onboarding
+            flow.
+          </p>
+          <div className="tpc-hero-actions">
+            <button
+              type="button"
+              className="tpc-btn tpc-btn-primary"
+              onClick={() => {
+                if (isAuthenticated) {
+                  scrollToElementById("cumulus-rsvp-form");
+                  return;
+                }
+                scrollToElementById("cumulus-account-form");
+              }}
+            >
+              Apply now
+              <ArrowRight size={16} />
+            </button>
+            <span className="tpc-no-catch-pill">
+              Grow your visibility with targeted advertising.
+            </span>
+          </div>
         </section>
 
         <footer className="tpc-footer">

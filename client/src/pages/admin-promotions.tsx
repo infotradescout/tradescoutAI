@@ -24,6 +24,7 @@ type Promotion = {
   exclusive: boolean;
   status: "draft" | "active" | "paused" | "ended";
   countyFips: string[];
+  audienceScope?: "county" | "global";
   placementCommunitySnapshot: boolean;
   createdAt: string;
 };
@@ -79,15 +80,19 @@ export default function AdminPromotionsPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftDescription, setDraftDescription] = useState("");
   const [draftCountyFips, setDraftCountyFips] = useState("");
+  const [draftAudienceScope, setDraftAudienceScope] = useState<"county" | "global">("county");
   const [draftCtaLabel, setDraftCtaLabel] = useState("View TradeDeal");
   const [draftCtaUrl, setDraftCtaUrl] = useState("");
   const [draftSnapshot, setDraftSnapshot] = useState(true);
 
   const handleCreateTradeDeal = () => {
-    const countyList = draftCountyFips
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
+    const countyList =
+      draftAudienceScope === "global"
+        ? []
+        : draftCountyFips
+            .split(",")
+            .map((v) => v.trim())
+            .filter(Boolean);
 
     createMutation.mutate({
       title: draftTitle.trim(),
@@ -97,6 +102,7 @@ export default function AdminPromotionsPage() {
       tier: "paid_campaign",
       status: "active",
       countyFips: countyList,
+      audienceScope: draftAudienceScope,
       ctaLabel: draftCtaLabel.trim(),
       ctaUrl: draftCtaUrl.trim(),
       placementCommunitySnapshot: draftSnapshot,
@@ -147,15 +153,44 @@ export default function AdminPromotionsPage() {
                     />
                   </div>
                   <div className="space-y-1">
+                    <Label>Audience scope</Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDraftAudienceScope("county")}
+                        className={`px-2 py-0.5 rounded-full border text-[11px] ${
+                          draftAudienceScope === "county"
+                            ? "border-ts-orange/30 text-ts-orange"
+                            : "border-white/10 text-white/60"
+                        }`}
+                      >
+                        County-targeted
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDraftAudienceScope("global")}
+                        className={`px-2 py-0.5 rounded-full border text-[11px] ${
+                          draftAudienceScope === "global"
+                            ? "border-ts-orange/30 text-ts-orange"
+                            : "border-white/10 text-white/60"
+                        }`}
+                      >
+                        Global / national
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
                     <Label>County FIPS (comma-separated)</Label>
                     <Input
                       value={draftCountyFips}
                       onChange={(e) => setDraftCountyFips(e.target.value)}
                       placeholder="06037, 48453"
+                      disabled={draftAudienceScope === "global"}
                     />
                     <p className="text-xs text-white/60">
-                      Required for Community Snapshot. Each TradeDeal must declare the counties it
-                      is eligible for.
+                      {draftAudienceScope === "global"
+                        ? "Global TradeDeals are available in every county snapshot."
+                        : "County-targeted TradeDeals must declare eligible counties."}
                     </p>
                   </div>
                 </div>
@@ -257,8 +292,7 @@ export default function AdminPromotionsPage() {
                             variant="outline"
                             className="border-white/15 text-white/70 flex items-center gap-1"
                           >
-                            <MapPin className="w-3 h-3" />{" "}
-                            {promo.countyFips.join(", ") || "No counties"}
+                            <MapPin className="w-3 h-3" /> {promo.countyFips.join(", ") || "Global"}
                           </Badge>
                           {promo.ctaUrl && (
                             <Badge

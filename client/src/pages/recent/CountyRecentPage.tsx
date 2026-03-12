@@ -19,10 +19,17 @@ export default function CountyRecentPage() {
   });
 
   const title = `Recent activity | TradeScout`;
+  const canonical = `https://www.thetradescout.com/county/${encodeURIComponent(
+    (stateCode || "").toLowerCase()
+  )}/${encodeURIComponent(countySlug || "")}/recent`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <SEOHelmet title={title} description="Public, non-PII activity summaries for this county." />
+      <SEOHelmet
+        title={title}
+        description="Public, non-PII activity summaries for this county."
+        canonical={canonical}
+      />
 
       <Card>
         <CardContent className="p-6">

@@ -9,44 +9,32 @@
   - JSON-LD (`structuredData`) coverage
 
 ## Snapshot
-- Core public routes audited: 38
-- Routes with `SEOHelmet`: 17
-- Core public routes missing page-level SEO metadata: 21
-- Core public routes with explicit canonical among SEO-enabled pages: 16/17
+- Core public routes audited: 40
+- Routes with `SEOHelmet`: 40
+- Core public routes missing page-level SEO metadata: 0
+- Core public routes with explicit canonical among SEO-enabled pages: 40/40
 
 ## Immediate Fixes Applied In This Pass
 - Added explicit canonical to Trust Model page:
   - `client/src/pages/trust-model.tsx`
 - Marked 404 page as noindex:
   - `client/src/pages/not-found.tsx`
+- Added `SEOHelmet` + canonical metadata to all 21 previously missing core public pages:
+  - `community`, `direct-connect`, `contractor-apply`, `groups`, `county-directory`,
+    `county-hub`, `maps`, `pricing`, `terms`, `privacy`, `privacy-request`, `compliance`,
+    `leaderboard`, `foundation`, `resource-center`, `membership-portal`, `training-center`,
+    `affiliate`, `vehicle-marketplace`, `handmade-marketplace`, `tradepartner county landing`
+- Added metadata to remaining sitemap-listed application pages:
+  - `realtor-application`, `car-salesman-application`
+- Added SEO contract test to keep core pages from regressing:
+  - `server/tests/core-public-pages-seo.contract.test.ts`
 - (From prior SEO pass in this branch)
   - canonical query/hash stripping in shared SEO utilities
   - robots sitemap index alignment
   - sitemap index generation made deterministic in build script
 
 ## P0 Findings (High Impact)
-These are crawlable/core pages without page-specific metadata (fallback shell metadata only):
-- `client/src/pages/direct-connect/DirectConnectShell.tsx`
-- `client/src/pages/community.tsx`
-- `client/src/pages/contractor-apply.tsx`
-- `client/src/pages/groups.tsx`
-- `client/src/pages/county-directory.tsx`
-- `client/src/pages/county-hub.tsx`
-- `client/src/pages/maps.tsx`
-- `client/src/pages/pricing.tsx`
-- `client/src/pages/terms.tsx`
-- `client/src/pages/privacy.tsx`
-- `client/src/pages/privacy-request.tsx`
-- `client/src/pages/compliance.tsx`
-- `client/src/pages/leaderboard.tsx`
-- `client/src/pages/foundation.tsx`
-- `client/src/pages/resource-center.tsx`
-- `client/src/pages/membership-portal.tsx`
-- `client/src/pages/training-center.tsx`
-- `client/src/pages/affiliate.tsx`
-- `client/src/pages/vehicle-marketplace.tsx`
-- `client/src/pages/handmade-marketplace.tsx`
-- `client/src/pages/TradePartnerCountyLanding.tsx`
+- Resolved in this pass for the audited core route set (38/38 now have page-level metadata).
 
 ## P1 Findings (Quality/Consistency)
 - Recent and best pages currently rely on default canonical behavior (works after shared canonical normalization), but should set explicit canonicals for long-term route stability:

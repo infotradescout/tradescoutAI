@@ -32,6 +32,7 @@ import { GuestGate } from "@/components/guest-gate";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default function ContractorApply() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -146,6 +147,11 @@ export default function ContractorApply() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <SEOHelmet
+        title="Contractor Application | Join TradeScout's Verified Network"
+        description="Apply to join TradeScout as a contractor. Submit your business details, licensing, and insurance information to get reviewed."
+        canonical="https://www.thetradescout.com/contractors/apply"
+      />
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout's Contractor Network</h1>
         <p className="text-xl text-white/70 mb-6">

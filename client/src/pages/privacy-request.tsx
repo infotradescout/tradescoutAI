@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { Download, ShieldAlert, Trash2 } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default function PrivacyRequest() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -76,6 +77,11 @@ export default function PrivacyRequest() {
 
   return (
     <div className="gradient-bg px-4 py-10">
+      <SEOHelmet
+        title="Privacy Requests | Data Export and Deletion"
+        description="Submit a TradeScout privacy request to export your data or request account and data deletion."
+        canonical="https://www.thetradescout.com/privacy-request"
+      />
       <div className="max-w-2xl mx-auto">
         <Card className="bg-tsCard border-white/10">
           <CardHeader>

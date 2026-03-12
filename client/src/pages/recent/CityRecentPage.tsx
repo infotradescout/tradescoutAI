@@ -17,12 +17,16 @@ export default function CityRecentPage() {
     queryKey: [url],
     retry: 1,
   });
+  const canonical = `https://www.thetradescout.com/city/${encodeURIComponent(
+    (stateCode || "").toLowerCase()
+  )}/${encodeURIComponent(citySlug || "")}/recent`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <SEOHelmet
         title="Recent activity | TradeScout"
         description="Public, non-PII activity summaries for this city."
+        canonical={canonical}
       />
 
       <Card>

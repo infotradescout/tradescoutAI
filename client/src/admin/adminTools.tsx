@@ -199,8 +199,7 @@ const AdminAttachments = React.lazy(() => import("@/pages/admin-attachments"));
 const AdminAuditLog = React.lazy(() => import("@/pages/admin-audit-log"));
 const AdminAuthorityPolicy = React.lazy(() => import("@/pages/admin-authority-policy"));
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
-const AdminPromotions = React.lazy(() => import("@/pages/admin-promotions"));
-const AdminTradePartnerCampaigns = React.lazy(() => import("@/pages/admin-tradepartner-campaigns"));
+const AdminTradePartnerOps = React.lazy(() => import("@/pages/admin-tradepartner-ops"));
 const AdminTradePartnerInterest = React.lazy(() => import("@/pages/admin-tradepartner-interest"));
 const AdminControl = React.lazy(() => import("@/pages/admin-control"));
 const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"));
@@ -436,12 +435,21 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         render: () => <RedirectToAdminPanelTab tab="prizes" />,
       }),
       tool({
-        id: "tradedeals",
-        label: "TradeDeals Ops",
+        id: "tradepartner-ops",
+        label: "TradePartners + TradeDeals",
+        path: "/admin/tradepartners",
+        icon: Briefcase,
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <AdminTradePartnerOps />,
+      }),
+      tool({
+        id: "legacy-tradedeals",
+        label: "TradeDeals Ops (Legacy)",
         path: "/admin/tradedeals",
         icon: Briefcase,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <RedirectToAdminPanelTab tab="tradedeals" />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/tradepartners" />,
       }),
       tool({
         id: "tradepartner-interest",
@@ -539,20 +547,22 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         render: () => <AdminAffiliates />,
       }),
       tool({
-        id: "promotions",
-        label: "Promotions",
+        id: "legacy-promotions",
+        label: "Promotions (Legacy)",
         path: "/admin/promotions",
         icon: Megaphone,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <AdminPromotions />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/tradepartners" />,
       }),
       tool({
-        id: "tradepartner-campaigns",
-        label: "TradePartner Campaigns",
+        id: "legacy-tradepartner-campaigns",
+        label: "TradePartner Campaigns (Legacy)",
         path: "/admin/tradepartner-campaigns",
         icon: Megaphone,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <AdminTradePartnerCampaigns />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/tradepartners" />,
       }),
       tool({
         id: "platform-analytics",

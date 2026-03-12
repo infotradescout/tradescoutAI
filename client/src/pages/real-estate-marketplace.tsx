@@ -265,9 +265,9 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   return (
     <>
       <SEOHelmet
-        title="HomeScout Real Estate Marketplace | Browse Listings, List Homes, and Explore Local Housing | TradeScout"
-        description="Browse local listings, filter homes by price and features, list a property, and explore local housing activity through HomeScout on TradeScout."
-        keywords="homescout, real estate marketplace, browse local listings, list a home, local housing platform, tradescout homes"
+        title="HomeScout Portal | Home Management, Property History, and Local Housing Visibility | TradeScout"
+        description="Use HomeScout as your home management portal for records, maintenance context, and local housing visibility. Selling flows are launched through Exchange."
+        keywords="homescout portal, home management system, property records, home maintenance, local housing visibility, tradescout homes"
         canonical="https://www.thetradescout.com/real-estate-marketplace"
       />
       <RealEstateMarketplaceShell>
@@ -280,7 +280,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
                 </div>
                 <p className="text-sm md:text-base text-white/70">
-                  County-first real estate, with intent-based contact.
+                  Home management portal first, with county-first housing visibility.
                 </p>
                 <div className="flex items-center gap-2 text-xs text-white/60">
                   <MapPin className="h-3.5 w-3.5" />
@@ -288,10 +288,10 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </div>
               </div>
               <div className="flex w-full md:w-auto gap-2">
-                <Link href="/homescout/new">
+                <Link href="/exchange?tab=sell&category=real-estate">
                   <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    List on HomeScout
+                    Sell Through Exchange
                   </Button>
                 </Link>
                 <Button
@@ -548,13 +548,13 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </CardHeader>
                 <CardContent className="text-sm text-white/70 space-y-3">
                   <p>
-                    HomeScout inventory is county-first. If you're the first to post a listing here,
-                    it will appear after admin review.
+                    HomeScout visibility is county-first. When you are ready to sell, launch the
+                    listing flow through Exchange.
                   </p>
                   <div className="flex gap-2">
-                    <Link href="/homescout/new">
+                    <Link href="/exchange?tab=sell&category=real-estate">
                       <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                        List on HomeScout
+                        Go to Exchange Sell Flow
                       </Button>
                     </Link>
                   </div>

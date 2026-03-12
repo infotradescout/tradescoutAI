@@ -11588,6 +11588,11 @@ export class DatabaseStorage implements IStorage {
     status?: string;
     countyFips?: string;
     tier?: string;
+    type?: "trade_deal" | "sponsor" | "affiliate" | "announcement";
+    exclusive?: boolean;
+    placementCommunitySnapshot?: boolean;
+    activeAt?: Date;
+    includeGlobalWhenCounty?: boolean;
     limit?: number;
   }): Promise<Promotion[]> {
     const conditions: SQL[] = [];
@@ -11597,11 +11602,34 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters?.countyFips) {
-      conditions.push(sql`${promotions.countyFips} @> ARRAY[${filters.countyFips}]::text[]`);
+      if (filters.includeGlobalWhenCounty) {
+        conditions.push(
+          sql`(${promotions.countyFips} @> ARRAY[${filters.countyFips}]::text[] OR coalesce(array_length(${promotions.countyFips}, 1), 0) = 0)`
+        );
+      } else {
+        conditions.push(sql`${promotions.countyFips} @> ARRAY[${filters.countyFips}]::text[]`);
+      }
     }
 
     if (filters?.tier) {
       conditions.push(eq(promotions.tier, filters.tier as any));
+    }
+    if (filters?.type) {
+      conditions.push(eq(promotions.type, filters.type as any));
+    }
+    if (typeof filters?.exclusive === "boolean") {
+      conditions.push(eq(promotions.exclusive, filters.exclusive));
+    }
+    if (typeof filters?.placementCommunitySnapshot === "boolean") {
+      conditions.push(
+        eq(promotions.placementCommunitySnapshot, filters.placementCommunitySnapshot)
+      );
+    }
+    if (filters?.activeAt) {
+      const at = filters.activeAt;
+      conditions.push(
+        sql`(promotions.starts_at IS NULL OR promotions.starts_at <= ${at}) AND (promotions.ends_at IS NULL OR promotions.ends_at >= ${at})`
+      );
     }
 
     const query = db

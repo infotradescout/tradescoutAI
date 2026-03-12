@@ -17,6 +17,7 @@ import {
 import { useLocation } from "wouter";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { SEOHelmet } from "@/components/SEOHelmet";
 import "./trade-partner-county.css";
 
 const LANDING_TEMPLATE_VERSION = "2026-02-21.4";
@@ -207,6 +208,12 @@ export default function TradePartnerCountyLanding({
 
   const countySlug = pathInfo.countySlug;
   const categorySlug = pathInfo.categorySlug;
+  const seoCanonicalPath = countySlug
+    ? categorySlug
+      ? `/tradepartners/${countySlug}/${categorySlug}`
+      : `/tradepartners/${countySlug}`
+    : "/tradepartners";
+  const seoCanonical = `https://www.thetradescout.com${seoCanonicalPath}`;
 
   const [data, setData] = useState<LandingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -237,6 +244,12 @@ export default function TradePartnerCountyLanding({
     }
     return data.pageTitle;
   }, [data, selectedCategoryLabel]);
+  const seoTitle = data ? `${title} | TradeScout` : "County Trade Partner Program | TradeScout";
+  const seoDescription = data
+    ? selectedCategoryLabel
+      ? `${selectedCategoryLabel} partner placement for ${data.countyName}, ${data.stateCode}. Apply for county category availability and local giveback reporting.`
+      : `${data.countyName}, ${data.stateCode} TradePartner county program with category-based partner placements and county-level giveback visibility.`
+    : "TradeScout county TradePartner landing with category-based local partner opportunities.";
 
   useEffect(() => {
     let cancelled = false;
@@ -381,6 +394,7 @@ export default function TradePartnerCountyLanding({
   if (loading) {
     return (
       <div className="tp-county-page">
+        <SEOHelmet title={seoTitle} description={seoDescription} canonical={seoCanonical} />
         <div className="tp-container">
           <div className="tp-status-card">
             <p className="tp-kicker">Trade Partner Program</p>
@@ -395,6 +409,7 @@ export default function TradePartnerCountyLanding({
   if (loadError || !data) {
     return (
       <div className="tp-county-page">
+        <SEOHelmet title={seoTitle} description={seoDescription} canonical={seoCanonical} />
         <div className="tp-container">
           <div className="tp-status-card tp-status-card-error">
             <p className="tp-kicker">Trade Partner Program</p>
@@ -426,6 +441,7 @@ export default function TradePartnerCountyLanding({
 
   return (
     <div className="tp-county-page">
+      <SEOHelmet title={seoTitle} description={seoDescription} canonical={seoCanonical} />
       <div className="tp-container">
         <header className="tp-hero tp-fade-up">
           <div className="tp-hero-left">

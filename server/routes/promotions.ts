@@ -1,6 +1,29 @@
 import type { Request, Response } from "express";
 import { storage } from "../storage";
 
+function normalizeCountyFipsInput(value: unknown): string[] {
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => /^\d{5}$/.test(entry));
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => String(entry || "").trim())
+      .filter((entry) => /^\d{5}$/.test(entry));
+  }
+  return [];
+}
+
+function normalizeAudienceScope(value: unknown): "global" | "county" {
+  return String(value || "")
+    .trim()
+    .toLowerCase() === "global"
+    ? "global"
+    : "county";
+}
+
 // List promotions for admin
 export async function listPromotionsHandler(req: Request, res: Response) {
   try {
@@ -22,6 +45,7 @@ export async function listPromotionsHandler(req: Request, res: Response) {
 export async function createPromotionHandler(req: Request, res: Response) {
   try {
     const body = { ...(req.body ?? {}) } as Record<string, any>;
+    const audienceScope = normalizeAudienceScope(body.audienceScope);
     const type = String(body.type || "").trim();
     if (!type) {
       return res.status(400).json({ message: "type is required" });
@@ -36,17 +60,19 @@ export async function createPromotionHandler(req: Request, res: Response) {
     body.shortDescription = String(body.shortDescription || "").trim();
     if (typeof body.ctaLabel === "string") body.ctaLabel = body.ctaLabel.trim();
     if (typeof body.ctaUrl === "string") body.ctaUrl = body.ctaUrl.trim();
-
-    if (typeof body.countyFips === "string") {
-      body.countyFips = body.countyFips
-        .split(",")
-        .map((value: string) => value.trim())
-        .filter(Boolean);
+    body.countyFips = normalizeCountyFipsInput(body.countyFips);
+    if (audienceScope === "global") {
+      body.countyFips = [];
     }
-    if (Array.isArray(body.countyFips)) {
-      body.countyFips = body.countyFips
-        .map((value: unknown) => String(value || "").trim())
-        .filter((value: string) => /^\d{5}$/.test(value));
+
+    delete body.audienceScope;
+
+    if (type === "trade_deal" && audienceScope !== "global") {
+      if (!Array.isArray(body.countyFips) || body.countyFips.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "county_fips is required for county-scoped TradeDeals" });
+      }
     }
 
     // Enforce tier placement rules: free_directory cannot enable any placements
@@ -66,7 +92,10 @@ export async function createPromotionHandler(req: Request, res: Response) {
 
     // Enforce required snapshot constraints server-side
     if (type === "trade_deal" && body.placementCommunitySnapshot) {
-      if (!Array.isArray(body.countyFips) || body.countyFips.length === 0) {
+      if (
+        audienceScope !== "global" &&
+        (!Array.isArray(body.countyFips) || body.countyFips.length === 0)
+      ) {
         return res.status(400).json({ message: "county_fips is required for snapshot TradeDeals" });
       }
       if (body.exclusive !== true) {
@@ -92,7 +121,25 @@ export async function createPromotionHandler(req: Request, res: Response) {
 export async function updatePromotionHandler(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const body = req.body ?? {};
+    const body = { ...(req.body ?? {}) } as Record<string, any>;
+    const existing = await storage.getPromotion(id);
+    if (!existing) {
+      return res.status(404).json({ message: "Promotion not found" });
+    }
+
+    if (typeof body.countyFips !== "undefined") {
+      body.countyFips = normalizeCountyFipsInput(body.countyFips);
+    }
+    const audienceScope =
+      typeof body.audienceScope !== "undefined"
+        ? normalizeAudienceScope(body.audienceScope)
+        : existing.countyFips.length === 0
+          ? "global"
+          : "county";
+    if (audienceScope === "global") {
+      body.countyFips = [];
+    }
+    delete body.audienceScope;
 
     // Enforce tier placement rules: free_directory cannot enable any placements
     const tier = body.tier ?? "free_directory";
@@ -103,11 +150,34 @@ export async function updatePromotionHandler(req: Request, res: Response) {
       body.placementMarketplace = false;
     }
 
-    if (body.type === "trade_deal" && body.placementCommunitySnapshot) {
-      if (!Array.isArray(body.countyFips) || body.countyFips.length === 0) {
+    const effectiveType = String(body.type || existing.type || "").trim();
+    const effectiveExclusive =
+      typeof body.exclusive === "boolean" ? body.exclusive : existing.exclusive === true;
+    const effectivePlacementSnapshot =
+      typeof body.placementCommunitySnapshot === "boolean"
+        ? body.placementCommunitySnapshot
+        : existing.placementCommunitySnapshot === true;
+    const effectiveCountyFips = Array.isArray(body.countyFips)
+      ? body.countyFips
+      : Array.isArray(existing.countyFips)
+        ? existing.countyFips
+        : [];
+
+    if (
+      effectiveType === "trade_deal" &&
+      audienceScope !== "global" &&
+      effectiveCountyFips.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "county_fips is required for county-scoped TradeDeals" });
+    }
+
+    if (effectiveType === "trade_deal" && effectivePlacementSnapshot) {
+      if (audienceScope !== "global" && effectiveCountyFips.length === 0) {
         return res.status(400).json({ message: "county_fips is required for snapshot TradeDeals" });
       }
-      if (body.exclusive !== true) {
+      if (effectiveExclusive !== true) {
         return res
           .status(400)
           .json({ message: "exclusive=true is required for snapshot TradeDeals" });

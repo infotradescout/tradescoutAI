@@ -23,6 +23,7 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { share } from "@/utils/share";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 interface AffiliateProgram {
   id: string;
@@ -250,6 +251,11 @@ export default function AffiliatePage() {
 
   return (
     <div className="px-4 py-10">
+      <SEOHelmet
+        title="Affiliate Dashboard | Referral Links and Impact Tracking"
+        description="Manage TradeScout affiliate links, referral performance, and impact distribution from your affiliate dashboard."
+        canonical="https://www.thetradescout.com/affiliate"
+      />
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">

@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Shield, Lock } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default memo(function Privacy() {
   const sections = [
@@ -8,7 +9,9 @@ export default memo(function Privacy() {
       content: (
         <>
           <h3 className="text-sm font-semibold text-white mb-1.5">Personal Information</h3>
-          <p className="text-sm text-white/70 mb-2">When you create an account with TradeScout, we collect:</p>
+          <p className="text-sm text-white/70 mb-2">
+            When you create an account with TradeScout, we collect:
+          </p>
           <ul className="list-disc list-inside text-sm text-white/70 space-y-1 ml-2 mb-4">
             <li>Name and contact information (email, phone number)</li>
             <li>Profile information and photos</li>
@@ -25,7 +28,8 @@ export default memo(function Privacy() {
           <h3 className="text-sm font-semibold text-white mb-1.5">Usage Data</h3>
           <p className="text-sm text-white/70">
             We automatically collect information about how you use our service, including pages
-            visited, features used, search queries, and interaction patterns to improve our platform.
+            visited, features used, search queries, and interaction patterns to improve our
+            platform.
           </p>
         </>
       ),
@@ -40,7 +44,10 @@ export default memo(function Privacy() {
           <li>Verify identity and prevent fraud</li>
           <li>Send important service updates and notifications</li>
           <li>Improve our platform through analytics and user feedback</li>
-          <li>Contact you for user experience surveys and platform improvement discussions (TradeScout admin only)</li>
+          <li>
+            Contact you for user experience surveys and platform improvement discussions (TradeScout
+            admin only)
+          </li>
           <li>Provide customer support and respond to inquiries</li>
           <li>Comply with legal obligations</li>
         </ul>
@@ -56,13 +63,32 @@ export default memo(function Privacy() {
               parties for marketing or commercial purposes. Your data stays with us.
             </p>
           </div>
-          <p className="text-sm text-white/70 mb-2">We may share your information only in these specific, limited circumstances:</p>
+          <p className="text-sm text-white/70 mb-2">
+            We may share your information only in these specific, limited circumstances:
+          </p>
           <ul className="list-disc list-inside text-sm text-white/70 space-y-1.5 ml-2">
-            <li><strong className="text-white">Contractor Matching:</strong> When you request quotes or services, we share relevant contact information with contractors you choose to connect with</li>
-            <li><strong className="text-white">TradeScout Admin Contact:</strong> Our platform administrators may contact you directly for user experience surveys, feedback sessions, or platform improvement discussions</li>
-            <li><strong className="text-white">Essential Service Providers:</strong> With trusted partners who help operate our platform under strict data protection agreements</li>
-            <li><strong className="text-white">Legal Requirements:</strong> When required by law, court order, or to protect our rights and users' safety</li>
-            <li><strong className="text-white">Business Transfer:</strong> In the event of a merger or acquisition, with the same privacy protections</li>
+            <li>
+              <strong className="text-white">Contractor Matching:</strong> When you request quotes
+              or services, we share relevant contact information with contractors you choose to
+              connect with
+            </li>
+            <li>
+              <strong className="text-white">TradeScout Admin Contact:</strong> Our platform
+              administrators may contact you directly for user experience surveys, feedback
+              sessions, or platform improvement discussions
+            </li>
+            <li>
+              <strong className="text-white">Essential Service Providers:</strong> With trusted
+              partners who help operate our platform under strict data protection agreements
+            </li>
+            <li>
+              <strong className="text-white">Legal Requirements:</strong> When required by law,
+              court order, or to protect our rights and users' safety
+            </li>
+            <li>
+              <strong className="text-white">Business Transfer:</strong> In the event of a merger or
+              acquisition, with the same privacy protections
+            </li>
           </ul>
         </>
       ),
@@ -97,9 +123,9 @@ export default memo(function Privacy() {
       title: "6. Cookies and Tracking",
       content: (
         <p className="text-sm text-white/70 leading-relaxed">
-          We use cookies and similar technologies to enhance your experience, analyze usage patterns,
-          and provide personalized content. You can control cookie settings through your browser
-          preferences.
+          We use cookies and similar technologies to enhance your experience, analyze usage
+          patterns, and provide personalized content. You can control cookie settings through your
+          browser preferences.
         </p>
       ),
     },
@@ -107,9 +133,9 @@ export default memo(function Privacy() {
       title: "7. Third-Party Services",
       content: (
         <p className="text-sm text-white/70 leading-relaxed">
-          Our platform integrates with third-party services like Google Maps, payment processors, and
-          analytics providers. These services have their own privacy policies governing their use of
-          your information.
+          Our platform integrates with third-party services like Google Maps, payment processors,
+          and analytics providers. These services have their own privacy policies governing their
+          use of your information.
         </p>
       ),
     },
@@ -157,8 +183,18 @@ export default memo(function Privacy() {
       title: "12. Contact Information",
       content: (
         <div className="text-sm text-white/70 space-y-1.5">
-          <p><strong className="text-white">Privacy Questions:</strong>{" "}<a href="mailto:privacy@tradescout.com" className="text-ts-orange hover:underline">privacy@tradescout.com</a></p>
-          <p><strong className="text-white">General Support:</strong>{" "}<a href="mailto:support@tradescout.com" className="text-ts-orange hover:underline">support@tradescout.com</a></p>
+          <p>
+            <strong className="text-white">Privacy Questions:</strong>{" "}
+            <a href="mailto:privacy@tradescout.com" className="text-ts-orange hover:underline">
+              privacy@tradescout.com
+            </a>
+          </p>
+          <p>
+            <strong className="text-white">General Support:</strong>{" "}
+            <a href="mailto:support@tradescout.com" className="text-ts-orange hover:underline">
+              support@tradescout.com
+            </a>
+          </p>
         </div>
       ),
     },
@@ -166,6 +202,11 @@ export default memo(function Privacy() {
 
   return (
     <div className="text-white font-body">
+      <SEOHelmet
+        title="Privacy Policy | TradeScout"
+        description="Review TradeScout privacy policy covering data collection, use, protection, and your privacy rights and controls."
+        canonical="https://www.thetradescout.com/privacy"
+      />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-8">
@@ -184,9 +225,20 @@ export default memo(function Privacy() {
             <h3 className="text-sm font-semibold text-green-300">Data Protection Guarantee</h3>
           </div>
           <div className="space-y-2 text-xs text-green-100/80">
-            <p><strong className="text-green-200">Zero Third-Party Sales:</strong> We never sell, rent, or distribute your personal information to outside companies, marketers, or data brokers.</p>
-            <p><strong className="text-green-200">TradeScout Admin Contact Only:</strong> The only non-service communications you'll receive from us are direct outreach from our team for user experience feedback and platform improvements.</p>
-            <p><strong className="text-green-200">Your Control:</strong> You can opt out of all admin communications while still receiving essential service updates about your account.</p>
+            <p>
+              <strong className="text-green-200">Zero Third-Party Sales:</strong> We never sell,
+              rent, or distribute your personal information to outside companies, marketers, or data
+              brokers.
+            </p>
+            <p>
+              <strong className="text-green-200">TradeScout Admin Contact Only:</strong> The only
+              non-service communications you'll receive from us are direct outreach from our team
+              for user experience feedback and platform improvements.
+            </p>
+            <p>
+              <strong className="text-green-200">Your Control:</strong> You can opt out of all admin
+              communications while still receiving essential service updates about your account.
+            </p>
           </div>
         </div>
 
@@ -203,12 +255,16 @@ export default memo(function Privacy() {
         {/* California + GDPR */}
         <div className="mt-4 space-y-3">
           <div className="bg-tsCard border border-white/10 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-ts-orange mb-2">California Privacy Rights (CCPA)</h3>
+            <h3 className="text-sm font-semibold text-ts-orange mb-2">
+              California Privacy Rights (CCPA)
+            </h3>
             <p className="text-xs text-white/70 leading-relaxed">
               California residents have additional rights under the California Consumer Privacy Act.
               You may request to know what personal information we collect, delete your information,
               and opt out of the sale of personal information.{" "}
-              <strong className="text-white">Note: TradeScout does not sell personal information.</strong>{" "}
+              <strong className="text-white">
+                Note: TradeScout does not sell personal information.
+              </strong>{" "}
               Contact us at{" "}
               <a href="mailto:privacy@tradescout.com" className="text-ts-orange hover:underline">
                 privacy@tradescout.com
@@ -217,7 +273,9 @@ export default memo(function Privacy() {
             </p>
           </div>
           <div className="bg-tsCard border border-white/10 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-ts-orange mb-2">European Privacy Rights (GDPR)</h3>
+            <h3 className="text-sm font-semibold text-ts-orange mb-2">
+              European Privacy Rights (GDPR)
+            </h3>
             <p className="text-xs text-white/70 leading-relaxed">
               If you are in the European Union, you have rights under the General Data Protection
               Regulation including data portability, erasure, and the right to object to processing.

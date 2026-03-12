@@ -1,79 +1,98 @@
-import { memo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, CheckCircle, AlertTriangle, FileText, Scale, Globe, Eye, Lock } from 'lucide-react';
+import { memo } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Shield,
+  CheckCircle,
+  AlertTriangle,
+  FileText,
+  Scale,
+  Globe,
+  Eye,
+  Lock,
+} from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 const Compliance = memo(function Compliance() {
   const complianceAreas = [
     {
-      id: 'privacy',
-      title: 'Privacy & Data Protection',
-      status: 'compliant',
+      id: "privacy",
+      title: "Privacy & Data Protection",
+      status: "compliant",
       icon: Lock,
-      regulations: ['GDPR', 'CCPA', 'PIPEDA'],
-      description: 'Comprehensive privacy controls and data protection measures'
+      regulations: ["GDPR", "CCPA", "PIPEDA"],
+      description: "Comprehensive privacy controls and data protection measures",
     },
     {
-      id: 'accessibility',
-      title: 'Digital Accessibility',
-      status: 'compliant',
+      id: "accessibility",
+      title: "Digital Accessibility",
+      status: "compliant",
       icon: Eye,
-      regulations: ['ADA', 'WCAG 2.1', 'Section 508'],
-      description: 'Ensuring platform accessibility for all users'
+      regulations: ["ADA", "WCAG 2.1", "Section 508"],
+      description: "Ensuring platform accessibility for all users",
     },
     {
-      id: 'business',
-      title: 'Business Compliance',
-      status: 'compliant',
+      id: "business",
+      title: "Business Compliance",
+      status: "compliant",
       icon: Scale,
-      regulations: ['State Licensing', 'Business Registration', 'Tax Compliance'],
-      description: 'Meeting all business and contractor licensing requirements'
+      regulations: ["State Licensing", "Business Registration", "Tax Compliance"],
+      description: "Meeting all business and contractor licensing requirements",
     },
     {
-      id: 'international',
-      title: 'International Standards',
-      status: 'in-progress',
+      id: "international",
+      title: "International Standards",
+      status: "in-progress",
       icon: Globe,
-      regulations: ['ISO 27001', 'SOC 2', 'PCI DSS'],
-      description: 'Implementing international security and quality standards'
-    }
+      regulations: ["ISO 27001", "SOC 2", "PCI DSS"],
+      description: "Implementing international security and quality standards",
+    },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'compliant': return 'text-tsSuccess bg-tsSuccess/10 border-tsSuccess/20';
-      case 'in-progress': return 'text-tsWarning bg-tsWarning/10 border-tsWarning/20';
-      case 'attention': return 'text-red-500 bg-red-500/10 border-red-500/20';
-      default: return 'text-white/60 bg-white/5 border-white/10';
+      case "compliant":
+        return "text-tsSuccess bg-tsSuccess/10 border-tsSuccess/20";
+      case "in-progress":
+        return "text-tsWarning bg-tsWarning/10 border-tsWarning/20";
+      case "attention":
+        return "text-red-500 bg-red-500/10 border-red-500/20";
+      default:
+        return "text-white/60 bg-white/5 border-white/10";
     }
   };
 
   const privacyFeatures = [
-    'End-to-end encryption for sensitive data',
-    'GDPR-compliant data processing',
-    'User consent management',
-    'Right to erasure (Right to be forgotten)',
-    'Data portability options',
-    'Privacy by design architecture',
-    'Regular security audits',
-    'Incident response procedures'
+    "End-to-end encryption for sensitive data",
+    "GDPR-compliant data processing",
+    "User consent management",
+    "Right to erasure (Right to be forgotten)",
+    "Data portability options",
+    "Privacy by design architecture",
+    "Regular security audits",
+    "Incident response procedures",
   ];
 
   const accessibilityFeatures = [
-    'Screen reader compatibility',
-    'Keyboard navigation support',
-    'High contrast mode',
-    'Text-to-speech functionality',
-    'Alternative text for images',
-    'Closed captioning for videos',
-    'Adjustable font sizes',
-    'Color blind friendly design'
+    "Screen reader compatibility",
+    "Keyboard navigation support",
+    "High contrast mode",
+    "Text-to-speech functionality",
+    "Alternative text for images",
+    "Closed captioning for videos",
+    "Adjustable font sizes",
+    "Color blind friendly design",
   ];
 
   return (
     <div className="h-full bg-background p-6">
+      <SEOHelmet
+        title="Compliance | TradeScout"
+        description="Review TradeScout compliance coverage across privacy, accessibility, business controls, and security standards."
+        canonical="https://www.thetradescout.com/compliance"
+      />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -99,11 +118,14 @@ const Compliance = memo(function Compliance() {
               {complianceAreas.map((area) => {
                 const Icon = area.icon;
                 return (
-                  <div key={area.id} className={`p-4 rounded-lg border ${getStatusColor(area.status)}`}>
+                  <div
+                    key={area.id}
+                    className={`p-4 rounded-lg border ${getStatusColor(area.status)}`}
+                  >
                     <div className="flex items-center gap-2 mb-3">
                       <Icon className="w-5 h-5" />
                       <Badge variant="outline" className={getStatusColor(area.status)}>
-                        {area.status.replace('-', ' ').toUpperCase()}
+                        {area.status.replace("-", " ").toUpperCase()}
                       </Badge>
                     </div>
                     <h3 className="font-semibold text-white mb-2">{area.title}</h3>
@@ -125,10 +147,18 @@ const Compliance = memo(function Compliance() {
         {/* Detailed Compliance Information */}
         <Tabs defaultValue="privacy" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-tsCard">
-            <TabsTrigger value="privacy" className="data-[state=active]:bg-ts-orange-dark">Privacy</TabsTrigger>
-            <TabsTrigger value="accessibility" className="data-[state=active]:bg-ts-orange-dark">Accessibility</TabsTrigger>
-            <TabsTrigger value="business" className="data-[state=active]:bg-ts-orange-dark">Business</TabsTrigger>
-            <TabsTrigger value="certifications" className="data-[state=active]:bg-ts-orange-dark">Certifications</TabsTrigger>
+            <TabsTrigger value="privacy" className="data-[state=active]:bg-ts-orange-dark">
+              Privacy
+            </TabsTrigger>
+            <TabsTrigger value="accessibility" className="data-[state=active]:bg-ts-orange-dark">
+              Accessibility
+            </TabsTrigger>
+            <TabsTrigger value="business" className="data-[state=active]:bg-ts-orange-dark">
+              Business
+            </TabsTrigger>
+            <TabsTrigger value="certifications" className="data-[state=active]:bg-ts-orange-dark">
+              Certifications
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="privacy">
@@ -161,7 +191,9 @@ const Compliance = memo(function Compliance() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="font-semibold text-white mb-4">Privacy Features Implemented</h4>
+                      <h4 className="font-semibold text-white mb-4">
+                        Privacy Features Implemented
+                      </h4>
                       <ul className="space-y-2">
                         {privacyFeatures.map((feature, index) => (
                           <li key={index} className="flex items-center gap-2 text-white/60">
@@ -177,14 +209,18 @@ const Compliance = memo(function Compliance() {
                       <div className="space-y-3">
                         <div className="p-3 bg-white/10 rounded-lg">
                           <h5 className="font-medium text-white">Data Access Request</h5>
-                          <p className="text-sm text-white/60">Users can request copies of their personal data</p>
+                          <p className="text-sm text-white/60">
+                            Users can request copies of their personal data
+                          </p>
                           <Button size="sm" variant="outline" className="mt-2">
                             Request Data
                           </Button>
                         </div>
                         <div className="p-3 bg-white/10 rounded-lg">
                           <h5 className="font-medium text-white">Data Deletion</h5>
-                          <p className="text-sm text-white/60">Users can request deletion of their account and data</p>
+                          <p className="text-sm text-white/60">
+                            Users can request deletion of their account and data
+                          </p>
                           <Button size="sm" variant="outline" className="mt-2">
                             Delete Account
                           </Button>
@@ -282,7 +318,9 @@ const Compliance = memo(function Compliance() {
                     </div>
                     <div className="p-4 bg-ts-orange/10 border border-ts-orange/30 rounded-lg">
                       <h3 className="font-semibold text-ts-orange mb-2">Tax Compliance</h3>
-                      <p className="text-sm text-white/60 mb-2">Federal and state tax obligations</p>
+                      <p className="text-sm text-white/60 mb-2">
+                        Federal and state tax obligations
+                      </p>
                       <Badge className="bg-tsSuccess">Current</Badge>
                     </div>
                     <div className="p-4 bg-ts-orange/10 border border-ts-orange/30 rounded-lg">
@@ -296,9 +334,12 @@ const Compliance = memo(function Compliance() {
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-5 h-5 text-tsWarning mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-tsWarning mb-2">Ongoing Compliance Monitoring</h4>
+                        <h4 className="font-medium text-tsWarning mb-2">
+                          Ongoing Compliance Monitoring
+                        </h4>
                         <p className="text-sm text-white/60 mb-3">
-                          We continuously monitor regulatory changes and update our compliance measures accordingly.
+                          We continuously monitor regulatory changes and update our compliance
+                          measures accordingly.
                         </p>
                         <ul className="space-y-1 text-sm text-white/60">
                           <li>• Quarterly compliance audits</li>
@@ -374,15 +415,21 @@ const Compliance = memo(function Compliance() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="p-3 bg-white/5 rounded-lg">
                         <h5 className="font-medium text-tsText text-sm mb-1">Data Encryption</h5>
-                        <p className="text-xs text-white/60">AES-256 encryption at rest and in transit</p>
+                        <p className="text-xs text-white/60">
+                          AES-256 encryption at rest and in transit
+                        </p>
                       </div>
                       <div className="p-3 bg-white/5 rounded-lg">
                         <h5 className="font-medium text-tsText text-sm mb-1">Access Control</h5>
-                        <p className="text-xs text-white/60">Multi-factor authentication and RBAC</p>
+                        <p className="text-xs text-white/60">
+                          Multi-factor authentication and RBAC
+                        </p>
                       </div>
                       <div className="p-3 bg-white/5 rounded-lg">
                         <h5 className="font-medium text-tsText text-sm mb-1">Monitoring</h5>
-                        <p className="text-xs text-white/60">24/7 security monitoring and alerting</p>
+                        <p className="text-xs text-white/60">
+                          24/7 security monitoring and alerting
+                        </p>
                       </div>
                     </div>
                   </div>

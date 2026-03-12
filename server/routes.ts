@@ -56,6 +56,10 @@ import tradePartnerRsvpRouter from "./routes/tradepartner-rsvp";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
+import {
+  getExchangeCategorySlugFromMarketplaceCategoryName,
+  validateExchangeCategoryListing,
+} from "../shared/exchangeListingRules";
 import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import {
@@ -17700,6 +17704,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     return id;
   }
 
+  async function getMarketplaceCategoryNameById(id: string): Promise<string | null> {
+    const key = String(id || "").trim();
+    if (!key) return null;
+
+    const categories = await storage.getMarketplaceCategories();
+    const match = (categories || []).find((c: any) => String(c?.id || "").trim() === key);
+    return match?.name ? String(match.name) : null;
+  }
+
   // Marketplace routes
   // Categories
   app.get("/api/marketplace/categories", async (req: any, res: any) => {
@@ -17938,6 +17951,23 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           listingId: duplicateListing.id,
           reasonCode: "DUPLICATE_MARKETPLACE_LISTING",
         });
+      }
+
+      const categoryName = await getMarketplaceCategoryNameById(
+        String(validatedData.categoryId || "")
+      );
+      const exchangeCategorySlug = getExchangeCategorySlugFromMarketplaceCategoryName(categoryName);
+      if (exchangeCategorySlug && exchangeCategorySlug !== "metals") {
+        const categoryValidation = validateExchangeCategoryListing({
+          category: exchangeCategorySlug,
+          imageCount: Array.isArray((validatedData as any)?.images)
+            ? (validatedData as any).images.length
+            : 0,
+          specs: ((validatedData as any)?.specifications || null) as Record<string, unknown> | null,
+        });
+        if (categoryValidation) {
+          return res.status(400).json(categoryValidation);
+        }
       }
 
       if (preciousMetalsCategoryId && validatedData.categoryId === preciousMetalsCategoryId) {

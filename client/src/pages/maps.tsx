@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocationContext } from "@/hooks/useLocationContext";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 type MapEntityType =
   | "provider"
@@ -437,6 +438,11 @@ export default function MapsPage() {
 
   return (
     <div className="mx-auto max-w-7xl p-3 md:p-4 space-y-3">
+      <SEOHelmet
+        title="TradeScout Local Map | County-Aware Profiles, Deals, and Activity"
+        description="Explore the TradeScout local awareness map with county-scoped profiles, trade deals, and public local activity overlays."
+        canonical="https://www.thetradescout.com/maps"
+      />
       <header className="rounded-xl border border-white/10 bg-tsCard p-3 md:p-4">
         <h1 className="text-base md:text-lg font-semibold text-white">Local Map</h1>
         <p className="text-xs md:text-sm text-white/60 mt-1">

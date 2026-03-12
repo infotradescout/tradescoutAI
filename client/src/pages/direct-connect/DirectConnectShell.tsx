@@ -23,6 +23,7 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { SEOHelmet } from "@/components/SEOHelmet";
 import {
   ClipboardPlus,
   LayoutList,
@@ -1726,6 +1727,11 @@ export default function DirectConnectShell() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
+      <SEOHelmet
+        title="Direct Connect | Request Local Help and Manage Replies"
+        description="Use TradeScout Direct Connect to post local requests, review provider replies, and move work forward through gated county-aware flows."
+        canonical="https://www.thetradescout.com/direct-connect"
+      />
       <div className="mx-auto w-full max-w-6xl space-y-4 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
         {/* Header Section */}
         <div className="space-y-3">

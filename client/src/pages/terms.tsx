@@ -1,9 +1,15 @@
 import { memo } from "react";
 import { FileText } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default memo(function Terms() {
   return (
     <div className="text-white font-body">
+      <SEOHelmet
+        title="Terms of Service | TradeScout"
+        description="Read TradeScout terms of service, including account requirements, acceptable use, and platform participation rules."
+        canonical="https://www.thetradescout.com/terms"
+      />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-8">
@@ -12,9 +18,7 @@ export default memo(function Terms() {
             <span className="text-sm font-medium text-ts-orange">Legal</span>
           </div>
           <h1 className="font-display text-3xl font-extrabold text-white mb-2">Terms of Service</h1>
-          <p className="text-sm text-white/50">
-            Last updated: {new Date().toLocaleDateString()}
-          </p>
+          <p className="text-sm text-white/50">Last updated: {new Date().toLocaleDateString()}</p>
         </div>
 
         {/* Content */}
@@ -38,7 +42,9 @@ export default memo(function Terms() {
           </section>
 
           <section>
-            <h2 className="text-base font-semibold text-ts-orange mb-2">Contractor Responsibilities</h2>
+            <h2 className="text-base font-semibold text-ts-orange mb-2">
+              Contractor Responsibilities
+            </h2>
             <ul className="list-disc list-inside text-sm text-white/70 space-y-1.5 ml-2">
               <li>Provide accurate information about your services and qualifications</li>
               <li>Maintain proper licensing and insurance as required by law</li>

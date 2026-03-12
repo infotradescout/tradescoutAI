@@ -33,6 +33,27 @@ async function seedMarketplaceCategory() {
   return category;
 }
 
+async function getOrCreateMarketplaceCategoryByName(name: string) {
+  const existing = (await storage.getMarketplaceCategories()).find(
+    (category: any) =>
+      String(category?.name || "")
+        .trim()
+        .toLowerCase() === name.trim().toLowerCase()
+  );
+  if (existing) return existing;
+
+  const [category] = await db
+    .insert(marketplaceCategories)
+    .values({
+      name,
+      description: `${name} integration test category`,
+      iconName: "package",
+    } as any)
+    .returning();
+
+  return category;
+}
+
 async function getCountyFixture() {
   const [county] = await db
     .select({
@@ -126,6 +147,38 @@ describeDb("Phase 2B ingress hardening", () => {
     expect(String(update.body?.description || "")).toContain("[hidden]");
     expect(Array.isArray(update.body?.tags)).toBe(true);
     expect(String(update.body?.tags?.[0] || "")).toContain("[hidden]");
+  });
+
+  it("marketplace create enforces exchange category requirements server-side", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+    });
+    const category = await getOrCreateMarketplaceCategoryByName("Vehicles");
+    await seedApprovedMarketplaceVerification(String(user.id));
+
+    const res = await agent.post("/api/marketplace/listings").send({
+      categoryId: category.id,
+      title: "2019 truck",
+      description: "Runs well.",
+      price: "22000.00",
+      county: "Ascension Parish",
+      state: "LA",
+      condition: "good",
+      isLocalPickupOnly: true,
+      willShip: false,
+      images: ["https://example.com/one.jpg"],
+      specifications: {
+        year: "2019",
+        make: "Ford",
+        model: "F-150",
+        mileage: "78000",
+        titleStatus: "clean",
+      },
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body?.reasonCode).toBe("CATEGORY_PHOTO_MINIMUM");
   });
 
   it("homescout manual create rejects duplicate canonical property record", async () => {

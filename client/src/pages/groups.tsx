@@ -4,14 +4,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Users, MessageSquare, Plus, Search, MapPin, Crown } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { GroupsShell } from "@/shells/GroupsShell";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 interface Group {
   id: string;
@@ -38,63 +51,57 @@ type HoaMembership = {
 export default function Groups() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({
-    name: '',
-    description: '',
-    type: 'county_community',
+    name: "",
+    description: "",
+    type: "county_community",
     isPublic: true,
-    tags: '',
-    rules: ''
+    tags: "",
+    rules: "",
   });
   const location = useLocationContext();
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
-  const hasCountyContext = Boolean(
-    stateCode && (countyFips || (location as any).county)
-  );
+  const hasCountyContext = Boolean(stateCode && (countyFips || (location as any).county));
 
-  const { data: hoaMembershipData } = useQuery<{ memberships: HoaMembership[]}>(
-    {
-      queryKey: ["/api/hoa", stateCode, countyFips],
-      queryFn: async () => {
-        const res = await fetch("/api/hoa");
-        if (!res.ok) {
-          throw new Error("Failed to load HOA memberships");
-        }
-        return res.json();
-      },
-      enabled: true,
-    }
-  );
+  const { data: hoaMembershipData } = useQuery<{ memberships: HoaMembership[] }>({
+    queryKey: ["/api/hoa", stateCode, countyFips],
+    queryFn: async () => {
+      const res = await fetch("/api/hoa");
+      if (!res.ok) {
+        throw new Error("Failed to load HOA memberships");
+      }
+      return res.json();
+    },
+    enabled: true,
+  });
 
   const hoaMemberships = hoaMembershipData?.memberships ?? [];
-  const primaryHoa = hoaMemberships.find(
-    (m) => m.groupType === "hoa" || !m.groupType
-  );
+  const primaryHoa = hoaMemberships.find((m) => m.groupType === "hoa" || !m.groupType);
   const hasLocationMeta = !!primaryHoa?.stateCode || !!primaryHoa?.countyFips;
 
-  const { data, isLoading: groupsLoading } = useQuery<{ groups: Group[] | undefined}>({
-    queryKey: ['/api/community/groups', stateCode, countyFips, searchQuery, selectedType],
+  const { data, isLoading: groupsLoading } = useQuery<{ groups: Group[] | undefined }>({
+    queryKey: ["/api/community/groups", stateCode, countyFips, searchQuery, selectedType],
     enabled: hasCountyContext && Boolean(stateCode && countyFips),
     queryFn: async () => {
       const params = new URLSearchParams({
-        scope: 'county',
+        scope: "county",
         stateCode: stateCode!,
         countyFips: countyFips!,
-        limit: '20',
-        offset: '0',
+        limit: "20",
+        offset: "0",
       });
 
       if (searchQuery) {
-        params.append('search', searchQuery);
+        params.append("search", searchQuery);
       }
 
       const response = await fetch(`/api/community/groups?${params.toString()}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch groups');
+        throw new Error("Failed to fetch groups");
       }
       return response.json();
     },
@@ -105,9 +112,9 @@ export default function Groups() {
   const joinGroupMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const response = await fetch(`/api/community/groups/${groupId}/join`, {
-        method: 'POST',
+        method: "POST",
       });
-      if (!response.ok) throw new Error('Failed to join group');
+      if (!response.ok) throw new Error("Failed to join group");
       return response.json();
     },
     onSuccess: () => {
@@ -115,7 +122,9 @@ export default function Groups() {
         title: "Joined Group!",
         description: "You've successfully joined the group and can now participate in discussions.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/community/groups', stateCode, countyFips, searchQuery, selectedType] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/community/groups", stateCode, countyFips, searchQuery, selectedType],
+      });
     },
     onError: () => {
       toast({
@@ -128,16 +137,22 @@ export default function Groups() {
 
   const createGroupMutation = useMutation({
     mutationFn: async (groupData: any) => {
-      const response = await fetch('/api/groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...groupData,
-          tags: groupData.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-          rules: groupData.rules.split('\n').map((r: string) => r.trim()).filter(Boolean)
-        })
+          tags: groupData.tags
+            .split(",")
+            .map((t: string) => t.trim())
+            .filter(Boolean),
+          rules: groupData.rules
+            .split("\n")
+            .map((r: string) => r.trim())
+            .filter(Boolean),
+        }),
       });
-      if (!response.ok) throw new Error('Failed to create group');
+      if (!response.ok) throw new Error("Failed to create group");
       return response.json();
     },
     onSuccess: () => {
@@ -147,14 +162,16 @@ export default function Groups() {
       });
       setIsCreateDialogOpen(false);
       setNewGroup({
-        name: '',
-        description: '',
-        type: 'county_community',
+        name: "",
+        description: "",
+        type: "county_community",
         isPublic: true,
-        tags: '',
-        rules: ''
+        tags: "",
+        rules: "",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/community/groups', stateCode, countyFips, searchQuery, selectedType] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/community/groups", stateCode, countyFips, searchQuery, selectedType],
+      });
     },
     onError: () => {
       toast({
@@ -188,8 +205,8 @@ export default function Groups() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-white/70 text-sm">
-                Choose your home county so we can show you groups that match your community. This keeps
-                discussions and recommendations local to {location.label || "your area"}.
+                Choose your home county so we can show you groups that match your community. This
+                keeps discussions and recommendations local to {location.label || "your area"}.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/settings">
@@ -220,6 +237,11 @@ export default function Groups() {
 
   return (
     <GroupsShell>
+      <SEOHelmet
+        title="Community Groups | County and HOA Collaboration"
+        description="Browse TradeScout community groups and county-scoped collaboration spaces for local homeowners, pros, and HOA members."
+        canonical="https://www.thetradescout.com/groups"
+      />
       <div className="max-w-7xl mx-auto space-y-8" data-testid="groups-page">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -230,7 +252,8 @@ export default function Groups() {
             <h1 className="text-4xl font-bold text-white">Community Groups</h1>
           </div>
           <p className="text-xl text-white/70 max-w-3xl mx-auto">
-            Connect with homeowners and contractors in {location.label || "your area"}. Share experiences, get advice, and build relationships.
+            Connect with homeowners and contractors in {location.label || "your area"}. Share
+            experiences, get advice, and build relationships.
           </p>
         </div>
 
@@ -239,12 +262,8 @@ export default function Groups() {
           <Card className="mb-4 border-white/10 bg-tsCard/95">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div className="min-w-0">
-                <CardTitle className="text-sm font-semibold text-white">
-                  Your HOA
-                </CardTitle>
-                <p className="mt-1 truncate text-xs text-white/70">
-                  {primaryHoa.hoaName}
-                </p>
+                <CardTitle className="text-sm font-semibold text-white">Your HOA</CardTitle>
+                <p className="mt-1 truncate text-xs text-white/70">{primaryHoa.hoaName}</p>
 
                 {hasLocationMeta && (
                   <p className="mt-1 text-[11px] text-white/60">
@@ -252,19 +271,13 @@ export default function Groups() {
                     {primaryHoa.stateCode && primaryHoa.countyFips && (
                       <span className="mx-1"> b7</span>
                     )}
-                    {primaryHoa.countyFips && (
-                      <span>Local coverage: #{primaryHoa.countyFips}</span>
-                    )}
+                    {primaryHoa.countyFips && <span>Local coverage: #{primaryHoa.countyFips}</span>}
                   </p>
                 )}
               </div>
 
               <Link
-                href={
-                  primaryHoa.hoaId
-                    ? `/hoa-dashboard/${primaryHoa.hoaId}`
-                    : "/hoa-dashboard"
-                }
+                href={primaryHoa.hoaId ? `/hoa-dashboard/${primaryHoa.hoaId}` : "/hoa-dashboard"}
               >
                 <Button
                   size="sm"
@@ -304,7 +317,10 @@ export default function Groups() {
           </Select>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700" data-testid="create-group-button">
+              <Button
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                data-testid="create-group-button"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Group
               </Button>
@@ -328,7 +344,10 @@ export default function Groups() {
                   className="bg-white/10 border-white/15 min-h-24"
                   data-testid="group-description-input"
                 />
-                <Select value={newGroup.type} onValueChange={(value) => setNewGroup({ ...newGroup, type: value })}>
+                <Select
+                  value={newGroup.type}
+                  onValueChange={(value) => setNewGroup({ ...newGroup, type: value })}
+                >
                   <SelectTrigger className="bg-white/10 border-white/15">
                     <SelectValue />
                   </SelectTrigger>
@@ -352,13 +371,13 @@ export default function Groups() {
                   className="bg-white/10 border-white/15 min-h-24"
                   data-testid="group-rules-input"
                 />
-                <Button 
-                  onClick={handleCreateGroup} 
+                <Button
+                  onClick={handleCreateGroup}
                   disabled={createGroupMutation.isPending || !newGroup.name.trim()}
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600"
                   data-testid="submit-create-group"
                 >
-                  {createGroupMutation.isPending ? 'Creating...' : 'Create Group'}
+                  {createGroupMutation.isPending ? "Creating..." : "Create Group"}
                 </Button>
               </div>
             </DialogContent>
@@ -373,42 +392,52 @@ export default function Groups() {
               <span>My Groups</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.isArray(groups) && groups.filter((g) => g.isMember).map((group) => (
-                <Card key={group.id} className="bg-white/5 border-white/10 hover:border-blue-500/50 transition-all duration-300">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-white text-lg">{group.name}</CardTitle>
-                        {group.category && (
-                          <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
-                            {group.category}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                          {group.isAdmin ? 'Admin' : 'Member'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-white/70 text-sm line-clamp-2">{group.description}</p>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/60 flex items-center">
-                        <Users className="w-4 h-4 mr-1" />
-                        {group.memberCount} members
-                      </span>
-                    </div>
-                    <Link href={`/groups/${group.id}`}>
-                      <Button variant="outline" className="w-full" data-testid={`view-group-${group.id}`}>
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        View Group
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
+              {Array.isArray(groups) &&
+                groups
+                  .filter((g) => g.isMember)
+                  .map((group) => (
+                    <Card
+                      key={group.id}
+                      className="bg-white/5 border-white/10 hover:border-blue-500/50 transition-all duration-300"
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-white text-lg">{group.name}</CardTitle>
+                            {group.category && (
+                              <Badge variant="secondary" className="bg-blue-500/20 text-blue-400">
+                                {group.category}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                              {group.isAdmin ? "Admin" : "Member"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-white/70 text-sm line-clamp-2">{group.description}</p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-white/60 flex items-center">
+                            <Users className="w-4 h-4 mr-1" />
+                            {group.memberCount} members
+                          </span>
+                        </div>
+                        <Link href={`/groups/${group.id}`}>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            data-testid={`view-group-${group.id}`}
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            View Group
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  ))}
             </div>
           </div>
         )}
@@ -420,70 +449,81 @@ export default function Groups() {
             <span>Discover Groups</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.isArray(groups) ? groups.map((group: Group) => (
-              <Card 
-                key={group.id} 
-                className="bg-white/5 border-white/10 hover:border-ts-orange/30 transition-all duration-300"
-                data-testid="group-card"
-              >
-                <CardHeader className="pb-3">
-                  <div className="space-y-2">
-                    <CardTitle className="text-white text-lg">{group.name}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      {group.category && (
-                        <Badge variant="secondary" className="bg-ts-orange/20 text-ts-orange">
-                          {group.category}
-                        </Badge>
-                      )}
-                      {group.countyFips && (
-                        <Badge variant="outline" className="border-white/15 text-white/70">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          Local
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-white/70 text-sm leading-relaxed line-clamp-3">{group.description}</p>
+            {Array.isArray(groups)
+              ? groups.map((group: Group) => (
+                  <Card
+                    key={group.id}
+                    className="bg-white/5 border-white/10 hover:border-ts-orange/30 transition-all duration-300"
+                    data-testid="group-card"
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="space-y-2">
+                        <CardTitle className="text-white text-lg">{group.name}</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          {group.category && (
+                            <Badge variant="secondary" className="bg-ts-orange/20 text-ts-orange">
+                              {group.category}
+                            </Badge>
+                          )}
+                          {group.countyFips && (
+                            <Badge variant="outline" className="border-white/15 text-white/70">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              Local
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-white/70 text-sm leading-relaxed line-clamp-3">
+                        {group.description}
+                      </p>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/60 flex items-center">
-                      <Users className="w-4 h-4 mr-1" />
-                      {group.memberCount} members
-                    </span>
-                    {group.isAdmin && (
-                      <Badge variant="outline" className="border-yellow-500 text-yellow-500 text-xs">
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {isUserMember(group) ? (
-                    <Link href={`/groups/${group.id}`}>
-                      <Button variant="outline" className="w-full" data-testid="group-leave-button">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Joined - View Group
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Button 
-                      className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-medium"
-                      onClick={() => handleJoinGroup(group.id)}
-                      disabled={joinGroupMutation.isPending}
-                      data-testid="group-join-button"
-                    >
-                      {joinGroupMutation.isPending ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/60 flex items-center">
+                          <Users className="w-4 h-4 mr-1" />
+                          {group.memberCount} members
+                        </span>
+                        {group.isAdmin && (
+                          <Badge
+                            variant="outline"
+                            className="border-yellow-500 text-yellow-500 text-xs"
+                          >
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
+
+                      {isUserMember(group) ? (
+                        <Link href={`/groups/${group.id}`}>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            data-testid="group-leave-button"
+                          >
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Joined - View Group
+                          </Button>
+                        </Link>
                       ) : (
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Button
+                          className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-medium"
+                          onClick={() => handleJoinGroup(group.id)}
+                          disabled={joinGroupMutation.isPending}
+                          data-testid="group-join-button"
+                        >
+                          {joinGroupMutation.isPending ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          ) : (
+                            <Plus className="w-4 h-4 mr-2" />
+                          )}
+                          Join Group
+                        </Button>
                       )}
-                      Join Group
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )) : null}
+                    </CardContent>
+                  </Card>
+                ))
+              : null}
           </div>
         </div>
 
@@ -492,9 +532,11 @@ export default function Groups() {
             <Users className="w-16 h-16 text-white/60 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Groups Found</h3>
             <p className="text-white/60 mb-6">
-              {searchQuery ? 'Try adjusting your search terms or filters.' : 'Be the first to create a group in your area!'}
+              {searchQuery
+                ? "Try adjusting your search terms or filters."
+                : "Be the first to create a group in your area!"}
             </p>
-            <Button 
+            <Button
               onClick={() => setIsCreateDialogOpen(true)}
               className="bg-gradient-to-r from-blue-500 to-purple-600"
             >

@@ -6,11 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ReportContentModal } from "@/components/ReportContentModal";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 interface HandmadeProduct {
   id: string;
@@ -62,15 +69,18 @@ export default function HandmadeMarketplace() {
 
   // Fetch products
   const { data: products = [], isLoading } = useQuery<HandmadeProduct[]>({
-    queryKey: ["/api/handmade/products", {
-      search: searchTerm,
-      categoryId: selectedCategory,
-      minPrice: filters.minPrice,
-      maxPrice: filters.maxPrice,
-      materials: filters.materials,
-      inStock: filters.inStock,
-      featured: sortBy === "featured",
-    }],
+    queryKey: [
+      "/api/handmade/products",
+      {
+        search: searchTerm,
+        categoryId: selectedCategory,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        materials: filters.materials,
+        inStock: filters.inStock,
+        featured: sortBy === "featured",
+      },
+    ],
   });
 
   const handleToggleFavorite = async (productId: string) => {
@@ -140,18 +150,16 @@ export default function HandmadeMarketplace() {
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-4">
         <Link href={`/handmade/products/${product.id}`}>
           <h3 className="font-medium text-lg mb-2 hover:text-blue-600 transition-colors line-clamp-2">
             {product.title}
           </h3>
         </Link>
-        
+
         <div className="flex items-center gap-2 mb-2">
-          <span className="font-bold text-xl text-blue-600">
-            {formatPrice(product.price)}
-          </span>
+          <span className="font-bold text-xl text-blue-600">{formatPrice(product.price)}</span>
           {product.compareAtPrice && (
             <span className="text-sm text-white/60 line-through">
               {formatPrice(product.compareAtPrice)}
@@ -162,7 +170,9 @@ export default function HandmadeMarketplace() {
         {product.city && product.stateCode && (
           <div className="flex items-center gap-1 text-sm text-white/60 mb-2">
             <MapPin className="w-3 h-3" />
-            <span>{product.city}, {product.stateCode}</span>
+            <span>
+              {product.city}, {product.stateCode}
+            </span>
           </div>
         )}
 
@@ -188,15 +198,19 @@ export default function HandmadeMarketplace() {
           </div>
           <div className="flex items-center gap-2">
             {product.freeShipping && (
-              <Badge variant="outline" className="text-xs">Free Shipping</Badge>
+              <Badge variant="outline" className="text-xs">
+                Free Shipping
+              </Badge>
             )}
             {!product.inStock && (
-              <Badge variant="error" className="text-xs">Out of Stock</Badge>
+              <Badge variant="error" className="text-xs">
+                Out of Stock
+              </Badge>
             )}
           </div>
         </div>
       </CardContent>
-      
+
       {isAuthenticated && (
         <CardFooter className="pt-0 px-4 pb-4">
           <ReportContentModal
@@ -212,12 +226,17 @@ export default function HandmadeMarketplace() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <SEOHelmet
+        title="Handmade Marketplace | Local Artisan Products"
+        description="Discover handmade products from local artisans in the TradeScout marketplace, including crafts, decor, and specialty goods."
+        canonical="https://www.thetradescout.com/handmade-marketplace"
+      />
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">Handmade Marketplace</h1>
         <p className="text-white/60 max-w-2xl mx-auto">
-          Discover unique, handcrafted items from talented artisans in your community.
-          Support local makers and find one-of-a-kind treasures.
+          Discover unique, handcrafted items from talented artisans in your community. Support local
+          makers and find one-of-a-kind treasures.
         </p>
       </div>
 
@@ -240,7 +259,10 @@ export default function HandmadeMarketplace() {
         </div>
 
         <div className="flex flex-wrap gap-4 items-center">
-          <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
+          <Select
+            value={selectedCategory || "all"}
+            onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -290,9 +312,7 @@ export default function HandmadeMarketplace() {
       {/* Quick Actions */}
       <div className="mb-8 flex gap-4 justify-center">
         <Link href="/handmade-marketplace">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            Start Selling
-          </Button>
+          <Button className="bg-blue-600 hover:bg-blue-700">Start Selling</Button>
         </Link>
         {isAuthenticated && (
           <Link href="/handmade-marketplace">
@@ -319,12 +339,15 @@ export default function HandmadeMarketplace() {
           ))}
         </div>
       ) : products.length > 0 ? (
-        <div className={`
-          ${viewMode === "grid" 
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-            : "space-y-4"
+        <div
+          className={`
+          ${
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              : "space-y-4"
           }
-        `}>
+        `}
+        >
           {products.map(renderProductCard)}
         </div>
       ) : (
@@ -334,17 +357,20 @@ export default function HandmadeMarketplace() {
           <p className="text-white/60 mb-4">
             Try adjusting your search or filters to find what you're looking for.
           </p>
-          <Button variant="outline" onClick={() => {
-            setSearchTerm("");
-            setSelectedCategory("");
-            setFilters({
-              minPrice: "",
-              maxPrice: "",
-              materials: [],
-              freeShipping: false,
-              inStock: true,
-            });
-          }}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearchTerm("");
+              setSelectedCategory("");
+              setFilters({
+                minPrice: "",
+                maxPrice: "",
+                materials: [],
+                freeShipping: false,
+                inStock: true,
+              });
+            }}
+          >
             Clear Filters
           </Button>
         </div>
@@ -356,8 +382,8 @@ export default function HandmadeMarketplace() {
           <h2 className="text-2xl font-bold mb-6">Shop by Category</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {categories.map((category) => (
-              <Card 
-                key={category.id} 
+              <Card
+                key={category.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => setSelectedCategory(category.id)}
               >

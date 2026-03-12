@@ -427,7 +427,7 @@ export default function HomesVault() {
     onSuccess: () => {
       const homeId = selectedHomeId;
       if (!homeId) return;
-      window.location.href = `/homescout/new?homeId=${encodeURIComponent(homeId)}`;
+      window.location.href = `/exchange?tab=sell&category=real-estate&homeId=${encodeURIComponent(homeId)}`;
     },
     onError: (err: any) => {
       toast({

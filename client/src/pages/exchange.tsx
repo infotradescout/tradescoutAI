@@ -66,10 +66,8 @@ import {
   Trophy,
   Palette,
   Gem,
-  Sparkles,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/states";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
@@ -79,6 +77,16 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { share } from "@/utils/share";
 import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import {
+  EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME as SHARED_EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME,
+  type ExchangeCategorySlug,
+  type SellField,
+  SELL_CATEGORY_FIELDS as SHARED_SELL_CATEGORY_FIELDS,
+  SELL_CATEGORY_FLOWS as SHARED_SELL_CATEGORY_FLOWS,
+  getExchangePhotoHint,
+  getRequiredExchangeFieldKeys,
+  validateExchangeCategoryListing,
+} from "@shared/exchangeListingRules";
 
 interface ExchangeItem {
   id: string;
@@ -153,6 +161,8 @@ interface CompanyPromotion {
   terms?: string;
   restrictions?: string;
 }
+
+type SellFormCategorySlug = Exclude<ExchangeCategorySlug, "real-estate" | "metals">;
 
 const EXCHANGE_CATEGORIES = [
   {
@@ -242,6 +252,10 @@ const EXCHANGE_CATEGORIES = [
   },
 ];
 
+function isSellFormCategorySlug(value: string): value is SellFormCategorySlug {
+  return value !== "real-estate" && value !== "metals" && value in SHARED_SELL_CATEGORY_FIELDS;
+}
+
 export default function Exchange() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -302,13 +316,65 @@ export default function Exchange() {
   const [sellPrice, setSellPrice] = useState("");
   const [sellDescription, setSellDescription] = useState("");
   const [sellLocation, setSellLocation] = useState("");
-  const [sellLocationVisibility, setSellLocationVisibility] = useState<"exact" | "meetup_only">(
-    "exact"
-  );
   const [sellImages, setSellImages] = useState<string[]>([]);
-  const [sellCategorySlug, setSellCategorySlug] = useState<string>("");
-  const [sellCondition, setSellCondition] = useState<string>("");
+  const [sellCategorySlug, setSellCategorySlug] = useState<ExchangeCategorySlug | "">("");
+  const [sellSpecs, setSellSpecs] = useState<Record<string, string>>({});
+  const [vehicleVinDecodePending, setVehicleVinDecodePending] = useState(false);
   const [hasScoutDraft, setHasScoutDraft] = useState(false);
+  const selectedSellFlow =
+    sellCategorySlug !== "" ? SHARED_SELL_CATEGORY_FLOWS[sellCategorySlug] : null;
+
+  const decodeVehicleVin = async () => {
+    const rawVin = String(sellSpecs.vin || "")
+      .trim()
+      .toUpperCase();
+    if (rawVin.length !== 17) {
+      toast({
+        title: "VIN must be 17 characters",
+        description: "Enter a full VIN to auto-fill vehicle details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVehicleVinDecodePending(true);
+    try {
+      const res = await fetch(
+        `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValuesExtended/${encodeURIComponent(rawVin)}?format=json`
+      );
+      if (!res.ok) throw new Error("VIN service unavailable");
+      const payload = await res.json().catch(() => null);
+      const row = payload?.Results?.[0] || {};
+      const make = String(row?.Make || "").trim();
+      const model = String(row?.Model || "").trim();
+      const year = String(row?.ModelYear || "").trim();
+
+      setSellSpecs((prev) => ({
+        ...prev,
+        vin: rawVin,
+        make: make || prev.make || "",
+        model: model || prev.model || "",
+        year: year || prev.year || "",
+      }));
+
+      if (!sellTitle.trim() && year && make && model) {
+        setSellTitle(`${year} ${make} ${model}`.trim());
+      }
+
+      toast({
+        title: "VIN decoded",
+        description: "Vehicle details were auto-filled.",
+      });
+    } catch (error) {
+      toast({
+        title: "VIN decode failed",
+        description: formatUserFacingErrorMessage(error, "Fill details manually and continue."),
+        variant: "destructive",
+      });
+    } finally {
+      setVehicleVinDecodePending(false);
+    }
+  };
 
   const { data: marketplaceCategories = [] } = useQuery<any[]>({
     queryKey: ["/api/marketplace/categories"],
@@ -316,23 +382,7 @@ export default function Exchange() {
   });
 
   const exchangeSlugToMarketplaceCategoryName: Record<string, string> = useMemo(
-    () => ({
-      business: "Sell Your Business",
-      "real-estate": "Real Estate",
-      vehicles: "Vehicles",
-      construction: "Construction Equipment",
-      tools: "Tools & Hardware",
-      furniture: "Furniture & Home Goods",
-      farm: "Farm Equipment",
-      "business-equipment": "Business Equipment",
-      electronics: "Electronics & Technology",
-      sports: "Sports & Recreation",
-      collectibles: "Art & Collectibles",
-      jewelry: "Jewelry & Luxury Items",
-      "local-food": "Local Food & Artisan Goods",
-      metals: "Precious Metals (Physical)",
-      other: "Other High-Value Items",
-    }),
+    () => SHARED_EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME,
     []
   );
 
@@ -406,10 +456,9 @@ export default function Exchange() {
       setSellPrice("");
       setSellDescription("");
       setSellLocation("");
-      setSellLocationVisibility("exact");
       setSellImages([]);
       setSellCategorySlug("");
-      setSellCondition("");
+      setSellSpecs({});
       toast({
         title: "Listing submitted",
         description: "Your listing was submitted and is pending approval before going live.",
@@ -1475,23 +1524,13 @@ export default function Exchange() {
             <Card className="bg-tsCard border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">List Your Item</CardTitle>
-                <p className="text-white/60">
-                  Create a clear, trustworthy listing for other TradeScout members
-                </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {hasScoutDraft && (
-                  <div className="rounded-lg border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 flex items-start gap-2">
-                    <Sparkles className="h-3 w-3 mt-[2px]" />
-                    <div>
-                      <p className="font-semibold">Draft created from Scout</p>
-                      <p className="mt-0.5 text-[11px] text-amber-100/90">
-                        We pre-filled this listing based on your last Scout request. Edit any field
-                        before you publish&mdash;nothing goes live until you confirm.
-                      </p>
-                    </div>
+                {hasScoutDraft ? (
+                  <div className="rounded-lg border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                    Draft loaded from Scout.
                   </div>
-                )}
+                ) : null}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
@@ -1501,7 +1540,10 @@ export default function Exchange() {
                       </Label>
                       <Input
                         id="title"
-                        placeholder="Example: 16ft enclosed trailer with ramp"
+                        placeholder={
+                          selectedSellFlow?.sampleTitle ||
+                          "Example: 16ft enclosed trailer with ramp"
+                        }
                         className="bg-white/10 border-white/15 text-white"
                         value={sellTitle}
                         onChange={(e) => setSellTitle(e.target.value)}
@@ -1512,30 +1554,43 @@ export default function Exchange() {
                       <Label htmlFor="category" className="text-white">
                         Category
                       </Label>
-                      <Select value={sellCategorySlug} onValueChange={setSellCategorySlug}>
+                      <Select
+                        value={sellCategorySlug}
+                        onValueChange={(value) => {
+                          const category = EXCHANGE_CATEGORIES.find((c) => c.id === value);
+                          if (!category) return;
+                          if (category.id === "metals") {
+                            navigate("/exchange/metals");
+                            return;
+                          }
+                          if (category.id === "real-estate") {
+                            navigate("/real-estate-marketplace");
+                            return;
+                          }
+                          if (!isSellFormCategorySlug(value)) return;
+                          setSellCategorySlug(value);
+                          setSellSpecs({});
+                        }}
+                      >
                         <SelectTrigger className="bg-white/10 border-white/15 text-white">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent className="bg-tsCard border-white/10">
-                          {EXCHANGE_CATEGORIES.filter((c) => c.id !== "metals").map((category) => (
+                          {EXCHANGE_CATEGORIES.map((category) => (
                             <SelectItem key={category.id} value={category.id}>
                               {category.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="mt-2 text-xs text-white/60 flex items-center justify-between gap-2">
-                        <span>Listing precious metals?</span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-7 border-white/10 text-white/70"
-                          onClick={() => navigate("/exchange/metals")}
-                        >
-                          Use Metals Exchange
-                        </Button>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-2 border-white/15 text-white/80 hover:bg-white/10"
+                        onClick={() => navigate("/homescout/new")}
+                      >
+                        Sell a Home on HomeScout
+                      </Button>
                     </div>
 
                     <div>
@@ -1552,22 +1607,60 @@ export default function Exchange() {
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="condition" className="text-white">
-                        Condition
-                      </Label>
-                      <Select value={sellCondition} onValueChange={setSellCondition}>
-                        <SelectTrigger className="bg-white/10 border-white/15 text-white">
-                          <SelectValue placeholder="Select condition" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-tsCard border-white/10">
-                          <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="like_new">Like New</SelectItem>
-                          <SelectItem value="good">Good</SelectItem>
-                          <SelectItem value="fair">Fair</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {sellCategorySlug !== "" &&
+                      isSellFormCategorySlug(sellCategorySlug) &&
+                      SHARED_SELL_CATEGORY_FIELDS[sellCategorySlug].map((field: SellField) => (
+                        <div key={field.key}>
+                          <Label htmlFor={`spec-${field.key}`} className="text-white">
+                            {field.label}
+                          </Label>
+                          {field.options ? (
+                            <Select
+                              value={sellSpecs[field.key] || ""}
+                              onValueChange={(value) =>
+                                setSellSpecs((prev) => ({ ...prev, [field.key]: value }))
+                              }
+                            >
+                              <SelectTrigger className="bg-white/10 border-white/15 text-white">
+                                <SelectValue placeholder={field.placeholder} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-tsCard border-white/10">
+                                {field.options.map((option: { value: string; label: string }) => (
+                                  <SelectItem
+                                    key={`${field.key}-${option.value}`}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              id={`spec-${field.key}`}
+                              type={field.type || "text"}
+                              placeholder={field.placeholder}
+                              className="bg-white/10 border-white/15 text-white"
+                              value={sellSpecs[field.key] || ""}
+                              onChange={(e) =>
+                                setSellSpecs((prev) => ({ ...prev, [field.key]: e.target.value }))
+                              }
+                            />
+                          )}
+                          {sellCategorySlug === "vehicles" && field.key === "vin" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 border-white/15 text-white/80 hover:bg-white/10"
+                              onClick={() => void decodeVehicleVin()}
+                              disabled={vehicleVinDecodePending}
+                            >
+                              {vehicleVinDecodePending ? "Decoding..." : "Decode VIN"}
+                            </Button>
+                          ) : null}
+                        </div>
+                      ))}
                   </div>
 
                   <div className="space-y-4">
@@ -1577,7 +1670,10 @@ export default function Exchange() {
                       </Label>
                       <Textarea
                         id="description"
-                        placeholder="Describe condition, age, and what's included..."
+                        placeholder={
+                          selectedSellFlow?.descriptionPrompt ||
+                          "Describe condition, age, and what's included..."
+                        }
                         className="bg-white/10 border-white/15 text-white min-h-32"
                         value={sellDescription}
                         onChange={(e) => setSellDescription(e.target.value)}
@@ -1595,35 +1691,6 @@ export default function Exchange() {
                         value={sellLocation}
                         onChange={(e) => setSellLocation(e.target.value)}
                       />
-                      <div className="mt-3 space-y-1">
-                        <Label className="text-xs text-white/70">Location privacy</Label>
-                        <ToggleGroup
-                          type="single"
-                          value={sellLocationVisibility}
-                          onValueChange={(value) => {
-                            if (value === "exact" || value === "meetup_only") {
-                              setSellLocationVisibility(value);
-                            }
-                          }}
-                          className="inline-flex rounded-lg border border-white/10 bg-white/5 text-xs"
-                        >
-                          <ToggleGroupItem
-                            value="exact"
-                            className="px-3 py-1.5 data-[state=on]:bg-ts-orange data-[state=on]:text-white data-[state=on]:border-ts-orange/30"
-                          >
-                            Show exact area
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="meetup_only"
-                            className="px-3 py-1.5 data-[state=on]:bg-white/10 data-[state=on]:text-white"
-                          >
-                            Meetup only
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                        <p className="text-[11px] text-white/60">
-                          Meetup only hides your exact spot and skips hyper-local alerts.
-                        </p>
-                      </div>
                     </div>
 
                     <div>
@@ -1631,10 +1698,7 @@ export default function Exchange() {
                       <div className="border-2 border-dashed border-white/15 rounded-lg p-4 text-center space-y-4">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <Plus className="h-10 w-10 text-white/60" />
-                          <p className="text-white/60">Drop in clear, well-lit photos</p>
-                          <p className="text-sm text-white/60">
-                            Add up to 8 photos that show real condition
-                          </p>
+                          <p className="text-white/60">{getExchangePhotoHint(sellCategorySlug)}</p>
                           <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-sm text-white/70 hover:bg-white/10 cursor-pointer">
                             <UploadIcon className="h-4 w-4" />
                             <span>Choose Files</span>
@@ -1693,12 +1757,6 @@ export default function Exchange() {
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                  <Button
-                    variant="outline"
-                    className="border-white/15 text-white/70 hover:bg-white/10"
-                  >
-                    Save Draft
-                  </Button>
                   <Button
                     className="bg-ts-orange hover:bg-ts-orange-dark"
                     disabled={createListingMutation.isPending}
@@ -1762,16 +1820,42 @@ export default function Exchange() {
                         return;
                       }
 
-                      const mappedCondition =
-                        sellCondition === "new" ||
-                        sellCondition === "like_new" ||
-                        sellCondition === "excellent" ||
-                        sellCondition === "good" ||
-                        sellCondition === "fair" ||
-                        sellCondition === "poor" ||
-                        sellCondition === "parts_only"
-                          ? sellCondition
-                          : "good";
+                      const requiredCategoryFields = getRequiredExchangeFieldKeys(
+                        sellCategorySlug
+                      ).filter((key) => !String(sellSpecs[key] || "").trim());
+                      if (requiredCategoryFields.length > 0) {
+                        const categoryFields = isSellFormCategorySlug(sellCategorySlug)
+                          ? SHARED_SELL_CATEGORY_FIELDS[sellCategorySlug]
+                          : [];
+                        toast({
+                          title: "Finish required fields",
+                          description: requiredCategoryFields
+                            .map(
+                              (key) =>
+                                categoryFields.find((field: SellField) => field.key === key)
+                                  ?.label || key
+                            )
+                            .slice(0, 2)
+                            .join(", "),
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      const categoryValidation = validateExchangeCategoryListing({
+                        category: sellCategorySlug,
+                        imageCount: sellImages.length,
+                        specs: sellSpecs,
+                      });
+                      if (categoryValidation) {
+                        toast({
+                          title: "Complete category details",
+                          description: categoryValidation.message,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      const mappedCondition = selectedSellFlow?.defaultCondition || "good";
 
                       const body: any = {
                         title: sellTitle.trim(),
@@ -1784,8 +1868,63 @@ export default function Exchange() {
                         isLocalPickupOnly: true,
                         willShip: false,
                         images: sellImages,
-                        locationVisibility: sellLocationVisibility,
+                        locationVisibility: "meetup_only",
                       };
+
+                      const specPayload = Object.entries(sellSpecs).reduce<Record<string, string>>(
+                        (acc, [key, value]) => {
+                          const trimmed = String(value || "").trim();
+                          if (trimmed) acc[key] = trimmed;
+                          return acc;
+                        },
+                        {}
+                      );
+                      if (Object.keys(specPayload).length > 0) {
+                        body.specifications = {
+                          category: sellCategorySlug,
+                          ...specPayload,
+                        };
+                      }
+
+                      if (sellCategorySlug === "vehicles") {
+                        const parsedYear = Number(String(sellSpecs.year || ""));
+                        const parsedMileage = Number(String(sellSpecs.mileage || ""));
+                        body.brand = String(sellSpecs.make || "").trim() || undefined;
+                        body.model = String(sellSpecs.model || "").trim() || undefined;
+                        body.year = Number.isFinite(parsedYear) ? parsedYear : undefined;
+                        body.mileage = Number.isFinite(parsedMileage) ? parsedMileage : undefined;
+                      }
+
+                      if (sellCategorySlug === "construction") {
+                        const parsedHours = Number(String(sellSpecs.hours || ""));
+                        body.hours = Number.isFinite(parsedHours) ? parsedHours : undefined;
+                        body.model = String(sellSpecs.serialNumber || "").trim() || undefined;
+                      }
+
+                      if (sellCategorySlug === "tools") {
+                        body.brand = String(sellSpecs.brand || "").trim() || undefined;
+                        body.model = String(sellSpecs.model || "").trim() || undefined;
+                      }
+
+                      if (sellCategorySlug === "electronics") {
+                        body.brand = String(sellSpecs.brand || "").trim() || undefined;
+                        body.model = String(sellSpecs.model || "").trim() || undefined;
+                      }
+
+                      if (sellCategorySlug === "farm") {
+                        const parsedHours = Number(String(sellSpecs.hours || ""));
+                        body.hours = Number.isFinite(parsedHours) ? parsedHours : undefined;
+                      }
+
+                      if (sellCategorySlug === "business-equipment") {
+                        body.brand = String(sellSpecs.brand || "").trim() || undefined;
+                        body.model = String(sellSpecs.model || "").trim() || undefined;
+                      }
+
+                      if (sellCategorySlug === "other") {
+                        body.brand = String(sellSpecs.brand || "").trim() || undefined;
+                        body.model = String(sellSpecs.model || "").trim() || undefined;
+                      }
 
                       if (sellLocation.trim()) {
                         body.city = sellLocation.trim();
@@ -1794,7 +1933,7 @@ export default function Exchange() {
                       createListingMutation.mutate(body);
                     }}
                   >
-                    Publish Listing
+                    Done
                   </Button>
                 </div>
               </CardContent>

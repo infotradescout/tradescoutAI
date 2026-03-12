@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -88,25 +89,37 @@ export function NotificationCenter() {
   const [, navigate] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   const { data: incomingRequests = { requests: [] } } = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     queryFn: () => apiRequest("/api/social/conversations/requests/incoming"),
-    enabled: isOpen,
+    enabled: isAuthenticated && isOpen,
   });
   const contactRequestCount = incomingRequests?.requests?.length || 0;
 
   // Fetch unread count
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
+    queryFn: async () => {
+      try {
+        return await apiRequest("/api/notifications/unread-count");
+      } catch {
+        return { count: 0 };
+      }
+    },
+    enabled: isAuthenticated,
     refetchInterval: 30000, // Poll every 30 seconds
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch notifications
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     queryFn: () => apiRequest("/api/notifications?limit=20"),
-    enabled: isOpen,
+    enabled: isAuthenticated && isOpen,
+    retry: false,
   });
 
   // Mark as read mutation

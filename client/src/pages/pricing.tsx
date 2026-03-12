@@ -2,6 +2,7 @@ import { memo, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { CheckCircle, PartyPopper, Shield, Sparkles, AlertTriangle } from "lucide-react";
 import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 function Reveal({
   children,
@@ -51,6 +52,11 @@ const communityLines = [
 const Pricing = memo(function Pricing() {
   return (
     <div className="text-white font-body">
+      <SEOHelmet
+        title="TradeScout Pricing | $0 Access, No Pay-to-Play"
+        description="See TradeScout pricing and platform economics: core access is free, no pay-to-play ranking, and trust exposure is not sold."
+        canonical="https://www.thetradescout.com/pricing"
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
         {/* Hero */}
         <div className="text-center">

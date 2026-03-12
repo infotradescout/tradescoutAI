@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { VehicleMarketplaceShell } from "@/shells/VehicleMarketplaceShell";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 const VehicleMarketplace = memo(function VehicleMarketplace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,6 +101,11 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
 
   return (
     <VehicleMarketplaceShell>
+      <SEOHelmet
+        title="Vehicle Marketplace | Buy and Sell Local Vehicles"
+        description="Browse TradeScout's local vehicle marketplace to find used vehicles from trusted sellers and dealers."
+        canonical="https://www.thetradescout.com/vehicle-marketplace"
+      />
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
@@ -362,7 +368,9 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
 
       {/* Load More */}
       <div className="text-center mt-8">
-        <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark px-8">Load More Vehicles</Button>
+        <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark px-8">
+          Load More Vehicles
+        </Button>
       </div>
     </VehicleMarketplaceShell>
   );

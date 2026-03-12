@@ -28,12 +28,16 @@ export default function BestTradeCityPage() {
   const title = data
     ? `Best ${data.scope.tradeSlug} in ${data.scope.citySlug}, ${data.scope.stateCode} | TradeScout`
     : "Best listings | TradeScout";
+  const canonical = `https://www.thetradescout.com/best/${encodeURIComponent(
+    tradeSlug || ""
+  )}/${encodeURIComponent((stateCode || "").toLowerCase())}/city/${encodeURIComponent(citySlug || "")}`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <SEOHelmet
         title={title}
         description={data?.definition || "Verified listings in this scope."}
+        canonical={canonical}
       />
 
       <Card>

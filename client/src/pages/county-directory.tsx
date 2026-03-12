@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 type StateRow = { code: string; name: string };
 type CountyRow = { id: string; name: string; stateCode: string; fips: string };
@@ -89,6 +90,11 @@ const CountyDirectory = memo(function CountyDirectory() {
 
   return (
     <div className="text-white">
+      <SEOHelmet
+        title="County Directory | Browse U.S. Counties on TradeScout"
+        description="Browse TradeScout county pages by state and open local county hubs for community activity, trade partners, and verified business discovery."
+        canonical="https://www.thetradescout.com/county-directory"
+      />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">

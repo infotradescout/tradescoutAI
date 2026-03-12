@@ -181,8 +181,8 @@ const ALL_NAVIGATION: NavItem[] = [
     href: "/real-estate-marketplace",
     icon: Building,
     children: [
-      { label: "Real Estate Marketplace", href: "/real-estate-marketplace", icon: Building },
-      { label: "List on HomeScout", href: "/homescout/new", icon: Building },
+      { label: "HomeScout Portal", href: "/real-estate-marketplace", icon: Building },
+      { label: "HomeScout Platform", href: "/real-estate-marketplace", icon: Building },
     ],
   },
 

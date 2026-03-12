@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { SEOHelmet } from "@/components/SEOHelmet";
 import {
   ArrowLeft,
   AlertCircle,
@@ -209,6 +210,11 @@ export default function RealtorApplication() {
   if (!isAuthenticated) {
     return (
       <div className=" flex items-center justify-center p-4">
+        <SEOHelmet
+          title="Realtor Application | Join TradeScout"
+          description="Apply as a realtor on TradeScout to participate in local property and referral workflows."
+          canonical="https://www.thetradescout.com/realtor-application"
+        />
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-ts-orange mx-auto mb-4" />
@@ -225,6 +231,11 @@ export default function RealtorApplication() {
 
   return (
     <div className=" text-white">
+      <SEOHelmet
+        title="Realtor Application | Join TradeScout"
+        description="Apply as a realtor on TradeScout to participate in local property and referral workflows."
+        canonical="https://www.thetradescout.com/realtor-application"
+      />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">

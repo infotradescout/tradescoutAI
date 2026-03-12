@@ -175,10 +175,10 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             </div>
           </div>
           <div className="flex w-full md:w-auto gap-2">
-            <Link href="/homescout/new">
+            <Link href="/exchange?tab=sell&category=real-estate">
               <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                List on HomeScout
+                Sell Through Exchange
               </Button>
             </Link>
           </div>
@@ -349,10 +349,10 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
               <CardTitle className="text-white">No active listings yet</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-white/70 space-y-3">
-              <p>Be the first to submit a listing for this county.</p>
-              <Link href="/homescout/new">
+              <p>Use Exchange when you want to launch a sale listing for this county.</p>
+              <Link href="/exchange?tab=sell&category=real-estate">
                 <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                  List on HomeScout
+                  Go to Exchange Sell Flow
                 </Button>
               </Link>
             </CardContent>
