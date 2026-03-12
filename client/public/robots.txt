@@ -1,4 +1,6 @@
 User-agent: *
+Allow: /p/
+Allow: /u/
 Allow: /contractors/
 Allow: /profile/
 Allow: /business/
@@ -8,8 +10,10 @@ Allow: /trade/
 Allow: /city/
 Allow: /datasets/
 Allow: /best/
+Allow: /tradepartners/
 Allow: /homescout/
 Allow: /homescout/listings/
+Allow: /llms.txt
 
 Disallow: /admin/
 Disallow: /dashboard/
@@ -20,3 +24,4 @@ Disallow: /auth/
 Disallow: /api/
 
 Sitemap: https://www.thetradescout.com/sitemap.xml
+Sitemap: https://www.thetradescout.com/sitemap-index.xml

@@ -10,6 +10,7 @@ export default function NotFound() {
         title="Page Not Found | TradeScout"
         description="The page you're looking for doesn't exist. Return to TradeScout home, explore counties, or get help."
         canonical="https://www.thetradescout.com/404"
+        noIndex
       />
       <div className="w-full flex items-center justify-center px-4 py-24 font-body">
         <motion.div
@@ -38,7 +39,9 @@ export default function NotFound() {
                 <div className="w-8 h-8 bg-ts-orange/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Home className="w-4 h-4 text-ts-orange" />
                 </div>
-                <span className="text-sm text-white group-hover:text-ts-orange transition-colors">Go to Home</span>
+                <span className="text-sm text-white group-hover:text-ts-orange transition-colors">
+                  Go to Home
+                </span>
                 <ArrowRight className="w-3.5 h-3.5 text-white/30 ml-auto group-hover:text-ts-orange transition-colors" />
               </a>
             </Link>
@@ -47,7 +50,9 @@ export default function NotFound() {
                 <div className="w-8 h-8 bg-ts-orange/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Map className="w-4 h-4 text-ts-orange" />
                 </div>
-                <span className="text-sm text-white group-hover:text-ts-orange transition-colors">Browse Counties</span>
+                <span className="text-sm text-white group-hover:text-ts-orange transition-colors">
+                  Browse Counties
+                </span>
                 <ArrowRight className="w-3.5 h-3.5 text-white/30 ml-auto group-hover:text-ts-orange transition-colors" />
               </a>
             </Link>
@@ -56,7 +61,9 @@ export default function NotFound() {
                 <div className="w-8 h-8 bg-ts-orange/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <HelpCircle className="w-4 h-4 text-ts-orange" />
                 </div>
-                <span className="text-sm text-white group-hover:text-ts-orange transition-colors">How TradeScout Works</span>
+                <span className="text-sm text-white group-hover:text-ts-orange transition-colors">
+                  How TradeScout Works
+                </span>
                 <ArrowRight className="w-3.5 h-3.5 text-white/30 ml-auto group-hover:text-ts-orange transition-colors" />
               </a>
             </Link>

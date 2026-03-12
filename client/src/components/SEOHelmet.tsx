@@ -24,8 +24,10 @@ export function SEOHelmet({
   noIndex = false,
 }: SEOHelmetProps) {
   const [location] = useLocation();
-  const currentUrl = normalizePublicUrl(new URL(location, window.location.origin).toString());
-  const finalCanonical = normalizePublicUrl(canonical || currentUrl);
+  const currentUrl = normalizePublicUrl(
+    stripUrlVariantsForCanonical(new URL(location, window.location.origin).toString())
+  );
+  const finalCanonical = normalizePublicUrl(stripUrlVariantsForCanonical(canonical || currentUrl));
   const ogImageUrl = resolveAssetUrl(ogImage, finalCanonical);
   const formattedTitle = formatTradeScoutTitle(title);
 
@@ -44,7 +46,7 @@ export function SEOHelmet({
     updateMetaTag("og:type", ogType, "property");
     updateMetaTag("og:url", finalCanonical, "property");
     updateMetaTag("og:image", ogImageUrl, "property");
-    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} — ${TRADESCOUT_TAGLINE}`, "property");
+    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} - ${TRADESCOUT_TAGLINE}`, "property");
 
     // Twitter Card
     updateMetaTag("twitter:card", "summary_large_image", "name");
@@ -139,6 +141,17 @@ function normalizePublicUrl(url: string) {
     }
 
     if (parsed.protocol === "http:") parsed.protocol = "https:";
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function stripUrlVariantsForCanonical(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.search = "";
+    parsed.hash = "";
     return parsed.toString();
   } catch {
     return url;
@@ -381,7 +394,7 @@ export const createPlaceStructuredData = (county: {
       addressCountry: "US",
     },
   },
-  url: normalizePublicUrl(window.location.href),
+  url: normalizePublicUrl(stripUrlVariantsForCanonical(window.location.href)),
   identifier: county.fipsCode,
 });
 

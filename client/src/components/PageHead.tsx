@@ -16,8 +16,10 @@ export function PageHead({
   ogImage = "/tradescout-logo-circle.png?v=7",
   canonicalUrl,
 }: PageHeadProps) {
-  const currentUrl = normalizePublicUrl(window.location.href);
-  const resolvedCanonical = normalizePublicUrl(canonicalUrl || currentUrl);
+  const currentUrl = normalizePublicUrl(stripUrlVariantsForCanonical(window.location.href));
+  const resolvedCanonical = normalizePublicUrl(
+    stripUrlVariantsForCanonical(canonicalUrl || currentUrl)
+  );
   const imageUrl = resolveAssetUrl(ogImage, resolvedCanonical);
   const formattedTitle = formatTradeScoutTitle(title);
 
@@ -27,11 +29,12 @@ export function PageHead({
 
     // Update meta tags
     updateMetaTag("description", description);
+    updateMetaTag("keywords", keywords);
     updateMetaTag("og:title", formattedTitle, "property");
     updateMetaTag("og:description", description, "property");
     updateMetaTag("og:url", resolvedCanonical, "property");
     updateMetaTag("og:image", imageUrl, "property");
-    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} — ${TRADESCOUT_TAGLINE}`, "property");
+    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} - ${TRADESCOUT_TAGLINE}`, "property");
     updateMetaTag("twitter:title", formattedTitle);
     updateMetaTag("twitter:description", description);
     updateMetaTag("twitter:image", imageUrl);
@@ -82,6 +85,17 @@ function normalizePublicUrl(url: string) {
     }
 
     if (parsed.protocol === "http:") parsed.protocol = "https:";
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function stripUrlVariantsForCanonical(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.search = "";
+    parsed.hash = "";
     return parsed.toString();
   } catch {
     return url;

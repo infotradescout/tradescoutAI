@@ -16,6 +16,22 @@ const __dirname = dirname(__filename);
 
 const PRODUCTION_URL = 'https://www.thetradescout.com';
 const OUTPUT_PATH = resolve(__dirname, '../client/public/sitemap.xml');
+const OUTPUT_INDEX_PATH = resolve(__dirname, '../client/public/sitemap-index.xml');
+
+const SITEMAP_INDEX_TARGETS = [
+  '/sitemap-core.xml',
+  '/sitemap-profiles.xml',
+  '/sitemap-homescout-counties.xml',
+  '/sitemap-homescout-listings.xml',
+  '/sitemap-tradepartners.xml',
+  '/sitemap-directory-counties.xml',
+  '/sitemap-directory-trade-navigation.xml',
+  '/sitemap-directory-trades.xml',
+  '/sitemap-directory-cities.xml',
+  '/sitemap-directory-trade-cities.xml',
+  '/sitemap-best-pages.xml',
+  '/sitemap-recent-activity.xml',
+];
 
 // Canonical public routes only.
 // Keep this list focused on high-intent, index-worthy pages.
@@ -90,7 +106,13 @@ function generateSitemap() {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>`;
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
+  const indexTargets = SITEMAP_INDEX_TARGETS.map(
+    (path) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${path}</loc>\n    <lastmod>${now}</lastmod>\n  </sitemap>`
+  ).join('\n');
+  const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;
+  writeFileSync(OUTPUT_INDEX_PATH, sitemapIndex, 'utf-8');
   console.log(`Sitemap generated: ${OUTPUT_PATH}`);
+  console.log(`Sitemap index generated: ${OUTPUT_INDEX_PATH}`);
   console.log(`${PUBLIC_ROUTES.length} static URLs included`);
 }
 

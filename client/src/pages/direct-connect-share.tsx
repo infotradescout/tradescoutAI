@@ -44,6 +44,10 @@ export default function DirectConnectSharePage() {
     if (data?.title) return `${data.title} | TradeScout`;
     return "Shared request | TradeScout";
   }, [data]);
+  const canonicalUrl = useMemo(
+    () => `https://www.thetradescout.com/r/${encodeURIComponent(shareToken)}`,
+    [shareToken]
+  );
 
   const description = useMemo(() => {
     if (!data) return "A shared TradeScout request preview. Join and verify to unlock access.";
@@ -89,7 +93,7 @@ export default function DirectConnectSharePage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 text-white">
-      <SEOHelmet title={title} description={description} canonical={window.location.href} />
+      <SEOHelmet title={title} description={description} canonical={canonicalUrl} />
 
       <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="space-y-3">

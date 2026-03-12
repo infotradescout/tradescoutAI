@@ -131,6 +131,7 @@ const TrustModelPage = memo(function TrustModelPage() {
         title="TradeScout Trust Model | Verified Local Help and Public Trust Rules"
         description="Learn how TradeScout uses verification, Community Verification Score, licensing, insurance, work history, and public trust rules to help users make safer local decisions."
         keywords="tradescout trust model, community verification score, trusted local help, contractor verification, license verification, insurance verification, review lineage"
+        canonical="https://www.thetradescout.com/trust-model"
         structuredData={createFAQStructuredData(faqs)}
       />
       <div className="text-white font-body">

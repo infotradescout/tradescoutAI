@@ -642,6 +642,7 @@ router.get("/robots.txt", async (req, res) => {
       "Disallow: /scout/",
       "Disallow: /auth/",
       `Sitemap: ${baseUrl}/sitemap.xml`,
+      `Sitemap: ${baseUrl}/sitemap-index.xml`,
       "",
     ].join("\n")
   );
