@@ -3097,7 +3097,9 @@ export default function ScoutOS() {
             typeof window !== "undefined" &&
             window.localStorage.getItem(COUNTY_EXPLAINED_KEY) === "1";
 
-          if (countyCommitted && !alreadyExplained) {
+          const responseUsedFallback = Boolean(res.metadata?.fallbackUsed);
+
+          if (countyCommitted && !alreadyExplained && !responseUsedFallback) {
             const explanation: ScoutMessage = {
               id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
               role: "assistant",

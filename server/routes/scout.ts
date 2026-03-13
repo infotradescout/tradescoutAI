@@ -1343,10 +1343,10 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
           thought_flow: [
             "Schema validation failed",
             "LLM did not follow contract",
-            "Returning safe fallback",
+            "Returning contextual fallback",
           ],
           decision: "Schema violation fallback",
-          message: buildSafeSynthesisFallbackMessage(),
+          message: buildContextualSynthesisFallbackMessage(knowledge.answer),
           suggestedActions: DEFAULT_ACTIONS,
         };
       }
