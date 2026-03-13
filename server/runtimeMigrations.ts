@@ -134,6 +134,10 @@ function migrationContainsDml(sql: string): boolean {
   return /(^|;\s*)(insert|update|delete|truncate)\s+/im.test(sql);
 }
 
+function requiresNonTransactionalExecution(sql: string): boolean {
+  return /\b(create|drop)\s+(unique\s+)?index\s+concurrently\b/i.test(sql);
+}
+
 async function schemaLooksInitialized(): Promise<boolean> {
   const result = await pool.query<{
     users_reg: string | null;
@@ -187,10 +191,17 @@ export async function runRuntimeMigrations(options?: { log?: (msg: string) => vo
     log(`[RuntimeMigrations] Applying ${migration.filename}...`);
     const client = await pool.connect();
     try {
-      await client.query("begin");
-      // Execute the full migration file as-is so dollar-quoted blocks (DO $$ ... $$) work reliably.
-      await client.query(migration.sql);
-      await client.query("commit");
+      if (requiresNonTransactionalExecution(migration.sql)) {
+        log(
+          `[RuntimeMigrations] ${migration.filename} requires non-transactional execution; applying outside BEGIN/COMMIT.`
+        );
+        await client.query(migration.sql);
+      } else {
+        await client.query("begin");
+        // Execute the full migration file as-is so dollar-quoted blocks (DO $$ ... $$) work reliably.
+        await client.query(migration.sql);
+        await client.query("commit");
+      }
       await recordMigration(migration.hash);
       applied += 1;
     } catch (err) {

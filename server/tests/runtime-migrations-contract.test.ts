@@ -22,4 +22,11 @@ describe("runtime migration contracts", () => {
     expect(source).toContain("Only treat statement-leading DML as mutating data.");
     expect(source).toContain("return /(^|;\\s*)(insert|update|delete|truncate)\\s+/im.test(sql);");
   });
+
+  it("executes concurrent index migrations outside transaction blocks", () => {
+    const source = read("server/runtimeMigrations.ts");
+    expect(source).toContain("function requiresNonTransactionalExecution");
+    expect(source).toContain("index\\s+concurrently");
+    expect(source).toContain("requires non-transactional execution; applying outside BEGIN/COMMIT");
+  });
 });

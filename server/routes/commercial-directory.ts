@@ -264,10 +264,17 @@ export function registerCommercialDirectoryRoutes(app: Express) {
 
         const contractor = await storage.getContractorByUserId(userId);
         if (!contractor || !contractor.id) {
-          return res.status(404).json({
-            message: "Contractor profile not found.",
+          return res.json({
+            contractorId: null,
+            verifiedLicensed: false,
+            verifiedInsured: false,
+            hasApprovedLicenseDoc: false,
+            hasApprovedInsuranceDoc: false,
             isEligible: false,
             requires: ["contractor_profile"],
+            documents: [],
+            reason: "missing_contractor_profile",
+            message: "Contractor profile not found.",
           });
         }
 
