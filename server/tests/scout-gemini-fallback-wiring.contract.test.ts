@@ -20,6 +20,9 @@ describe("scout gemini fallback wiring contract", () => {
     expect(source).toContain('recordFallback("schema_violation")');
     expect(source).toContain('recordFallback("json_parse_error")');
     expect(source).toContain('recordFallback(isRateLimited ? "synthesis_rate_limited"');
+    expect(source).toContain("degradationReason?: ScoutDegradationReason");
+    expect(source).toContain('degradationReason: "provider_unavailable"');
+    expect(source).toContain('degradationReason: "schema_violation"');
   });
 
   it("keeps intro questions broad and avoids raw system-error copy", () => {

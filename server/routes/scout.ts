@@ -138,6 +138,15 @@ type ScoutTurnFailureClass =
   | "route_unmatched"
   | "system_error"
   | "unknown";
+type ScoutDegradationReason =
+  | "provider_unavailable"
+  | "schema_violation"
+  | "json_parse_error"
+  | "synthesis_rate_limited"
+  | "synthesis_system_error"
+  | "enhanced_confidence_gate"
+  | "enhanced_proxy_error"
+  | "route_exception";
 
 function deriveScoutTurnFailureClass(
   statusCode: number,
@@ -1140,6 +1149,7 @@ async function synthesizeResponse(
   thought_flow?: string[];
   decision?: string;
   provider?: string;
+  degradationReason?: ScoutDegradationReason;
 }> {
   const DEFAULT_ACTIONS = [
     "Find contractors in my area",
@@ -1152,6 +1162,7 @@ async function synthesizeResponse(
       message: knowledge.answer,
       suggestedActions: DEFAULT_ACTIONS,
       provider: "fallback",
+      degradationReason: "provider_unavailable",
     }; // Fall back to raw knowledge if no Gemini
   }
 
@@ -1348,6 +1359,8 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
           decision: "Schema violation fallback",
           message: buildContextualSynthesisFallbackMessage(knowledge.answer),
           suggestedActions: DEFAULT_ACTIONS,
+          provider: "fallback",
+          degradationReason: "schema_violation",
         };
       }
 
@@ -1405,6 +1418,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         message: buildContextualSynthesisFallbackMessage(knowledge.answer),
         suggestedActions: DEFAULT_ACTIONS,
         provider: "fallback",
+        degradationReason: "json_parse_error",
       };
     }
   } catch (error) {
@@ -1430,6 +1444,7 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
       }),
       suggestedActions: DEFAULT_ACTIONS,
       provider: "fallback",
+      degradationReason: isRateLimited ? "synthesis_rate_limited" : "synthesis_system_error",
     };
   }
 }
@@ -1860,6 +1875,7 @@ export interface ScoutResponse {
     sourceUsed?: string;
     attemptedSource?: string;
     fallbackUsed?: boolean;
+    degradationReason?: ScoutDegradationReason;
     confidenceBand?: SourceConfidenceBand;
     resolvedContext?: ResolvedContext | null;
     currentJobId?: string;
@@ -2599,6 +2615,7 @@ router.post("/", async (req: Request, res: Response) => {
     sourceUsed: string;
     failureClass: ScoutTurnFailureClass;
     fallbackUsed: boolean;
+    degradationReason?: ScoutDegradationReason;
   } = {
     provider: "unknown",
     intent: "unknown",
@@ -2687,6 +2704,7 @@ router.post("/", async (req: Request, res: Response) => {
             failureReason: scoutInteractionLog.failureReason || null,
             failureClass: telemetryFailureClass,
             fallbackUsed: Boolean(scoutTurnTelemetry.fallbackUsed),
+            degradationReason: scoutTurnTelemetry.degradationReason || null,
           });
         } catch (err) {
           console.error("[Scout][MissionControl] failed to record scout interaction", err);
@@ -2740,6 +2758,7 @@ router.post("/", async (req: Request, res: Response) => {
       sourceUsed: string;
       attemptedSource?: string;
       fallbackUsed: boolean;
+      degradationReason?: ScoutDegradationReason;
       confidenceBand: SourceConfidenceBand;
     } = {
       sourceUsed: "classic_knowledge_pipeline",
@@ -2798,6 +2817,7 @@ router.post("/", async (req: Request, res: Response) => {
               sourceUsed: "classic_knowledge_pipeline",
               attemptedSource: "enhanced_v4",
               fallbackUsed: true,
+              degradationReason: "enhanced_confidence_gate",
               confidenceBand: enhancedConfidence,
             };
             console.warn("[Scout] Enhanced v4 confidence below gate, falling back to classic", {
@@ -2838,6 +2858,7 @@ router.post("/", async (req: Request, res: Response) => {
           sourceUsed: "classic_knowledge_pipeline",
           attemptedSource: "enhanced_v4",
           fallbackUsed: true,
+          degradationReason: "enhanced_proxy_error",
           confidenceBand: "unknown",
         };
         console.warn("[Scout] Enhanced v4 proxy error, falling back to classic:", error);
@@ -3492,6 +3513,11 @@ router.post("/", async (req: Request, res: Response) => {
         metadata: {
           intent: synthesized.intent,
           redirect: "/pre-scout-setup?mode=create",
+          sourceUsed: sourceAudit.sourceUsed,
+          attemptedSource: sourceAudit.attemptedSource,
+          fallbackUsed: Boolean(sourceAudit.fallbackUsed) || synthesized.provider === "fallback",
+          degradationReason: synthesized.degradationReason ?? sourceAudit.degradationReason,
+          confidenceBand: sourceAudit.confidenceBand,
           resolvedContext,
         },
       };
@@ -3500,6 +3526,8 @@ router.post("/", async (req: Request, res: Response) => {
       scoutTurnTelemetry.provider = synthesized.provider || "fallback";
       scoutTurnTelemetry.sourceUsed = sourceAudit.sourceUsed;
       scoutTurnTelemetry.fallbackUsed = Boolean(sourceAudit.fallbackUsed);
+      scoutTurnTelemetry.degradationReason =
+        synthesized.degradationReason ?? sourceAudit.degradationReason;
       scoutTurnTelemetry.failureClass = "auth_required";
       return res.json({
         ...aiResponse,
@@ -3550,6 +3578,7 @@ router.post("/", async (req: Request, res: Response) => {
         sourceUsed: sourceAudit.sourceUsed,
         attemptedSource: sourceAudit.attemptedSource,
         fallbackUsed: sourceAudit.fallbackUsed,
+        degradationReason: synthesized.degradationReason ?? sourceAudit.degradationReason,
         confidenceBand: sourceAudit.confidenceBand,
         currentJobId: currentJobId || undefined,
         resolvedContext,
@@ -4725,6 +4754,7 @@ router.post("/", async (req: Request, res: Response) => {
           sourceUsed: aiResponse.metadata.sourceUsed,
           attemptedSource: aiResponse.metadata.attemptedSource,
           fallbackUsed: aiResponse.metadata.fallbackUsed,
+          degradationReason: aiResponse.metadata.degradationReason,
           confidenceBand: aiResponse.metadata.confidenceBand,
           currentJobId: aiResponse.metadata.currentJobId,
           resolvedContext: aiResponse.metadata.resolvedContext ?? null,
@@ -4736,6 +4766,8 @@ router.post("/", async (req: Request, res: Response) => {
     scoutTurnTelemetry.sourceUsed = sourceAudit.sourceUsed;
     scoutTurnTelemetry.fallbackUsed =
       Boolean(sourceAudit.fallbackUsed) || scoutTurnTelemetry.provider === "fallback";
+    scoutTurnTelemetry.degradationReason =
+      synthesized.degradationReason ?? sourceAudit.degradationReason;
     if (scoutTurnTelemetry.provider === "fallback" && scoutTurnTelemetry.failureClass === "none") {
       scoutTurnTelemetry.failureClass = "provider_fallback";
     }
@@ -4807,6 +4839,10 @@ router.post("/", async (req: Request, res: Response) => {
       ctaHints: [],
       metadata: {
         intent: "fallback_recovery",
+        sourceUsed: "exception_handler",
+        fallbackUsed: true,
+        degradationReason: "route_exception",
+        confidenceBand: "unknown",
       },
       guardContext: {
         canRetry: true,

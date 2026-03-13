@@ -93,6 +93,10 @@ function buildEvidenceChips(msg: ScoutMessage): string[] {
     chips.push("Fallback: Active");
   }
 
+  if (provenance.degradationReason) {
+    chips.push(`Degraded: ${humanizeToken(provenance.degradationReason)}`);
+  }
+
   if (provenance.blockingReason) {
     chips.push(`Authority: Gated (${humanizeToken(provenance.blockingReason)})`);
   } else if (Array.isArray(provenance.allowedActions) && provenance.allowedActions.length > 0) {

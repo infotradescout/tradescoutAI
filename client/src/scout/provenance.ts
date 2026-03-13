@@ -8,6 +8,7 @@ export function buildScoutProvenance(
     sourceUsed: response.metadata?.sourceUsed,
     attemptedSource: response.metadata?.attemptedSource,
     fallbackUsed: response.metadata?.fallbackUsed,
+    degradationReason: response.metadata?.degradationReason,
     confidenceBand: response.metadata?.confidenceBand,
     knowledgeLayer: response.knowledge?.layer,
     sourceTitles: Array.isArray(response.knowledge?.sources)

@@ -135,6 +135,15 @@ export interface ScoutMessage {
     sourceUsed?: string;
     attemptedSource?: string;
     fallbackUsed?: boolean;
+    degradationReason?:
+      | "provider_unavailable"
+      | "schema_violation"
+      | "json_parse_error"
+      | "synthesis_rate_limited"
+      | "synthesis_system_error"
+      | "enhanced_confidence_gate"
+      | "enhanced_proxy_error"
+      | "route_exception";
     confidenceBand?: "low" | "medium" | "high" | "unknown";
     knowledgeLayer?: number;
     sourceTitles?: string[];

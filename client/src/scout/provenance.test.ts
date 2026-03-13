@@ -8,6 +8,7 @@ describe("buildScoutProvenance", () => {
         sourceUsed: "classic_knowledge_pipeline",
         attemptedSource: "enhanced_v4",
         fallbackUsed: true,
+        degradationReason: "schema_violation",
         confidenceBand: "medium",
         resolvedContext: {
           stage: "route_resolution",
@@ -27,6 +28,7 @@ describe("buildScoutProvenance", () => {
     expect(provenance?.sourceUsed).toBe("classic_knowledge_pipeline");
     expect(provenance?.attemptedSource).toBe("enhanced_v4");
     expect(provenance?.fallbackUsed).toBe(true);
+    expect(provenance?.degradationReason).toBe("schema_violation");
     expect(provenance?.confidenceBand).toBe("medium");
     expect(provenance?.knowledgeLayer).toBe(3);
     expect(provenance?.sourceTitles).toEqual([
