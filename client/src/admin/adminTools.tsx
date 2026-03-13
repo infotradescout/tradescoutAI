@@ -19,6 +19,7 @@ import {
   Home,
   Link2,
   Wallet,
+  Radio,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -207,6 +208,7 @@ const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"))
 const ContentModeration = React.lazy(() => import("@/pages/content-moderation"));
 const StaffShareLinksPage = React.lazy(() => import("@/pages/staff-share-links"));
 const AdminObservability = React.lazy(() => import("@/pages/admin-observability"));
+const AdminLiveStream = React.lazy(() => import("@/pages/admin-live-stream"));
 const AdminToolDiscovery = React.lazy(() => import("@/pages/admin-tool-discovery"));
 const AdminScoutResilience = React.lazy(() => import("@/pages/admin-scout-resilience"));
 const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-coverage"));
@@ -652,6 +654,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/pricing" />,
+      }),
+      tool({
+        id: "live-stream",
+        label: "Live Stream",
+        path: "/admin/live-stream",
+        icon: Radio,
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <AdminLiveStream />,
       }),
       tool({
         id: "observability",

@@ -36,6 +36,7 @@ import {
 import { sendInternalServerError } from "../utils/httpErrors";
 import { getLisaFeed } from "../services/lisaRuntime";
 import { getCrawlerTelemetrySummary } from "../services/crawlerTelemetryService";
+import { getPartnerIntelligenceBriefSnapshot } from "../services/partnerIntelligenceBriefSnapshotService";
 
 export const observabilityRouter = Router();
 observabilityRouter.use(isAuthenticated, isAdmin);
@@ -124,6 +125,158 @@ observabilityRouter.get("/crawler-telemetry", async (_req, res) => {
   } catch (error) {
     console.error("Crawler telemetry query failed:", error);
     sendInternalServerError(res, "Failed to fetch crawler telemetry", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/live-stream", async (_req, res) => {
+  try {
+    const [lisaFeed, crawlerTelemetry, cumulusBrief, activeAlerts] = await Promise.all([
+      getLisaFeed(),
+      getCrawlerTelemetrySummary(),
+      getPartnerIntelligenceBriefSnapshot({
+        partnerSlug: "cumulus-media",
+        window: "24h",
+        limit: 100,
+      }),
+      Promise.resolve(getActiveAlerts()),
+    ]);
+
+    const stream = [
+      {
+        id: `lisa-truth-${lisaFeed.generatedAt}`,
+        timestamp: lisaFeed.generatedAt,
+        kind: "truth_now",
+        priority: "high",
+        title: "Truth Now",
+        narrative: lisaFeed.summary.truthNow,
+        source: "lisa",
+      },
+      {
+        id: `lisa-data-${lisaFeed.generatedAt}`,
+        timestamp: lisaFeed.generatedAt,
+        kind: "data_production",
+        priority: "medium",
+        title: "Data Production",
+        narrative: lisaFeed.summary.dataProductionSummary,
+        source: "lisa",
+      },
+      {
+        id: `lisa-llm-${lisaFeed.generatedAt}`,
+        timestamp: lisaFeed.generatedAt,
+        kind: "llm_optimization",
+        priority: "medium",
+        title: "LLM Optimization",
+        narrative: lisaFeed.summary.llmOptimizationSummary,
+        source: "lisa",
+      },
+      {
+        id: `cumulus-brief-${cumulusBrief.generatedAt}`,
+        timestamp: cumulusBrief.generatedAt,
+        kind: "partner_brief",
+        priority: "high",
+        title: "Partner Brief",
+        narrative: cumulusBrief.executiveSummary,
+        source: "cumulus",
+      },
+      {
+        id: `cumulus-delta-${cumulusBrief.generatedAt}`,
+        timestamp: cumulusBrief.generatedAt,
+        kind: "partner_delta",
+        priority: "medium",
+        title: "Partner Delta",
+        narrative: cumulusBrief.summary.deltaSummary,
+        source: "cumulus",
+      },
+      ...(cumulusBrief.topCounties?.[0]
+        ? [
+            {
+              id: `cumulus-county-${cumulusBrief.generatedAt}-${cumulusBrief.topCounties[0].countyFips}`,
+              timestamp: cumulusBrief.generatedAt,
+              kind: "county_lead",
+              priority: "medium",
+              title: "Leading County",
+              narrative: `${cumulusBrief.topCounties[0].countyName}, ${cumulusBrief.topCounties[0].stateCode} leads with ${cumulusBrief.topCounties[0].requestCount} requests. ${cumulusBrief.topCounties[0].dominantSurface.replace(/_/g, " ")} is the dominant surface.`,
+              source: "cumulus",
+            },
+          ]
+        : []),
+      ...(cumulusBrief.topStates?.[0]
+        ? [
+            {
+              id: `cumulus-state-${cumulusBrief.generatedAt}-${cumulusBrief.topStates[0].stateCode}`,
+              timestamp: cumulusBrief.generatedAt,
+              kind: "state_lead",
+              priority: "medium",
+              title: "Leading State Cluster",
+              narrative: `${cumulusBrief.topStates[0].stateCode} leads with ${cumulusBrief.topStates[0].requestCount} requests across ${cumulusBrief.topStates[0].countyCount} counties.`,
+              source: "cumulus",
+            },
+          ]
+        : []),
+      {
+        id: `crawler-total-${crawlerTelemetry.generatedAt}`,
+        timestamp: crawlerTelemetry.generatedAt,
+        kind: "crawler_volume",
+        priority: "medium",
+        title: "Crawler Volume",
+        narrative: `${crawlerTelemetry.totals24h.total} crawler requests were observed in the last 24 hours with ${crawlerTelemetry.totals24h.ok} returning 2xx and ${crawlerTelemetry.totals24h.serverError} returning 5xx.`,
+        source: "crawler",
+      },
+      ...(crawlerTelemetry.topBots?.[0]
+        ? [
+            {
+              id: `crawler-bot-${crawlerTelemetry.generatedAt}-${crawlerTelemetry.topBots[0].botName}`,
+              timestamp: crawlerTelemetry.generatedAt,
+              kind: "crawler_top_bot",
+              priority: "low",
+              title: "Top Bot",
+              narrative: `${crawlerTelemetry.topBots[0].botName} is the most active crawler right now with ${crawlerTelemetry.topBots[0].requestCount} requests.`,
+              source: "crawler",
+            },
+          ]
+        : []),
+      ...(activeAlerts || []).slice(0, 3).map((alert) => ({
+        id: `alert-${alert.id}`,
+        timestamp: alert.lastEvaluatedAt || alert.startedAt,
+        kind: "alert",
+        priority:
+          alert.severity === "CRITICAL"
+            ? "critical"
+            : alert.severity === "WARN"
+              ? "high"
+              : "medium",
+        title: alert.name,
+        narrative: alert.description,
+        source: "alerts",
+      })),
+      ...lisaFeed.feed.slice(0, 8).map((item) => ({
+        id: item.id,
+        timestamp:
+          item.freshnessMinutes !== null
+            ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
+            : lisaFeed.generatedAt,
+        kind: "finding",
+        priority: item.priority,
+        title: item.headline,
+        narrative: item.narrative,
+        source: item.sourceKind,
+      })),
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    res.json({
+      generatedAt: new Date().toISOString(),
+      summary: {
+        truthNow: lisaFeed.summary.truthNow,
+        currentLeadCounty: cumulusBrief.summary.currentLeadCounty,
+        currentLeadState: cumulusBrief.summary.currentLeadState,
+        crawlerRequests24h: crawlerTelemetry.totals24h.total,
+        activeAlerts: activeAlerts.length,
+      },
+      stream,
+    });
+  } catch (error) {
+    console.error("Live stream query failed:", error);
+    sendInternalServerError(res, "Failed to fetch live stream", { error: String(error) });
   }
 });
 
