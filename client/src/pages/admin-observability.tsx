@@ -10,6 +10,7 @@ import {
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
+  Brain,
 } from "lucide-react";
 
 interface JobMetric {
@@ -104,6 +105,79 @@ interface ObservabilityBaselines {
   };
 }
 
+interface LisaFeedItem {
+  id: string;
+  priority: "critical" | "high" | "medium" | "low";
+  truthStatus?: "current" | "stale" | "superseded" | "suppressed";
+  scopeType?: "global" | "county" | "category" | "surface" | "partner";
+  scopeRef?: string | null;
+  engineVersion?: string;
+  sourceKind:
+    | "scout_interactions"
+    | "objectives"
+    | "homescout_listings"
+    | "observations"
+    | "bot_visibility";
+  headline: string;
+  narrative: string;
+  evidence: string[];
+  freshnessMinutes: number | null;
+}
+
+interface LisaFeedResponse {
+  generatedAt: string;
+  summary: {
+    truthNow: string;
+    dataProductionSummary: string;
+    llmOptimizationSummary: string;
+  };
+  feed: LisaFeedItem[];
+  runtime: {
+    mode: "tradescout_local" | "json_file" | "remote";
+    source: string;
+  };
+}
+
+interface CrawlerTelemetrySummary {
+  generatedAt: string;
+  totals24h: {
+    total: number;
+    ok: number;
+    clientError: number;
+    serverError: number;
+  };
+  topBots: Array<{
+    botName: string;
+    requestCount: number;
+  }>;
+  topRoutes: Array<{
+    path: string;
+    requestCount: number;
+  }>;
+  topSurfaces: Array<{
+    sourceSurface: string;
+    requestCount: number;
+  }>;
+  topCounties: Array<{
+    countyName: string;
+    stateCode: string | null;
+    countyFips: string | null;
+    sourceSurface: string;
+    requestCount: number;
+  }>;
+  requestTypes: Array<{
+    requestType: string;
+    requestCount: number;
+  }>;
+  hourlyBuckets: Array<{
+    bucketStart: string;
+    total: number;
+    ok: number;
+    clientError: number;
+    serverError: number;
+  }>;
+}
+
 function coerceBaselines(payload: any): ObservabilityBaselines | null {
   const root = payload && typeof payload === "object" ? payload : null;
   const candidate =
@@ -126,6 +200,8 @@ export default function ObservabilityDashboard() {
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
   const [scoutPolicy, setScoutPolicy] = useState<ScoutPolicyTelemetry | null>(null);
   const [baselines, setBaselines] = useState<ObservabilityBaselines | null>(null);
+  const [lisaFeed, setLisaFeed] = useState<LisaFeedResponse | null>(null);
+  const [crawlerTelemetry, setCrawlerTelemetry] = useState<CrawlerTelemetrySummary | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -180,15 +256,41 @@ export default function ObservabilityDashboard() {
       }
     };
 
+    const fetchLisaFeed = async () => {
+      try {
+        const response = await fetch("/api/admin/observability/lisa-feed");
+        if (!response.ok) throw new Error("Failed to fetch LISA feed");
+        const data = await response.json();
+        setLisaFeed(data);
+      } catch (err) {
+        console.error("Failed to fetch LISA feed:", err);
+      }
+    };
+
+    const fetchCrawlerTelemetry = async () => {
+      try {
+        const response = await fetch("/api/admin/observability/crawler-telemetry");
+        if (!response.ok) throw new Error("Failed to fetch crawler telemetry");
+        const data = await response.json();
+        setCrawlerTelemetry(data);
+      } catch (err) {
+        console.error("Failed to fetch crawler telemetry:", err);
+      }
+    };
+
     fetchMetrics();
     fetchAlerts();
     fetchScoutPolicy();
     fetchBaselines();
+    fetchLisaFeed();
+    fetchCrawlerTelemetry();
     const interval = setInterval(() => {
       fetchMetrics();
       fetchAlerts();
       fetchScoutPolicy();
       fetchBaselines();
+      fetchLisaFeed();
+      fetchCrawlerTelemetry();
     }, 15000);
 
     return () => clearInterval(interval);
@@ -233,6 +335,34 @@ export default function ObservabilityDashboard() {
     }
   };
 
+  const getLisaPriorityClass = (priority: LisaFeedItem["priority"]) => {
+    switch (priority) {
+      case "critical":
+        return "border-red-500/40 bg-red-500/10 text-red-100";
+      case "high":
+        return "border-orange-500/40 bg-orange-500/10 text-orange-100";
+      case "medium":
+        return "border-yellow-500/30 bg-yellow-500/10 text-yellow-100";
+      default:
+        return "border-white/10 bg-white/5 text-white";
+    }
+  };
+
+  const getTruthStatusClass = (truthStatus?: LisaFeedItem["truthStatus"]) => {
+    switch (truthStatus) {
+      case "current":
+        return "border-emerald-400/30 bg-emerald-500/10 text-emerald-100";
+      case "stale":
+        return "border-yellow-400/30 bg-yellow-500/10 text-yellow-100";
+      case "superseded":
+        return "border-slate-400/30 bg-slate-500/10 text-slate-100";
+      case "suppressed":
+        return "border-red-400/30 bg-red-500/10 text-red-100";
+      default:
+        return "border-white/10 bg-white/5 text-white/80";
+    }
+  };
+
   if (error) {
     return (
       <div className="p-6">
@@ -244,7 +374,7 @@ export default function ObservabilityDashboard() {
     );
   }
 
-  if (!metrics || !alerts || !scoutPolicy || !baselines) {
+  if (!metrics || !alerts || !scoutPolicy || !baselines || !lisaFeed || !crawlerTelemetry) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -266,6 +396,234 @@ export default function ObservabilityDashboard() {
         </div>
         <div className="text-sm text-muted-foreground">Last updated: {lastUpdated}</div>
       </div>
+
+      <Card className="p-6 border-orange-500/20 bg-gradient-to-br from-orange-500/10 via-black/30 to-black/50">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="h-5 w-5 text-orange-300" />
+          <h2 className="text-xl font-semibold text-white">LISA Live Feed</h2>
+          <span className="text-xs text-white/50 ml-auto">
+            Last feed update: {new Date(lisaFeed.generatedAt).toLocaleTimeString()}
+          </span>
+        </div>
+        <div className="mb-4 flex flex-wrap gap-2 text-xs text-white/70">
+          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">
+            Runtime: {lisaFeed.runtime.mode}
+          </span>
+          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">
+            Source: {lisaFeed.runtime.source}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">Truth Now</div>
+            <p className="mt-2 text-sm text-white/90">{lisaFeed.summary.truthNow}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">Data Production</div>
+            <p className="mt-2 text-sm text-white/90">{lisaFeed.summary.dataProductionSummary}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+              LLM Optimization
+            </div>
+            <p className="mt-2 text-sm text-white/90">{lisaFeed.summary.llmOptimizationSummary}</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {lisaFeed.feed.map((item) => (
+            <div
+              key={item.id}
+              className={`rounded-lg border p-4 ${getLisaPriorityClass(item.priority)}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-current/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.24em]">
+                    {item.priority}
+                  </span>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.24em] ${getTruthStatusClass(item.truthStatus)}`}
+                  >
+                    {item.truthStatus || "current"}
+                  </span>
+                  <span className="text-xs uppercase tracking-[0.18em] opacity-70">
+                    {item.sourceKind.replace(/_/g, " ")}
+                  </span>
+                </div>
+                <div className="text-xs opacity-70">
+                  {item.freshnessMinutes === null
+                    ? "Freshness unknown"
+                    : `${item.freshnessMinutes} min ago`}
+                </div>
+              </div>
+              <div className="mt-3 text-base font-semibold text-white">{item.headline}</div>
+              <p className="mt-2 text-sm text-white/85">{item.narrative}</p>
+              <div className="mt-2 text-xs text-white/55">
+                Scope: {item.scopeType || "global"}
+                {item.scopeRef ? ` / ${item.scopeRef}` : ""}
+                {item.engineVersion ? ` | Engine ${item.engineVersion}` : ""}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {item.evidence.map((evidence) => (
+                  <span
+                    key={evidence}
+                    className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-white/70"
+                  >
+                    {evidence}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-6 border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 via-black/20 to-black/50">
+        <div className="flex items-center gap-2 mb-4">
+          <Globe className="h-5 w-5 text-cyan-300" />
+          <h2 className="text-xl font-semibold text-white">Crawler Telemetry</h2>
+          <span className="text-xs text-white/50 ml-auto">
+            Last summary: {new Date(crawlerTelemetry.generatedAt).toLocaleTimeString()}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">Total 24h</div>
+            <div className="mt-2 text-2xl font-semibold text-white">
+              {crawlerTelemetry.totals24h.total}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">2xx</div>
+            <div className="mt-2 text-2xl font-semibold text-emerald-300">
+              {crawlerTelemetry.totals24h.ok}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">4xx</div>
+            <div className="mt-2 text-2xl font-semibold text-yellow-300">
+              {crawlerTelemetry.totals24h.clientError}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40">5xx</div>
+            <div className="mt-2 text-2xl font-semibold text-red-300">
+              {crawlerTelemetry.totals24h.serverError}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40 mb-3">
+              Top Crawlers
+            </div>
+            <div className="space-y-2">
+              {crawlerTelemetry.topBots.map((row) => (
+                <div
+                  key={row.botName}
+                  className="flex items-center justify-between text-sm text-white/85"
+                >
+                  <span>{row.botName}</span>
+                  <span>{row.requestCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40 mb-3">Top Routes</div>
+            <div className="space-y-2">
+              {crawlerTelemetry.topRoutes.map((row) => (
+                <div
+                  key={`${row.path}:${row.requestCount}`}
+                  className="flex items-center justify-between gap-3 text-sm text-white/85"
+                >
+                  <span className="truncate">{row.path}</span>
+                  <span>{row.requestCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40 mb-3">
+              Top Surfaces
+            </div>
+            <div className="space-y-2">
+              {crawlerTelemetry.topSurfaces.map((row) => (
+                <div
+                  key={row.sourceSurface}
+                  className="flex items-center justify-between text-sm text-white/85"
+                >
+                  <span>{row.sourceSurface}</span>
+                  <span>{row.requestCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40 mb-3">
+              Top Counties
+            </div>
+            <div className="space-y-2">
+              {crawlerTelemetry.topCounties.map((row) => (
+                <div
+                  key={`${row.countyFips || row.countyName}:${row.sourceSurface}`}
+                  className="flex items-center justify-between gap-3 text-sm text-white/85"
+                >
+                  <span className="truncate">
+                    {row.countyName}
+                    {row.stateCode ? `, ${row.stateCode}` : ""}
+                    <span className="ml-2 text-white/45">[{row.sourceSurface}]</span>
+                  </span>
+                  <span>{row.requestCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-white/40 mb-3">
+              Request Types
+            </div>
+            <div className="space-y-2">
+              {crawlerTelemetry.requestTypes.map((row) => (
+                <div
+                  key={row.requestType}
+                  className="flex items-center justify-between text-sm text-white/85"
+                >
+                  <span>{row.requestType}</span>
+                  <span>{row.requestCount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-4">
+          <div className="text-xs uppercase tracking-[0.24em] text-white/40 mb-3">
+            Hourly Crawler Volume
+          </div>
+          <div className="flex h-32 items-end gap-1">
+            {crawlerTelemetry.hourlyBuckets.map((bucket) => {
+              const maxTotal = Math.max(
+                1,
+                ...crawlerTelemetry.hourlyBuckets.map((row) => row.total || 0)
+              );
+              const totalHeight = Math.max(6, (bucket.total / maxTotal) * 100);
+              return (
+                <div key={bucket.bucketStart} className="flex-1">
+                  <div className="flex h-24 items-end">
+                    <div
+                      className="w-full rounded-t-sm bg-cyan-400/80"
+                      style={{ height: `${totalHeight}%` }}
+                      title={`${new Date(bucket.bucketStart).toLocaleTimeString()} | total ${bucket.total} | 2xx ${bucket.ok} | 4xx ${bucket.clientError} | 5xx ${bucket.serverError}`}
+                    />
+                  </div>
+                  <div className="mt-1 text-center text-[10px] text-white/50">
+                    {new Date(bucket.bucketStart).getHours()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
 
       {/* Active Alerts Panel */}
       {alerts.active.length > 0 && (

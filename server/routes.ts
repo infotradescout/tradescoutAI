@@ -85,6 +85,7 @@ import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
+import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
 import {
   actorHasPrivilegedCapability,
   auditPrivilegedAction,
@@ -191,6 +192,78 @@ function sanitizeHomeScoutPublicListing<T extends Record<string, any>>(
   void contactUserId;
   return rest;
 }
+
+async function attachLatestTrustSnapshotToUser<T extends Record<string, any> | null | undefined>(
+  user: T
+): Promise<T> {
+  if (!user || typeof user !== "object") return user;
+
+  const userId = typeof user.id === "string" ? user.id.trim() : "";
+  if (!userId) return user;
+
+  const countyFips =
+    typeof (user as any).countyFips === "string"
+      ? (user as any).countyFips.trim()
+      : typeof (user as any).county_fips === "string"
+        ? (user as any).county_fips.trim()
+        : "";
+
+  try {
+    const trustResult = await pool.query(
+      `
+        select
+          ts.cvs_score::text as cvs_score,
+          ts.verification_status,
+          ts.license_status,
+          ts.insurance_status,
+          ts.risk_flags
+        from trust_snapshots ts
+        where ts.user_id = $1
+          and ($2::text = '' or ts.county_fips = $2)
+        order by
+          case when $2::text <> '' and ts.county_fips = $2 then 0 else 1 end,
+          ts.computed_at desc
+        limit 1
+      `,
+      [userId, countyFips]
+    );
+
+    const trustRow = trustResult.rows?.[0];
+    const parsedCvs =
+      typeof trustRow?.cvs_score === "number"
+        ? trustRow.cvs_score
+        : typeof trustRow?.cvs_score === "string" && trustRow.cvs_score.trim().length > 0
+          ? Number(trustRow.cvs_score)
+          : typeof (user as any).trustScore === "number"
+            ? (user as any).trustScore
+            : typeof (user as any).trustScore === "string" &&
+                String((user as any).trustScore).trim().length > 0
+              ? Number((user as any).trustScore)
+              : null;
+
+    const cvsScore = Number.isFinite(parsedCvs as number) ? Number(parsedCvs) : null;
+
+    return {
+      ...(user as any),
+      cvsScore,
+      trustScore: cvsScore ?? (user as any).trustScore ?? null,
+      trustSnapshot:
+        trustRow && cvsScore !== null
+          ? {
+              cvsScore,
+              verificationStatus:
+                trustRow.verification_status ?? (user as any).verificationStatus ?? null,
+              licenseStatus: trustRow.license_status ?? null,
+              insuranceStatus: trustRow.insurance_status ?? null,
+              riskFlags: Array.isArray(trustRow.risk_flags) ? trustRow.risk_flags : [],
+            }
+          : undefined,
+    } as T;
+  } catch (error) {
+    console.warn("[trust] Failed to enrich user with latest trust snapshot", { userId, error });
+    return user;
+  }
+}
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
 import { storage } from "./storage";
 import {
@@ -218,6 +291,35 @@ import type { Request, Response, NextFunction } from "express";
 import { rateLimit } from "express-rate-limit";
 import { createPostgresRateLimitStore } from "./utils/postgresRateLimitStore";
 import Stripe from "stripe";
+
+type MarketSignalsWindow = "1h" | "24h" | "7d" | "30d";
+
+function parseMarketSignalsWindow(raw: unknown): MarketSignalsWindow {
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (value === "1h" || value === "24h" || value === "7d" || value === "30d") return value;
+  return "24h";
+}
+
+function marketSignalsInterval(window: MarketSignalsWindow): string {
+  switch (window) {
+    case "1h":
+      return "1 hour";
+    case "7d":
+      return "7 days";
+    case "30d":
+      return "30 days";
+    default:
+      return "24 hours";
+  }
+}
+
+function isValidCountyFips(value: unknown): value is string {
+  return typeof value === "string" && /^\d{5}$/.test(value.trim());
+}
+
+function isValidStateCode(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z]{2}$/.test(value.trim());
+}
 import { paymentService } from "./payment-service";
 import { tutorialStorage } from "./tutorialStorage";
 import { DataManagementService } from "./data-management";
@@ -932,6 +1034,488 @@ export async function registerRoutes(app: any) {
       return res.status(503).json({ message: "Proof metrics temporarily unavailable" });
     }
   });
+
+  const marketSignalsAccess = async (req: any, res: any, next: any) => {
+    try {
+      const authHeader = String(req.headers.authorization || "");
+      const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+      const configuredApiKey = String(process.env.MARKET_SIGNALS_API_KEY || "").trim();
+      const partnerKeysRaw = String(process.env.MARKET_SIGNALS_PARTNER_KEYS_JSON || "").trim();
+      const partnerKeysEnabled =
+        String(process.env.ENABLE_PARTNER_MARKET_SIGNALS_KEYS || "")
+          .trim()
+          .toLowerCase() === "true";
+      const partnerKeys: Record<string, string> = partnerKeysRaw ? JSON.parse(partnerKeysRaw) : {};
+
+      if (configuredApiKey && bearer && bearer === configuredApiKey) {
+        req.marketSignalsAccess = { mode: "global_api_key", partnerSlug: null };
+        return next();
+      }
+
+      if (partnerKeysEnabled && bearer) {
+        const matchedPartner = Object.entries(partnerKeys).find(
+          ([, key]) => String(key || "").trim() === bearer
+        );
+        if (matchedPartner) {
+          req.marketSignalsAccess = { mode: "partner_api_key", partnerSlug: matchedPartner[0] };
+          return next();
+        }
+      }
+
+      if (bearer && !req.isAuthenticated?.()) {
+        return res.status(403).json({ message: "Market signals access denied" });
+      }
+
+      if (!req.isAuthenticated?.()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const user = await storage.getUser(userId);
+      const roles = collectAuthorityRoles(user as any);
+      const hasAccess = roles.some((role) => isAdminTierRole(role));
+
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Market signals access denied" });
+      }
+
+      req.marketSignalsAccess = { mode: "admin_user", partnerSlug: null };
+      return next();
+    } catch (error) {
+      console.error("Market signals auth failure", error);
+      return res.status(500).json({ message: "Failed to authorize market signals access" });
+    }
+  };
+
+  const requirePartnerMarketSignalsScope = (req: any, res: any, partnerSlug: string): boolean => {
+    const accessMode = String(req.marketSignalsAccess?.mode || "");
+    const scopedPartnerSlug = String(req.marketSignalsAccess?.partnerSlug || "")
+      .trim()
+      .toLowerCase();
+
+    if (accessMode === "partner_api_key" && scopedPartnerSlug !== partnerSlug) {
+      res.status(403).json({ message: "Partner-scoped market signals access denied" });
+      return false;
+    }
+
+    return true;
+  };
+
+  app.get(
+    "/api/market-signals/v1/counties/:countyFips/demand",
+    marketSignalsAccess,
+    async (req: any, res: any) => {
+      try {
+        const countyFips = String(req.params?.countyFips || "").trim();
+        if (!isValidCountyFips(countyFips)) {
+          return res.status(400).json({ message: "Invalid countyFips" });
+        }
+
+        const window = parseMarketSignalsWindow(req.query?.window);
+        const interval = marketSignalsInterval(window);
+
+        const interactionResult = await pool.query(
+          `
+          select
+            count(*)::int as interaction_count,
+            round(avg(scout_confidence))::int as avg_confidence,
+            count(*) filter (where outcome = 'success')::int as success_count,
+            count(*) filter (where outcome = 'partial_success')::int as partial_success_count
+          from scout_interactions
+          where county_fips = $1
+            and created_at >= (now() - ($2::interval))
+        `,
+          [countyFips, interval]
+        );
+
+        const interactionRow = interactionResult.rows[0] || {};
+        const interactionCount = Number(interactionRow.interaction_count || 0);
+        if (interactionCount < 25) {
+          return res.json({ status: "suppressed", reason: "minimum_threshold_not_met" });
+        }
+
+        const topCategoriesResult = await pool.query(
+          `
+          select
+            intent,
+            count(*)::int as volume
+          from scout_interactions
+          where county_fips = $1
+            and created_at >= (now() - ($2::interval))
+          group by intent
+          order by volume desc, intent asc
+          limit 5
+        `,
+          [countyFips, interval]
+        );
+
+        const metricsResult = await pool.query(
+          `
+          select metric_key, metric_value
+          from county_metrics
+          where county_fips = $1
+            and metric_key in ('homescout_active_listings','homescout_price_drops_7d','tradedeals_active')
+        `,
+          [countyFips]
+        );
+
+        const metrics = new Map<string, number>();
+        for (const row of metricsResult.rows || []) {
+          metrics.set(String(row.metric_key || ""), Number(row.metric_value || 0));
+        }
+
+        const trustWeightedDemandIndex = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              interactionCount * 0.55 +
+                Number(interactionRow.avg_confidence || 0) * 0.35 +
+                Number(interactionRow.success_count || 0) * 1.2 +
+                Number(interactionRow.partial_success_count || 0) * 0.5
+            )
+          )
+        );
+
+        const inventoryPressureIndex = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              Number(metrics.get("homescout_active_listings") || 0) * 0.6 +
+                Number(metrics.get("homescout_price_drops_7d") || 0) * 2.4
+            )
+          )
+        );
+
+        const conversionReadinessIndex = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              Number(interactionRow.success_count || 0) * 2 +
+                Number(metrics.get("tradedeals_active") || 0) * 3 +
+                Number(interactionRow.avg_confidence || 0) * 0.4
+            )
+          )
+        );
+
+        return res.json({
+          status: "ok",
+          countyFips,
+          window,
+          generatedAt: new Date().toISOString(),
+          signals: {
+            demandIndex: Math.max(0, Math.min(100, Math.round(interactionCount * 1.5))),
+            trustWeightedDemandIndex,
+            inventoryPressureIndex,
+            conversionReadinessIndex,
+          },
+          topCategories: (topCategoriesResult.rows || []).map((row: any) => ({
+            category: String(row.intent || "unknown"),
+            direction: "up",
+            changePct: Number(row.volume || 0),
+          })),
+        });
+      } catch (error: any) {
+        console.error("Failed to load county demand signal", error);
+        return res.status(500).json({ message: "Failed to load county demand signal" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/market-signals/v1/homescout-listings/inventory",
+    marketSignalsAccess,
+    async (req: any, res: any) => {
+      try {
+        const countyFips = String(req.query?.countyFips || "").trim();
+        const stateCode = String(req.query?.stateCode || "")
+          .trim()
+          .toUpperCase();
+        const propertyTypeRaw = String(req.query?.propertyType || "").trim();
+        const propertyType = propertyTypeRaw.length > 0 ? propertyTypeRaw : null;
+        const window = parseMarketSignalsWindow(req.query?.window);
+        const interval = marketSignalsInterval(window);
+
+        if (!isValidCountyFips(countyFips) || !isValidStateCode(stateCode)) {
+          return res.status(400).json({ message: "countyFips and stateCode are required" });
+        }
+
+        const bucketResult = await pool.query(
+          `
+          select
+            coalesce(sum(active_count), 0)::int as active_listing_count,
+            round(avg(median_dom_days))::int as median_dom_days,
+            coalesce(sum(price_drop_count_7d), 0)::int as price_drop_count_7d
+          from home_scout_market_buckets
+          where county_fips = $1
+            and state_code = $2
+            and ($3::text is null or property_type = $3)
+        `,
+          [countyFips, stateCode, propertyType]
+        );
+
+        const velocityResult = await pool.query(
+          `
+          select
+            count(*) filter (where e.event_type = 'created')::int as created_count,
+            count(*) filter (where e.event_type = 'price_changed')::int as price_changed_count
+          from home_scout_listing_events e
+          inner join home_scout_listings l on l.id = e.listing_id
+          where l.county_fips = $1
+            and l.state_code = $2
+            and ($3::text is null or l.property_type = $3)
+            and e.observed_at >= (now() - ($4::interval))
+        `,
+          [countyFips, stateCode, propertyType, interval]
+        );
+
+        const countResult = await pool.query(
+          `
+          select count(*)::int as listing_count
+          from home_scout_listings
+          where county_fips = $1
+            and state_code = $2
+            and status = 'active'
+            and ($3::text is null or property_type = $3)
+        `,
+          [countyFips, stateCode, propertyType]
+        );
+
+        const listingCount = Number(countResult.rows?.[0]?.listing_count || 0);
+        if (listingCount < 25) {
+          return res.json({ status: "suppressed", reason: "minimum_threshold_not_met" });
+        }
+
+        const bucketRow = bucketResult.rows?.[0] || {};
+        const velocityRow = velocityResult.rows?.[0] || {};
+
+        return res.json({
+          status: "ok",
+          countyFips,
+          stateCode,
+          propertyType: propertyType || undefined,
+          window,
+          generatedAt: new Date().toISOString(),
+          activeListingCount: Number(bucketRow.active_listing_count || 0),
+          newListingVelocityIndex: Math.max(
+            0,
+            Math.min(100, Number(velocityRow.created_count || 0) * 4)
+          ),
+          priceDropPressureIndex: Math.max(
+            0,
+            Math.min(
+              100,
+              Number(bucketRow.price_drop_count_7d || 0) * 5 +
+                Number(velocityRow.price_changed_count || 0) * 2
+            )
+          ),
+          buyerDemandProxyIndex: Math.max(
+            0,
+            Math.min(
+              100,
+              Math.round(
+                Number(bucketRow.active_listing_count || 0) * 0.4 +
+                  Math.max(0, 30 - Number(bucketRow.median_dom_days || 30)) * 2
+              )
+            )
+          ),
+        });
+      } catch (error: any) {
+        console.error("Failed to load HomeScout Listings inventory signal", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to load HomeScout Listings inventory signal" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/market-signals/v1/activation-readiness",
+    marketSignalsAccess,
+    async (req: any, res: any) => {
+      try {
+        const countyFips =
+          typeof req.query?.countyFips === "string" ? String(req.query.countyFips).trim() : "";
+        const stateCode =
+          typeof req.query?.stateCode === "string"
+            ? String(req.query.stateCode).trim().toUpperCase()
+            : "";
+        const category =
+          typeof req.query?.category === "string" ? String(req.query.category).trim() : undefined;
+        const surface =
+          typeof req.query?.surface === "string" ? String(req.query.surface).trim() : undefined;
+        const window = parseMarketSignalsWindow(req.query?.window);
+        const interval = marketSignalsInterval(window);
+
+        if (countyFips && !isValidCountyFips(countyFips)) {
+          return res.status(400).json({ message: "Invalid countyFips" });
+        }
+        if (stateCode && !isValidStateCode(stateCode)) {
+          return res.status(400).json({ message: "Invalid stateCode" });
+        }
+
+        const interactionResult = await pool.query(
+          `
+          select count(*)::int as interaction_count
+          from scout_interactions
+          where ($1::text = '' or county_fips = $1)
+            and created_at >= (now() - ($2::interval))
+        `,
+          [countyFips, interval]
+        );
+
+        const objectiveResult = await pool.query(
+          `
+          select count(*)::int as active_objective_count
+          from objectives
+          where status = 'active'
+            and ($1::text = '' or (context_json ->> 'countyFips') = $1)
+            and ($3::text is null or intent_class = $3)
+            and created_at >= (now() - ($2::interval))
+        `,
+          [countyFips, interval, category ?? null]
+        );
+
+        const metricsResult =
+          countyFips.length > 0
+            ? await pool.query(
+                `
+                select metric_key, metric_value
+                from county_metrics
+                where county_fips = $1
+                  and metric_key in ('tradedeals_active','homescout_active_listings','observations_30d')
+              `,
+                [countyFips]
+              )
+            : { rows: [] };
+
+        const metrics = new Map<string, number>();
+        for (const row of metricsResult.rows || []) {
+          metrics.set(
+            String((row as any).metric_key || ""),
+            Number((row as any).metric_value || 0)
+          );
+        }
+
+        const interactionCount = Number(interactionResult.rows?.[0]?.interaction_count || 0);
+        const activeObjectiveCount = Number(objectiveResult.rows?.[0]?.active_objective_count || 0);
+
+        const marketActivationScore = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              interactionCount * 1.2 +
+                activeObjectiveCount * 1.8 +
+                Number(metrics.get("observations_30d") || 0) * 0.15
+            )
+          )
+        );
+
+        const sponsorReadinessScore = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              marketActivationScore * 0.55 +
+                Number(metrics.get("tradedeals_active") || 0) * 6 +
+                Number(metrics.get("homescout_active_listings") || 0) * 0.4
+            )
+          )
+        );
+
+        return res.json({
+          status: "ok",
+          countyFips: countyFips || undefined,
+          stateCode: stateCode || undefined,
+          category,
+          surface,
+          window,
+          generatedAt: new Date().toISOString(),
+          marketActivationScore,
+          sponsorReadinessScore,
+          meetsMinimumAudienceThreshold: interactionCount >= 25,
+          recommendedSurface:
+            surface ||
+            (Number(metrics.get("homescout_active_listings") || 0) > 0
+              ? "homescout_listings"
+              : Number(metrics.get("tradedeals_active") || 0) > 0
+                ? "trade_deals"
+                : "scout"),
+        });
+      } catch (error: any) {
+        console.error("Failed to load activation readiness signal", error);
+        return res.status(500).json({ message: "Failed to load activation readiness signal" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/market-signals/v1/partners/:partnerSlug/county-observation",
+    marketSignalsAccess,
+    async (req: any, res: any) => {
+      try {
+        const partnerSlug = String(req.params?.partnerSlug || "")
+          .trim()
+          .toLowerCase();
+        if (!/^[a-z0-9-]{2,120}$/.test(partnerSlug)) {
+          return res.status(400).json({ message: "Invalid partnerSlug" });
+        }
+        if (!requirePartnerMarketSignalsScope(req, res, partnerSlug)) {
+          return;
+        }
+
+        const window = parseMarketSignalsWindow(req.query?.window);
+        const stateCode =
+          typeof req.query?.stateCode === "string"
+            ? String(req.query.stateCode).trim().toUpperCase()
+            : "";
+        const sourceSurface =
+          typeof req.query?.surface === "string"
+            ? String(req.query.surface).trim().toLowerCase()
+            : "";
+        const limit = Math.max(
+          25,
+          Math.min(500, Number.parseInt(String(req.query?.limit || "100"), 10) || 100)
+        );
+
+        if (stateCode && !isValidStateCode(stateCode)) {
+          return res.status(400).json({ message: "Invalid stateCode" });
+        }
+
+        const snapshot = await getPartnerCountyObservationSnapshots({
+          partnerSlug,
+          window,
+          stateCode: stateCode || undefined,
+          surface: sourceSurface || undefined,
+          limit,
+        });
+
+        if (snapshot.counties.length === 0) {
+          return res.json({ status: "suppressed", reason: "minimum_threshold_not_met" });
+        }
+
+        return res.json({
+          status: "ok",
+          partnerSlug,
+          window,
+          generatedAt: snapshot.generatedAt,
+          counties: snapshot.counties,
+        });
+      } catch (error: any) {
+        console.error("Failed to load partner county observation signal", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to load partner county observation signal" });
+      }
+    }
+  );
 
   const isProductionEnv = process.env.NODE_ENV === "production";
 
@@ -3107,6 +3691,8 @@ export async function registerRoutes(app: any) {
         return;
       }
 
+      user = await attachLatestTrustSnapshotToUser(user);
+
       const completedSetupBackfill = getCompletedSetupBackfillPatch(user);
       if (completedSetupBackfill) {
         try {
@@ -3308,7 +3894,9 @@ export async function registerRoutes(app: any) {
         try {
           const profiles = await storage.listProfilesByOwner(userId);
           if (profiles.length === 1) {
-            const updated = await storage.setUserActiveProfile(userId, profiles[0].id);
+            const updated = await attachLatestTrustSnapshotToUser(
+              await storage.setUserActiveProfile(userId, profiles[0].id)
+            );
             res.json({
               authenticated: true,
               user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(updated))),
@@ -3328,7 +3916,9 @@ export async function registerRoutes(app: any) {
         try {
           const businesses = await storage.listBusinessesByOwner(userId);
           if (businesses.length === 1) {
-            const updated = await storage.setUserActiveBusiness(userId, businesses[0].id);
+            const updated = await attachLatestTrustSnapshotToUser(
+              await storage.setUserActiveBusiness(userId, businesses[0].id)
+            );
             res.json({
               authenticated: true,
               user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(updated))),

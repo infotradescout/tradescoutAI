@@ -19,7 +19,7 @@ export function SEOHelmet({
   keywords = "scout, local helper, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
-  ogImage = "/tradescout-brand.png?v=8",
+  ogImage = "/tradescout-brand.png?v=9",
   structuredData,
   noIndex = false,
 }: SEOHelmetProps) {
@@ -226,8 +226,8 @@ export const createOrganizationStructuredData = () => ({
   name: "TradeScout",
   description: "Platform connecting residents, pros, organizations, and verified local contractors",
   url: getCanonicalOrigin(),
-  logo: `${getCanonicalOrigin()}/tradescout-brand.png?v=8`,
-  image: `${getCanonicalOrigin()}/tradescout-brand.png?v=8`,
+  logo: `${getCanonicalOrigin()}/tradescout-brand.png?v=9`,
+  image: `${getCanonicalOrigin()}/tradescout-brand.png?v=9`,
   address: {
     "@type": "PostalAddress",
     addressCountry: "US",

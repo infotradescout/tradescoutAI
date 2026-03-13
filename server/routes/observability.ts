@@ -34,6 +34,8 @@ import {
   recomputeBaselinesFromObservedData,
 } from "../observability/alerts";
 import { sendInternalServerError } from "../utils/httpErrors";
+import { getLisaFeed } from "../services/lisaRuntime";
+import { getCrawlerTelemetrySummary } from "../services/crawlerTelemetryService";
 
 export const observabilityRouter = Router();
 observabilityRouter.use(isAuthenticated, isAdmin);
@@ -100,6 +102,28 @@ observabilityRouter.get("/summary", (req, res) => {
   } catch (error) {
     console.error("Observability summary failed:", error);
     sendInternalServerError(res, "Failed to fetch metrics summary", { error: String(error) });
+  }
+});
+
+/**
+ * GET /api/admin/observability/lisa-feed
+ * Live natural-language feed of what Scout/TradeScout is producing right now.
+ */
+observabilityRouter.get("/lisa-feed", async (_req, res) => {
+  try {
+    res.json(await getLisaFeed());
+  } catch (error) {
+    console.error("LISA feed query failed:", error);
+    sendInternalServerError(res, "Failed to fetch LISA feed", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/crawler-telemetry", async (_req, res) => {
+  try {
+    res.json(await getCrawlerTelemetrySummary());
+  } catch (error) {
+    console.error("Crawler telemetry query failed:", error);
+    sendInternalServerError(res, "Failed to fetch crawler telemetry", { error: String(error) });
   }
 });
 

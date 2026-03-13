@@ -20,6 +20,8 @@ import { runSchemaPreflight } from "./schemaPreflight";
 import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
+import { emitHttpStatus } from "./observability/metrics";
+import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -425,6 +427,8 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
+    void recordCrawlerRequestEvent(req, res.statusCode);
     if (requestPath.startsWith("/api")) {
       const isError = res.statusCode >= 400;
       const isSlow = Number.isFinite(apiSlowLogMs) ? duration >= apiSlowLogMs : duration >= 750;

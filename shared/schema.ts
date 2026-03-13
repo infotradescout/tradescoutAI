@@ -1095,6 +1095,52 @@ export const tradepartnerRsvpSubmissions = pgTable(
   ]
 );
 
+export const tradepartnerCountyObservationSnapshots = pgTable(
+  "tradepartner_county_observation_snapshots",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    partnerSlug: text("partner_slug").notNull(),
+    window: text("window").notNull(),
+    countyFips: varchar("county_fips", { length: 5 }).notNull(),
+    countyName: text("county_name").notNull(),
+    stateCode: varchar("state_code", { length: 2 }).notNull(),
+    requestCount: integer("request_count").notNull().default(0),
+    okRatePct: integer("ok_rate_pct").notNull().default(0),
+    trend: text("trend").notNull().default("flat"),
+    changePct: integer("change_pct").notNull().default(0),
+    dominantSurface: text("dominant_surface").notNull().default("unknown"),
+    surfaceMixJson: jsonb("surface_mix_json")
+      .notNull()
+      .default(sql`'[]'::jsonb`)
+      .$type<
+        Array<{
+          surface: string;
+          requestCount: number;
+          sharePct: number;
+          okRatePct: number;
+          trend: "up" | "down" | "flat";
+          changePct: number;
+        }>
+      >(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_tradepartner_county_observation_unique").on(
+      table.partnerSlug,
+      table.window,
+      table.countyFips
+    ),
+    index("idx_tradepartner_county_observation_partner_window").on(
+      table.partnerSlug,
+      table.window,
+      table.computedAt
+    ),
+    index("idx_tradepartner_county_observation_state").on(table.stateCode),
+    index("idx_tradepartner_county_observation_county").on(table.countyFips),
+  ]
+);
+
 // Trusted devices table for master admin persistent sessions
 export const trustedDevices = pgTable(
   "trusted_devices",
@@ -3846,6 +3892,117 @@ export const botUiFindings = pgTable(
   (table) => [
     index("bot_ui_findings_route_idx").on(table.route),
     index("bot_ui_findings_created_idx").on(table.createdAt),
+  ]
+);
+
+export const lisaFindings = pgTable(
+  "lisa_findings",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    findingKey: varchar("finding_key", { length: 255 }).notNull(),
+    sourceKind: varchar("source_kind", { length: 64 }).notNull(),
+    priority: varchar("priority", { length: 16 }).notNull(),
+    truthStatus: varchar("truth_status", { length: 16 }).notNull().default("current"),
+    scopeType: varchar("scope_type", { length: 32 }).default("global"),
+    scopeRef: varchar("scope_ref", { length: 255 }),
+    headline: text("headline").notNull(),
+    narrative: text("narrative").notNull(),
+    evidence: jsonb("evidence")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    freshnessMinutes: integer("freshness_minutes"),
+    engineVersion: varchar("engine_version", { length: 64 }),
+    runtimeMode: varchar("runtime_mode", { length: 32 }).notNull().default("tradescout_local"),
+    runtimeSource: text("runtime_source"),
+    evidenceHash: varchar("evidence_hash", { length: 64 }),
+    supersedesId: varchar("supersedes_id", { length: 255 }),
+    supersededById: varchar("superseded_by_id", { length: 255 }),
+    generatedAt: timestamp("generated_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("lisa_findings_key_idx").on(table.findingKey),
+    index("lisa_findings_status_idx").on(table.truthStatus),
+    index("lisa_findings_scope_idx").on(table.scopeType, table.scopeRef),
+    index("lisa_findings_generated_idx").on(table.generatedAt),
+  ]
+);
+
+export const crawlerRequestEvents = pgTable(
+  "crawler_request_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    botName: varchar("bot_name", { length: 120 }).notNull(),
+    method: varchar("method", { length: 12 }).notNull(),
+    path: varchar("path", { length: 512 }).notNull(),
+    requestType: varchar("request_type", { length: 32 }).notNull(),
+    sourceSurface: varchar("source_surface", { length: 64 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    countySlug: varchar("county_slug", { length: 160 }),
+    countyFips: varchar("county_fips", { length: 5 }),
+    categorySlug: varchar("category_slug", { length: 160 }),
+    statusCode: integer("status_code").notNull(),
+    statusClass: varchar("status_class", { length: 8 }).notNull(),
+    refererHost: varchar("referer_host", { length: 255 }),
+    ipHash: varchar("ip_hash", { length: 64 }),
+    userAgent: text("user_agent"),
+    observedAt: timestamp("observed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("crawler_request_events_bot_idx").on(table.botName),
+    index("crawler_request_events_status_idx").on(table.statusClass),
+    index("crawler_request_events_type_idx").on(table.requestType),
+    index("crawler_request_events_surface_idx").on(table.sourceSurface),
+    index("crawler_request_events_state_code_idx").on(table.stateCode),
+    index("crawler_request_events_county_slug_idx").on(table.countySlug),
+    index("crawler_request_events_county_fips_idx").on(table.countyFips),
+    index("crawler_request_events_category_slug_idx").on(table.categorySlug),
+    index("crawler_request_events_observed_idx").on(table.observedAt),
+    index("crawler_request_events_path_idx").on(table.path),
+  ]
+);
+
+export const crawlerRequestHourlyRollups = pgTable(
+  "crawler_request_hourly_rollups",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    bucketStart: timestamp("bucket_start").notNull(),
+    botName: varchar("bot_name", { length: 120 }).notNull(),
+    requestType: varchar("request_type", { length: 32 }).notNull(),
+    sourceSurface: varchar("source_surface", { length: 64 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    countySlug: varchar("county_slug", { length: 160 }),
+    countyFips: varchar("county_fips", { length: 5 }),
+    categorySlug: varchar("category_slug", { length: 160 }),
+    statusClass: varchar("status_class", { length: 8 }).notNull(),
+    requestCount: integer("request_count").notNull().default(0),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("crawler_request_hourly_rollups_bucket_unique").on(
+      table.bucketStart,
+      table.botName,
+      table.requestType,
+      table.sourceSurface,
+      table.stateCode,
+      table.countySlug,
+      table.countyFips,
+      table.categorySlug,
+      table.statusClass
+    ),
+    index("crawler_request_hourly_rollups_bucket_idx").on(table.bucketStart),
+    index("crawler_request_hourly_rollups_surface_idx").on(table.sourceSurface),
+    index("crawler_request_hourly_rollups_state_idx").on(table.stateCode),
+    index("crawler_request_hourly_rollups_county_idx").on(table.countySlug),
+    index("crawler_request_hourly_rollups_county_fips_idx").on(table.countyFips),
+    index("crawler_request_hourly_rollups_category_idx").on(table.categorySlug),
   ]
 );
 

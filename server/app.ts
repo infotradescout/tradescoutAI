@@ -18,6 +18,7 @@ import "@sentry/tracing";
 import { registerRoutes } from "./routes";
 import { emitHttpStatus } from "./observability/metrics";
 import { assertStartupInvariants } from "./startupInvariants";
+import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
@@ -188,6 +189,7 @@ export async function createApp() {
       res.on("finish", () => {
         const duration = Date.now() - start;
         emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
+        void recordCrawlerRequestEvent(req, res.statusCode);
 
         if (requestPath.startsWith("/api")) {
           const isError = res.statusCode >= 400;

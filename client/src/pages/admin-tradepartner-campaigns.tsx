@@ -57,6 +57,29 @@ type CampaignResponse = {
   isActive: boolean;
 };
 
+type CountyObservationSnapshot = {
+  status: "ok" | "suppressed";
+  reason?: "minimum_threshold_not_met";
+  partnerSlug?: string;
+  window?: "1h" | "24h" | "7d" | "30d";
+  generatedAt?: string;
+  counties?: Array<{
+    countyFips: string;
+    countyName: string;
+    stateCode: string;
+    requestCount: number;
+    okRatePct: number;
+    trend: "up" | "down" | "flat";
+    changePct: number;
+    dominantSurface: string;
+    surfaceMix: Array<{
+      surface: string;
+      requestCount: number;
+      sharePct: number;
+    }>;
+  }>;
+};
+
 const DEFAULT_PARTNER = "cumulus-media";
 
 function countiesToText(counties: CampaignCounty[]): string {
@@ -185,6 +208,17 @@ export default function AdminTradePartnerCampaignsPage() {
     queryKey,
     queryFn: async () =>
       apiRequest("GET", `/api/admin/tradepartner-campaigns/${encodeURIComponent(partnerSlug)}`),
+  });
+
+  const { data: observationData } = useQuery<CountyObservationSnapshot>({
+    queryKey: ["/api/market-signals/v1/partners/county-observation", partnerSlug],
+    queryFn: async () =>
+      apiRequest(
+        "GET",
+        `/api/market-signals/v1/partners/${encodeURIComponent(partnerSlug)}/county-observation?window=24h&limit=12`
+      ),
+    enabled: partnerSlug.trim().length > 0,
+    refetchInterval: 30000,
   });
 
   useEffect(() => {
@@ -331,6 +365,66 @@ export default function AdminTradePartnerCampaignsPage() {
             onChange={(e) => setBenefitsText(e.target.value)}
             rows={6}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Live county observation</Label>
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm text-white/80">
+                County-ranked crawler attention and dominant surfaces for this partner.
+              </div>
+              <div className="text-xs text-white/50">
+                {observationData?.generatedAt
+                  ? `Updated ${new Date(observationData.generatedAt).toLocaleTimeString()}`
+                  : "Waiting for signal"}
+              </div>
+            </div>
+
+            {observationData?.status === "suppressed" ? (
+              <div className="mt-3 text-sm text-white/60">
+                Live county observation is below minimum threshold right now.
+              </div>
+            ) : (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(observationData?.counties || []).map((county) => (
+                  <div
+                    key={`${county.countyFips}:${county.dominantSurface}`}
+                    className="rounded-lg border border-white/10 bg-white/5 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-white">
+                          {county.countyName}, {county.stateCode}
+                        </div>
+                        <div className="text-xs text-white/55">
+                          FIPS {county.countyFips} | dominant surface {county.dominantSurface}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-white">
+                          {county.requestCount}
+                        </div>
+                        <div className="text-xs text-white/55">
+                          {county.okRatePct}% ok | {county.trend} {county.changePct}%
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {county.surfaceMix.map((surface) => (
+                        <span
+                          key={`${county.countyFips}:${surface.surface}`}
+                          className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-white/75"
+                        >
+                          {surface.surface} {surface.sharePct}%
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-1">

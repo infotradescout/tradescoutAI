@@ -4,6 +4,11 @@ import { storage } from "../storage";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 import { runHomeScoutIngestionJob } from "../services/homeScoutIngestionJob";
 import { db, pool } from "../db";
+import { getPartnerCountyObservationSnapshots } from "../services/partnerCountyObservationSnapshotService";
+import {
+  getPartnerIntelligenceBriefHistory,
+  getPartnerIntelligenceBriefSnapshot,
+} from "../services/partnerIntelligenceBriefSnapshotService";
 import {
   affiliateAccounts,
   counties as countiesTable,
@@ -2674,6 +2679,173 @@ export function mountAdminRoutes(app: any) {
     }
     return text;
   };
+
+  const normalizePartnerObservationWindow = (value: unknown): "1h" | "24h" | "7d" | "30d" => {
+    const normalized = String(value ?? "24h")
+      .trim()
+      .toLowerCase();
+    if (
+      normalized === "1h" ||
+      normalized === "24h" ||
+      normalized === "7d" ||
+      normalized === "30d"
+    ) {
+      return normalized;
+    }
+    return "24h";
+  };
+
+  const normalizeStateCode = (value: unknown): string => {
+    const normalized = String(value ?? "")
+      .trim()
+      .toUpperCase();
+    if (!normalized || normalized === "ALL") return "";
+    return /^[A-Z]{2}$/.test(normalized) ? normalized : "";
+  };
+
+  const normalizeSurface = (value: unknown): string => {
+    const normalized = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (!normalized || normalized === "all") return "";
+    return normalized.slice(0, 80);
+  };
+
+  app.get(
+    "/api/admin/cumulus-intelligence/brief-history",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const window = normalizePartnerObservationWindow((req.query as any)?.window);
+        const stateCode = normalizeStateCode((req.query as any)?.stateCode);
+        const surface = normalizeSurface((req.query as any)?.surface);
+        const limit = parsePositiveInt((req.query as any)?.limit, 8, { min: 1, max: 25 });
+
+        const history = await getPartnerIntelligenceBriefHistory({
+          partnerSlug: "cumulus-media",
+          window,
+          stateCode: stateCode || undefined,
+          surface: surface || undefined,
+          limit,
+        });
+
+        return res.json({
+          partnerSlug: "cumulus-media",
+          window,
+          stateCode: stateCode || null,
+          surface: surface || null,
+          history,
+        });
+      } catch (error: any) {
+        console.error("Error loading Cumulus intelligence brief history:", error);
+        return res.status(500).json({ message: "Failed to load Cumulus intelligence brief history" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/cumulus-intelligence/brief",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const window = normalizePartnerObservationWindow((req.query as any)?.window);
+        const stateCode = normalizeStateCode((req.query as any)?.stateCode);
+        const surface = normalizeSurface((req.query as any)?.surface);
+        const limit = parsePositiveInt((req.query as any)?.limit, 100, { min: 25, max: 500 });
+
+        const brief = await getPartnerIntelligenceBriefSnapshot({
+          partnerSlug: "cumulus-media",
+          window,
+          stateCode: stateCode || undefined,
+          surface: surface || undefined,
+          limit,
+        });
+
+        return res.json(brief);
+      } catch (error: any) {
+        console.error("Error building Cumulus intelligence brief:", error);
+        return res.status(500).json({ message: "Failed to build Cumulus intelligence brief" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/cumulus-intelligence/export.csv",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const window = normalizePartnerObservationWindow((req.query as any)?.window);
+        const stateCode = normalizeStateCode((req.query as any)?.stateCode);
+        const surface = normalizeSurface((req.query as any)?.surface);
+        const limit = parsePositiveInt((req.query as any)?.limit, 100, { min: 25, max: 500 });
+
+        const snapshot = await getPartnerCountyObservationSnapshots({
+          partnerSlug: "cumulus-media",
+          window,
+          stateCode: stateCode || undefined,
+          surface: surface || undefined,
+          limit,
+        });
+
+        const rows = snapshot.counties ?? [];
+        const header = [
+          "partner_slug",
+          "window",
+          "generated_at",
+          "county_fips",
+          "county_name",
+          "state_code",
+          "request_count",
+          "ok_rate_pct",
+          "trend",
+          "change_pct",
+          "dominant_surface",
+          "surface_mix",
+        ];
+
+        const lines = [header.join(",")];
+        for (const row of rows) {
+          const values = [
+            "cumulus-media",
+            window,
+            snapshot.generatedAt,
+            row.countyFips,
+            row.countyName,
+            row.stateCode,
+            row.requestCount,
+            row.okRatePct,
+            row.trend,
+            row.changePct,
+            row.dominantSurface,
+            row.surfaceMix
+              .map((entry) => `${entry.surface}:${entry.requestCount}:${entry.sharePct}%`)
+              .join(" | "),
+          ];
+          lines.push(values.map(csvEscape).join(","));
+        }
+
+        const fileDate = new Date().toISOString().slice(0, 10);
+        const suffixParts = [
+          "cumulus-intelligence",
+          window,
+          stateCode ? stateCode.toLowerCase() : "all-states",
+          surface || "all-surfaces",
+          fileDate,
+        ];
+        const csv = `\uFEFF${lines.join("\n")}`;
+
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${suffixParts.join("-")}.csv"`);
+        return res.status(200).send(csv);
+      } catch (error: any) {
+        console.error("Error exporting Cumulus county intelligence:", error);
+        return res.status(500).json({ message: "Failed to export Cumulus intelligence" });
+      }
+    }
+  );
 
   app.get(
     "/api/admin/tradepartner-interest",

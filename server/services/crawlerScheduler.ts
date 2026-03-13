@@ -10,6 +10,8 @@ import { runHomeScoutMarketMetricsJob } from "./homeScoutMarketMetricsJob";
 import { runHomeScoutIngestionJob } from "./homeScoutIngestionJob";
 import { runHomeScoutBucketMetricsJob } from "./homeScoutBucketMetricsJob";
 import { runHomeScoutAlertsJob } from "./homeScoutAlertsJob";
+import { runPartnerCountyObservationSnapshotJob } from "./partnerCountyObservationSnapshotService";
+import { runPartnerIntelligenceBriefSnapshotJob } from "./partnerIntelligenceBriefSnapshotService";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 import { runSeoPublicationPruneJob } from "./seoPublicationPruneJob";
@@ -34,6 +36,8 @@ let homeScoutBucketMetricsTask: any = null;
 let homeScoutAlertsTask: any = null;
 let seoPublicationPruneTask: any = null;
 let seoDirectoryScopeSnapshotTask: any = null;
+let partnerCountyObservationSnapshotsTask: any = null;
+let partnerIntelligenceBriefSnapshotsTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -59,6 +63,8 @@ export function startCrawlerScheduler() {
   startTrustSnapshotsScheduler();
   startSeoPublicationPruneScheduler();
   startSeoDirectoryScopeSnapshotScheduler();
+  startPartnerCountyObservationSnapshotsScheduler();
+  startPartnerIntelligenceBriefSnapshotsScheduler();
 }
 
 function startCrawlerJobs() {
@@ -201,6 +207,47 @@ function startUsersAggregationScheduler() {
   });
 
   console.log("✅ Users aggregation scheduler started\n");
+}
+
+function startPartnerIntelligenceBriefSnapshotsScheduler() {
+  if (process.env.DISABLE_PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS === "true") {
+    console.log(
+      "Partner intelligence brief snapshot job disabled via DISABLE_PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "*/15 * * * *";
+  const jobName = "partner_intelligence_brief_snapshots";
+
+  console.log(
+    `\nStarting partner intelligence brief snapshot scheduler with schedule: "${schedule}"`
+  );
+
+  partnerIntelligenceBriefSnapshotsTask = cron.schedule(schedule, async () => {
+    console.log(
+      `\n[${new Date().toISOString()}] Running partner intelligence brief snapshot job...`
+    );
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () => {
+        await runPartnerIntelligenceBriefSnapshotJob();
+        return true;
+      });
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("Partner intelligence brief snapshot job completed");
+      emitJobEnd(jobName, 1, false);
+    } catch (error) {
+      console.error("Partner intelligence brief snapshot job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("Partner intelligence brief snapshot scheduler started\n");
 }
 
 /**
@@ -510,6 +557,46 @@ function startTrustSnapshotsScheduler() {
   console.log("✅ Trust snapshots scheduler started\n");
 }
 
+function startPartnerCountyObservationSnapshotsScheduler() {
+  if (process.env.DISABLE_PARTNER_COUNTY_OBSERVATION_SNAPSHOTS === "true") {
+    console.log(
+      "Partner county observation snapshot job disabled via DISABLE_PARTNER_COUNTY_OBSERVATION_SNAPSHOTS env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "*/15 * * * *";
+  const jobName = "partner_county_observation_snapshots";
+
+  console.log(
+    `\nStarting partner county observation snapshot scheduler with schedule: "${schedule}"`
+  );
+
+  partnerCountyObservationSnapshotsTask = cron.schedule(schedule, async () => {
+    console.log(
+      `\n[${new Date().toISOString()}] Running partner county observation snapshot job...`
+    );
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runPartnerCountyObservationSnapshotJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("Partner county observation snapshot job completed", result);
+      emitJobEnd(jobName, Number((result as any).rowsWritten || 0), false);
+    } catch (error) {
+      console.error("Partner county observation snapshot job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("Partner county observation snapshot scheduler started\n");
+}
+
 /**
  * Stop the cron scheduler
  */
@@ -597,6 +684,20 @@ export function stopCrawlerScheduler() {
     seoDirectoryScopeSnapshotTask = null;
     console.log("🛑 SEO directory scope snapshot scheduler stopped");
   }
+
+  if (partnerCountyObservationSnapshotsTask) {
+    partnerCountyObservationSnapshotsTask.stop();
+    partnerCountyObservationSnapshotsTask.destroy();
+    partnerCountyObservationSnapshotsTask = null;
+    console.log("Partner county observation snapshot scheduler stopped");
+  }
+
+  if (partnerIntelligenceBriefSnapshotsTask) {
+    partnerIntelligenceBriefSnapshotsTask.stop();
+    partnerIntelligenceBriefSnapshotsTask.destroy();
+    partnerIntelligenceBriefSnapshotsTask = null;
+    console.log("Partner intelligence brief snapshot scheduler stopped");
+  }
 }
 
 /**
@@ -651,6 +752,14 @@ export function getCrawlerSchedulerStatus() {
     seoDirectoryScopeSnapshot: {
       active: seoDirectoryScopeSnapshotTask !== null,
       schedule: process.env.SEO_DIRECTORY_SCOPE_SNAPSHOT_SCHEDULE || "30 */6 * * *",
+    },
+    partnerCountyObservationSnapshots: {
+      active: partnerCountyObservationSnapshotsTask !== null,
+      schedule: process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "*/15 * * * *",
+    },
+    partnerIntelligenceBriefSnapshots: {
+      active: partnerIntelligenceBriefSnapshotsTask !== null,
+      schedule: process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "*/15 * * * *",
     },
   };
 }

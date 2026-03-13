@@ -25,6 +25,7 @@ import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
+import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -469,6 +470,7 @@ app.use((req, res, next) => {
 
     // Emit HTTP status metrics (Phase 1: Observability)
     emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
+    void recordCrawlerRequestEvent(req, res.statusCode);
 
     if (requestPath.startsWith("/api")) {
       const isError = res.statusCode >= 400;
