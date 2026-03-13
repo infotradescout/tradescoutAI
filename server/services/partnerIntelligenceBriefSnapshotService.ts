@@ -16,6 +16,16 @@ type PartnerIntelligenceBriefTopCounty = {
   changePct: number;
 };
 
+type PartnerIntelligenceBriefTopState = {
+  rank: number;
+  stateCode: string;
+  requestCount: number;
+  countyCount: number;
+  dominantSurface: string;
+  trend: "up" | "down" | "flat";
+  changePct: number;
+};
+
 type PartnerIntelligenceBriefFinding = {
   id: string;
   headline: string;
@@ -37,6 +47,14 @@ export type PartnerIntelligenceBriefSnapshot = {
   executiveSummary: string;
   activationSummary: string;
   topCounties: PartnerIntelligenceBriefTopCounty[];
+  topStates: PartnerIntelligenceBriefTopState[];
+  summary: {
+    deltaSummary: string;
+    currentLeadCounty: string | null;
+    currentLeadState: string | null;
+    currentLeadSurface: string | null;
+    stateLead: string | null;
+  };
   lisa: {
     truthNow: string;
     dataProductionSummary: string;
@@ -80,6 +98,8 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
           executive_summary text NOT NULL,
           activation_summary text NOT NULL,
           top_counties_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          top_states_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          summary_json jsonb NOT NULL DEFAULT '{}'::jsonb,
           lisa_json jsonb NOT NULL DEFAULT '{}'::jsonb,
           computed_at timestamptz NOT NULL DEFAULT now(),
           created_at timestamptz NOT NULL DEFAULT now()
@@ -100,6 +120,14 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
         `CREATE INDEX IF NOT EXISTS idx_tradepartner_intelligence_brief_partner_window
          ON tradepartner_intelligence_brief_snapshots (partner_slug, window, computed_at DESC);`
       );
+      await pool.query(
+        `ALTER TABLE tradepartner_intelligence_brief_snapshots
+         ADD COLUMN IF NOT EXISTS top_states_json jsonb NOT NULL DEFAULT '[]'::jsonb;`
+      );
+      await pool.query(
+        `ALTER TABLE tradepartner_intelligence_brief_snapshots
+         ADD COLUMN IF NOT EXISTS summary_json jsonb NOT NULL DEFAULT '{}'::jsonb;`
+      );
 
       await pool.query(`
         CREATE TABLE IF NOT EXISTS tradepartner_intelligence_brief_history (
@@ -112,6 +140,8 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
           executive_summary text NOT NULL,
           activation_summary text NOT NULL,
           top_counties_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          top_states_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          summary_json jsonb NOT NULL DEFAULT '{}'::jsonb,
           lisa_json jsonb NOT NULL DEFAULT '{}'::jsonb,
           computed_at timestamptz NOT NULL DEFAULT now(),
           created_at timestamptz NOT NULL DEFAULT now()
@@ -124,6 +154,14 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
            window,
            computed_at DESC
          );`
+      );
+      await pool.query(
+        `ALTER TABLE tradepartner_intelligence_brief_history
+         ADD COLUMN IF NOT EXISTS top_states_json jsonb NOT NULL DEFAULT '[]'::jsonb;`
+      );
+      await pool.query(
+        `ALTER TABLE tradepartner_intelligence_brief_history
+         ADD COLUMN IF NOT EXISTS summary_json jsonb NOT NULL DEFAULT '{}'::jsonb;`
       );
     })();
   }
@@ -155,6 +193,113 @@ async function prunePartnerIntelligenceBriefHistoryIfNeeded(): Promise<void> {
   await prunePromise;
 }
 
+function buildTopStates(
+  counties: Awaited<ReturnType<typeof getPartnerCountyObservationSnapshots>>["counties"]
+): PartnerIntelligenceBriefTopState[] {
+  const stateMap = new Map<
+    string,
+    {
+      requestCount: number;
+      countyCount: number;
+      surfaceTotals: Map<string, number>;
+      trendScore: number;
+      absoluteChange: number;
+    }
+  >();
+
+  for (const county of counties ?? []) {
+    const stateCode = String(county.stateCode || "")
+      .trim()
+      .toUpperCase();
+    if (!stateCode) continue;
+    const entry = stateMap.get(stateCode) || {
+      requestCount: 0,
+      countyCount: 0,
+      surfaceTotals: new Map<string, number>(),
+      trendScore: 0,
+      absoluteChange: 0,
+    };
+    entry.requestCount += Number(county.requestCount || 0);
+    entry.countyCount += 1;
+    entry.absoluteChange += Math.abs(Number(county.changePct || 0));
+    if (county.trend === "up") entry.trendScore += 1;
+    if (county.trend === "down") entry.trendScore -= 1;
+    for (const surfaceEntry of county.surfaceMix || []) {
+      const surface = String(surfaceEntry.surface || "unknown");
+      entry.surfaceTotals.set(
+        surface,
+        (entry.surfaceTotals.get(surface) || 0) + Number(surfaceEntry.requestCount || 0)
+      );
+    }
+    stateMap.set(stateCode, entry);
+  }
+
+  return [...stateMap.entries()]
+    .map(([stateCode, entry]) => {
+      const trend: PartnerIntelligenceBriefTopState["trend"] =
+        entry.trendScore > 0 ? "up" : entry.trendScore < 0 ? "down" : "flat";
+      return {
+        rank: 0,
+        stateCode,
+        requestCount: entry.requestCount,
+        countyCount: entry.countyCount,
+        dominantSurface:
+          [...entry.surfaceTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "unknown",
+        trend,
+        changePct: Math.round(entry.absoluteChange / Math.max(entry.countyCount, 1)),
+      };
+    })
+    .sort((a, b) => b.requestCount - a.requestCount)
+    .slice(0, 5)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+function buildDeltaSummary(args: {
+  currentTopCounty: PartnerIntelligenceBriefTopCounty | null;
+  currentTopStates: PartnerIntelligenceBriefTopState[];
+  previousTopCounties: PartnerIntelligenceBriefTopCounty[];
+  previousTopStates: PartnerIntelligenceBriefTopState[];
+}): PartnerIntelligenceBriefSnapshot["summary"] {
+  const currentTopCounty = args.currentTopCounty;
+  const previousTopCounty = args.previousTopCounties[0] || null;
+  const currentLeadState =
+    args.currentTopStates[0]?.stateCode || currentTopCounty?.stateCode || null;
+  const previousLeadState =
+    args.previousTopStates[0]?.stateCode || previousTopCounty?.stateCode || null;
+  const currentLeadSurface = currentTopCounty?.dominantSurface || null;
+  const previousLeadSurface = previousTopCounty?.dominantSurface || null;
+  const topCountyDelta =
+    Number(currentTopCounty?.requestCount || 0) - Number(previousTopCounty?.requestCount || 0);
+  const stateCountDelta = args.currentTopStates.length - args.previousTopStates.length;
+
+  const stateDelta =
+    currentLeadState && previousLeadState && currentLeadState !== previousLeadState
+      ? `State lead changed from ${previousLeadState} to ${currentLeadState}.`
+      : currentLeadState
+        ? `${currentLeadState} remains the leading state cluster.`
+        : "";
+
+  const surfaceDelta =
+    currentLeadSurface && previousLeadSurface && currentLeadSurface !== previousLeadSurface
+      ? `Surface lead changed from ${previousLeadSurface.replace(/_/g, " ")} to ${currentLeadSurface.replace(/_/g, " ")}.`
+      : currentLeadSurface
+        ? `${currentLeadSurface.replace(/_/g, " ")} remains the leading surface.`
+        : "";
+
+  const deltaSummary =
+    previousTopCounty || args.previousTopStates.length > 0
+      ? `${topCountyDelta >= 0 ? "+" : ""}${topCountyDelta} top-county requests versus the previous brief. ${stateCountDelta >= 0 ? "+" : ""}${stateCountDelta} states in the top state set. ${currentTopCounty ? `Current lead is ${currentTopCounty.countyName}, ${currentTopCounty.stateCode}.` : ""} ${stateDelta} ${surfaceDelta}`.trim()
+      : "No prior brief available yet for delta comparison.";
+
+  return {
+    deltaSummary,
+    currentLeadCounty: currentTopCounty?.countyName || null,
+    currentLeadState,
+    currentLeadSurface,
+    stateLead: currentLeadState,
+  };
+}
+
 function buildBriefFromInputs(args: {
   partnerSlug: string;
   generatedAt: string;
@@ -164,6 +309,8 @@ function buildBriefFromInputs(args: {
   limit: number;
   counties: Awaited<ReturnType<typeof getPartnerCountyObservationSnapshots>>["counties"];
   lisaFeed: Awaited<ReturnType<typeof getLisaFeed>>;
+  previousTopCounties?: PartnerIntelligenceBriefTopCounty[];
+  previousTopStates?: PartnerIntelligenceBriefTopState[];
 }): PartnerIntelligenceBriefSnapshot {
   const counties = args.counties ?? [];
   const totalRequests = counties.reduce((sum, county) => sum + county.requestCount, 0);
@@ -182,6 +329,7 @@ function buildBriefFromInputs(args: {
     trend: county.trend,
     changePct: county.changePct,
   }));
+  const topStates = buildTopStates(counties);
 
   const surfaceTotals = new Map<string, number>();
   for (const county of counties) {
@@ -220,6 +368,13 @@ function buildBriefFromInputs(args: {
     executiveSummary,
     activationSummary,
     topCounties: topThree,
+    topStates,
+    summary: buildDeltaSummary({
+      currentTopCounty: topThree[0] || null,
+      currentTopStates: topStates,
+      previousTopCounties: args.previousTopCounties || [],
+      previousTopStates: args.previousTopStates || [],
+    }),
     lisa: {
       truthNow: args.lisaFeed.summary.truthNow,
       dataProductionSummary: args.lisaFeed.summary.dataProductionSummary,
@@ -265,6 +420,22 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
     getLisaFeed(),
   ]);
 
+  const previousHistoryResult = await pool.query(
+    `
+      select top_counties_json, top_states_json
+      from tradepartner_intelligence_brief_history
+      where partner_slug = $1
+        and window = $2
+        and coalesce(state_code, '') = $3
+        and coalesce(surface, '') = $4
+        and limit_value = $5
+      order by computed_at desc
+      limit 1
+    `,
+    [params.partnerSlug, params.window, stateCode, surface, limit]
+  );
+  const previousHistoryRow = previousHistoryResult.rows?.[0];
+
   const brief = buildBriefFromInputs({
     partnerSlug: params.partnerSlug,
     generatedAt: snapshot.generatedAt,
@@ -274,6 +445,12 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
     limit,
     counties: snapshot.counties,
     lisaFeed,
+    previousTopCounties: Array.isArray(previousHistoryRow?.top_counties_json)
+      ? previousHistoryRow.top_counties_json
+      : [],
+    previousTopStates: Array.isArray(previousHistoryRow?.top_states_json)
+      ? previousHistoryRow.top_states_json
+      : [],
   });
 
   await pool.query("BEGIN");
@@ -301,10 +478,12 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
           executive_summary,
           activation_summary,
           top_counties_json,
+          top_states_json,
+          summary_json,
           lisa_json,
           computed_at
         )
-        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,now())
+        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,now())
       `,
       [
         params.partnerSlug,
@@ -315,6 +494,8 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
         brief.executiveSummary,
         brief.activationSummary,
         JSON.stringify(brief.topCounties),
+        JSON.stringify(brief.topStates),
+        JSON.stringify(brief.summary),
         JSON.stringify(brief.lisa),
       ]
     );
@@ -330,10 +511,12 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
           executive_summary,
           activation_summary,
           top_counties_json,
+          top_states_json,
+          summary_json,
           lisa_json,
           computed_at
         )
-        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,now())
+        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,now())
       `,
       [
         params.partnerSlug,
@@ -344,6 +527,8 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
         brief.executiveSummary,
         brief.activationSummary,
         JSON.stringify(brief.topCounties),
+        JSON.stringify(brief.topStates),
+        JSON.stringify(brief.summary),
         JSON.stringify(brief.lisa),
       ]
     );
@@ -383,6 +568,8 @@ export async function getPartnerIntelligenceBriefSnapshot(params: {
         executive_summary,
         activation_summary,
         top_counties_json,
+        top_states_json,
+        summary_json,
         lisa_json,
         computed_at
       from tradepartner_intelligence_brief_snapshots
@@ -425,6 +612,17 @@ export async function getPartnerIntelligenceBriefSnapshot(params: {
     executiveSummary: String(row.executive_summary || ""),
     activationSummary: String(row.activation_summary || ""),
     topCounties: Array.isArray(row.top_counties_json) ? row.top_counties_json : [],
+    topStates: Array.isArray(row.top_states_json) ? row.top_states_json : [],
+    summary:
+      row.summary_json && typeof row.summary_json === "object"
+        ? row.summary_json
+        : {
+            deltaSummary: "No prior brief available yet for delta comparison.",
+            currentLeadCounty: null,
+            currentLeadState: null,
+            currentLeadSurface: null,
+            stateLead: null,
+          },
     lisa:
       row.lisa_json && typeof row.lisa_json === "object"
         ? row.lisa_json
@@ -477,6 +675,8 @@ export async function getPartnerIntelligenceBriefHistory(params: {
         executive_summary,
         activation_summary,
         top_counties_json,
+        top_states_json,
+        summary_json,
         lisa_json,
         computed_at
       from tradepartner_intelligence_brief_history
@@ -502,6 +702,17 @@ export async function getPartnerIntelligenceBriefHistory(params: {
     executiveSummary: String(row.executive_summary || ""),
     activationSummary: String(row.activation_summary || ""),
     topCounties: Array.isArray(row.top_counties_json) ? row.top_counties_json : [],
+    topStates: Array.isArray(row.top_states_json) ? row.top_states_json : [],
+    summary:
+      row.summary_json && typeof row.summary_json === "object"
+        ? row.summary_json
+        : {
+            deltaSummary: "No prior brief available yet for delta comparison.",
+            currentLeadCounty: null,
+            currentLeadState: null,
+            currentLeadSurface: null,
+            stateLead: null,
+          },
     lisa:
       row.lisa_json && typeof row.lisa_json === "object"
         ? row.lisa_json

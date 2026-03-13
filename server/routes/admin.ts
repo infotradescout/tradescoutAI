@@ -2748,6 +2748,16 @@ export function mountAdminRoutes(app: any) {
             `
           )
           .join("");
+        const topStatesHtml = (brief.topStates || [])
+          .map(
+            (state) => `
+              <li>
+                <strong>#${state.rank} ${htmlEscape(state.stateCode)}</strong>
+                <span> | ${state.requestCount} requests across ${state.countyCount} counties | ${htmlEscape(state.dominantSurface.replace(/_/g, " "))} | ${htmlEscape(state.trend)} ${state.changePct}%</span>
+              </li>
+            `
+          )
+          .join("");
 
         const topFindingsHtml = (brief.lisa.topFindings || [])
           .map(
@@ -2796,6 +2806,7 @@ export function mountAdminRoutes(app: any) {
         <h2>Executive Summary</h2>
         <p>${htmlEscape(brief.executiveSummary)}</p>
         <p>${htmlEscape(brief.activationSummary)}</p>
+        <p>${htmlEscape(brief.summary?.deltaSummary || "No prior brief available yet for delta comparison.")}</p>
       </section>
 
       <section class="card">
@@ -2810,6 +2821,11 @@ export function mountAdminRoutes(app: any) {
       <section class="card">
         <h2>Top Counties</h2>
         <ul>${topCountiesHtml || "<li>No counties available for the current filter set.</li>"}</ul>
+      </section>
+
+      <section class="card">
+        <h2>Top States</h2>
+        <ul>${topStatesHtml || "<li>No states available for the current filter set.</li>"}</ul>
       </section>
 
       <section class="card">

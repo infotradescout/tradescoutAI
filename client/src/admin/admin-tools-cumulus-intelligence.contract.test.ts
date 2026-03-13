@@ -36,11 +36,11 @@ describe("admin tools cumulus intelligence wiring", () => {
     expect(source).toContain("window.print()");
   });
 
-  it("shows a latest-vs-previous delta summary on the admin Cumulus intelligence page", () => {
+  it("renders server-generated delta and state intelligence on the admin Cumulus intelligence page", () => {
     const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
-    expect(source).toContain("previousBrief");
-    expect(source).toContain("deltaSummary");
-    expect(source).toContain("surfaceDelta");
+    expect(source).toContain("brief?.summary?.deltaSummary");
+    expect(source).toContain("Top States");
+    expect(source).toContain("brief.topStates.map");
     expect(source).toContain("No prior brief available yet for delta comparison.");
   });
 

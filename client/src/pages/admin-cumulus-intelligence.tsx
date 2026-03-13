@@ -61,6 +61,22 @@ type CumulusIntelligenceBrief = {
     trend: "up" | "down" | "flat";
     changePct: number;
   }>;
+  topStates: Array<{
+    rank: number;
+    stateCode: string;
+    requestCount: number;
+    countyCount: number;
+    dominantSurface: string;
+    trend: "up" | "down" | "flat";
+    changePct: number;
+  }>;
+  summary: {
+    deltaSummary: string;
+    currentLeadCounty: string | null;
+    currentLeadState: string | null;
+    currentLeadSurface: string | null;
+    stateLead: string | null;
+  };
   lisa: {
     truthNow: string;
     dataProductionSummary: string;
@@ -172,28 +188,6 @@ export default function AdminCumulusIntelligencePage() {
     counties.length > 0
       ? Math.round(counties.reduce((sum, county) => sum + county.okRatePct, 0) / counties.length)
       : 0;
-  const previousBrief = (briefHistory?.history || []).find(
-    (item) => item.generatedAt !== brief?.generatedAt
-  );
-  const currentTopCounty = brief?.topCounties?.[0] || null;
-  const previousTopCounty = previousBrief?.topCounties?.[0] || null;
-  const currentTopRequests = currentTopCounty?.requestCount || 0;
-  const previousTopRequests = previousTopCounty?.requestCount || 0;
-  const topCountyDelta = currentTopRequests - previousTopRequests;
-  const currentBriefCounties = brief?.topCounties?.length || 0;
-  const previousBriefCounties = previousBrief?.topCounties?.length || 0;
-  const countyCountDelta = currentBriefCounties - previousBriefCounties;
-  const currentSurfaceLead = currentTopCounty?.dominantSurface || null;
-  const previousSurfaceLead = previousTopCounty?.dominantSurface || null;
-  const surfaceDelta =
-    currentSurfaceLead && previousSurfaceLead && currentSurfaceLead !== previousSurfaceLead
-      ? `Surface lead changed from ${previousSurfaceLead.replace(/_/g, " ")} to ${currentSurfaceLead.replace(/_/g, " ")}.`
-      : currentSurfaceLead
-        ? `${currentSurfaceLead.replace(/_/g, " ")} remains the leading surface.`
-        : "";
-  const deltaSummary = previousBrief
-    ? `${topCountyDelta >= 0 ? "+" : ""}${topCountyDelta} top-county requests versus the previous brief. ${countyCountDelta >= 0 ? "+" : ""}${countyCountDelta} counties in the top snapshot set. ${currentTopCounty ? `Current lead is ${currentTopCounty.countyName}, ${currentTopCounty.stateCode}.` : ""} ${surfaceDelta}`.trim()
-    : "No prior brief available yet for delta comparison.";
 
   const handleExport = async () => {
     setExportError(null);
@@ -300,7 +294,7 @@ export default function AdminCumulusIntelligencePage() {
               "Activation summary will appear once county snapshots are available."}
           </div>
           <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-white/75">
-            {deltaSummary}
+            {brief?.summary?.deltaSummary || "No prior brief available yet for delta comparison."}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -338,6 +332,20 @@ export default function AdminCumulusIntelligencePage() {
                     #{county.rank} {county.countyName}, {county.stateCode} | {county.requestCount}{" "}
                     requests | {county.dominantSurface.replace(/_/g, " ")} | {county.trend}{" "}
                     {county.changePct}%
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {brief?.topStates?.length ? (
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/40">Top States</div>
+              <div className="mt-3 space-y-2">
+                {brief.topStates.map((state) => (
+                  <div key={`${state.rank}:${state.stateCode}`} className="text-sm text-white/80">
+                    #{state.rank} {state.stateCode} | {state.requestCount} requests across{" "}
+                    {state.countyCount} counties | {state.dominantSurface.replace(/_/g, " ")} |{" "}
+                    {state.trend} {state.changePct}%
                   </div>
                 ))}
               </div>
