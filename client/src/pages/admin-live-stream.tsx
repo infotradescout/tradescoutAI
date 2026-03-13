@@ -190,6 +190,21 @@ export default function AdminLiveStreamPage() {
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
       <Card className="bg-tsCard/95 border-white/10">
         <CardHeader>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/observability")}>
+              Observability
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/admin/cumulus-intelligence")}
+            >
+              Cumulus Intelligence
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/mission-control")}>
+              Mission Control
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle className="text-white">TradeScout Live Stream</CardTitle>

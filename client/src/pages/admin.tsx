@@ -25,8 +25,8 @@ export default function AdminShell() {
 
   if (error || !data?.ok) {
     return (
-      <div className="bg-tsBg flex items-center justify-center py-24 px-4">
-        <Card className="max-w-md w-full border-red-500/40 bg-tsCard">
+      <div className="bg-background flex items-center justify-center py-24 px-4">
+        <Card className="max-w-md w-full border-red-500/40 bg-card">
           <CardHeader>
             <CardTitle className="text-red-300">Admin access required</CardTitle>
             <CardDescription className="text-white/70">
@@ -41,7 +41,7 @@ export default function AdminShell() {
             </p>
             <div className="flex justify-between items-center text-xs text-white/60">
               <span>Requested: /admin</span>
-              <span>Role: {(data as any)?.role || "unknown"}</span>
+              <span>Role: {data?.role || "unknown"}</span>
             </div>
             <div className="flex gap-2 justify-end">
               <Link href="/">
