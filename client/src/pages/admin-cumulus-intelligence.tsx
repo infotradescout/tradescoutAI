@@ -169,8 +169,16 @@ export default function AdminCumulusIntelligencePage() {
   const currentBriefCounties = brief?.topCounties?.length || 0;
   const previousBriefCounties = previousBrief?.topCounties?.length || 0;
   const countyCountDelta = currentBriefCounties - previousBriefCounties;
+  const currentSurfaceLead = currentTopCounty?.dominantSurface || null;
+  const previousSurfaceLead = previousTopCounty?.dominantSurface || null;
+  const surfaceDelta =
+    currentSurfaceLead && previousSurfaceLead && currentSurfaceLead !== previousSurfaceLead
+      ? `Surface lead changed from ${previousSurfaceLead.replace(/_/g, " ")} to ${currentSurfaceLead.replace(/_/g, " ")}.`
+      : currentSurfaceLead
+        ? `${currentSurfaceLead.replace(/_/g, " ")} remains the leading surface.`
+        : "";
   const deltaSummary = previousBrief
-    ? `${topCountyDelta >= 0 ? "+" : ""}${topCountyDelta} top-county requests versus the previous brief. ${countyCountDelta >= 0 ? "+" : ""}${countyCountDelta} counties in the top snapshot set. ${currentTopCounty ? `Current lead is ${currentTopCounty.countyName}, ${currentTopCounty.stateCode}.` : ""}`
+    ? `${topCountyDelta >= 0 ? "+" : ""}${topCountyDelta} top-county requests versus the previous brief. ${countyCountDelta >= 0 ? "+" : ""}${countyCountDelta} counties in the top snapshot set. ${currentTopCounty ? `Current lead is ${currentTopCounty.countyName}, ${currentTopCounty.stateCode}.` : ""} ${surfaceDelta}`.trim()
     : "No prior brief available yet for delta comparison.";
 
   const handleExport = async () => {

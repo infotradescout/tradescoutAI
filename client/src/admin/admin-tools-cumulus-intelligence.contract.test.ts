@@ -40,6 +40,7 @@ describe("admin tools cumulus intelligence wiring", () => {
     const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
     expect(source).toContain("previousBrief");
     expect(source).toContain("deltaSummary");
+    expect(source).toContain("surfaceDelta");
     expect(source).toContain("No prior brief available yet for delta comparison.");
   });
 
