@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -150,6 +150,12 @@ export default function AdminLiveStreamPage() {
       : "fresh"
     : "missing";
 
+  useEffect(() => {
+    if (!refreshMessage) return;
+    const timeout = window.setTimeout(() => setRefreshMessage(""), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [refreshMessage]);
+
   const handlePresentationModeToggle = () => {
     const params = new URLSearchParams(queryString);
     if (presentationMode) {
@@ -273,6 +279,12 @@ export default function AdminLiveStreamPage() {
               </div>
               <div className="mt-2">
                 <Badge variant="outline">{liveStreamStateLabel}</Badge>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Rows: {liveStreamStatus?.rowCount ?? 0}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Stale after {liveStreamStatus?.staleAfterMinutes ?? 0} min
               </div>
             </div>
             <div className="rounded-lg border border-border bg-background p-4">
