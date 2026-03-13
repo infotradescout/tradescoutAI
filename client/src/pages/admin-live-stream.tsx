@@ -188,7 +188,7 @@ export default function AdminLiveStreamPage() {
 
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
-      <Card className="bg-tsCard/95 border-white/10">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/observability")}>
@@ -225,6 +225,47 @@ export default function AdminLiveStreamPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Last Refresh
+              </div>
+              <div className="mt-2 text-sm text-foreground">
+                {data?.generatedAt
+                  ? new Date(data.generatedAt).toLocaleString()
+                  : isLoading
+                    ? "Loading..."
+                    : "Unavailable"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Truth Now
+              </div>
+              <div className="mt-2 text-sm text-foreground">
+                {data?.summary.truthNow || "Unavailable"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Lead Geography
+              </div>
+              <div className="mt-2 text-sm text-foreground">
+                {data?.summary.currentLeadCounty && data?.summary.currentLeadState
+                  ? `${data.summary.currentLeadCounty}, ${data.summary.currentLeadState}`
+                  : "No lead geography"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Active Alerts
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-foreground">
+                {data?.summary.activeAlerts ?? 0}
+              </div>
+            </div>
+          </div>
+
           <div
             className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-4" : "md:grid-cols-4"} gap-4`}
           >
@@ -334,32 +375,32 @@ export default function AdminLiveStreamPage() {
           </div>
 
           {error ? (
-            <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Failed to load live stream.
             </div>
           ) : null}
 
           {refreshError ? (
-            <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {refreshError}
             </div>
           ) : null}
 
           {refreshMessage ? (
-            <div className="rounded-md border border-emerald-600/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-200">
+            <div className="rounded-md border border-green-600/40 bg-green-600/10 px-3 py-2 text-sm text-green-300">
               {refreshMessage}
             </div>
           ) : null}
 
           {exportError ? (
-            <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {exportError}
             </div>
           ) : null}
         </CardContent>
       </Card>
 
-      <Card className={`bg-tsCard/95 border-white/10 ${presentationMode ? "print:hidden" : ""}`}>
+      <Card className={`bg-card border-border ${presentationMode ? "print:hidden" : ""}`}>
         <CardHeader>
           <CardTitle className="text-white">Live Feed</CardTitle>
           <CardDescription className="text-white/70">

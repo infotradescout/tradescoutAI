@@ -26,20 +26,20 @@ export default function AdminShell() {
   if (error || !data?.ok) {
     return (
       <div className="bg-background flex items-center justify-center py-24 px-4">
-        <Card className="max-w-md w-full border-red-500/40 bg-card">
+        <Card className="max-w-md w-full border-destructive/40 bg-card">
           <CardHeader>
-            <CardTitle className="text-red-300">Admin access required</CardTitle>
-            <CardDescription className="text-white/70">
+            <CardTitle className="text-destructive">Admin access required</CardTitle>
+            <CardDescription className="text-muted-foreground">
               This portal is restricted to platform administrators. Your current session does not
               have access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-muted-foreground">
               If you believe this is an error, check your assigned role or contact the platform
               owner.
             </p>
-            <div className="flex justify-between items-center text-xs text-white/60">
+            <div className="flex justify-between items-center text-xs text-muted-foreground">
               <span>Requested: /admin</span>
               <span>Role: {data?.role || "unknown"}</span>
             </div>
