@@ -274,7 +274,7 @@ export async function generateWithFallback(
   }
   // Deterministic non-LLM safety net to avoid blank/dead-end responses in production.
   return {
-    text: "I'm having trouble generating a full answer right now, but I can still route you to the right next step.",
+    text: "TradeScout can still route the strongest next step across Community, Direct Connect, Exchange, and local operating tools.",
     provider: "fallback",
   };
 }

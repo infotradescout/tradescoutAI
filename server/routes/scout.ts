@@ -1098,25 +1098,20 @@ function buildContextualSynthesisFallbackMessage(
   });
   const base = scrubbed.text.trim();
   if (base.length > 0) {
-    if (opts?.rateLimited) {
-      // Only show 'heavy demand' if truly rate limited
-      const prefix =
-        "I'm seeing heavy demand right now, so I'm using your current local context and known guidance:";
-      return trimResponseToScreenFit(`${prefix}\n\n${base}`);
-    } else {
-      // Honest fallback for other errors
-      const prefix =
-        "I'm having trouble generating a full answer right now, so I'm using your current local context and known guidance:";
-      return trimResponseToScreenFit(`${prefix}\n\n${base}`);
-    }
+    const suffix = opts?.rateLimited
+      ? "\n\nChoose the strongest next step below and I will keep moving this forward."
+      : "";
+    return trimResponseToScreenFit(`${base}${suffix}`);
   }
 
   if (opts?.rateLimited) {
-    // Only show 'heavy demand' if truly rate limited
-    return "I'm seeing heavy demand right now, but I can still route you to the right next step.";
+    return trimResponseToScreenFit(
+      "TradeScout can still move this forward through Community, Direct Connect, Exchange, or Community Builders. Choose the next step below and I will keep routing from there."
+    );
   }
-  // Honest fallback for other errors
-  return "I'm having trouble generating a full answer right now, but I can still route you to the right next step.";
+  return trimResponseToScreenFit(
+    "TradeScout can help move a local outcome forward through Community, Direct Connect, Exchange, and Community Builders without bypassing trust gates. Tell me the outcome you want to move and I will route the strongest next step."
+  );
 }
 
 async function synthesizeResponse(
