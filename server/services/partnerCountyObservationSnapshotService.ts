@@ -65,7 +65,7 @@ export async function ensureTradepartnerCountyObservationSnapshotsTable(): Promi
         CREATE TABLE IF NOT EXISTS tradepartner_county_observation_snapshots (
           id bigserial PRIMARY KEY,
           partner_slug text NOT NULL,
-          window text NOT NULL,
+          "window" text NOT NULL,
           county_fips varchar(5) NOT NULL,
           county_name text NOT NULL,
           state_code varchar(2) NOT NULL,
@@ -82,11 +82,11 @@ export async function ensureTradepartnerCountyObservationSnapshotsTable(): Promi
 
       await pool.query(
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_tradepartner_county_observation_unique
-         ON tradepartner_county_observation_snapshots (partner_slug, window, county_fips);`
+         ON tradepartner_county_observation_snapshots (partner_slug, "window", county_fips);`
       );
       await pool.query(
         `CREATE INDEX IF NOT EXISTS idx_tradepartner_county_observation_partner_window
-         ON tradepartner_county_observation_snapshots (partner_slug, window, computed_at DESC);`
+         ON tradepartner_county_observation_snapshots (partner_slug, "window", computed_at DESC);`
       );
       await pool.query(
         `CREATE INDEX IF NOT EXISTS idx_tradepartner_county_observation_state
@@ -280,7 +280,7 @@ export async function refreshPartnerCountyObservationSnapshots(params?: {
         await pool.query(
           `
             delete from tradepartner_county_observation_snapshots
-            where partner_slug = $1 and window = $2
+            where partner_slug = $1 and "window" = $2
           `,
           [partnerSlug, window]
         );
@@ -290,7 +290,7 @@ export async function refreshPartnerCountyObservationSnapshots(params?: {
             `
               insert into tradepartner_county_observation_snapshots (
                 partner_slug,
-                window,
+                "window",
                 county_fips,
                 county_name,
                 state_code,
@@ -348,7 +348,7 @@ export async function getPartnerCountyObservationSnapshots(params: {
       select max(computed_at) as latest_computed_at
       from tradepartner_county_observation_snapshots
       where partner_slug = $1
-        and window = $2
+        and "window" = $2
     `,
     [params.partnerSlug, params.window]
   );
@@ -386,7 +386,7 @@ export async function getPartnerCountyObservationSnapshots(params: {
         computed_at
       from tradepartner_county_observation_snapshots
       where partner_slug = $1
-        and window = $2
+        and "window" = $2
         and ($3::text = '' or state_code = $3)
       order by request_count desc, county_name asc
       limit $4

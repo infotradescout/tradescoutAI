@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
+import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryScopeSnapshotJob";
 import { db } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
@@ -1022,6 +1023,7 @@ router.get("/sitemap-directory-counties.xml", async (req, res) => {
 
 router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const navigationRows = (await db.execute(sql`
@@ -1076,6 +1078,7 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
 
 router.get("/sitemap-directory-trades.xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
 
@@ -1108,6 +1111,7 @@ ${Array.from({ length: pages })
 
 router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const page = Number(req.params.page || 0);
@@ -1228,6 +1232,7 @@ router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
 
 router.get("/sitemap-directory-trade-cities.xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
 
@@ -1260,6 +1265,7 @@ ${Array.from({ length: pages })
 
 router.get("/sitemap-directory-trade-cities-:page(\\d+).xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const page = Number(req.params.page || 0);
@@ -1327,6 +1333,7 @@ router.get("/sitemap-best-pages.xml", async (req, res) => {
 
 router.get("/sitemap-best-trade-counties.xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const countResult = (await db.execute(sql`
@@ -1357,6 +1364,7 @@ ${Array.from({ length: pages })
 
 router.get("/sitemap-best-trade-counties-:page(\\d+).xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const page = Number(req.params.page || 0);
@@ -1399,6 +1407,7 @@ router.get("/sitemap-best-trade-counties-:page(\\d+).xml", async (req, res) => {
 
 router.get("/sitemap-best-trade-cities.xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const countResult = (await db.execute(sql`
@@ -1429,6 +1438,7 @@ ${Array.from({ length: pages })
 
 router.get("/sitemap-best-trade-cities-:page(\\d+).xml", async (req, res) => {
   try {
+    await ensureSeoDirectoryScopeSnapshotTables();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const page = Number(req.params.page || 0);

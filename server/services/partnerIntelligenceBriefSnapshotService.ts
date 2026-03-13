@@ -91,7 +91,7 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
         CREATE TABLE IF NOT EXISTS tradepartner_intelligence_brief_snapshots (
           id bigserial PRIMARY KEY,
           partner_slug text NOT NULL,
-          window text NOT NULL,
+          "window" text NOT NULL,
           state_code varchar(2),
           surface text,
           limit_value integer NOT NULL DEFAULT 100,
@@ -110,7 +110,7 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_tradepartner_intelligence_brief_unique
          ON tradepartner_intelligence_brief_snapshots (
            partner_slug,
-           window,
+           "window",
            coalesce(state_code, ''),
            coalesce(surface, ''),
            limit_value
@@ -118,7 +118,7 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
       );
       await pool.query(
         `CREATE INDEX IF NOT EXISTS idx_tradepartner_intelligence_brief_partner_window
-         ON tradepartner_intelligence_brief_snapshots (partner_slug, window, computed_at DESC);`
+         ON tradepartner_intelligence_brief_snapshots (partner_slug, "window", computed_at DESC);`
       );
       await pool.query(
         `ALTER TABLE tradepartner_intelligence_brief_snapshots
@@ -133,7 +133,7 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
         CREATE TABLE IF NOT EXISTS tradepartner_intelligence_brief_history (
           id bigserial PRIMARY KEY,
           partner_slug text NOT NULL,
-          window text NOT NULL,
+          "window" text NOT NULL,
           state_code varchar(2),
           surface text,
           limit_value integer NOT NULL DEFAULT 100,
@@ -151,7 +151,7 @@ export async function ensurePartnerIntelligenceBriefSnapshotsTable(): Promise<vo
         `CREATE INDEX IF NOT EXISTS idx_tradepartner_intelligence_brief_history_lookup
          ON tradepartner_intelligence_brief_history (
            partner_slug,
-           window,
+           "window",
            computed_at DESC
          );`
       );
@@ -425,7 +425,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       select top_counties_json, top_states_json
       from tradepartner_intelligence_brief_history
       where partner_slug = $1
-        and window = $2
+        and "window" = $2
         and coalesce(state_code, '') = $3
         and coalesce(surface, '') = $4
         and limit_value = $5
@@ -459,7 +459,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       `
         delete from tradepartner_intelligence_brief_snapshots
         where partner_slug = $1
-          and window = $2
+          and "window" = $2
           and coalesce(state_code, '') = $3
           and coalesce(surface, '') = $4
           and limit_value = $5
@@ -471,7 +471,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       `
         insert into tradepartner_intelligence_brief_snapshots (
           partner_slug,
-          window,
+          "window",
           state_code,
           surface,
           limit_value,
@@ -504,7 +504,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       `
         insert into tradepartner_intelligence_brief_history (
           partner_slug,
-          window,
+          "window",
           state_code,
           surface,
           limit_value,
@@ -574,7 +574,7 @@ export async function getPartnerIntelligenceBriefSnapshot(params: {
         computed_at
       from tradepartner_intelligence_brief_snapshots
       where partner_slug = $1
-        and window = $2
+        and "window" = $2
         and coalesce(state_code, '') = $3
         and coalesce(surface, '') = $4
         and limit_value = $5
@@ -668,7 +668,7 @@ export async function getPartnerIntelligenceBriefHistory(params: {
     `
       select
         partner_slug,
-        window,
+        "window" as window,
         coalesce(state_code, '') as state_code,
         coalesce(surface, '') as surface,
         limit_value,
@@ -681,7 +681,7 @@ export async function getPartnerIntelligenceBriefHistory(params: {
         computed_at
       from tradepartner_intelligence_brief_history
       where partner_slug = $1
-        and window = $2
+        and "window" = $2
         and ($3::text = '' or coalesce(state_code, '') = $3)
         and ($4::text = '' or coalesce(surface, '') = $4)
       order by computed_at desc

@@ -69,6 +69,8 @@ describe("market signals contracts", () => {
     expect(source).toContain(
       "CREATE TABLE IF NOT EXISTS tradepartner_county_observation_snapshots"
     );
+    expect(source).toContain('"window" text NOT NULL');
+    expect(source).toContain('and "window" = $2');
     expect(source).toContain("from crawler_request_hourly_rollups");
     expect(source).toContain("refreshPartnerCountyObservationSnapshots");
     expect(source).toContain("getPartnerCountyObservationSnapshots");

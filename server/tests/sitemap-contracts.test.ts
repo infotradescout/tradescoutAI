@@ -74,6 +74,7 @@ describe("sitemap contracts", () => {
   it("trade navigation sitemap is driven by indexed snapshot coverage, not every trade/state combo", () => {
     const source = read("server/routes/profiles.ts");
 
+    expect(source).toContain("ensureSeoDirectoryScopeSnapshotTables()");
     expect(source).toContain("with trade_state_pairs as (");
     expect(source).toContain("from ts_seo_trade_county_pages");
     expect(source).toContain("from ts_seo_trade_city_pages");
