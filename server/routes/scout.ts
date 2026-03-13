@@ -1073,10 +1073,6 @@ async function generateSmartSynthesis(
  * - Comprehensive state injection every turn
  * - No fallback paths - schema is mandatory
  */
-function buildSafeSynthesisFallbackMessage(): string {
-  return "I'm having trouble generating a full answer right now, but I can still route you to the right next step.";
-}
-
 function isGeminiRateLimitFailure(error: unknown): boolean {
   if (error instanceof GeminiRateLimitError) return true;
   const status = Number((error as any)?.status || (error as any)?.response?.status || 0);
@@ -3577,7 +3573,7 @@ router.post("/", async (req: Request, res: Response) => {
         intent: synthesized.intent,
         sourceUsed: sourceAudit.sourceUsed,
         attemptedSource: sourceAudit.attemptedSource,
-        fallbackUsed: sourceAudit.fallbackUsed,
+        fallbackUsed: Boolean(sourceAudit.fallbackUsed) || synthesized.provider === "fallback",
         degradationReason: synthesized.degradationReason ?? sourceAudit.degradationReason,
         confidenceBand: sourceAudit.confidenceBand,
         currentJobId: currentJobId || undefined,
@@ -4695,7 +4691,9 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     const userFacingSanitized = sanitizeScoutUserFacingText(finalMessage || "", {
-      fallback: buildSafeSynthesisFallbackMessage(),
+      fallback: buildContextualSynthesisFallbackMessage(knowledge.answer, {
+        rateLimited: scoutTurnTelemetry.degradationReason === "synthesis_rate_limited",
+      }),
       maxChars: 600,
     });
     finalMessage = userFacingSanitized.text;
