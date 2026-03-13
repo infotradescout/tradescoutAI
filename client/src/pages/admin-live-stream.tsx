@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 type LiveStreamItem = {
   id: string;
@@ -27,6 +29,7 @@ type LiveStreamResponse = {
   filters?: {
     source: string | null;
     stateCode: string | null;
+    county: string | null;
     limit: number;
   };
   summary: {
@@ -47,17 +50,24 @@ const priorityTone: Record<LiveStreamItem["priority"], string> = {
 };
 
 export default function AdminLiveStreamPage() {
+  const [location, navigate] = useLocation();
   const [source, setSource] = useState("all");
   const [stateCode, setStateCode] = useState("all");
+  const [county, setCounty] = useState("all");
   const [limit, setLimit] = useState("20");
+  const presentationMode = useMemo(() => {
+    const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
+    return new URLSearchParams(rawQuery).get("presentationMode") === "1";
+  }, [location]);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.set("limit", limit || "20");
     if (source !== "all") params.set("source", source);
     if (stateCode !== "all") params.set("stateCode", stateCode);
+    if (county !== "all") params.set("county", county);
     return params.toString();
-  }, [source, stateCode, limit]);
+  }, [source, stateCode, county, limit]);
 
   const { data, isLoading, error } = useQuery<LiveStreamResponse>({
     queryKey: ["/api/admin/observability/live-stream", queryString],
@@ -73,18 +83,37 @@ export default function AdminLiveStreamPage() {
     refetchInterval: 10000,
   });
 
+  const handlePresentationModeToggle = () => {
+    const params = new URLSearchParams(queryString);
+    if (presentationMode) {
+      params.delete("presentationMode");
+    } else {
+      params.set("presentationMode", "1");
+    }
+    navigate(`/admin/live-stream?${params.toString()}`);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
       <Card className="bg-tsCard/95 border-white/10">
         <CardHeader>
-          <CardTitle className="text-white">TradeScout Live Stream</CardTitle>
-          <CardDescription className="text-white/70">
-            Real-time natural-language stream of current system truth, crawler activity, partner
-            intelligence, and LISA findings.
-          </CardDescription>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-white">TradeScout Live Stream</CardTitle>
+              <CardDescription className="text-white/70">
+                Real-time natural-language stream of current system truth, crawler activity, partner
+                intelligence, and LISA findings.
+              </CardDescription>
+            </div>
+            <Button onClick={handlePresentationModeToggle} variant="outline">
+              {presentationMode ? "Exit Presentation Mode" : "Open Presentation Mode"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div
+            className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-4" : "md:grid-cols-4"} gap-4`}
+          >
             <div className="space-y-1">
               <Label>Source</Label>
               <Select value={source} onValueChange={setSource}>
@@ -109,6 +138,14 @@ export default function AdminLiveStreamPage() {
               />
             </div>
             <div className="space-y-1">
+              <Label>County</Label>
+              <Input
+                value={county}
+                onChange={(e) => setCounty(e.target.value.trim().toLowerCase() || "all")}
+                placeholder="all or mobile"
+              />
+            </div>
+            <div className="space-y-1">
               <Label>Limit</Label>
               <Input
                 value={limit}
@@ -117,7 +154,7 @@ export default function AdminLiveStreamPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="rounded-lg border border-white/10 bg-black/20 p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-white/40">Truth Now</div>
               <div className="mt-2 text-sm text-white/85">
@@ -172,7 +209,7 @@ export default function AdminLiveStreamPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-tsCard/95 border-white/10">
+      <Card className={`bg-tsCard/95 border-white/10 ${presentationMode ? "print:hidden" : ""}`}>
         <CardHeader>
           <CardTitle className="text-white">Live Feed</CardTitle>
           <CardDescription className="text-white/70">

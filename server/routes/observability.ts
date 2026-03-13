@@ -136,6 +136,9 @@ observabilityRouter.get("/live-stream", async (req, res) => {
     const stateCode = String((req.query as any)?.stateCode || "")
       .trim()
       .toUpperCase();
+    const countyFilter = String((req.query as any)?.county || "")
+      .trim()
+      .toLowerCase();
     const limitRaw = Number.parseInt(String((req.query as any)?.limit || "20"), 10);
     const limit = Number.isFinite(limitRaw) ? Math.max(5, Math.min(100, limitRaw)) : 20;
 
@@ -160,6 +163,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
         title: "Truth Now",
         narrative: lisaFeed.summary.truthNow,
         source: "lisa",
+        stateCode: null,
+        countyName: null,
       },
       {
         id: `lisa-data-${lisaFeed.generatedAt}`,
@@ -169,6 +174,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
         title: "Data Production",
         narrative: lisaFeed.summary.dataProductionSummary,
         source: "lisa",
+        stateCode: null,
+        countyName: null,
       },
       {
         id: `lisa-llm-${lisaFeed.generatedAt}`,
@@ -178,6 +185,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
         title: "LLM Optimization",
         narrative: lisaFeed.summary.llmOptimizationSummary,
         source: "lisa",
+        stateCode: null,
+        countyName: null,
       },
       {
         id: `cumulus-brief-${cumulusBrief.generatedAt}`,
@@ -187,6 +196,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
         title: "Partner Brief",
         narrative: cumulusBrief.executiveSummary,
         source: "cumulus",
+        stateCode: cumulusBrief.summary.currentLeadState || null,
+        countyName: cumulusBrief.summary.currentLeadCounty || null,
       },
       {
         id: `cumulus-delta-${cumulusBrief.generatedAt}`,
@@ -196,6 +207,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
         title: "Partner Delta",
         narrative: cumulusBrief.summary.deltaSummary,
         source: "cumulus",
+        stateCode: cumulusBrief.summary.currentLeadState || null,
+        countyName: cumulusBrief.summary.currentLeadCounty || null,
       },
       ...(cumulusBrief.topCounties?.[0]
         ? [
@@ -207,6 +220,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
               title: "Leading County",
               narrative: `${cumulusBrief.topCounties[0].countyName}, ${cumulusBrief.topCounties[0].stateCode} leads with ${cumulusBrief.topCounties[0].requestCount} requests. ${cumulusBrief.topCounties[0].dominantSurface.replace(/_/g, " ")} is the dominant surface.`,
               source: "cumulus",
+              stateCode: cumulusBrief.topCounties[0].stateCode,
+              countyName: cumulusBrief.topCounties[0].countyName,
             },
           ]
         : []),
@@ -220,6 +235,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
               title: "Leading State Cluster",
               narrative: `${cumulusBrief.topStates[0].stateCode} leads with ${cumulusBrief.topStates[0].requestCount} requests across ${cumulusBrief.topStates[0].countyCount} counties.`,
               source: "cumulus",
+              stateCode: cumulusBrief.topStates[0].stateCode,
+              countyName: null,
             },
           ]
         : []),
@@ -231,6 +248,8 @@ observabilityRouter.get("/live-stream", async (req, res) => {
         title: "Crawler Volume",
         narrative: `${crawlerTelemetry.totals24h.total} crawler requests were observed in the last 24 hours with ${crawlerTelemetry.totals24h.ok} returning 2xx and ${crawlerTelemetry.totals24h.serverError} returning 5xx.`,
         source: "crawler",
+        stateCode: null,
+        countyName: null,
       },
       ...(crawlerTelemetry.topBots?.[0]
         ? [
@@ -242,45 +261,65 @@ observabilityRouter.get("/live-stream", async (req, res) => {
               title: "Top Bot",
               narrative: `${crawlerTelemetry.topBots[0].botName} is the most active crawler right now with ${crawlerTelemetry.topBots[0].requestCount} requests.`,
               source: "crawler",
+              stateCode: null,
+              countyName: null,
             },
           ]
         : []),
-      ...(activeAlerts || []).slice(0, 3).map((alert) => ({
-        id: `alert-${alert.id}`,
-        timestamp: alert.lastEvaluatedAt || alert.startedAt,
-        kind: "alert",
-        priority:
-          alert.severity === "CRITICAL"
-            ? "critical"
-            : alert.severity === "WARN"
-              ? "high"
-              : "medium",
-        title: alert.name,
-        narrative: alert.description,
-        source: "alerts",
-      })),
-      ...lisaFeed.feed.slice(0, 8).map((item) => ({
-        id: item.id,
-        timestamp:
-          item.freshnessMinutes !== null
-            ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
-            : lisaFeed.generatedAt,
-        kind: "finding",
-        priority: item.priority,
-        title: item.headline,
-        narrative: item.narrative,
-        source: item.sourceKind,
-      })),
+      ...(activeAlerts || []).slice(0, 3).map((alert) => {
+        const labelStateCode =
+          String(alert.labels?.stateCode || "")
+            .trim()
+            .toUpperCase() || null;
+        const labelCountyName = String(alert.labels?.countyName || "").trim() || null;
+        return {
+          id: `alert-${alert.id}`,
+          timestamp: alert.lastEvaluatedAt || alert.startedAt,
+          kind: "alert",
+          priority:
+            alert.severity === "CRITICAL"
+              ? "critical"
+              : alert.severity === "WARN"
+                ? "high"
+                : "medium",
+          title: alert.name,
+          narrative: alert.description,
+          source: "alerts",
+          stateCode: labelStateCode,
+          countyName: labelCountyName,
+        };
+      }),
+      ...lisaFeed.feed.slice(0, 8).map((item) => {
+        const normalizedScopeRef = String(item.scopeRef || "").trim();
+        const countyScopeName =
+          item.scopeType === "county" && normalizedScopeRef
+            ? normalizedScopeRef.replace(/[-_]/g, " ")
+            : null;
+        return {
+          id: item.id,
+          timestamp:
+            item.freshnessMinutes !== null
+              ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
+              : lisaFeed.generatedAt,
+          kind: "finding",
+          priority: item.priority,
+          title: item.headline,
+          narrative: item.narrative,
+          source: item.sourceKind,
+          stateCode: null,
+          countyName: countyScopeName,
+        };
+      }),
     ]
       .filter((entry) => {
         if (sourceFilter && entry.source !== sourceFilter) return false;
-        if (
-          stateCode &&
-          entry.source === "cumulus" &&
-          typeof entry.narrative === "string" &&
-          !entry.narrative.includes(` ${stateCode}`) &&
-          !entry.narrative.includes(`, ${stateCode}`)
-        ) {
+        if (stateCode && entry.stateCode && entry.stateCode !== stateCode) {
+          return false;
+        }
+        if (countyFilter && entry.countyName) {
+          const normalizedCounty = String(entry.countyName).trim().toLowerCase();
+          if (!normalizedCounty.includes(countyFilter)) return false;
+        } else if (countyFilter && !entry.countyName) {
           return false;
         }
         return true;
@@ -293,6 +332,7 @@ observabilityRouter.get("/live-stream", async (req, res) => {
       filters: {
         source: sourceFilter || null,
         stateCode: stateCode || null,
+        county: countyFilter || null,
         limit,
       },
       summary: {

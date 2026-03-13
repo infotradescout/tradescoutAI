@@ -15,6 +15,7 @@ describe("admin live stream contracts", () => {
     expect(source).toContain("getCrawlerTelemetrySummary()");
     expect(source).toContain("sourceFilter");
     expect(source).toContain("stateCode");
+    expect(source).toContain("countyFilter");
     expect(source).toContain("limit");
     expect(source).toContain("Failed to fetch live stream");
   });

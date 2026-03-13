@@ -21,6 +21,9 @@ describe("admin tools live stream wiring", () => {
     expect(source).toContain("Server-produced entries only");
     expect(source).toContain("All sources");
     expect(source).toContain("all or FL");
+    expect(source).toContain("all or mobile");
+    expect(source).toContain("presentationMode");
+    expect(source).toContain("Open Presentation Mode");
     expect(source).toContain("Active Alerts");
   });
 });
