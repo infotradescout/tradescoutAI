@@ -41,6 +41,7 @@ import {
   getLiveStreamSnapshotHistory,
   refreshLiveStreamSnapshot,
 } from "../services/liveStreamSnapshotService";
+import { getSnapshotStatusSummary } from "../services/snapshotStatusService";
 
 export const observabilityRouter = Router();
 observabilityRouter.use(isAuthenticated, isAdmin);
@@ -129,6 +130,15 @@ observabilityRouter.get("/crawler-telemetry", async (_req, res) => {
   } catch (error) {
     console.error("Crawler telemetry query failed:", error);
     sendInternalServerError(res, "Failed to fetch crawler telemetry", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/snapshot-status", async (_req, res) => {
+  try {
+    res.json(await getSnapshotStatusSummary());
+  } catch (error) {
+    console.error("Snapshot status query failed:", error);
+    sendInternalServerError(res, "Failed to fetch snapshot status", { error: String(error) });
   }
 });
 

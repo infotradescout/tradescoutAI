@@ -178,6 +178,19 @@ interface CrawlerTelemetrySummary {
   }>;
 }
 
+interface SnapshotStatusSummary {
+  generatedAt: string;
+  schedulerEnabled: boolean;
+  statuses: Array<{
+    key: string;
+    label: string;
+    latestComputedAt: string | null;
+    rowCount: number;
+    staleAfterMinutes: number;
+    isStale: boolean;
+  }>;
+}
+
 function coerceBaselines(payload: any): ObservabilityBaselines | null {
   const root = payload && typeof payload === "object" ? payload : null;
   const candidate =
@@ -202,6 +215,7 @@ export default function ObservabilityDashboard() {
   const [baselines, setBaselines] = useState<ObservabilityBaselines | null>(null);
   const [lisaFeed, setLisaFeed] = useState<LisaFeedResponse | null>(null);
   const [crawlerTelemetry, setCrawlerTelemetry] = useState<CrawlerTelemetrySummary | null>(null);
+  const [snapshotStatus, setSnapshotStatus] = useState<SnapshotStatusSummary | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -278,12 +292,24 @@ export default function ObservabilityDashboard() {
       }
     };
 
+    const fetchSnapshotStatus = async () => {
+      try {
+        const response = await fetch("/api/admin/observability/snapshot-status");
+        if (!response.ok) throw new Error("Failed to fetch snapshot status");
+        const data = await response.json();
+        setSnapshotStatus(data);
+      } catch (err) {
+        console.error("Failed to fetch snapshot status:", err);
+      }
+    };
+
     fetchMetrics();
     fetchAlerts();
     fetchScoutPolicy();
     fetchBaselines();
     fetchLisaFeed();
     fetchCrawlerTelemetry();
+    fetchSnapshotStatus();
     const interval = setInterval(() => {
       fetchMetrics();
       fetchAlerts();
@@ -291,6 +317,7 @@ export default function ObservabilityDashboard() {
       fetchBaselines();
       fetchLisaFeed();
       fetchCrawlerTelemetry();
+      fetchSnapshotStatus();
     }, 15000);
 
     return () => clearInterval(interval);
@@ -374,7 +401,15 @@ export default function ObservabilityDashboard() {
     );
   }
 
-  if (!metrics || !alerts || !scoutPolicy || !baselines || !lisaFeed || !crawlerTelemetry) {
+  if (
+    !metrics ||
+    !alerts ||
+    !scoutPolicy ||
+    !baselines ||
+    !lisaFeed ||
+    !crawlerTelemetry ||
+    !snapshotStatus
+  ) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -471,6 +506,53 @@ export default function ObservabilityDashboard() {
                     {evidence}
                   </span>
                 ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-6 border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-black/20 to-black/50">
+        <div className="flex items-center gap-2 mb-4">
+          <Database className="h-5 w-5 text-blue-300" />
+          <h2 className="text-xl font-semibold text-white">Snapshot Status</h2>
+          <span className="text-xs text-white/50 ml-auto">
+            Last summary: {new Date(snapshotStatus.generatedAt).toLocaleTimeString()}
+          </span>
+        </div>
+        <div className="mb-4 text-sm text-white/75">
+          Scheduler:{" "}
+          <span
+            className={snapshotStatus.schedulerEnabled ? "text-emerald-300" : "text-yellow-300"}
+          >
+            {snapshotStatus.schedulerEnabled ? "enabled" : "disabled"}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {snapshotStatus.statuses.map((item) => (
+            <div key={item.key} className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-white">{item.label}</div>
+                  <div className="mt-1 text-xs text-white/55">{item.rowCount} rows</div>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs ${
+                    item.isStale
+                      ? "border border-yellow-500/30 bg-yellow-500/20 text-yellow-200"
+                      : "border border-emerald-500/30 bg-emerald-500/20 text-emerald-200"
+                  }`}
+                >
+                  {item.isStale ? "stale" : "fresh"}
+                </span>
+              </div>
+              <div className="mt-3 text-sm text-white/80">
+                {item.latestComputedAt
+                  ? `Updated ${new Date(item.latestComputedAt).toLocaleString()}`
+                  : "No snapshot computed yet"}
+              </div>
+              <div className="mt-1 text-xs text-white/55">
+                Stale after {item.staleAfterMinutes} minutes
               </div>
             </div>
           ))}
