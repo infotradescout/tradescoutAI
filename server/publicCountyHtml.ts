@@ -1,4 +1,4 @@
-﻿import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
@@ -51,7 +51,7 @@ function buildMeta(args: {
   keywords: string[];
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
-  const imageUrl = `${args.origin}/tradescout-logo-circle.png?v=7`;
+  const imageUrl = `${args.origin}/tradescout-brand.png?v=8`;
   return {
     title: args.title.slice(0, 120),
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 300),
@@ -308,7 +308,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
   <article>
     <h1>${escapeHtml(String((county as any).name || ""))}, ${escapeHtml(stateCode)}</h1>
     <p>${escapeHtml(description)}</p>
-    <p><a href="/trade">Browse all trades</a> &nbsp;â€¢&nbsp; <a href="/datasets/cities">Browse cities</a></p>
+    <p><a href="/trade">Browse all trades</a> &nbsp;•&nbsp; <a href="/datasets/cities">Browse cities</a></p>
     ${
       primaryLinks.length
         ? `<h2>Popular trades in this county</h2>

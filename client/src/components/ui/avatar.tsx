@@ -5,7 +5,7 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
 
-const CANONICAL_DEFAULT_AVATAR_SRC = "/tradescout-logo-circle.png?v=7";
+const CANONICAL_DEFAULT_AVATAR_SRC = "/tradescout-brand.png?v=8";
 const LEGACY_PLATFORM_AVATAR_PATHS = new Set<string>([
   "/tradescout-logo.png",
   "/tradescout-logo.jpg",

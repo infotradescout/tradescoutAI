@@ -13,7 +13,7 @@ export function PageHead({
   title = "TradeScout | Connection Without Compromise",
   description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
   keywords = "scout, local helper, contractors, home improvement, quotes, local contractors, verified contractors",
-  ogImage = "/tradescout-logo-circle.png?v=7",
+  ogImage = "/tradescout-brand.png?v=8",
   canonicalUrl,
 }: PageHeadProps) {
   const currentUrl = normalizePublicUrl(stripUrlVariantsForCanonical(window.location.href));

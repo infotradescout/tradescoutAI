@@ -1,4 +1,4 @@
-﻿import { storage } from "./storage";
+import { storage } from "./storage";
 import { formatTradeScoutTitle } from "@shared/brand";
 
 type PublicProfileHtmlOptions = {
@@ -100,7 +100,7 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     profile.profile.servicesDescription ||
     profile.profile.roleContext ||
     "TradeScout public profile";
-  const imageUrl = profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-logo-circle.png?v=7`;
+  const imageUrl = profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-brand.png?v=8`;
   const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
   const keywords = [
     displayName,

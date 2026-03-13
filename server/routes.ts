@@ -1378,11 +1378,11 @@ export async function registerRoutes(app: any) {
     return Array.from(merged);
   };
 
-  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-logo-circle.png?v=7";
+  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-brand.png?v=8";
   const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
     "/tradescout-logo.png",
     "/tradescout-logo.jpg",
-    "/tradescout-logo-circle.png",
+    "/tradescout-brand.png",
     "/logo.png",
     "/favicon.ico",
     "/favicon.svg",
