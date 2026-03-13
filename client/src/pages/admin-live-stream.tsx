@@ -149,6 +149,10 @@ export default function AdminLiveStreamPage() {
       ? "stale"
       : "fresh"
     : "missing";
+  const schedulerDisabledWarning =
+    snapshotStatus &&
+    snapshotStatus.schedulerEnabled === false &&
+    (!liveStreamStatus || liveStreamStatus.isStale || liveStreamStateLabel === "missing");
 
   useEffect(() => {
     if (!refreshMessage) return;
@@ -265,6 +269,13 @@ export default function AdminLiveStreamPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {schedulerDisabledWarning ? (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              Scheduler is disabled. Live stream snapshots can go stale or missing until you run a
+              manual refresh or turn scheduled jobs back on.
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="rounded-lg border border-border bg-background p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
@@ -311,6 +322,41 @@ export default function AdminLiveStreamPage() {
               </div>
               <div className="mt-2 text-2xl font-semibold text-foreground">
                 {data?.summary.activeAlerts ?? 0}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                LISA Entries
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-foreground">
+                {data?.summary.sourceCounts?.lisa ?? 0}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Cumulus Entries
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-foreground">
+                {data?.summary.sourceCounts?.cumulus ?? 0}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Crawler Entries
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-foreground">
+                {data?.summary.sourceCounts?.crawler ?? 0}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Alert Entries
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-foreground">
+                {data?.summary.sourceCounts?.alerts ?? 0}
               </div>
             </div>
           </div>
