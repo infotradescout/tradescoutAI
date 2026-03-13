@@ -39,6 +39,7 @@ import { getCrawlerTelemetrySummary } from "../services/crawlerTelemetryService"
 import {
   getLiveStreamSnapshot,
   getLiveStreamSnapshotHistory,
+  refreshLiveStreamSnapshot,
 } from "../services/liveStreamSnapshotService";
 
 export const observabilityRouter = Router();
@@ -160,6 +161,103 @@ observabilityRouter.get("/live-stream/history", async (req, res) => {
   } catch (error) {
     console.error("Live stream history query failed:", error);
     sendInternalServerError(res, "Failed to fetch live stream history", { error: String(error) });
+  }
+});
+
+observabilityRouter.post("/live-stream/refresh", async (req, res) => {
+  try {
+    res.json(
+      await refreshLiveStreamSnapshot({
+        source: String((req.body as any)?.source || (req.query as any)?.source || ""),
+        stateCode: String((req.body as any)?.stateCode || (req.query as any)?.stateCode || ""),
+        county: String((req.body as any)?.county || (req.query as any)?.county || ""),
+        limit: Number.parseInt(
+          String((req.body as any)?.limit || (req.query as any)?.limit || "20"),
+          10
+        ),
+      })
+    );
+  } catch (error) {
+    console.error("Live stream refresh failed:", error);
+    sendInternalServerError(res, "Failed to refresh live stream", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
+  try {
+    const source = String((req.query as any)?.source || "");
+    const stateCode = String((req.query as any)?.stateCode || "");
+    const county = String((req.query as any)?.county || "");
+    const limit = Number.parseInt(String((req.query as any)?.limit || "20"), 10);
+
+    const snapshot = await getLiveStreamSnapshot({
+      source,
+      stateCode,
+      county,
+      limit,
+    });
+
+    const header = [
+      "generated_at",
+      "source_filter",
+      "state_filter",
+      "county_filter",
+      "entry_id",
+      "entry_timestamp",
+      "kind",
+      "priority",
+      "title",
+      "source",
+      "state_code",
+      "county_name",
+      "narrative",
+    ];
+
+    const escapeCsv = (value: unknown) => {
+      const normalized = String(value ?? "");
+      if (/[",\n]/.test(normalized)) {
+        return `"${normalized.replace(/"/g, '""')}"`;
+      }
+      return normalized;
+    };
+
+    const lines = [header.join(",")];
+    for (const item of snapshot.stream || []) {
+      lines.push(
+        [
+          snapshot.generatedAt,
+          snapshot.filters.source || "",
+          snapshot.filters.stateCode || "",
+          snapshot.filters.county || "",
+          item.id,
+          item.timestamp,
+          item.kind,
+          item.priority,
+          item.title,
+          item.source,
+          item.stateCode || "",
+          item.countyName || "",
+          item.narrative,
+        ]
+          .map(escapeCsv)
+          .join(",")
+      );
+    }
+
+    const suffix = [
+      "live-stream",
+      source || "all-sources",
+      stateCode || "all-states",
+      county || "all-counties",
+      new Date().toISOString().slice(0, 10),
+    ].join("-");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${suffix}.csv"`);
+    res.status(200).send(`\uFEFF${lines.join("\n")}`);
+  } catch (error) {
+    console.error("Live stream export failed:", error);
+    sendInternalServerError(res, "Failed to export live stream", { error: String(error) });
   }
 });
 

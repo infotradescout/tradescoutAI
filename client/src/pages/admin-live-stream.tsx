@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { useLocation } from "wouter";
 
 type LiveStreamItem = {
@@ -46,6 +47,13 @@ type LiveStreamHistoryResponse = {
   history: LiveStreamResponse[];
 };
 
+function getFilenameFromHeader(headerValue: string | null): string | null {
+  if (!headerValue) return null;
+  const match = /filename="?([^"]+)"?/i.exec(headerValue);
+  if (!match?.[1]) return null;
+  return match[1];
+}
+
 const priorityTone: Record<LiveStreamItem["priority"], string> = {
   critical: "bg-red-600/20 text-red-200 border-red-500/30",
   high: "bg-orange-600/20 text-orange-200 border-orange-500/30",
@@ -54,11 +62,17 @@ const priorityTone: Record<LiveStreamItem["priority"], string> = {
 };
 
 export default function AdminLiveStreamPage() {
+  const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
   const [source, setSource] = useState("all");
   const [stateCode, setStateCode] = useState("all");
   const [county, setCounty] = useState("all");
   const [limit, setLimit] = useState("20");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState("");
+  const [refreshError, setRefreshError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
   const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
     return new URLSearchParams(rawQuery).get("presentationMode") === "1";
@@ -111,6 +125,66 @@ export default function AdminLiveStreamPage() {
     navigate(`/admin/live-stream?${params.toString()}`);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setRefreshMessage("");
+    setRefreshError("");
+    try {
+      const response = await fetch(`/api/admin/observability/live-stream/refresh?${queryString}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to refresh live stream");
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/admin/observability/live-stream"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/admin/observability/live-stream/history"],
+      });
+      setRefreshMessage("Live stream refreshed.");
+    } catch (error) {
+      setRefreshError(error instanceof Error ? error.message : "Failed to refresh live stream");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError("");
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/admin/observability/live-stream/export.csv?${queryString}`),
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "text/csv" },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to export live stream");
+      }
+      const blob = await response.blob();
+      const headerFilename = getFilenameFromHeader(response.headers.get("content-disposition"));
+      const fallbackFilename = `live-stream-${new Date().toISOString().slice(0, 10)}.csv`;
+      const filename = headerFilename || fallbackFilename;
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Failed to export live stream");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
       <Card className="bg-tsCard/95 border-white/10">
@@ -125,6 +199,12 @@ export default function AdminLiveStreamPage() {
             </div>
             <Button onClick={handlePresentationModeToggle} variant="outline">
               {presentationMode ? "Exit Presentation Mode" : "Open Presentation Mode"}
+            </Button>
+            <Button onClick={handleExport} variant="outline" disabled={exporting}>
+              {exporting ? "Exporting..." : "Export CSV"}
+            </Button>
+            <Button onClick={handleRefresh} disabled={refreshing}>
+              {refreshing ? "Refreshing..." : "Refresh Live Stream"}
             </Button>
           </div>
         </CardHeader>
@@ -222,6 +302,24 @@ export default function AdminLiveStreamPage() {
           {error ? (
             <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
               Failed to load live stream.
+            </div>
+          ) : null}
+
+          {refreshError ? (
+            <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              {refreshError}
+            </div>
+          ) : null}
+
+          {refreshMessage ? (
+            <div className="rounded-md border border-emerald-600/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-200">
+              {refreshMessage}
+            </div>
+          ) : null}
+
+          {exportError ? (
+            <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              {exportError}
             </div>
           ) : null}
         </CardContent>

@@ -37,6 +37,13 @@ export type LiveStreamSnapshot = {
 };
 
 let ensurePromise: Promise<void> | null = null;
+let prunePromise: Promise<void> | null = null;
+let lastPruneAt = 0;
+
+const LIVE_STREAM_HISTORY_RETENTION_DAYS = Math.max(
+  7,
+  Number(process.env.LIVE_STREAM_HISTORY_RETENTION_DAYS || 30)
+);
 
 export async function ensureLiveStreamSnapshotTables(): Promise<void> {
   if (!ensurePromise) {
@@ -88,6 +95,30 @@ export async function ensureLiveStreamSnapshotTables(): Promise<void> {
     })();
   }
   await ensurePromise;
+}
+
+async function pruneLiveStreamSnapshotHistoryIfNeeded(): Promise<void> {
+  const now = Date.now();
+  if (now - lastPruneAt < 6 * 60 * 60 * 1000) return;
+  if (prunePromise) return prunePromise;
+
+  prunePromise = (async () => {
+    try {
+      await ensureLiveStreamSnapshotTables();
+      await pool.query(
+        `
+        delete from admin_live_stream_snapshot_history
+        where computed_at < now() - ($1::interval)
+        `,
+        [`${LIVE_STREAM_HISTORY_RETENTION_DAYS} days`]
+      );
+      lastPruneAt = Date.now();
+    } finally {
+      prunePromise = null;
+    }
+  })();
+
+  await prunePromise;
 }
 
 function normalizeFilters(params: {
@@ -323,6 +354,7 @@ export async function refreshLiveStreamSnapshot(params?: {
   limit?: number;
 }): Promise<LiveStreamSnapshot> {
   await ensureLiveStreamSnapshotTables();
+  void pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const snapshot = await buildLiveStreamSnapshot(filters);
 
@@ -402,6 +434,7 @@ export async function getLiveStreamSnapshot(params?: {
   maxSnapshotAgeMinutes?: number;
 }): Promise<LiveStreamSnapshot> {
   await ensureLiveStreamSnapshotTables();
+  void pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const maxSnapshotAgeMinutes = Math.max(1, Number(params?.maxSnapshotAgeMinutes || 5));
   const result = await pool.query(
@@ -456,6 +489,7 @@ export async function getLiveStreamSnapshotHistory(params?: {
   limit?: number;
 }): Promise<LiveStreamSnapshot[]> {
   await ensureLiveStreamSnapshotTables();
+  void pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const historyLimit = Math.max(1, Math.min(20, Number(params?.limit || 10)));
   const result = await pool.query(

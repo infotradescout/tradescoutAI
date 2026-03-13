@@ -17,6 +17,8 @@ describe("admin tools live stream wiring", () => {
   it("renders the unified admin live stream page from the server route", () => {
     const source = read("client/src/pages/admin-live-stream.tsx");
     expect(source).toContain("/api/admin/observability/live-stream");
+    expect(source).toContain("/api/admin/observability/live-stream/refresh");
+    expect(source).toContain("/api/admin/observability/live-stream/export.csv");
     expect(source).toContain("TradeScout Live Stream");
     expect(source).toContain("Server-produced entries only");
     expect(source).toContain("/api/admin/observability/live-stream/history");
@@ -26,6 +28,8 @@ describe("admin tools live stream wiring", () => {
     expect(source).toContain("all or mobile");
     expect(source).toContain("presentationMode");
     expect(source).toContain("Open Presentation Mode");
+    expect(source).toContain("Refresh Live Stream");
+    expect(source).toContain("Export CSV");
     expect(source).toContain("Active Alerts");
   });
 });
