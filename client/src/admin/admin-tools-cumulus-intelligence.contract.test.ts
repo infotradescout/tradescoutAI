@@ -51,4 +51,11 @@ describe("admin tools cumulus intelligence wiring", () => {
     expect(source).toContain("Exit Meeting Mode");
     expect(source).toContain("navigate(`/admin/cumulus-intelligence?${params.toString()}`)");
   });
+
+  it("opens a dedicated briefing page from the admin Cumulus intelligence page", () => {
+    const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
+    expect(source).toContain("/api/admin/cumulus-intelligence/briefing");
+    expect(source).toContain("Open Briefing Page");
+    expect(source).toContain("handleOpenBriefingPage");
+  });
 });

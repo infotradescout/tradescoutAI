@@ -21,6 +21,13 @@ describe("admin cumulus intelligence export wiring", () => {
     expect(source).toContain("Failed to load Cumulus intelligence brief history");
   });
 
+  it("registers an admin-only HTML briefing route", () => {
+    const source = read("server/routes/admin.ts");
+    expect(source).toContain('"/api/admin/cumulus-intelligence/briefing"');
+    expect(source).toContain('Content-Type", "text/html; charset=utf-8"');
+    expect(source).toContain("Failed to render Cumulus intelligence briefing page");
+  });
+
   it("registers an admin-only CSV export route backed by stored partner snapshots", () => {
     const source = read("server/routes/admin.ts");
     expect(source).toContain('"/api/admin/cumulus-intelligence/export.csv"');

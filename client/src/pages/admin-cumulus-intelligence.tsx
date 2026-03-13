@@ -100,6 +100,20 @@ function buildExportPath(
   return `/api/admin/cumulus-intelligence/export.csv?${params.toString()}`;
 }
 
+function buildBriefingPath(
+  window: MarketSignalWindow,
+  stateCode: string,
+  surface: string,
+  limit: string
+): string {
+  const params = new URLSearchParams();
+  params.set("window", window);
+  params.set("limit", limit || "100");
+  if (stateCode !== "all") params.set("stateCode", stateCode);
+  if (surface !== "all") params.set("surface", surface);
+  return `/api/admin/cumulus-intelligence/briefing?${params.toString()}`;
+}
+
 function getFilenameFromHeader(headerValue: string | null): string | null {
   if (!headerValue) return null;
   const match = /filename="?([^"]+)"?/i.exec(headerValue);
@@ -222,6 +236,13 @@ export default function AdminCumulusIntelligencePage() {
     window.print();
   };
 
+  const handleOpenBriefingPage = () => {
+    window.open(
+      buildApiUrl(buildBriefingPath(selectedWindow, stateCode, surface, limit)),
+      "_blank"
+    );
+  };
+
   const handleMeetingModeToggle = () => {
     const params = new URLSearchParams(queryString);
     if (meetingMode) {
@@ -242,9 +263,14 @@ export default function AdminCumulusIntelligencePage() {
             ? "Meeting mode is on. The page is focused on the presentable briefing surface."
             : "Operator mode shows the full admin intelligence surface."}
         </div>
-        <Button onClick={handleMeetingModeToggle} variant="outline">
-          {meetingMode ? "Exit Meeting Mode" : "Open Meeting Mode"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={handleOpenBriefingPage} variant="outline">
+            Open Briefing Page
+          </Button>
+          <Button onClick={handleMeetingModeToggle} variant="outline">
+            {meetingMode ? "Exit Meeting Mode" : "Open Meeting Mode"}
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-tsCard/95 border-white/10">

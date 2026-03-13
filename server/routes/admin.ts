@@ -2680,6 +2680,14 @@ export function mountAdminRoutes(app: any) {
     return text;
   };
 
+  const htmlEscape = (value: unknown): string =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
   const normalizePartnerObservationWindow = (value: unknown): "1h" | "24h" | "7d" | "30d" => {
     const normalized = String(value ?? "24h")
       .trim()
@@ -2710,6 +2718,118 @@ export function mountAdminRoutes(app: any) {
     if (!normalized || normalized === "all") return "";
     return normalized.slice(0, 80);
   };
+
+  app.get(
+    "/api/admin/cumulus-intelligence/briefing",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const window = normalizePartnerObservationWindow((req.query as any)?.window);
+        const stateCode = normalizeStateCode((req.query as any)?.stateCode);
+        const surface = normalizeSurface((req.query as any)?.surface);
+        const limit = parsePositiveInt((req.query as any)?.limit, 100, { min: 25, max: 500 });
+
+        const brief = await getPartnerIntelligenceBriefSnapshot({
+          partnerSlug: "cumulus-media",
+          window,
+          stateCode: stateCode || undefined,
+          surface: surface || undefined,
+          limit,
+        });
+
+        const topCountiesHtml = (brief.topCounties || [])
+          .map(
+            (county) => `
+              <li>
+                <strong>#${county.rank} ${htmlEscape(county.countyName)}, ${htmlEscape(county.stateCode)}</strong>
+                <span> | ${county.requestCount} requests | ${htmlEscape(county.dominantSurface.replace(/_/g, " "))} | ${htmlEscape(county.trend)} ${county.changePct}%</span>
+              </li>
+            `
+          )
+          .join("");
+
+        const topFindingsHtml = (brief.lisa.topFindings || [])
+          .map(
+            (item) => `
+              <li>
+                <strong>${htmlEscape(item.headline)}</strong>
+                <div>${htmlEscape(item.narrative)}</div>
+              </li>
+            `
+          )
+          .join("");
+
+        const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cumulus Intelligence Brief | TradeScout Admin</title>
+    <style>
+      body { font-family: Arial, sans-serif; background: #0b0f16; color: #f5f7fb; margin: 0; padding: 32px; }
+      main { max-width: 980px; margin: 0 auto; }
+      h1, h2 { margin: 0 0 12px; }
+      .meta { color: #a7b0c0; font-size: 14px; margin-bottom: 24px; }
+      .card { background: #111826; border: 1px solid #273044; border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      ul { margin: 12px 0 0; padding-left: 20px; }
+      li { margin-bottom: 10px; }
+      @media print {
+        body { background: #fff; color: #111; padding: 0; }
+        .card { border-color: #ddd; background: #fff; break-inside: avoid; }
+        .meta { color: #555; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>TradeScout x Cumulus Intelligence Brief</h1>
+      <div class="meta">
+        Generated ${htmlEscape(new Date(brief.generatedAt).toLocaleString())} |
+        Window ${htmlEscape(brief.filters.window)} |
+        ${htmlEscape(brief.filters.stateCode || "All states")} |
+        ${htmlEscape(brief.filters.surface || "All surfaces")}
+      </div>
+
+      <section class="card">
+        <h2>Executive Summary</h2>
+        <p>${htmlEscape(brief.executiveSummary)}</p>
+        <p>${htmlEscape(brief.activationSummary)}</p>
+      </section>
+
+      <section class="card">
+        <h2>LISA Summary</h2>
+        <div class="grid">
+          <div><strong>Truth Now</strong><div>${htmlEscape(brief.lisa.truthNow)}</div></div>
+          <div><strong>Data Production</strong><div>${htmlEscape(brief.lisa.dataProductionSummary)}</div></div>
+          <div><strong>LLM Optimization</strong><div>${htmlEscape(brief.lisa.llmOptimizationSummary)}</div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Top Counties</h2>
+        <ul>${topCountiesHtml || "<li>No counties available for the current filter set.</li>"}</ul>
+      </section>
+
+      <section class="card">
+        <h2>Top Findings</h2>
+        <ul>${topFindingsHtml || "<li>No LISA findings available.</li>"}</ul>
+      </section>
+    </main>
+  </body>
+</html>`;
+
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.status(200).send(html);
+      } catch (error: any) {
+        console.error("Error rendering Cumulus intelligence briefing page:", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to render Cumulus intelligence briefing page" });
+      }
+    }
+  );
 
   app.get(
     "/api/admin/cumulus-intelligence/brief-history",
