@@ -31,14 +31,20 @@ async function querySnapshotStatus(args: {
   label: string;
   staleAfterMinutes: number;
 }): Promise<SnapshotStatusRow> {
-  const result = await pool.query(
-    `
-      select
-        max(${args.timestampColumn}) as latest_computed_at,
-        count(*)::int as row_count
-      from ${args.table}
-    `
-  );
+  let result;
+  try {
+    result = await pool.query(
+      `
+        select
+          max(${args.timestampColumn}) as latest_computed_at,
+          count(*)::int as row_count
+        from ${args.table}
+      `
+    );
+  } catch (error) {
+    console.warn(`[snapshot-status] degraded ${args.table}:`, error);
+    result = { rows: [{ latest_computed_at: null, row_count: 0 }] };
+  }
 
   const latestComputedAtRaw = result.rows?.[0]?.latest_computed_at;
   const rowCount = Number(result.rows?.[0]?.row_count || 0);
@@ -62,12 +68,16 @@ async function querySnapshotStatus(args: {
 }
 
 export async function getSnapshotStatusSummary(): Promise<SnapshotStatusSummary> {
-  await Promise.all([
-    ensureTradepartnerCountyObservationSnapshotsTable(),
-    ensurePartnerIntelligenceBriefSnapshotsTable(),
-    ensureLiveStreamSnapshotTables(),
-    ensureSeoDirectoryScopeSnapshotTables(),
-  ]);
+  try {
+    await Promise.all([
+      ensureTradepartnerCountyObservationSnapshotsTable(),
+      ensurePartnerIntelligenceBriefSnapshotsTable(),
+      ensureLiveStreamSnapshotTables(),
+      ensureSeoDirectoryScopeSnapshotTables(),
+    ]);
+  } catch (error) {
+    console.warn("[snapshot-status] ensure degraded:", error);
+  }
 
   const statuses = await Promise.all([
     querySnapshotStatus({

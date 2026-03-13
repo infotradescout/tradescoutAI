@@ -619,133 +619,147 @@ export interface CrawlerTelemetrySummary {
 }
 
 export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySummary> {
-  await ensureCrawlerRequestEventsTable();
-  await backfillCountyFipsIfNeeded();
+  try {
+    await ensureCrawlerRequestEventsTable();
+    await backfillCountyFipsIfNeeded();
 
-  const [
-    totalsResult,
-    topBotsResult,
-    topRoutesResult,
-    topSurfacesResult,
-    topCountiesResult,
-    requestTypesResult,
-    hourlyBucketsResult,
-  ] = await Promise.all([
-    pool.query(`
-      select
-        count(*)::int as total_count,
-        count(*) filter (where status_class = '2xx')::int as ok_count,
-        count(*) filter (where status_class = '4xx')::int as client_error_count,
-        count(*) filter (where status_class = '5xx')::int as server_error_count
-      from crawler_request_events
-      where observed_at >= now() - interval '24 hours'
-    `),
-    pool.query(`
-      select
-        bot_name,
-        count(*)::int as request_count
-      from crawler_request_events
-      where observed_at >= now() - interval '24 hours'
-      group by bot_name
-      order by request_count desc, bot_name asc
-      limit 8
-    `),
-    pool.query(`
-      select
-        path,
-        count(*)::int as request_count
-      from crawler_request_events
-      where observed_at >= now() - interval '24 hours'
-      group by path
-      order by request_count desc, path asc
-      limit 8
-    `),
-    pool.query(`
-      select
-        coalesce(source_surface, 'unknown') as source_surface,
-        count(*)::int as request_count
-      from crawler_request_events
-      where observed_at >= now() - interval '24 hours'
-      group by coalesce(source_surface, 'unknown')
-      order by request_count desc, source_surface asc
-      limit 8
-    `),
-    pool.query(`
-      select
-        coalesce(c.name, e.county_slug, 'unknown') as county_name,
-        coalesce(e.state_code, c.state_code) as state_code,
-        e.county_fips,
-        coalesce(e.source_surface, 'unknown') as source_surface,
-        count(*)::int as request_count
-      from crawler_request_events e
-      left join counties c on c.fips = e.county_fips
-      where e.observed_at >= now() - interval '24 hours'
-        and (e.county_fips is not null or e.county_slug is not null)
-      group by county_name, state_code, e.county_fips, source_surface
-      order by request_count desc, county_name asc
-      limit 8
-    `),
-    pool.query(`
-      select
-        request_type,
-        count(*)::int as request_count
-      from crawler_request_events
-      where observed_at >= now() - interval '24 hours'
-      group by request_type
-      order by request_count desc, request_type asc
-    `),
-    pool.query(`
-      select
-        bucket_start,
-        coalesce(sum(request_count), 0)::int as total_count,
-        coalesce(sum(case when status_class = '2xx' then request_count else 0 end), 0)::int as ok_count,
-        coalesce(sum(case when status_class = '4xx' then request_count else 0 end), 0)::int as client_error_count,
-        coalesce(sum(case when status_class = '5xx' then request_count else 0 end), 0)::int as server_error_count
-      from crawler_request_hourly_rollups
-      where bucket_start >= date_trunc('hour', now() - interval '23 hours')
-      group by bucket_start
-      order by bucket_start asc
-    `),
-  ]);
+    const [
+      totalsResult,
+      topBotsResult,
+      topRoutesResult,
+      topSurfacesResult,
+      topCountiesResult,
+      requestTypesResult,
+      hourlyBucketsResult,
+    ] = await Promise.all([
+      pool.query(`
+        select
+          count(*)::int as total_count,
+          count(*) filter (where status_class = '2xx')::int as ok_count,
+          count(*) filter (where status_class = '4xx')::int as client_error_count,
+          count(*) filter (where status_class = '5xx')::int as server_error_count
+        from crawler_request_events
+        where observed_at >= now() - interval '24 hours'
+      `),
+      pool.query(`
+        select
+          bot_name,
+          count(*)::int as request_count
+        from crawler_request_events
+        where observed_at >= now() - interval '24 hours'
+        group by bot_name
+        order by request_count desc, bot_name asc
+        limit 8
+      `),
+      pool.query(`
+        select
+          path,
+          count(*)::int as request_count
+        from crawler_request_events
+        where observed_at >= now() - interval '24 hours'
+        group by path
+        order by request_count desc, path asc
+        limit 8
+      `),
+      pool.query(`
+        select
+          coalesce(source_surface, 'unknown') as source_surface,
+          count(*)::int as request_count
+        from crawler_request_events
+        where observed_at >= now() - interval '24 hours'
+        group by coalesce(source_surface, 'unknown')
+        order by request_count desc, source_surface asc
+        limit 8
+      `),
+      pool.query(`
+        select
+          coalesce(c.name, e.county_slug, 'unknown') as county_name,
+          coalesce(e.state_code, c.state_code) as state_code,
+          e.county_fips,
+          coalesce(e.source_surface, 'unknown') as source_surface,
+          count(*)::int as request_count
+        from crawler_request_events e
+        left join counties c on c.fips = e.county_fips
+        where e.observed_at >= now() - interval '24 hours'
+          and (e.county_fips is not null or e.county_slug is not null)
+        group by county_name, state_code, e.county_fips, source_surface
+        order by request_count desc, county_name asc
+        limit 8
+      `),
+      pool.query(`
+        select
+          request_type,
+          count(*)::int as request_count
+        from crawler_request_events
+        where observed_at >= now() - interval '24 hours'
+        group by request_type
+        order by request_count desc, request_type asc
+      `),
+      pool.query(`
+        select
+          bucket_start,
+          coalesce(sum(request_count), 0)::int as total_count,
+          coalesce(sum(case when status_class = '2xx' then request_count else 0 end), 0)::int as ok_count,
+          coalesce(sum(case when status_class = '4xx' then request_count else 0 end), 0)::int as client_error_count,
+          coalesce(sum(case when status_class = '5xx' then request_count else 0 end), 0)::int as server_error_count
+        from crawler_request_hourly_rollups
+        where bucket_start >= date_trunc('hour', now() - interval '23 hours')
+        group by bucket_start
+        order by bucket_start asc
+      `),
+    ]);
 
-  const totals = totalsResult.rows?.[0] || {};
-  return {
-    generatedAt: new Date().toISOString(),
-    totals24h: {
-      total: Number(totals.total_count || 0),
-      ok: Number(totals.ok_count || 0),
-      clientError: Number(totals.client_error_count || 0),
-      serverError: Number(totals.server_error_count || 0),
-    },
-    topBots: (topBotsResult.rows || []).map((row) => ({
-      botName: String(row.bot_name || "UnknownBot"),
-      requestCount: Number(row.request_count || 0),
-    })),
-    topRoutes: (topRoutesResult.rows || []).map((row) => ({
-      path: String(row.path || "/"),
-      requestCount: Number(row.request_count || 0),
-    })),
-    topSurfaces: (topSurfacesResult.rows || []).map((row) => ({
-      sourceSurface: String(row.source_surface || "unknown"),
-      requestCount: Number(row.request_count || 0),
-    })),
-    topCounties: (topCountiesResult.rows || []).map((row) => ({
-      countyName: String(row.county_name || "Unknown county"),
-      stateCode: row.state_code ? String(row.state_code) : null,
-      countyFips: row.county_fips ? String(row.county_fips) : null,
-      sourceSurface: String(row.source_surface || "unknown"),
-      requestCount: Number(row.request_count || 0),
-    })),
-    requestTypes: (requestTypesResult.rows || []).map((row) => ({
-      requestType: String(row.request_type || "unknown"),
-      requestCount: Number(row.request_count || 0),
-    })),
-    hourlyBuckets: (hourlyBucketsResult.rows || []).map((row) => ({
-      bucketStart: new Date(String(row.bucket_start)).toISOString(),
-      total: Number(row.total_count || 0),
-      ok: Number(row.ok_count || 0),
-      clientError: Number(row.client_error_count || 0),
-      serverError: Number(row.server_error_count || 0),
-    })),
-  };
+    const totals = totalsResult.rows?.[0] || {};
+    return {
+      generatedAt: new Date().toISOString(),
+      totals24h: {
+        total: Number(totals.total_count || 0),
+        ok: Number(totals.ok_count || 0),
+        clientError: Number(totals.client_error_count || 0),
+        serverError: Number(totals.server_error_count || 0),
+      },
+      topBots: (topBotsResult.rows || []).map((row) => ({
+        botName: String(row.bot_name || "UnknownBot"),
+        requestCount: Number(row.request_count || 0),
+      })),
+      topRoutes: (topRoutesResult.rows || []).map((row) => ({
+        path: String(row.path || "/"),
+        requestCount: Number(row.request_count || 0),
+      })),
+      topSurfaces: (topSurfacesResult.rows || []).map((row) => ({
+        sourceSurface: String(row.source_surface || "unknown"),
+        requestCount: Number(row.request_count || 0),
+      })),
+      topCounties: (topCountiesResult.rows || []).map((row) => ({
+        countyName: String(row.county_name || "Unknown county"),
+        stateCode: row.state_code ? String(row.state_code) : null,
+        countyFips: row.county_fips ? String(row.county_fips) : null,
+        sourceSurface: String(row.source_surface || "unknown"),
+        requestCount: Number(row.request_count || 0),
+      })),
+      requestTypes: (requestTypesResult.rows || []).map((row) => ({
+        requestType: String(row.request_type || "unknown"),
+        requestCount: Number(row.request_count || 0),
+      })),
+      hourlyBuckets: (hourlyBucketsResult.rows || []).map((row) => ({
+        bucketStart: new Date(String(row.bucket_start)).toISOString(),
+        total: Number(row.total_count || 0),
+        ok: Number(row.ok_count || 0),
+        clientError: Number(row.client_error_count || 0),
+        serverError: Number(row.server_error_count || 0),
+      })),
+    };
+  } catch (error) {
+    console.warn("[crawler-telemetry] degraded summary:", error);
+    return {
+      generatedAt: new Date().toISOString(),
+      totals24h: { total: 0, ok: 0, clientError: 0, serverError: 0 },
+      topBots: [],
+      topRoutes: [],
+      topSurfaces: [],
+      topCounties: [],
+      requestTypes: [],
+      hourlyBuckets: [],
+    };
+  }
 }

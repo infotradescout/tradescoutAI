@@ -6,6 +6,85 @@ import type { LisaFeedItem, LisaFeedResponse, LisaRuntimeMode } from "../../shar
 import { reconcileLisaFindings } from "./lisaFindingsService";
 import { ensureCrawlerRequestEventsTable } from "./crawlerTelemetryService";
 
+type QueryResultRow = Record<string, unknown>;
+type ScoutDemandRow = {
+  interaction_count: number;
+  avg_confidence: number;
+  successful_count: number;
+  last_seen_at: string | Date | null;
+};
+type ScoutTopCountyRow = {
+  county_fips: string | null;
+  county_name: string | null;
+  intent: string | null;
+  volume: number;
+};
+type ObjectiveStatsRow = {
+  active_count: number;
+  created_24h: number;
+  distinct_intents: number;
+  last_seen_at: string | Date | null;
+};
+type ObservationStatsRow = {
+  observation_count: number;
+  county_count: number;
+  top_source_type: string;
+  last_seen_at: string | Date | null;
+};
+type BotUiStatsRow = {
+  finding_count: number;
+  top_route: string;
+  top_failure_type: string;
+  max_severity: number;
+  last_seen_at: string | Date | null;
+};
+type CrawlerTelemetryRow = {
+  total_count: number;
+  ok_count: number;
+  client_error_count: number;
+  server_error_count: number;
+  top_bot_name: string;
+  last_seen_at: string | Date | null;
+};
+type CrawlerCountySignalRow = {
+  county_fips: string | null;
+  county_name: string | null;
+  state_code: string | null;
+  source_surface: string | null;
+  request_count: number;
+  last_seen_at: string | Date | null;
+};
+type HomeScoutStatsRow = {
+  created_count: number;
+  price_changed_count: number;
+  county_count: number;
+  last_seen_at: string | Date | null;
+};
+
+function isRecoverableSignalQueryError(error: unknown): boolean {
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code)
+      : "";
+  return code === "42P01" || code === "42703";
+}
+
+async function safeSignalQuery<T extends QueryResultRow>(args: {
+  label: string;
+  sql: string;
+  fallbackRows: T[];
+}): Promise<{ rows: T[] }> {
+  try {
+    return (await pool.query(args.sql)) as { rows: T[] };
+  } catch (error) {
+    if (!isRecoverableSignalQueryError(error)) {
+      throw error;
+    }
+    console.warn(`[lisa] degraded ${args.label}:`, error);
+    return { rows: args.fallbackRows };
+  }
+}
+
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -84,8 +163,12 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     crawlerCountySignalResult,
     homeScoutResult,
   ] = await Promise.all([
-    pool.query(
-      `
+    safeSignalQuery<ScoutDemandRow>({
+      label: "scout-demand",
+      fallbackRows: [
+        { interaction_count: 0, avg_confidence: 0, successful_count: 0, last_seen_at: null },
+      ],
+      sql: `
         select
           count(*)::int as interaction_count,
           round(avg(scout_confidence))::int as avg_confidence,
@@ -93,10 +176,12 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
           max(created_at) as last_seen_at
         from scout_interactions
         where created_at >= now() - interval '24 hours'
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<ScoutTopCountyRow>({
+      label: "scout-top-county",
+      fallbackRows: [],
+      sql: `
         select
           si.county_fips,
           coalesce(c.name, si.county_fips) as county_name,
@@ -108,20 +193,26 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
         group by si.county_fips, c.name, si.intent
         order by volume desc, county_name asc
         limit 1
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<ObjectiveStatsRow>({
+      label: "objectives",
+      fallbackRows: [{ active_count: 0, created_24h: 0, distinct_intents: 0, last_seen_at: null }],
+      sql: `
         select
           count(*) filter (where status = 'active')::int as active_count,
           count(*) filter (where created_at >= now() - interval '24 hours')::int as created_24h,
           count(distinct intent_class)::int as distinct_intents,
           max(created_at) as last_seen_at
         from objectives
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<ObservationStatsRow>({
+      label: "observations",
+      fallbackRows: [
+        { observation_count: 0, county_count: 0, top_source_type: "none", last_seen_at: null },
+      ],
+      sql: `
         select
           count(*)::int as observation_count,
           count(distinct county_fips)::int as county_count,
@@ -136,10 +227,20 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
           max(created_at) as last_seen_at
         from observations
         where created_at >= now() - interval '24 hours'
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<BotUiStatsRow>({
+      label: "bot-ui-findings",
+      fallbackRows: [
+        {
+          finding_count: 0,
+          top_route: "",
+          top_failure_type: "",
+          max_severity: 0,
+          last_seen_at: null,
+        },
+      ],
+      sql: `
         select
           count(*)::int as finding_count,
           coalesce((
@@ -162,10 +263,21 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
           max(created_at) as last_seen_at
         from bot_ui_findings
         where created_at >= now() - interval '24 hours'
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<CrawlerTelemetryRow>({
+      label: "crawler-telemetry",
+      fallbackRows: [
+        {
+          total_count: 0,
+          ok_count: 0,
+          client_error_count: 0,
+          server_error_count: 0,
+          top_bot_name: "",
+          last_seen_at: null,
+        },
+      ],
+      sql: `
         select
           count(*)::int as total_count,
           count(*) filter (where status_class = '2xx')::int as ok_count,
@@ -182,10 +294,12 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
           max(observed_at) as last_seen_at
         from crawler_request_events
         where observed_at >= now() - interval '24 hours'
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<CrawlerCountySignalRow>({
+      label: "crawler-county-signal",
+      fallbackRows: [],
+      sql: `
         select
           r.county_fips,
           coalesce(c.name, r.county_slug, 'unknown') as county_name,
@@ -200,10 +314,14 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
         group by r.county_fips, c.name, c.state_code, r.state_code, r.source_surface, r.county_slug
         order by request_count desc, county_name asc
         limit 3
-      `
-    ),
-    pool.query(
-      `
+      `,
+    }),
+    safeSignalQuery<HomeScoutStatsRow>({
+      label: "homescout-motion",
+      fallbackRows: [
+        { created_count: 0, price_changed_count: 0, county_count: 0, last_seen_at: null },
+      ],
+      sql: `
         select
           count(*) filter (where e.event_type = 'created')::int as created_count,
           count(*) filter (where e.event_type = 'price_changed')::int as price_changed_count,
@@ -212,12 +330,12 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
         from home_scout_listing_events e
         inner join home_scout_listings l on l.id = e.listing_id
         where e.observed_at >= now() - interval '24 hours'
-      `
-    ),
+      `,
+    }),
   ]);
 
   const demand = scoutDemandResult.rows?.[0] || {};
-  const topCounty = scoutTopCountyResult.rows?.[0] || {};
+  const topCounty: Partial<ScoutTopCountyRow> = scoutTopCountyResult.rows?.[0] || {};
   const objectiveStats = objectivesResult.rows?.[0] || {};
   const observationStats = observationsResult.rows?.[0] || {};
   const botUiStats = botUiResult.rows?.[0] || {};
@@ -245,7 +363,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   const botTotal =
     persistedBotTotal > 0 ? persistedBotTotal : inProcessBot2xx + inProcessBot4xx + inProcessBot5xx;
   const botHealthyPct = botTotal > 0 ? clampPercent((bot2xx / botTotal) * 100) : 0;
-  const topCrawlerCounty = crawlerCountySignals[0] || null;
+  const topCrawlerCounty: CrawlerCountySignalRow | null = crawlerCountySignals[0] || null;
   const homeScoutCreated = Number(homeScoutStats.created_count || 0);
   const homeScoutPriceChanged = Number(homeScoutStats.price_changed_count || 0);
   const homeScoutCountyCount = Number(homeScoutStats.county_count || 0);
