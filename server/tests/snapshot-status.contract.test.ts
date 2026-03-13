@@ -22,5 +22,10 @@ describe("snapshot status contracts", () => {
     expect(source).toContain("snapshotStatus.schedulerEnabled");
     expect(source).toContain("snapshotStatus.statuses.map");
     expect(source).toContain("Stale after");
+    expect(source).toContain("Refresh Snapshot");
+    expect(source).toContain("/api/admin/cumulus-intelligence/refresh");
+    expect(source).toContain("/api/admin/seo-directory-scope/refresh");
+    expect(source).toContain("/api/admin/observability/live-stream/refresh");
+    expect(source).toContain("Background scheduler is disabled");
   });
 });

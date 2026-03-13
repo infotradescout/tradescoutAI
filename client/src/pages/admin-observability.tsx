@@ -218,6 +218,9 @@ export default function ObservabilityDashboard() {
   const [snapshotStatus, setSnapshotStatus] = useState<SnapshotStatusSummary | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [refreshingSnapshotKey, setRefreshingSnapshotKey] = useState<string>("");
+  const [snapshotRefreshMessage, setSnapshotRefreshMessage] = useState<string>("");
+  const [snapshotRefreshError, setSnapshotRefreshError] = useState<string>("");
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -375,6 +378,40 @@ export default function ObservabilityDashboard() {
     }
   };
 
+  const refreshSnapshot = async (key: string) => {
+    const endpointMap: Record<string, string> = {
+      partner_county_observation: "/api/admin/cumulus-intelligence/refresh",
+      partner_intelligence_brief: "/api/admin/cumulus-intelligence/refresh",
+      live_stream: "/api/admin/observability/live-stream/refresh",
+      seo_trade_county_pages: "/api/admin/seo-directory-scope/refresh",
+      seo_trade_city_pages: "/api/admin/seo-directory-scope/refresh",
+    };
+
+    const endpoint = endpointMap[key];
+    if (!endpoint) return;
+
+    setRefreshingSnapshotKey(key);
+    setSnapshotRefreshMessage("");
+    setSnapshotRefreshError("");
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to refresh snapshot");
+      const snapshotResponse = await fetch("/api/admin/observability/snapshot-status");
+      if (snapshotResponse.ok) {
+        setSnapshotStatus(await snapshotResponse.json());
+      }
+      setSnapshotRefreshMessage("Snapshot refresh triggered.");
+    } catch (err) {
+      setSnapshotRefreshError(formatUserFacingErrorMessage(err, "Failed to refresh snapshot."));
+    } finally {
+      setRefreshingSnapshotKey("");
+    }
+  };
+
   const getTruthStatusClass = (truthStatus?: LisaFeedItem["truthStatus"]) => {
     switch (truthStatus) {
       case "current":
@@ -431,6 +468,16 @@ export default function ObservabilityDashboard() {
         </div>
         <div className="text-sm text-muted-foreground">Last updated: {lastUpdated}</div>
       </div>
+
+      {!snapshotStatus.schedulerEnabled && (
+        <Alert className="border-yellow-500/30 bg-yellow-500/10">
+          <AlertTriangle className="h-4 w-4 text-yellow-300" />
+          <AlertDescription className="text-yellow-100">
+            Background scheduler is disabled. Snapshots will go stale unless you trigger refresh
+            actions manually.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="p-6 border-orange-500/20 bg-gradient-to-br from-orange-500/10 via-black/30 to-black/50">
         <div className="flex items-center gap-2 mb-4">
@@ -528,6 +575,16 @@ export default function ObservabilityDashboard() {
             {snapshotStatus.schedulerEnabled ? "enabled" : "disabled"}
           </span>
         </div>
+        {snapshotRefreshError ? (
+          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {snapshotRefreshError}
+          </div>
+        ) : null}
+        {snapshotRefreshMessage ? (
+          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+            {snapshotRefreshMessage}
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {snapshotStatus.statuses.map((item) => (
             <div key={item.key} className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -553,6 +610,16 @@ export default function ObservabilityDashboard() {
               </div>
               <div className="mt-1 text-xs text-white/55">
                 Stale after {item.staleAfterMinutes} minutes
+              </div>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => refreshSnapshot(item.key)}
+                  disabled={refreshingSnapshotKey === item.key}
+                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/85 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {refreshingSnapshotKey === item.key ? "Refreshing..." : "Refresh Snapshot"}
+                </button>
               </div>
             </div>
           ))}
