@@ -221,7 +221,8 @@ export default function AdminCumulusIntelligencePage() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
             <div className="text-sm text-white/60">
-              Print this current brief directly for the meeting or save it as PDF from the browser print dialog.
+              Print this current brief directly for the meeting or save it as PDF from the browser
+              print dialog.
             </div>
             <Button onClick={handlePrint} variant="outline">
               Print Brief
@@ -292,7 +293,9 @@ export default function AdminCumulusIntelligencePage() {
         <CardContent>
           <div className="space-y-3">
             {(briefHistory?.history || []).length === 0 ? (
-              <div className="text-sm text-white/65">No brief history yet for the selected filter set.</div>
+              <div className="text-sm text-white/65">
+                No brief history yet for the selected filter set.
+              </div>
             ) : (
               briefHistory?.history.map((item) => (
                 <div

@@ -2739,7 +2739,9 @@ export function mountAdminRoutes(app: any) {
         });
       } catch (error: any) {
         console.error("Error loading Cumulus intelligence brief history:", error);
-        return res.status(500).json({ message: "Failed to load Cumulus intelligence brief history" });
+        return res
+          .status(500)
+          .json({ message: "Failed to load Cumulus intelligence brief history" });
       }
     }
   );
