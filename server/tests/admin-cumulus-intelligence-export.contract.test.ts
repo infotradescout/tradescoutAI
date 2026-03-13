@@ -14,6 +14,15 @@ describe("admin cumulus intelligence export wiring", () => {
     expect(source).toContain("Failed to build Cumulus intelligence brief");
   });
 
+  it("registers admin-only manual refresh routes for Cumulus intelligence and SEO scope", () => {
+    const source = read("server/routes/admin.ts");
+    expect(source).toContain('"/api/admin/cumulus-intelligence/refresh"');
+    expect(source).toContain("runPartnerCountyObservationSnapshotJob");
+    expect(source).toContain("runPartnerIntelligenceBriefSnapshotJob");
+    expect(source).toContain('"/api/admin/seo-directory-scope/refresh"');
+    expect(source).toContain("runSeoDirectoryScopeSnapshotJob");
+  });
+
   it("registers an admin-only brief history route", () => {
     const source = read("server/routes/admin.ts");
     expect(source).toContain('"/api/admin/cumulus-intelligence/brief-history"');

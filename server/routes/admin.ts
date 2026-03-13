@@ -4,11 +4,16 @@ import { storage } from "../storage";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 import { runHomeScoutIngestionJob } from "../services/homeScoutIngestionJob";
 import { db, pool } from "../db";
-import { getPartnerCountyObservationSnapshots } from "../services/partnerCountyObservationSnapshotService";
+import {
+  getPartnerCountyObservationSnapshots,
+  runPartnerCountyObservationSnapshotJob,
+} from "../services/partnerCountyObservationSnapshotService";
 import {
   getPartnerIntelligenceBriefHistory,
   getPartnerIntelligenceBriefSnapshot,
+  runPartnerIntelligenceBriefSnapshotJob,
 } from "../services/partnerIntelligenceBriefSnapshotService";
+import { runSeoDirectoryScopeSnapshotJob } from "../services/seoDirectoryScopeSnapshotJob";
 import {
   affiliateAccounts,
   counties as countiesTable,
@@ -2718,6 +2723,68 @@ export function mountAdminRoutes(app: any) {
     if (!normalized || normalized === "all") return "";
     return normalized.slice(0, 80);
   };
+
+  app.post(
+    "/api/admin/cumulus-intelligence/refresh",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const startedAt = Date.now();
+        const result = await withAdvisoryLock("job:cumulus_intelligence_refresh", async () => {
+          const countySnapshots = await runPartnerCountyObservationSnapshotJob();
+          const briefSnapshots = await runPartnerIntelligenceBriefSnapshotJob();
+          return {
+            countySnapshots,
+            briefSnapshots,
+            durationMs: Date.now() - startedAt,
+          };
+        });
+
+        if (result === null) {
+          return res.status(409).json({ message: "Cumulus intelligence refresh already running" });
+        }
+
+        return res.json({
+          ok: true,
+          ...result,
+        });
+      } catch (error: any) {
+        console.error("Error refreshing Cumulus intelligence:", error);
+        return res.status(500).json({ message: "Failed to refresh Cumulus intelligence" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/seo-directory-scope/refresh",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const startedAt = Date.now();
+        const result = await withAdvisoryLock("job:seo_directory_scope_snapshot", async () => {
+          const snapshot = await runSeoDirectoryScopeSnapshotJob();
+          return {
+            snapshot,
+            durationMs: Date.now() - startedAt,
+          };
+        });
+
+        if (result === null) {
+          return res.status(409).json({ message: "SEO directory scope refresh already running" });
+        }
+
+        return res.json({
+          ok: true,
+          ...result,
+        });
+      } catch (error: any) {
+        console.error("Error refreshing SEO directory scope snapshot:", error);
+        return res.status(500).json({ message: "Failed to refresh SEO directory scope snapshot" });
+      }
+    }
+  );
 
   app.get(
     "/api/admin/cumulus-intelligence/briefing",

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,6 +138,7 @@ function getFilenameFromHeader(headerValue: string | null): string | null {
 }
 
 export default function AdminCumulusIntelligencePage() {
+  const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
   const [selectedWindow, setSelectedWindow] = useState<MarketSignalWindow>("24h");
   const [stateCode, setStateCode] = useState("all");
@@ -145,6 +146,10 @@ export default function AdminCumulusIntelligencePage() {
   const [limit, setLimit] = useState("100");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [refreshingCumulus, setRefreshingCumulus] = useState(false);
+  const [refreshingSeo, setRefreshingSeo] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -245,6 +250,47 @@ export default function AdminCumulusIntelligencePage() {
       params.set("presentationMode", "1");
     }
     navigate(`/admin/cumulus-intelligence?${params.toString()}`);
+  };
+
+  const refreshQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["/api/market-signals/v1/partners/county-observation", PARTNER_SLUG],
+      }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cumulus-intelligence/brief"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/cumulus-intelligence/brief-history"],
+      }),
+    ]);
+  };
+
+  const handleRefreshCumulus = async () => {
+    setRefreshError(null);
+    setRefreshMessage(null);
+    setRefreshingCumulus(true);
+    try {
+      const result = await apiRequest("POST", "/api/admin/cumulus-intelligence/refresh");
+      await refreshQueries();
+      setRefreshMessage(`Cumulus intelligence refreshed in ${Number(result?.durationMs || 0)}ms.`);
+    } catch (err: any) {
+      setRefreshError(err?.message || "Failed to refresh Cumulus intelligence");
+    } finally {
+      setRefreshingCumulus(false);
+    }
+  };
+
+  const handleRefreshSeo = async () => {
+    setRefreshError(null);
+    setRefreshMessage(null);
+    setRefreshingSeo(true);
+    try {
+      const result = await apiRequest("POST", "/api/admin/seo-directory-scope/refresh");
+      setRefreshMessage(`SEO directory scope refreshed in ${Number(result?.durationMs || 0)}ms.`);
+    } catch (err: any) {
+      setRefreshError(err?.message || "Failed to refresh SEO directory scope");
+    } finally {
+      setRefreshingSeo(false);
+    }
   };
 
   return (
@@ -483,14 +529,32 @@ export default function AdminCumulusIntelligencePage() {
             <div className="text-sm text-white/60">
               Download the current admin-only county intelligence snapshot for partner briefing use.
             </div>
-            <Button onClick={handleExport} disabled={exporting || isLoading} variant="outline">
-              {exporting ? "Exporting..." : "Export CSV"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleRefreshCumulus} disabled={refreshingCumulus} variant="outline">
+                {refreshingCumulus ? "Refreshing Intelligence..." : "Refresh Intelligence"}
+              </Button>
+              <Button onClick={handleRefreshSeo} disabled={refreshingSeo} variant="outline">
+                {refreshingSeo ? "Refreshing SEO..." : "Refresh SEO Scope"}
+              </Button>
+              <Button onClick={handleExport} disabled={exporting || isLoading} variant="outline">
+                {exporting ? "Exporting..." : "Export CSV"}
+              </Button>
+            </div>
           </div>
 
           {exportError ? (
             <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
               {exportError}
+            </div>
+          ) : null}
+          {refreshError ? (
+            <div className="rounded-md border border-red-600/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+              {refreshError}
+            </div>
+          ) : null}
+          {refreshMessage ? (
+            <div className="rounded-md border border-emerald-600/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-200">
+              {refreshMessage}
             </div>
           ) : null}
         </CardContent>

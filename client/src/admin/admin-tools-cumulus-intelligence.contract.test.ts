@@ -21,6 +21,14 @@ describe("admin tools cumulus intelligence wiring", () => {
     expect(source).toContain("handleExport");
   });
 
+  it("supports manual intelligence and SEO refresh from the admin Cumulus page", () => {
+    const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
+    expect(source).toContain("/api/admin/cumulus-intelligence/refresh");
+    expect(source).toContain("/api/admin/seo-directory-scope/refresh");
+    expect(source).toContain("Refresh Intelligence");
+    expect(source).toContain("Refresh SEO Scope");
+  });
+
   it("renders the server-generated executive brief on the admin Cumulus intelligence page", () => {
     const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
     expect(source).toContain("/api/admin/cumulus-intelligence/brief");
