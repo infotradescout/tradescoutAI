@@ -1141,6 +1141,31 @@ export const tradepartnerCountyObservationSnapshots = pgTable(
   ]
 );
 
+export const tradepartnerUserEntitlements = pgTable(
+  "tradepartner_user_entitlements",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    partnerSlug: text("partner_slug").notNull(),
+    userId: varchar("user_id").notNull(),
+    accessScope: text("access_scope").notNull().default("market_signals"),
+    accessLevel: text("access_level").notNull().default("member"),
+    status: text("status").notNull().default("active"),
+    createdByUserId: varchar("created_by_user_id"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_tradepartner_user_entitlements_unique").on(
+      table.partnerSlug,
+      table.userId,
+      table.accessScope
+    ),
+    index("idx_tradepartner_user_entitlements_partner").on(table.partnerSlug, table.status),
+    index("idx_tradepartner_user_entitlements_user").on(table.userId, table.status),
+  ]
+);
+
 // Trusted devices table for master admin persistent sessions
 export const trustedDevices = pgTable(
   "trusted_devices",

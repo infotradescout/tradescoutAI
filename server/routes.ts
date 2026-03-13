@@ -86,6 +86,7 @@ import { computeVerificationRequirements } from "./services/profileVerificationS
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
+import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import {
   actorHasPrivilegedCapability,
   auditPrivilegedAction,
@@ -1079,11 +1080,41 @@ export async function registerRoutes(app: any) {
       const roles = collectAuthorityRoles(user as any);
       const hasAccess = roles.some((role) => isAdminTierRole(role));
 
-      if (!hasAccess) {
+      if (hasAccess) {
+        req.marketSignalsAccess = { mode: "admin_user", partnerSlug: null };
+        return next();
+      }
+
+      const partnerSlugHeader = String(req.headers["x-tradepartner-slug"] || "")
+        .trim()
+        .toLowerCase();
+      const partnerSlugQuery = String(req.query?.partnerSlug || "")
+        .trim()
+        .toLowerCase();
+      const partnerSlugParam = String(req.params?.partnerSlug || "")
+        .trim()
+        .toLowerCase();
+      const requestedPartnerSlug = partnerSlugParam || partnerSlugQuery || partnerSlugHeader;
+
+      if (!requestedPartnerSlug) {
         return res.status(403).json({ message: "Market signals access denied" });
       }
 
-      req.marketSignalsAccess = { mode: "admin_user", partnerSlug: null };
+      const entitlement = await getTradepartnerUserEntitlement({
+        partnerSlug: requestedPartnerSlug,
+        userId,
+        accessScope: "market_signals",
+      });
+
+      if (!entitlement) {
+        return res.status(403).json({ message: "Market signals access denied" });
+      }
+
+      req.marketSignalsAccess = {
+        mode: "partner_user",
+        partnerSlug: requestedPartnerSlug,
+        entitlementLevel: entitlement.accessLevel,
+      };
       return next();
     } catch (error) {
       console.error("Market signals auth failure", error);
@@ -1097,7 +1128,10 @@ export async function registerRoutes(app: any) {
       .trim()
       .toLowerCase();
 
-    if (accessMode === "partner_api_key" && scopedPartnerSlug !== partnerSlug) {
+    if (
+      (accessMode === "partner_api_key" || accessMode === "partner_user") &&
+      scopedPartnerSlug !== partnerSlug
+    ) {
       res.status(403).json({ message: "Partner-scoped market signals access denied" });
       return false;
     }

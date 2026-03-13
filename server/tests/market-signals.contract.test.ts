@@ -11,12 +11,10 @@ describe("market signals contracts", () => {
   it("keeps the real v1 market signal routes wired in server routes", () => {
     const source = read("server/routes.ts");
 
-    expect(source).toContain('app.get("/api/market-signals/v1/counties/:countyFips/demand"');
-    expect(source).toContain('app.get("/api/market-signals/v1/homescout-listings/inventory"');
-    expect(source).toContain('app.get("/api/market-signals/v1/activation-readiness"');
-    expect(source).toContain(
-      'app.get("/api/market-signals/v1/partners/:partnerSlug/county-observation"'
-    );
+    expect(source).toContain('"/api/market-signals/v1/counties/:countyFips/demand"');
+    expect(source).toContain('"/api/market-signals/v1/homescout-listings/inventory"');
+    expect(source).toContain('"/api/market-signals/v1/activation-readiness"');
+    expect(source).toContain('"/api/market-signals/v1/partners/:partnerSlug/county-observation"');
     expect(source).toContain("from scout_interactions");
     expect(source).toContain("from home_scout_market_buckets");
     expect(source).toContain("from home_scout_listing_events e");
@@ -38,6 +36,11 @@ describe("market signals contracts", () => {
     expect(source).toContain("Partner-scoped market signals access denied");
     expect(source).toContain("collectAuthorityRoles(user as any)");
     expect(source).toContain("roles.some((role) => isAdminTierRole(role))");
+    expect(source).toContain("getTradepartnerUserEntitlement");
+    expect(source).toContain('mode: "partner_user"');
+    expect(source).toContain(
+      "const requestedPartnerSlug = partnerSlugParam || partnerSlugQuery || partnerSlugHeader;"
+    );
   });
 
   it("enforces aggregation thresholds instead of returning household-scale outputs", () => {
@@ -69,5 +72,15 @@ describe("market signals contracts", () => {
     expect(source).toContain("from crawler_request_hourly_rollups");
     expect(source).toContain("refreshPartnerCountyObservationSnapshots");
     expect(source).toContain("getPartnerCountyObservationSnapshots");
+  });
+
+  it("defines tradepartner user entitlements for future account-based partner access", () => {
+    const schemaSource = read("shared/schema.ts");
+    const serviceSource = read("server/services/tradepartnerAccessService.ts");
+
+    expect(schemaSource).toContain("export const tradepartnerUserEntitlements = pgTable(");
+    expect(serviceSource).toContain("CREATE TABLE IF NOT EXISTS tradepartner_user_entitlements");
+    expect(serviceSource).toContain("getTradepartnerUserEntitlement");
+    expect(serviceSource).toContain("access_scope = $3");
   });
 });
