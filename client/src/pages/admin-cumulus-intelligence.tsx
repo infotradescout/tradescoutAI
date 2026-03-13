@@ -138,9 +138,9 @@ export default function AdminCumulusIntelligencePage() {
     if (surface !== "all") params.set("surface", surface);
     return params.toString();
   }, [selectedWindow, stateCode, surface, limit]);
-  const meetingMode = useMemo(() => {
+  const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
-    return new URLSearchParams(rawQuery).get("meetingMode") === "1";
+    return new URLSearchParams(rawQuery).get("presentationMode") === "1";
   }, [location]);
 
   const { data, isLoading } = useQuery<CountyObservationSnapshot>({
@@ -245,30 +245,30 @@ export default function AdminCumulusIntelligencePage() {
 
   const handleMeetingModeToggle = () => {
     const params = new URLSearchParams(queryString);
-    if (meetingMode) {
-      params.delete("meetingMode");
+    if (presentationMode) {
+      params.delete("presentationMode");
     } else {
-      params.set("meetingMode", "1");
+      params.set("presentationMode", "1");
     }
     navigate(`/admin/cumulus-intelligence?${params.toString()}`);
   };
 
   return (
     <div
-      className={`space-y-6 print:bg-white print:text-black ${meetingMode ? "max-w-5xl mx-auto py-6" : ""}`}
+      className={`space-y-6 print:bg-white print:text-black ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="text-sm text-white/60">
-          {meetingMode
-            ? "Meeting mode is on. The page is focused on the presentable briefing surface."
+          {presentationMode
+            ? "Presentation mode is on. The page is focused on the presentable partner briefing surface."
             : "Operator mode shows the full admin intelligence surface."}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={handleOpenBriefingPage} variant="outline">
-            Open Briefing Page
+            Open Partner Briefing
           </Button>
           <Button onClick={handleMeetingModeToggle} variant="outline">
-            {meetingMode ? "Exit Meeting Mode" : "Open Meeting Mode"}
+            {presentationMode ? "Exit Presentation Mode" : "Open Presentation Mode"}
           </Button>
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function AdminCumulusIntelligencePage() {
         </CardContent>
       </Card>
 
-      {!meetingMode ? (
+      {!presentationMode ? (
         <Card className="bg-tsCard/95 border-white/10 print:hidden">
           <CardHeader>
             <CardTitle className="text-white">Brief History</CardTitle>
@@ -385,7 +385,7 @@ export default function AdminCumulusIntelligencePage() {
         </Card>
       ) : null}
 
-      <Card className={`bg-tsCard/95 border-white/10 ${meetingMode ? "print:hidden" : ""}`}>
+      <Card className={`bg-tsCard/95 border-white/10 ${presentationMode ? "print:hidden" : ""}`}>
         <CardHeader>
           <CardTitle className="text-white">Cumulus Intelligence</CardTitle>
           <CardDescription className="text-white/70">
@@ -473,7 +473,7 @@ export default function AdminCumulusIntelligencePage() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-white/60">
-              Download the current admin-only county intelligence snapshot for meeting use.
+              Download the current admin-only county intelligence snapshot for partner briefing use.
             </div>
             <Button onClick={handleExport} disabled={exporting || isLoading} variant="outline">
               {exporting ? "Exporting..." : "Export CSV"}
@@ -488,7 +488,7 @@ export default function AdminCumulusIntelligencePage() {
         </CardContent>
       </Card>
 
-      {!meetingMode ? (
+      {!presentationMode ? (
         <Card className="bg-tsCard/95 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">County Rankings</CardTitle>

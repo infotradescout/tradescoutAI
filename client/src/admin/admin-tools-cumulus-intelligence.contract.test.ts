@@ -44,18 +44,18 @@ describe("admin tools cumulus intelligence wiring", () => {
     expect(source).toContain("No prior brief available yet for delta comparison.");
   });
 
-  it("supports a query-driven meeting mode on the admin Cumulus intelligence page", () => {
+  it("supports a query-driven presentation mode on the admin Cumulus intelligence page", () => {
     const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
-    expect(source).toContain("meetingMode");
-    expect(source).toContain("Open Meeting Mode");
-    expect(source).toContain("Exit Meeting Mode");
+    expect(source).toContain("presentationMode");
+    expect(source).toContain("Open Presentation Mode");
+    expect(source).toContain("Exit Presentation Mode");
     expect(source).toContain("navigate(`/admin/cumulus-intelligence?${params.toString()}`)");
   });
 
-  it("opens a dedicated briefing page from the admin Cumulus intelligence page", () => {
+  it("opens a dedicated partner briefing page from the admin Cumulus intelligence page", () => {
     const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
     expect(source).toContain("/api/admin/cumulus-intelligence/briefing");
-    expect(source).toContain("Open Briefing Page");
+    expect(source).toContain("Open Partner Briefing");
     expect(source).toContain("handleOpenBriefingPage");
   });
 });
