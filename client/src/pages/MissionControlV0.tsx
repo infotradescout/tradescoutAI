@@ -190,7 +190,7 @@ export default function MissionControlV0() {
         </p>
       </div>
 
-      <Card className="p-6 border border-white/10 bg-black/20">
+      <Card className="p-6 border-border bg-card">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">Live System Evidence</h2>
@@ -210,25 +210,25 @@ export default function MissionControlV0() {
         </div>
 
         <div className="mt-5 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="rounded-lg border border-white/10 bg-slate-950/70 p-4">
+          <div className="rounded-lg border border-border bg-background p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">Truth Now</div>
             <div className="mt-2 text-sm text-white/85">
               {liveStream?.summary.truthNow || "No live stream truth available yet."}
             </div>
           </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/70 p-4">
+          <div className="rounded-lg border border-border bg-background p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">Entries</div>
             <div className="mt-2 text-2xl font-semibold text-white">{liveEvidenceCount}</div>
             <div className="text-xs text-white/50">Current server-produced stream entries</div>
           </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/70 p-4">
+          <div className="rounded-lg border border-border bg-background p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">Crawler 24h</div>
             <div className="mt-2 text-2xl font-semibold text-white">
               {liveStream?.summary.crawlerRequests24h ?? 0}
             </div>
             <div className="text-xs text-white/50">Observation volume feeding the stream</div>
           </div>
-          <div className="rounded-lg border border-white/10 bg-slate-950/70 p-4">
+          <div className="rounded-lg border border-border bg-background p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">Snapshot State</div>
             <div className="mt-2 flex items-center gap-2">
               <Badge variant="outline">{liveStreamSnapshot?.status || "missing"}</Badge>
@@ -247,7 +247,7 @@ export default function MissionControlV0() {
         {liveStream?.stream?.length ? (
           <div className="mt-5 space-y-3">
             {liveStream.stream.map((entry) => (
-              <div key={entry.id} className="rounded-lg border border-white/10 bg-slate-950/60 p-4">
+              <div key={entry.id} className="rounded-lg border border-border bg-background p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{entry.source}</Badge>
                   <Badge variant="outline">{entry.priority}</Badge>
