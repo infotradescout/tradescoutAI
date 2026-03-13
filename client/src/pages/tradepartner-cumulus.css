@@ -131,6 +131,10 @@
   align-items: center;
 }
 
+.tpc-hero-highlights {
+  margin-top: 16px;
+}
+
 .tpc-btn {
   appearance: none;
   border-radius: 12px;

@@ -173,12 +173,10 @@ const MEETING_SLOTS = [
 const BENEFITS = [
   "Unconditional $2,000 advertising credit for local businesses in the TradeScout network.",
   "Campaigns can run across Google Search, display, paid social, streaming audio, connected TV, video, and native advertising.",
-  "Geo-targeted planning for county-level and Gulf Coast business growth.",
   "Real audience targeting using identity-backed and behavioral signals, not anonymous cookie-only audiences.",
   "One of the largest audio and digital media footprints in the U.S. with Westwood One network reach.",
   "Creative support and campaign messaging help from experienced Cumulus teams.",
-  "Cross-device reach built to drive visibility, leads, store visits, and measurable business response.",
-  "Regional meetings with free lunch and direct access to local businesses, TradeScout operators, and Cumulus partners.",
+  "Geo-targeted planning built for local visibility, leads, and measurable business response.",
 ];
 
 const CHANNELS = [
@@ -245,6 +243,13 @@ const REGIONAL_OFFICES = [
     addressLine2: "Pensacola, FL 32505",
     phone: "(850) 478-6011",
   },
+];
+
+const OFFER_HIGHLIGHTS = [
+  "$2,000 ad credit",
+  "No minimum spend",
+  "Google, social, CTV, audio",
+  "Mobile, Escambia, Okaloosa",
 ];
 
 function cleanField(form: FormData, key: string, maxLen: number): string {
@@ -749,15 +754,20 @@ export default function TradePartnerCumulusLanding() {
           <p className="tpc-subhead">
             {campaignHeroSubhead ||
               `TradeScout has partnered with ${campaignName}, a national broadcast and digital media network, to help local businesses reach customers across the Gulf Coast region.`}{" "}
-            Local businesses can receive an{" "}
-            <strong>
-              unconditional $${campaignDealAmount.toLocaleString()} advertising credit
-            </strong>{" "}
-            toward a Cumulus digital marketing campaign.{" "}
+            Local businesses can receive a{" "}
+            <strong>${campaignDealAmount.toLocaleString()} advertising credit</strong> toward a
+            Cumulus digital marketing campaign.{" "}
             {campaignConfig?.dealTerms || "No catch. No minimum spend. No hidden terms."}
             {activeCounty ? ` This page is scoped to ${activeCounty.displayLabel}.` : ""}
             {!activeCounty && computedCoverageNote ? ` ${computedCoverageNote}` : ""}
           </p>
+          <div className="tpc-chip-row tpc-hero-highlights">
+            {OFFER_HIGHLIGHTS.map((highlight) => (
+              <span key={highlight} className="tpc-chip">
+                {highlight}
+              </span>
+            ))}
+          </div>
           <div className="tpc-hero-actions">
             <button
               type="button"
@@ -784,18 +794,18 @@ export default function TradePartnerCumulusLanding() {
           <div>
             <h2>TradeDeal: ${campaignDealAmount.toLocaleString()} Free Ad Credit</h2>
             <p>
-              This credit is designed to help local companies increase visibility, attract new
-              customers, and test targeted advertising across multiple media channels. It is direct
-              and unconditional for the TradeScout network.
+              Businesses in the TradeScout network receive a ${campaignDealAmount.toLocaleString()}
+              advertising credit from Cumulus. Campaign structure, channel mix, and final scope are
+              determined with the Cumulus team.
             </p>
           </div>
         </section>
 
         <section className="tpc-panel tpc-rise tpc-delay-1">
-          <h2>What the ${campaignDealAmount.toLocaleString()} Credit Can Be Used For</h2>
+          <h2>Potential Campaign Channels</h2>
           <p>
-            Cumulus campaigns reach real people across devices and media platforms, not anonymous
-            cookie audiences.
+            Cumulus offers campaigns across multiple digital channels. Final recommendations depend
+            on the business, market, and campaign plan.
           </p>
           <div className="tpc-check-grid">
             {CHANNELS.map((channel) => (
@@ -809,10 +819,11 @@ export default function TradePartnerCumulusLanding() {
 
         <div className="tpc-grid">
           <section className="tpc-panel tpc-rise tpc-delay-2">
-            <h2>County Meetings + Free Lunch</h2>
+            <h2>Regional Sessions</h2>
             <p>
-              RSVP for your county event to meet local businesses, TradeScout operators, and Cumulus
-              corporate partners.
+              Pick the session that serves your county. Each one includes lunch, local networking,
+              and time with Cumulus and TradeScout. Space is limited at each session, with roughly
+              10 spots per RSVP time.
             </p>
             <div className="tpc-county-list">
               {visibleMeetingSlots.map((slot) => (
@@ -842,8 +853,8 @@ export default function TradePartnerCumulusLanding() {
               <section id="cumulus-account-form">
                 <h2>Create account, then RSVP</h2>
                 <p>
-                  Step 1: create your TradeScout account. Step 2: verify your email. Step 3: return
-                  here, pick a meeting date, and submit RSVP.
+                  Create your account, verify your email, then come back here to choose a session.
+                  Each RSVP time has limited capacity.
                 </p>
                 <form className="tpc-form" onSubmit={handleCreateAccount}>
                   {createError ? <p className="tpc-error">{createError}</p> : null}
@@ -925,8 +936,8 @@ export default function TradePartnerCumulusLanding() {
               <section>
                 <h2>RSVP</h2>
                 <p>
-                  You are signed in. Pick your county meeting date and submit. Your name and email
-                  are already attached.
+                  Choose your session and submit. Your name and email are already attached. Each
+                  session time has limited spots available.
                 </p>
 
                 {!emailVerified ? (
@@ -1046,9 +1057,8 @@ export default function TradePartnerCumulusLanding() {
         <section className="tpc-panel tpc-rise tpc-delay-2">
           <h2>How Cumulus Targeting Works</h2>
           <p>
-            Campaign audiences can be built using verified identity data and behavioral signals.
-            Cumulus connects campaigns to a database of more than 250 million verified adults to
-            help advertisers reach real audiences and measure results accurately.
+            Cumulus builds audiences from verified identity data and behavioral signals so campaigns
+            can be targeted and measured against real people, not just anonymous cookies.
           </p>
           <div className="tpc-chip-row">
             {TARGETING_SIGNALS.map((signal) => (
@@ -1060,11 +1070,10 @@ export default function TradePartnerCumulusLanding() {
         </section>
 
         <section className="tpc-panel tpc-rise tpc-delay-2">
-          <h2>Why Market With {campaignName}</h2>
+          <h2>Why Cumulus</h2>
           <p>
-            {campaignName} combines local station influence with large-scale audio network
-            distribution. That gives small and mid-sized businesses practical county reach and
-            larger growth options on one partner stack.
+            Local station reach, digital channel execution, and Westwood One scale all sit in one
+            partner stack.
           </p>
           <div className="tpc-benefit-grid">
             {campaignBenefits.map((benefit) => (
@@ -1099,7 +1108,11 @@ export default function TradePartnerCumulusLanding() {
         </section>
 
         <section className="tpc-panel tpc-rise tpc-delay-2">
-          <h2>Proven Campaign Performance</h2>
+          <h2>Proof It Performs</h2>
+          <p>
+            Cumulus publishes both benchmark campaign performance and named client outcomes. This
+            gives you a clearer view of what strong execution can look like before you commit.
+          </p>
           <div className="tpc-proof-grid">
             {PERFORMANCE_EXAMPLES.map((example) => (
               <article key={example.title} className="tpc-proof-card">
@@ -1111,12 +1124,6 @@ export default function TradePartnerCumulusLanding() {
                 </ul>
               </article>
             ))}
-          </div>
-        </section>
-
-        <section className="tpc-panel tpc-rise tpc-delay-2">
-          <h2>Real Business Results</h2>
-          <div className="tpc-proof-grid">
             {CASE_STUDIES.map((study) => (
               <article key={study.title} className="tpc-proof-card">
                 <h3>{study.title}</h3>
@@ -1148,9 +1155,8 @@ export default function TradePartnerCumulusLanding() {
         <section className="tpc-panel tpc-rise tpc-delay-2">
           <h2>Claim Your ${campaignDealAmount.toLocaleString()} Advertising Credit</h2>
           <p>
-            Apply through TradeScout to create your account, verify your email, and RSVP for the
-            upcoming regional session. After RSVP, you will continue into the normal onboarding
-            flow.
+            Create your TradeScout account, verify your email, RSVP for a session, then continue
+            into onboarding.
           </p>
           <div className="tpc-hero-actions">
             <button
