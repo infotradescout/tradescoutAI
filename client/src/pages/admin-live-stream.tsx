@@ -48,6 +48,19 @@ type LiveStreamHistoryResponse = {
   history: LiveStreamResponse[];
 };
 
+type SnapshotStatusResponse = {
+  generatedAt: string;
+  schedulerEnabled: boolean;
+  statuses: Array<{
+    key: string;
+    label: string;
+    latestComputedAt: string | null;
+    rowCount: number;
+    staleAfterMinutes: number;
+    isStale: boolean;
+  }>;
+};
+
 function getFilenameFromHeader(headerValue: string | null): string | null {
   if (!headerValue) return null;
   const match = /filename="?([^"]+)"?/i.exec(headerValue);
@@ -115,6 +128,27 @@ export default function AdminLiveStreamPage() {
     },
     refetchInterval: 30000,
   });
+
+  const { data: snapshotStatus } = useQuery<SnapshotStatusResponse>({
+    queryKey: ["/api/admin/observability/snapshot-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/observability/snapshot-status", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch snapshot status");
+      }
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const liveStreamStatus = snapshotStatus?.statuses.find((entry) => entry.key === "live_stream");
+  const liveStreamStateLabel = liveStreamStatus
+    ? liveStreamStatus.isStale
+      ? "stale"
+      : "fresh"
+    : "missing";
 
   const handlePresentationModeToggle = () => {
     const params = new URLSearchParams(queryString);
@@ -236,6 +270,9 @@ export default function AdminLiveStreamPage() {
                   : isLoading
                     ? "Loading..."
                     : "Unavailable"}
+              </div>
+              <div className="mt-2">
+                <Badge variant="outline">{liveStreamStateLabel}</Badge>
               </div>
             </div>
             <div className="rounded-lg border border-border bg-background p-4">
@@ -387,7 +424,7 @@ export default function AdminLiveStreamPage() {
           ) : null}
 
           {refreshMessage ? (
-            <div className="rounded-md border border-green-600/40 bg-green-600/10 px-3 py-2 text-sm text-green-300">
+            <div className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
               {refreshMessage}
             </div>
           ) : null}
