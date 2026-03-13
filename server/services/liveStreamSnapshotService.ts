@@ -153,17 +153,82 @@ export async function buildLiveStreamSnapshot(params?: {
 }): Promise<LiveStreamSnapshot> {
   const filters = normalizeFilters(params || {});
 
-  const [lisaFeed, crawlerTelemetry, cumulusBrief, activeAlerts] = await Promise.all([
-    getLisaFeed(),
-    getCrawlerTelemetrySummary(),
-    getPartnerIntelligenceBriefSnapshot({
-      partnerSlug: "cumulus-media",
-      window: "24h",
-      stateCode: filters.stateCode || undefined,
-      limit: 100,
-    }),
-    Promise.resolve(getActiveAlerts()),
-  ]);
+  const [lisaFeedResult, crawlerTelemetryResult, cumulusBriefResult, activeAlertsResult] =
+    await Promise.allSettled([
+      getLisaFeed(),
+      getCrawlerTelemetrySummary(),
+      getPartnerIntelligenceBriefSnapshot({
+        partnerSlug: "cumulus-media",
+        window: "24h",
+        stateCode: filters.stateCode || undefined,
+        limit: 100,
+      }),
+      Promise.resolve(getActiveAlerts()),
+    ]);
+
+  const lisaFeed =
+    lisaFeedResult.status === "fulfilled"
+      ? lisaFeedResult.value
+      : {
+          generatedAt: new Date().toISOString(),
+          runtimeMode: "tradescout_local",
+          source: "fallback",
+          summary: {
+            truthNow: "LISA feed unavailable; showing partial live stream.",
+            dataProductionSummary: "LISA feed unavailable.",
+            llmOptimizationSummary: "LISA feed unavailable.",
+          },
+          feed: [],
+        };
+
+  const crawlerTelemetry =
+    crawlerTelemetryResult.status === "fulfilled"
+      ? crawlerTelemetryResult.value
+      : {
+          generatedAt: new Date().toISOString(),
+          totals24h: { total: 0, ok: 0, clientError: 0, serverError: 0 },
+          topBots: [],
+          topRoutes: [],
+          topSurfaces: [],
+          requestTypes: [],
+          topCounties: [],
+        };
+
+  const cumulusBrief =
+    cumulusBriefResult.status === "fulfilled"
+      ? cumulusBriefResult.value
+      : {
+          partnerSlug: "cumulus-media",
+          generatedAt: new Date().toISOString(),
+          filters: {
+            window: "24h",
+            stateCode: filters.stateCode || null,
+            surface: null,
+            limit: 100,
+          },
+          executiveSummary: "Cumulus brief unavailable; showing partial live stream.",
+          activationSummary: "Cumulus brief unavailable.",
+          topCounties: [],
+          topStates: [],
+          summary: {
+            deltaSummary: "No Cumulus delta available.",
+            currentLeadCounty: null,
+            currentLeadState: null,
+            currentLeadSurface: null,
+            stateLead: null,
+          },
+          lisa: {
+            truthNow: "",
+            dataProductionSummary: "",
+            llmOptimizationSummary: "",
+            topFindings: [],
+          },
+        };
+
+  const activeAlerts =
+    activeAlertsResult.status === "fulfilled" && Array.isArray(activeAlertsResult.value)
+      ? activeAlertsResult.value
+      : [];
 
   const rawStream = [
     {

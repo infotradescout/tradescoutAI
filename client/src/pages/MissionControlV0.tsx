@@ -70,13 +70,15 @@ interface LiveStreamPreview {
 }
 
 interface SnapshotStatusResponse {
+  generatedAt?: string;
   schedulerEnabled: boolean;
-  snapshots: Array<{
+  statuses: Array<{
     key: string;
     label: string;
     rowCount: number;
-    status: "fresh" | "stale" | "missing";
-    updatedAt: string | null;
+    latestComputedAt: string | null;
+    staleAfterMinutes?: number;
+    isStale: boolean;
   }>;
 }
 
@@ -176,7 +178,7 @@ export default function MissionControlV0() {
     }
   };
 
-  const liveStreamSnapshot = snapshotStatus?.snapshots.find(
+  const liveStreamSnapshot = snapshotStatus?.statuses?.find(
     (snapshot) => snapshot.key === "live_stream"
   );
   const liveEvidenceCount = liveStream?.stream?.length ?? 0;
@@ -231,10 +233,12 @@ export default function MissionControlV0() {
           <div className="rounded-lg border border-border bg-background p-4">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">Snapshot State</div>
             <div className="mt-2 flex items-center gap-2">
-              <Badge variant="outline">{liveStreamSnapshot?.status || "missing"}</Badge>
+              <Badge variant="outline">
+                {liveStreamSnapshot ? (liveStreamSnapshot.isStale ? "stale" : "fresh") : "missing"}
+              </Badge>
               <span className="text-sm text-white/80">
-                {liveStreamSnapshot?.updatedAt
-                  ? new Date(liveStreamSnapshot.updatedAt).toLocaleString()
+                {liveStreamSnapshot?.latestComputedAt
+                  ? new Date(liveStreamSnapshot.latestComputedAt).toLocaleString()
                   : "No snapshot timestamp"}
               </span>
             </div>
