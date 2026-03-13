@@ -42,4 +42,12 @@ describe("admin tools cumulus intelligence wiring", () => {
     expect(source).toContain("deltaSummary");
     expect(source).toContain("No prior brief available yet for delta comparison.");
   });
+
+  it("supports a query-driven meeting mode on the admin Cumulus intelligence page", () => {
+    const source = read("client/src/pages/admin-cumulus-intelligence.tsx");
+    expect(source).toContain("meetingMode");
+    expect(source).toContain("Open Meeting Mode");
+    expect(source).toContain("Exit Meeting Mode");
+    expect(source).toContain("navigate(`/admin/cumulus-intelligence?${params.toString()}`)");
+  });
 });

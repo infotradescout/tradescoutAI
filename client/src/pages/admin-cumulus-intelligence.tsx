@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { useLocation } from "wouter";
 
 type MarketSignalWindow = "1h" | "24h" | "7d" | "30d";
 
@@ -107,6 +108,7 @@ function getFilenameFromHeader(headerValue: string | null): string | null {
 }
 
 export default function AdminCumulusIntelligencePage() {
+  const [location, navigate] = useLocation();
   const [selectedWindow, setSelectedWindow] = useState<MarketSignalWindow>("24h");
   const [stateCode, setStateCode] = useState("all");
   const [surface, setSurface] = useState("all");
@@ -122,6 +124,10 @@ export default function AdminCumulusIntelligencePage() {
     if (surface !== "all") params.set("surface", surface);
     return params.toString();
   }, [selectedWindow, stateCode, surface, limit]);
+  const meetingMode = useMemo(() => {
+    const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
+    return new URLSearchParams(rawQuery).get("meetingMode") === "1";
+  }, [location]);
 
   const { data, isLoading } = useQuery<CountyObservationSnapshot>({
     queryKey: ["/api/market-signals/v1/partners/county-observation", PARTNER_SLUG, queryString],
@@ -208,8 +214,31 @@ export default function AdminCumulusIntelligencePage() {
     window.print();
   };
 
+  const handleMeetingModeToggle = () => {
+    const params = new URLSearchParams(queryString);
+    if (meetingMode) {
+      params.delete("meetingMode");
+    } else {
+      params.set("meetingMode", "1");
+    }
+    navigate(`/admin/cumulus-intelligence?${params.toString()}`);
+  };
+
   return (
-    <div className="space-y-6 print:bg-white print:text-black">
+    <div
+      className={`space-y-6 print:bg-white print:text-black ${meetingMode ? "max-w-5xl mx-auto py-6" : ""}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div className="text-sm text-white/60">
+          {meetingMode
+            ? "Meeting mode is on. The page is focused on the presentable briefing surface."
+            : "Operator mode shows the full admin intelligence surface."}
+        </div>
+        <Button onClick={handleMeetingModeToggle} variant="outline">
+          {meetingMode ? "Exit Meeting Mode" : "Open Meeting Mode"}
+        </Button>
+      </div>
+
       <Card className="bg-tsCard/95 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Executive Brief</CardTitle>
@@ -283,44 +312,46 @@ export default function AdminCumulusIntelligencePage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-tsCard/95 border-white/10 print:hidden">
-        <CardHeader>
-          <CardTitle className="text-white">Brief History</CardTitle>
-          <CardDescription className="text-white/70">
-            Stored briefing artifacts for comparing current truth against prior snapshots.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {(briefHistory?.history || []).length === 0 ? (
-              <div className="text-sm text-white/65">
-                No brief history yet for the selected filter set.
-              </div>
-            ) : (
-              briefHistory?.history.map((item) => (
-                <div
-                  key={`${item.generatedAt}:${item.filters.window}:${item.filters.stateCode || "all"}:${item.filters.surface || "all"}`}
-                  className="rounded-lg border border-white/10 bg-black/20 p-4"
-                >
-                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                    <div className="text-sm font-semibold text-white">
-                      {new Date(item.generatedAt).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-white/50">
-                      {item.filters.window} | {item.filters.stateCode || "all states"} |{" "}
-                      {item.filters.surface || "all surfaces"}
-                    </div>
-                  </div>
-                  <div className="mt-2 text-sm text-white/80">{item.executiveSummary}</div>
-                  <div className="mt-2 text-sm text-white/65">{item.activationSummary}</div>
+      {!meetingMode ? (
+        <Card className="bg-tsCard/95 border-white/10 print:hidden">
+          <CardHeader>
+            <CardTitle className="text-white">Brief History</CardTitle>
+            <CardDescription className="text-white/70">
+              Stored briefing artifacts for comparing current truth against prior snapshots.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(briefHistory?.history || []).length === 0 ? (
+                <div className="text-sm text-white/65">
+                  No brief history yet for the selected filter set.
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ) : (
+                briefHistory?.history.map((item) => (
+                  <div
+                    key={`${item.generatedAt}:${item.filters.window}:${item.filters.stateCode || "all"}:${item.filters.surface || "all"}`}
+                    className="rounded-lg border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div className="text-sm font-semibold text-white">
+                        {new Date(item.generatedAt).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-white/50">
+                        {item.filters.window} | {item.filters.stateCode || "all states"} |{" "}
+                        {item.filters.surface || "all surfaces"}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-white/80">{item.executiveSummary}</div>
+                    <div className="mt-2 text-sm text-white/65">{item.activationSummary}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      <Card className="bg-tsCard/95 border-white/10">
+      <Card className={`bg-tsCard/95 border-white/10 ${meetingMode ? "print:hidden" : ""}`}>
         <CardHeader>
           <CardTitle className="text-white">Cumulus Intelligence</CardTitle>
           <CardDescription className="text-white/70">
@@ -423,77 +454,79 @@ export default function AdminCumulusIntelligencePage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-tsCard/95 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">County Rankings</CardTitle>
-          <CardDescription className="text-white/70">
-            County-level crawler attention with dominant surface and mix.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {data?.status === "suppressed" ? (
-            <div className="text-sm text-white/65">
-              Signal is below threshold for the selected filter set.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {counties.map((county) => (
-                <div
-                  key={`${county.countyFips}:${county.dominantSurface}`}
-                  className="rounded-lg border border-white/10 bg-black/20 p-4"
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <div className="text-base font-semibold text-white">
-                        {county.countyName}, {county.stateCode}
+      {!meetingMode ? (
+        <Card className="bg-tsCard/95 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white">County Rankings</CardTitle>
+            <CardDescription className="text-white/70">
+              County-level crawler attention with dominant surface and mix.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data?.status === "suppressed" ? (
+              <div className="text-sm text-white/65">
+                Signal is below threshold for the selected filter set.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {counties.map((county) => (
+                  <div
+                    key={`${county.countyFips}:${county.dominantSurface}`}
+                    className="rounded-lg border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div className="text-base font-semibold text-white">
+                          {county.countyName}, {county.stateCode}
+                        </div>
+                        <div className="text-xs text-white/55">
+                          FIPS {county.countyFips} | dominant surface {county.dominantSurface}
+                        </div>
                       </div>
-                      <div className="text-xs text-white/55">
-                        FIPS {county.countyFips} | dominant surface {county.dominantSurface}
+                      <div className="grid grid-cols-3 gap-4 text-right">
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.2em] text-white/40">
+                            Requests
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-white">
+                            {county.requestCount}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.2em] text-white/40">
+                            OK Rate
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-white">
+                            {county.okRatePct}%
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.2em] text-white/40">
+                            Trend
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-white">
+                            {county.trend} {county.changePct}%
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-right">
-                      <div>
-                        <div className="text-xs uppercase tracking-[0.2em] text-white/40">
-                          Requests
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-white">
-                          {county.requestCount}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs uppercase tracking-[0.2em] text-white/40">
-                          OK Rate
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-white">
-                          {county.okRatePct}%
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs uppercase tracking-[0.2em] text-white/40">
-                          Trend
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-white">
-                          {county.trend} {county.changePct}%
-                        </div>
-                      </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {county.surfaceMix.map((surfaceRow) => (
+                        <span
+                          key={`${county.countyFips}:${surfaceRow.surface}`}
+                          className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/75"
+                        >
+                          {surfaceRow.surface} {surfaceRow.sharePct}% ({surfaceRow.requestCount})
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {county.surfaceMix.map((surfaceRow) => (
-                      <span
-                        key={`${county.countyFips}:${surfaceRow.surface}`}
-                        className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/75"
-                      >
-                        {surfaceRow.surface} {surfaceRow.sharePct}% ({surfaceRow.requestCount})
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
