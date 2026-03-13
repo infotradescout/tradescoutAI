@@ -98,9 +98,9 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             </Button>
           </Link>
 
-          <Link href="/real-estate-marketplace">
+          <Link href="/homescout-listings">
             <Button
-              variant={isActive("/real-estate-marketplace") ? "secondary" : "ghost"}
+              variant={isActive("/homescout-listings") ? "secondary" : "ghost"}
               size="sm"
               className="px-3 py-2 rounded-lg nav-button hover:bg-white/5 text-sm"
             >
@@ -204,7 +204,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                       Exchange
                     </Button>
                   </Link>
-                  <Link href="/real-estate-marketplace" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link href="/homescout-listings" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"

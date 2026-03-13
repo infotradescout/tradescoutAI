@@ -426,7 +426,7 @@ export default function HomeScoutListingPage() {
           <CardContent className="space-y-3 text-sm text-white/70">
             <p>{formatUserFacingErrorMessage(error, "This listing could not be loaded.")}</p>
             <div className="flex gap-2">
-              <Link href="/real-estate-marketplace">
+              <Link href="/homescout-listings">
                 <Button variant="outline" size="sm">
                   Back to HomeScout
                 </Button>
@@ -1161,7 +1161,7 @@ export default function HomeScoutListingPage() {
                   Request contact via Scout
                 </Button>
               </Link>
-              <Link href="/real-estate-marketplace">
+              <Link href="/homescout-listings">
                 <Button variant="outline" className="w-full">
                   Back to HomeScout
                 </Button>

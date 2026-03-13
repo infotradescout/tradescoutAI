@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
+import { hasCompletedSetup } from "@/lib/setupState";
 
 type BannerMode = "local_setup" | "onboarding";
 
@@ -29,9 +29,7 @@ export default function ProfileCompletionBanner() {
       path.startsWith("/profile-setup");
     if (isSetupRoute) return null;
 
-    const profileVersion =
-      typeof (user as any).profileVersion === "number" ? (user as any).profileVersion : 0;
-    if (profileVersion < CURRENT_PROFILE_VERSION) return "local_setup";
+    if (!hasCompletedSetup(user as any)) return "local_setup";
 
     const onboardingCompleted = (user as any).onboardingCompleted === true;
     if (!onboardingCompleted) return "onboarding";

@@ -633,7 +633,7 @@ export default function ScoutOS() {
         "/exchange",
         "/community-feed",
         "/community",
-        "/real-estate-marketplace",
+        "/homescout-listings",
         "/homescout",
       ];
 

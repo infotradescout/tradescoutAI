@@ -129,7 +129,7 @@ const DEFAULT_ACTIONS: Record<string, ScoutAction> = {
   direct_connect: { type: "NAVIGATE", to: "/direct-connect", label: "Direct Connect" },
   community: { type: "NAVIGATE", to: "/community", label: "Community" },
   exchange: { type: "NAVIGATE", to: "/exchange", label: "Exchange" },
-  homescout: { type: "NAVIGATE", to: "/real-estate-marketplace", label: "HomeScout" },
+  homescout: { type: "NAVIGATE", to: "/homescout-listings", label: "HomeScout Listings" },
   maps: { type: "NAVIGATE", to: "/maps", label: "Maps" },
 };
 

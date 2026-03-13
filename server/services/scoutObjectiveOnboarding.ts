@@ -203,7 +203,7 @@ const SUGGESTION_LIBRARY: Record<OnboardingRole, ObjectiveSuggestion[]> = {
       category: "growth",
       estimatedMinutes: 12,
       expectedValueScore: 90,
-      recommendedRoute: "/real-estate-marketplace",
+      recommendedRoute: "/homescout-listings",
       starterPrompt: "Help me build a county partner network for listings",
     },
     {

@@ -831,8 +831,11 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/vehicle-marketplace">
               <LazyPage Component={VehicleMarketplace} />
             </Route>
-            <Route path="/real-estate-marketplace">
+            <Route path="/homescout-listings">
               <LazyPage Component={RealEstateMarketplace} />
+            </Route>
+            <Route path="/real-estate-marketplace">
+              <RedirectTo to="/homescout-listings" />
             </Route>
             <Route path="/homescout/listings/:id">
               <LazyPage Component={HomeScoutListing} />

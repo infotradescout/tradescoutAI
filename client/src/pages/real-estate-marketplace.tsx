@@ -1,7 +1,18 @@
 import React, { memo, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Home, Search, Filter, MapPin, BedDouble, Bath, Square, PlusCircle } from "lucide-react";
+import {
+  Home,
+  Search,
+  Filter,
+  MapPin,
+  BedDouble,
+  Bath,
+  Square,
+  PlusCircle,
+  FileCheck,
+  LineChart,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,36 +54,26 @@ type HomeScoutSurfaceSection = {
   items: string[];
 };
 
-const HOMESCOUT_SURFACE_SECTIONS: HomeScoutSurfaceSection[] = [
+const HOMESCOUT_VALUE_CARDS: HomeScoutSurfaceSection[] = [
   {
-    title: "Property Marketplace",
-    items: ["Homes For Sale", "Rentals", "Owner Listings", "Off-Market Properties"],
-  },
-  {
-    title: "Land",
-    items: ["Residential Lots", "Acreage", "Development Land"],
-  },
-  {
-    title: "Commercial Property",
-    items: ["Retail", "Industrial", "Office"],
-  },
-  {
-    title: "Property Programs",
-    items: ["Renovation Opportunities", "Investment Projects", "Build Opportunities"],
-  },
-  {
-    title: "Property Management Tools",
+    title: "Manage your home",
     items: [
-      "Maintenance Requests",
-      "Contractor Scheduling",
-      "Work History",
-      "Asset Tracking",
-      "Lifecycle Records",
+      "Keep records organized",
+      "Track maintenance context",
+      "Keep property history in one place",
     ],
   },
   {
-    title: "Verified Property History",
-    items: ["Permits", "Contractor Work", "Inspections", "Ownership Timeline"],
+    title: "Watch your local market",
+    items: ["Browse HomeScout Listings", "Filter by county context", "Save a search for later"],
+  },
+  {
+    title: "Sell when you're ready",
+    items: [
+      "Activate 1-click sell when ready",
+      "HomeScout Listings live in Exchange",
+      "Stay county-first",
+    ],
   },
 ];
 
@@ -265,10 +266,10 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   return (
     <>
       <SEOHelmet
-        title="HomeScout Portal | Home Management, Property History, and Local Housing Visibility | TradeScout"
-        description="Use HomeScout as your home management portal for records, maintenance context, and local housing visibility. Selling flows are launched through Exchange."
-        keywords="homescout portal, home management system, property records, home maintenance, local housing visibility, tradescout homes"
-        canonical="https://www.thetradescout.com/real-estate-marketplace"
+        title="HomeScout Listings | County-First Home Listings | TradeScout"
+        description="Browse HomeScout Listings by county, review active home inventory, and activate the HomeScout Listings sell flow when ready."
+        keywords="homescout listings, home listings, county home listings, homes for sale, tradescout homescout listings"
+        canonical="https://www.thetradescout.com/homescout-listings"
       />
       <RealEstateMarketplaceShell>
         <CountyRequiredGate surface="homescout" allowBypass={allowBypass}>
@@ -277,10 +278,10 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               <div className="space-y-0.5 md:space-y-1">
                 <div className="flex items-center gap-3">
                   <Home className="h-6 w-6 md:h-7 md:w-7 text-ts-orange" />
-                  <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
+                  <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout Listings</h1>
                 </div>
                 <p className="text-sm md:text-base text-white/70">
-                  Home management portal first, with county-first housing visibility.
+                  Property management first, with HomeScout Listings separated into Exchange.
                 </p>
                 <div className="flex items-center gap-2 text-xs text-white/60">
                   <MapPin className="h-3.5 w-3.5" />
@@ -291,7 +292,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 <Link href="/exchange?tab=sell&category=real-estate">
                   <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    Sell Through Exchange
+                    Activate 1-Click Sell
                   </Button>
                 </Link>
                 <Button
@@ -307,42 +308,44 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
 
             <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
               <CardContent className="p-4 md:p-6">
-                <div className="mb-4 md:mb-6">
-                  <h2 className="text-base md:text-lg font-semibold text-white">
-                    HomeScout Structure
-                  </h2>
-                  <p className="mt-1 text-xs md:text-sm text-white/70">
-                    Each item is a standalone HomeScout surface that stays in sync with county-first
-                    discovery and intent-based contact.
-                  </p>
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {HOMESCOUT_SURFACE_SECTIONS.map((section) => (
+                <div className="mb-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {HOMESCOUT_VALUE_CARDS.map((card, index) => {
+                    const Icon = index === 0 ? FileCheck : index === 1 ? LineChart : PlusCircle;
+                    return (
                       <div
-                        key={section.title}
-                        className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2"
+                        key={card.title}
+                        className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3"
                       >
-                        <div className="text-sm font-semibold text-white">{section.title}</div>
-                        <div className="flex flex-wrap gap-2">
-                          {section.items.map((item) => {
-                            const params = new URLSearchParams({
-                              hsSection: section.title,
-                              hsItem: item,
-                            });
-                            return (
-                              <Link
-                                key={`${section.title}-${item}`}
-                                href={`/real-estate-marketplace?${params.toString()}`}
-                              >
-                                <Badge className="bg-tsCard border border-white/10 text-white/90 hover:bg-tsCard/80 cursor-pointer">
-                                  {item}
-                                </Badge>
-                              </Link>
-                            );
-                          })}
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ts-orange/15 text-ts-orange">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="text-sm font-semibold text-white">{card.title}</div>
+                        </div>
+                        <div className="space-y-1.5">
+                          {card.items.map((item) => (
+                            <div key={`${card.title}-${item}`} className="text-sm text-white/70">
+                              {item}
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    );
+                  })}
+                </div>
+
+                <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <h2 className="text-base md:text-lg font-semibold text-white">
+                      Browse HomeScout Listings
+                    </h2>
+                    <p className="mt-1 text-xs md:text-sm text-white/70">
+                      Search the Exchange-side HomeScout Listings inventory for your county.
+                    </p>
                   </div>
+                  <Badge className="bg-ts-orange/15 text-ts-orange border border-ts-orange/20">
+                    County-first visibility
+                  </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
@@ -548,13 +551,13 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                 </CardHeader>
                 <CardContent className="text-sm text-white/70 space-y-3">
                   <p>
-                    HomeScout visibility is county-first. When you are ready to sell, launch the
-                    listing flow through Exchange.
+                    No HomeScout Listings are active in this county yet. When you are ready to sell,
+                    activate the HomeScout Listings flow.
                   </p>
                   <div className="flex gap-2">
                     <Link href="/exchange?tab=sell&category=real-estate">
                       <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                        Go to Exchange Sell Flow
+                        Open HomeScout Listings
                       </Button>
                     </Link>
                   </div>

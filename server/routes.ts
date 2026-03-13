@@ -1496,6 +1496,58 @@ export async function registerRoutes(app: any) {
     };
   };
 
+  const hasCanonicalCountySetup = (user: any): boolean => {
+    const stateCodeRaw =
+      (user as any)?.stateCode ?? (user as any)?.state_code ?? (user as any)?.state ?? null;
+    const countyFipsRaw =
+      (user as any)?.countyFips ??
+      (user as any)?.county_fips ??
+      (typeof (user as any)?.county === "string" && /^\d{5}$/.test((user as any).county)
+        ? (user as any).county
+        : null);
+
+    const stateCode = typeof stateCodeRaw === "string" ? stateCodeRaw.trim().toUpperCase() : "";
+    const countyFips = typeof countyFipsRaw === "string" ? countyFipsRaw.trim() : "";
+
+    return stateCode.length === 2 && /^\d{5}$/.test(countyFips);
+  };
+
+  const shouldBackfillCompletedSetup = (user: any): boolean => {
+    if (!user) return false;
+
+    const profileVersion =
+      typeof (user as any)?.profileVersion === "number" ? Number((user as any).profileVersion) : 0;
+    if (profileVersion >= CURRENT_PROFILE_VERSION && (user as any)?.onboardingCompleted === true) {
+      return false;
+    }
+
+    if ((user as any)?.onboardingCompleted === true) return true;
+    if ((user as any)?.locationCommitted === true) return true;
+    if (hasCanonicalCountySetup(user)) return true;
+
+    return false;
+  };
+
+  const getCompletedSetupBackfillPatch = (user: any) => {
+    if (!shouldBackfillCompletedSetup(user)) return null;
+
+    const patch: Record<string, unknown> = {};
+    const profileVersion =
+      typeof (user as any)?.profileVersion === "number" ? Number((user as any).profileVersion) : 0;
+
+    if (profileVersion < CURRENT_PROFILE_VERSION) {
+      patch.profileVersion = CURRENT_PROFILE_VERSION;
+    }
+    if ((user as any)?.onboardingCompleted !== true) {
+      patch.onboardingCompleted = true;
+    }
+    if ((user as any)?.locationCommitted !== true && hasCanonicalCountySetup(user)) {
+      patch.locationCommitted = true;
+    }
+
+    return Object.keys(patch).length > 0 ? patch : null;
+  };
+
   type UserRoleEnumValue = (typeof userRoleEnum.enumValues)[number];
   const USER_ROLE_ENUM_VALUES = new Set<string>(userRoleEnum.enumValues as readonly string[]);
   const BLOCKED_SELF_ASSIGN_ROLES = new Set<string>([
@@ -3008,6 +3060,7 @@ export async function registerRoutes(app: any) {
       if (!userId) return res.status(400).json({ message: "User ID missing" });
       await storage.updateUser(userId, {
         onboardingCompleted: true,
+        profileVersion: CURRENT_PROFILE_VERSION,
         role: role === "contractor" ? "contractor" : "homeowner",
       });
 
@@ -3052,6 +3105,21 @@ export async function registerRoutes(app: any) {
       if (!user) {
         res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
+      }
+
+      const completedSetupBackfill = getCompletedSetupBackfillPatch(user);
+      if (completedSetupBackfill) {
+        try {
+          user = await storage.updateUser(user.id, {
+            ...completedSetupBackfill,
+            updatedAt: new Date(),
+          } as any);
+        } catch (setupBackfillError) {
+          console.warn("[auth/user] Failed to backfill legacy setup state", {
+            userId,
+            error: setupBackfillError,
+          });
+        }
       }
 
       const adminEmailAliases = getPrivilegedAliasEmails();
@@ -5028,6 +5096,7 @@ export async function registerRoutes(app: any) {
 
       const user = await storage.updateUser(userId, {
         onboardingCompleted: true,
+        profileVersion: CURRENT_PROFILE_VERSION,
         updatedAt: new Date(),
       });
 
@@ -7968,6 +8037,7 @@ export async function registerRoutes(app: any) {
         state,
         zipCode,
         onboardingCompleted: true,
+        profileVersion: CURRENT_PROFILE_VERSION,
         preferences: {
           ...(existingUser as any)?.preferences,
           profileVisibility: (existingUser as any)?.preferences?.profileVisibility || "public",
@@ -8668,7 +8738,32 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const users = await storage.getAllUsers();
+      let users = await storage.getAllUsers();
+      const setupBackfillTargets = users
+        .map((entry: any) => ({ entry, patch: getCompletedSetupBackfillPatch(entry) }))
+        .filter((candidate): candidate is { entry: any; patch: Record<string, unknown> } =>
+          Boolean(candidate.patch)
+        );
+
+      if (setupBackfillTargets.length > 0) {
+        await Promise.all(
+          setupBackfillTargets.map(async ({ entry, patch }) => {
+            try {
+              await storage.updateUser(String(entry.id), {
+                ...patch,
+                updatedAt: new Date(),
+              } as any);
+            } catch (setupBackfillError) {
+              console.warn("[admin/users] Failed to backfill legacy setup state", {
+                userId: entry.id,
+                error: setupBackfillError,
+              });
+            }
+          })
+        );
+
+        users = await storage.getAllUsers();
+      }
       const userIds = users
         .map((entry: any) => String(entry?.id || "").trim())
         .filter((id: string) => id.length > 0);
@@ -10082,6 +10177,7 @@ export async function registerRoutes(app: any) {
         await storage.updateUser(userId, {
           role: "contractor",
           onboardingCompleted: true,
+          profileVersion: CURRENT_PROFILE_VERSION,
         });
 
         console.log("New contractor application created:", contractor.id);
@@ -13417,6 +13513,12 @@ export async function registerRoutes(app: any) {
           addressVerified: typeof addressVerified === "boolean" ? addressVerified : undefined,
           onboardingCompleted:
             typeof onboardingCompleted === "boolean" ? onboardingCompleted : undefined,
+          profileVersion:
+            onboardingCompleted === true
+              ? CURRENT_PROFILE_VERSION
+              : typeof existing.profileVersion === "number"
+                ? existing.profileVersion
+                : undefined,
           verificationStatus:
             verificationStatus === "pending" ||
             verificationStatus === "under_review" ||

@@ -72,7 +72,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         priority: isCommunityFirst ? 9 : 8,
       },
       { href: "/trade-deals", label: "TradeDeals", icon: Percent, priority: 7 },
-      { href: "/real-estate-marketplace", label: "HomeScout", icon: Home, priority: 6.5 },
+      { href: "/homescout-listings", label: "HomeScout Listings", icon: Home, priority: 6.5 },
       { href: "/exchange", label: "Exchange", icon: ArrowLeftRight, priority: 6 },
       ...(isAuthenticated
         ? [

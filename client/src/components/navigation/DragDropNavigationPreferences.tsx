@@ -132,7 +132,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       id: "homescout",
       label: "HomeScout",
       icon: "Home",
-      href: "/real-estate-marketplace",
+      href: "/homescout-listings",
       visible: true,
     },
     {

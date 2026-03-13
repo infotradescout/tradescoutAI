@@ -62,6 +62,11 @@ const AppLayout = memo(function AppLayout() {
     pathOnly === "/lp" ||
     pathOnly.startsWith("/lp/");
   const isShareRoute = pathOnly.startsWith("/r/");
+  const isPortalSurface =
+    pathOnly === "/homescout-listings" ||
+    pathOnly.startsWith("/homescout/") ||
+    pathOnly.startsWith("/tradepartners/") ||
+    pathOnly.startsWith("/collections/");
 
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -182,8 +187,8 @@ const AppLayout = memo(function AppLayout() {
   return (
     <SimpleMobileGestures>
       <div className={`${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
-        {showBetaNotice && (
-          <div className="fixed right-4 top-20 z-50 max-w-sm w-[calc(100%-2rem)] rounded-xl border px-4 py-3 bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] shadow-2xl">
+        {showBetaNotice && !isPortalSurface && (
+          <div className="fixed left-4 bottom-24 z-50 max-w-sm w-[calc(100%-2rem)] rounded-xl border px-4 py-3 bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] shadow-2xl">
             <div className="flex items-start gap-3">
               <div
                 className="mt-1 h-2 w-2 rounded-full"

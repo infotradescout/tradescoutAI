@@ -62,7 +62,7 @@ const SimpleNavigation = memo(function SimpleNavigation() {
     {
       icon: Building,
       label: "HomeScout",
-      path: "/real-estate-marketplace",
+      path: "/homescout-listings",
       testId: "nav-homescout",
       key: "homescout",
     },

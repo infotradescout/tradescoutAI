@@ -177,12 +177,16 @@ const ALL_NAVIGATION: NavItem[] = [
 
   // HOMESCOUT (Real Estate Portal) - separate from Exchange
   {
-    label: "HomeScout",
-    href: "/real-estate-marketplace",
+    label: "HomeScout Listings",
+    href: "/homescout-listings",
     icon: Building,
     children: [
-      { label: "HomeScout Portal", href: "/real-estate-marketplace", icon: Building },
-      { label: "HomeScout Platform", href: "/real-estate-marketplace", icon: Building },
+      { label: "HomeScout Listings", href: "/homescout-listings", icon: Building },
+      {
+        label: "HomeScout Listings",
+        href: "/exchange?tab=sell&category=real-estate",
+        icon: Building,
+      },
     ],
   },
 

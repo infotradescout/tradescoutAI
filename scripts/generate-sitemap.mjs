@@ -44,7 +44,7 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/community-feed', priority: 0.9, changefreq: 'hourly' },
   { path: '/exchange', priority: 0.7, changefreq: 'daily' },
   { path: '/vehicle-marketplace', priority: 0.6, changefreq: 'daily' },
-  { path: '/real-estate-marketplace', priority: 0.6, changefreq: 'daily' },
+  { path: '/homescout-listings', priority: 0.6, changefreq: 'daily' },
   { path: '/handmade-marketplace', priority: 0.6, changefreq: 'daily' },
   { path: '/trade-deals', priority: 0.7, changefreq: 'daily' },
   { path: '/groups', priority: 0.7, changefreq: 'daily' },

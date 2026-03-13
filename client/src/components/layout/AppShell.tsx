@@ -82,8 +82,8 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
-      label: "HomeScout",
-      href: "/real-estate-marketplace",
+      label: "HomeScout Listings",
+      href: "/homescout-listings",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
@@ -164,6 +164,11 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/pre-scout-setup") ||
     location.startsWith("/onboarding/profile") ||
     location.startsWith("/profile-setup");
+  const isPortalSurface =
+    location === "/homescout-listings" ||
+    location.startsWith("/homescout/") ||
+    location.startsWith("/tradepartners/") ||
+    location.startsWith("/collections/");
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
   const role =
     typeof (user as any)?.role === "string"
@@ -187,7 +192,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
   const showFeatureNav = !isAuthOrSetupSurface;
   const shouldPinRightTools =
-    !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface;
+    !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface && !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {

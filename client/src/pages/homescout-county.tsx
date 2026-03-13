@@ -143,7 +143,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             </CardHeader>
             <CardContent className="text-sm text-white/70 space-y-3">
               <p>Expected URL format: /homescout/CA/06001</p>
-              <Link href="/real-estate-marketplace">
+              <Link href="/homescout-listings">
                 <Button variant="outline" size="sm">
                   Go to HomeScout
                 </Button>
@@ -164,10 +164,10 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
           <div className="space-y-0.5 md:space-y-1">
             <div className="flex items-center gap-3">
               <Home className="h-6 w-6 md:h-7 md:w-7 text-ts-orange" />
-              <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout</h1>
+              <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout Listings</h1>
             </div>
             <p className="text-sm md:text-base text-white/70">
-              Public county inventory (active listings only). Contact remains intent-based.
+              HomeScout Listings for this county. Contact remains intent-based.
             </p>
             <div className="flex items-center gap-2 text-xs text-white/60">
               <MapPin className="h-3.5 w-3.5" />
@@ -178,7 +178,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             <Link href="/exchange?tab=sell&category=real-estate">
               <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                Sell Through Exchange
+                Open HomeScout Listings
               </Button>
             </Link>
           </div>
@@ -352,7 +352,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
               <p>Use Exchange when you want to launch a sale listing for this county.</p>
               <Link href="/exchange?tab=sell&category=real-estate">
                 <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                  Go to Exchange Sell Flow
+                  Open HomeScout Listings
                 </Button>
               </Link>
             </CardContent>

@@ -314,7 +314,7 @@ export const FEATURE_ROUTING_MAP: Record<string, PlatformFeatureRoute> = {
   homescout: {
     featureId: "homescout",
     name: "HomeScout",
-    primaryAction: { type: "NAVIGATE", to: "/real-estate-marketplace", label: "HomeScout" },
+    primaryAction: { type: "NAVIGATE", to: "/homescout-listings", label: "HomeScout Listings" },
     alternativeActions: [{ type: "NAVIGATE", to: "/homescout-county", label: "County view" }],
     roleRequirements: [],
     authRequired: false,

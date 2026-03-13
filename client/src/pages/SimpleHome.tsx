@@ -255,7 +255,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <Building className="h-5 w-5 text-ts-orange" />
                     My HomeScout Listings
                   </CardTitle>
-                  <Link href="/real-estate-marketplace">
+                  <Link href="/homescout-listings">
                     <Button variant="ghost" size="sm">
                       View All
                     </Button>
@@ -283,7 +283,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <div className="text-center py-8">
                       <Building className="h-12 w-12 text-white/70 dark:text-white/60 mx-auto mb-3" />
                       <p className="text-white/70 mb-4">No HomeScout listings yet</p>
-                      <Link href="/real-estate-marketplace">
+                      <Link href="/homescout-listings">
                         <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                           Create Listing
                         </Button>

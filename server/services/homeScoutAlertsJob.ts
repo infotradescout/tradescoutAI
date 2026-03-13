@@ -156,7 +156,7 @@ export async function runHomeScoutAlertsJob(): Promise<{
       const actionUrl =
         filters.stateCode && filters.countyFips
           ? `/homescout/${encodeURIComponent(filters.stateCode)}/${encodeURIComponent(filters.countyFips)}`
-          : "/real-estate-marketplace";
+          : "/homescout-listings";
 
       await storage.createRealTimeNotification({
         userId: (s as any).userId,

@@ -12,8 +12,7 @@ function titleFromUrl(url: string): string {
   if (path.startsWith("/direct-connect")) return "Direct Connect";
   if (path.startsWith("/exchange")) return "Exchange";
   if (path.startsWith("/community-feed") || path.startsWith("/community")) return "Community";
-  if (path.startsWith("/real-estate-marketplace") || path.startsWith("/homescout"))
-    return "HomeScout";
+  if (path.startsWith("/homescout-listings") || path.startsWith("/homescout")) return "HomeScout";
   return "Workspace";
 }
 

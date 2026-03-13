@@ -55,7 +55,7 @@ const CORE_STATIC_PATHS = [
   "/datasets/cities",
   "/affiliate",
   "/vehicle-marketplace",
-  "/real-estate-marketplace",
+  "/homescout-listings",
   "/handmade-marketplace",
 ];
 

@@ -302,7 +302,7 @@ export default function Exchange() {
   // but route users into the dedicated surface.
   useEffect(() => {
     if (selectedCategory === "real-estate") {
-      navigate("/real-estate-marketplace");
+      navigate("/homescout-listings");
     }
   }, [selectedCategory, navigate]);
 
@@ -1564,7 +1564,7 @@ export default function Exchange() {
                             return;
                           }
                           if (category.id === "real-estate") {
-                            navigate("/real-estate-marketplace");
+                            navigate("/homescout-listings");
                             return;
                           }
                           if (!isSellFormCategorySlug(value)) return;

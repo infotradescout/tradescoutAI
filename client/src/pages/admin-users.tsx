@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { isSuperAdminLike } from "@/lib/roleChecks";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { hasCompletedSetup } from "@/lib/setupState";
 
 type User = {
   id: string;
@@ -851,13 +852,11 @@ export default function AdminUsers() {
       (roleFilter === "homeowner" && bucket === "homeowner") ||
       (roleFilter === "business" && bucket === "business");
 
-    const hasCompletedSetup =
-      u.onboardingCompleted === true ||
-      (typeof u.profileVersion === "number" && Number(u.profileVersion) >= CURRENT_PROFILE_VERSION);
+    const userHasCompletedSetup = hasCompletedSetup(u);
     const matchesOnboarding =
       onboardingFilter === "all" ||
-      (onboardingFilter === "complete" && hasCompletedSetup) ||
-      (onboardingFilter === "pending" && !hasCompletedSetup);
+      (onboardingFilter === "complete" && userHasCompletedSetup) ||
+      (onboardingFilter === "pending" && !userHasCompletedSetup);
 
     let matchesTime = true;
     if (timeFilter !== "all") {
@@ -1380,20 +1379,10 @@ export default function AdminUsers() {
                                 {user.emailVerified ? "Email verified" : "Email not verified"}
                               </Badge>
                               <Badge
-                                variant={
-                                  user.onboardingCompleted === true ||
-                                  (typeof user.profileVersion === "number" &&
-                                    Number(user.profileVersion) >= CURRENT_PROFILE_VERSION)
-                                    ? "outline"
-                                    : "secondary"
-                                }
+                                variant={hasCompletedSetup(user) ? "outline" : "secondary"}
                                 className="text-xs whitespace-nowrap"
                               >
-                                {user.onboardingCompleted === true ||
-                                (typeof user.profileVersion === "number" &&
-                                  Number(user.profileVersion) >= CURRENT_PROFILE_VERSION)
-                                  ? "Setup complete"
-                                  : "Setup pending"}
+                                {hasCompletedSetup(user) ? "Setup complete" : "Setup pending"}
                               </Badge>
                             </div>
                           </TableCell>

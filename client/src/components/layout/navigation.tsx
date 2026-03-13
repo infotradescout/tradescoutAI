@@ -96,7 +96,7 @@ export default function Navigation() {
       description: "Premium equipment & valuable items",
     },
     {
-      href: "/real-estate-marketplace",
+      href: "/homescout-listings",
       label: "HomeScout",
       icon: Home,
       public: true,
