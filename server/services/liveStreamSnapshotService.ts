@@ -32,6 +32,7 @@ export type LiveStreamSnapshot = {
     currentLeadState: string | null;
     crawlerRequests24h: number;
     activeAlerts: number;
+    sourceCounts: Record<string, number>;
   };
   stream: LiveStreamSnapshotEntry[];
 };
@@ -328,6 +329,11 @@ export async function buildLiveStreamSnapshot(params?: {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, filters.limit);
 
+  const sourceCounts = stream.reduce<Record<string, number>>((acc, entry) => {
+    acc[entry.source] = (acc[entry.source] || 0) + 1;
+    return acc;
+  }, {});
+
   return {
     generatedAt: new Date().toISOString(),
     filters: {
@@ -342,6 +348,7 @@ export async function buildLiveStreamSnapshot(params?: {
       currentLeadState: cumulusBrief.summary.currentLeadState,
       crawlerRequests24h: crawlerTelemetry.totals24h.total,
       activeAlerts: activeAlerts.length,
+      sourceCounts,
     },
     stream,
   };
@@ -477,6 +484,7 @@ export async function getLiveStreamSnapshot(params?: {
             currentLeadState: null,
             crawlerRequests24h: 0,
             activeAlerts: 0,
+            sourceCounts: {},
           },
     stream: Array.isArray(row.stream_json) ? row.stream_json : [],
   };
@@ -523,6 +531,7 @@ export async function getLiveStreamSnapshotHistory(params?: {
             currentLeadState: null,
             crawlerRequests24h: 0,
             activeAlerts: 0,
+            sourceCounts: {},
           },
     stream: Array.isArray(row.stream_json) ? row.stream_json : [],
   }));

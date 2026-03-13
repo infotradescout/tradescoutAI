@@ -39,6 +39,7 @@ type LiveStreamResponse = {
     currentLeadState: string | null;
     crawlerRequests24h: number;
     activeAlerts: number;
+    sourceCounts: Record<string, number>;
   };
   stream: LiveStreamItem[];
 };
@@ -289,6 +290,24 @@ export default function AdminLiveStreamPage() {
                   : "Unavailable"}
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Object.entries(data?.summary.sourceCounts || {}).length === 0 ? (
+              <div className="text-sm text-white/55">No source counts available yet.</div>
+            ) : (
+              Object.entries(data?.summary.sourceCounts || {}).map(([entrySource, count]) => (
+                <div
+                  key={entrySource}
+                  className="rounded-lg border border-white/10 bg-black/20 p-4"
+                >
+                  <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                    {entrySource}
+                  </div>
+                  <div className="mt-2 text-sm text-white/85">{count} live entries</div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="text-xs text-white/50">
