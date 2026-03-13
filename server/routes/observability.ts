@@ -128,14 +128,24 @@ observabilityRouter.get("/crawler-telemetry", async (_req, res) => {
   }
 });
 
-observabilityRouter.get("/live-stream", async (_req, res) => {
+observabilityRouter.get("/live-stream", async (req, res) => {
   try {
+    const sourceFilter = String((req.query as any)?.source || "")
+      .trim()
+      .toLowerCase();
+    const stateCode = String((req.query as any)?.stateCode || "")
+      .trim()
+      .toUpperCase();
+    const limitRaw = Number.parseInt(String((req.query as any)?.limit || "20"), 10);
+    const limit = Number.isFinite(limitRaw) ? Math.max(5, Math.min(100, limitRaw)) : 20;
+
     const [lisaFeed, crawlerTelemetry, cumulusBrief, activeAlerts] = await Promise.all([
       getLisaFeed(),
       getCrawlerTelemetrySummary(),
       getPartnerIntelligenceBriefSnapshot({
         partnerSlug: "cumulus-media",
         window: "24h",
+        stateCode: stateCode || undefined,
         limit: 100,
       }),
       Promise.resolve(getActiveAlerts()),
@@ -261,10 +271,30 @@ observabilityRouter.get("/live-stream", async (_req, res) => {
         narrative: item.narrative,
         source: item.sourceKind,
       })),
-    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    ]
+      .filter((entry) => {
+        if (sourceFilter && entry.source !== sourceFilter) return false;
+        if (
+          stateCode &&
+          entry.source === "cumulus" &&
+          typeof entry.narrative === "string" &&
+          !entry.narrative.includes(` ${stateCode}`) &&
+          !entry.narrative.includes(`, ${stateCode}`)
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
 
     res.json({
       generatedAt: new Date().toISOString(),
+      filters: {
+        source: sourceFilter || null,
+        stateCode: stateCode || null,
+        limit,
+      },
       summary: {
         truthNow: lisaFeed.summary.truthNow,
         currentLeadCounty: cumulusBrief.summary.currentLeadCounty,

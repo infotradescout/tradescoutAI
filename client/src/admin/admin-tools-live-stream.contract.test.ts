@@ -19,5 +19,8 @@ describe("admin tools live stream wiring", () => {
     expect(source).toContain("/api/admin/observability/live-stream");
     expect(source).toContain("TradeScout Live Stream");
     expect(source).toContain("Server-produced entries only");
+    expect(source).toContain("All sources");
+    expect(source).toContain("all or FL");
+    expect(source).toContain("Active Alerts");
   });
 });

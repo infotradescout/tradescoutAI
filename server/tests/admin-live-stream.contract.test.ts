@@ -13,6 +13,9 @@ describe("admin live stream contracts", () => {
     expect(source).toContain("getPartnerIntelligenceBriefSnapshot");
     expect(source).toContain("getLisaFeed()");
     expect(source).toContain("getCrawlerTelemetrySummary()");
+    expect(source).toContain("sourceFilter");
+    expect(source).toContain("stateCode");
+    expect(source).toContain("limit");
     expect(source).toContain("Failed to fetch live stream");
   });
 });

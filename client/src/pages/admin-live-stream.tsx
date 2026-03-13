@@ -1,6 +1,16 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type LiveStreamItem = {
   id: string;
@@ -14,6 +24,11 @@ type LiveStreamItem = {
 
 type LiveStreamResponse = {
   generatedAt: string;
+  filters?: {
+    source: string | null;
+    stateCode: string | null;
+    limit: number;
+  };
   summary: {
     truthNow: string;
     currentLeadCounty: string | null;
@@ -32,10 +47,22 @@ const priorityTone: Record<LiveStreamItem["priority"], string> = {
 };
 
 export default function AdminLiveStreamPage() {
+  const [source, setSource] = useState("all");
+  const [stateCode, setStateCode] = useState("all");
+  const [limit, setLimit] = useState("20");
+
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("limit", limit || "20");
+    if (source !== "all") params.set("source", source);
+    if (stateCode !== "all") params.set("stateCode", stateCode);
+    return params.toString();
+  }, [source, stateCode, limit]);
+
   const { data, isLoading, error } = useQuery<LiveStreamResponse>({
-    queryKey: ["/api/admin/observability/live-stream"],
+    queryKey: ["/api/admin/observability/live-stream", queryString],
     queryFn: async () => {
-      const response = await fetch("/api/admin/observability/live-stream", {
+      const response = await fetch(`/api/admin/observability/live-stream?${queryString}`, {
         credentials: "include",
       });
       if (!response.ok) {
@@ -57,6 +84,39 @@ export default function AdminLiveStreamPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label>Source</Label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="lisa">LISA</SelectItem>
+                  <SelectItem value="cumulus">Cumulus</SelectItem>
+                  <SelectItem value="crawler">Crawler</SelectItem>
+                  <SelectItem value="alerts">Alerts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>State</Label>
+              <Input
+                value={stateCode}
+                onChange={(e) => setStateCode(e.target.value.trim().toUpperCase() || "all")}
+                placeholder="all or FL"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Limit</Label>
+              <Input
+                value={limit}
+                onChange={(e) => setLimit(e.target.value.replace(/[^\d]/g, "") || "20")}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="rounded-lg border border-white/10 bg-black/20 p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-white/40">Truth Now</div>
@@ -83,6 +143,14 @@ export default function AdminLiveStreamPage() {
               <div className="mt-2 text-sm text-white/85">
                 {typeof data?.summary.crawlerRequests24h === "number"
                   ? data.summary.crawlerRequests24h
+                  : "Unavailable"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/40">Active Alerts</div>
+              <div className="mt-2 text-sm text-white/85">
+                {typeof data?.summary.activeAlerts === "number"
+                  ? data.summary.activeAlerts
                   : "Unavailable"}
               </div>
             </div>
