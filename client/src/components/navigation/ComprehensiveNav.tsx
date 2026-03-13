@@ -197,6 +197,8 @@ const ALL_NAVIGATION: NavItem[] = [
     icon: Briefcase,
     children: [
       { label: "Browse Exchange", href: "/exchange", icon: Briefcase },
+      { label: "Rental Property", href: "/exchange/rental-property", icon: Building },
+      { label: "Rental Equipment", href: "/exchange/rental-equipment", icon: Briefcase },
       { label: "List Item", href: "/exchange/list", icon: PlusCircle },
       { label: "Business Listing", href: "/business-listing", icon: Building2 },
       { label: "My Exchange Items", href: "/exchange", icon: Package },

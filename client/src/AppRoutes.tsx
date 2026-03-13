@@ -258,6 +258,8 @@ const CountyTransparency = React.lazy(() => import("./pages/county/transparency"
 // Additional Features
 const Exchange = React.lazy(() => import("./pages/exchange"));
 const MetalsExchange = React.lazy(() => import("./pages/exchange-metals"));
+const ExchangeRentalProperty = React.lazy(() => import("./pages/exchange-rental-property"));
+const ExchangeRentalEquipment = React.lazy(() => import("./pages/exchange-rental-equipment"));
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
@@ -866,6 +868,12 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/exchange/metals">
               <LazyPage Component={MetalsExchange} />
+            </Route>
+            <Route path="/exchange/rental-property">
+              <LazyPage Component={ExchangeRentalProperty} />
+            </Route>
+            <Route path="/exchange/rental-equipment">
+              <LazyPage Component={ExchangeRentalEquipment} />
             </Route>
             <Route path="/exchange">
               <LazyPage Component={Exchange} />

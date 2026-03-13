@@ -72,7 +72,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { share } from "@/utils/share";
 import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
@@ -163,6 +163,7 @@ interface CompanyPromotion {
 }
 
 type SellFormCategorySlug = Exclude<ExchangeCategorySlug, "real-estate" | "metals">;
+type ExchangePortalSlug = "" | "rental-property" | "rental-equipment";
 
 const EXCHANGE_CATEGORIES = [
   {
@@ -256,6 +257,91 @@ function isSellFormCategorySlug(value: string): value is SellFormCategorySlug {
   return value !== "real-estate" && value !== "metals" && value in SHARED_SELL_CATEGORY_FIELDS;
 }
 
+const RENTAL_PORTALS: Array<{
+  id: Exclude<ExchangePortalSlug, "">;
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  icon: typeof Building2;
+}> = [
+  {
+    id: "rental-property",
+    title: "Rental Property",
+    description: "Residential and commercial rentals that stay separate from HomeScout Listings.",
+    href: "/exchange/rental-property",
+    cta: "Open Rental Property",
+    icon: Building2,
+  },
+  {
+    id: "rental-equipment",
+    title: "Rental Equipment",
+    description:
+      "Short-term and long-term equipment rental inventory for tools, machines, and fleets.",
+    href: "/exchange/rental-equipment",
+    cta: "Open Rental Equipment",
+    icon: Wrench,
+  },
+];
+
+const RENTAL_PROPERTY_FIELDS: SellField[] = [
+  {
+    key: "propertyUse",
+    label: "Property Use",
+    placeholder: "Choose residential or commercial",
+    required: true,
+    options: [
+      { value: "residential", label: "Residential" },
+      { value: "commercial", label: "Commercial" },
+    ],
+  },
+  {
+    key: "propertyType",
+    label: "Property Type",
+    placeholder: "House, apartment, office, warehouse",
+    required: true,
+  },
+  {
+    key: "leaseTerm",
+    label: "Lease Term",
+    placeholder: "Month-to-month, 12 months, NNN, flexible",
+    required: true,
+  },
+  {
+    key: "availability",
+    label: "Availability",
+    placeholder: "Available now, available next month, build-out pending",
+    required: true,
+  },
+];
+
+const RENTAL_EQUIPMENT_FIELDS: SellField[] = [
+  {
+    key: "rentalCadence",
+    label: "Rental Cadence",
+    placeholder: "Day, week, month, project-based",
+    required: true,
+    options: [
+      { value: "daily", label: "Daily" },
+      { value: "weekly", label: "Weekly" },
+      { value: "monthly", label: "Monthly" },
+      { value: "project", label: "Project-Based" },
+    ],
+  },
+  {
+    key: "availability",
+    label: "Availability",
+    placeholder: "In yard now, available after current rental, seasonal",
+    required: true,
+  },
+  {
+    key: "delivery",
+    label: "Delivery / Pickup",
+    placeholder: "Pickup only, delivery available, operator included",
+    required: true,
+  },
+];
+
 export default function Exchange() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -263,6 +349,7 @@ export default function Exchange() {
   const [activeTab, setActiveTab] = useState("browse");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [activePortal, setActivePortal] = useState<ExchangePortalSlug>("");
   const [sortBy, setSortBy] = useState("date_desc");
   const [priceRange, setPriceRange] = useState("");
   const [conditionFilter, setConditionFilter] = useState("");
@@ -285,9 +372,22 @@ export default function Exchange() {
       const params = new URLSearchParams(window.location.search || "");
       const categoryParam = String(params.get("category") || params.get("cat") || "").trim();
       const tabParam = String(params.get("tab") || "").trim();
+      const portalParam = String(params.get("portal") || "").trim();
 
       if (tabParam && (tabParam === "browse" || tabParam === "sell")) {
         setActiveTab(tabParam);
+      }
+
+      if (portalParam === "rental-property" || portalParam === "rental-equipment") {
+        setActivePortal(portalParam);
+        if (!tabParam) {
+          setActiveTab("sell");
+        }
+        if (portalParam === "rental-property") {
+          setSellCategorySlug("real-estate");
+        } else {
+          setSellCategorySlug("construction");
+        }
       }
 
       if (categoryParam) {
@@ -323,6 +423,16 @@ export default function Exchange() {
   const [hasScoutDraft, setHasScoutDraft] = useState(false);
   const selectedSellFlow =
     sellCategorySlug !== "" ? SHARED_SELL_CATEGORY_FLOWS[sellCategorySlug] : null;
+  const baseSellFields =
+    sellCategorySlug !== "" && isSellFormCategorySlug(sellCategorySlug)
+      ? SHARED_SELL_CATEGORY_FIELDS[sellCategorySlug]
+      : [];
+  const selectedSellFields =
+    sellCategorySlug === "real-estate" && activePortal === "rental-property"
+      ? RENTAL_PROPERTY_FIELDS
+      : activePortal === "rental-equipment"
+        ? [...baseSellFields, ...RENTAL_EQUIPMENT_FIELDS]
+        : baseSellFields;
 
   const decodeVehicleVin = async () => {
     const rawVin = String(sellSpecs.vin || "")
@@ -769,6 +879,38 @@ export default function Exchange() {
           </TabsList>
 
           <TabsContent value="browse" className="space-y-4">
+            <Card className="bg-tsCard border-white/10">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-sm">Rental Portals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {RENTAL_PORTALS.map((portal) => {
+                    const IconComponent = portal.icon;
+                    return (
+                      <Link key={portal.id} href={portal.href}>
+                        <Card className="h-full cursor-pointer bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors">
+                          <CardContent className="flex h-full items-start gap-4 p-4">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ts-orange/15 text-ts-orange">
+                              <IconComponent className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-base font-semibold text-white">{portal.title}</h3>
+                              <p className="mt-1 text-sm text-white/60">{portal.description}</p>
+                              <div className="mt-3 inline-flex items-center gap-2 text-sm text-ts-orange">
+                                <span>{portal.cta}</span>
+                                <ArrowRight className="h-4 w-4" />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="bg-tsCard border-white/10">
               <CardHeader className="pb-2">
                 <CardTitle className="text-white text-sm">Categories</CardTitle>
@@ -1526,6 +1668,25 @@ export default function Exchange() {
                 <CardTitle className="text-white">List Your Item</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {activePortal === "rental-property" ? (
+                  <div className="rounded-lg border border-ts-orange/40 bg-ts-orange/10 px-4 py-3 text-sm text-white/85">
+                    <div className="font-semibold text-white">Rental Property Listing</div>
+                    <div className="mt-1 text-white/70">
+                      This flow is for residential and commercial rental property inside Exchange.
+                      It stays separate from HomeScout Listings.
+                    </div>
+                  </div>
+                ) : null}
+                {activePortal === "rental-equipment" ? (
+                  <div className="rounded-lg border border-ts-orange/40 bg-ts-orange/10 px-4 py-3 text-sm text-white/85">
+                    <div className="font-semibold text-white">Rental Equipment Listing</div>
+                    <div className="mt-1 text-white/70">
+                      Use this flow for rental-ready equipment, tools, and commercial-use inventory
+                      with rate and availability details.
+                    </div>
+                  </div>
+                ) : null}
+
                 {hasScoutDraft ? (
                   <div className="rounded-lg border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                     Draft loaded from Scout.
@@ -1563,12 +1724,13 @@ export default function Exchange() {
                             navigate("/exchange/metals");
                             return;
                           }
-                          if (category.id === "real-estate") {
+                          if (category.id === "real-estate" && activePortal !== "rental-property") {
                             navigate("/homescout-listings");
                             return;
                           }
-                          if (!isSellFormCategorySlug(value)) return;
-                          setSellCategorySlug(value);
+                          if (category.id !== "real-estate" && !isSellFormCategorySlug(value))
+                            return;
+                          setSellCategorySlug(value as ExchangeCategorySlug);
                           setSellSpecs({});
                         }}
                       >
@@ -1587,20 +1749,38 @@ export default function Exchange() {
                         type="button"
                         variant="outline"
                         className="mt-2 border-white/15 text-white/80 hover:bg-white/10"
-                        onClick={() => navigate("/homescout/new")}
+                        onClick={() =>
+                          navigate(
+                            activePortal === "rental-property"
+                              ? "/exchange/rental-property"
+                              : "/homescout/new"
+                          )
+                        }
                       >
-                        Sell a Home on HomeScout
+                        {activePortal === "rental-property"
+                          ? "Open Rental Property Portal"
+                          : "Sell a Home on HomeScout"}
                       </Button>
                     </div>
 
                     <div>
                       <Label htmlFor="price" className="text-white">
-                        Price
+                        {activePortal === "rental-property"
+                          ? "Rental Rate"
+                          : activePortal === "rental-equipment"
+                            ? "Rental Rate"
+                            : "Price"}
                       </Label>
                       <Input
                         id="price"
                         type="number"
-                        placeholder="Asking price (USD)"
+                        placeholder={
+                          activePortal === "rental-property"
+                            ? "Monthly or advertised rental rate (USD)"
+                            : activePortal === "rental-equipment"
+                              ? "Daily, weekly, or listed rental rate (USD)"
+                              : "Asking price (USD)"
+                        }
                         className="bg-white/10 border-white/15 text-white"
                         value={sellPrice}
                         onChange={(e) => setSellPrice(e.target.value)}
@@ -1608,8 +1788,7 @@ export default function Exchange() {
                     </div>
 
                     {sellCategorySlug !== "" &&
-                      isSellFormCategorySlug(sellCategorySlug) &&
-                      SHARED_SELL_CATEGORY_FIELDS[sellCategorySlug].map((field: SellField) => (
+                      selectedSellFields.map((field: SellField) => (
                         <div key={field.key}>
                           <Label htmlFor={`spec-${field.key}`} className="text-white">
                             {field.label}
@@ -1820,13 +1999,27 @@ export default function Exchange() {
                         return;
                       }
 
-                      const requiredCategoryFields = getRequiredExchangeFieldKeys(
-                        sellCategorySlug
-                      ).filter((key) => !String(sellSpecs[key] || "").trim());
+                      const requiredFieldKeys =
+                        activePortal === "rental-property"
+                          ? RENTAL_PROPERTY_FIELDS.filter((field) => field.required).map(
+                              (field) => field.key
+                            )
+                          : activePortal === "rental-equipment"
+                            ? Array.from(
+                                new Set([
+                                  ...getRequiredExchangeFieldKeys(sellCategorySlug),
+                                  ...RENTAL_EQUIPMENT_FIELDS.filter((field) => field.required).map(
+                                    (field) => field.key
+                                  ),
+                                ])
+                              )
+                            : getRequiredExchangeFieldKeys(sellCategorySlug);
+
+                      const requiredCategoryFields = requiredFieldKeys.filter(
+                        (key) => !String(sellSpecs[key] || "").trim()
+                      );
                       if (requiredCategoryFields.length > 0) {
-                        const categoryFields = isSellFormCategorySlug(sellCategorySlug)
-                          ? SHARED_SELL_CATEGORY_FIELDS[sellCategorySlug]
-                          : [];
+                        const categoryFields = selectedSellFields;
                         toast({
                           title: "Finish required fields",
                           description: requiredCategoryFields
@@ -1841,11 +2034,16 @@ export default function Exchange() {
                         });
                         return;
                       }
-                      const categoryValidation = validateExchangeCategoryListing({
-                        category: sellCategorySlug,
-                        imageCount: sellImages.length,
-                        specs: sellSpecs,
-                      });
+                      const categoryValidation =
+                        activePortal === "rental-property"
+                          ? sellImages.length < 3
+                            ? { message: "Add at least 3 photos for a rental property listing." }
+                            : null
+                          : validateExchangeCategoryListing({
+                              category: sellCategorySlug,
+                              imageCount: sellImages.length,
+                              specs: sellSpecs,
+                            });
                       if (categoryValidation) {
                         toast({
                           title: "Complete category details",
@@ -1882,6 +2080,12 @@ export default function Exchange() {
                       if (Object.keys(specPayload).length > 0) {
                         body.specifications = {
                           category: sellCategorySlug,
+                          portal:
+                            activePortal === "rental-property"
+                              ? "rental_property"
+                              : activePortal === "rental-equipment"
+                                ? "rental_equipment"
+                                : undefined,
                           ...specPayload,
                         };
                       }

@@ -71,6 +71,8 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     icon: Briefcase,
     children: [
       { label: "Browse Exchange", href: "/exchange", icon: Briefcase },
+      { label: "Rental Property", href: "/exchange/rental-property", icon: Building },
+      { label: "Rental Equipment", href: "/exchange/rental-equipment", icon: Briefcase },
       { label: "Business Listing", href: "/business-listing", icon: Building },
     ],
   },
