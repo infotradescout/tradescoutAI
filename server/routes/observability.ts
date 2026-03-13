@@ -36,7 +36,10 @@ import {
 import { sendInternalServerError } from "../utils/httpErrors";
 import { getLisaFeed } from "../services/lisaRuntime";
 import { getCrawlerTelemetrySummary } from "../services/crawlerTelemetryService";
-import { getPartnerIntelligenceBriefSnapshot } from "../services/partnerIntelligenceBriefSnapshotService";
+import {
+  getLiveStreamSnapshot,
+  getLiveStreamSnapshotHistory,
+} from "../services/liveStreamSnapshotService";
 
 export const observabilityRouter = Router();
 observabilityRouter.use(isAuthenticated, isAdmin);
@@ -130,223 +133,33 @@ observabilityRouter.get("/crawler-telemetry", async (_req, res) => {
 
 observabilityRouter.get("/live-stream", async (req, res) => {
   try {
-    const sourceFilter = String((req.query as any)?.source || "")
-      .trim()
-      .toLowerCase();
-    const stateCode = String((req.query as any)?.stateCode || "")
-      .trim()
-      .toUpperCase();
-    const countyFilter = String((req.query as any)?.county || "")
-      .trim()
-      .toLowerCase();
-    const limitRaw = Number.parseInt(String((req.query as any)?.limit || "20"), 10);
-    const limit = Number.isFinite(limitRaw) ? Math.max(5, Math.min(100, limitRaw)) : 20;
-
-    const [lisaFeed, crawlerTelemetry, cumulusBrief, activeAlerts] = await Promise.all([
-      getLisaFeed(),
-      getCrawlerTelemetrySummary(),
-      getPartnerIntelligenceBriefSnapshot({
-        partnerSlug: "cumulus-media",
-        window: "24h",
-        stateCode: stateCode || undefined,
-        limit: 100,
-      }),
-      Promise.resolve(getActiveAlerts()),
-    ]);
-
-    const stream = [
-      {
-        id: `lisa-truth-${lisaFeed.generatedAt}`,
-        timestamp: lisaFeed.generatedAt,
-        kind: "truth_now",
-        priority: "high",
-        title: "Truth Now",
-        narrative: lisaFeed.summary.truthNow,
-        source: "lisa",
-        stateCode: null,
-        countyName: null,
-      },
-      {
-        id: `lisa-data-${lisaFeed.generatedAt}`,
-        timestamp: lisaFeed.generatedAt,
-        kind: "data_production",
-        priority: "medium",
-        title: "Data Production",
-        narrative: lisaFeed.summary.dataProductionSummary,
-        source: "lisa",
-        stateCode: null,
-        countyName: null,
-      },
-      {
-        id: `lisa-llm-${lisaFeed.generatedAt}`,
-        timestamp: lisaFeed.generatedAt,
-        kind: "llm_optimization",
-        priority: "medium",
-        title: "LLM Optimization",
-        narrative: lisaFeed.summary.llmOptimizationSummary,
-        source: "lisa",
-        stateCode: null,
-        countyName: null,
-      },
-      {
-        id: `cumulus-brief-${cumulusBrief.generatedAt}`,
-        timestamp: cumulusBrief.generatedAt,
-        kind: "partner_brief",
-        priority: "high",
-        title: "Partner Brief",
-        narrative: cumulusBrief.executiveSummary,
-        source: "cumulus",
-        stateCode: cumulusBrief.summary.currentLeadState || null,
-        countyName: cumulusBrief.summary.currentLeadCounty || null,
-      },
-      {
-        id: `cumulus-delta-${cumulusBrief.generatedAt}`,
-        timestamp: cumulusBrief.generatedAt,
-        kind: "partner_delta",
-        priority: "medium",
-        title: "Partner Delta",
-        narrative: cumulusBrief.summary.deltaSummary,
-        source: "cumulus",
-        stateCode: cumulusBrief.summary.currentLeadState || null,
-        countyName: cumulusBrief.summary.currentLeadCounty || null,
-      },
-      ...(cumulusBrief.topCounties?.[0]
-        ? [
-            {
-              id: `cumulus-county-${cumulusBrief.generatedAt}-${cumulusBrief.topCounties[0].countyFips}`,
-              timestamp: cumulusBrief.generatedAt,
-              kind: "county_lead",
-              priority: "medium",
-              title: "Leading County",
-              narrative: `${cumulusBrief.topCounties[0].countyName}, ${cumulusBrief.topCounties[0].stateCode} leads with ${cumulusBrief.topCounties[0].requestCount} requests. ${cumulusBrief.topCounties[0].dominantSurface.replace(/_/g, " ")} is the dominant surface.`,
-              source: "cumulus",
-              stateCode: cumulusBrief.topCounties[0].stateCode,
-              countyName: cumulusBrief.topCounties[0].countyName,
-            },
-          ]
-        : []),
-      ...(cumulusBrief.topStates?.[0]
-        ? [
-            {
-              id: `cumulus-state-${cumulusBrief.generatedAt}-${cumulusBrief.topStates[0].stateCode}`,
-              timestamp: cumulusBrief.generatedAt,
-              kind: "state_lead",
-              priority: "medium",
-              title: "Leading State Cluster",
-              narrative: `${cumulusBrief.topStates[0].stateCode} leads with ${cumulusBrief.topStates[0].requestCount} requests across ${cumulusBrief.topStates[0].countyCount} counties.`,
-              source: "cumulus",
-              stateCode: cumulusBrief.topStates[0].stateCode,
-              countyName: null,
-            },
-          ]
-        : []),
-      {
-        id: `crawler-total-${crawlerTelemetry.generatedAt}`,
-        timestamp: crawlerTelemetry.generatedAt,
-        kind: "crawler_volume",
-        priority: "medium",
-        title: "Crawler Volume",
-        narrative: `${crawlerTelemetry.totals24h.total} crawler requests were observed in the last 24 hours with ${crawlerTelemetry.totals24h.ok} returning 2xx and ${crawlerTelemetry.totals24h.serverError} returning 5xx.`,
-        source: "crawler",
-        stateCode: null,
-        countyName: null,
-      },
-      ...(crawlerTelemetry.topBots?.[0]
-        ? [
-            {
-              id: `crawler-bot-${crawlerTelemetry.generatedAt}-${crawlerTelemetry.topBots[0].botName}`,
-              timestamp: crawlerTelemetry.generatedAt,
-              kind: "crawler_top_bot",
-              priority: "low",
-              title: "Top Bot",
-              narrative: `${crawlerTelemetry.topBots[0].botName} is the most active crawler right now with ${crawlerTelemetry.topBots[0].requestCount} requests.`,
-              source: "crawler",
-              stateCode: null,
-              countyName: null,
-            },
-          ]
-        : []),
-      ...(activeAlerts || []).slice(0, 3).map((alert) => {
-        const labelStateCode =
-          String(alert.labels?.stateCode || "")
-            .trim()
-            .toUpperCase() || null;
-        const labelCountyName = String(alert.labels?.countyName || "").trim() || null;
-        return {
-          id: `alert-${alert.id}`,
-          timestamp: alert.lastEvaluatedAt || alert.startedAt,
-          kind: "alert",
-          priority:
-            alert.severity === "CRITICAL"
-              ? "critical"
-              : alert.severity === "WARN"
-                ? "high"
-                : "medium",
-          title: alert.name,
-          narrative: alert.description,
-          source: "alerts",
-          stateCode: labelStateCode,
-          countyName: labelCountyName,
-        };
-      }),
-      ...lisaFeed.feed.slice(0, 8).map((item) => {
-        const normalizedScopeRef = String(item.scopeRef || "").trim();
-        const countyScopeName =
-          item.scopeType === "county" && normalizedScopeRef
-            ? normalizedScopeRef.replace(/[-_]/g, " ")
-            : null;
-        return {
-          id: item.id,
-          timestamp:
-            item.freshnessMinutes !== null
-              ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
-              : lisaFeed.generatedAt,
-          kind: "finding",
-          priority: item.priority,
-          title: item.headline,
-          narrative: item.narrative,
-          source: item.sourceKind,
-          stateCode: null,
-          countyName: countyScopeName,
-        };
-      }),
-    ]
-      .filter((entry) => {
-        if (sourceFilter && entry.source !== sourceFilter) return false;
-        if (stateCode && entry.stateCode && entry.stateCode !== stateCode) {
-          return false;
-        }
-        if (countyFilter && entry.countyName) {
-          const normalizedCounty = String(entry.countyName).trim().toLowerCase();
-          if (!normalizedCounty.includes(countyFilter)) return false;
-        } else if (countyFilter && !entry.countyName) {
-          return false;
-        }
-        return true;
+    res.json(
+      await getLiveStreamSnapshot({
+        source: String((req.query as any)?.source || ""),
+        stateCode: String((req.query as any)?.stateCode || ""),
+        county: String((req.query as any)?.county || ""),
+        limit: Number.parseInt(String((req.query as any)?.limit || "20"), 10),
       })
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, limit);
-
-    res.json({
-      generatedAt: new Date().toISOString(),
-      filters: {
-        source: sourceFilter || null,
-        stateCode: stateCode || null,
-        county: countyFilter || null,
-        limit,
-      },
-      summary: {
-        truthNow: lisaFeed.summary.truthNow,
-        currentLeadCounty: cumulusBrief.summary.currentLeadCounty,
-        currentLeadState: cumulusBrief.summary.currentLeadState,
-        crawlerRequests24h: crawlerTelemetry.totals24h.total,
-        activeAlerts: activeAlerts.length,
-      },
-      stream,
-    });
+    );
   } catch (error) {
     console.error("Live stream query failed:", error);
     sendInternalServerError(res, "Failed to fetch live stream", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/live-stream/history", async (req, res) => {
+  try {
+    res.json({
+      history: await getLiveStreamSnapshotHistory({
+        source: String((req.query as any)?.source || ""),
+        stateCode: String((req.query as any)?.stateCode || ""),
+        county: String((req.query as any)?.county || ""),
+        limit: Number.parseInt(String((req.query as any)?.limit || "10"), 10),
+      }),
+    });
+  } catch (error) {
+    console.error("Live stream history query failed:", error);
+    sendInternalServerError(res, "Failed to fetch live stream history", { error: String(error) });
   }
 });
 

@@ -10,12 +10,12 @@ describe("admin live stream contracts", () => {
   it("registers the unified admin live stream endpoint", () => {
     const source = read("server/routes/observability.ts");
     expect(source).toContain('observabilityRouter.get("/live-stream"');
-    expect(source).toContain("getPartnerIntelligenceBriefSnapshot");
-    expect(source).toContain("getLisaFeed()");
-    expect(source).toContain("getCrawlerTelemetrySummary()");
-    expect(source).toContain("sourceFilter");
-    expect(source).toContain("stateCode");
-    expect(source).toContain("countyFilter");
+    expect(source).toContain('observabilityRouter.get("/live-stream/history"');
+    expect(source).toContain("getLiveStreamSnapshot");
+    expect(source).toContain("getLiveStreamSnapshotHistory");
+    expect(source).toContain('String((req.query as any)?.source || "")');
+    expect(source).toContain('String((req.query as any)?.stateCode || "")');
+    expect(source).toContain('String((req.query as any)?.county || "")');
     expect(source).toContain("limit");
     expect(source).toContain("Failed to fetch live stream");
   });

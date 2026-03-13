@@ -42,6 +42,10 @@ type LiveStreamResponse = {
   stream: LiveStreamItem[];
 };
 
+type LiveStreamHistoryResponse = {
+  history: LiveStreamResponse[];
+};
+
 const priorityTone: Record<LiveStreamItem["priority"], string> = {
   critical: "bg-red-600/20 text-red-200 border-red-500/30",
   high: "bg-orange-600/20 text-orange-200 border-orange-500/30",
@@ -81,6 +85,20 @@ export default function AdminLiveStreamPage() {
       return response.json();
     },
     refetchInterval: 10000,
+  });
+
+  const { data: historyData } = useQuery<LiveStreamHistoryResponse>({
+    queryKey: ["/api/admin/observability/live-stream/history", queryString],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/observability/live-stream/history?${queryString}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch live stream history");
+      }
+      return response.json();
+    },
+    refetchInterval: 30000,
   });
 
   const handlePresentationModeToggle = () => {
@@ -247,6 +265,48 @@ export default function AdminLiveStreamPage() {
           </div>
         </CardContent>
       </Card>
+
+      {!presentationMode ? (
+        <Card className="bg-tsCard/95 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white">Stream History</CardTitle>
+            <CardDescription className="text-white/70">
+              Stored snapshots of the live stream for replay and comparison.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(historyData?.history || []).length === 0 ? (
+                <div className="text-sm text-white/65">No stored history available yet.</div>
+              ) : (
+                historyData?.history.map((snapshot) => (
+                  <div
+                    key={snapshot.generatedAt}
+                    className="rounded-lg border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-white">
+                        {new Date(snapshot.generatedAt).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-white/50">
+                        {snapshot.filters?.source || "all sources"} |{" "}
+                        {snapshot.filters?.stateCode || "all states"} |{" "}
+                        {snapshot.filters?.county || "all counties"}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-white/80">
+                      {snapshot.summary.truthNow || "No truth summary recorded."}
+                    </div>
+                    <div className="mt-2 text-xs text-white/55">
+                      {snapshot.stream?.length || 0} entries captured
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }
