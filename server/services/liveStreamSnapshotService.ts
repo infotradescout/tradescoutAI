@@ -33,6 +33,7 @@ export type LiveStreamSnapshot = {
     crawlerRequests24h: number;
     activeAlerts: number;
     sourceCounts: Record<string, number>;
+    degradedSources: string[];
   };
   stream: LiveStreamSnapshotEntry[];
 };
@@ -230,6 +231,29 @@ export async function buildLiveStreamSnapshot(params?: {
       ? activeAlertsResult.value
       : [];
 
+  const degradedSources = [
+    lisaFeedResult.status === "rejected" ? "lisa" : null,
+    crawlerTelemetryResult.status === "rejected" ? "crawler" : null,
+    cumulusBriefResult.status === "rejected" ? "cumulus" : null,
+    activeAlertsResult.status === "rejected" ? "alerts" : null,
+  ].filter((value): value is string => Boolean(value));
+
+  if (lisaFeedResult.status === "rejected") {
+    console.error("Live stream degraded: LISA feed unavailable", lisaFeedResult.reason);
+  }
+  if (crawlerTelemetryResult.status === "rejected") {
+    console.error(
+      "Live stream degraded: crawler telemetry unavailable",
+      crawlerTelemetryResult.reason
+    );
+  }
+  if (cumulusBriefResult.status === "rejected") {
+    console.error("Live stream degraded: Cumulus brief unavailable", cumulusBriefResult.reason);
+  }
+  if (activeAlertsResult.status === "rejected") {
+    console.error("Live stream degraded: active alerts unavailable", activeAlertsResult.reason);
+  }
+
   const rawStream = [
     {
       id: `lisa-truth-${lisaFeed.generatedAt}`,
@@ -414,6 +438,7 @@ export async function buildLiveStreamSnapshot(params?: {
       crawlerRequests24h: crawlerTelemetry.totals24h.total,
       activeAlerts: activeAlerts.length,
       sourceCounts,
+      degradedSources,
     },
     stream,
   };
@@ -550,6 +575,7 @@ export async function getLiveStreamSnapshot(params?: {
             crawlerRequests24h: 0,
             activeAlerts: 0,
             sourceCounts: {},
+            degradedSources: [],
           },
     stream: Array.isArray(row.stream_json) ? row.stream_json : [],
   };
@@ -597,6 +623,7 @@ export async function getLiveStreamSnapshotHistory(params?: {
             crawlerRequests24h: 0,
             activeAlerts: 0,
             sourceCounts: {},
+            degradedSources: [],
           },
     stream: Array.isArray(row.stream_json) ? row.stream_json : [],
   }));

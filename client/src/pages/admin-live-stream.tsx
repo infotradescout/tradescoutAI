@@ -40,6 +40,7 @@ type LiveStreamResponse = {
     crawlerRequests24h: number;
     activeAlerts: number;
     sourceCounts: Record<string, number>;
+    degradedSources?: string[];
   };
   stream: LiveStreamItem[];
 };
@@ -273,6 +274,13 @@ export default function AdminLiveStreamPage() {
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
               Scheduler is disabled. Live stream snapshots can go stale or missing until you run a
               manual refresh or turn scheduled jobs back on.
+            </div>
+          ) : null}
+
+          {data?.summary.degradedSources?.length ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              Live stream is in degraded mode. Fallback data was used for:{" "}
+              {data.summary.degradedSources.join(", ")}.
             </div>
           ) : null}
 
