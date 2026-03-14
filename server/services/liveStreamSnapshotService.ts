@@ -36,6 +36,7 @@ export type LiveStreamSnapshot = {
     topBotCrawlHeadline: string | null;
     sourceCounts: Record<string, number>;
     degradedSources: string[];
+    degradedSourceReasons?: Record<string, string>;
   };
   stream: LiveStreamSnapshotEntry[];
 };
@@ -148,6 +149,22 @@ function normalizeFilters(params: {
   };
 }
 
+function summarizeRejectionReason(reason: unknown): string {
+  if (reason instanceof Error) {
+    const message = String(reason.message || "").trim();
+    if (message) return message.slice(0, 220);
+    return reason.name || "unknown_error";
+  }
+  if (typeof reason === "string") return reason.trim().slice(0, 220) || "unknown_error";
+  if (reason && typeof reason === "object") {
+    const candidate = (reason as { message?: unknown }).message;
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim().slice(0, 220);
+    }
+  }
+  return "unknown_error";
+}
+
 export async function buildLiveStreamSnapshot(params?: {
   source?: string;
   stateCode?: string;
@@ -239,20 +256,25 @@ export async function buildLiveStreamSnapshot(params?: {
     cumulusBriefResult.status === "rejected" ? "cumulus" : null,
     activeAlertsResult.status === "rejected" ? "alerts" : null,
   ].filter((value): value is string => Boolean(value));
+  const degradedSourceReasons: Record<string, string> = {};
 
   if (lisaFeedResult.status === "rejected") {
+    degradedSourceReasons.lisa = summarizeRejectionReason(lisaFeedResult.reason);
     console.error("Live stream degraded: LISA feed unavailable", lisaFeedResult.reason);
   }
   if (crawlerTelemetryResult.status === "rejected") {
+    degradedSourceReasons.crawler = summarizeRejectionReason(crawlerTelemetryResult.reason);
     console.error(
       "Live stream degraded: crawler telemetry unavailable",
       crawlerTelemetryResult.reason
     );
   }
   if (cumulusBriefResult.status === "rejected") {
+    degradedSourceReasons.cumulus = summarizeRejectionReason(cumulusBriefResult.reason);
     console.error("Live stream degraded: Cumulus brief unavailable", cumulusBriefResult.reason);
   }
   if (activeAlertsResult.status === "rejected") {
+    degradedSourceReasons.alerts = summarizeRejectionReason(activeAlertsResult.reason);
     console.error("Live stream degraded: active alerts unavailable", activeAlertsResult.reason);
   }
 
@@ -448,6 +470,9 @@ export async function buildLiveStreamSnapshot(params?: {
       topBotCrawlHeadline: topBotCrawlFinding?.headline || null,
       sourceCounts,
       degradedSources,
+      degradedSourceReasons: Object.keys(degradedSourceReasons).length
+        ? degradedSourceReasons
+        : undefined,
     },
     stream,
   };

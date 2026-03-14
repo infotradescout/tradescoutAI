@@ -43,6 +43,7 @@ type LiveStreamResponse = {
     topBotCrawlHeadline?: string | null;
     sourceCounts: Record<string, number>;
     degradedSources?: string[];
+    degradedSourceReasons?: Record<string, string>;
   };
   stream: LiveStreamItem[];
 };
@@ -283,6 +284,18 @@ export default function AdminLiveStreamPage() {
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Live stream is in degraded mode. Fallback data was used for:{" "}
               {data.summary.degradedSources.join(", ")}.
+              {data.summary.degradedSourceReasons &&
+              Object.keys(data.summary.degradedSourceReasons).length ? (
+                <div className="mt-2 space-y-1 text-xs text-destructive/90">
+                  {Object.entries(data.summary.degradedSourceReasons).map(
+                    ([sourceName, reason]) => (
+                      <div key={sourceName}>
+                        {sourceName}: {reason}
+                      </div>
+                    )
+                  )}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
