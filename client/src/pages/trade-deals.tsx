@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Sparkles, MapPin, Clock, Building2, Store, Globe2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import { Shield, Sparkles, MapPin, Clock, Building2, Store, Globe2, Wrench } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
 
@@ -166,6 +168,38 @@ export default function TradeDealsPage() {
           </div>
         </section>
 
+        <section className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Rental Portals</h2>
+              <p className="text-xs text-white/70">
+                Rental inventory belongs in Exchange, but these portals still need to stay reachable
+                from TradeDeals because they support active projects and supplier demand.
+              </p>
+            </div>
+            <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/40 text-[10px] uppercase tracking-wide">
+              Project support
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <RentalPortalCard
+              title="Rental Property"
+              description="Residential and commercial rental property kept separate from HomeScout Listings and the sale-side property flow."
+              href="/exchange/rental-property"
+              cta="Open Rental Property"
+              icon={Building2}
+            />
+            <RentalPortalCard
+              title="Rental Equipment"
+              description="Short-term and long-term rental inventory for tools, machines, fleets, and operator-ready equipment."
+              href="/exchange/rental-equipment"
+              cta="Open Rental Equipment"
+              icon={Wrench}
+            />
+          </div>
+        </section>
+
         {/* Partners directory summary */}
         <section className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
@@ -274,9 +308,7 @@ function ProjectLane({ title, description }: ProjectLaneProps) {
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="text-[11px] text-white/70 leading-relaxed">
-        {description}
-      </CardContent>
+      <CardContent className="text-[11px] text-white/70 leading-relaxed">{description}</CardContent>
     </Card>
   );
 }
@@ -299,6 +331,37 @@ function PartnerBadge({ label, icon: Icon }: PartnerBadgeProps) {
             Vetted partners with contract-backed TradeDeals.
           </p>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface RentalPortalCardProps {
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+function RentalPortalCard({ title, description, href, cta, icon: Icon }: RentalPortalCardProps) {
+  return (
+    <Card className="border-white/10 bg-tsCard/95">
+      <CardContent className="p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
+            <Icon className="h-5 w-5 text-sky-300" />
+          </div>
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-white">{title}</div>
+            <div className="text-xs text-white/70 leading-relaxed">{description}</div>
+          </div>
+        </div>
+        <Link href={href}>
+          <Button className="w-full bg-sky-500/20 text-sky-100 border border-sky-500/30 hover:bg-sky-500/30">
+            {cta}
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );

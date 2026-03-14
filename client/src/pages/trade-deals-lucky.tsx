@@ -13,6 +13,8 @@ import {
   ChevronRight,
   PackageX,
   Rocket,
+  Building2,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -346,6 +348,24 @@ export default function TradeDealsLuckyPage() {
                 your project and <strong style={{ color: "var(--text-primary)" }}>Community</strong>{" "}
                 to get contractor recommendations.
               </p>
+              <div className="grid gap-3 md:grid-cols-2 max-w-2xl mx-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/exchange/rental-property")}
+                  style={{ borderColor: "var(--border-active)", color: "var(--text-primary)" }}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Rental Property
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/exchange/rental-equipment")}
+                  style={{ borderColor: "var(--border-active)", color: "var(--text-primary)" }}
+                >
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Rental Equipment
+                </Button>
+              </div>
               <div className="flex gap-3 justify-center">
                 <Button
                   onClick={() => navigate("/direct-connect")}
