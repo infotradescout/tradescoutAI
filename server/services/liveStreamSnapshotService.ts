@@ -32,6 +32,8 @@ export type LiveStreamSnapshot = {
     currentLeadState: string | null;
     crawlerRequests24h: number;
     activeAlerts: number;
+    botCrawlSignals: number;
+    topBotCrawlHeadline: string | null;
     sourceCounts: Record<string, number>;
     degradedSources: string[];
   };
@@ -254,6 +256,11 @@ export async function buildLiveStreamSnapshot(params?: {
     console.error("Live stream degraded: active alerts unavailable", activeAlertsResult.reason);
   }
 
+  const botCrawlFindings = (lisaFeed.feed || []).filter(
+    (item) => item.sourceKind === "bot_crawl_signals"
+  );
+  const topBotCrawlFinding = botCrawlFindings[0] || null;
+
   const rawStream = [
     {
       id: `lisa-truth-${lisaFeed.generatedAt}`,
@@ -437,6 +444,8 @@ export async function buildLiveStreamSnapshot(params?: {
       currentLeadState: cumulusBrief.summary.currentLeadState,
       crawlerRequests24h: crawlerTelemetry.totals24h.total,
       activeAlerts: activeAlerts.length,
+      botCrawlSignals: botCrawlFindings.length,
+      topBotCrawlHeadline: topBotCrawlFinding?.headline || null,
       sourceCounts,
       degradedSources,
     },

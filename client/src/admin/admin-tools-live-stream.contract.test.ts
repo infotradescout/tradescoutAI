@@ -31,6 +31,8 @@ describe("admin tools live stream wiring", () => {
     expect(source).toContain("Refresh Live Stream");
     expect(source).toContain("Export CSV");
     expect(source).toContain("Active Alerts");
+    expect(source).toContain("Bot Crawl Signals");
+    expect(source).toContain('SelectItem value="bot_crawl_signals"');
     expect(source).toContain("sourceCounts");
     expect(source).toContain("live entries");
   });

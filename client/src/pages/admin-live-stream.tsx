@@ -39,6 +39,8 @@ type LiveStreamResponse = {
     currentLeadState: string | null;
     crawlerRequests24h: number;
     activeAlerts: number;
+    botCrawlSignals?: number;
+    topBotCrawlHeadline?: string | null;
     sourceCounts: Record<string, number>;
     degradedSources?: string[];
   };
@@ -361,6 +363,14 @@ export default function AdminLiveStreamPage() {
             </div>
             <div className="rounded-lg border border-border bg-background p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Bot Crawl Signals
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-foreground">
+                {data?.summary.botCrawlSignals ?? 0}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                 Alert Entries
               </div>
               <div className="mt-2 text-2xl font-semibold text-foreground">
@@ -381,6 +391,7 @@ export default function AdminLiveStreamPage() {
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   <SelectItem value="lisa">LISA</SelectItem>
+                  <SelectItem value="bot_crawl_signals">Bot Crawl</SelectItem>
                   <SelectItem value="cumulus">Cumulus</SelectItem>
                   <SelectItem value="crawler">Crawler</SelectItem>
                   <SelectItem value="alerts">Alerts</SelectItem>
@@ -412,7 +423,7 @@ export default function AdminLiveStreamPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="rounded-lg border border-white/10 bg-black/20 p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-white/40">Truth Now</div>
               <div className="mt-2 text-sm text-white/85">
@@ -447,6 +458,14 @@ export default function AdminLiveStreamPage() {
                 {typeof data?.summary.activeAlerts === "number"
                   ? data.summary.activeAlerts
                   : "Unavailable"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
+                Bot Crawl Lead
+              </div>
+              <div className="mt-2 text-sm text-cyan-50">
+                {data?.summary.topBotCrawlHeadline || "No bot crawl lead yet"}
               </div>
             </div>
           </div>
