@@ -568,6 +568,13 @@
       "when": 1755004023776,
       "tag": "0077_affiliate_accounts_uniqueness",
       "breakpoints": false
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1755004024776,
+      "tag": "0078_tradepartner_campaign_schema_backfill",
+      "breakpoints": false
     }
   ]
 }
