@@ -61,6 +61,18 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function formatMeetingDateLabel(date: string): string {
+  if (!date) return "";
+  const parsed = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function userText(user: Record<string, unknown>, key: string, maxLen: number): string {
   return cleanString(user[key], maxLen);
 }
@@ -150,6 +162,9 @@ router.post("/", async (req: Request, res: Response) => {
       SELECT county_label, event_label
            , time_label
            , start_datetime
+           , meeting_city
+           , address_line1
+           , address_line2
       FROM tradepartner_campaign_meetings
       WHERE partner_slug = $1
         AND county_slug = $2
@@ -172,6 +187,15 @@ router.post("/", async (req: Request, res: Response) => {
 
     const eventLabelFromMeeting =
       cleanString((meetingLookup.rows[0] as any)?.event_label, 220) || EVENT_LABEL;
+    const meetingCity =
+      cleanString((meetingLookup.rows[0] as any)?.meeting_city, 120) || countyLabel;
+    const meetingAddressLine1 = cleanString((meetingLookup.rows[0] as any)?.address_line1, 200);
+    const meetingAddressLine2 = cleanString((meetingLookup.rows[0] as any)?.address_line2, 200);
+    const resolvedTimeLabel =
+      timeLabel || cleanString((meetingLookup.rows[0] as any)?.time_label, 40) || "";
+    const resolvedStartDateTime =
+      startDateTime || cleanString((meetingLookup.rows[0] as any)?.start_datetime, 80) || "";
+    const meetingDateLabel = formatMeetingDateLabel(meetingDate);
 
     const insertResult = await pool.query(insertQuery, [
       partnerSlug,
@@ -180,8 +204,8 @@ router.post("/", async (req: Request, res: Response) => {
       eventLabelFromMeeting,
       meetingId || null,
       meetingDate,
-      timeLabel || cleanString((meetingLookup.rows[0] as any)?.time_label, 40) || null,
-      startDateTime || (meetingLookup.rows[0] as any)?.start_datetime || null,
+      resolvedTimeLabel || null,
+      resolvedStartDateTime || null,
       businessName,
       contactName,
       email,
@@ -246,6 +270,51 @@ router.post("/", async (req: Request, res: Response) => {
         })
         .catch((emailError) => {
           console.error("TradePartner RSVP email notification failed:", emailError);
+        });
+    }
+
+    if (emailService.isConfigured()) {
+      const safeContact = escapeHtml(contactName);
+      const safePartner = escapeHtml(eventLabelFromMeeting);
+      const safeMeetingCity = escapeHtml(meetingCity);
+      const safeMeetingDateLabel = escapeHtml(meetingDateLabel || meetingDate);
+      const safeMeetingTime = escapeHtml(resolvedTimeLabel || "Time to be confirmed");
+      const safeAddressLine1 = escapeHtml(meetingAddressLine1 || "");
+      const safeAddressLine2 = escapeHtml(meetingAddressLine2 || "");
+      const safeSupportEmail = escapeHtml(PRIMARY_SUPPORT_EMAIL);
+
+      void emailService
+        .sendEmail({
+          to: email,
+          subject: `You're RSVP'd: ${meetingCity} | ${meetingDateLabel || meetingDate}`,
+          replyTo: PRIMARY_SUPPORT_EMAIL,
+          html: `<h2>Your RSVP is confirmed</h2>
+<p>Hi ${safeContact},</p>
+<p>You're confirmed for <strong>${safePartner}</strong>.</p>
+<p><strong>Location:</strong> ${safeMeetingCity}</p>
+<p><strong>Date:</strong> ${safeMeetingDateLabel}</p>
+<p><strong>Time:</strong> ${safeMeetingTime}</p>
+${meetingAddressLine1 ? `<p><strong>Address:</strong> ${safeAddressLine1}<br>${safeAddressLine2}</p>` : ""}
+<p>We'll follow up using your TradeScout account details if anything changes.</p>
+<p>If you need help, reply to this email or contact <a href="mailto:${safeSupportEmail}">${safeSupportEmail}</a>.</p>`,
+          text: [
+            "Your RSVP is confirmed",
+            `Hi ${contactName},`,
+            `You're confirmed for ${eventLabelFromMeeting}.`,
+            `Location: ${meetingCity}`,
+            `Date: ${meetingDateLabel || meetingDate}`,
+            `Time: ${resolvedTimeLabel || "Time to be confirmed"}`,
+            meetingAddressLine1
+              ? `Address: ${meetingAddressLine1}${meetingAddressLine2 ? `, ${meetingAddressLine2}` : ""}`
+              : "",
+            `Need help? Contact ${PRIMARY_SUPPORT_EMAIL}.`,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          purpose: "tradepartner_rsvp_confirmation",
+        })
+        .catch((emailError) => {
+          console.error("TradePartner RSVP confirmation email failed:", emailError);
         });
     }
 

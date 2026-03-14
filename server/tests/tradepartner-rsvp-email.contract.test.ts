@@ -18,4 +18,16 @@ describe("tradepartner RSVP email routing", () => {
     const source = read("server/services/emailService.ts");
     expect(source).toContain('purpose === "tradepartner_rsvp_admin"');
   });
+
+  it("sends an RSVP confirmation email to the attendee", () => {
+    const source = read("server/routes/tradepartner-rsvp.ts");
+    expect(source).toContain('purpose: "tradepartner_rsvp_confirmation"');
+    expect(source).toContain("Your RSVP is confirmed");
+    expect(source).toContain("replyTo: PRIMARY_SUPPORT_EMAIL");
+  });
+
+  it("allows RSVP confirmation emails even when EMAIL_MODE is restricted", () => {
+    const source = read("server/services/emailService.ts");
+    expect(source).toContain('purpose === "tradepartner_rsvp_confirmation"');
+  });
 });
