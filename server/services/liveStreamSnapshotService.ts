@@ -3,6 +3,11 @@ import { getActiveAlerts } from "../observability/alerts";
 import { getCrawlerTelemetrySummary } from "./crawlerTelemetryService";
 import { getLisaFeed } from "./lisaRuntime";
 import { getPartnerIntelligenceBriefSnapshot } from "./partnerIntelligenceBriefSnapshotService";
+import {
+  computeSignalTruthState,
+  resolveSignalDurability,
+  resolveMaxAgeMinutesForSignal,
+} from "../../shared/signalDurability";
 
 type LiveStreamPriority = "critical" | "high" | "medium" | "low";
 
@@ -11,6 +16,7 @@ export type LiveStreamSnapshotEntry = {
   timestamp: string;
   kind: string;
   priority: LiveStreamPriority;
+  truthStatus?: "current" | "stale";
   title: string;
   narrative: string;
   source: string;
@@ -46,8 +52,24 @@ let prunePromise: Promise<void> | null = null;
 let lastPruneAt = 0;
 
 const LIVE_STREAM_HISTORY_RETENTION_DAYS = Math.max(
-  7,
-  Number(process.env.LIVE_STREAM_HISTORY_RETENTION_DAYS || 30)
+  3,
+  Number(process.env.LIVE_STREAM_HISTORY_RETENTION_DAYS || 7)
+);
+const LIVE_STREAM_VOLATILE_MAX_AGE_MINUTES = Math.max(
+  30,
+  Number(process.env.LIVE_STREAM_VOLATILE_MAX_AGE_MINUTES || 360)
+);
+const LIVE_STREAM_STABLE_MAX_AGE_MINUTES = Math.max(
+  LIVE_STREAM_VOLATILE_MAX_AGE_MINUTES,
+  Number(process.env.LIVE_STREAM_STABLE_MAX_AGE_MINUTES || 1440)
+);
+const LIVE_STREAM_PERSISTENT_MAX_AGE_MINUTES = Math.max(
+  LIVE_STREAM_STABLE_MAX_AGE_MINUTES,
+  Number(process.env.LIVE_STREAM_PERSISTENT_MAX_AGE_MINUTES || 43200)
+);
+const LIVE_STREAM_HISTORY_LOOKBACK_DAYS = Math.max(
+  1,
+  Number(process.env.LIVE_STREAM_HISTORY_LOOKBACK_DAYS || 7)
 );
 
 export async function ensureLiveStreamSnapshotTables(): Promise<void> {
@@ -163,6 +185,42 @@ function summarizeRejectionReason(reason: unknown): string {
     }
   }
   return "unknown_error";
+}
+
+function isPersistentEntryKind(entry: Pick<LiveStreamSnapshotEntry, "kind" | "source">): boolean {
+  if (entry.kind === "partner_brief" || entry.kind === "partner_delta") return true;
+  if (entry.kind === "county_lead" || entry.kind === "state_lead") return true;
+  if (entry.source === "cumulus") return true;
+  return false;
+}
+
+function resolveEntryTruthStatus(entry: LiveStreamSnapshotEntry): "current" | "stale" {
+  if (entry.truthStatus) return entry.truthStatus;
+  const sourceKey = entry.kind === "finding" ? entry.source : entry.kind;
+  const truth = computeSignalTruthState({
+    observedAt: entry.timestamp,
+    sourceKind: sourceKey,
+    sourceOverrides: {
+      [sourceKey]: resolveMaxAgeMinutesForSignal({
+        sourceKind: sourceKey,
+        durabilityOverrides: {
+          volatile: LIVE_STREAM_VOLATILE_MAX_AGE_MINUTES,
+          stable: LIVE_STREAM_STABLE_MAX_AGE_MINUTES,
+          persistent: LIVE_STREAM_PERSISTENT_MAX_AGE_MINUTES,
+        },
+      }),
+    },
+    durabilityOverrides: {
+      volatile: LIVE_STREAM_VOLATILE_MAX_AGE_MINUTES,
+      stable: LIVE_STREAM_STABLE_MAX_AGE_MINUTES,
+      persistent: LIVE_STREAM_PERSISTENT_MAX_AGE_MINUTES,
+    },
+  });
+
+  if (truth === "current") return "current";
+  const durability = resolveSignalDurability(sourceKey);
+  if (durability === "persistent" || isPersistentEntryKind(entry)) return "current";
+  return "stale";
 }
 
 export async function buildLiveStreamSnapshot(params?: {
@@ -422,6 +480,7 @@ export async function buildLiveStreamSnapshot(params?: {
           : lisaFeed.generatedAt,
       kind: "finding",
       priority: item.priority,
+      truthStatus: item.truthStatus === "current" ? "current" : "stale",
       title: item.headline,
       narrative: item.narrative,
       source: item.sourceKind,
@@ -443,6 +502,13 @@ export async function buildLiveStreamSnapshot(params?: {
         return false;
       }
       return true;
+    })
+    .map((entry) => {
+      const truthStatus = resolveEntryTruthStatus(entry);
+      return {
+        ...entry,
+        truthStatus,
+      };
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, filters.limit);
@@ -620,11 +686,16 @@ export async function getLiveStreamSnapshotHistory(params?: {
   stateCode?: string;
   county?: string;
   limit?: number;
+  lookbackDays?: number;
 }): Promise<LiveStreamSnapshot[]> {
   await ensureLiveStreamSnapshotTables();
   void pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const historyLimit = Math.max(1, Math.min(20, Number(params?.limit || 10)));
+  const lookbackDays = Math.max(
+    1,
+    Math.min(LIVE_STREAM_HISTORY_RETENTION_DAYS, Number(params?.lookbackDays || LIVE_STREAM_HISTORY_LOOKBACK_DAYS))
+  );
   const result = await pool.query(
     `
     select summary_json, stream_json, computed_at
@@ -633,10 +704,18 @@ export async function getLiveStreamSnapshotHistory(params?: {
       and coalesce(state_code, '') = $2
       and coalesce(county_filter, '') = $3
       and limit_value = $4
+      and computed_at >= now() - ($6::interval)
     order by computed_at desc
     limit $5
     `,
-    [filters.source, filters.stateCode, filters.county, filters.limit, historyLimit]
+    [
+      filters.source,
+      filters.stateCode,
+      filters.county,
+      filters.limit,
+      historyLimit,
+      `${lookbackDays} days`,
+    ]
   );
 
   return (result.rows || []).map((row) => ({

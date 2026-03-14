@@ -55,6 +55,26 @@ function parseDate(value: unknown): string {
   return normalized;
 }
 
+function toIsoDate(value: unknown): string {
+  if (!value) return "";
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const parsed = new Date(String(value));
+  if (!Number.isFinite(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function toIsoDateTime(value: unknown): string {
+  if (!value) return "";
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return value.toISOString();
+  }
+  const parsed = new Date(String(value));
+  if (!Number.isFinite(parsed.getTime())) return "";
+  return parsed.toISOString();
+}
+
 async function fetchCampaignBySlug(partnerSlug: string) {
   const campaignResult = await pool.query(
     `
@@ -144,10 +164,10 @@ async function fetchCampaignBySlug(partnerSlug: string) {
     countySlug: String(row?.county_slug || ""),
     countyLabel: String(row?.county_label || ""),
     meetingCity: String(row?.meeting_city || ""),
-    meetingDate: String(row?.meeting_date || "").slice(0, 10),
+    meetingDate: toIsoDate(row?.meeting_date),
     dateLabel: String(row?.date_label || ""),
     timeLabel: String(row?.time_label || ""),
-    startDateTime: row?.start_datetime ? new Date(row.start_datetime).toISOString() : "",
+    startDateTime: toIsoDateTime(row?.start_datetime),
     addressLine1: String(row?.address_line1 || ""),
     addressLine2: String(row?.address_line2 || ""),
     teaser: String(row?.teaser || ""),

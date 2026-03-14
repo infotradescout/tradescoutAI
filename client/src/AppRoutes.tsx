@@ -221,6 +221,9 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 const AdminShell = React.lazy(() => import("./pages/admin"));
 const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
 const StaffShareLinks = React.lazy(() => import("./pages/staff-share-links"));
+const AdminInspectionIntelligence = React.lazy(
+  () => import("./pages/admin-inspection-intelligence")
+);
 const AdminCommercialDirectoryPage = React.lazy(() => import("./pages/admin-commercial-directory"));
 const AdminCommercialContractorsPage = React.lazy(
   () => import("./pages/admin-commercial-contractors")
@@ -296,6 +299,7 @@ const Wallet = React.lazy(() => import("./pages/wallet"));
 
 // Marketing tools (personal)
 const ScoutFitters = React.lazy(() => import("./pages/marketing/ScoutFitters"));
+const ZeroBaseFeeCamera = React.lazy(() => import("./pages/zero-base-fee-camera"));
 const RequestQuote = React.lazy(() => import("./pages/request-quote"));
 const CommercialDirectoryPage = React.lazy(() => import("./pages/commercial-directory"));
 const CommercialProjectLandingPage = React.lazy(() => import("./pages/commercial-project-landing"));
@@ -1086,6 +1090,24 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={StaffShareLinks} />
               </ProtectedRoute>
             </Route>
+            <Route path="/staff/inspection-intelligence">
+              <ProtectedRoute
+                requiredRoles={[
+                  "support_agent",
+                  "content_moderator",
+                  "territory_manager",
+                  "contractor_success",
+                  "content_seo",
+                  "analytics_specialist",
+                  "marketing_specialist",
+                  "moderator",
+                  "ops_admin",
+                  "super_admin",
+                ]}
+              >
+                <LazyPage Component={AdminInspectionIntelligence} />
+              </ProtectedRoute>
+            </Route>
 
             {/* Common pages */}
             <Route path="/chat">
@@ -1557,6 +1579,16 @@ export const AppRoutes = memo(function AppRoutes({
             </Route>
             <Route path="/request-quote">
               <LazyPage Component={RequestQuote} />
+            </Route>
+            <Route path="/zero-base-fee">
+              <ProtectedRoute>
+                <LazyPage Component={ZeroBaseFeeCamera} />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/zero-base-fee/camera">
+              <ProtectedRoute>
+                <LazyPage Component={ZeroBaseFeeCamera} />
+              </ProtectedRoute>
             </Route>
             <Route path="/direct-connect">
               <LazyPage Component={DirectConnectShell} />

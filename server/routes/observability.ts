@@ -166,6 +166,7 @@ observabilityRouter.get("/live-stream/history", async (req, res) => {
         stateCode: String((req.query as any)?.stateCode || ""),
         county: String((req.query as any)?.county || ""),
         limit: Number.parseInt(String((req.query as any)?.limit || "10"), 10),
+        lookbackDays: Number.parseInt(String((req.query as any)?.lookbackDays || "7"), 10),
       }),
     });
   } catch (error) {

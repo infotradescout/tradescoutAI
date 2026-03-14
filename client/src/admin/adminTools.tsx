@@ -222,6 +222,9 @@ const PromptAdminPage = React.lazy(() =>
 );
 const AdminKnowledgeUploadPage = React.lazy(() => import("@/pages/admin-knowledge-upload"));
 const AdminPanelContent = React.lazy(() => import("@/pages/admin-panel"));
+const AdminInspectionIntelligencePage = React.lazy(
+  () => import("@/pages/admin-inspection-intelligence")
+);
 
 // Component-based tools
 const UserHeatmap = React.lazy(() =>
@@ -695,6 +698,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Wrench,
         visibleIf: { roles: ["super_admin"] },
         render: () => <AdminToolDiscovery />,
+      }),
+      tool({
+        id: "inspection-intelligence",
+        label: "Inspection Intelligence",
+        path: "/admin/inspection-intelligence",
+        icon: Brain,
+        visibleIf: { roles: ["ops_admin", "super_admin", "moderator"] },
+        render: () => <AdminInspectionIntelligencePage />,
       }),
       tool({
         id: "system-prompt",

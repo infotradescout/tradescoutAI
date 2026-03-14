@@ -45,6 +45,8 @@ import adminCommunityBuilderRouter from "./routes/admin-community-builder-routes
 import communityVaultRouter from "./routes/community-vault-routes";
 import communityCausesRouter from "./routes/community-causes-routes";
 import platformSupportRouter from "./routes/platform-support-routes";
+import zeroBaseFeeInspectionRouter from "./routes/zero-base-fee-inspection";
+import inspectionIntelligenceRouter from "./routes/inspection-intelligence";
 import legalNotaryRouter from "./routes/legal-notary-routes";
 import { mountAdminRoutes } from "./routes/admin";
 import missionControlRouter from "./routes/mission-control";
@@ -26432,6 +26434,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/community-vault", communityVaultRouter);
   app.use("/api/community-causes", communityCausesRouter);
   app.use("/api/platform-support", platformSupportRouter);
+  app.use("/api/zero-base-fee", zeroBaseFeeInspectionRouter);
+  app.use("/api/inspection", inspectionIntelligenceRouter);
   app.use("/api/legal/notary", legalNotaryRouter);
 
   // Register prompt admin routes (super admin only)

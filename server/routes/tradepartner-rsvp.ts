@@ -41,6 +41,10 @@ function parsePositiveInteger(value: unknown, fallback: number, min: number, max
 }
 
 function parseMeetingDate(value: unknown): string {
+  if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) return "";
+    return value.toISOString().slice(0, 10);
+  }
   const normalized = cleanString(value, 32);
   if (!normalized) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
@@ -110,13 +114,14 @@ router.post("/", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Please select a supported county meeting." });
   }
 
-  const meetingDate = parseMeetingDate(req.body?.meetingDate || req.body?.startDateTime);
-  if (!meetingDate) {
-    return res.status(400).json({ error: "Please select a valid meeting date." });
-  }
+  const requestedMeetingDate = parseMeetingDate(req.body?.meetingDate || req.body?.startDateTime);
   const meetingId = cleanString(req.body?.meetingId, 120).toLowerCase();
   const timeLabel = cleanString(req.body?.timeLabel, 40);
   const startDateTime = cleanString(req.body?.startDateTime, 80);
+
+  if (!meetingId && !requestedMeetingDate) {
+    return res.status(400).json({ error: "Please select a valid meeting date." });
+  }
 
   const sessionUser = ((req.user || {}) as Record<string, unknown>) || {};
   const submittedByUserId = cleanString(sessionUser.id, 80) || null;
@@ -188,6 +193,7 @@ router.post("/", async (req: Request, res: Response) => {
       SELECT county_label, event_label
            , time_label
            , start_datetime
+           , meeting_date
            , meeting_city
            , address_line1
            , address_line2
@@ -196,12 +202,12 @@ router.post("/", async (req: Request, res: Response) => {
         AND county_slug = $2
         AND (
           ($3 <> '' AND meeting_id = $3)
-          OR ($3 = '' AND meeting_date = $4::date)
+          OR ($3 = '' AND $4 <> '' AND meeting_date = $4::date)
         )
         AND is_active = TRUE
       LIMIT 1
       `,
-      [partnerSlug, countySlug, meetingId, meetingDate]
+      [partnerSlug, countySlug, meetingId, requestedMeetingDate]
     );
 
     if (meetingLookup.rows.length > 0) {
@@ -209,6 +215,12 @@ router.post("/", async (req: Request, res: Response) => {
       countyLabel = cleanString(row.county_label, 120) || countyLabel;
     } else if (!countyLabel) {
       return res.status(400).json({ error: "Please select a supported county meeting." });
+    }
+
+    const meetingDate =
+      parseMeetingDate((meetingLookup.rows[0] as any)?.meeting_date) || requestedMeetingDate;
+    if (!meetingDate) {
+      return res.status(400).json({ error: "Please select a valid meeting date." });
     }
 
     const eventLabelFromMeeting =

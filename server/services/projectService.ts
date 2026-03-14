@@ -1,5 +1,38 @@
-import { db } from ".././db";
-import { eq } from "drizzle-orm";
+import { pool } from "../db/pg";
+
+/**
+ * Store uploaded media and link to a job.
+ * Uses raw SQL so this helper remains stable even if drizzle schema lags.
+ */
+export async function storeMediaForJob({
+  jobId,
+  filePath,
+  originalName,
+  mediaType,
+  uploadedBy,
+}: {
+  jobId: number | string;
+  filePath: string;
+  originalName: string;
+  mediaType: string;
+  uploadedBy: number | string;
+}) {
+  try {
+    const result = await pool.query(
+      `
+        INSERT INTO job_media (job_id, file_path, original_name, media_type, uploaded_by, uploaded_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        RETURNING *
+      `,
+      [Number(jobId), filePath, originalName, mediaType, Number(uploadedBy)]
+    );
+    return result.rows[0] ?? null;
+  } catch (error) {
+    throw new Error(
+      `Failed to store media: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
 
 /**
  * Project Service - Handles project creation and management

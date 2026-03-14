@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { useAuth } from "@/hooks/useAuth";
 import { MessageCircle, ShieldCheck, Calendar, Clock3, DollarSign } from "lucide-react";
 
 type ProfileSections = {
@@ -70,6 +71,7 @@ type PublicProfileResponse = {
 };
 
 export default function ProfileSiteView() {
+  const { user, isAuthenticated } = useAuth();
   const [, paramsU] = useRoute("/u/:slug");
   const [matchP, paramsP] = useRoute("/p/:slug");
   const [, navigate] = useLocation();
@@ -179,6 +181,14 @@ export default function ProfileSiteView() {
     ...(business?.categories?.length ? { category: business.categories.slice(0, 6) } : {}),
     ...(business?.serviceAreas?.length ? { areaServed: business.serviceAreas.slice(0, 10) } : {}),
   };
+  const normalizedViewerRole = String((user as any)?.role || "")
+    .trim()
+    .toLowerCase();
+  const isSuperAdminViewer =
+    Boolean((user as any)?.isSuperAdmin === true) || normalizedViewerRole === "super_admin";
+  const directConnectHref = `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
+  const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
+  const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
 
   return (
     <div className=" py-8">
@@ -271,9 +281,7 @@ export default function ProfileSiteView() {
                   </div>
                 ) : null}
                 <div className="flex flex-wrap gap-3">
-                  <Link
-                    href={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
-                  >
+                  <Link href={isAuthenticated ? directConnectHref : preScoutCreateHref}>
                     <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                       Request Booking
                     </Button>
@@ -307,26 +315,27 @@ export default function ProfileSiteView() {
                       </span>
                     </div>
                     <p className="text-white/60">
-                      Create a free TradeScout account to contact this profile through Direct
-                      Connect.
+                      {isSuperAdminViewer
+                        ? "Super Admin override active. You are automatically connected through Direct Connect."
+                        : isAuthenticated
+                          ? "Open Direct Connect to contact this profile through governed routing."
+                          : "Create a free TradeScout account to contact this profile through Direct Connect."}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch gap-3">
-                    <Link
-                      href={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
-                    >
+                    <Link href={isAuthenticated ? directConnectHref : preScoutCreateHref}>
                       <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        <span>Start Direct Connect</span>
+                        <span>{isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}</span>
                       </Button>
                     </Link>
-                    <Link
-                      href={`/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/direct-connect?profile=${profile.slug}`)}`}
-                    >
-                      <Button variant="outline" className="border-white/10 text-white/70">
-                        Sign in
-                      </Button>
-                    </Link>
+                    {!isAuthenticated ? (
+                      <Link href={preScoutSignInHref}>
+                        <Button variant="outline" className="border-white/10 text-white/70">
+                          Sign in
+                        </Button>
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               </section>

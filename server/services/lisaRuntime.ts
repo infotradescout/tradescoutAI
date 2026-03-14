@@ -2,12 +2,23 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pool } from "../db";
 import { getHttpMetrics } from "../observability/metrics";
-import type { LisaFeedItem, LisaFeedResponse, LisaRuntimeMode } from "../../shared/lisa";
+import type {
+  LisaFeedItem,
+  LisaFeedResponse,
+  LisaRuntimeMode,
+  LisaFeedSourceKind,
+  LisaTruthStatus,
+} from "../../shared/lisa";
 import { reconcileLisaFindings } from "./lisaFindingsService";
 import {
   ensureCrawlerRequestEventsTable,
   getBotCrawlAggregateSignals,
 } from "./crawlerTelemetryService";
+import {
+  computeSignalTruthState,
+  minutesSinceTimestamp,
+  resolveMaxAgeMinutesForSignal,
+} from "../../shared/signalDurability";
 
 type QueryResultRow = Record<string, unknown>;
 type ScoutDemandRow = {
@@ -64,6 +75,28 @@ type HomeScoutStatsRow = {
   last_seen_at: string | Date | null;
 };
 
+const LISA_TRUTH_NOW_MAX_AGE_MINUTES = Math.max(
+  30,
+  Number(process.env.LISA_TRUTH_NOW_MAX_AGE_MINUTES || 180)
+);
+const LISA_VISIBLE_HISTORY_MAX_AGE_MINUTES = Math.max(
+  LISA_TRUTH_NOW_MAX_AGE_MINUTES,
+  Number(process.env.LISA_VISIBLE_HISTORY_MAX_AGE_MINUTES || 1440)
+);
+const LISA_SOURCE_MAX_AGE_MINUTES: Record<LisaFeedSourceKind, number> = {
+  scout_interactions: Math.max(30, Number(process.env.LISA_MAX_AGE_SCOUT_INTERACTIONS || 180)),
+  objectives: Math.max(30, Number(process.env.LISA_MAX_AGE_OBJECTIVES || 180)),
+  homescout_listings: Math.max(30, Number(process.env.LISA_MAX_AGE_HOMESCOUT || 360)),
+  observations: Math.max(30, Number(process.env.LISA_MAX_AGE_OBSERVATIONS || 360)),
+  bot_visibility: Math.max(30, Number(process.env.LISA_MAX_AGE_BOT_VISIBILITY || 240)),
+  bot_crawl_signals: Math.max(30, Number(process.env.LISA_MAX_AGE_BOT_CRAWL || 180)),
+};
+const LISA_DURABILITY_AGE_OVERRIDES = {
+  volatile: Math.max(30, Number(process.env.LISA_MAX_AGE_VOLATILE || 180)),
+  stable: Math.max(30, Number(process.env.LISA_MAX_AGE_STABLE || 720)),
+  persistent: Math.max(60, Number(process.env.LISA_MAX_AGE_PERSISTENT || 43200)),
+} as const;
+
 function isRecoverableSignalQueryError(error: unknown): boolean {
   const code =
     typeof error === "object" && error && "code" in error
@@ -94,10 +127,35 @@ function clampPercent(value: number): number {
 }
 
 function minutesSince(isoLike?: string | Date | null): number | null {
-  if (!isoLike) return null;
-  const parsed = new Date(isoLike).getTime();
-  if (!Number.isFinite(parsed)) return null;
-  return Math.max(0, Math.round((Date.now() - parsed) / 60000));
+  return minutesSinceTimestamp(isoLike);
+}
+
+function isFreshTimestamp(
+  isoLike: string | Date | null | undefined,
+  maxAgeMinutes: number
+): boolean {
+  return (
+    computeSignalTruthState({
+      observedAt: isoLike,
+      sourceKind: "truth_now",
+      sourceOverrides: { truth_now: maxAgeMinutes },
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    }) === "current"
+  );
+}
+
+function resolveLisaTruthStatus(item: LisaFeedItem): LisaTruthStatus {
+  const observedAt =
+    item.freshnessMinutes !== null
+      ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
+      : null;
+  const truth = computeSignalTruthState({
+    observedAt,
+    sourceKind: item.sourceKind,
+    sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+    durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+  });
+  return truth === "current" ? "current" : "stale";
 }
 
 function resolveLisaRuntimeMode(): LisaRuntimeMode {
@@ -377,6 +435,54 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   const homeScoutCreated = Number(homeScoutStats.created_count || 0);
   const homeScoutPriceChanged = Number(homeScoutStats.price_changed_count || 0);
   const homeScoutCountyCount = Number(homeScoutStats.county_count || 0);
+  const isScoutFresh = isFreshTimestamp(
+    demand.last_seen_at,
+    resolveMaxAgeMinutesForSignal({
+      sourceKind: "scout_interactions",
+      sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    })
+  );
+  const isObjectivesFresh = isFreshTimestamp(
+    objectiveStats.last_seen_at,
+    resolveMaxAgeMinutesForSignal({
+      sourceKind: "objectives",
+      sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    })
+  );
+  const isHomeScoutFresh = isFreshTimestamp(
+    homeScoutStats.last_seen_at,
+    resolveMaxAgeMinutesForSignal({
+      sourceKind: "homescout_listings",
+      sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    })
+  );
+  const isObservationFresh = isFreshTimestamp(
+    observationStats.last_seen_at,
+    resolveMaxAgeMinutesForSignal({
+      sourceKind: "observations",
+      sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    })
+  );
+  const isBotFresh = isFreshTimestamp(
+    (crawlerTelemetryStats.last_seen_at || botUiStats.last_seen_at) as any,
+    resolveMaxAgeMinutesForSignal({
+      sourceKind: "bot_visibility",
+      sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    })
+  );
+  const topCrawlerCountyFresh = isFreshTimestamp(
+    topCrawlerCounty?.last_seen_at || null,
+    resolveMaxAgeMinutesForSignal({
+      sourceKind: "bot_visibility",
+      sourceOverrides: LISA_SOURCE_MAX_AGE_MINUTES,
+      durabilityOverrides: LISA_DURABILITY_AGE_OVERRIDES,
+    })
+  );
 
   const feed: LisaFeedItem[] = [];
 
@@ -575,13 +681,13 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   }
 
   const truthNow =
-    interactionCount > 0
+    isScoutFresh && interactionCount > 0
       ? `TradeScout is producing real human-intent data right now, and the strongest live signal is ${topCounty.county_name ? `${topCounty.county_name}` : "county-agnostic activity"}${topCounty.intent ? ` around ${String(topCounty.intent).replace(/_/g, " ")}` : ""}.`
-      : topCrawlerCounty
+      : topCrawlerCounty && topCrawlerCountyFresh
         ? `TradeScout is producing county-scoped observation truth right now, led by ${String(topCrawlerCounty.county_name || "an attributed county")}${topCrawlerCounty.state_code ? `, ${String(topCrawlerCounty.state_code).toUpperCase()}` : ""} on the ${String(topCrawlerCounty.source_surface || "public")} surface.`
-        : observationCount > 0 || botTotal > 0
+        : (isObservationFresh && observationCount > 0) || (isBotFresh && botTotal > 0)
           ? "TradeScout is producing observation-grade market truth right now even where direct user volume is still thin."
-          : "TradeScout is not producing enough fresh telemetry right now to make a strong live-market claim.";
+          : `TradeScout is not producing enough fresh telemetry in the last ${LISA_TRUTH_NOW_MAX_AGE_MINUTES} minutes to make a strong live-market claim.`;
 
   const dataProductionSummary = [
     `${interactionCount} Scout interactions`,
@@ -596,6 +702,14 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       ? "The crawl and observation layer is active enough to generate language about what the market is noticing, not just what users have explicitly asked for."
       : "LLM optimization is currently constrained by low crawl and observation volume, so public-surface discoverability needs more pressure.";
 
+  const feedWithTruth: LisaFeedItem[] = feed.map((item) => {
+    const truthStatus = resolveLisaTruthStatus(item);
+    return {
+      ...item,
+      truthStatus,
+    };
+  });
+
   return {
     generatedAt: new Date().toISOString(),
     summary: {
@@ -603,7 +717,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       dataProductionSummary,
       llmOptimizationSummary,
     },
-    feed,
+    feed: feedWithTruth,
     runtime: {
       mode: "tradescout_local",
       source: "TradeScout telemetry synthesis",

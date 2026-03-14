@@ -1098,6 +1098,19 @@ export default function AdminPanel() {
 
           <FinanceLedgerPanel />
         </TabsContent>
+        <TabsList className="mb-4">
+          <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+          <TabsTrigger value="prizes">Prizes</TabsTrigger>
+          <TabsTrigger value="advertisements">Advertisements</TabsTrigger>
+          <TabsTrigger value="site-settings">Site Settings</TabsTrigger>
+          <TabsTrigger value="contractor-settings">Contractor Settings</TabsTrigger>
+          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+          <TabsTrigger value="notification-ops">Notification Ops</TabsTrigger>
+          <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
+          <TabsTrigger value="ai-fixes">AI Fixes</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="finance">Finance</TabsTrigger>
+        </TabsList>
       </Tabs>
 
       {/* Edit/Create Dialog */}

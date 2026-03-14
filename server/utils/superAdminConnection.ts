@@ -12,6 +12,9 @@ type EnsureSuperAdminConnectionResult = {
   superAdminUserId?: string;
 };
 
+const SUPER_ADMIN_SWEEP_COOLDOWN_MS = 15 * 60 * 1000;
+const lastSuperAdminSweepAt = new Map<string, number>();
+
 async function resolveSuperAdminUserId(): Promise<string | null> {
   const [superAdmin] = await db
     .select({ id: users.id })
@@ -36,9 +39,119 @@ export async function ensureSuperAdminConnectionForUser(
     return { ensured: false, reason: "missing_super_admin" };
   }
 
-  // Super admin account does not need an auto-link to itself.
+  const now = Date.now();
+
+  // If the current user is the super admin account, backfill their
+  // bidirectional support link + accepted contact edge with all users.
+  // Throttle to avoid repeating heavy set-based inserts on every /api/auth/user poll.
   if (superAdminUserId === normalizedUserId) {
-    return { ensured: false, reason: "self_super_admin", superAdminUserId };
+    const lastSweep = lastSuperAdminSweepAt.get(superAdminUserId) || 0;
+    if (now - lastSweep < SUPER_ADMIN_SWEEP_COOLDOWN_MS) {
+      return { ensured: false, reason: "self_super_admin_recent_sweep", superAdminUserId };
+    }
+
+    await db.execute(sql`
+      insert into user_follows (follower_id, following_id)
+      select ${superAdminUserId}, u.id
+      from users u
+      where u.id <> ${superAdminUserId}
+        and not exists (
+          select 1 from user_follows f
+          where f.follower_id = ${superAdminUserId}
+            and f.following_id = u.id
+        )
+    `);
+
+    await db.execute(sql`
+      insert into user_follows (follower_id, following_id)
+      select u.id, ${superAdminUserId}
+      from users u
+      where u.id <> ${superAdminUserId}
+        and not exists (
+          select 1 from user_follows f
+          where f.follower_id = u.id
+            and f.following_id = ${superAdminUserId}
+        )
+    `);
+
+    await db.execute(sql`
+      insert into contact_permissions (
+        requester_id,
+        target_user_id,
+        status,
+        authority_gate,
+        intent,
+        decision_scope,
+        responded_at,
+        responded_by,
+        response_reason,
+        updated_at
+      )
+      select
+        ${superAdminUserId},
+        u.id,
+        'accepted',
+        ${SUPER_ADMIN_AUTHORITY_GATE},
+        'platform_support',
+        'Platform support connection',
+        now(),
+        ${superAdminUserId},
+        ${SUPER_ADMIN_RESPONSE_REASON},
+        now()
+      from users u
+      where u.id <> ${superAdminUserId}
+      on conflict (requester_id, target_user_id)
+      do update set
+        status = 'accepted',
+        authority_gate = ${SUPER_ADMIN_AUTHORITY_GATE},
+        intent = 'platform_support',
+        decision_scope = 'Platform support connection',
+        responded_at = now(),
+        responded_by = ${superAdminUserId},
+        response_reason = ${SUPER_ADMIN_RESPONSE_REASON},
+        updated_at = now()
+    `);
+
+    await db.execute(sql`
+      insert into contact_permissions (
+        requester_id,
+        target_user_id,
+        status,
+        authority_gate,
+        intent,
+        decision_scope,
+        responded_at,
+        responded_by,
+        response_reason,
+        updated_at
+      )
+      select
+        u.id,
+        ${superAdminUserId},
+        'accepted',
+        ${SUPER_ADMIN_AUTHORITY_GATE},
+        'platform_support',
+        'Platform support connection',
+        now(),
+        ${superAdminUserId},
+        ${SUPER_ADMIN_RESPONSE_REASON},
+        now()
+      from users u
+      where u.id <> ${superAdminUserId}
+      on conflict (requester_id, target_user_id)
+      do update set
+        status = 'accepted',
+        authority_gate = ${SUPER_ADMIN_AUTHORITY_GATE},
+        intent = 'platform_support',
+        decision_scope = 'Platform support connection',
+        responded_at = now(),
+        responded_by = ${superAdminUserId},
+        response_reason = ${SUPER_ADMIN_RESPONSE_REASON},
+        updated_at = now()
+    `);
+
+    lastSuperAdminSweepAt.set(superAdminUserId, now);
+    return { ensured: true, reason: "self_super_admin_full_sweep", superAdminUserId };
   }
 
   await db.execute(sql`
