@@ -42,6 +42,13 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  const type = event?.data?.type;
+  if (type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 async function navigationNetworkOnly(request) {
   // IMPORTANT: Do not cache HTML navigations.
   // Stale cached HTML can reference removed hashed assets after deploys, causing "old version" lock-in.

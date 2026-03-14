@@ -403,6 +403,46 @@ async function bootstrap() {
       navigator.serviceWorker
         .register(SERVICE_WORKER_URL, { updateViaCache: "none" })
         .then((reg) => {
+          const markShouldReload = () => {
+            try {
+              sessionStorage.setItem("ts:sw:update-pending", "1");
+            } catch {
+              // ignore
+            }
+          };
+
+          const askWaitingWorkerToActivate = () => {
+            if (!reg.waiting) return;
+            markShouldReload();
+            reg.waiting.postMessage({ type: "SKIP_WAITING" });
+          };
+
+          // If an updated worker is already waiting, activate it now.
+          askWaitingWorkerToActivate();
+
+          reg.addEventListener("updatefound", () => {
+            const worker = reg.installing;
+            if (!worker) return;
+            worker.addEventListener("statechange", () => {
+              if (worker.state === "installed" && navigator.serviceWorker.controller) {
+                askWaitingWorkerToActivate();
+              }
+            });
+          });
+
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            try {
+              if (sessionStorage.getItem("ts:sw:update-pending") !== "1") return;
+              sessionStorage.removeItem("ts:sw:update-pending");
+            } catch {
+              // ignore
+            }
+
+            const url = new URL(window.location.href);
+            url.searchParams.set("__fresh", String(Date.now()));
+            window.location.replace(url.toString());
+          });
+
           // Prompt an update check after boot so users pick up newly deployed SW quickly.
           void reg.update().catch(() => {});
         })
