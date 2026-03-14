@@ -28,4 +28,15 @@ describe("Cumulus public campaign wiring", () => {
     expect(source).toContain("okaloosa-2026-03-26-1145");
     expect(source).toContain("okaloosa-2026-03-26-1400");
   });
+
+  it("backfills older campaign tables with newly required Cumulus columns", () => {
+    const source = read("server/db/ensureTradePartnerTables.ts");
+    expect(source).toContain("ALTER TABLE tradepartner_campaign_meetings");
+    expect(source).toContain("ADD COLUMN IF NOT EXISTS meeting_city");
+    expect(source).toContain("ADD COLUMN IF NOT EXISTS time_label");
+    expect(source).toContain("ADD COLUMN IF NOT EXISTS address_line1");
+    expect(source).toContain("ADD COLUMN IF NOT EXISTS address_line2");
+    expect(source).toContain("ALTER TABLE tradepartner_campaigns");
+    expect(source).toContain("ALTER TABLE tradepartner_campaign_focus_counties");
+  });
 });

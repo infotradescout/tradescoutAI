@@ -137,6 +137,71 @@ CREATE TABLE IF NOT EXISTS tradepartner_campaign_meetings (
 
 CREATE INDEX IF NOT EXISTS idx_tradepartner_campaign_meetings_partner
   ON tradepartner_campaign_meetings(partner_slug, county_slug, meeting_date);
+
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS hero_kicker TEXT NOT NULL DEFAULT 'TradePartner Campaign';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS hero_headline TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS hero_subhead TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS deal_amount_usd INTEGER NOT NULL DEFAULT 2000;
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS deal_terms TEXT NOT NULL DEFAULT 'No catch. No minimum spend. No hidden terms.';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS coverage_scope TEXT NOT NULL DEFAULT 'national';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS focus_note TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS cta_label TEXT NOT NULL DEFAULT 'Choose meeting date';
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS cta_url TEXT;
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS seo_keywords TEXT;
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS benefits_json JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE tradepartner_campaigns
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+ALTER TABLE tradepartner_campaign_focus_counties
+  ADD COLUMN IF NOT EXISTS local_focus TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_focus_counties
+  ADD COLUMN IF NOT EXISTS neighborhoods_json JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE tradepartner_campaign_focus_counties
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tradepartner_campaign_focus_counties
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE tradepartner_campaign_focus_counties
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE tradepartner_campaign_focus_counties
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS meeting_city TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS time_label TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS start_datetime TIMESTAMPTZ;
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS address_line1 TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS address_line2 TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS teaser TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS event_label TEXT NOT NULL DEFAULT '';
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE tradepartner_campaign_meetings
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 `;
 
 let ensurePromise: Promise<void> | null = null;
