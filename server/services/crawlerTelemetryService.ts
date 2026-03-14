@@ -31,6 +31,51 @@ type CrawlerAttribution = {
   categorySlug: string | null;
 };
 
+type BotObservationRouteContext = {
+  routeFamily: string;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  entityType: string | null;
+  entitySlug: string | null;
+};
+
+type BotObservationRow = {
+  date: string | Date;
+  route_family: string | null;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  bot_family: string | null;
+  hits: number;
+  unique_urls: number;
+  avg_response_time_ms: number | null;
+  avg_response_bytes: number | null;
+  status_200_count: number;
+  status_404_count: number;
+  recrawl_urls: number;
+  first_seen_urls: number;
+  top_path: string | null;
+};
+
+export interface BotCrawlAggregateSignal {
+  date: string;
+  routeFamily: string;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  botFamily: string;
+  hits: number;
+  uniqueUrls: number;
+  avgResponseTimeMs: number | null;
+  avgResponseBytes: number | null;
+  status200Count: number;
+  status404Count: number;
+  recrawlUrls: number;
+  firstSeenUrls: number;
+  topPath: string | null;
+}
+
 function deriveStatusClass(statusCode: number): "2xx" | "4xx" | "5xx" | null {
   if (statusCode >= 200 && statusCode < 300) return "2xx";
   if (statusCode >= 400 && statusCode < 500) return "4xx";
@@ -72,6 +117,26 @@ function cleanRefererHost(referer?: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+function cleanText(value: unknown, maxLength: number): string | null {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  return raw.length > maxLength ? raw.slice(0, maxLength) : raw;
+}
+
+function cleanQueryString(value?: string | null): string | null {
+  const raw = String(value || "")
+    .trim()
+    .replace(/^\?/, "");
+  if (!raw) return null;
+  return raw.length > 2000 ? raw.slice(0, 2000) : raw;
+}
+
+function cleanInteger(value: unknown): number | null {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return null;
+  return Math.round(numeric);
 }
 
 function cleanSlug(value?: string | null): string | null {
@@ -200,6 +265,137 @@ function inferCrawlerAttribution(
   }
 
   return { sourceSurface: "other", stateCode: null, countySlug: null, categorySlug: null };
+}
+
+function inferBotObservationRouteContext(
+  pathValue?: string | null,
+  attribution?: Omit<CrawlerAttribution, "countyFips">
+): BotObservationRouteContext {
+  const path = cleanPath(pathValue);
+  const lowerPath = path.toLowerCase();
+  const segments = lowerPath.split("/").filter(Boolean);
+  const base = attribution || inferCrawlerAttribution(pathValue);
+
+  if (lowerPath.startsWith("/business/")) {
+    return {
+      routeFamily: "public_business",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: null,
+      entityType: "business",
+      entitySlug: cleanSlug(segments[1] || null),
+    };
+  }
+
+  if (lowerPath.startsWith("/u/")) {
+    return {
+      routeFamily: "public_profile",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: null,
+      entityType: "profile",
+      entitySlug: cleanSlug(segments[1] || null),
+    };
+  }
+
+  if (lowerPath.startsWith("/county/")) {
+    return {
+      routeFamily: "county_page",
+      county: cleanSlug(segments[2] || null),
+      state: cleanStateCode(segments[1] || null),
+      trade: null,
+      entityType: "county",
+      entitySlug: cleanSlug(segments[2] || null),
+    };
+  }
+
+  if (lowerPath.startsWith("/trade/")) {
+    return {
+      routeFamily: "trade_county_page",
+      county: cleanSlug(segments[3] || null),
+      state: cleanStateCode(segments[2] || null),
+      trade: cleanSlug(segments[1] || null),
+      entityType: "trade_page",
+      entitySlug: cleanSlug(segments.slice(1).join("/")),
+    };
+  }
+
+  if (lowerPath.startsWith("/tradepartners/")) {
+    return {
+      routeFamily: "tradepartners",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: cleanSlug(segments[1] || null),
+      entityType: "partner_page",
+      entitySlug: cleanSlug(segments.slice(1).join("/")),
+    };
+  }
+
+  if (lowerPath.startsWith("/homescout-listings")) {
+    return {
+      routeFamily: "homescout_listings",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: null,
+      entityType: "listing_portal",
+      entitySlug: cleanSlug(segments[1] || null),
+    };
+  }
+
+  if (lowerPath.startsWith("/exchange")) {
+    return {
+      routeFamily: "exchange",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: cleanSlug(segments[1] || null),
+      entityType: "exchange_portal",
+      entitySlug: cleanSlug(segments.slice(1).join("/")),
+    };
+  }
+
+  if (lowerPath.startsWith("/community")) {
+    return {
+      routeFamily: "community",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: null,
+      entityType: "community_surface",
+      entitySlug: cleanSlug(segments.slice(1).join("/")),
+    };
+  }
+
+  if (lowerPath.startsWith("/scout")) {
+    return {
+      routeFamily: "scout",
+      county: base.countySlug,
+      state: base.stateCode,
+      trade: null,
+      entityType: "scout_surface",
+      entitySlug: cleanSlug(segments.slice(1).join("/")),
+    };
+  }
+
+  return {
+    routeFamily: String(base.sourceSurface || "other"),
+    county: base.countySlug,
+    state: base.stateCode,
+    trade: base.categorySlug,
+    entityType: segments.length > 0 ? "page" : "root",
+    entitySlug: cleanSlug(segments.join("/")),
+  };
+}
+
+function buildCanonicalUrl(req: Request, pathValue: string): string {
+  const host = cleanText(req.get("Host"), 255) || "www.thetradescout.com";
+  const proto = cleanText(req.get("X-Forwarded-Proto"), 12) || req.protocol || "https";
+  return `${proto.toLowerCase()}://${host}${pathValue}`;
+}
+
+function resolveResponseContentType(req: Request): string | null {
+  const header = req.res?.getHeader("content-type");
+  if (typeof header === "string") return header;
+  if (Array.isArray(header)) return header.join(", ");
+  return null;
 }
 
 async function resolveCountyFips(
@@ -360,6 +556,58 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
           updated_at timestamptz NOT NULL DEFAULT now()
         );
       `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS bot_observation_events (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          observed_at timestamptz NOT NULL DEFAULT now(),
+          request_id varchar(128),
+          ip_hash varchar(64),
+          user_agent text,
+          method varchar(12) NOT NULL,
+          host varchar(255),
+          path varchar(512) NOT NULL,
+          query_string text,
+          status_code integer NOT NULL,
+          response_time_ms integer,
+          response_bytes integer,
+          referer text,
+          accept_language varchar(255),
+          cache_status varchar(64),
+          route_name varchar(128),
+          route_family varchar(64) NOT NULL,
+          bot_family varchar(120) NOT NULL,
+          canonical_url text,
+          matched_template varchar(255),
+          content_type varchar(255),
+          is_first_seen_url boolean NOT NULL DEFAULT false,
+          is_recrawl boolean NOT NULL DEFAULT false,
+          county varchar(160),
+          state varchar(2),
+          trade varchar(160),
+          entity_type varchar(64),
+          entity_slug varchar(255)
+        );
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS bot_observation_daily_agg (
+          date date NOT NULL,
+          route_family varchar(64) NOT NULL,
+          county varchar(160),
+          state varchar(2),
+          trade varchar(160),
+          bot_family varchar(120) NOT NULL,
+          hits integer NOT NULL DEFAULT 0,
+          unique_urls integer NOT NULL DEFAULT 0,
+          avg_response_time_ms integer,
+          avg_response_bytes integer,
+          status_200_count integer NOT NULL DEFAULT 0,
+          status_404_count integer NOT NULL DEFAULT 0,
+          recrawl_urls integer NOT NULL DEFAULT 0,
+          first_seen_urls integer NOT NULL DEFAULT 0,
+          top_path varchar(512),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        );
+      `);
 
       await pool.query(
         `ALTER TABLE crawler_request_events ADD COLUMN IF NOT EXISTS source_surface varchar(64);`
@@ -422,6 +670,44 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
       await pool.query(
         `CREATE INDEX IF NOT EXISTS crawler_request_events_path_idx ON crawler_request_events (path);`
       );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_observed_idx ON bot_observation_events (observed_at DESC);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_bot_idx ON bot_observation_events (bot_family);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_route_idx ON bot_observation_events (route_family);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_county_idx ON bot_observation_events (county);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_state_idx ON bot_observation_events (state);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_trade_idx ON bot_observation_events (trade);`
+      );
+      await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS bot_observation_daily_agg_unique
+        ON bot_observation_daily_agg (
+          date,
+          route_family,
+          coalesce(county, ''),
+          coalesce(state, ''),
+          coalesce(trade, ''),
+          bot_family
+        );
+      `);
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_daily_agg_date_idx ON bot_observation_daily_agg (date DESC);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_daily_agg_route_idx ON bot_observation_daily_agg (route_family);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_daily_agg_county_idx ON bot_observation_daily_agg (county);`
+      );
 
       await pool.query(`
         CREATE UNIQUE INDEX IF NOT EXISTS crawler_request_hourly_rollups_bucket_unique
@@ -460,7 +746,109 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
   await ensurePromise;
 }
 
-export async function recordCrawlerRequestEvent(req: Request, statusCode: number): Promise<void> {
+async function refreshBotObservationDailyAggregate(args: {
+  observedAt: Date;
+  routeFamily: string;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  botFamily: string;
+}): Promise<void> {
+  await pool.query(
+    `
+      insert into bot_observation_daily_agg (
+        date,
+        route_family,
+        county,
+        state,
+        trade,
+        bot_family,
+        hits,
+        unique_urls,
+        avg_response_time_ms,
+        avg_response_bytes,
+        status_200_count,
+        status_404_count,
+        recrawl_urls,
+        first_seen_urls,
+        top_path,
+        updated_at
+      )
+      select
+        $1::date as date,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        count(*)::int as hits,
+        count(distinct canonical_url)::int as unique_urls,
+        round(avg(response_time_ms))::int as avg_response_time_ms,
+        round(avg(response_bytes))::int as avg_response_bytes,
+        count(*) filter (where status_code = 200)::int as status_200_count,
+        count(*) filter (where status_code = 404)::int as status_404_count,
+        coalesce(sum(case when is_recrawl then 1 else 0 end), 0)::int as recrawl_urls,
+        coalesce(sum(case when is_first_seen_url then 1 else 0 end), 0)::int as first_seen_urls,
+        (
+          select e2.path
+          from bot_observation_events e2
+          where e2.observed_at::date = $1::date
+            and e2.route_family = $2
+            and coalesce(e2.county, '') = coalesce($3, '')
+            and coalesce(e2.state, '') = coalesce($4, '')
+            and coalesce(e2.trade, '') = coalesce($5, '')
+            and e2.bot_family = $6
+          group by e2.path
+          order by count(*) desc, e2.path asc
+          limit 1
+        ) as top_path,
+        now() as updated_at
+      from bot_observation_events e
+      where e.observed_at::date = $1::date
+        and e.route_family = $2
+        and coalesce(e.county, '') = coalesce($3, '')
+        and coalesce(e.state, '') = coalesce($4, '')
+        and coalesce(e.trade, '') = coalesce($5, '')
+        and e.bot_family = $6
+      on conflict (
+        date,
+        route_family,
+        coalesce(county, ''),
+        coalesce(state, ''),
+        coalesce(trade, ''),
+        bot_family
+      )
+      do update set
+        hits = excluded.hits,
+        unique_urls = excluded.unique_urls,
+        avg_response_time_ms = excluded.avg_response_time_ms,
+        avg_response_bytes = excluded.avg_response_bytes,
+        status_200_count = excluded.status_200_count,
+        status_404_count = excluded.status_404_count,
+        recrawl_urls = excluded.recrawl_urls,
+        first_seen_urls = excluded.first_seen_urls,
+        top_path = excluded.top_path,
+        updated_at = now()
+    `,
+    [
+      args.observedAt.toISOString(),
+      args.routeFamily,
+      args.county,
+      args.state,
+      args.trade,
+      args.botFamily,
+    ]
+  );
+}
+
+export async function recordCrawlerRequestEvent(
+  req: Request,
+  statusCode: number,
+  metrics?: {
+    responseTimeMs?: number | null;
+    responseBytes?: number | null;
+  }
+): Promise<void> {
   const userAgent = req.get("User-Agent");
   const actor = detectActorFromUserAgent(userAgent);
   if (actor.actorType !== "bot") return;
@@ -472,14 +860,32 @@ export async function recordCrawlerRequestEvent(req: Request, statusCode: number
     await ensureCrawlerRequestEventsTable();
     void pruneCrawlerRequestEventsIfNeeded();
     void backfillCountyFipsIfNeeded();
-    const requestType: RequestType = classifyRequestType(req.path || req.originalUrl || "/");
+    const originalUrl = String(req.originalUrl || req.path || "/");
+    const parsedUrl = new URL(originalUrl, "https://www.thetradescout.com");
+    const requestPath = cleanPath(parsedUrl.pathname);
+    const requestType: RequestType = classifyRequestType(requestPath);
     const { ip } = getClientIp(req);
-    const baseAttribution = inferCrawlerAttribution(req.path || req.originalUrl || "/");
+    const baseAttribution = inferCrawlerAttribution(requestPath);
     const attribution: CrawlerAttribution = {
       ...baseAttribution,
       countyFips: await resolveCountyFips(baseAttribution.stateCode, baseAttribution.countySlug),
     };
+    const routeContext = inferBotObservationRouteContext(requestPath, baseAttribution);
     const botName = cleanBotName(actor.botName);
+    const observedAt = new Date();
+    const canonicalUrl = buildCanonicalUrl(req, requestPath);
+    const previousObservation = await pool.query(
+      `
+        select 1
+        from bot_observation_events
+        where bot_family = $1
+          and canonical_url = $2
+        limit 1
+      `,
+      [botName, canonicalUrl]
+    );
+    const isRecrawl = (previousObservation.rowCount || 0) > 0;
+    const isFirstSeenUrl = !isRecrawl;
 
     await pool.query(
       `
@@ -504,7 +910,7 @@ export async function recordCrawlerRequestEvent(req: Request, statusCode: number
       [
         botName,
         cleanMethod(req.method),
-        cleanPath(req.path || req.originalUrl || "/"),
+        requestPath,
         requestType,
         attribution.sourceSurface,
         attribution.stateCode,
@@ -516,6 +922,72 @@ export async function recordCrawlerRequestEvent(req: Request, statusCode: number
         cleanRefererHost(req.get("Referer")),
         hashIp(ip),
         cleanUserAgent(userAgent),
+      ]
+    );
+
+    await pool.query(
+      `
+        insert into bot_observation_events (
+          observed_at,
+          request_id,
+          ip_hash,
+          user_agent,
+          method,
+          host,
+          path,
+          query_string,
+          status_code,
+          response_time_ms,
+          response_bytes,
+          referer,
+          accept_language,
+          cache_status,
+          route_name,
+          route_family,
+          bot_family,
+          canonical_url,
+          matched_template,
+          content_type,
+          is_first_seen_url,
+          is_recrawl,
+          county,
+          state,
+          trade,
+          entity_type,
+          entity_slug
+        )
+        values (
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
+        )
+      `,
+      [
+        observedAt.toISOString(),
+        cleanText((req as { requestId?: string }).requestId, 128),
+        hashIp(ip),
+        cleanUserAgent(userAgent),
+        cleanMethod(req.method),
+        cleanText(req.get("Host"), 255),
+        requestPath,
+        cleanQueryString(parsedUrl.search),
+        statusCode,
+        cleanInteger(metrics?.responseTimeMs),
+        cleanInteger(metrics?.responseBytes),
+        cleanText(req.get("Referer"), 1000),
+        cleanText(req.get("Accept-Language"), 255),
+        cleanText(req.get("X-Cache") || req.get("CF-Cache-Status"), 64),
+        cleanText(requestType, 128),
+        cleanText(routeContext.routeFamily, 64),
+        botName,
+        cleanText(canonicalUrl, 2000),
+        cleanText(String((req.route as { path?: string } | undefined)?.path || ""), 255),
+        cleanText(resolveResponseContentType(req), 255),
+        isFirstSeenUrl,
+        isRecrawl,
+        routeContext.county,
+        routeContext.state,
+        routeContext.trade,
+        routeContext.entityType,
+        routeContext.entitySlug,
       ]
     );
 
@@ -573,6 +1045,15 @@ export async function recordCrawlerRequestEvent(req: Request, statusCode: number
         statusClass,
       ]
     );
+
+    await refreshBotObservationDailyAggregate({
+      observedAt,
+      routeFamily: routeContext.routeFamily,
+      county: routeContext.county,
+      state: routeContext.state,
+      trade: routeContext.trade,
+      botFamily: botName,
+    });
   } catch (error) {
     console.error("[crawler-telemetry] failed to persist crawler request event:", error);
   }
