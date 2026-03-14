@@ -365,7 +365,7 @@ type TrendingTopic = {
 };
 
 const CommunityFeed = memo(function CommunityFeed() {
-  type FeedTab = "forYou" | "recent" | "nearby" | "vault";
+  type FeedTab = "forYou" | "recent" | "vault";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
@@ -430,7 +430,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       case "recent":
         return "recent";
       case "nearby":
-        return "nearby";
+        return "forYou";
       case "vault":
         return "vault";
       default:
@@ -556,8 +556,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     switch (activeTab) {
       case "recent":
         return "recent";
-      case "nearby":
-        return "nearby";
       default:
         return "county";
     }
@@ -1018,7 +1016,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const displayPosts: any[] = posts;
   const tabSortedPosts = useMemo(() => {
     const list = [...displayPosts];
-    if (activeTab === "recent" || activeTab === "nearby") {
+    if (activeTab === "recent") {
       return list.sort((a, b) => {
         const aTs = new Date(a.createdAt || a.timestamp || 0).getTime();
         const bTs = new Date(b.createdAt || b.timestamp || 0).getTime();
@@ -1824,41 +1822,6 @@ const CommunityFeed = memo(function CommunityFeed() {
                 )}
               </CardContent>
             </Card>
-            {/* Phase 1: Global Community Toggle (read-only visibility) */}
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1 bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] rounded-lg p-1">
-                <button
-                  onClick={() => handleScopeToggle("local")}
-                  aria-pressed={!isGlobalView}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    !isGlobalView
-                      ? "bg-ts-orange text-white"
-                      : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                  }`}
-                >
-                  <MapPin className="inline h-4 w-4 mr-1" />
-                  Local
-                </button>
-                <button
-                  onClick={() => handleScopeToggle("global")}
-                  aria-pressed={isGlobalView}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    isGlobalView
-                      ? "bg-ts-orange text-white"
-                      : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                  }`}
-                >
-                  <Globe className="inline h-4 w-4 mr-1" />
-                  Everywhere
-                </button>
-              </div>
-              {isGlobalView && (
-                <span className="text-[11px] md:text-xs text-[color:var(--text-secondary)]">
-                  Read-only
-                </span>
-              )}
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
               {/* Main Feed */}
               <div className="lg:col-span-2 space-y-3 md:space-y-4">
@@ -1867,33 +1830,89 @@ const CommunityFeed = memo(function CommunityFeed() {
                   onValueChange={(value) => handleTabChange(value as FeedTab)}
                   className="w-full"
                 >
-                  <div className="mb-3 md:mb-4 flex flex-wrap items-center gap-2">
-                    <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
-                      <TabsTrigger
-                        value="forYou"
-                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                      >
-                        For You
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="recent"
-                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                      >
-                        Recent
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="nearby"
-                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                      >
-                        Nearby
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="vault"
-                        className="rounded-md px-3 py-1.5 text-xs font-semibold"
-                      >
-                        Saved
-                      </TabsTrigger>
-                    </TabsList>
+                  <div className="mb-3 space-y-3 md:mb-4">
+                    <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+                            Scope
+                          </p>
+                          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                            {isGlobalView
+                              ? "Browse posts from across TradeScout. Global view stays read-only."
+                              : "Stay inside your local community for posting and interaction."}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isGlobalView ? (
+                            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/65">
+                              Read-only
+                            </span>
+                          ) : null}
+                          <div className="flex items-center gap-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-1">
+                            <button
+                              onClick={() => handleScopeToggle("local")}
+                              aria-pressed={!isGlobalView}
+                              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                                !isGlobalView
+                                  ? "bg-ts-orange text-white"
+                                  : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                              }`}
+                            >
+                              <MapPin className="inline h-4 w-4 mr-1" />
+                              Local
+                            </button>
+                            <button
+                              onClick={() => handleScopeToggle("global")}
+                              aria-pressed={isGlobalView}
+                              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                                isGlobalView
+                                  ? "bg-ts-orange text-white"
+                                  : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                              }`}
+                            >
+                              <Globe className="inline h-4 w-4 mr-1" />
+                              Everywhere
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+                            Feed
+                          </p>
+                          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                            {isGlobalView
+                              ? "Choose the type of posts to browse across the network."
+                              : "Choose how you want your local feed organized."}
+                          </p>
+                        </div>
+                      </div>
+                      <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
+                        <TabsTrigger
+                          value="forYou"
+                          className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                        >
+                          Recommended
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="recent"
+                          className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                        >
+                          Recent
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="vault"
+                          className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                        >
+                          Saved Posts
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
                   </div>
                   {/* Inline composer (local-only; global view is read-only) */}
                   {!isGlobalView ? (
@@ -2125,10 +2144,6 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </TabsContent>
 
                   <TabsContent value="recent" className="mt-0">
-                    {renderFeedList()}
-                  </TabsContent>
-
-                  <TabsContent value="nearby" className="mt-0">
                     {renderFeedList()}
                   </TabsContent>
 
