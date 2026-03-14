@@ -791,8 +791,7 @@ export default function TradePartnerCumulusLanding() {
     }
   };
 
-  const handleSubmitRsvp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitRsvpForSlot = async (slotId: string) => {
     setSubmitError(null);
 
     if (!isAuthenticated || !userRecord) {
@@ -808,7 +807,7 @@ export default function TradePartnerCumulusLanding() {
       return;
     }
 
-    const selectedSlot = visibleMeetingSlots.find((slot) => slot.id === meetingSlotId);
+    const selectedSlot = visibleMeetingSlots.find((slot) => slot.id === slotId);
     if (!selectedSlot) {
       setSubmitError("Select a county meeting date.");
       return;
@@ -816,6 +815,7 @@ export default function TradePartnerCumulusLanding() {
 
     try {
       setSubmitting(true);
+      setMeetingSlotId(selectedSlot.id);
       await apiRequest("POST", "/api/tradepartner-rsvp", {
         partnerSlug: campaignConfig?.partnerSlug || PARTNER_SLUG,
         meetingId: selectedSlot.id,
@@ -847,6 +847,11 @@ export default function TradePartnerCumulusLanding() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmitRsvp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submitRsvpForSlot(meetingSlotId);
   };
 
   return (
@@ -954,15 +959,27 @@ export default function TradePartnerCumulusLanding() {
                   <p className="tpc-county-served">Serving {session.countyLabel}</p>
                   <p>{session.teaser}</p>
                   <p className="tpc-county-date">{session.dateLabel}</p>
-                  <p className="tpc-county-time">
-                    RSVP times:{" "}
-                    {session.slots
-                      .map((slot) => slot.timeLabel || "TBD")
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                  <p className="tpc-county-time">Choose a time and RSVP from this card.</p>
                   {session.addressLine1 ? <p>{session.addressLine1}</p> : null}
                   {session.addressLine2 ? <p>{session.addressLine2}</p> : null}
+                  <div className="tpc-slot-grid tpc-session-slot-grid">
+                    {session.slots.map((slot) => (
+                      <label key={slot.id} className="tpc-slot-option">
+                        <input
+                          type="radio"
+                          name="meetingSlot"
+                          value={slot.id}
+                          checked={meetingSlotId === slot.id}
+                          onChange={(event) => setMeetingSlotId(event.target.value)}
+                        />
+                        <div>
+                          <strong>{slot.timeLabel || "TBD"}</strong>
+                          <span>{session.meetingCity || session.countyLabel}</span>
+                          <span>{session.dateLabel}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                   <div className="tpc-county-meta">
                     <span>
                       <Salad size={14} />
@@ -972,6 +989,50 @@ export default function TradePartnerCumulusLanding() {
                       <Users2 size={14} />
                       Local business networking
                     </span>
+                  </div>
+                  <div className="tpc-session-actions">
+                    {!isAuthenticated ? (
+                      <button
+                        type="button"
+                        className="tpc-btn tpc-btn-primary"
+                        onClick={() => scrollToElementById("cumulus-account-form")}
+                      >
+                        Create account to RSVP
+                        <ArrowRight size={16} />
+                      </button>
+                    ) : !emailVerified ? (
+                      <button
+                        type="button"
+                        className="tpc-btn tpc-btn-secondary"
+                        onClick={() =>
+                          navigate(
+                            `/check-email?email=${encodeURIComponent(prefilledEmail)}&next=${encodeURIComponent(
+                              rsvpReturnPath
+                            )}`
+                          )
+                        }
+                      >
+                        Verify email to RSVP
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="tpc-btn tpc-btn-primary"
+                        disabled={submitting}
+                        onClick={() => {
+                          const targetSlotId =
+                            session.slots.find((slot) => slot.id === meetingSlotId)?.id ||
+                            session.slots[0]?.id ||
+                            "";
+                          void submitRsvpForSlot(targetSlotId);
+                        }}
+                      >
+                        {submitting && session.slots.some((slot) => slot.id === meetingSlotId)
+                          ? "Submitting..."
+                          : "RSVP from this card"}
+                        {!submitting ? <ArrowRight size={16} /> : null}
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -1109,43 +1170,27 @@ export default function TradePartnerCumulusLanding() {
                   <form onSubmit={handleSubmitRsvp} className="tpc-form">
                     {submitError ? <p className="tpc-error">{submitError}</p> : null}
 
-                    <fieldset className="tpc-slot-group">
-                      <legend>Meeting date *</legend>
-                      <div className="tpc-slot-grid">
-                        {groupedMeetingSessions.map((session) => (
-                          <div key={session.id} className="tpc-slot-option">
-                            <div>
-                              <strong>{session.dateLabel}</strong>
-                              <span>
-                                {session.meetingCity || session.countyLabel}
-                                {session.meetingCity ? ` | Serving ${session.countyLabel}` : ""}
-                              </span>
-                              {session.addressLine1 ? <span>{session.addressLine1}</span> : null}
-                              {session.addressLine2 ? <span>{session.addressLine2}</span> : null}
-                            </div>
-                            <div className="tpc-slot-grid">
-                              {session.slots.map((slot) => (
-                                <label key={slot.id} className="tpc-slot-option">
-                                  <input
-                                    type="radio"
-                                    name="meetingSlot"
-                                    value={slot.id}
-                                    checked={meetingSlotId === slot.id}
-                                    onChange={(event) => setMeetingSlotId(event.target.value)}
-                                    required
-                                  />
-                                  <div>
-                                    <strong>{slot.timeLabel || "TBD"}</strong>
-                                    <span>{session.meetingCity || session.countyLabel}</span>
-                                    <span>{session.dateLabel}</span>
-                                  </div>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                    <div className="tpc-prefill-card">
+                      <div>
+                        <span>Selected session</span>
+                        <strong>
+                          {visibleMeetingSlots.find((slot) => slot.id === meetingSlotId)
+                            ?.timeLabel || "Choose a time from a session card"}
+                        </strong>
                       </div>
-                    </fieldset>
+                      <div>
+                        <span>Meeting details</span>
+                        <strong>
+                          {(() => {
+                            const selectedSlot = visibleMeetingSlots.find(
+                              (slot) => slot.id === meetingSlotId
+                            );
+                            if (!selectedSlot) return "Select a session card above.";
+                            return `${selectedSlot.meetingCity || selectedSlot.countyLabel} | ${selectedSlot.dateLabel}`;
+                          })()}
+                        </strong>
+                      </div>
+                    </div>
 
                     <label className="tpc-field">
                       <span>Notes (optional)</span>
@@ -1157,14 +1202,10 @@ export default function TradePartnerCumulusLanding() {
                       />
                     </label>
 
-                    <button
-                      type="submit"
-                      disabled={submitting || !emailVerified}
-                      className="tpc-btn tpc-btn-primary"
-                    >
-                      {submitting ? "Submitting..." : "Submit RSVP"}
-                      {!submitting ? <ArrowRight size={16} /> : null}
-                    </button>
+                    <p className="tpc-auth-helper">
+                      Choose a time on the session card and RSVP there. Notes entered here will be
+                      included with your submission.
+                    </p>
                   </form>
                 )}
               </section>

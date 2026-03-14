@@ -309,6 +309,18 @@
   background: rgba(0, 95, 115, 0.06);
 }
 
+.tpc-session-slot-grid {
+  margin-top: 10px;
+}
+
+.tpc-session-actions {
+  margin-top: 12px;
+}
+
+.tpc-session-actions .tpc-btn {
+  width: 100%;
+}
+
 .tpc-form-panel {
   border-color: rgba(0, 95, 115, 0.26);
   background:
