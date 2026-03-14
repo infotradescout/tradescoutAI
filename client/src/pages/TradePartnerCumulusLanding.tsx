@@ -69,6 +69,23 @@ type CampaignConfig = {
   isActive: boolean;
 };
 
+type GroupedMeetingSession = {
+  id: string;
+  countySlug: string;
+  countyLabel: string;
+  meetingCity: string;
+  meetingDate: string;
+  dateLabel: string;
+  addressLine1: string;
+  addressLine2: string;
+  teaser: string;
+  slots: Array<{
+    id: string;
+    timeLabel: string;
+    startDateTime: string;
+  }>;
+};
+
 const COUNTY_SEO: Record<string, CountySeoConfig> = {
   "mobile-county-al": {
     slug: "mobile-county-al",
@@ -554,6 +571,54 @@ export default function TradePartnerCumulusLanding() {
     [activeCounty, campaignMeetings]
   );
 
+  const groupedMeetingSessions = useMemo(() => {
+    const grouped = new Map<string, GroupedMeetingSession>();
+
+    for (const slot of visibleMeetingSlots) {
+      const groupKey = [
+        slot.countySlug,
+        slot.meetingDate,
+        slot.meetingCity || slot.countyLabel,
+        slot.addressLine1 || "",
+        slot.addressLine2 || "",
+      ].join("|");
+
+      if (!grouped.has(groupKey)) {
+        grouped.set(groupKey, {
+          id: groupKey,
+          countySlug: slot.countySlug,
+          countyLabel: slot.countyLabel,
+          meetingCity: slot.meetingCity || slot.countyLabel,
+          meetingDate: slot.meetingDate,
+          dateLabel: slot.dateLabel,
+          addressLine1: slot.addressLine1 || "",
+          addressLine2: slot.addressLine2 || "",
+          teaser: slot.teaser,
+          slots: [],
+        });
+      }
+
+      grouped.get(groupKey)?.slots.push({
+        id: slot.id,
+        timeLabel: slot.timeLabel || "",
+        startDateTime: slot.startDateTime || "",
+      });
+    }
+
+    return Array.from(grouped.values()).map((group) => ({
+      ...group,
+      slots: [...group.slots].sort((a, b) => {
+        const aTime = a.startDateTime
+          ? new Date(a.startDateTime).getTime()
+          : Number.MAX_SAFE_INTEGER;
+        const bTime = b.startDateTime
+          ? new Date(b.startDateTime).getTime()
+          : Number.MAX_SAFE_INTEGER;
+        return aTime - bTime;
+      }),
+    }));
+  }, [visibleMeetingSlots]);
+
   useEffect(() => {
     if (!visibleMeetingSlots.length) return;
     const selectedStillVisible = visibleMeetingSlots.some((slot) => slot.id === meetingSlotId);
@@ -883,15 +948,21 @@ export default function TradePartnerCumulusLanding() {
               10 spots per RSVP time.
             </p>
             <div className="tpc-county-list">
-              {visibleMeetingSlots.map((slot) => (
-                <article key={slot.id} className="tpc-county-card">
-                  <h3>{slot.meetingCity || slot.countyLabel}</h3>
-                  <p className="tpc-county-served">Serving {slot.countyLabel}</p>
-                  <p>{slot.teaser}</p>
-                  <p className="tpc-county-date">{slot.dateLabel}</p>
-                  <p className="tpc-county-time">RSVP time: {slot.timeLabel || "TBD"}</p>
-                  {slot.addressLine1 ? <p>{slot.addressLine1}</p> : null}
-                  {slot.addressLine2 ? <p>{slot.addressLine2}</p> : null}
+              {groupedMeetingSessions.map((session) => (
+                <article key={session.id} className="tpc-county-card">
+                  <h3>{session.meetingCity || session.countyLabel}</h3>
+                  <p className="tpc-county-served">Serving {session.countyLabel}</p>
+                  <p>{session.teaser}</p>
+                  <p className="tpc-county-date">{session.dateLabel}</p>
+                  <p className="tpc-county-time">
+                    RSVP times:{" "}
+                    {session.slots
+                      .map((slot) => slot.timeLabel || "TBD")
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {session.addressLine1 ? <p>{session.addressLine1}</p> : null}
+                  {session.addressLine2 ? <p>{session.addressLine2}</p> : null}
                   <div className="tpc-county-meta">
                     <span>
                       <Salad size={14} />
@@ -1041,29 +1112,37 @@ export default function TradePartnerCumulusLanding() {
                     <fieldset className="tpc-slot-group">
                       <legend>Meeting date *</legend>
                       <div className="tpc-slot-grid">
-                        {visibleMeetingSlots.map((slot) => (
-                          <label key={slot.id} className="tpc-slot-option">
-                            <input
-                              type="radio"
-                              name="meetingSlot"
-                              value={slot.id}
-                              checked={meetingSlotId === slot.id}
-                              onChange={(event) => setMeetingSlotId(event.target.value)}
-                              required
-                            />
+                        {groupedMeetingSessions.map((session) => (
+                          <div key={session.id} className="tpc-slot-option">
                             <div>
-                              <strong>
-                                {slot.dateLabel}
-                                {slot.timeLabel ? ` at ${slot.timeLabel}` : ""}
-                              </strong>
+                              <strong>{session.dateLabel}</strong>
                               <span>
-                                {slot.meetingCity || slot.countyLabel}
-                                {slot.meetingCity ? ` | Serving ${slot.countyLabel}` : ""}
+                                {session.meetingCity || session.countyLabel}
+                                {session.meetingCity ? ` | Serving ${session.countyLabel}` : ""}
                               </span>
-                              {slot.addressLine1 ? <span>{slot.addressLine1}</span> : null}
-                              {slot.addressLine2 ? <span>{slot.addressLine2}</span> : null}
+                              {session.addressLine1 ? <span>{session.addressLine1}</span> : null}
+                              {session.addressLine2 ? <span>{session.addressLine2}</span> : null}
                             </div>
-                          </label>
+                            <div className="tpc-slot-grid">
+                              {session.slots.map((slot) => (
+                                <label key={slot.id} className="tpc-slot-option">
+                                  <input
+                                    type="radio"
+                                    name="meetingSlot"
+                                    value={slot.id}
+                                    checked={meetingSlotId === slot.id}
+                                    onChange={(event) => setMeetingSlotId(event.target.value)}
+                                    required
+                                  />
+                                  <div>
+                                    <strong>{slot.timeLabel || "TBD"}</strong>
+                                    <span>{session.meetingCity || session.countyLabel}</span>
+                                    <span>{session.dateLabel}</span>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </fieldset>
