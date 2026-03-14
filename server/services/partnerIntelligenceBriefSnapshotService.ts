@@ -483,7 +483,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
           lisa_json,
           computed_at
         )
-        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,now())
+        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,now())
       `,
       [
         params.partnerSlug,
@@ -516,7 +516,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
           lisa_json,
           computed_at
         )
-        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,now())
+        values ($1,$2,nullif($3,''),nullif($4,''),$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,now())
       `,
       [
         params.partnerSlug,

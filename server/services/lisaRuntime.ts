@@ -121,11 +121,16 @@ async function loadJsonFileFeed(filePath: string): Promise<LisaFeedResponse> {
 }
 
 async function finalizeLisaFeed(feed: LisaFeedResponse): Promise<LisaFeedResponse> {
-  const persisted = await reconcileLisaFindings(feed);
-  return {
-    ...feed,
-    feed: persisted,
-  };
+  try {
+    const persisted = await reconcileLisaFindings(feed);
+    return {
+      ...feed,
+      feed: persisted,
+    };
+  } catch (error) {
+    console.error("[lisa] failed to reconcile findings; returning in-memory feed", error);
+    return feed;
+  }
 }
 
 async function loadRemoteFeed(url: string): Promise<LisaFeedResponse> {
