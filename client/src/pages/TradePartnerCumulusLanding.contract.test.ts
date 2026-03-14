@@ -10,8 +10,8 @@ describe("TradePartnerCumulusLanding", () => {
   it("groups sessions by location/date and renders RSVP actions on the same card", () => {
     const source = read("client/src/pages/TradePartnerCumulusLanding.tsx");
     expect(source).toContain("const groupedMeetingSessions = useMemo");
-    expect(source).toContain("Choose a time and RSVP from this card.");
-    expect(source).toContain("RSVP from this card");
+    expect(source).toContain("Choose a time and RSVP.");
+    expect(source).toContain(': "RSVP"}');
     expect(source).toContain("Create account to RSVP");
     expect(source).toContain("Verify email to RSVP");
   });

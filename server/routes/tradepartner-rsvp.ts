@@ -13,6 +13,17 @@ const RSVP_COUNTIES: Record<string, string> = {
   "escambia-county-fl": "Escambia County, FL",
   "okaloosa-county-fl": "Okaloosa County, FL",
 };
+const COUNTY_ALIASES: Record<string, string> = {
+  mobile: "mobile-county-al",
+  "mobile-al": "mobile-county-al",
+  "mobile county al": "mobile-county-al",
+  escambia: "escambia-county-fl",
+  "escambia-fl": "escambia-county-fl",
+  "escambia county fl": "escambia-county-fl",
+  okaloosa: "okaloosa-county-fl",
+  "okaloosa-fl": "okaloosa-county-fl",
+  "okaloosa county fl": "okaloosa-county-fl",
+};
 
 function cleanString(value: unknown, maxLen: number): string {
   if (typeof value !== "string") return "";
@@ -32,8 +43,21 @@ function parsePositiveInteger(value: unknown, fallback: number, min: number, max
 function parseMeetingDate(value: unknown): string {
   const normalized = cleanString(value, 32);
   if (!normalized) return "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return "";
-  return normalized;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+  const parsed = new Date(normalized);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function normalizeCountySlug(value: unknown): string {
+  const normalized = cleanString(value, 80).toLowerCase().replace(/_/g, "-");
+  if (!normalized) return "";
+  if (RSVP_COUNTIES[normalized]) return normalized;
+  const aliasKey = normalized
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+  return COUNTY_ALIASES[aliasKey] || "";
 }
 
 function isValidEmail(email: string): boolean {
@@ -79,14 +103,14 @@ function userText(user: Record<string, unknown>, key: string, maxLen: number): s
 
 router.post("/", async (req: Request, res: Response) => {
   const partnerSlug = cleanString(req.body?.partnerSlug, 120).toLowerCase() || "cumulus-media";
-  const countySlug = cleanString(req.body?.countySlug, 80).toLowerCase();
+  const countySlug = normalizeCountySlug(req.body?.countySlug);
   let countyLabel = RSVP_COUNTIES[countySlug];
 
   if (!countySlug || !countyLabel) {
     return res.status(400).json({ error: "Please select a supported county meeting." });
   }
 
-  const meetingDate = parseMeetingDate(req.body?.meetingDate);
+  const meetingDate = parseMeetingDate(req.body?.meetingDate || req.body?.startDateTime);
   if (!meetingDate) {
     return res.status(400).json({ error: "Please select a valid meeting date." });
   }

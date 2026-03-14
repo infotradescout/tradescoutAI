@@ -959,7 +959,7 @@ export default function TradePartnerCumulusLanding() {
                   <p className="tpc-county-served">Serving {session.countyLabel}</p>
                   <p>{session.teaser}</p>
                   <p className="tpc-county-date">{session.dateLabel}</p>
-                  <p className="tpc-county-time">Choose a time and RSVP from this card.</p>
+                  <p className="tpc-county-time">Choose a time and RSVP.</p>
                   {session.addressLine1 ? <p>{session.addressLine1}</p> : null}
                   {session.addressLine2 ? <p>{session.addressLine2}</p> : null}
                   <div className="tpc-slot-grid tpc-session-slot-grid">
@@ -1029,7 +1029,7 @@ export default function TradePartnerCumulusLanding() {
                       >
                         {submitting && session.slots.some((slot) => slot.id === meetingSlotId)
                           ? "Submitting..."
-                          : "RSVP from this card"}
+                          : "RSVP"}
                         {!submitting ? <ArrowRight size={16} /> : null}
                       </button>
                     )}
@@ -1203,7 +1203,7 @@ export default function TradePartnerCumulusLanding() {
                     </label>
 
                     <p className="tpc-auth-helper">
-                      Choose a time on the session card and RSVP there. Notes entered here will be
+                      Choose a time on the session card and RSVP. Notes entered here will be
                       included with your submission.
                     </p>
                   </form>
