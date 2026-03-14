@@ -1,7 +1,16 @@
 import React, { useMemo, useState } from "react";
 import { useRoute, Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, BedDouble, Bath, Square, Home, ShieldAlert, MessageCircle } from "lucide-react";
+import {
+  MapPin,
+  BedDouble,
+  Bath,
+  Square,
+  Home,
+  ShieldAlert,
+  MessageCircle,
+  Share2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadObject } from "@/lib/objectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { share } from "@/utils/share";
 
 type HomeScoutListing = {
   id: string;
@@ -146,6 +156,7 @@ export default function HomeScoutListingPage() {
   const [uploadHighlights, setUploadHighlights] = useState("");
   const [uploadSourceRequestId, setUploadSourceRequestId] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [sharing, setSharing] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -457,6 +468,21 @@ export default function HomeScoutListingPage() {
       : null;
   const contactProfileHref = canonicalProfileUrl || "/community";
 
+  const handleShareListing = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      await share({
+        path: `/homescout/listings/${encodeURIComponent(listingId)}`,
+        title: listing.title,
+        text: locationLabel || formatCountyLabel(listing.countyFips, listing.stateCode),
+        contextLabel: "Share link",
+      });
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
@@ -471,6 +497,15 @@ export default function HomeScoutListingPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleShareListing()}
+            disabled={sharing}
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            {sharing ? "Sharing..." : "Share"}
+          </Button>
           <Badge variant="outline" className="border-white/10 text-white/70">
             {statusLabel}
           </Badge>

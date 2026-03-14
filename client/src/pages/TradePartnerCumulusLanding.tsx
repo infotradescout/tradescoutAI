@@ -6,6 +6,7 @@ import {
   Megaphone,
   Radio,
   Salad,
+  Share2,
   UserRoundPlus,
   Users2,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { SEOHelmet } from "@/components/SEOHelmet";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { share } from "@/utils/share";
 import "./tradepartner-cumulus.css";
 
 const LANDING_TEMPLATE_VERSION = "2026-03-12.2";
@@ -488,6 +490,7 @@ export default function TradePartnerCumulusLanding() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -638,6 +641,24 @@ export default function TradePartnerCumulusLanding() {
   const prefilledBusinessName = getUserBusinessName(userRecord);
   const emailVerified = userRecord?.emailVerified === true;
   const signInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(rsvpReturnPath)}`;
+
+  const handleShareCampaign = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const sharePath = String(location || CUMULUS_BASE_PATH).startsWith("/")
+        ? String(location || CUMULUS_BASE_PATH)
+        : CUMULUS_BASE_PATH;
+      await share({
+        path: sharePath,
+        title: seoTitle,
+        text: seoDescription,
+        contextLabel: "Share link",
+      });
+    } finally {
+      setSharing(false);
+    }
+  };
   const campaignName = campaignConfig?.partnerName || "Cumulus Media";
   const campaignDealAmount =
     typeof campaignConfig?.dealAmountUsd === "number" && campaignConfig.dealAmountUsd > 0
@@ -864,7 +885,7 @@ export default function TradePartnerCumulusLanding() {
           description={seoDescription}
           keywords={seoKeywords}
           canonical={seoCanonical}
-          ogImage="/tradescout-brand.png?v=9"
+          ogImage="/tradescout-social-preview.png?v=10"
           structuredData={structuredData}
         />
         <header className="tpc-hero tpc-rise">
@@ -909,6 +930,15 @@ export default function TradePartnerCumulusLanding() {
             >
               {isAuthenticated ? "Choose meeting date" : "Create account to RSVP"}
               <ArrowRight size={16} />
+            </button>
+            <button
+              type="button"
+              className="tpc-btn tpc-btn-secondary"
+              onClick={() => void handleShareCampaign()}
+              disabled={sharing}
+            >
+              {sharing ? "Sharing..." : "Share"}
+              <Share2 size={16} />
             </button>
             <span className="tpc-no-catch-pill">No minimum. No purchase required.</span>
           </div>
@@ -1353,6 +1383,15 @@ export default function TradePartnerCumulusLanding() {
             >
               Apply now
               <ArrowRight size={16} />
+            </button>
+            <button
+              type="button"
+              className="tpc-btn tpc-btn-secondary"
+              onClick={() => void handleShareCampaign()}
+              disabled={sharing}
+            >
+              {sharing ? "Sharing..." : "Share"}
+              <Share2 size={16} />
             </button>
             <span className="tpc-no-catch-pill">
               Grow your visibility with targeted advertising.

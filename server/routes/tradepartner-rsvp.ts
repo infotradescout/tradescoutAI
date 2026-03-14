@@ -119,6 +119,7 @@ router.post("/", async (req: Request, res: Response) => {
   const startDateTime = cleanString(req.body?.startDateTime, 80);
 
   const sessionUser = ((req.user || {}) as Record<string, unknown>) || {};
+  const submittedByUserId = cleanString(sessionUser.id, 80) || null;
   const userFirstName = userText(sessionUser, "firstName", 80);
   const userLastName = userText(sessionUser, "lastName", 80);
   const userDisplayName = [userFirstName, userLastName].filter(Boolean).join(" ").trim();
@@ -172,10 +173,11 @@ router.post("/", async (req: Request, res: Response) => {
       attendee_count,
       lunch_attendees,
       notes,
+      submitted_by_user_id,
       user_agent,
       ip_address
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
     RETURNING id
   `;
 
@@ -237,6 +239,7 @@ router.post("/", async (req: Request, res: Response) => {
       attendeeCount,
       lunchAttendees,
       notes || null,
+      submittedByUserId,
       userAgent || null,
       ipAddress || null,
     ]);

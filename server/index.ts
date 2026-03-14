@@ -890,7 +890,7 @@ app.use(botReadOnlyGuard);
 
               // Legacy social preview image path compatibility.
               app.get("/tradescout-logo.jpg", (_req, res) => {
-                res.redirect(301, "/tradescout-brand.png?v=8");
+                res.redirect(301, "/tradescout-social-preview.png?v=10");
               });
 
               app.get(Array.from(identityAssets), (req, res, next) => {

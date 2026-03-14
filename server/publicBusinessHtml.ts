@@ -91,7 +91,7 @@ function buildBusinessMeta(args: {
     .slice(0, 300);
 
   const canonical = `${args.origin}/business/${encodeURIComponent(args.slug)}`;
-  const imageUrl = `${args.origin}/tradescout-brand.png?v=8`;
+  const imageUrl = `${args.origin}/tradescout-social-preview.png?v=10`;
   const keywords = [
     name,
     args.countyName || "",

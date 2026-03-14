@@ -19,7 +19,7 @@ export function SEOHelmet({
   keywords = "scout, local helper, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
   canonical,
   ogType = "website",
-  ogImage = "/tradescout-brand.png?v=9",
+  ogImage = "/tradescout-social-preview.png?v=10",
   structuredData,
   noIndex = false,
 }: SEOHelmetProps) {

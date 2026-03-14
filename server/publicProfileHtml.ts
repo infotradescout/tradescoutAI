@@ -100,7 +100,8 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     profile.profile.servicesDescription ||
     profile.profile.roleContext ||
     "TradeScout public profile";
-  const imageUrl = profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-brand.png?v=8`;
+  const imageUrl =
+    profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-social-preview.png?v=10`;
   const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
   const keywords = [
     displayName,

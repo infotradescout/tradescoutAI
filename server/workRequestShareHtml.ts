@@ -92,7 +92,7 @@ export async function buildWorkRequestShareHtml({
   const description = descriptionParts.join(" ");
 
   const canonical = `${origin}/r/${encodeURIComponent(shareToken)}`;
-  const imageUrl = `${origin}/tradescout-brand.png?v=8`;
+  const imageUrl = `${origin}/tradescout-social-preview.png?v=10`;
 
   const structuredData = {
     "@context": "https://schema.org",

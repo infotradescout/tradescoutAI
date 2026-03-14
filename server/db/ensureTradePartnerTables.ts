@@ -56,6 +56,12 @@ CREATE TABLE IF NOT EXISTS tradepartner_rsvp_submissions (
   attendee_count INTEGER NOT NULL DEFAULT 1,
   lunch_attendees INTEGER NOT NULL DEFAULT 1,
   notes TEXT,
+  submitted_by_user_id TEXT,
+  attendance_status TEXT NOT NULL DEFAULT 'pending',
+  attendance_notes TEXT,
+  checked_in_at TIMESTAMPTZ,
+  checked_in_by_user_id TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   user_agent TEXT,
   ip_address TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -69,12 +75,27 @@ ALTER TABLE tradepartner_rsvp_submissions
   ADD COLUMN IF NOT EXISTS time_label TEXT;
 ALTER TABLE tradepartner_rsvp_submissions
   ADD COLUMN IF NOT EXISTS start_datetime TIMESTAMPTZ;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS submitted_by_user_id TEXT;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS attendance_status TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS attendance_notes TEXT;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS checked_in_by_user_id TEXT;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_tradepartner_rsvp_partner_county
   ON tradepartner_rsvp_submissions(partner_slug, county_slug);
 
 CREATE INDEX IF NOT EXISTS idx_tradepartner_rsvp_created_at
   ON tradepartner_rsvp_submissions(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_tradepartner_rsvp_attendance_status
+  ON tradepartner_rsvp_submissions(attendance_status, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS tradepartner_campaigns (
   partner_slug TEXT PRIMARY KEY,

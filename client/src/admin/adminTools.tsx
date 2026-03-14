@@ -202,6 +202,7 @@ const AdminAuthorityPolicy = React.lazy(() => import("@/pages/admin-authority-po
 const AdminAffiliates = React.lazy(() => import("@/pages/admin-affiliates"));
 const AdminTradePartnerOps = React.lazy(() => import("@/pages/admin-tradepartner-ops"));
 const AdminTradePartnerInterest = React.lazy(() => import("@/pages/admin-tradepartner-interest"));
+const AdminTradePartnerRsvps = React.lazy(() => import("@/pages/admin-tradepartner-rsvps"));
 const AdminCumulusIntelligence = React.lazy(() => import("@/pages/admin-cumulus-intelligence"));
 const AdminControl = React.lazy(() => import("@/pages/admin-control"));
 const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"));
@@ -461,6 +462,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Briefcase,
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminTradePartnerInterest />,
+      }),
+      tool({
+        id: "tradepartner-rsvps",
+        label: "RSVP Tracker",
+        path: "/admin/tradepartner-rsvps",
+        icon: Briefcase,
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
+        render: () => <AdminTradePartnerRsvps />,
       }),
       tool({
         id: "cumulus-intelligence",

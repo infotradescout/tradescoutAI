@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { AlertCircle } from "lucide-react";
@@ -56,6 +56,63 @@ interface CountyCoverageSummaryResponse {
   rows: CountyCoverageRow[];
 }
 
+interface CountyFolderResponse {
+  county: {
+    fips: string;
+    countyName: string;
+    stateCode: string;
+    countySlugs: string[];
+  };
+  counts: {
+    notes: number;
+    entities: number;
+    meetings: number;
+    rsvps: number;
+    interestSubmissions: number;
+  };
+  notes: Array<{
+    id: string;
+    category: string;
+    content: string;
+    updatedAt?: string | null;
+    createdAt?: string | null;
+  }>;
+  entities: Array<{
+    id: string;
+    entityType: string;
+    label?: string | null;
+    status: string;
+    updatedAt?: string | null;
+  }>;
+  meetings: Array<{
+    partnerSlug: string;
+    meetingId: string;
+    meetingDate: string;
+    timeLabel?: string | null;
+    meetingCity?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    eventLabel?: string | null;
+  }>;
+  rsvps: Array<{
+    id: string | number;
+    businessName: string;
+    contactName: string;
+    contactEmail: string;
+    attendanceStatus: string;
+    meetingDate?: string | null;
+    timeLabel?: string | null;
+    createdAt?: string | null;
+  }>;
+  interestSubmissions: Array<{
+    id: string | number;
+    businessName: string;
+    contactName: string;
+    serviceCategory: string;
+    createdAt?: string | null;
+  }>;
+}
+
 type CoverageFilter = "all" | "unassigned" | "partial" | "full";
 
 type NotesFilter = "any" | "ops" | "risk" | "partner";
@@ -79,6 +136,7 @@ export default function AdminGeoCoverageConsole() {
   const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>("all");
   const [notesFilter, setNotesFilter] = useState<NotesFilter>("any");
   const [territoryFilter, setTerritoryFilter] = useState<TerritoryFilter>("any");
+  const [selectedCountyFips, setSelectedCountyFips] = useState<string>("");
   const [assignCounty, setAssignCounty] = useState<CountyCoverageRow | null>(null);
   const [tmSearch, setTmSearch] = useState("");
   const [selectedTmId, setSelectedTmId] = useState<string>("");
@@ -126,6 +184,28 @@ export default function AdminGeoCoverageConsole() {
       return true;
     });
   }, [allRows, stateFilter, coverageFilter, notesFilter, territoryFilter]);
+
+  useEffect(() => {
+    if (!filteredRows.length) {
+      setSelectedCountyFips("");
+      return;
+    }
+    if (!selectedCountyFips || !filteredRows.some((row) => row.countyFips === selectedCountyFips)) {
+      setSelectedCountyFips(filteredRows[0].countyFips);
+    }
+  }, [filteredRows, selectedCountyFips]);
+
+  const selectedCounty = useMemo(
+    () => filteredRows.find((row) => row.countyFips === selectedCountyFips) || null,
+    [filteredRows, selectedCountyFips]
+  );
+
+  const { data: countyFolder, isLoading: countyFolderLoading } = useQuery<CountyFolderResponse>({
+    queryKey: ["/api/admin/geo/counties/folder", selectedCountyFips],
+    queryFn: async () => apiRequest(`/api/admin/geo/counties/${selectedCountyFips}/folder`),
+    enabled: viewMode === "map" && Boolean(selectedCountyFips),
+    staleTime: 60_000,
+  });
 
   const coverageRateLabel = `${data ? data.verifiedCoverageRatePercent.toFixed(1) : "0.0"}%`;
 
@@ -590,9 +670,132 @@ export default function AdminGeoCoverageConsole() {
           )}
 
           {!isLoading && !error && viewMode === "map" && (
-            <div className="py-10 text-center text-xs text-white/60">
-              Map view will reuse the existing county map surface with a coverage lens. For now, use
-              the list view to drive assignments.
+            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 py-2">
+              <div className="border border-white/10 rounded-md bg-black/30 h-[560px] overflow-auto">
+                <div className="px-3 py-2 border-b border-white/10 text-[11px] text-white/60">
+                  County blocks
+                </div>
+                {filteredRows.map((row) => {
+                  const isActive = row.countyFips === selectedCountyFips;
+                  return (
+                    <button
+                      key={row.countyFips}
+                      type="button"
+                      onClick={() => setSelectedCountyFips(row.countyFips)}
+                      className={`w-full text-left px-3 py-2 border-b border-white/5 text-xs transition ${
+                        isActive ? "bg-tsCard text-white" : "text-white/80 hover:bg-tsCard/70"
+                      }`}
+                    >
+                      <div className="font-medium">
+                        {row.countyName}, {row.stateCode}
+                      </div>
+                      <div className="text-[10px] text-white/60">FIPS {row.countyFips}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="border border-white/10 rounded-md bg-black/30 p-3 h-[560px] overflow-auto space-y-3">
+                {!selectedCounty ? (
+                  <div className="text-xs text-white/60">Choose a county to open its folder.</div>
+                ) : countyFolderLoading ? (
+                  <div className="text-xs text-white/60">Loading county folder...</div>
+                ) : !countyFolder ? (
+                  <div className="text-xs text-white/60">County folder data is unavailable.</div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-semibold text-white">
+                          {countyFolder.county.countyName}, {countyFolder.county.stateCode}
+                        </div>
+                        <div className="text-[11px] text-white/60">
+                          FIPS {countyFolder.county.fips}
+                        </div>
+                      </div>
+                      <Link href={`/admin/geo/counties?fips=${countyFolder.county.fips}`}>
+                        <Button size="sm" variant="outline" className="h-7 text-[11px]">
+                          Open county detail
+                        </Button>
+                      </Link>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                      <MetricTile label="Notes" value={countyFolder.counts.notes} />
+                      <MetricTile label="Entities" value={countyFolder.counts.entities} />
+                      <MetricTile label="Meetings" value={countyFolder.counts.meetings} />
+                      <MetricTile label="RSVPs" value={countyFolder.counts.rsvps} />
+                      <MetricTile
+                        label="Interest"
+                        value={countyFolder.counts.interestSubmissions}
+                      />
+                    </div>
+
+                    <FolderSection title="On-site dates">
+                      {countyFolder.meetings.length === 0 ? (
+                        <div className="text-[11px] text-white/60">
+                          No meeting dates in this county yet.
+                        </div>
+                      ) : (
+                        countyFolder.meetings.slice(0, 10).map((meeting) => (
+                          <div
+                            key={`${meeting.partnerSlug}-${meeting.meetingId}`}
+                            className="text-[11px] text-white/80 border-b border-white/5 py-1"
+                          >
+                            <div className="font-medium">
+                              {meeting.meetingDate} {meeting.timeLabel || ""}
+                            </div>
+                            <div>{meeting.meetingCity || ""}</div>
+                            <div className="text-white/60">
+                              {meeting.addressLine1 || ""} {meeting.addressLine2 || ""}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </FolderSection>
+
+                    <FolderSection title="RSVP tracker">
+                      {countyFolder.rsvps.length === 0 ? (
+                        <div className="text-[11px] text-white/60">No RSVPs recorded.</div>
+                      ) : (
+                        countyFolder.rsvps.slice(0, 12).map((rsvp) => (
+                          <div
+                            key={String(rsvp.id)}
+                            className="text-[11px] text-white/80 border-b border-white/5 py-1"
+                          >
+                            <div className="font-medium">{rsvp.businessName}</div>
+                            <div>
+                              {rsvp.contactName} • {rsvp.contactEmail}
+                            </div>
+                            <div className="text-white/60">
+                              {rsvp.meetingDate || ""} {rsvp.timeLabel || ""} •{" "}
+                              {rsvp.attendanceStatus}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </FolderSection>
+
+                    <FolderSection title="County notes">
+                      {countyFolder.notes.length === 0 ? (
+                        <div className="text-[11px] text-white/60">No county notes.</div>
+                      ) : (
+                        countyFolder.notes.slice(0, 8).map((note) => (
+                          <div
+                            key={note.id}
+                            className="text-[11px] text-white/80 border-b border-white/5 py-1"
+                          >
+                            <div className="uppercase tracking-wide text-[10px] text-white/60">
+                              {note.category}
+                            </div>
+                            <div className="whitespace-pre-wrap">{note.content}</div>
+                          </div>
+                        ))
+                      )}
+                    </FolderSection>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -827,6 +1030,24 @@ export default function AdminGeoCoverageConsole() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function MetricTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded border border-white/10 bg-black/20 px-2 py-1">
+      <div className="text-[10px] uppercase tracking-wide text-white/60">{label}</div>
+      <div className="text-sm font-semibold text-white">{value}</div>
+    </div>
+  );
+}
+
+function FolderSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="rounded border border-white/10 bg-black/20 p-2">
+      <div className="text-[11px] font-semibold text-white mb-1">{title}</div>
+      <div className="space-y-1">{children}</div>
     </div>
   );
 }

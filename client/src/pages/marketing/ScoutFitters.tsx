@@ -1,12 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Shirt, Upload, ShieldCheck, Truck, BadgeCheck, Sparkles, Loader2 } from "lucide-react";
+import {
+  Shirt,
+  Upload,
+  ShieldCheck,
+  Truck,
+  BadgeCheck,
+  Sparkles,
+  Loader2,
+  Share2,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { share } from "@/utils/share";
 
 type TierKey = "high" | "medium" | "low" | "budget" | "promo";
 type PlacementKey = "front_center" | "left_chest";
@@ -259,6 +269,7 @@ export default function ScoutFitters() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<SubmitResult>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const canvasElRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -770,6 +781,21 @@ export default function ScoutFitters() {
     }
   };
 
+  const handleSharePage = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      await share({
+        path: "/marketing/scoutfitters",
+        title: "ScoutFitters",
+        text: "Upload your logo and create branded workwear.",
+        contextLabel: "Share link",
+      });
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-4 px-2.5 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -794,6 +820,15 @@ export default function ScoutFitters() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void handleSharePage()}
+            disabled={sharing}
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            {sharing ? "Sharing..." : "Share"}
+          </Button>
           <Button variant="outline" onClick={() => navigate("/profile-settings")}>
             Profile settings
           </Button>

@@ -1093,6 +1093,228 @@ export function mountAdminRoutes(app: any) {
     }
   );
 
+  app.get(
+    "/api/admin/geo/counties/:fips/folder",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        const { fips } = req.params;
+        if (!isValidFips(fips)) {
+          return res.status(400).json({ message: "Invalid county FIPS" });
+        }
+
+        await ensureTradePartnerTables();
+
+        const county = await storage.getCountyByFips(fips);
+        if (!county) {
+          return res.status(404).json({ message: "County not found" });
+        }
+
+        const countyName = String((county as any).name || "").trim();
+        const stateCode = String((county as any).stateCode || "")
+          .trim()
+          .toUpperCase();
+        const countyNameSlug = countyName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .replace(/-+/g, "-");
+        const stateSuffix = stateCode.toLowerCase();
+        const slugCandidates = new Set<string>();
+
+        if (countyNameSlug && stateSuffix) {
+          slugCandidates.add(`${countyNameSlug}-${stateSuffix}`);
+          slugCandidates.add(`${countyNameSlug}-county-${stateSuffix}`);
+          slugCandidates.add(`${countyNameSlug}-parish-${stateSuffix}`);
+          slugCandidates.add(`${countyNameSlug}-borough-${stateSuffix}`);
+          slugCandidates.add(`${countyNameSlug}-city-${stateSuffix}`);
+          slugCandidates.add(`${countyNameSlug}-census-area-${stateSuffix}`);
+        }
+
+        const countySlugRows = await pool.query(
+          `
+          SELECT county_slug
+          FROM tradepartner_county_pages
+          WHERE UPPER(state_code) = $1
+            AND (
+              LOWER(county_name) = LOWER($2)
+              OR LOWER(county_name) = LOWER($2 || ' County')
+              OR LOWER(county_name) = LOWER($2 || ' Parish')
+              OR LOWER(county_name) = LOWER($2 || ' Borough')
+            )
+        `,
+          [stateCode, countyName]
+        );
+        for (const row of countySlugRows.rows) {
+          const slug = String((row as any).county_slug || "")
+            .trim()
+            .toLowerCase();
+          if (slug) slugCandidates.add(slug);
+        }
+
+        const countySlugs = Array.from(slugCandidates);
+        const notes = await storage.getCountyNotes(fips);
+        const entities = await storage.getCountyEntities(fips);
+
+        const [meetingsResult, rsvpResult, interestResult] = await Promise.all([
+          countySlugs.length
+            ? pool.query(
+                `
+                SELECT
+                  partner_slug,
+                  meeting_id,
+                  county_slug,
+                  county_label,
+                  meeting_date,
+                  date_label,
+                  time_label,
+                  start_datetime,
+                  meeting_city,
+                  address_line1,
+                  address_line2,
+                  event_label,
+                  is_active
+                FROM tradepartner_campaign_meetings
+                WHERE county_slug = ANY($1::text[])
+                ORDER BY meeting_date ASC, sort_order ASC, start_datetime ASC NULLS LAST
+              `,
+                [countySlugs]
+              )
+            : Promise.resolve({ rows: [] as any[] }),
+          countySlugs.length
+            ? pool.query(
+                `
+                SELECT
+                  id,
+                  partner_slug,
+                  county_slug,
+                  county_label,
+                  event_label,
+                  meeting_id,
+                  meeting_date,
+                  time_label,
+                  start_datetime,
+                  business_name,
+                  contact_name,
+                  contact_email,
+                  contact_phone,
+                  attendee_count,
+                  lunch_attendees,
+                  notes,
+                  submitted_by_user_id,
+                  attendance_status,
+                  attendance_notes,
+                  checked_in_at,
+                  checked_in_by_user_id,
+                  created_at,
+                  updated_at
+                FROM tradepartner_rsvp_submissions
+                WHERE county_slug = ANY($1::text[])
+                ORDER BY created_at DESC
+                LIMIT 500
+              `,
+                [countySlugs]
+              )
+            : Promise.resolve({ rows: [] as any[] }),
+          countySlugs.length
+            ? pool.query(
+                `
+                SELECT
+                  id,
+                  county_slug,
+                  business_name,
+                  service_category,
+                  contact_name,
+                  email,
+                  phone,
+                  message,
+                  created_at
+                FROM tradepartner_interest_submissions
+                WHERE county_slug = ANY($1::text[])
+                ORDER BY created_at DESC
+                LIMIT 300
+              `,
+                [countySlugs]
+              )
+            : Promise.resolve({ rows: [] as any[] }),
+        ]);
+
+        return res.json({
+          county: {
+            fips,
+            countyName,
+            stateCode,
+            countySlugs,
+          },
+          counts: {
+            notes: notes.length,
+            entities: entities.length,
+            meetings: meetingsResult.rows.length,
+            rsvps: rsvpResult.rows.length,
+            interestSubmissions: interestResult.rows.length,
+          },
+          notes,
+          entities,
+          meetings: meetingsResult.rows.map((row: any) => ({
+            partnerSlug: row.partner_slug,
+            meetingId: row.meeting_id,
+            countySlug: row.county_slug,
+            countyLabel: row.county_label,
+            meetingDate: row.meeting_date,
+            dateLabel: row.date_label,
+            timeLabel: row.time_label,
+            startDateTime: row.start_datetime,
+            meetingCity: row.meeting_city,
+            addressLine1: row.address_line1,
+            addressLine2: row.address_line2,
+            eventLabel: row.event_label,
+            isActive: Boolean(row.is_active),
+          })),
+          rsvps: rsvpResult.rows.map((row: any) => ({
+            id: row.id,
+            partnerSlug: row.partner_slug,
+            countySlug: row.county_slug,
+            countyLabel: row.county_label,
+            eventLabel: row.event_label,
+            meetingId: row.meeting_id,
+            meetingDate: row.meeting_date,
+            timeLabel: row.time_label,
+            startDateTime: row.start_datetime,
+            businessName: row.business_name,
+            contactName: row.contact_name,
+            contactEmail: row.contact_email,
+            contactPhone: row.contact_phone,
+            attendeeCount: row.attendee_count,
+            lunchAttendees: row.lunch_attendees,
+            notes: row.notes,
+            submittedByUserId: row.submitted_by_user_id,
+            attendanceStatus: row.attendance_status,
+            attendanceNotes: row.attendance_notes,
+            checkedInAt: row.checked_in_at,
+            checkedInByUserId: row.checked_in_by_user_id,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          })),
+          interestSubmissions: interestResult.rows.map((row: any) => ({
+            id: row.id,
+            countySlug: row.county_slug,
+            businessName: row.business_name,
+            serviceCategory: row.service_category,
+            contactName: row.contact_name,
+            email: row.email,
+            phone: row.phone,
+            message: row.message,
+            createdAt: row.created_at,
+          })),
+        });
+      } catch (error: any) {
+        console.error("Error loading county folder:", error);
+        return res.status(500).json({ message: "Failed to load county folder" });
+      }
+    }
+  );
+
   // ---------------------------------------------------------------------------
   // Feature Flags & Admin User Management
   // ---------------------------------------------------------------------------
@@ -2676,6 +2898,27 @@ export function mountAdminRoutes(app: any) {
     return normalized.slice(0, 120);
   };
 
+  const normalizePartnerSlug = (value: unknown): string | null => {
+    const normalized = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (!normalized) return null;
+    if (!/^[a-z0-9-]+$/.test(normalized) || normalized.length > 120) return null;
+    return normalized;
+  };
+
+  const RSVP_ATTENDANCE_STATUSES = ["pending", "showed_up", "no_show", "cancelled"] as const;
+  type RsvpAttendanceStatus = (typeof RSVP_ATTENDANCE_STATUSES)[number];
+  const normalizeRsvpAttendanceStatus = (value: unknown): RsvpAttendanceStatus | null => {
+    const normalized = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (!normalized) return null;
+    return RSVP_ATTENDANCE_STATUSES.includes(normalized as RsvpAttendanceStatus)
+      ? (normalized as RsvpAttendanceStatus)
+      : null;
+  };
+
   const csvEscape = (value: unknown): string => {
     if (value === null || value === undefined) return "";
     const text = String(value);
@@ -3282,6 +3525,422 @@ export function mountAdminRoutes(app: any) {
       } catch (error: any) {
         console.error("Error exporting tradepartner interest submissions:", error);
         return res.status(500).json({ message: "Failed to export submissions" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/tradepartner-rsvps",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await ensureTradePartnerTables();
+
+        const limit = parsePositiveInt((req.query as any)?.limit, 100, { min: 1, max: 500 });
+        const offset = parsePositiveInt((req.query as any)?.offset, 0, { min: 0, max: 50_000 });
+        const countySlug = normalizeCountySlug((req.query as any)?.countySlug);
+        const partnerSlug = normalizePartnerSlug((req.query as any)?.partnerSlug);
+        const attendanceStatus = normalizeRsvpAttendanceStatus((req.query as any)?.status);
+        const search = normalizeSearchTerm((req.query as any)?.q);
+
+        if ((req.query as any)?.countySlug && !countySlug) {
+          return res.status(400).json({ message: "Invalid county slug filter" });
+        }
+        if ((req.query as any)?.partnerSlug && !partnerSlug) {
+          return res.status(400).json({ message: "Invalid partner slug filter" });
+        }
+        if ((req.query as any)?.status && !attendanceStatus) {
+          return res.status(400).json({ message: "Invalid attendance status filter" });
+        }
+
+        const whereParts: string[] = [];
+        const whereValues: any[] = [];
+
+        if (countySlug) {
+          whereValues.push(countySlug);
+          whereParts.push(`r.county_slug = $${whereValues.length}`);
+        }
+        if (partnerSlug) {
+          whereValues.push(partnerSlug);
+          whereParts.push(`r.partner_slug = $${whereValues.length}`);
+        }
+        if (attendanceStatus) {
+          whereValues.push(attendanceStatus);
+          whereParts.push(`r.attendance_status = $${whereValues.length}`);
+        }
+        if (search) {
+          whereValues.push(`%${search}%`);
+          const idx = whereValues.length;
+          whereParts.push(
+            `(r.business_name ILIKE $${idx}
+              OR r.contact_name ILIKE $${idx}
+              OR r.contact_email ILIKE $${idx}
+              OR COALESCE(r.contact_phone, '') ILIKE $${idx}
+              OR COALESCE(r.event_label, '') ILIKE $${idx})`
+          );
+        }
+
+        const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+
+        const countQuery = `
+          SELECT COUNT(*)::bigint AS total
+          FROM tradepartner_rsvp_submissions r
+          ${whereSql}
+        `;
+
+        const listQuery = `
+          SELECT
+            r.id,
+            r.partner_slug,
+            r.county_slug,
+            r.county_label,
+            r.event_label,
+            r.meeting_id,
+            r.meeting_date,
+            r.time_label,
+            r.start_datetime,
+            r.business_name,
+            r.contact_name,
+            r.contact_email,
+            r.contact_phone,
+            r.attendee_count,
+            r.lunch_attendees,
+            r.notes,
+            r.submitted_by_user_id,
+            r.attendance_status,
+            r.attendance_notes,
+            r.checked_in_at,
+            r.checked_in_by_user_id,
+            r.created_at,
+            r.updated_at
+          FROM tradepartner_rsvp_submissions r
+          ${whereSql}
+          ORDER BY r.created_at DESC
+          LIMIT $${whereValues.length + 1}
+          OFFSET $${whereValues.length + 2}
+        `;
+
+        const [countResult, listResult] = await Promise.all([
+          pool.query(countQuery, whereValues),
+          pool.query(listQuery, [...whereValues, limit, offset]),
+        ]);
+
+        const total = Number.parseInt(String(countResult.rows[0]?.total || "0"), 10) || 0;
+        const items = listResult.rows.map((row) => ({
+          id: row.id,
+          partnerSlug: row.partner_slug,
+          countySlug: row.county_slug,
+          countyLabel: row.county_label,
+          eventLabel: row.event_label,
+          meetingId: row.meeting_id || null,
+          meetingDate:
+            row.meeting_date instanceof Date
+              ? row.meeting_date.toISOString().slice(0, 10)
+              : row.meeting_date || null,
+          timeLabel: row.time_label || null,
+          startDateTime:
+            row.start_datetime instanceof Date
+              ? row.start_datetime.toISOString()
+              : row.start_datetime
+                ? new Date(row.start_datetime).toISOString()
+                : null,
+          businessName: row.business_name,
+          contactName: row.contact_name,
+          contactEmail: row.contact_email,
+          contactPhone: row.contact_phone || null,
+          attendeeCount: Number(row.attendee_count || 0),
+          lunchAttendees: Number(row.lunch_attendees || 0),
+          notes: row.notes || null,
+          submittedByUserId: row.submitted_by_user_id || null,
+          attendanceStatus: row.attendance_status || "pending",
+          attendanceNotes: row.attendance_notes || null,
+          checkedInAt:
+            row.checked_in_at instanceof Date
+              ? row.checked_in_at.toISOString()
+              : row.checked_in_at
+                ? new Date(row.checked_in_at).toISOString()
+                : null,
+          checkedInByUserId: row.checked_in_by_user_id || null,
+          createdAt:
+            row.created_at instanceof Date
+              ? row.created_at.toISOString()
+              : new Date(row.created_at).toISOString(),
+          updatedAt:
+            row.updated_at instanceof Date
+              ? row.updated_at.toISOString()
+              : row.updated_at
+                ? new Date(row.updated_at).toISOString()
+                : null,
+        }));
+
+        return res.json({
+          items,
+          total,
+          limit,
+          offset,
+          hasMore: offset + items.length < total,
+        });
+      } catch (error: any) {
+        console.error("Error fetching tradepartner RSVPs:", error);
+        return res.status(500).json({ message: "Failed to load RSVPs" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/admin/tradepartner-rsvps/:id/attendance",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request & { user?: any }, res: Response) => {
+      try {
+        await ensureTradePartnerTables();
+
+        const id = String(req.params.id || "").trim();
+        if (!/^\d+$/.test(id)) {
+          return res.status(400).json({ message: "Invalid RSVP id" });
+        }
+
+        const userId = String((req.user as any)?.id || "").trim();
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+
+        const status = normalizeRsvpAttendanceStatus((req.body as any)?.status);
+        if (!status) {
+          return res.status(400).json({ message: "Invalid attendance status" });
+        }
+        const attendanceNotesRaw = (req.body as any)?.attendanceNotes;
+        const attendanceNotes =
+          typeof attendanceNotesRaw === "string" ? attendanceNotesRaw.trim().slice(0, 4000) : "";
+
+        const updateResult = await pool.query(
+          `
+          UPDATE tradepartner_rsvp_submissions
+          SET
+            attendance_status = $2,
+            attendance_notes = CASE WHEN $3 = '' THEN NULL ELSE $3 END,
+            checked_in_at = CASE
+              WHEN $2 = 'showed_up' THEN COALESCE(checked_in_at, NOW())
+              ELSE NULL
+            END,
+            checked_in_by_user_id = CASE
+              WHEN $2 = 'showed_up' THEN $4
+              ELSE NULL
+            END,
+            updated_at = NOW()
+          WHERE id = $1::bigint
+          RETURNING
+            id,
+            attendance_status,
+            attendance_notes,
+            checked_in_at,
+            checked_in_by_user_id,
+            updated_at
+        `,
+          [id, status, attendanceNotes, userId]
+        );
+
+        if (!updateResult.rows.length) {
+          return res.status(404).json({ message: "RSVP not found" });
+        }
+
+        return res.json({
+          ok: true,
+          item: {
+            id: updateResult.rows[0].id,
+            attendanceStatus: updateResult.rows[0].attendance_status,
+            attendanceNotes: updateResult.rows[0].attendance_notes || null,
+            checkedInAt:
+              updateResult.rows[0].checked_in_at instanceof Date
+                ? updateResult.rows[0].checked_in_at.toISOString()
+                : updateResult.rows[0].checked_in_at
+                  ? new Date(updateResult.rows[0].checked_in_at).toISOString()
+                  : null,
+            checkedInByUserId: updateResult.rows[0].checked_in_by_user_id || null,
+            updatedAt:
+              updateResult.rows[0].updated_at instanceof Date
+                ? updateResult.rows[0].updated_at.toISOString()
+                : new Date(updateResult.rows[0].updated_at).toISOString(),
+          },
+        });
+      } catch (error: any) {
+        console.error("Error updating RSVP attendance:", error);
+        return res.status(500).json({ message: "Failed to update RSVP attendance" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/tradepartner-rsvps/export.csv",
+    isAuthenticated,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        await ensureTradePartnerTables();
+
+        const countySlug = normalizeCountySlug((req.query as any)?.countySlug);
+        const partnerSlug = normalizePartnerSlug((req.query as any)?.partnerSlug);
+        const attendanceStatus = normalizeRsvpAttendanceStatus((req.query as any)?.status);
+        const search = normalizeSearchTerm((req.query as any)?.q);
+        const maxRows = parsePositiveInt((req.query as any)?.maxRows, 5000, {
+          min: 1,
+          max: 20_000,
+        });
+
+        if ((req.query as any)?.countySlug && !countySlug) {
+          return res.status(400).json({ message: "Invalid county slug filter" });
+        }
+        if ((req.query as any)?.partnerSlug && !partnerSlug) {
+          return res.status(400).json({ message: "Invalid partner slug filter" });
+        }
+        if ((req.query as any)?.status && !attendanceStatus) {
+          return res.status(400).json({ message: "Invalid attendance status filter" });
+        }
+
+        const whereParts: string[] = [];
+        const whereValues: any[] = [];
+
+        if (countySlug) {
+          whereValues.push(countySlug);
+          whereParts.push(`r.county_slug = $${whereValues.length}`);
+        }
+        if (partnerSlug) {
+          whereValues.push(partnerSlug);
+          whereParts.push(`r.partner_slug = $${whereValues.length}`);
+        }
+        if (attendanceStatus) {
+          whereValues.push(attendanceStatus);
+          whereParts.push(`r.attendance_status = $${whereValues.length}`);
+        }
+        if (search) {
+          whereValues.push(`%${search}%`);
+          const idx = whereValues.length;
+          whereParts.push(
+            `(r.business_name ILIKE $${idx}
+              OR r.contact_name ILIKE $${idx}
+              OR r.contact_email ILIKE $${idx}
+              OR COALESCE(r.contact_phone, '') ILIKE $${idx}
+              OR COALESCE(r.event_label, '') ILIKE $${idx})`
+          );
+        }
+
+        const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : "";
+        const query = `
+          SELECT
+            r.id,
+            r.partner_slug,
+            r.county_slug,
+            r.county_label,
+            r.event_label,
+            r.meeting_id,
+            r.meeting_date,
+            r.time_label,
+            r.start_datetime,
+            r.business_name,
+            r.contact_name,
+            r.contact_email,
+            r.contact_phone,
+            r.attendee_count,
+            r.lunch_attendees,
+            r.notes,
+            r.submitted_by_user_id,
+            r.attendance_status,
+            r.attendance_notes,
+            r.checked_in_at,
+            r.checked_in_by_user_id,
+            r.created_at,
+            r.updated_at
+          FROM tradepartner_rsvp_submissions r
+          ${whereSql}
+          ORDER BY r.created_at DESC
+          LIMIT $${whereValues.length + 1}
+        `;
+
+        const result = await pool.query(query, [...whereValues, maxRows]);
+        const header = [
+          "id",
+          "partner_slug",
+          "county_slug",
+          "county_label",
+          "event_label",
+          "meeting_id",
+          "meeting_date",
+          "time_label",
+          "start_datetime",
+          "business_name",
+          "contact_name",
+          "contact_email",
+          "contact_phone",
+          "attendee_count",
+          "lunch_attendees",
+          "notes",
+          "submitted_by_user_id",
+          "attendance_status",
+          "attendance_notes",
+          "checked_in_at",
+          "checked_in_by_user_id",
+          "created_at",
+          "updated_at",
+        ];
+
+        const lines = [header.join(",")];
+        for (const row of result.rows) {
+          const createdAt =
+            row.created_at instanceof Date
+              ? row.created_at.toISOString()
+              : new Date(row.created_at).toISOString();
+          const updatedAt =
+            row.updated_at instanceof Date
+              ? row.updated_at.toISOString()
+              : row.updated_at
+                ? new Date(row.updated_at).toISOString()
+                : "";
+          const checkedInAt =
+            row.checked_in_at instanceof Date
+              ? row.checked_in_at.toISOString()
+              : row.checked_in_at
+                ? new Date(row.checked_in_at).toISOString()
+                : "";
+          const values = [
+            row.id,
+            row.partner_slug,
+            row.county_slug,
+            row.county_label,
+            row.event_label,
+            row.meeting_id,
+            row.meeting_date,
+            row.time_label,
+            row.start_datetime,
+            row.business_name,
+            row.contact_name,
+            row.contact_email,
+            row.contact_phone,
+            row.attendee_count,
+            row.lunch_attendees,
+            row.notes,
+            row.submitted_by_user_id,
+            row.attendance_status,
+            row.attendance_notes,
+            checkedInAt,
+            row.checked_in_by_user_id,
+            createdAt,
+            updatedAt,
+          ];
+          lines.push(values.map(csvEscape).join(","));
+        }
+
+        const fileDate = new Date().toISOString().slice(0, 10);
+        const csv = `\uFEFF${lines.join("\n")}`;
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="tradepartner-rsvps-${fileDate}.csv"`
+        );
+        return res.status(200).send(csv);
+      } catch (error: any) {
+        console.error("Error exporting tradepartner RSVPs:", error);
+        return res.status(500).json({ message: "Failed to export RSVPs" });
       }
     }
   );

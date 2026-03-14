@@ -1,7 +1,17 @@
 import React, { memo, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRoute } from "wouter";
-import { Home, Search, Filter, MapPin, BedDouble, Bath, Square, PlusCircle } from "lucide-react";
+import {
+  Home,
+  Search,
+  Filter,
+  MapPin,
+  BedDouble,
+  Bath,
+  Square,
+  PlusCircle,
+  Share2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +26,7 @@ import {
 import { RealEstateMarketplaceShell } from "@/shells/RealEstateMarketplaceShell";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { share } from "@/utils/share";
 
 type HomeScoutListing = {
   id: string;
@@ -58,6 +69,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
   const [propertyType, setPropertyType] = useState<string>("all");
   const [bedrooms, setBedrooms] = useState<string>("all");
   const [priceRange, setPriceRange] = useState<string>("all");
+  const [sharing, setSharing] = useState(false);
 
   const validCounty = /^[0-9]{5}$/.test(countyFips);
   const validState = /^[A-Z]{2}$/.test(stateCode);
@@ -157,6 +169,21 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
 
   const locationLabel = formatCountyLabel(countyFips, stateCode);
 
+  const handleShareCounty = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      await share({
+        path: `/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}`,
+        title: `HomeScout Listings - ${locationLabel}`,
+        text: `HomeScout listings in ${locationLabel}`,
+        contextLabel: "Share link",
+      });
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <RealEstateMarketplaceShell>
       <div className="max-w-6xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
@@ -175,6 +202,15 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
             </div>
           </div>
           <div className="flex w-full md:w-auto gap-2">
+            <Button
+              variant="outline"
+              className="w-full md:w-auto"
+              onClick={() => void handleShareCounty()}
+              disabled={sharing}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              {sharing ? "Sharing..." : "Share"}
+            </Button>
             <Link href="/exchange?tab=sell&category=real-estate">
               <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
                 <PlusCircle className="h-4 w-4 mr-2" />
