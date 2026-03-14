@@ -111,6 +111,7 @@ export default function AdminLiveStreamPage() {
   const [county, setCounty] = useState("all");
   const [limit, setLimit] = useState("20");
   const [historyDays, setHistoryDays] = useState("7");
+  const [expandedHistorySnapshot, setExpandedHistorySnapshot] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
   const [refreshError, setRefreshError] = useState("");
@@ -697,6 +698,67 @@ export default function AdminLiveStreamPage() {
                     <div className="mt-2 text-xs text-white/55">
                       {snapshot.stream?.length || 0} entries captured
                     </div>
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-white/15 text-white/75"
+                        onClick={() =>
+                          setExpandedHistorySnapshot((prev) =>
+                            prev === snapshot.generatedAt ? null : snapshot.generatedAt
+                          )
+                        }
+                      >
+                        {expandedHistorySnapshot === snapshot.generatedAt
+                          ? "Hide captured entries"
+                          : "Show captured entries"}
+                      </Button>
+                    </div>
+                    {expandedHistorySnapshot === snapshot.generatedAt ? (
+                      <div className="mt-3 space-y-2 rounded-md border border-white/10 bg-black/20 p-3">
+                        {(snapshot.stream || []).length === 0 ? (
+                          <div className="text-xs text-white/55">
+                            No entries stored in this snapshot.
+                          </div>
+                        ) : (
+                          (snapshot.stream || []).map((entry) => {
+                            const truthStatus =
+                              entry.truthStatus === "current" ? "current" : "stale";
+                            const durabilityClass = resolveDurabilityClass(entry.source);
+                            return (
+                              <div
+                                key={entry.id}
+                                className="rounded border border-white/10 bg-black/20 p-2"
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-xs font-semibold text-white/90">
+                                    {entry.title}
+                                  </span>
+                                  <Badge className={priorityTone[entry.priority]}>
+                                    {entry.priority}
+                                  </Badge>
+                                  <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
+                                  <Badge className={durabilityTone[durabilityClass]}>
+                                    {durabilityClass}
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="border-white/10 text-white/60"
+                                  >
+                                    {entry.source}
+                                  </Badge>
+                                </div>
+                                <div className="mt-1 text-xs text-white/50">
+                                  {new Date(entry.timestamp).toLocaleString()}
+                                </div>
+                                <div className="mt-1 text-xs text-white/80">{entry.narrative}</div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 ))
               )}
