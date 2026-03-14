@@ -121,7 +121,11 @@ async function computePartnerWindowRows(
         left join counties c on c.fips = r.county_fips
         where r.bucket_start >= (now() - ($1::interval))
           and r.county_fips is not null
-        group by r.county_fips, county_name, state_code, source_surface
+        group by
+          r.county_fips,
+          coalesce(c.name, 'Unknown county'),
+          coalesce(r.state_code, c.state_code),
+          coalesce(r.source_surface, 'unknown')
       ),
       previous_rollups as (
         select
@@ -129,11 +133,10 @@ async function computePartnerWindowRows(
           coalesce(r.source_surface, 'unknown') as source_surface,
           sum(r.request_count)::int as request_count
         from crawler_request_hourly_rollups r
-        left join counties c on c.fips = r.county_fips
         where r.bucket_start >= (now() - (($1::interval) * 2))
           and r.bucket_start < (now() - ($1::interval))
           and r.county_fips is not null
-        group by r.county_fips, source_surface
+        group by r.county_fips, coalesce(r.source_surface, 'unknown')
       )
       select
         c.county_fips,
