@@ -15,8 +15,13 @@ type CampaignMeeting = {
   meetingId: string;
   countySlug: string;
   countyLabel: string;
+  meetingCity: string;
   meetingDate: string;
   dateLabel: string;
+  timeLabel: string;
+  startDateTime: string;
+  addressLine1: string;
+  addressLine2: string;
   teaser: string;
   eventLabel: string;
   sortOrder: number;
@@ -107,8 +112,13 @@ async function fetchCampaignBySlug(partnerSlug: string) {
         meeting_id,
         county_slug,
         county_label,
+        meeting_city,
         meeting_date,
         date_label,
+        time_label,
+        start_datetime,
+        address_line1,
+        address_line2,
         teaser,
         event_label,
         sort_order
@@ -133,8 +143,13 @@ async function fetchCampaignBySlug(partnerSlug: string) {
     meetingId: String(row?.meeting_id || ""),
     countySlug: String(row?.county_slug || ""),
     countyLabel: String(row?.county_label || ""),
+    meetingCity: String(row?.meeting_city || ""),
     meetingDate: String(row?.meeting_date || "").slice(0, 10),
     dateLabel: String(row?.date_label || ""),
+    timeLabel: String(row?.time_label || ""),
+    startDateTime: row?.start_datetime ? new Date(row.start_datetime).toISOString() : "",
+    addressLine1: String(row?.address_line1 || ""),
+    addressLine2: String(row?.address_line2 || ""),
     teaser: String(row?.teaser || ""),
     eventLabel: String(row?.event_label || ""),
     sortOrder: Number(row?.sort_order || 0),
@@ -303,8 +318,10 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
       const meetingId = cleanText(item?.meetingId, 120).toLowerCase();
       const countySlug = cleanText(item?.countySlug, 120).toLowerCase();
       const countyLabel = cleanText(item?.countyLabel, 120);
+      const meetingCity = cleanText(item?.meetingCity, 120);
       const meetingDate = parseDate(item?.meetingDate);
       const dateLabel = cleanText(item?.dateLabel, 120);
+      const timeLabel = cleanText(item?.timeLabel, 40);
       if (
         !meetingId ||
         !isValidCountySlug(countySlug) ||
@@ -318,8 +335,13 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
         meetingId,
         countySlug,
         countyLabel,
+        meetingCity,
         meetingDate,
         dateLabel,
+        timeLabel,
+        startDateTime: cleanText(item?.startDateTime, 80),
+        addressLine1: cleanText(item?.addressLine1, 160),
+        addressLine2: cleanText(item?.addressLine2, 160),
         teaser: cleanText(item?.teaser, 500),
         eventLabel: cleanText(item?.eventLabel, 220),
         sortOrder: Number.isFinite(Number(item?.sortOrder)) ? Number(item?.sortOrder) : index * 10,
@@ -435,23 +457,33 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
             meeting_id,
             county_slug,
             county_label,
+            meeting_city,
             meeting_date,
             date_label,
+            time_label,
+            start_datetime,
+            address_line1,
+            address_line2,
             teaser,
             event_label,
             sort_order,
             is_active,
             updated_at
           )
-          VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8,$9,TRUE,NOW())
+          VALUES ($1,$2,$3,$4,$5,$6::date,$7,$8,$9::timestamptz,$10,$11,$12,$13,$14,TRUE,NOW())
         `,
         [
           partnerSlug,
           meeting.meetingId,
           meeting.countySlug,
           meeting.countyLabel,
+          meeting.meetingCity,
           meeting.meetingDate,
           meeting.dateLabel,
+          meeting.timeLabel,
+          meeting.startDateTime || null,
+          meeting.addressLine1,
+          meeting.addressLine2,
           meeting.teaser,
           meeting.eventLabel,
           meeting.sortOrder,

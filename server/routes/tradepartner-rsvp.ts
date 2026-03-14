@@ -72,6 +72,9 @@ router.post("/", async (req: Request, res: Response) => {
   if (!meetingDate) {
     return res.status(400).json({ error: "Please select a valid meeting date." });
   }
+  const meetingId = cleanString(req.body?.meetingId, 120).toLowerCase();
+  const timeLabel = cleanString(req.body?.timeLabel, 40);
+  const startDateTime = cleanString(req.body?.startDateTime, 80);
 
   const sessionUser = ((req.user || {}) as Record<string, unknown>) || {};
   const userFirstName = userText(sessionUser, "firstName", 80);
@@ -116,7 +119,10 @@ router.post("/", async (req: Request, res: Response) => {
       county_slug,
       county_label,
       event_label,
+      meeting_id,
       meeting_date,
+      time_label,
+      start_datetime,
       business_name,
       contact_name,
       contact_email,
@@ -127,7 +133,7 @@ router.post("/", async (req: Request, res: Response) => {
       user_agent,
       ip_address
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
     RETURNING id
   `;
 
@@ -136,14 +142,19 @@ router.post("/", async (req: Request, res: Response) => {
     const meetingLookup = await pool.query(
       `
       SELECT county_label, event_label
+           , time_label
+           , start_datetime
       FROM tradepartner_campaign_meetings
       WHERE partner_slug = $1
         AND county_slug = $2
-        AND meeting_date = $3::date
+        AND (
+          ($3 <> '' AND meeting_id = $3)
+          OR ($3 = '' AND meeting_date = $4::date)
+        )
         AND is_active = TRUE
       LIMIT 1
       `,
-      [partnerSlug, countySlug, meetingDate]
+      [partnerSlug, countySlug, meetingId, meetingDate]
     );
 
     if (meetingLookup.rows.length > 0) {
@@ -161,7 +172,10 @@ router.post("/", async (req: Request, res: Response) => {
       countySlug,
       countyLabel,
       eventLabelFromMeeting,
+      meetingId || null,
       meetingDate,
+      timeLabel || cleanString((meetingLookup.rows[0] as any)?.time_label, 40) || null,
+      startDateTime || (meetingLookup.rows[0] as any)?.start_datetime || null,
       businessName,
       contactName,
       email,

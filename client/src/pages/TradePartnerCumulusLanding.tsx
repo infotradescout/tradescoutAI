@@ -42,6 +42,8 @@ type CampaignMeeting = {
   dateLabel: string;
   timeLabel?: string;
   startDateTime?: string;
+  addressLine1?: string;
+  addressLine2?: string;
   teaser: string;
   eventLabel?: string;
   sortOrder?: number;
@@ -232,6 +234,12 @@ const CASE_STUDIES = [
 
 const REGIONAL_OFFICES = [
   {
+    city: "Mobile",
+    addressLine1: "1551 Spring Hill Ave",
+    addressLine2: "Mobile, AL 36604",
+    phone: "(251) 438-5000",
+  },
+  {
     city: "Fort Walton Beach",
     addressLine1: "225 Hollywood Blvd NW",
     addressLine2: "Fort Walton Beach, FL 32548",
@@ -251,6 +259,27 @@ const OFFER_HIGHLIGHTS = [
   "Google, social, CTV, audio",
   "Mobile, Escambia, Okaloosa",
 ];
+
+const LOCATION_BY_COUNTY: Record<
+  string,
+  { addressLine1: string; addressLine2: string; phone?: string }
+> = {
+  "mobile-county-al": {
+    addressLine1: "1551 Spring Hill Ave",
+    addressLine2: "Mobile, AL 36604",
+    phone: "(251) 438-5000",
+  },
+  "escambia-county-fl": {
+    addressLine1: "6565 North W Street #270",
+    addressLine2: "Pensacola, FL 32505",
+    phone: "(850) 478-6011",
+  },
+  "okaloosa-county-fl": {
+    addressLine1: "225 Hollywood Blvd NW",
+    addressLine2: "Fort Walton Beach, FL 32548",
+    phone: "(850) 243-7676",
+  },
+};
 
 function cleanField(form: FormData, key: string, maxLen: number): string {
   const raw = form.get(key);
@@ -278,6 +307,18 @@ function getUserName(user: Record<string, unknown> | null): string {
   const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
   const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
   return [firstName, lastName].filter(Boolean).join(" ").trim();
+}
+
+function isCompleteCampaignMeeting(meeting: CampaignMeeting): boolean {
+  return Boolean(
+    meeting.meetingId &&
+    meeting.countySlug &&
+    meeting.countyLabel &&
+    meeting.meetingDate &&
+    meeting.dateLabel &&
+    meeting.timeLabel &&
+    meeting.meetingCity
+  );
 }
 
 function getUserBusinessName(user: Record<string, unknown> | null): string {
@@ -477,7 +518,11 @@ export default function TradePartnerCumulusLanding() {
   }, [location]);
 
   const campaignMeetings = useMemo(() => {
-    if (Array.isArray(campaignConfig?.meetings) && campaignConfig.meetings.length > 0) {
+    if (
+      Array.isArray(campaignConfig?.meetings) &&
+      campaignConfig.meetings.length > 0 &&
+      campaignConfig.meetings.every(isCompleteCampaignMeeting)
+    ) {
       return campaignConfig.meetings.map((meeting) => ({
         id: meeting.meetingId,
         countySlug: meeting.countySlug,
@@ -487,10 +532,18 @@ export default function TradePartnerCumulusLanding() {
         dateLabel: meeting.dateLabel,
         timeLabel: meeting.timeLabel || "",
         startDateTime: meeting.startDateTime || "",
+        addressLine1:
+          meeting.addressLine1 || LOCATION_BY_COUNTY[meeting.countySlug]?.addressLine1 || "",
+        addressLine2:
+          meeting.addressLine2 || LOCATION_BY_COUNTY[meeting.countySlug]?.addressLine2 || "",
         teaser: meeting.teaser,
       }));
     }
-    return MEETING_SLOTS;
+    return MEETING_SLOTS.map((slot) => ({
+      ...slot,
+      addressLine1: LOCATION_BY_COUNTY[slot.countySlug]?.addressLine1 || "",
+      addressLine2: LOCATION_BY_COUNTY[slot.countySlug]?.addressLine2 || "",
+    }));
   }, [campaignConfig?.meetings]);
 
   const visibleMeetingSlots = useMemo(
@@ -700,8 +753,11 @@ export default function TradePartnerCumulusLanding() {
       setSubmitting(true);
       await apiRequest("POST", "/api/tradepartner-rsvp", {
         partnerSlug: campaignConfig?.partnerSlug || PARTNER_SLUG,
+        meetingId: selectedSlot.id,
         countySlug: selectedSlot.countySlug,
         meetingDate: selectedSlot.meetingDate,
+        timeLabel: selectedSlot.timeLabel,
+        startDateTime: selectedSlot.startDateTime,
         businessName: prefilledBusinessName,
         contactName: prefilledName || prefilledBusinessName,
         email: prefilledEmail,
@@ -834,6 +890,8 @@ export default function TradePartnerCumulusLanding() {
                   <p>{slot.teaser}</p>
                   <p className="tpc-county-date">{slot.dateLabel}</p>
                   <p className="tpc-county-time">RSVP time: {slot.timeLabel || "TBD"}</p>
+                  {slot.addressLine1 ? <p>{slot.addressLine1}</p> : null}
+                  {slot.addressLine2 ? <p>{slot.addressLine2}</p> : null}
                   <div className="tpc-county-meta">
                     <span>
                       <Salad size={14} />
@@ -1002,6 +1060,8 @@ export default function TradePartnerCumulusLanding() {
                                 {slot.meetingCity || slot.countyLabel}
                                 {slot.meetingCity ? ` | Serving ${slot.countyLabel}` : ""}
                               </span>
+                              {slot.addressLine1 ? <span>{slot.addressLine1}</span> : null}
+                              {slot.addressLine2 ? <span>{slot.addressLine2}</span> : null}
                             </div>
                           </label>
                         ))}

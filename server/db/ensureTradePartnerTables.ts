@@ -45,7 +45,10 @@ CREATE TABLE IF NOT EXISTS tradepartner_rsvp_submissions (
   county_slug TEXT NOT NULL,
   county_label TEXT NOT NULL,
   event_label TEXT NOT NULL,
+  meeting_id TEXT,
   meeting_date DATE,
+  time_label TEXT,
+  start_datetime TIMESTAMPTZ,
   business_name TEXT NOT NULL,
   contact_name TEXT NOT NULL,
   contact_email TEXT NOT NULL,
@@ -60,6 +63,12 @@ CREATE TABLE IF NOT EXISTS tradepartner_rsvp_submissions (
 
 ALTER TABLE tradepartner_rsvp_submissions
   ADD COLUMN IF NOT EXISTS meeting_date DATE;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS meeting_id TEXT;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS time_label TEXT;
+ALTER TABLE tradepartner_rsvp_submissions
+  ADD COLUMN IF NOT EXISTS start_datetime TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_tradepartner_rsvp_partner_county
   ON tradepartner_rsvp_submissions(partner_slug, county_slug);
@@ -112,6 +121,11 @@ CREATE TABLE IF NOT EXISTS tradepartner_campaign_meetings (
   county_label TEXT NOT NULL,
   meeting_date DATE NOT NULL,
   date_label TEXT NOT NULL,
+  meeting_city TEXT NOT NULL DEFAULT '',
+  time_label TEXT NOT NULL DEFAULT '',
+  start_datetime TIMESTAMPTZ,
+  address_line1 TEXT NOT NULL DEFAULT '',
+  address_line2 TEXT NOT NULL DEFAULT '',
   teaser TEXT NOT NULL DEFAULT '',
   event_label TEXT NOT NULL DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0,
@@ -211,47 +225,139 @@ export async function ensureTradePartnerTables() {
           )
         ON CONFLICT (partner_slug, county_slug) DO NOTHING;
 
+        UPDATE tradepartner_campaign_meetings
+        SET is_active = FALSE
+        WHERE partner_slug = 'cumulus-media'
+          AND meeting_id IN (
+            'mobile-2026-03-24',
+            'escambia-2026-03-25',
+            'okaloosa-2026-03-26'
+          );
+
         INSERT INTO tradepartner_campaign_meetings (
-          partner_slug, meeting_id, county_slug, county_label, meeting_date, date_label, teaser, event_label, sort_order, is_active
+          partner_slug, meeting_id, county_slug, county_label, meeting_date, date_label,
+          meeting_city, time_label, start_datetime, address_line1, address_line2,
+          teaser, event_label, sort_order, is_active
         )
         VALUES
           (
             'cumulus-media',
-            'mobile-2026-03-24',
+            'mobile-2026-03-24-1145',
             'mobile-county-al',
             'Mobile County, AL',
             DATE '2026-03-24',
             'Tuesday, March 24, 2026',
-            'Gulf Coast business networking + Cumulus partnership briefing.',
+            'Mobile, AL',
+            '11:45 AM',
+            TIMESTAMPTZ '2026-03-24 11:45:00-05',
+            '1551 Spring Hill Ave',
+            'Mobile, AL 36604',
+            'Mobile, AL session with free lunch, local businesses, and Cumulus partnership briefing.',
             'TradeScout x Cumulus Media Lunch + Local Business Meetup',
             10,
             TRUE
           ),
           (
             'cumulus-media',
-            'escambia-2026-03-25',
-            'escambia-county-fl',
-            'Escambia County, FL',
-            DATE '2026-03-25',
-            'Wednesday, March 25, 2026',
-            'Regional lunch meetup focused on local growth planning.',
+            'mobile-2026-03-24-1400',
+            'mobile-county-al',
+            'Mobile County, AL',
+            DATE '2026-03-24',
+            'Tuesday, March 24, 2026',
+            'Mobile, AL',
+            '2:00 PM',
+            TIMESTAMPTZ '2026-03-24 14:00:00-05',
+            '1551 Spring Hill Ave',
+            'Mobile, AL 36604',
+            'Mobile, AL session with free lunch, local businesses, and Cumulus partnership briefing.',
             'TradeScout x Cumulus Media Lunch + Local Business Meetup',
             20,
             TRUE
           ),
           (
             'cumulus-media',
-            'okaloosa-2026-03-26',
+            'escambia-2026-03-25-1145',
+            'escambia-county-fl',
+            'Escambia County, FL',
+            DATE '2026-03-25',
+            'Wednesday, March 25, 2026',
+            'Pensacola, FL',
+            '11:45 AM',
+            TIMESTAMPTZ '2026-03-25 11:45:00-05',
+            '6565 North W Street #270',
+            'Pensacola, FL 32505',
+            'Pensacola, FL session focused on Gulf Coast business growth and campaign planning.',
+            'TradeScout x Cumulus Media Lunch + Local Business Meetup',
+            30,
+            TRUE
+          ),
+          (
+            'cumulus-media',
+            'escambia-2026-03-25-1400',
+            'escambia-county-fl',
+            'Escambia County, FL',
+            DATE '2026-03-25',
+            'Wednesday, March 25, 2026',
+            'Pensacola, FL',
+            '2:00 PM',
+            TIMESTAMPTZ '2026-03-25 14:00:00-05',
+            '6565 North W Street #270',
+            'Pensacola, FL 32505',
+            'Pensacola, FL session focused on Gulf Coast business growth and campaign planning.',
+            'TradeScout x Cumulus Media Lunch + Local Business Meetup',
+            40,
+            TRUE
+          ),
+          (
+            'cumulus-media',
+            'okaloosa-2026-03-26-1145',
             'okaloosa-county-fl',
             'Okaloosa County, FL',
             DATE '2026-03-26',
             'Thursday, March 26, 2026',
-            'County-wide workshop with Cumulus corporate partners.',
+            'Fort Walton Beach, FL',
+            '11:45 AM',
+            TIMESTAMPTZ '2026-03-26 11:45:00-05',
+            '225 Hollywood Blvd NW',
+            'Fort Walton Beach, FL 32548',
+            'Fort Walton Beach, FL session with Cumulus corporate partners and regional networking.',
             'TradeScout x Cumulus Media Lunch + Local Business Meetup',
-            30,
+            50,
+            TRUE
+          ),
+          (
+            'cumulus-media',
+            'okaloosa-2026-03-26-1400',
+            'okaloosa-county-fl',
+            'Okaloosa County, FL',
+            DATE '2026-03-26',
+            'Thursday, March 26, 2026',
+            'Fort Walton Beach, FL',
+            '2:00 PM',
+            TIMESTAMPTZ '2026-03-26 14:00:00-05',
+            '225 Hollywood Blvd NW',
+            'Fort Walton Beach, FL 32548',
+            'Fort Walton Beach, FL session with Cumulus corporate partners and regional networking.',
+            'TradeScout x Cumulus Media Lunch + Local Business Meetup',
+            60,
             TRUE
           )
-        ON CONFLICT (partner_slug, meeting_id) DO NOTHING;
+        ON CONFLICT (partner_slug, meeting_id) DO UPDATE
+        SET
+          county_slug = EXCLUDED.county_slug,
+          county_label = EXCLUDED.county_label,
+          meeting_date = EXCLUDED.meeting_date,
+          date_label = EXCLUDED.date_label,
+          meeting_city = EXCLUDED.meeting_city,
+          time_label = EXCLUDED.time_label,
+          start_datetime = EXCLUDED.start_datetime,
+          address_line1 = EXCLUDED.address_line1,
+          address_line2 = EXCLUDED.address_line2,
+          teaser = EXCLUDED.teaser,
+          event_label = EXCLUDED.event_label,
+          sort_order = EXCLUDED.sort_order,
+          is_active = EXCLUDED.is_active,
+          updated_at = NOW();
       `);
     })().catch((error) => {
       ensurePromise = null;
