@@ -66,10 +66,16 @@ export function buildConnectionFallback(
   const communitySignals = /\b(community|neighbors|neighbour|feed|post|posts|group|event)\b/.test(
     lower
   );
+  const homeProjectSignals =
+    /\b(build|repair|replace|install|remodel|renovate|quote|estimate|project|addition|patio|porch|deck|decking|fence|roof|roofing|siding|concrete|driveway|kitchen|bathroom|plumbing|electrical|hvac|landscap(?:e|ing)|pool)\b/.test(
+      lower
+    );
+  const deckSignals = /\b(deck|decking|porch|patio)\b/.test(lower);
 
   const signalCount = [prosSignals, marketplaceSignals, communitySignals].filter(Boolean).length;
   const keywordOnlyWithoutContext = signalCount > 0 && tokens.length <= 3 && !hasStrongIntentVerb;
-  const lowConfidenceWithContext = signalCount > 0 && (signalCount > 1 || !hasStrongIntentVerb);
+  const lowConfidenceWithContext =
+    signalCount > 0 && (signalCount > 1 || !hasStrongIntentVerb || homeProjectSignals);
 
   const roofDomainAmbiguous =
     /\b(roof|roofing|roofer|roof repair|leak|leaky|shingle|gutters?)\b/.test(lower);
@@ -83,7 +89,9 @@ export function buildConnectionFallback(
   const stayInScoutPrompt = useAmbiguityBundle
     ? roofDomainAmbiguous
       ? "Keep me in Scout and help me choose: should I hire a roofer, browse recent roofing materials, or check community signals first?"
-      : "Keep me in Scout and help me choose: should I start with trusted local pros, recent marketplace listings, or community signals first?"
+      : deckSignals
+        ? "Keep me in Scout and help me scope this deck project: should I start with deck builders, rental equipment, or local project signals first?"
+        : "Keep me in Scout and help me choose: should I start with trusted local pros, recent marketplace listings, or community signals first?"
     : "Keep me in Scout and walk me through the best next action step-by-step without leaving this page.";
 
   const candidateActions: ScoutAction[] = [];
@@ -105,21 +113,29 @@ export function buildConnectionFallback(
     candidateActions.push(
       {
         type: "NAVIGATE",
-        label: roofDomainAmbiguous ? "Find trusted roofing pros" : "Find trusted local pros",
+        label: roofDomainAmbiguous
+          ? "Find trusted roofing pros"
+          : deckSignals
+            ? "Find deck builders"
+            : "Find trusted local pros",
         to: "/direct-connect/pros",
       },
       {
         type: "NAVIGATE",
         label: roofDomainAmbiguous
           ? "Browse recent roofing materials"
-          : "Browse recent Exchange listings",
-        to: payload.exchangeRoute || "/exchange",
+          : deckSignals
+            ? "Browse rental equipment"
+            : "Browse recent Exchange listings",
+        to: deckSignals ? "/exchange/rental-equipment" : payload.exchangeRoute || "/exchange",
       },
       {
         type: "NAVIGATE",
         label: roofDomainAmbiguous
           ? "Check recent community roofing signals"
-          : "Check community signals",
+          : deckSignals
+            ? "Check local deck project signals"
+            : "Check community signals",
         to: payload.communityRoute,
       }
     );
@@ -179,15 +195,22 @@ export function buildConnectionFallback(
   const message: ScoutMessage = {
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     role: "assistant",
-    content:
-      "Scout had a connection issue. You can keep moving with trusted, recent options and take action now.",
+    content: deckSignals
+      ? "Got it. For a deck project, the next useful move is to scope the job, compare local builders, and check nearby equipment or material options. Which path should we open first?"
+      : homeProjectSignals
+        ? "Got it. The next useful move is to scope the work, compare trusted local pros, and check nearby options. Which path should we open first?"
+        : "Scout had a connection issue. You can keep moving with trusted, recent options and take action now.",
     timestamp: new Date().toISOString(),
     clusters: [
       {
         id: `scout-fallback-${Date.now()}`,
         title: "Continue now",
         kind: "generic",
-        body: "Pick a path below. Your next action helps Scout improve future routing for everyone.",
+        body: deckSignals
+          ? "Start with deck builders, rental equipment, or local project signals."
+          : homeProjectSignals
+            ? "Start with pros, Exchange, or community signals for this project."
+            : "Pick a path below. Your next action helps Scout improve future routing for everyone.",
         actions,
       },
     ],

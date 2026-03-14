@@ -2903,7 +2903,7 @@ export default function ScoutOS() {
           normalizeForRepetitionCheck(previousAssistant || "") ===
             normalizeForRepetitionCheck(resolvedContent);
         const genericRoutingFallback =
-          /i(?:'|’)m having trouble generating a full answer|i(?:'|’)m seeing heavy demand right now|i can still route you to the right next step|which option should i run first/i.test(
+          /having trouble generating a full answer|seeing heavy demand right now|route you to the right next step|which option should i run first|tradescout can still route the strongest next step|tradescout can help move local work forward|what should i help you with next/i.test(
             resolvedContent
           );
 
