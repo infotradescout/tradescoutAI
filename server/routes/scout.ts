@@ -976,7 +976,11 @@ async function generateSmartSynthesis(
   message: string,
   _gemini: GoogleGenerativeAI | null,
   llmProviders: LLMProvider[]
-): Promise<{ message: string; provider: string }> {
+): Promise<{
+  message: string;
+  provider: string;
+  degradationReason?: ScoutDegradationReason;
+}> {
   if (!llmProviders.some((p) => p.isConfigured())) {
     return {
       message:
@@ -1050,14 +1054,16 @@ async function generateSmartSynthesis(
     if (isGeminiRateLimitFailure(error)) {
       return {
         message:
-          "Scout is seeing high demand right now. I can still orient you quickly: TradeScout is your county operating system where Scout routes people to trusted next steps across Direct Connect, Community, and Exchange without breaking trust gates.",
+          "TradeScout is your county operating system. Scout can move local outcomes forward across Community, Direct Connect, Exchange, and Community Builders without breaking trust gates.",
         provider: "fallback",
+        degradationReason: "synthesis_rate_limited",
       };
     }
     return {
       message:
-        "I couldn't generate the full overview right now, but I can still guide you through Direct Connect, Community, and Exchange from here.",
+        "TradeScout can help move local work forward through Community, Direct Connect, Exchange, and Community Builders. Tell me the outcome you want to move and I will route the strongest next step.",
       provider: "fallback",
+      degradationReason: "synthesis_system_error",
     };
   }
 }
@@ -2939,6 +2945,11 @@ router.post("/", async (req: Request, res: Response) => {
           message: synthesisResponse.message,
           actions: [],
           actionResults: [],
+          metadata: {
+            sourceUsed: "intro_synthesis",
+            fallbackUsed: synthesisResponse.provider === "fallback",
+            degradationReason: synthesisResponse.degradationReason,
+          },
           knowledge: {
             layer: 1,
             sources: ["Comprehensive Knowledge Base (All Documents)"],
