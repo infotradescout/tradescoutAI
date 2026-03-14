@@ -186,6 +186,7 @@ export default function ProfileSiteView() {
     .toLowerCase();
   const isSuperAdminViewer =
     Boolean((user as any)?.isSuperAdmin === true) || normalizedViewerRole === "super_admin";
+  const hasViewerSession = isAuthenticated || Boolean((user as any)?.id);
   const directConnectHref = `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
@@ -281,7 +282,7 @@ export default function ProfileSiteView() {
                   </div>
                 ) : null}
                 <div className="flex flex-wrap gap-3">
-                  <Link href={isAuthenticated ? directConnectHref : preScoutCreateHref}>
+                  <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
                     <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                       Request Booking
                     </Button>
@@ -317,19 +318,21 @@ export default function ProfileSiteView() {
                     <p className="text-white/60">
                       {isSuperAdminViewer
                         ? "Super Admin override active. You are automatically connected through Direct Connect."
-                        : isAuthenticated
+                        : hasViewerSession
                           ? "Open Direct Connect to contact this profile through governed routing."
                           : "Create a free TradeScout account to contact this profile through Direct Connect."}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch gap-3">
-                    <Link href={isAuthenticated ? directConnectHref : preScoutCreateHref}>
+                    <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
                       <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        <span>{isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}</span>
+                        <span>
+                          {isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}
+                        </span>
                       </Button>
                     </Link>
-                    {!isAuthenticated ? (
+                    {!hasViewerSession ? (
                       <Link href={preScoutSignInHref}>
                         <Button variant="outline" className="border-white/10 text-white/70">
                           Sign in

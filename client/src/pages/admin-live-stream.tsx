@@ -20,6 +20,7 @@ type LiveStreamItem = {
   timestamp: string;
   kind: string;
   priority: "critical" | "high" | "medium" | "low";
+  truthStatus?: "current" | "stale";
   title: string;
   narrative: string;
   source: string;
@@ -79,13 +80,37 @@ const priorityTone: Record<LiveStreamItem["priority"], string> = {
   low: "bg-white/10 text-white/70 border-white/10",
 };
 
+const truthTone: Record<"current" | "stale", string> = {
+  current: "bg-emerald-600/20 text-emerald-100 border-emerald-500/30",
+  stale: "bg-amber-600/20 text-amber-100 border-amber-500/30",
+};
+
+const durabilityTone: Record<"volatile" | "stable" | "persistent", string> = {
+  volatile: "bg-rose-600/20 text-rose-100 border-rose-500/30",
+  stable: "bg-blue-600/20 text-blue-100 border-blue-500/30",
+  persistent: "bg-violet-600/20 text-violet-100 border-violet-500/30",
+};
+
+function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
+  if (source === "crawler" || source === "alerts" || source === "bot_crawl_signals") {
+    return "volatile";
+  }
+  if (source === "cumulus") {
+    return "persistent";
+  }
+  return "stable";
+}
+
 export default function AdminLiveStreamPage() {
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
   const [source, setSource] = useState("all");
+  const [truthFilter, setTruthFilter] = useState("all");
+  const [durabilityFilter, setDurabilityFilter] = useState("all");
   const [stateCode, setStateCode] = useState("all");
   const [county, setCounty] = useState("all");
   const [limit, setLimit] = useState("20");
+  const [historyDays, setHistoryDays] = useState("7");
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
   const [refreshError, setRefreshError] = useState("");
@@ -105,6 +130,16 @@ export default function AdminLiveStreamPage() {
     return params.toString();
   }, [source, stateCode, county, limit]);
 
+  const historyQueryString = useMemo(() => {
+    const params = new URLSearchParams(queryString);
+    const normalizedHistoryDays = Math.min(
+      30,
+      Math.max(1, Number.parseInt(historyDays || "7", 10) || 7)
+    );
+    params.set("lookbackDays", String(normalizedHistoryDays));
+    return params.toString();
+  }, [queryString, historyDays]);
+
   const { data, isLoading, error } = useQuery<LiveStreamResponse>({
     queryKey: ["/api/admin/observability/live-stream", queryString],
     queryFn: async () => {
@@ -120,11 +155,14 @@ export default function AdminLiveStreamPage() {
   });
 
   const { data: historyData } = useQuery<LiveStreamHistoryResponse>({
-    queryKey: ["/api/admin/observability/live-stream/history", queryString],
+    queryKey: ["/api/admin/observability/live-stream/history", historyQueryString],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/observability/live-stream/history?${queryString}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/admin/observability/live-stream/history?${historyQueryString}`,
+        {
+          credentials: "include",
+        }
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch live stream history");
       }
@@ -132,6 +170,16 @@ export default function AdminLiveStreamPage() {
     },
     refetchInterval: 30000,
   });
+
+  const filteredStream = useMemo(() => {
+    return (data?.stream || []).filter((item) => {
+      const truthStatus = item.truthStatus === "current" ? "current" : "stale";
+      const durabilityClass = resolveDurabilityClass(item.source);
+      const truthMatch = truthFilter === "all" || truthStatus === truthFilter;
+      const durabilityMatch = durabilityFilter === "all" || durabilityClass === durabilityFilter;
+      return truthMatch && durabilityMatch;
+    });
+  }, [data?.stream, truthFilter, durabilityFilter]);
 
   const { data: snapshotStatus } = useQuery<SnapshotStatusResponse>({
     queryKey: ["/api/admin/observability/snapshot-status"],
@@ -282,8 +330,7 @@ export default function AdminLiveStreamPage() {
 
           {data?.summary.degradedSources?.length ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Live stream is in degraded mode. Fallback data was used for:{" "}
-              {data.summary.degradedSources.join(", ")}.
+              Live stream is using fallback data for: {data.summary.degradedSources.join(", ")}.
               {data.summary.degradedSourceReasons &&
               Object.keys(data.summary.degradedSourceReasons).length ? (
                 <div className="mt-2 space-y-1 text-xs text-destructive/90">
@@ -393,7 +440,7 @@ export default function AdminLiveStreamPage() {
           </div>
 
           <div
-            className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-4" : "md:grid-cols-4"} gap-4`}
+            className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-7" : "md:grid-cols-7"} gap-4`}
           >
             <div className="space-y-1">
               <Label>Source</Label>
@@ -408,6 +455,33 @@ export default function AdminLiveStreamPage() {
                   <SelectItem value="cumulus">Cumulus</SelectItem>
                   <SelectItem value="crawler">Crawler</SelectItem>
                   <SelectItem value="alerts">Alerts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Truth</Label>
+              <Select value={truthFilter} onValueChange={setTruthFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All truth states</SelectItem>
+                  <SelectItem value="current">Current</SelectItem>
+                  <SelectItem value="stale">Stale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Durability</Label>
+              <Select value={durabilityFilter} onValueChange={setDurabilityFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All durability</SelectItem>
+                  <SelectItem value="volatile">Volatile</SelectItem>
+                  <SelectItem value="stable">Stable</SelectItem>
+                  <SelectItem value="persistent">Persistent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -432,6 +506,14 @@ export default function AdminLiveStreamPage() {
               <Input
                 value={limit}
                 onChange={(e) => setLimit(e.target.value.replace(/[^\d]/g, "") || "20")}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>History Days</Label>
+              <Input
+                value={historyDays}
+                onChange={(e) => setHistoryDays(e.target.value.replace(/[^\d]/g, "") || "7")}
+                placeholder="7"
               />
             </div>
           </div>
@@ -544,31 +626,37 @@ export default function AdminLiveStreamPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {(data?.stream || []).length === 0 ? (
+            {filteredStream.length === 0 ? (
               <div className="text-sm text-white/65">
                 {isLoading ? "Loading stream..." : "No live entries available."}
               </div>
             ) : (
-              data?.stream.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border border-white/10 bg-black/20 p-4 space-y-2"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-sm font-semibold text-white">{item.title}</div>
-                      <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
-                      <Badge variant="outline" className="border-white/10 text-white/60">
-                        {item.source}
-                      </Badge>
+              filteredStream.map((item) => {
+                const truthStatus = item.truthStatus === "current" ? "current" : "stale";
+                const durabilityClass = resolveDurabilityClass(item.source);
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-white/10 bg-black/20 p-4 space-y-2"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-semibold text-white">{item.title}</div>
+                        <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+                        <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
+                        <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
+                        <Badge variant="outline" className="border-white/10 text-white/60">
+                          {item.source}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-white/50">
+                        {new Date(item.timestamp).toLocaleString()}
+                      </div>
                     </div>
-                    <div className="text-xs text-white/50">
-                      {new Date(item.timestamp).toLocaleString()}
-                    </div>
+                    <div className="text-sm text-white/80">{item.narrative}</div>
                   </div>
-                  <div className="text-sm text-white/80">{item.narrative}</div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </CardContent>
@@ -579,7 +667,8 @@ export default function AdminLiveStreamPage() {
           <CardHeader>
             <CardTitle className="text-white">Stream History</CardTitle>
             <CardDescription className="text-white/70">
-              Stored snapshots of the live stream for replay and comparison.
+              Stored snapshots of the live stream for replay and comparison (last{" "}
+              {Math.min(30, Math.max(1, Number.parseInt(historyDays || "7", 10) || 7))} days).
             </CardDescription>
           </CardHeader>
           <CardContent>

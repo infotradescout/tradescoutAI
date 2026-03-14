@@ -198,6 +198,33 @@ async function fetchCampaignBySlug(partnerSlug: string) {
   };
 }
 
+function buildFallbackCampaign(partnerSlug: string) {
+  if (partnerSlug !== "cumulus-media") return null;
+  return {
+    partnerSlug: "cumulus-media",
+    partnerName: "Cumulus Media",
+    campaignTitle: "TradeScout x Cumulus Media",
+    heroKicker: "TradePartner Campaign",
+    heroHeadline: "TradeScout x Cumulus Media",
+    heroSubhead:
+      "Cumulus Media is providing an unconditional $2,000 in free ads to the TradeScout network. No catch. No minimum spend. No hidden terms.",
+    dealAmountUsd: 2000,
+    dealTerms: "Unconditional $2,000 ad credit. No catch, no minimum, no purchase required.",
+    coverageScope: "national",
+    focusNote:
+      "Offer applies across Cumulus markets. Current launch focus: Mobile County AL, Escambia County FL, and Okaloosa County FL.",
+    ctaLabel: "Choose meeting date",
+    ctaUrl: "/tradepartners/cumulus-media?rsvp=1",
+    seoKeywords: "",
+    benefits: [],
+    isActive: true,
+    counties: [],
+    meetings: [],
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
 export async function getTradePartnerCampaignPublicHandler(req: Request, res: Response) {
   const partnerSlug = cleanText(req.params.partnerSlug, 120).toLowerCase();
   if (!isValidPartnerSlug(partnerSlug)) {
@@ -213,7 +240,11 @@ export async function getTradePartnerCampaignPublicHandler(req: Request, res: Re
     return res.json(campaign);
   } catch (error) {
     console.error("GET tradepartner campaign error:", error);
-    return res.status(500).json({ error: "Server error" });
+    const fallback = buildFallbackCampaign(partnerSlug);
+    if (fallback) {
+      return res.json(fallback);
+    }
+    return res.status(500).json({ error: "Server error", message: "Server error" });
   }
 }
 

@@ -53,6 +53,13 @@ function parseMeetingDate(value: unknown): string {
   return parsed.toISOString().slice(0, 10);
 }
 
+function inferCountySlugFromMeetingId(meetingId: string): string {
+  const normalized = cleanString(meetingId, 120).toLowerCase();
+  if (!normalized) return "";
+  const token = normalized.split("-", 1)[0] || "";
+  return COUNTY_ALIASES[token] || "";
+}
+
 function normalizeCountySlug(value: unknown): string {
   const normalized = cleanString(value, 80).toLowerCase().replace(/_/g, "-");
   if (!normalized) return "";
@@ -107,20 +114,31 @@ function userText(user: Record<string, unknown>, key: string, maxLen: number): s
 
 router.post("/", async (req: Request, res: Response) => {
   const partnerSlug = cleanString(req.body?.partnerSlug, 120).toLowerCase() || "cumulus-media";
-  const countySlug = normalizeCountySlug(req.body?.countySlug);
+  const meetingId = cleanString(req.body?.meetingId, 120).toLowerCase();
+  const countySlug =
+    normalizeCountySlug(req.body?.countySlug) || inferCountySlugFromMeetingId(meetingId);
   let countyLabel = RSVP_COUNTIES[countySlug];
 
   if (!countySlug || !countyLabel) {
-    return res.status(400).json({ error: "Please select a supported county meeting." });
+    return res
+      .status(400)
+      .json({
+        error: "Please select a supported county meeting.",
+        message: "Please select a supported county meeting.",
+      });
   }
 
   const requestedMeetingDate = parseMeetingDate(req.body?.meetingDate || req.body?.startDateTime);
-  const meetingId = cleanString(req.body?.meetingId, 120).toLowerCase();
   const timeLabel = cleanString(req.body?.timeLabel, 40);
   const startDateTime = cleanString(req.body?.startDateTime, 80);
 
   if (!meetingId && !requestedMeetingDate) {
-    return res.status(400).json({ error: "Please select a valid meeting date." });
+    return res
+      .status(400)
+      .json({
+        error: "Please select a valid meeting date.",
+        message: "Please select a valid meeting date.",
+      });
   }
 
   const sessionUser = ((req.user || {}) as Record<string, unknown>) || {};
@@ -128,8 +146,10 @@ router.post("/", async (req: Request, res: Response) => {
   const userFirstName = userText(sessionUser, "firstName", 80);
   const userLastName = userText(sessionUser, "lastName", 80);
   const userDisplayName = [userFirstName, userLastName].filter(Boolean).join(" ").trim();
-  const userEmail = userText(sessionUser, "email", 200).toLowerCase();
-  const userPhone = userText(sessionUser, "phone", 60);
+  const userEmail =
+    userText(sessionUser, "email", 200).toLowerCase() ||
+    userText(sessionUser, "emailAddress", 200).toLowerCase();
+  const userPhone = userText(sessionUser, "phone", 60) || userText(sessionUser, "phoneNumber", 60);
   const userBusinessName =
     userText(sessionUser, "businessName", 160) || userText(sessionUser, "company", 160);
 
@@ -145,11 +165,19 @@ router.post("/", async (req: Request, res: Response) => {
   const notes = cleanString(req.body?.notes, 2000);
 
   if (!businessName || !contactName) {
-    return res.status(400).json({ error: "Business name and contact name are required." });
+    return res.status(400).json({
+      error: "Business name and contact name are required.",
+      message: "Business name and contact name are required.",
+    });
   }
 
   if (!email || !isValidEmail(email)) {
-    return res.status(400).json({ error: "A valid email address is required." });
+    return res
+      .status(400)
+      .json({
+        error: "A valid email address is required.",
+        message: "A valid email address is required.",
+      });
   }
 
   const attendeeCount = parsePositiveInteger(req.body?.attendeeCount, 1, 1, 12);
@@ -214,13 +242,23 @@ router.post("/", async (req: Request, res: Response) => {
       const row = meetingLookup.rows[0] as Record<string, unknown>;
       countyLabel = cleanString(row.county_label, 120) || countyLabel;
     } else if (!countyLabel) {
-      return res.status(400).json({ error: "Please select a supported county meeting." });
+      return res
+        .status(400)
+        .json({
+          error: "Please select a supported county meeting.",
+          message: "Please select a supported county meeting.",
+        });
     }
 
     const meetingDate =
       parseMeetingDate((meetingLookup.rows[0] as any)?.meeting_date) || requestedMeetingDate;
     if (!meetingDate) {
-      return res.status(400).json({ error: "Please select a valid meeting date." });
+      return res
+        .status(400)
+        .json({
+          error: "Please select a valid meeting date.",
+          message: "Please select a valid meeting date.",
+        });
     }
 
     const eventLabelFromMeeting =
@@ -362,9 +400,14 @@ ${meetingAddressLine1 ? `<p><strong>Address:</strong> ${safeAddressLine1}<br>${s
     console.error("POST tradepartner RSVP error:", error);
     const code = String((error as { code?: unknown })?.code || "");
     if (code === "42P01") {
-      return res.status(503).json({ error: "RSVP storage is not configured yet." });
+      return res
+        .status(503)
+        .json({
+          error: "RSVP storage is not configured yet.",
+          message: "RSVP storage is not configured yet.",
+        });
     }
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "Server error", message: "Server error" });
   }
 });
 

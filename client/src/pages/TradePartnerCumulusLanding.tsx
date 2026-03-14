@@ -636,10 +636,17 @@ export default function TradePartnerCumulusLanding() {
     : RSVP_RETURN_PATH;
   const userRecord = (user || null) as Record<string, unknown> | null;
   const prefilledName = getUserName(userRecord);
-  const prefilledEmail = typeof userRecord?.email === "string" ? userRecord.email.trim() : "";
-  const prefilledPhone = typeof userRecord?.phone === "string" ? userRecord.phone.trim() : "";
+  const prefilledEmail =
+    (typeof userRecord?.email === "string" ? userRecord.email.trim() : "") ||
+    (typeof userRecord?.emailAddress === "string" ? userRecord.emailAddress.trim() : "");
+  const prefilledPhone =
+    (typeof userRecord?.phone === "string" ? userRecord.phone.trim() : "") ||
+    (typeof userRecord?.phoneNumber === "string" ? userRecord.phoneNumber.trim() : "");
   const prefilledBusinessName = getUserBusinessName(userRecord);
-  const emailVerified = userRecord?.emailVerified === true;
+  const emailVerified =
+    userRecord?.emailVerified === true ||
+    userRecord?.isEmailVerified === true ||
+    userRecord?.email_verified === true;
   const signInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(rsvpReturnPath)}`;
 
   const handleShareCampaign = async () => {
