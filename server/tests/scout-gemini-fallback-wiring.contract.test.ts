@@ -34,4 +34,13 @@ describe("scout gemini fallback wiring contract", () => {
     );
     expect(source).toContain("buildContextualSynthesisFallbackMessage(knowledge.answer)");
   });
+
+  it("routes homeowner project asks into planning before generic fallback", () => {
+    const source = read("server/routes/scout.ts");
+    expect(source).toContain("function maybeHandleHomeProjectRouting");
+    expect(source).toContain('label: "Start or plan this project"');
+    expect(source).toContain('to: "/project-tracker"');
+    expect(source).toContain('intent: "home_project_decking"');
+    expect(source).toContain('sourceUsed: "deterministic_home_project_router"');
+  });
 });

@@ -84,13 +84,17 @@ export function buildConnectionFallback(
   const wantsMarketplace = marketplaceSignals;
   const prioritizePros = wantsPros || wantsMarketplace;
   const useAmbiguityBundle =
-    roofDomainAmbiguous || keywordOnlyWithoutContext || lowConfidenceWithContext;
+    roofDomainAmbiguous ||
+    deckSignals ||
+    homeProjectSignals ||
+    keywordOnlyWithoutContext ||
+    lowConfidenceWithContext;
 
   const stayInScoutPrompt = useAmbiguityBundle
     ? roofDomainAmbiguous
       ? "Keep me in Scout and help me choose: should I hire a roofer, browse recent roofing materials, or check community signals first?"
       : deckSignals
-        ? "Keep me in Scout and help me scope this deck project: should I start with deck builders, rental equipment, or local project signals first?"
+        ? "Keep me in Scout and help me scope this deck project: should I start by planning it, opening deck builders, or checking rental equipment first?"
         : "Keep me in Scout and help me choose: should I start with trusted local pros, recent marketplace listings, or community signals first?"
     : "Keep me in Scout and walk me through the best next action step-by-step without leaving this page.";
 
@@ -111,6 +115,11 @@ export function buildConnectionFallback(
 
   if (useAmbiguityBundle) {
     candidateActions.push(
+      {
+        type: "NAVIGATE",
+        label: deckSignals ? "Start or plan this project" : "Start or plan this project",
+        to: "/project-tracker",
+      },
       {
         type: "NAVIGATE",
         label: roofDomainAmbiguous
@@ -174,13 +183,14 @@ export function buildConnectionFallback(
   const seen = new Set<string>();
   let hasAskScout = false;
   const actions: ScoutAction[] = [];
+  const maxActions = useAmbiguityBundle ? 5 : 4;
   for (const action of candidateActions) {
     if (action.type === "NAVIGATE") {
       if (typeof action.to !== "string") continue;
       if (seen.has(action.to)) continue;
       seen.add(action.to);
       actions.push(action);
-      if (actions.length >= 4) break;
+      if (actions.length >= maxActions) break;
       continue;
     }
 
@@ -188,7 +198,7 @@ export function buildConnectionFallback(
       if (hasAskScout) continue;
       hasAskScout = true;
       actions.push(action);
-      if (actions.length >= 4) break;
+      if (actions.length >= maxActions) break;
     }
   }
 
@@ -196,9 +206,9 @@ export function buildConnectionFallback(
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     role: "assistant",
     content: deckSignals
-      ? "Got it. For a deck project, the next useful move is to scope the job, compare local builders, and check nearby equipment or material options. Which path should we open first?"
+      ? "Got it. For a deck project, start by planning the scope, budget, and timing. Then compare local builders or check rental equipment and local project signals. Which path should we open first?"
       : homeProjectSignals
-        ? "Got it. The next useful move is to scope the work, compare trusted local pros, and check nearby options. Which path should we open first?"
+        ? "Got it. Start by planning the scope, budget, and timing for this project. Then compare trusted local pros and nearby options. Which path should we open first?"
         : "Scout had a connection issue. You can keep moving with trusted, recent options and take action now.",
     timestamp: new Date().toISOString(),
     clusters: [
@@ -207,9 +217,9 @@ export function buildConnectionFallback(
         title: "Continue now",
         kind: "generic",
         body: deckSignals
-          ? "Start with deck builders, rental equipment, or local project signals."
+          ? "Start with project planning, deck builders, rental equipment, or local project signals."
           : homeProjectSignals
-            ? "Start with pros, Exchange, or community signals for this project."
+            ? "Start with project planning, pros, Exchange, or community signals for this project."
             : "Pick a path below. Your next action helps Scout improve future routing for everyone.",
         actions,
       },

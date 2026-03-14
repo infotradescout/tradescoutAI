@@ -1661,25 +1661,35 @@ function maybeHandleHomeProjectRouting(args: {
 
   const countyLabel = [args.countyCode, args.stateCode].filter(Boolean).join(", ");
   const localityFragment = countyLabel ? ` in ${countyLabel}` : "";
+  const planningAction: ScoutClientAction = {
+    type: "NAVIGATE",
+    label: "Start or plan this project",
+    to: "/project-tracker",
+    path: "/project-tracker",
+    subtitle: "Open project planning",
+    why: "Best first step when you need to scope work, budget, and timeline before hiring",
+    primary: true,
+  };
 
   if (tradeTopic === "decking") {
     return {
       intent: "home_project_decking",
-      message: `Got it. For a deck project${localityFragment}, the strongest next move is to scope the build and open local deck builders first. I can also route you into rental equipment and local project signals if you want to compare labor, materials, and timing.`,
+      message: `Got it. For a deck project${localityFragment}, start by planning the scope, budget, and timing so you can decide whether to hire it out, split the work, or run it yourself. From there, I can open deck builders, rental equipment, and local project signals.`,
       suggestedActions: [
+        "Start or plan this project",
         "Find deck builders near me",
         "Browse rental equipment for this project",
-        "Check local project signals before I hire",
+        "Check local deck project signals",
       ],
       actions: [
+        planningAction,
         {
           type: "NAVIGATE",
           label: "Find deck builders",
           to: "/direct-connect/pros",
           path: "/direct-connect/pros",
           subtitle: "Open local pros",
-          why: "Best next step for a deck build or rebuild",
-          primary: true,
+          why: "Use this once the scope is clear and you want real builders",
         },
         {
           type: "NAVIGATE",
@@ -1691,7 +1701,7 @@ function maybeHandleHomeProjectRouting(args: {
         },
         {
           type: "NAVIGATE",
-          label: "Open community signals",
+          label: "Check local deck project signals",
           to: "/community",
           path: "/community",
           subtitle: "See local project chatter",
@@ -1708,21 +1718,22 @@ function maybeHandleHomeProjectRouting(args: {
 
   return {
     intent: `home_project_${tradeTopic}`,
-    message: `Got it. For this ${tradeTopic} project${localityFragment}, the strongest next move is to scope the work and open trusted local pros first. I can also route you into Exchange and community signals if you want to compare options before you hire.`,
+    message: `Got it. For this ${tradeTopic} project${localityFragment}, start by planning the work so you can lock scope, budget, and timing before you hire. After that, I can route you into trusted local pros, Exchange options, and local project signals.`,
     suggestedActions: [
+      "Start or plan this project",
       `Find ${tradeTopic} pros near me`,
       "Browse relevant Exchange options",
       "Check local project signals before I hire",
     ],
     actions: [
+      planningAction,
       {
         type: "NAVIGATE",
         label: "Find trusted local pros",
         to: "/direct-connect/pros",
         path: "/direct-connect/pros",
         subtitle: "Open local pros",
-        why: `Best next step for a ${tradeTopic} project`,
-        primary: true,
+        why: `Use this once you want real providers for the ${tradeTopic} work`,
       },
       {
         type: "NAVIGATE",
