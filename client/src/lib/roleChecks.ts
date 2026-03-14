@@ -8,6 +8,8 @@
  * If a user can't act, they shouldn't see it.
  */
 
+import { SUPPORT_EMAIL_ALIASES } from "@shared/supportInbox";
+
 export type UserRole = string | undefined;
 
 const normalizeRole = (role: UserRole): string => {
@@ -77,10 +79,7 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
 
   const normalizeEmail = (value: unknown): string =>
     typeof value === "string" ? value.trim().toLowerCase() : "";
-  const adminAliasEmails = new Set<string>([
-    "info.tradescout@gmail.com",
-    "contact@thetradescout.com",
-  ]);
+  const adminAliasEmails = new Set<string>(SUPPORT_EMAIL_ALIASES);
   const userEmail = normalizeEmail(user.email);
   const claimsEmail = normalizeEmail(user.claims?.email);
   if (

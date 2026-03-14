@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { safeStorage } from '../utils/safeStorage';
+import React, { useState, useEffect } from "react";
+import { safeStorage } from "../utils/safeStorage";
 // Force cache refresh
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, X, Rocket, Users, Zap } from "lucide-react";
+import { PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
 
 export function BetaNotificationPopup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +20,7 @@ export function BetaNotificationPopup() {
   useEffect(() => {
     try {
       // Check if user has seen the beta notification
-      const hasSeenBetaNotification = safeStorage.get('hasSeenBetaNotification');
+      const hasSeenBetaNotification = safeStorage.get("hasSeenBetaNotification");
       if (!hasSeenBetaNotification) {
         // Show after a short delay
         const timer = setTimeout(() => {
@@ -23,7 +30,7 @@ export function BetaNotificationPopup() {
         return () => clearTimeout(timer);
       }
     } catch (error) {
-      console.error('BetaNotificationPopup localStorage error:', error);
+      console.error("BetaNotificationPopup localStorage error:", error);
     }
   }, []);
 
@@ -31,9 +38,9 @@ export function BetaNotificationPopup() {
     setIsOpen(false);
     try {
       // Mark as seen for this session
-      safeStorage.set('hasSeenBetaNotification', 'true');
+      safeStorage.set("hasSeenBetaNotification", "true");
     } catch (error) {
-      console.error('Failed to save beta notification state:', error);
+      console.error("Failed to save beta notification state:", error);
     }
   };
 
@@ -60,7 +67,8 @@ export function BetaNotificationPopup() {
                   ⚠️ Important Security Notice
                 </p>
                 <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                  This is a beta version. Do not enter real personal information, credit card details, or attempt to make actual payments. Use test data only.
+                  This is a beta version. Do not enter real personal information, credit card
+                  details, or attempt to make actual payments. Use test data only.
                 </p>
               </div>
             </div>
@@ -87,12 +95,13 @@ export function BetaNotificationPopup() {
                     Community Feedback
                   </p>
                   <p className="text-xs text-white/60 dark:text-white/60">
-                    Your input is valuable! If you hit an error, please take a screenshot and email it with a brief note to{" "}
+                    Your input is valuable! If you hit an error, please take a screenshot and email
+                    it with a brief note to{" "}
                     <a
-                      href="mailto:info.tradescout@gmail.com"
+                      href={`mailto:${PRIMARY_SUPPORT_EMAIL}`}
                       className="underline underline-offset-2"
                     >
-                      info.tradescout@gmail.com
+                      {PRIMARY_SUPPORT_EMAIL}
                     </a>
                     .
                   </p>

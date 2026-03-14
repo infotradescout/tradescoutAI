@@ -24,4 +24,9 @@ describe("roleChecks admin UI access", () => {
     expect(hasAdminUiAccess({ roles: ["member", "super_admin"] })).toBe(true);
     expect(hasAdminUiAccess({ roles: ["member", "homeowner"] })).toBe(false);
   });
+
+  it("honors both support inbox aliases for admin UI access", () => {
+    expect(hasAdminUiAccess({ email: "contact@thetradescout.com" })).toBe(true);
+    expect(hasAdminUiAccess({ email: "info.tradescout@gmail.com" })).toBe(true);
+  });
 });

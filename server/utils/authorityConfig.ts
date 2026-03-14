@@ -29,7 +29,7 @@ const DEFAULT_VERIFICATION_BYPASS_ROLES = [
   "ops_admin",
   "super_admin",
 ];
-const DEFAULT_PRIVILEGED_ALIAS_EMAILS = ["info.tradescout@gmail.com", "contact@thetradescout.com"];
+const DEFAULT_PRIVILEGED_ALIAS_EMAILS = ["contact@thetradescout.com", "info.tradescout@gmail.com"];
 
 const AUTHORITY_ENV_KEYS = [
   "MASTER_ADMIN_EMAIL",

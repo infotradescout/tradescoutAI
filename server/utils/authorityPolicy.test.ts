@@ -82,6 +82,7 @@ describe("authorityPolicy", () => {
         expect(aliases.has("ops@example.com")).toBe(true);
         expect(aliases.has("root@example.com")).toBe(true);
         expect(aliases.has("staff@example.com")).toBe(true);
+        expect(aliases.has("contact@thetradescout.com")).toBe(true);
         expect(aliases.has("info.tradescout@gmail.com")).toBe(true);
       }
     ));

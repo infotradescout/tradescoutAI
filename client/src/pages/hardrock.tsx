@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
 
 const formSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
@@ -143,7 +144,7 @@ export default function HardrockLanding() {
             </Link>
           </div>
           <p className="text-xs text-white/60">
-            Contact: <span className="font-medium text-white">info.tradescout@gmail.com</span>
+            Contact: <span className="font-medium text-white">{PRIMARY_SUPPORT_EMAIL}</span>
           </p>
         </div>
 

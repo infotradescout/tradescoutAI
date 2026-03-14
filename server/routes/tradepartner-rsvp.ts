@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { emailService } from "../services/emailService";
+import { normalizeSupportInboxEmail, PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
 
 const router = Router();
 
@@ -40,10 +41,15 @@ function isValidEmail(email: string): boolean {
 }
 
 function parseRecipientList(value: string): string[] {
-  return String(value || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+  return Array.from(
+    new Set(
+      String(value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .map((item) => normalizeSupportInboxEmail(item))
+        .filter((item) => item.length > 0)
+    )
+  );
 }
 
 function escapeHtml(value: string): string {
@@ -194,8 +200,12 @@ router.post("/", async (req: Request, res: Response) => {
       process.env.MASTER_ADMIN_EMAIL ||
       "";
     const recipients = parseRecipientList(recipientEnv);
+    const notificationRecipients =
+      recipients.length > 0
+        ? Array.from(new Set([PRIMARY_SUPPORT_EMAIL, ...recipients]))
+        : [PRIMARY_SUPPORT_EMAIL];
 
-    if (emailService.isConfigured() && recipients.length > 0) {
+    if (emailService.isConfigured() && notificationRecipients.length > 0) {
       const safeCounty = escapeHtml(countyLabel);
       const safeMeetingDate = escapeHtml(meetingDate);
       const safeBusiness = escapeHtml(businessName);
@@ -206,7 +216,7 @@ router.post("/", async (req: Request, res: Response) => {
 
       void emailService
         .sendEmail({
-          to: recipients,
+          to: notificationRecipients,
           subject: `New TradePartner RSVP: ${businessName} (${countyLabel})`,
           html: `<h2>New TradePartner RSVP</h2>
 <p><strong>Partner:</strong> ${escapeHtml(partnerSlug)}</p>

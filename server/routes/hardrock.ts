@@ -8,6 +8,7 @@ import { z } from "zod";
 import { emailService } from "../services/emailService";
 import { isStaff } from "../auth";
 import { storage } from "../storage";
+import { PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
 
 const hardrockApplyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -167,7 +168,7 @@ export function registerHardrockRoutes(app: Express) {
           });
         }
 
-        const inbox = process.env.HARDROCK_INBOX_EMAIL || "info.tradescout@gmail.com";
+        const inbox = process.env.HARDROCK_INBOX_EMAIL || PRIMARY_SUPPORT_EMAIL;
 
         // Notify internal inbox (best-effort)
         try {
