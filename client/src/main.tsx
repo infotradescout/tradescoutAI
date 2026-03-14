@@ -400,9 +400,15 @@ async function bootstrap() {
   // Keep this simple and reliable; any caching logic lives in `client/public/sw.js`.
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register(SERVICE_WORKER_URL).catch((err) => {
-        console.warn("[PWA] service worker registration failed", err);
-      });
+      navigator.serviceWorker
+        .register(SERVICE_WORKER_URL, { updateViaCache: "none" })
+        .then((reg) => {
+          // Prompt an update check after boot so users pick up newly deployed SW quickly.
+          void reg.update().catch(() => {});
+        })
+        .catch((err) => {
+          console.warn("[PWA] service worker registration failed", err);
+        });
     });
   }
 }

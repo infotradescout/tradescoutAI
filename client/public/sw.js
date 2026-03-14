@@ -9,7 +9,7 @@
  */
 
 // Bump this whenever caching behavior changes to guarantee clients drop old caches.
-const CACHE_VERSION = "v6-2026-03-06";
+const CACHE_VERSION = "v7-2026-03-14";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -72,6 +72,21 @@ async function cacheFirst(request) {
   return response;
 }
 
+async function networkFirst(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw new Error("offline");
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (!request || request.method !== "GET") return;
@@ -88,8 +103,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for Vite hashed assets. Navigations are network-only, so fresh HTML
-  // will always reference the latest hashed filenames after deploys.
+  // For JS/CSS app chunks, prefer network first to avoid users getting stuck on stale
+  // cached bundles when a deploy happens during an active session.
+  if (
+    url.pathname.startsWith("/assets/") &&
+    (request.destination === "script" || request.destination === "style")
+  ) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Cache-first for other static assets under /assets/ (images/fonts/etc).
   if (url.pathname.startsWith("/assets/")) {
     event.respondWith(cacheFirst(request));
     return;
