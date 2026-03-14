@@ -776,11 +776,11 @@ async function refreshBotObservationDailyAggregate(args: {
       )
       select
         $1::date as date,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
+        $2::varchar(64) as route_family,
+        $3::varchar(160) as county,
+        $4::varchar(2) as state,
+        $5::varchar(160) as trade,
+        $6::varchar(120) as bot_family,
         count(*)::int as hits,
         count(distinct canonical_url)::int as unique_urls,
         round(avg(response_time_ms))::int as avg_response_time_ms,
@@ -793,11 +793,11 @@ async function refreshBotObservationDailyAggregate(args: {
           select e2.path
           from bot_observation_events e2
           where e2.observed_at::date = $1::date
-            and e2.route_family = $2
-            and coalesce(e2.county, '') = coalesce($3, '')
-            and coalesce(e2.state, '') = coalesce($4, '')
-            and coalesce(e2.trade, '') = coalesce($5, '')
-            and e2.bot_family = $6
+            and e2.route_family = $2::varchar(64)
+            and coalesce(e2.county, ''::varchar) = coalesce($3::varchar(160), ''::varchar)
+            and coalesce(e2.state, ''::varchar) = coalesce($4::varchar(2), ''::varchar)
+            and coalesce(e2.trade, ''::varchar) = coalesce($5::varchar(160), ''::varchar)
+            and e2.bot_family = $6::varchar(120)
           group by e2.path
           order by count(*) desc, e2.path asc
           limit 1
@@ -805,11 +805,11 @@ async function refreshBotObservationDailyAggregate(args: {
         now() as updated_at
       from bot_observation_events e
       where e.observed_at::date = $1::date
-        and e.route_family = $2
-        and coalesce(e.county, '') = coalesce($3, '')
-        and coalesce(e.state, '') = coalesce($4, '')
-        and coalesce(e.trade, '') = coalesce($5, '')
-        and e.bot_family = $6
+        and e.route_family = $2::varchar(64)
+        and coalesce(e.county, ''::varchar) = coalesce($3::varchar(160), ''::varchar)
+        and coalesce(e.state, ''::varchar) = coalesce($4::varchar(2), ''::varchar)
+        and coalesce(e.trade, ''::varchar) = coalesce($5::varchar(160), ''::varchar)
+        and e.bot_family = $6::varchar(120)
       on conflict (
         date,
         route_family,
