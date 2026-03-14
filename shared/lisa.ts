@@ -7,7 +7,8 @@ export type LisaFeedSourceKind =
   | "objectives"
   | "homescout_listings"
   | "observations"
-  | "bot_visibility";
+  | "bot_visibility"
+  | "bot_crawl_signals";
 
 export type LisaTruthStatus = "current" | "stale" | "superseded" | "suppressed";
 

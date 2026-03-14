@@ -18,20 +18,24 @@ describe("crawler telemetry contracts", () => {
     expect(source).toContain("county_fips");
     expect(source).toContain("category_slug");
     expect(source).toContain("crawler_request_hourly_rollups");
+    expect(source).toContain("CREATE TABLE IF NOT EXISTS bot_observation_events");
+    expect(source).toContain("CREATE TABLE IF NOT EXISTS bot_observation_daily_agg");
     expect(source).toContain("recordCrawlerRequestEvent");
     expect(source).toContain("detectActorFromUserAgent");
     expect(source).toContain("hashIp");
     expect(source).toContain("classifyRequestType");
     expect(source).toContain("pruneCrawlerRequestEventsIfNeeded");
     expect(source).toContain("resolveCountyFips");
+    expect(source).toContain("refreshBotObservationDailyAggregate");
+    expect(source).toContain("getBotCrawlAggregateSignals");
   });
 
   it("wires crawler request persistence into live request handling", () => {
     const appSource = read("server/app.ts");
     const indexSource = read("server/index.ts");
 
-    expect(appSource).toContain("recordCrawlerRequestEvent(req, res.statusCode)");
-    expect(indexSource).toContain("recordCrawlerRequestEvent(req, res.statusCode)");
+    expect(appSource).toContain("recordCrawlerRequestEvent(req, res.statusCode, {");
+    expect(indexSource).toContain("recordCrawlerRequestEvent(req, res.statusCode, {");
   });
 
   it("lets LISA read the persisted crawler telemetry layer", () => {

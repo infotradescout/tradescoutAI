@@ -1244,3 +1244,56 @@ export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySumm
     };
   }
 }
+
+export async function getBotCrawlAggregateSignals(): Promise<BotCrawlAggregateSignal[]> {
+  try {
+    await ensureCrawlerRequestEventsTable();
+    const result = await pool.query<BotObservationRow>(
+      `
+        select
+          date,
+          route_family,
+          county,
+          state,
+          trade,
+          bot_family,
+          hits,
+          unique_urls,
+          avg_response_time_ms,
+          avg_response_bytes,
+          status_200_count,
+          status_404_count,
+          recrawl_urls,
+          first_seen_urls,
+          top_path
+        from bot_observation_daily_agg
+        where date >= current_date - interval '1 day'
+        order by hits desc, unique_urls desc, route_family asc
+        limit 12
+      `
+    );
+
+    return (result.rows || []).map((row) => ({
+      date: new Date(String(row.date)).toISOString().slice(0, 10),
+      routeFamily: String(row.route_family || "other"),
+      county: row.county ? String(row.county) : null,
+      state: row.state ? String(row.state) : null,
+      trade: row.trade ? String(row.trade) : null,
+      botFamily: String(row.bot_family || "UnknownBot"),
+      hits: Number(row.hits || 0),
+      uniqueUrls: Number(row.unique_urls || 0),
+      avgResponseTimeMs:
+        row.avg_response_time_ms === null ? null : Number(row.avg_response_time_ms || 0),
+      avgResponseBytes:
+        row.avg_response_bytes === null ? null : Number(row.avg_response_bytes || 0),
+      status200Count: Number(row.status_200_count || 0),
+      status404Count: Number(row.status_404_count || 0),
+      recrawlUrls: Number(row.recrawl_urls || 0),
+      firstSeenUrls: Number(row.first_seen_urls || 0),
+      topPath: row.top_path ? String(row.top_path) : null,
+    }));
+  } catch (error) {
+    console.warn("[crawler-telemetry] degraded bot crawl aggregate signals:", error);
+    return [];
+  }
+}

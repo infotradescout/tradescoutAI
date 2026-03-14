@@ -470,7 +470,17 @@ app.use((req, res, next) => {
 
     // Emit HTTP status metrics (Phase 1: Observability)
     emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
-    void recordCrawlerRequestEvent(req, res.statusCode);
+    const contentLengthHeader = res.getHeader("content-length");
+    const responseBytes =
+      typeof contentLengthHeader === "number"
+        ? contentLengthHeader
+        : typeof contentLengthHeader === "string"
+          ? Number(contentLengthHeader)
+          : null;
+    void recordCrawlerRequestEvent(req, res.statusCode, {
+      responseTimeMs: duration,
+      responseBytes,
+    });
 
     if (requestPath.startsWith("/api")) {
       const isError = res.statusCode >= 400;

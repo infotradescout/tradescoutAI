@@ -117,7 +117,8 @@ interface LisaFeedItem {
     | "objectives"
     | "homescout_listings"
     | "observations"
-    | "bot_visibility";
+    | "bot_visibility"
+    | "bot_crawl_signals";
   headline: string;
   narrative: string;
   evidence: string[];
@@ -221,6 +222,7 @@ export default function ObservabilityDashboard() {
   const [refreshingSnapshotKey, setRefreshingSnapshotKey] = useState<string>("");
   const [snapshotRefreshMessage, setSnapshotRefreshMessage] = useState<string>("");
   const [snapshotRefreshError, setSnapshotRefreshError] = useState<string>("");
+  const [selectedLisaSource, setSelectedLisaSource] = useState<string>("all");
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -457,6 +459,14 @@ export default function ObservabilityDashboard() {
     );
   }
 
+  const filteredLisaFeed =
+    selectedLisaSource === "all"
+      ? lisaFeed.feed
+      : lisaFeed.feed.filter((item) => item.sourceKind === selectedLisaSource);
+  const botCrawlFeedCount = lisaFeed.feed.filter(
+    (item) => item.sourceKind === "bot_crawl_signals"
+  ).length;
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -494,6 +504,33 @@ export default function ObservabilityDashboard() {
           <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">
             Source: {lisaFeed.runtime.source}
           </span>
+          <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-100">
+            Bot crawl signals: {botCrawlFeedCount}
+          </span>
+        </div>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {[
+            { value: "all", label: "All signals" },
+            { value: "bot_crawl_signals", label: "Bot crawl" },
+            { value: "bot_visibility", label: "Bot visibility" },
+            { value: "observations", label: "Observations" },
+            { value: "scout_interactions", label: "Scout" },
+            { value: "homescout_listings", label: "HomeScout" },
+            { value: "objectives", label: "Objectives" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setSelectedLisaSource(option.value)}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                selectedLisaSource === option.value
+                  ? "border-orange-400/40 bg-orange-500/20 text-orange-100"
+                  : "border-white/10 bg-black/20 text-white/70 hover:bg-white/10"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -512,10 +549,19 @@ export default function ObservabilityDashboard() {
           </div>
         </div>
         <div className="space-y-3">
-          {lisaFeed.feed.map((item) => (
+          {filteredLisaFeed.length === 0 ? (
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+              No LISA feed items match the current signal filter.
+            </div>
+          ) : null}
+          {filteredLisaFeed.map((item) => (
             <div
               key={item.id}
-              className={`rounded-lg border p-4 ${getLisaPriorityClass(item.priority)}`}
+              className={`rounded-lg border p-4 ${getLisaPriorityClass(item.priority)} ${
+                item.sourceKind === "bot_crawl_signals"
+                  ? "shadow-[0_0_0_1px_rgba(34,211,238,0.2)]"
+                  : ""
+              }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

@@ -4,7 +4,10 @@ import { pool } from "../db";
 import { getHttpMetrics } from "../observability/metrics";
 import type { LisaFeedItem, LisaFeedResponse, LisaRuntimeMode } from "../../shared/lisa";
 import { reconcileLisaFindings } from "./lisaFindingsService";
-import { ensureCrawlerRequestEventsTable } from "./crawlerTelemetryService";
+import {
+  ensureCrawlerRequestEventsTable,
+  getBotCrawlAggregateSignals,
+} from "./crawlerTelemetryService";
 
 type QueryResultRow = Record<string, unknown>;
 type ScoutDemandRow = {
@@ -338,6 +341,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       `,
     }),
   ]);
+  const botCrawlSignals = await getBotCrawlAggregateSignals();
 
   const demand = scoutDemandResult.rows?.[0] || {};
   const topCounty: Partial<ScoutTopCountyRow> = scoutTopCountyResult.rows?.[0] || {};
@@ -347,6 +351,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   const crawlerTelemetryStats = crawlerTelemetryResult.rows?.[0] || {};
   const crawlerCountySignals = crawlerCountySignalResult.rows || [];
   const homeScoutStats = homeScoutResult.rows?.[0] || {};
+  const topBotCrawlSignal = botCrawlSignals[0] || null;
 
   const interactionCount = Number(demand.interaction_count || 0);
   const avgConfidence = Number(demand.avg_confidence || 0);
@@ -493,6 +498,54 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     ],
     freshnessMinutes: minutesSince(crawlerTelemetryStats.last_seen_at || botUiStats.last_seen_at),
   });
+
+  if (topBotCrawlSignal) {
+    const countyLabel = topBotCrawlSignal.county
+      ? `${topBotCrawlSignal.county}${topBotCrawlSignal.state ? ` County, ${topBotCrawlSignal.state}` : ""}`
+      : topBotCrawlSignal.state
+        ? `${topBotCrawlSignal.state} statewide`
+        : "public surfaces";
+    const tradeLabel = topBotCrawlSignal.trade
+      ? ` for ${topBotCrawlSignal.trade.replace(/-/g, " ")}`
+      : "";
+    feed.push({
+      id: `bot-demand-${topBotCrawlSignal.date}-${topBotCrawlSignal.routeFamily}-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
+      priority:
+        topBotCrawlSignal.hits >= 20 || topBotCrawlSignal.status404Count >= 5
+          ? "high"
+          : topBotCrawlSignal.hits >= 8
+            ? "medium"
+            : "low",
+      sourceKind: "bot_crawl_signals",
+      headline:
+        topBotCrawlSignal.status404Count >= 5
+          ? `Bots are repeatedly hitting missing ${topBotCrawlSignal.routeFamily.replace(/_/g, " ")} URLs in ${countyLabel}.`
+          : `High bot crawl demand is forming on ${topBotCrawlSignal.routeFamily.replace(/_/g, " ")}${tradeLabel} in ${countyLabel}.`,
+      narrative:
+        topBotCrawlSignal.status404Count >= 5
+          ? `${topBotCrawlSignal.botFamily} logged ${topBotCrawlSignal.hits} hits with ${topBotCrawlSignal.status404Count} 404 responses in the last day. ${topBotCrawlSignal.topPath ? `${topBotCrawlSignal.topPath} is the hottest missing URL and should be repaired or redirected.` : "Missing URLs are attracting repeated crawl demand and need repair."}`
+          : `${topBotCrawlSignal.botFamily} generated ${topBotCrawlSignal.hits} observed hits across ${topBotCrawlSignal.uniqueUrls} canonical URLs in the last day. ${topBotCrawlSignal.recrawlUrls > 0 ? `${topBotCrawlSignal.recrawlUrls} of those were recrawls, which is stronger than one-off discovery.` : `${topBotCrawlSignal.firstSeenUrls} newly discovered URLs were picked up by bots.`}${topBotCrawlSignal.topPath ? ` ${topBotCrawlSignal.topPath} is the hottest route in this cluster.` : ""}`,
+      evidence: [
+        `bot_family=${topBotCrawlSignal.botFamily}`,
+        `route_family=${topBotCrawlSignal.routeFamily}`,
+        topBotCrawlSignal.county ? `county=${topBotCrawlSignal.county}` : "county=none",
+        topBotCrawlSignal.state ? `state=${topBotCrawlSignal.state}` : "state=none",
+        topBotCrawlSignal.trade ? `trade=${topBotCrawlSignal.trade}` : "trade=none",
+        `hits=${topBotCrawlSignal.hits}`,
+        `unique_urls=${topBotCrawlSignal.uniqueUrls}`,
+        `recrawl_urls=${topBotCrawlSignal.recrawlUrls}`,
+        `first_seen_urls=${topBotCrawlSignal.firstSeenUrls}`,
+        `status_404_count=${topBotCrawlSignal.status404Count}`,
+        topBotCrawlSignal.topPath ? topBotCrawlSignal.topPath : "top_path=none",
+      ],
+      freshnessMinutes: 15,
+      scopeType: topBotCrawlSignal.county ? "county" : "surface",
+      scopeRef:
+        topBotCrawlSignal.county && topBotCrawlSignal.state
+          ? `${topBotCrawlSignal.state}-${topBotCrawlSignal.county}`
+          : topBotCrawlSignal.routeFamily,
+    });
+  }
 
   if (topCrawlerCounty) {
     const countyName = String(topCrawlerCounty.county_name || "Unknown county");

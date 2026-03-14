@@ -4031,6 +4031,85 @@ export const crawlerRequestHourlyRollups = pgTable(
   ]
 );
 
+export const botObservationEvents = pgTable(
+  "bot_observation_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    observedAt: timestamp("observed_at").defaultNow().notNull(),
+    requestId: varchar("request_id", { length: 128 }),
+    ipHash: varchar("ip_hash", { length: 64 }),
+    userAgent: text("user_agent"),
+    method: varchar("method", { length: 12 }).notNull(),
+    host: varchar("host", { length: 255 }),
+    path: varchar("path", { length: 512 }).notNull(),
+    queryString: text("query_string"),
+    statusCode: integer("status_code").notNull(),
+    responseTimeMs: integer("response_time_ms"),
+    responseBytes: integer("response_bytes"),
+    referer: text("referer"),
+    acceptLanguage: varchar("accept_language", { length: 255 }),
+    cacheStatus: varchar("cache_status", { length: 64 }),
+    routeName: varchar("route_name", { length: 128 }),
+    routeFamily: varchar("route_family", { length: 64 }).notNull(),
+    botFamily: varchar("bot_family", { length: 120 }).notNull(),
+    canonicalUrl: text("canonical_url"),
+    matchedTemplate: varchar("matched_template", { length: 255 }),
+    contentType: varchar("content_type", { length: 255 }),
+    isFirstSeenUrl: boolean("is_first_seen_url").notNull().default(false),
+    isRecrawl: boolean("is_recrawl").notNull().default(false),
+    county: varchar("county", { length: 160 }),
+    state: varchar("state", { length: 2 }),
+    trade: varchar("trade", { length: 160 }),
+    entityType: varchar("entity_type", { length: 64 }),
+    entitySlug: varchar("entity_slug", { length: 255 }),
+  },
+  (table) => [
+    index("bot_observation_events_observed_idx").on(table.observedAt),
+    index("bot_observation_events_bot_idx").on(table.botFamily),
+    index("bot_observation_events_route_idx").on(table.routeFamily),
+    index("bot_observation_events_county_idx").on(table.county),
+    index("bot_observation_events_state_idx").on(table.state),
+    index("bot_observation_events_trade_idx").on(table.trade),
+  ]
+);
+
+export const botObservationDailyAgg = pgTable(
+  "bot_observation_daily_agg",
+  {
+    date: date("date").notNull(),
+    routeFamily: varchar("route_family", { length: 64 }).notNull(),
+    county: varchar("county", { length: 160 }),
+    state: varchar("state", { length: 2 }),
+    trade: varchar("trade", { length: 160 }),
+    botFamily: varchar("bot_family", { length: 120 }).notNull(),
+    hits: integer("hits").notNull().default(0),
+    uniqueUrls: integer("unique_urls").notNull().default(0),
+    avgResponseTimeMs: integer("avg_response_time_ms"),
+    avgResponseBytes: integer("avg_response_bytes"),
+    status200Count: integer("status_200_count").notNull().default(0),
+    status404Count: integer("status_404_count").notNull().default(0),
+    recrawlUrls: integer("recrawl_urls").notNull().default(0),
+    firstSeenUrls: integer("first_seen_urls").notNull().default(0),
+    topPath: varchar("top_path", { length: 512 }),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("bot_observation_daily_agg_unique").on(
+      table.date,
+      table.routeFamily,
+      table.county,
+      table.state,
+      table.trade,
+      table.botFamily
+    ),
+    index("bot_observation_daily_agg_date_idx").on(table.date),
+    index("bot_observation_daily_agg_route_idx").on(table.routeFamily),
+    index("bot_observation_daily_agg_county_idx").on(table.county),
+  ]
+);
+
 // Scout interactions: real user intent/resolution log (bots excluded)
 export const scoutInteractions = pgTable(
   "scout_interactions",

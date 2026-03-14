@@ -189,7 +189,17 @@ export async function createApp() {
       res.on("finish", () => {
         const duration = Date.now() - start;
         emitHttpStatus(res.statusCode, { userAgent: req.get("User-Agent"), path: req.path });
-        void recordCrawlerRequestEvent(req, res.statusCode);
+        const contentLengthHeader = res.getHeader("content-length");
+        const responseBytes =
+          typeof contentLengthHeader === "number"
+            ? contentLengthHeader
+            : typeof contentLengthHeader === "string"
+              ? Number(contentLengthHeader)
+              : null;
+        void recordCrawlerRequestEvent(req, res.statusCode, {
+          responseTimeMs: duration,
+          responseBytes,
+        });
 
         if (requestPath.startsWith("/api")) {
           const isError = res.statusCode >= 400;

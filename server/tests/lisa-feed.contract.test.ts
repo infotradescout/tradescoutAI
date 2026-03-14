@@ -26,6 +26,8 @@ describe("LISA feed contracts", () => {
     expect(source).toContain("from bot_ui_findings");
     expect(source).toContain("from home_scout_listing_events e");
     expect(source).toContain("getHttpMetrics()");
+    expect(source).toContain("getBotCrawlAggregateSignals");
+    expect(source).toContain('sourceKind: "bot_crawl_signals"');
     expect(source).toContain('"tradescout_local"');
     expect(source).toContain('"json_file"');
     expect(source).toContain('"remote"');
@@ -51,8 +53,10 @@ describe("LISA feed contracts", () => {
     expect(source).toContain("lisaFeed.summary.truthNow");
     expect(source).toContain("lisaFeed.summary.dataProductionSummary");
     expect(source).toContain("lisaFeed.summary.llmOptimizationSummary");
-    expect(source).toContain("lisaFeed.feed.map");
+    expect(source).toContain("filteredLisaFeed.map");
     expect(source).toContain("lisaFeed.runtime.mode");
     expect(source).toContain("item.truthStatus");
+    expect(source).toContain("Bot crawl");
+    expect(source).toContain('"bot_crawl_signals"');
   });
 });
