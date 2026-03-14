@@ -1044,7 +1044,7 @@ export async function resolveKnowledge(
   // No mocks, no examples, no made-up data
   return {
     answer:
-      "I couldn't find reliable information about this in TradeScout's local data or on the web. You may need to confirm with a local professional or contact your admin for assistance.",
+      "I do not have enough verified data to answer this directly right now. I can still move this forward with one concrete next step inside TradeScout.",
     sources: ["No reliable source found"],
     layer: 4,
     confidence: "low",

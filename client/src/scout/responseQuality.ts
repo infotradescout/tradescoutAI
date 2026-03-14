@@ -27,6 +27,14 @@ const RECOVERY_COPY_PATTERNS = [
   /\bplease try rephrasing\b/i,
 ];
 
+const BLOCKED_COPY_PATTERNS = [
+  /\bi couldn'?t find reliable information about this in tradescout'?s local data or on the web\b/i,
+  /\byou may need to confirm with a local professional or contact your admin for assistance\b/i,
+  /\bnext:\s*pick a button below\b/i,
+  /\bwhich option should i run first\b/i,
+  /\bwhat should i help you with next\b/i,
+];
+
 function collapseWhitespace(input: string): string {
   return input
     .replace(/\s+/g, " ")
@@ -54,16 +62,16 @@ function hasActionableLanguage(input: string): boolean {
   return /\b(next|choose|open|start|use|tap|click|go to|continue)\b/i.test(input);
 }
 
-function hasQuestion(input: string): boolean {
-  return /\?/.test(input);
+function hasBlockedCopy(input: string): boolean {
+  return BLOCKED_COPY_PATTERNS.some((pattern) => pattern.test(input));
 }
 
 function appendFollowUpQuestion(input: string, hasActionOptions: boolean): string {
-  if (hasQuestion(input)) return input;
-  const followUp = hasActionOptions
-    ? "Which option should I run first?"
-    : "What should I help you with next?";
-  return `${input} ${followUp}`;
+  // Legacy prompt tail disabled for production UX.
+  // Previously this appended "Which option should I run first?" /
+  // "What should I help you with next?" and created repetitive responses.
+  void hasActionOptions;
+  return input;
 }
 
 function forceConciseAnswer(userMessage: string, content: string): string {
@@ -91,11 +99,11 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   output = forceConciseAnswer(userMessage, output);
 
   if (!output) {
-    output = "I found the best available path for this.";
+    output = "I can still move this forward with a direct next step.";
   }
 
-  if (appearsDeadEnd(output)) {
-    output = "I found the best available path for this.";
+  if (appearsDeadEnd(output) || hasBlockedCopy(output)) {
+    output = "I can still move this forward with a direct next step.";
   }
 
   if (isRecoveryCopy(output)) {
@@ -103,8 +111,7 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   }
 
   if (hasActionOptions && !hasActionableLanguage(output)) {
-    // Keep this phrasing neutral and non-jargony. The UI already shows the buttons.
-    output = `${output} Next: pick a button below.`;
+    output = `${output} I can run the next step now.`;
   }
 
   output = appendFollowUpQuestion(output, hasActionOptions);

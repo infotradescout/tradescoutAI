@@ -22,7 +22,7 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: true,
     });
 
-    expect(result).toContain("Next:");
+    expect(result).toContain("I can run the next step now.");
   });
 
   it("forces non-dead-end fallback when banned dead-end language appears", () => {
@@ -33,7 +33,7 @@ describe("enforceResponseQualityContract", () => {
     });
 
     expect(result.toLowerCase()).not.toContain("can't help");
-    expect(result).toContain("best available path");
+    expect(result).toContain("direct next step");
   });
 
   it("appends a follow-up question when response has no question", () => {
@@ -43,8 +43,8 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: true,
     });
 
-    expect(result).toContain("?");
-    expect(result).toContain("Which option should I run first?");
+    expect(result).not.toContain("Which option should I run first?");
+    expect(result).not.toContain("What should I help you with next?");
   });
 
   it("keeps existing follow-up questions without duplicating", () => {
@@ -69,5 +69,17 @@ describe("enforceResponseQualityContract", () => {
     expect(result).not.toContain("Next: pick a button below.");
     expect(result).not.toContain("Which option should I run first?");
     expect(result).toContain("having trouble generating");
+  });
+
+  it("replaces blocked fallback copy with direct next-step language", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "hello",
+      content:
+        "I couldn't find reliable information about this in TradeScout's local data or on the web. You may need to confirm with a local professional or contact your admin for assistance.",
+      hasActionOptions: false,
+    });
+
+    expect(result).toContain("direct next step");
+    expect(result.toLowerCase()).not.toContain("couldn't find reliable information");
   });
 });
