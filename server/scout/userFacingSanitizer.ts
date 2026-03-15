@@ -12,6 +12,14 @@ export interface ScoutUserFacingSanitizeResult {
 const DEFAULT_FALLBACK =
   "Let's keep this practical and local. I can route you to one clear next step right now.";
 
+const BLOCKED_RESPONSE_PATTERNS: RegExp[] = [
+  /i couldn'?t find reliable information about this in tradescout'?s local data or on the web/i,
+  /you may need to confirm with a local professional/i,
+  /contact your admin for assistance/i,
+  /what should i help you with next\??/i,
+  /which option should i run first\??/i,
+];
+
 const INTERNAL_LINE_RULES: Array<{ flag: string; pattern: RegExp }> = [
   { flag: "source_marker_removed", pattern: /^\s*source\s*:/i },
   { flag: "docs_reference_removed", pattern: /\[(docs?|source)\]/i },
@@ -158,6 +166,14 @@ export function sanitizeScoutUserFacingText(
   let text = filteredLines.join("\n");
   text = normalizeWhitespace(text);
   text = trimToMaxChars(text, maxChars);
+
+  if (BLOCKED_RESPONSE_PATTERNS.some((pattern) => pattern.test(text))) {
+    return {
+      text: fallback,
+      flags: [...flags, "blocked_phrase_replaced"],
+      removedLines,
+    };
+  }
 
   if (!text) {
     return {

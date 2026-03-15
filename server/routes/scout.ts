@@ -1528,6 +1528,12 @@ function prependLocalIntro(
     contractorCount: number;
   }
 ): string {
+  // Disabled for now: this intro line was producing generic copy that felt fake/noisy in production.
+  // Keep function signature for compatibility with existing call sites.
+  void opts;
+  return message;
+
+  /*
   if (!message) return message;
 
   // Only shape the very first answer in a thread.
@@ -1550,6 +1556,7 @@ function prependLocalIntro(
     : `Based on what's happening in ${area}, here's how I'd approach this.`;
 
   return `${header}\n\n${message}`;
+  */
 }
 
 function detectTradeTopic(message: string): string | null {
