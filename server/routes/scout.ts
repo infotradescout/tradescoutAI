@@ -4008,13 +4008,13 @@ router.post("/", async (req: Request, res: Response) => {
             let communityLine = "";
             if (communityPostCount > 0) {
               communityLine =
-                "I’m seeing a few recent posts from neighbors in your county about this.";
+                "I am seeing a few recent posts from neighbors in your county about this.";
             } else if (communityPostCount === 0) {
-              communityLine = "I don’t see anyone discussing this yet in your area.";
+              communityLine = "I do not see anyone discussing this yet in your area.";
             }
 
             const bridgeLines = [
-              "I can give you general guidance — but the strongest answers come from people in your area.",
+              "I can give you practical guidance now and pair it with local input from your area.",
               communityLine,
               "Want to read them directly or add your own question in your county feed?",
             ]
@@ -4039,12 +4039,17 @@ router.post("/", async (req: Request, res: Response) => {
             }
           } else if (lowConfidenceForLocal && !alreadyHasCommunityNav) {
             const bridgeLines = [
-              "I don’t see a clear local answer for this yet.",
-              "If you’d like, I can turn this into a quick question in your county feed so neighbors can weigh in.",
+              "Local requirements can shift by inspector and permit office, so the best move is to verify the final requirement directly.",
+              "I can still move this forward now by drafting the exact permit question and opening local deck pros in parallel.",
             ].join("\n\n");
 
             aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${bridgeLines}`);
 
+            actions.push({
+              type: "NAVIGATE",
+              label: "Open local deck pros",
+              to: "/direct-connect/pros",
+            });
             actions.push({
               type: "NAVIGATE",
               label: "Ask the community in my county feed",
