@@ -67,11 +67,13 @@ function hasBlockedCopy(input: string): boolean {
 }
 
 function appendFollowUpQuestion(input: string, hasActionOptions: boolean): string {
-  // Legacy prompt tail disabled for production UX.
-  // Previously this appended "Which option should I run first?" /
-  // "What should I help you with next?" and created repetitive responses.
-  void hasActionOptions;
-  return input;
+  const trimmed = collapseWhitespace(input);
+  if (!trimmed)
+    return hasActionOptions ? "I can run the next step now. Want me to?" : "Want me to keep going?";
+  if (trimmed.includes("?")) return trimmed;
+  return hasActionOptions
+    ? `${trimmed} Want me to run that now?`
+    : `${trimmed} Want me to keep going?`;
 }
 
 function forceConciseAnswer(userMessage: string, content: string): string {
