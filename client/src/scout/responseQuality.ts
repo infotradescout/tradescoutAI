@@ -30,6 +30,8 @@ const RECOVERY_COPY_PATTERNS = [
 const BLOCKED_COPY_PATTERNS = [
   /\bi couldn'?t find reliable information about this in tradescout'?s local data or on the web\b/i,
   /\byou may need to confirm with a local professional or contact your admin for assistance\b/i,
+  /\bi can(?:not|'t)\s+directly\s+search\s+the\s+internet\b/i,
+  /\bcannot\s+directly\s+search\s+the\s+internet\b/i,
   /\bnext:\s*pick a button below\b/i,
   /\bwhich option should i run first\b/i,
   /\bwhat should i help you with next\b/i,
@@ -37,7 +39,10 @@ const BLOCKED_COPY_PATTERNS = [
 
 function collapseWhitespace(input: string): string {
   return input
-    .replace(/\s+/g, " ")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .replace(/\s+([.,!?;:])/g, "$1")
     .trim();
 }

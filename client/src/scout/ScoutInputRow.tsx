@@ -12,8 +12,6 @@ interface ScoutInputRowProps {
   onTyping: () => void;
   autoDemoText?: string;
   enableAutoDemo?: boolean;
-  autoRouteEnabled: boolean;
-  onToggleAutoRoute: (enabled: boolean) => void;
 }
 
 export function ScoutInputRow({
@@ -27,14 +25,10 @@ export function ScoutInputRow({
   onTyping,
   autoDemoText,
   enableAutoDemo,
-  autoRouteEnabled,
-  onToggleAutoRoute,
 }: ScoutInputRowProps) {
-  const [showOptions, setShowOptions] = React.useState(false);
-
   return (
     <div className="space-y-2.5">
-      <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 px-1">
         <div className="flex flex-wrap items-center gap-1.5">
           {heroLocationLabel && (
             <>
@@ -67,58 +61,6 @@ export function ScoutInputRow({
                 {isUpdatingGeo ? "Updating..." : "Use device area"}
               </button>
             </>
-          )}
-        </div>
-        <div className="relative flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setShowOptions((v) => !v)}
-            className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors"
-            style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-            aria-expanded={showOptions}
-            aria-label="Scout flow options"
-          >
-            Flow options
-          </button>
-
-          {showOptions && (
-            <div
-              className="absolute right-0 top-[calc(100%+6px)] z-20 w-64 rounded-lg border p-2 shadow-sm"
-              style={{
-                borderColor: "var(--border-subtle)",
-                backgroundColor: "color-mix(in oklab, var(--surface-card) 96%, transparent)",
-              }}
-            >
-              <label
-                className="flex items-center gap-2 rounded-md px-2 py-2 text-[11px]"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <input
-                  type="checkbox"
-                  checked={autoRouteEnabled}
-                  onChange={(e) => onToggleAutoRoute(e.target.checked)}
-                  className="h-3.5 w-3.5"
-                  style={{ accentColor: "var(--theme-accent-primary)" }}
-                />
-                <span className="leading-snug">
-                  Auto-open obvious next steps
-                  <span className="block text-[10px] opacity-80">
-                    When Scout is highly confident, it can open the right operating surface
-                    automatically.
-                  </span>
-                </span>
-              </label>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowOptions(false)}
-                  className="rounded-md px-2 py-1 text-[11px]"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
           )}
         </div>
       </div>

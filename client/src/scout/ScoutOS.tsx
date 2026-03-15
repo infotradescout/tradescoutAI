@@ -4006,11 +4006,13 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              <ScoutHeader
-                isAuthenticated={isAuthenticated}
-                isFirstGuestVisit={isFirstGuestVisit}
-                locationLabel={heroLocationLabel}
-              />
+              {!hasUserMessages && (
+                <ScoutHeader
+                  isAuthenticated={isAuthenticated}
+                  isFirstGuestVisit={isFirstGuestVisit}
+                  locationLabel={heroLocationLabel}
+                />
+              )}
 
               {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
               {onboarding.flowState.phase === "confirming" &&
@@ -4145,8 +4147,6 @@ export default function ScoutOS() {
                   }}
                   autoDemoText={introDemoText}
                   enableAutoDemo={shouldPlayIntroDemo}
-                  autoRouteEnabled={autoRouteEnabled}
-                  onToggleAutoRoute={handleToggleAutoRoute}
                 />
 
                 {!isAuthenticated && (
@@ -4257,7 +4257,7 @@ export default function ScoutOS() {
                 )}
 
                 {/* Avoid duplicated action rails: in "Chat + controller" view, actions render per-message. */}
-                {effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
+                {false && effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
                   <div
                     className="mt-2 rounded-lg border p-2"
                     style={{
@@ -4338,7 +4338,7 @@ export default function ScoutOS() {
                 } ${isMobile ? "space-y-2 order-1" : "space-y-2 order-1"}`}
                 style={{ paddingBottom: isMobile ? "0.75rem" : "1rem" }}
               >
-                {!hasUserMessages && (
+                {false && !hasUserMessages && (
                   <div className="flex flex-col gap-2.5 py-2 px-0.5">
                     <p
                       className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
@@ -4617,7 +4617,7 @@ export default function ScoutOS() {
                     messages={state.messages}
                     status={state.status}
                     mode={activeMode}
-                    showControllerExtras={effectiveViewMode === "chat_plus_controller"}
+                    showControllerExtras={false}
                     onAction={handleClusterAction}
                     onOverride={handleOverride}
                     overridePendingScope={overridePendingScope}

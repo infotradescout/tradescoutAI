@@ -16,6 +16,8 @@ const BLOCKED_RESPONSE_PATTERNS: RegExp[] = [
   /i couldn'?t find reliable information about this in tradescout'?s local data or on the web/i,
   /you may need to confirm with a local professional/i,
   /contact your admin for assistance/i,
+  /i can(?:not|'t)\s+directly\s+search\s+the\s+internet/i,
+  /cannot\s+directly\s+search\s+the\s+internet/i,
   /what should i help you with next\??/i,
   /which option should i run first\??/i,
 ];
