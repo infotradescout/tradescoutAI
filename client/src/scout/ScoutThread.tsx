@@ -626,7 +626,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     if (lastMessage.role === "assistant") {
       const target = node.querySelector<HTMLElement>(`[data-scout-message-id="${lastMessage.id}"]`);
       if (target) {
-        target.scrollIntoView({ block: "start", behavior: "smooth" });
+        target.scrollIntoView({ block: "end", behavior: "smooth" });
         return;
       }
     }
