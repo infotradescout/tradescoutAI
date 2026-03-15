@@ -3932,11 +3932,15 @@ export default function ScoutOS() {
           <div
             className={
               isMobile
-                ? "max-w-xl mx-auto w-full flex flex-col flex-1 min-h-0"
+                ? "max-w-xl mx-auto w-full flex flex-col min-h-0"
                 : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
-            <div className="scout-panel w-full flex flex-col flex-1 min-h-0 max-w-3xl rounded-2xl px-2.5 md:px-4 py-2.5 relative">
+            <div
+              className={`scout-panel w-full flex flex-col min-h-0 max-w-3xl rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
+                isMobile ? "" : "flex-1"
+              }`}
+            >
               {/* Return to Home button: top right, always visible */}
               <button
                 type="button"

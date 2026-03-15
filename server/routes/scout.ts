@@ -1666,7 +1666,18 @@ function maybeHandleHomeProjectRouting(args: {
     return null;
   }
 
-  const countyLabel = [args.countyCode, args.stateCode].filter(Boolean).join(", ");
+  const normalizedCounty = typeof args.countyCode === "string" ? args.countyCode.trim() : "";
+  const normalizedState =
+    typeof args.stateCode === "string" ? args.stateCode.trim().toUpperCase() : "";
+  let countyLabel = normalizedCounty;
+  if (!countyLabel && normalizedState) {
+    countyLabel = normalizedState;
+  } else if (countyLabel && normalizedState) {
+    const endsWithState = new RegExp(`\\b${normalizedState}\\b$`, "i").test(countyLabel);
+    if (!endsWithState) {
+      countyLabel = `${countyLabel}, ${normalizedState}`;
+    }
+  }
   const localityFragment = countyLabel ? ` in ${countyLabel}` : "";
   const planningAction: ScoutClientAction = {
     type: "NAVIGATE",
