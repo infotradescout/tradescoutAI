@@ -1692,7 +1692,12 @@ function maybeHandleHomeProjectRouting(args: {
   if (tradeTopic === "decking") {
     return {
       intent: "home_project_decking",
-      message: `Got it. For a deck project${localityFragment}, start by planning the scope, budget, and timing so you can decide whether to hire it out, split the work, or run it yourself. From there, I can open deck builders, rental equipment, and local project signals.`,
+      message: `Got it. For a deck project${localityFragment}, start with:
+- Scope (size, layout, materials)
+- Budget range
+- Timing and permit checks
+
+Once that is set, I can open deck builders, rental equipment, and local project signals. Want me to run that now?`,
       suggestedActions: [
         "Start or plan this project",
         "Find deck builders near me",
@@ -1736,7 +1741,12 @@ function maybeHandleHomeProjectRouting(args: {
 
   return {
     intent: `home_project_${tradeTopic}`,
-    message: `Got it. For this ${tradeTopic} project${localityFragment}, start by planning the work so you can lock scope, budget, and timing before you hire. After that, I can route you into trusted local pros, Exchange options, and local project signals.`,
+    message: `Got it. For this ${tradeTopic} project${localityFragment}, start with:
+- Scope and requirements
+- Budget range
+- Timeline
+
+After that, I can route you into trusted local pros, Exchange options, and local project signals. Want me to run that now?`,
     suggestedActions: [
       "Start or plan this project",
       `Find ${tradeTopic} pros near me`,
