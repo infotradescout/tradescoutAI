@@ -775,6 +775,16 @@ async function refreshBotObservationDailyAggregate(args: {
           $5::text as trade,
           $6::text as bot_family
       ),
+      deleted as (
+        delete from bot_observation_daily_agg d
+        using typed_args ta
+        where d.date = ta.observed_date
+          and d.route_family::text = ta.route_family
+          and coalesce(d.county::text, '') = coalesce(ta.county, '')
+          and coalesce(d.state::text, '') = coalesce(ta.state, '')
+          and coalesce(d.trade::text, '') = coalesce(ta.trade, '')
+          and d.bot_family::text = ta.bot_family
+      ),
       aggregated as (
         select
           ta.observed_date as date,
@@ -856,25 +866,6 @@ async function refreshBotObservationDailyAggregate(args: {
         a.top_path,
         now() as updated_at
       from aggregated a
-      on conflict (
-        date,
-        route_family,
-        coalesce(county, ''),
-        coalesce(state, ''),
-        coalesce(trade, ''),
-        bot_family
-      )
-      do update set
-        hits = excluded.hits,
-        unique_urls = excluded.unique_urls,
-        avg_response_time_ms = excluded.avg_response_time_ms,
-        avg_response_bytes = excluded.avg_response_bytes,
-        status_200_count = excluded.status_200_count,
-        status_404_count = excluded.status_404_count,
-        recrawl_urls = excluded.recrawl_urls,
-        first_seen_urls = excluded.first_seen_urls,
-        top_path = excluded.top_path,
-        updated_at = now()
     `,
     [
       args.observedAt.toISOString(),
