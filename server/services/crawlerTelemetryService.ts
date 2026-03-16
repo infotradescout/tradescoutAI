@@ -22,6 +22,16 @@ const CRAWLER_TELEMETRY_RETENTION_DAYS = Math.max(
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 const BACKFILL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const countyFipsCache = new Map<string, string | null>();
+const crawlerPersistenceStats = {
+  attempted: 0,
+  succeeded: 0,
+  failed: 0,
+  errorCodes: {} as Record<string, number>,
+  lastSuccessAt: null as string | null,
+  lastFailureAt: null as string | null,
+  lastFailureCode: null as string | null,
+  lastFailureMessage: null as string | null,
+};
 
 type CrawlerAttribution = {
   sourceSurface: string | null;
@@ -859,6 +869,7 @@ export async function recordCrawlerRequestEvent(
     responseBytes?: number | null;
   }
 ): Promise<void> {
+  crawlerPersistenceStats.attempted += 1;
   const userAgent = req.get("User-Agent");
   const actor = detectActorFromUserAgent(userAgent);
   if (actor.actorType !== "bot") return;
@@ -1064,7 +1075,23 @@ export async function recordCrawlerRequestEvent(
       trade: routeContext.trade,
       botFamily: botName,
     });
+    crawlerPersistenceStats.succeeded += 1;
+    crawlerPersistenceStats.lastSuccessAt = new Date().toISOString();
   } catch (error) {
+    const errCodeRaw =
+      error && typeof error === "object" && "code" in (error as Record<string, unknown>)
+        ? String((error as any).code || "")
+        : "";
+    const errCode = errCodeRaw || "unknown";
+    crawlerPersistenceStats.failed += 1;
+    crawlerPersistenceStats.errorCodes[errCode] =
+      Number(crawlerPersistenceStats.errorCodes[errCode] || 0) + 1;
+    crawlerPersistenceStats.lastFailureAt = new Date().toISOString();
+    crawlerPersistenceStats.lastFailureCode = errCode;
+    crawlerPersistenceStats.lastFailureMessage =
+      error && typeof error === "object" && "message" in (error as Record<string, unknown>)
+        ? String((error as any).message || "").slice(0, 300)
+        : String(error || "unknown error").slice(0, 300);
     console.error("[crawler-telemetry] failed to persist crawler request event:", error);
   }
 }
@@ -1107,6 +1134,36 @@ export interface CrawlerTelemetrySummary {
     clientError: number;
     serverError: number;
   }>;
+  persistence: {
+    attempted: number;
+    succeeded: number;
+    failed: number;
+    successRatePct: number;
+    errorCodes: Record<string, number>;
+    lastSuccessAt: string | null;
+    lastFailureAt: string | null;
+    lastFailureCode: string | null;
+    lastFailureMessage: string | null;
+  };
+}
+
+function getCrawlerPersistenceSnapshot() {
+  return {
+    attempted: crawlerPersistenceStats.attempted,
+    succeeded: crawlerPersistenceStats.succeeded,
+    failed: crawlerPersistenceStats.failed,
+    successRatePct:
+      crawlerPersistenceStats.attempted > 0
+        ? Math.round(
+            (crawlerPersistenceStats.succeeded / crawlerPersistenceStats.attempted) * 10000
+          ) / 100
+        : 100,
+    errorCodes: { ...crawlerPersistenceStats.errorCodes },
+    lastSuccessAt: crawlerPersistenceStats.lastSuccessAt,
+    lastFailureAt: crawlerPersistenceStats.lastFailureAt,
+    lastFailureCode: crawlerPersistenceStats.lastFailureCode,
+    lastFailureMessage: crawlerPersistenceStats.lastFailureMessage,
+  };
 }
 
 export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySummary> {
@@ -1239,6 +1296,7 @@ export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySumm
         clientError: Number(row.client_error_count || 0),
         serverError: Number(row.server_error_count || 0),
       })),
+      persistence: getCrawlerPersistenceSnapshot(),
     };
   } catch (error) {
     console.warn("[crawler-telemetry] degraded summary:", error);
@@ -1251,6 +1309,7 @@ export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySumm
       topCounties: [],
       requestTypes: [],
       hourlyBuckets: [],
+      persistence: getCrawlerPersistenceSnapshot(),
     };
   }
 }
