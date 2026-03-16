@@ -43,7 +43,9 @@ function b64urlDecode(raw: string): string {
 
 function sign(payload: Record<string, unknown>): string {
   const secret =
-    process.env.ZERO_BASE_FEE_TOKEN_SECRET || process.env.SESSION_SECRET || "tradescout-zero-base-fee";
+    process.env.ZERO_BASE_FEE_TOKEN_SECRET ||
+    process.env.SESSION_SECRET ||
+    "tradescout-zero-base-fee";
   const encodedPayload = b64urlEncode(JSON.stringify(payload));
   const signature = createHmac("sha256", secret).update(encodedPayload).digest("base64url");
   return `${encodedPayload}.${signature}`;
@@ -51,7 +53,9 @@ function sign(payload: Record<string, unknown>): string {
 
 function verifyToken(token: string): Record<string, unknown> | null {
   const secret =
-    process.env.ZERO_BASE_FEE_TOKEN_SECRET || process.env.SESSION_SECRET || "tradescout-zero-base-fee";
+    process.env.ZERO_BASE_FEE_TOKEN_SECRET ||
+    process.env.SESSION_SECRET ||
+    "tradescout-zero-base-fee";
   const [payloadPart, signaturePart] = String(token || "").split(".");
   if (!payloadPart || !signaturePart) return null;
   const expected = createHmac("sha256", secret).update(payloadPart).digest("base64url");
@@ -153,7 +157,8 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
             unit_amount: PRICE_CENTS,
             product_data: {
               name: "TradeScout Zero-Base-Fee Measurement",
-              description: "Single inspection unlock with timestamp/GPS-stamped measurement report.",
+              description:
+                "Single inspection unlock with timestamp/GPS-stamped measurement report.",
             },
           },
           quantity: 1,
@@ -233,7 +238,7 @@ router.get("/verify-checkout", requireAuth, async (req: Request, res: Response) 
   }
 });
 
-router.get("/verify-access", requireAuth, async (req: Request, res: Response) => {
+const verifyAccessHandler = async (req: Request, res: Response) => {
   const userId = clean((req.user as any)?.id, 80);
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -308,7 +313,11 @@ router.get("/verify-access", requireAuth, async (req: Request, res: Response) =>
     console.error("[zero-base-fee] verify-access failed", error);
     res.status(500).json({ error: "Could not recover paid access." });
   }
-});
+};
+
+router.get("/verify-access", requireAuth, verifyAccessHandler);
+// Backward-compatible alias for stale cached client bundles.
+router.get("/verify-accesses", requireAuth, verifyAccessHandler);
 
 router.post("/report", requireAuth, async (req: Request, res: Response) => {
   const userId = clean((req.user as any)?.id, 80);
