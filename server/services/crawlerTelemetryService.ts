@@ -775,9 +775,24 @@ async function refreshBotObservationDailyAggregate(args: {
           $5::text as trade,
           $6::text as bot_family
       ),
+      lock_key as (
+        select pg_advisory_xact_lock(
+          hashtext(
+            concat_ws(
+              '|',
+              $1::text,
+              coalesce($2::text, ''),
+              coalesce($3::text, ''),
+              coalesce($4::text, ''),
+              coalesce($5::text, ''),
+              coalesce($6::text, '')
+            )
+          )
+        ) as locked
+      ),
       deleted as (
         delete from bot_observation_daily_agg d
-        using typed_args ta
+        using typed_args ta, lock_key lk
         where d.date = ta.observed_date
           and d.route_family::text = ta.route_family
           and coalesce(d.county::text, '') = coalesce(ta.county, '')
@@ -816,6 +831,7 @@ async function refreshBotObservationDailyAggregate(args: {
           ) as top_path
         from bot_observation_events e
         cross join typed_args ta
+        cross join lock_key lk
         where e.observed_at::date = ta.observed_date
           and e.route_family::text = ta.route_family
           and coalesce(e.county::text, '') = coalesce(ta.county, '')
