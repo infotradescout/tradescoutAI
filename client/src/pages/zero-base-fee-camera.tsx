@@ -49,7 +49,7 @@ const KNOWN_REFERENCE_PRESETS: KnownReferencePreset[] = [
   {
     id: "credit_card_long",
     label: "Credit card long edge",
-    inches: 3.370,
+    inches: 3.37,
     description: "ISO/IEC 7810 ID-1 long side.",
     confidenceTier: "B",
   },
@@ -106,7 +106,9 @@ export default function ZeroBaseFeeCameraPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const snapCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const displayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const arucoDetectorRef = useRef<{ detect: (imageData: ImageData) => Array<{ id: number; corners: Point[] }> } | null>(null);
+  const arucoDetectorRef = useRef<{
+    detect: (imageData: ImageData) => Array<{ id: number; corners: Point[] }>;
+  } | null>(null);
 
   const [cameraReady, setCameraReady] = useState(false);
   const [capturedDataUrl, setCapturedDataUrl] = useState("");
@@ -147,11 +149,22 @@ export default function ZeroBaseFeeCameraPage() {
           }
         }
 
-        const recoveryRes = await fetch("/api/zero-base-fee/verify-access", {
-          credentials: "include",
-        });
-        const recoveryBody = await recoveryRes.json().catch(() => ({}));
-        if (!recoveryRes.ok || !recoveryBody?.accessToken) {
+        const recoveryPaths = [
+          "/api/zero-base-fee/verify-access",
+          "/api/zero-base-fee/verify-accesses",
+        ];
+        let recoveryBody: any = null;
+        let recovered = false;
+        for (const recoveryPath of recoveryPaths) {
+          const recoveryRes = await fetch(recoveryPath, { credentials: "include" });
+          const parsedBody = await recoveryRes.json().catch(() => ({}));
+          if (recoveryRes.ok && parsedBody?.accessToken) {
+            recoveryBody = parsedBody;
+            recovered = true;
+            break;
+          }
+        }
+        if (!recovered || !recoveryBody?.accessToken) {
           if (sessionId) {
             setPaymentError(
               "Payment verification failed. If you just paid, refresh once. Otherwise start checkout again."
@@ -190,7 +203,6 @@ export default function ZeroBaseFeeCameraPage() {
     if (!capturedDataUrl) return;
     if (calibrationMode !== "aruco_auto") return;
     void detectArucoAutomatically();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capturedDataUrl, calibrationMode]);
 
   useEffect(() => {
@@ -340,13 +352,13 @@ export default function ZeroBaseFeeCameraPage() {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const markers = detector.detect(imageData);
       if (!Array.isArray(markers) || markers.length === 0) {
-        setCalibrationMessage("No ArUco markers detected. Use manual marker corners or known reference.");
+        setCalibrationMessage(
+          "No ArUco markers detected. Use manual marker corners or known reference."
+        );
         return;
       }
 
-      const target =
-        markers.find((m) => Number(m?.id) === ARUCO_TARGET_ID) ||
-        markers[0];
+      const target = markers.find((m) => Number(m?.id) === ARUCO_TARGET_ID) || markers[0];
       const corners = Array.isArray(target?.corners) ? target.corners.slice(0, 4) : [];
       if (corners.length !== 4) {
         setCalibrationMessage("Marker detected but corner extraction failed.");
@@ -373,8 +385,7 @@ export default function ZeroBaseFeeCameraPage() {
     const canvas = displayCanvasRef.current;
     if (!canvas) return;
     const rawPoint = getCanvasPoint(canvas, event);
-    const needed =
-      calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual" ? 4 : 2;
+    const needed = calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual" ? 4 : 2;
     if (calibrationPoints.length < needed) {
       const p =
         calibrationMode === "known_reference" &&
@@ -394,7 +405,10 @@ export default function ZeroBaseFeeCameraPage() {
   const solveScale = () => {
     let ppi: number | null = null;
 
-    if ((calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual") && calibrationPoints.length === 4) {
+    if (
+      (calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual") &&
+      calibrationPoints.length === 4
+    ) {
       const [a, b, c, d] = calibrationPoints;
       const sidePx = (dist(a, b) + dist(b, c) + dist(c, d) + dist(d, a)) / 4;
       ppi = sidePx / ARUCO_SIZE_IN;
@@ -402,8 +416,7 @@ export default function ZeroBaseFeeCameraPage() {
       const preset = getPresetById(knownReferenceId);
       const overrideKnown = Number(customKnownInches);
       const hasOverride = Number.isFinite(overrideKnown) && overrideKnown > 0;
-      const knownInches =
-        hasOverride ? overrideKnown : preset?.inches ?? Number.NaN;
+      const knownInches = hasOverride ? overrideKnown : (preset?.inches ?? Number.NaN);
       if (Number.isFinite(knownInches) && knownInches > 0) {
         ppi = dist(calibrationPoints[0], calibrationPoints[1]) / knownInches;
       }
@@ -536,11 +549,13 @@ export default function ZeroBaseFeeCameraPage() {
   const calibrationRequiredCount =
     calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual" ? 4 : 2;
   const canComputeScale =
-    (calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual"
+    calibrationMode === "aruco_auto" || calibrationMode === "aruco_manual"
       ? calibrationPoints.length === 4
-      : calibrationPoints.length === 2);
+      : calibrationPoints.length === 2;
   const canExportReport =
-    Boolean(capturedDataUrl) && Number.isFinite(Number(measuredInches)) && Number(measuredInches) > 0;
+    Boolean(capturedDataUrl) &&
+    Number.isFinite(Number(measuredInches)) &&
+    Number(measuredInches) > 0;
 
   const knownPreset = getPresetById(knownReferenceId);
 
@@ -553,8 +568,9 @@ export default function ZeroBaseFeeCameraPage() {
 
       <h1 className="text-2xl font-semibold">Zero-Base-Fee Measurement</h1>
       <p className="mt-2 text-white/80">
-        Primary calibration is ArUco marker detection. If marker detection fails, use known real-world
-        references or user-defined reference points (for example: two green tape marks exactly 36 inches apart).
+        Primary calibration is ArUco marker detection. If marker detection fails, use known
+        real-world references or user-defined reference points (for example: two green tape marks
+        exactly 36 inches apart).
       </p>
 
       <div className="mt-4 flex flex-wrap gap-3">
@@ -707,10 +723,13 @@ export default function ZeroBaseFeeCameraPage() {
             </button>
           </div>
 
-          {calibrationMessage ? <p className="mt-2 text-xs text-white/80">{calibrationMessage}</p> : null}
+          {calibrationMessage ? (
+            <p className="mt-2 text-xs text-white/80">{calibrationMessage}</p>
+          ) : null}
 
           <p className="mt-2 text-xs text-white/70">
-            Click image points: first calibration ({calibrationRequiredCount}), then measurement (2).
+            Click image points: first calibration ({calibrationRequiredCount}), then measurement
+            (2).
           </p>
 
           <div className="mt-3 space-y-1 text-sm text-white/80">
