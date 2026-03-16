@@ -102,7 +102,12 @@ function isRecoverableSignalQueryError(error: unknown): boolean {
     typeof error === "object" && error && "code" in error
       ? String((error as { code?: string }).code)
       : "";
-  return code === "42P01" || code === "42703";
+  return (
+    code === "42P01" || // undefined_table
+    code === "42703" || // undefined_column
+    code === "42702" || // ambiguous_column
+    code === "22P02" // invalid_text_representation (enum/value drift)
+  );
 }
 
 async function safeSignalQuery<T extends QueryResultRow>(args: {
@@ -283,13 +288,13 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
           count(*)::int as observation_count,
           count(distinct county_fips)::int as county_count,
           coalesce((
-            select source_type
+            select source_type::text as source_type
             from observations o2
             where o2.created_at >= now() - interval '24 hours'
-            group by source_type
+            group by source_type::text
             order by count(*) desc, source_type asc
             limit 1
-          ), 'none') as top_source_type,
+          ), 'none'::text) as top_source_type,
           max(created_at) as last_seen_at
         from observations
         where created_at >= now() - interval '24 hours'

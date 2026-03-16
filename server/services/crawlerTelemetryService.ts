@@ -775,6 +775,51 @@ async function refreshBotObservationDailyAggregate(args: {
           $5::text as trade,
           $6::text as bot_family
       ),
+      aggregated as (
+        select
+          ta.observed_date as date,
+          ta.route_family::varchar(64) as route_family,
+          nullif(ta.county, '')::varchar(160) as county,
+          nullif(ta.state, '')::varchar(2) as state,
+          nullif(ta.trade, '')::varchar(160) as trade,
+          ta.bot_family::varchar(120) as bot_family,
+          count(*)::int as hits,
+          count(distinct canonical_url)::int as unique_urls,
+          round(avg(response_time_ms))::int as avg_response_time_ms,
+          round(avg(response_bytes))::int as avg_response_bytes,
+          count(*) filter (where status_code = 200)::int as status_200_count,
+          count(*) filter (where status_code = 404)::int as status_404_count,
+          coalesce(sum(case when is_recrawl then 1 else 0 end), 0)::int as recrawl_urls,
+          coalesce(sum(case when is_first_seen_url then 1 else 0 end), 0)::int as first_seen_urls,
+          (
+            select e2.path
+            from bot_observation_events e2
+            where e2.observed_at::date = ta.observed_date
+              and e2.route_family::text = ta.route_family
+              and coalesce(e2.county::text, '') = coalesce(ta.county, '')
+              and coalesce(e2.state::text, '') = coalesce(ta.state, '')
+              and coalesce(e2.trade::text, '') = coalesce(ta.trade, '')
+              and e2.bot_family::text = ta.bot_family
+            group by e2.path
+            order by count(*) desc, e2.path asc
+            limit 1
+          ) as top_path
+        from bot_observation_events e
+        cross join typed_args ta
+        where e.observed_at::date = ta.observed_date
+          and e.route_family::text = ta.route_family
+          and coalesce(e.county::text, '') = coalesce(ta.county, '')
+          and coalesce(e.state::text, '') = coalesce(ta.state, '')
+          and coalesce(e.trade::text, '') = coalesce(ta.trade, '')
+          and e.bot_family::text = ta.bot_family
+        group by
+          ta.observed_date,
+          ta.route_family,
+          ta.county,
+          ta.state,
+          ta.trade,
+          ta.bot_family
+      )
       insert into bot_observation_daily_agg (
         date,
         route_family,
@@ -794,42 +839,23 @@ async function refreshBotObservationDailyAggregate(args: {
         updated_at
       )
       select
-        ta.observed_date as date,
-        ta.route_family::varchar(64) as route_family,
-        nullif(ta.county, '')::varchar(160) as county,
-        nullif(ta.state, '')::varchar(2) as state,
-        nullif(ta.trade, '')::varchar(160) as trade,
-        ta.bot_family::varchar(120) as bot_family,
-        count(*)::int as hits,
-        count(distinct canonical_url)::int as unique_urls,
-        round(avg(response_time_ms))::int as avg_response_time_ms,
-        round(avg(response_bytes))::int as avg_response_bytes,
-        count(*) filter (where status_code = 200)::int as status_200_count,
-        count(*) filter (where status_code = 404)::int as status_404_count,
-        coalesce(sum(case when is_recrawl then 1 else 0 end), 0)::int as recrawl_urls,
-        coalesce(sum(case when is_first_seen_url then 1 else 0 end), 0)::int as first_seen_urls,
-        (
-          select e2.path
-          from bot_observation_events e2
-          where e2.observed_at::date = ta.observed_date
-            and e2.route_family::text = ta.route_family
-            and coalesce(e2.county::text, '') = coalesce(ta.county, '')
-            and coalesce(e2.state::text, '') = coalesce(ta.state, '')
-            and coalesce(e2.trade::text, '') = coalesce(ta.trade, '')
-            and e2.bot_family::text = ta.bot_family
-          group by e2.path
-          order by count(*) desc, e2.path asc
-          limit 1
-        ) as top_path,
+        a.date,
+        a.route_family,
+        a.county,
+        a.state,
+        a.trade,
+        a.bot_family,
+        a.hits,
+        a.unique_urls,
+        a.avg_response_time_ms,
+        a.avg_response_bytes,
+        a.status_200_count,
+        a.status_404_count,
+        a.recrawl_urls,
+        a.first_seen_urls,
+        a.top_path,
         now() as updated_at
-      from bot_observation_events e
-      cross join typed_args ta
-      where e.observed_at::date = ta.observed_date
-        and e.route_family::text = ta.route_family
-        and coalesce(e.county::text, '') = coalesce(ta.county, '')
-        and coalesce(e.state::text, '') = coalesce(ta.state, '')
-        and coalesce(e.trade::text, '') = coalesce(ta.trade, '')
-        and e.bot_family::text = ta.bot_family
+      from aggregated a
       on conflict (
         date,
         route_family,
@@ -1230,8 +1256,12 @@ export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySumm
         left join counties c on c.fips = e.county_fips
         where e.observed_at >= now() - interval '24 hours'
           and (e.county_fips is not null or e.county_slug is not null)
-        group by county_name, state_code, e.county_fips, source_surface
-        order by request_count desc, county_name asc
+        group by
+          coalesce(c.name, e.county_slug, 'unknown'),
+          coalesce(e.state_code, c.state_code),
+          e.county_fips,
+          coalesce(e.source_surface, 'unknown')
+        order by request_count desc, coalesce(c.name, e.county_slug, 'unknown') asc
         limit 8
       `),
       pool.query(`
