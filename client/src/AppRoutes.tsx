@@ -8,6 +8,7 @@ import { CommunityPageShell } from "./shells/CommunityPageShell";
 import { GroupsShell } from "./shells/GroupsShell";
 import { HOADashboardShell } from "./shells/HOADashboardShell";
 import { HOAManagementShell } from "./shells/HOAManagementShell";
+import Foundation from "./pages/foundation";
 import ScoutOS from "./scout";
 import SmartHome from "./SmartHome";
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -266,7 +267,6 @@ const ExchangeRentalEquipment = React.lazy(() => import("./pages/exchange-rental
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
-const Foundation = React.lazy(() => import("./pages/foundation"));
 const TradePartnerCountyLanding = React.lazy(() => import("./pages/TradePartnerCountyLanding"));
 const TradePartnerCumulusLanding = React.lazy(() => import("./pages/TradePartnerCumulusLanding"));
 const PropertyListing = React.lazy(() => import("./pages/property-listing"));
@@ -1368,7 +1368,7 @@ export const AppRoutes = memo(function AppRoutes({
               <LazyPage Component={Leaderboard} />
             </Route>
             <Route path="/foundation">
-              <LazyPage Component={Foundation} />
+              <Foundation />
             </Route>
             <Route path="/tradepartners/cumulus-media">
               <LazyPage Component={TradePartnerCumulusLanding} />
