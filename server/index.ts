@@ -862,6 +862,20 @@ app.use(botReadOnlyGuard);
                   express.static(assetsPath, {
                     immutable: true,
                     maxAge: "1y",
+                    setHeaders: (res, filePath) => {
+                      const lower = filePath.toLowerCase();
+                      // Prevent stale camera/admin chunks from sticking on mobile clients.
+                      // Hashed assets are usually safe to cache long-term, but these routes
+                      // are actively iterated and must pick up fresh logic immediately.
+                      if (
+                        lower.includes("zero-base-fee-camera-") ||
+                        lower.includes("admin-observability-")
+                      ) {
+                        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+                        res.setHeader("CDN-Cache-Control", "public, max-age=0, must-revalidate");
+                        res.setHeader("Surrogate-Control", "public, max-age=0, must-revalidate");
+                      }
+                    },
                   })
                 );
               }
