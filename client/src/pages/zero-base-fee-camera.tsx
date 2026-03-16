@@ -155,6 +155,7 @@ export default function ZeroBaseFeeCameraPage() {
         ];
         let recoveryBody: any = null;
         let recovered = false;
+        let checkedButUnpaid = false;
         for (const recoveryPath of recoveryPaths) {
           const recoveryRes = await fetch(recoveryPath, { credentials: "include" });
           const parsedBody = await recoveryRes.json().catch(() => ({}));
@@ -163,12 +164,18 @@ export default function ZeroBaseFeeCameraPage() {
             recovered = true;
             break;
           }
+          if (recoveryRes.ok && parsedBody && parsedBody.paid === false) {
+            checkedButUnpaid = true;
+            break;
+          }
         }
         if (!recovered || !recoveryBody?.accessToken) {
           if (sessionId) {
             setPaymentError(
               "Payment verification failed. If you just paid, refresh once. Otherwise start checkout again."
             );
+          } else if (checkedButUnpaid) {
+            setPaymentError("");
           }
           return;
         }
