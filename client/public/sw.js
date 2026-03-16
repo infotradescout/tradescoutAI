@@ -9,7 +9,7 @@
  */
 
 // Bump this whenever caching behavior changes to guarantee clients drop old caches.
-const CACHE_VERSION = "v8-2026-03-15";
+const CACHE_VERSION = "v9-2026-03-15";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
