@@ -20,6 +20,7 @@ import {
   Link2,
   Wallet,
   Radio,
+  Camera,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -706,6 +707,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Brain,
         visibleIf: { roles: ["ops_admin", "super_admin", "moderator"] },
         render: () => <AdminInspectionIntelligencePage />,
+      }),
+      tool({
+        id: "ai-camera-lab",
+        label: "AI Camera Lab",
+        path: "/admin/ai-camera-lab",
+        icon: Camera,
+        visibleIf: { roles: ["ops_admin", "super_admin", "moderator"] },
+        render: () => <RedirectTool to="/zero-base-fee/camera" />,
       }),
       tool({
         id: "system-prompt",

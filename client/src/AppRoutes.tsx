@@ -1581,12 +1581,38 @@ export const AppRoutes = memo(function AppRoutes({
               <LazyPage Component={RequestQuote} />
             </Route>
             <Route path="/zero-base-fee">
-              <ProtectedRoute>
+              <ProtectedRoute
+                requiredRoles={[
+                  "support_agent",
+                  "content_moderator",
+                  "territory_manager",
+                  "contractor_success",
+                  "content_seo",
+                  "analytics_specialist",
+                  "marketing_specialist",
+                  "moderator",
+                  "ops_admin",
+                  "super_admin",
+                ]}
+              >
                 <LazyPage Component={ZeroBaseFeeCamera} />
               </ProtectedRoute>
             </Route>
             <Route path="/zero-base-fee/camera">
-              <ProtectedRoute>
+              <ProtectedRoute
+                requiredRoles={[
+                  "support_agent",
+                  "content_moderator",
+                  "territory_manager",
+                  "contractor_success",
+                  "content_seo",
+                  "analytics_specialist",
+                  "marketing_specialist",
+                  "moderator",
+                  "ops_admin",
+                  "super_admin",
+                ]}
+              >
                 <LazyPage Component={ZeroBaseFeeCamera} />
               </ProtectedRoute>
             </Route>
