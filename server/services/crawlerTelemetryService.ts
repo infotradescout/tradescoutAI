@@ -756,6 +756,15 @@ async function refreshBotObservationDailyAggregate(args: {
 }): Promise<void> {
   await pool.query(
     `
+      with typed_args as (
+        select
+          $1::date as observed_date,
+          $2::text as route_family,
+          $3::text as county,
+          $4::text as state,
+          $5::text as trade,
+          $6::text as bot_family
+      ),
       insert into bot_observation_daily_agg (
         date,
         route_family,
@@ -775,12 +784,12 @@ async function refreshBotObservationDailyAggregate(args: {
         updated_at
       )
       select
-        $1::date as date,
-        $2::varchar(64) as route_family,
-        $3::varchar(160) as county,
-        $4::varchar(2) as state,
-        $5::varchar(160) as trade,
-        $6::varchar(120) as bot_family,
+        ta.observed_date as date,
+        ta.route_family::varchar(64) as route_family,
+        nullif(ta.county, '')::varchar(160) as county,
+        nullif(ta.state, '')::varchar(2) as state,
+        nullif(ta.trade, '')::varchar(160) as trade,
+        ta.bot_family::varchar(120) as bot_family,
         count(*)::int as hits,
         count(distinct canonical_url)::int as unique_urls,
         round(avg(response_time_ms))::int as avg_response_time_ms,
@@ -792,24 +801,25 @@ async function refreshBotObservationDailyAggregate(args: {
         (
           select e2.path
           from bot_observation_events e2
-          where e2.observed_at::date = $1::date
-            and e2.route_family = $2::varchar(64)
-            and coalesce(e2.county, ''::varchar) = coalesce($3::varchar(160), ''::varchar)
-            and coalesce(e2.state, ''::varchar) = coalesce($4::varchar(2), ''::varchar)
-            and coalesce(e2.trade, ''::varchar) = coalesce($5::varchar(160), ''::varchar)
-            and e2.bot_family = $6::varchar(120)
+          where e2.observed_at::date = ta.observed_date
+            and e2.route_family::text = ta.route_family
+            and coalesce(e2.county::text, '') = coalesce(ta.county, '')
+            and coalesce(e2.state::text, '') = coalesce(ta.state, '')
+            and coalesce(e2.trade::text, '') = coalesce(ta.trade, '')
+            and e2.bot_family::text = ta.bot_family
           group by e2.path
           order by count(*) desc, e2.path asc
           limit 1
         ) as top_path,
         now() as updated_at
       from bot_observation_events e
-      where e.observed_at::date = $1::date
-        and e.route_family = $2::varchar(64)
-        and coalesce(e.county, ''::varchar) = coalesce($3::varchar(160), ''::varchar)
-        and coalesce(e.state, ''::varchar) = coalesce($4::varchar(2), ''::varchar)
-        and coalesce(e.trade, ''::varchar) = coalesce($5::varchar(160), ''::varchar)
-        and e.bot_family = $6::varchar(120)
+      cross join typed_args ta
+      where e.observed_at::date = ta.observed_date
+        and e.route_family::text = ta.route_family
+        and coalesce(e.county::text, '') = coalesce(ta.county, '')
+        and coalesce(e.state::text, '') = coalesce(ta.state, '')
+        and coalesce(e.trade::text, '') = coalesce(ta.trade, '')
+        and e.bot_family::text = ta.bot_family
       on conflict (
         date,
         route_family,
