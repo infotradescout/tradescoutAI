@@ -52,6 +52,8 @@ type HomeScoutListing = {
 type HomeScoutSurfaceSection = {
   title: string;
   items: string[];
+  primaryAction: { label: string; href: string };
+  secondaryAction?: { label: string; href: string };
 };
 
 const HOMESCOUT_VALUE_CARDS: HomeScoutSurfaceSection[] = [
@@ -62,10 +64,14 @@ const HOMESCOUT_VALUE_CARDS: HomeScoutSurfaceSection[] = [
       "Track maintenance context",
       "Keep property history in one place",
     ],
+    primaryAction: { label: "Open My TradeScout", href: "/my-tradescout" },
+    secondaryAction: { label: "Open Homeowner Dashboard", href: "/homeowner-dashboard" },
   },
   {
     title: "Watch your local market",
     items: ["Browse HomeScout Listings", "Filter by county context", "Save a search for later"],
+    primaryAction: { label: "Browse Listings", href: "/homescout-listings" },
+    secondaryAction: { label: "Save Search", href: "/homescout-listings" },
   },
   {
     title: "Sell when you're ready",
@@ -74,6 +80,8 @@ const HOMESCOUT_VALUE_CARDS: HomeScoutSurfaceSection[] = [
       "HomeScout Listings live in Exchange",
       "Stay county-first",
     ],
+    primaryAction: { label: "Start Sell Flow", href: "/exchange?tab=sell&category=real-estate" },
+    secondaryAction: { label: "Open Property Listing", href: "/property-listing" },
   },
 ];
 
@@ -328,6 +336,27 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                               {item}
                             </div>
                           ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Link href={card.primaryAction.href}>
+                            <Button
+                              size="sm"
+                              className="h-8 bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
+                            >
+                              {card.primaryAction.label}
+                            </Button>
+                          </Link>
+                          {card.secondaryAction ? (
+                            <Link href={card.secondaryAction.href}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-white/15 text-white/80"
+                              >
+                                {card.secondaryAction.label}
+                              </Button>
+                            </Link>
+                          ) : null}
                         </div>
                       </div>
                     );
