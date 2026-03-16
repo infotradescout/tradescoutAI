@@ -283,6 +283,19 @@ export default function ObservabilityDashboard() {
         setLisaFeed(data);
       } catch (err) {
         console.error("Failed to fetch LISA feed:", err);
+        setLisaFeed({
+          generatedAt: new Date().toISOString(),
+          summary: {
+            truthNow: "LISA feed unavailable; fallback mode active.",
+            dataProductionSummary: "Primary LISA runtime failed.",
+            llmOptimizationSummary: "Using observability fallback until runtime recovers.",
+          },
+          feed: [],
+          runtime: {
+            mode: "tradescout_local",
+            source: "client_fallback",
+          },
+        });
       }
     };
 

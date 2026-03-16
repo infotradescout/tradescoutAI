@@ -120,7 +120,21 @@ observabilityRouter.get("/lisa-feed", async (_req, res) => {
     res.json(await getLisaFeed());
   } catch (error) {
     console.error("LISA feed query failed:", error);
-    sendInternalServerError(res, "Failed to fetch LISA feed", { error: String(error) });
+    res.json({
+      generatedAt: new Date().toISOString(),
+      summary: {
+        truthNow: "LISA feed unavailable; showing fallback status.",
+        dataProductionSummary: "Primary LISA runtime failed.",
+        llmOptimizationSummary: "Fallback mode active until runtime recovers.",
+      },
+      feed: [],
+      runtime: {
+        mode: "tradescout_local",
+        source: "observability_route_fallback",
+      },
+      degraded: true,
+      error: String(error),
+    });
   }
 });
 
