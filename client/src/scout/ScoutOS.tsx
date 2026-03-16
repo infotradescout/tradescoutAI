@@ -95,6 +95,12 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
+const SCOUT_QUICK_START_PROMPTS = [
+  "Find local providers for my project",
+  "Help me plan budget and timeline",
+  "What permits do I need for this job?",
+  "Show relevant exchange items nearby",
+] as const;
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
@@ -534,8 +540,7 @@ export default function ScoutOS() {
     hasMessages ||
     state.status === "resolving_context" ||
     state.status === "checking_documents" ||
-    state.status === "executing_action" ||
-    state.status === "ready";
+    state.status === "executing_action";
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -4112,6 +4117,7 @@ export default function ScoutOS() {
                       label: "typing",
                     });
                   }}
+                  quickStartPrompts={!hasMessages ? [...SCOUT_QUICK_START_PROMPTS] : []}
                   autoDemoText={introDemoText}
                   enableAutoDemo={shouldPlayIntroDemo}
                 />

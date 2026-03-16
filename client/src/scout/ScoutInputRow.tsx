@@ -10,6 +10,7 @@ interface ScoutInputRowProps {
   onUseDeviceLocation: () => void;
   onSend: (value: string) => void;
   onTyping: () => void;
+  quickStartPrompts?: string[];
   autoDemoText?: string;
   enableAutoDemo?: boolean;
 }
@@ -23,6 +24,7 @@ export function ScoutInputRow({
   onUseDeviceLocation,
   onSend,
   onTyping,
+  quickStartPrompts,
   autoDemoText,
   enableAutoDemo,
 }: ScoutInputRowProps) {
@@ -64,6 +66,27 @@ export function ScoutInputRow({
           )}
         </div>
       </div>
+      {Array.isArray(quickStartPrompts) && quickStartPrompts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-1">
+          {quickStartPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => onSend(prompt)}
+              disabled={isBusy}
+              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
+              style={{
+                borderColor: "var(--border-subtle)",
+                backgroundColor:
+                  "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      )}
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
