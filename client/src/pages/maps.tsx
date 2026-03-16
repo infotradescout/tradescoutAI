@@ -45,6 +45,15 @@ const MAPS_V1_ENABLED =
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
 const GOOGLE_MAPS_AUTH_FAILURE_EVENT = "ts:google-maps-auth-failure";
+const GOOGLE_MAPS_BILLING_FAILURE_EVENT = "ts:google-maps-billing-failure";
+
+function isGoogleMapsBillingErrorMessage(message: string): boolean {
+  const value = String(message || "").toLowerCase();
+  return (
+    value.includes("billingnotenabledmaperror") ||
+    (value.includes("google maps javascript api") && value.includes("billing"))
+  );
+}
 
 function buildNormalizedBbox(bounds: any): string | null {
   if (!bounds) return null;
@@ -251,10 +260,27 @@ export default function MapsPage() {
       setScriptReady(false);
       setScriptError("Google Maps auth failed (check HTTP referrer restrictions)");
     };
+    const handleBillingFailure = () => {
+      clearMapArtifacts();
+      setSelectedPoint(null);
+      setScriptReady(false);
+      setScriptError("Google Maps billing is not enabled for this key/project");
+    };
+
+    const handleWindowError = (event: ErrorEvent) => {
+      const message = String(event?.message || "");
+      if (isGoogleMapsBillingErrorMessage(message)) {
+        window.dispatchEvent(new CustomEvent(GOOGLE_MAPS_BILLING_FAILURE_EVENT));
+      }
+    };
 
     window.addEventListener(GOOGLE_MAPS_AUTH_FAILURE_EVENT, handleAuthFailure);
+    window.addEventListener(GOOGLE_MAPS_BILLING_FAILURE_EVENT, handleBillingFailure);
+    window.addEventListener("error", handleWindowError);
     return () => {
       window.removeEventListener(GOOGLE_MAPS_AUTH_FAILURE_EVENT, handleAuthFailure);
+      window.removeEventListener(GOOGLE_MAPS_BILLING_FAILURE_EVENT, handleBillingFailure);
+      window.removeEventListener("error", handleWindowError);
     };
   }, []);
 
@@ -395,6 +421,7 @@ export default function MapsPage() {
 
   if (scriptError) {
     const lower = scriptError.toLowerCase();
+    const isBillingFailure = lower.includes("billing");
     const isAuthFailure =
       lower.includes("auth failed") ||
       lower.includes("referrer") ||
@@ -425,6 +452,31 @@ export default function MapsPage() {
                     </li>
                     <li>
                       <span className="text-white">http://localhost:*/*</span> (dev)
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          )}
+          {isBillingFailure && (
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-white/80">
+              <div className="font-semibold text-white">Fix (Google Cloud Console)</div>
+              <ol className="mt-2 list-decimal pl-5 space-y-1 text-white/70">
+                <li>
+                  Open the project tied to this API key and enable{" "}
+                  <span className="text-white">Billing</span>.
+                </li>
+                <li>
+                  Confirm <span className="text-white">Maps JavaScript API</span> is enabled.
+                </li>
+                <li>
+                  Verify API key restrictions include:
+                  <ul className="mt-1 list-disc pl-5">
+                    <li>
+                      <span className="text-white">https://www.thetradescout.com/*</span>
+                    </li>
+                    <li>
+                      <span className="text-white">https://thetradescout.com/*</span>
                     </li>
                   </ul>
                 </li>
