@@ -3941,39 +3941,6 @@ export default function ScoutOS() {
                 isMobile ? "" : "flex-1"
               }`}
             >
-              {/* Return to Home button: top right, always visible */}
-              <button
-                type="button"
-                aria-label="Return to Home"
-                onClick={() => navigate("/")}
-                className="absolute right-3 top-3 flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-accent"
-                style={{
-                  borderColor: "var(--border-subtle)",
-                  backgroundColor:
-                    "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
-                  color: "var(--text-primary)",
-                  zIndex: 20,
-                }}
-              >
-                {/* Home icon (Lucide or fallback) */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="mr-1"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3"
-                  />
-                </svg>
-                Return to Home
-              </button>
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
               {!isMobile && (
                 <div className="flex items-center justify-end pb-2">
