@@ -8619,7 +8619,9 @@ export class DatabaseStorage implements IStorage {
           cls.lifetime_total_recommendations,
           cls.lifetime_recommendation_score,
           u.city,
-          u.state
+          u.county,
+          u.state,
+          u.state_code
         FROM contractor_leaderboard_stats cls
         INNER JOIN contractors c ON cls.contractor_id = c.id
         LEFT JOIN users u ON c.user_id = u.id
@@ -8630,11 +8632,19 @@ export class DatabaseStorage implements IStorage {
 
       const params: Array<string | number> = [month, year];
       if (state && state !== "all") {
-        query += ` AND u.state = $${params.length + 1}`;
+        query += ` AND (
+          UPPER(COALESCE(u.state_code, '')) = UPPER($${params.length + 1})
+          OR UPPER(COALESCE(u.state, '')) = UPPER($${params.length + 1})
+        )`;
         params.push(state);
       }
       if (county && county !== "all") {
-        query += ` AND u.city = $${params.length + 1}`;
+        query += ` AND (
+          UPPER(COALESCE(u.county, '')) = UPPER($${params.length + 1})
+          OR UPPER(COALESCE(u.city, '')) = UPPER($${params.length + 1})
+          OR REGEXP_REPLACE(UPPER(COALESCE(u.county, '')), '[[:space:]]+(COUNTY|PARISH)$', '') =
+             REGEXP_REPLACE(UPPER($${params.length + 1}), '[[:space:]]+(COUNTY|PARISH)$', '')
+        )`;
         params.push(county);
       }
 
@@ -8659,9 +8669,14 @@ export class DatabaseStorage implements IStorage {
         lifetimeRecommendations: parseInt(row.lifetime_total_recommendations) || 0,
         lifetimeScore: parseFloat(row.lifetime_recommendation_score) || 0,
         city: row.city,
-        state: row.state,
-        county: row.city,
-        location: row.city && row.state ? `${row.city}, ${row.state}` : row.state || null,
+        county: row.county || null,
+        state: row.state_code || row.state,
+        location:
+          row.city && (row.state_code || row.state)
+            ? `${row.city}, ${row.state_code || row.state}`
+            : row.county && (row.state_code || row.state)
+              ? `${row.county}, ${row.state_code || row.state}`
+              : row.state_code || row.state || null,
       }));
     } catch (error: any) {
       console.error("Error in getMonthlyLeaderboard:", error);
@@ -8683,7 +8698,9 @@ export class DatabaseStorage implements IStorage {
           MAX(cls.lifetime_total_recommendations) as lifetime_total_recommendations,
           MAX(cls.lifetime_recommendation_score) as lifetime_recommendation_score,
           u.city,
-          u.state
+          u.county,
+          u.state,
+          u.state_code
         FROM contractor_leaderboard_stats cls
         INNER JOIN contractors c ON cls.contractor_id = c.id
         LEFT JOIN users u ON c.user_id = u.id
@@ -8692,16 +8709,24 @@ export class DatabaseStorage implements IStorage {
 
       const params: Array<string | number> = [];
       if (state && state !== "all") {
-        query += ` AND u.state = $${params.length + 1}`;
+        query += ` AND (
+          UPPER(COALESCE(u.state_code, '')) = UPPER($${params.length + 1})
+          OR UPPER(COALESCE(u.state, '')) = UPPER($${params.length + 1})
+        )`;
         params.push(state);
       }
       if (county && county !== "all") {
-        query += ` AND u.city = $${params.length + 1}`;
+        query += ` AND (
+          UPPER(COALESCE(u.county, '')) = UPPER($${params.length + 1})
+          OR UPPER(COALESCE(u.city, '')) = UPPER($${params.length + 1})
+          OR REGEXP_REPLACE(UPPER(COALESCE(u.county, '')), '[[:space:]]+(COUNTY|PARISH)$', '') =
+             REGEXP_REPLACE(UPPER($${params.length + 1}), '[[:space:]]+(COUNTY|PARISH)$', '')
+        )`;
         params.push(county);
       }
 
       query += `
-        GROUP BY cls.contractor_id, c.company_name, c.slug, u.city, u.state
+        GROUP BY cls.contractor_id, c.company_name, c.slug, u.city, u.county, u.state, u.state_code
         ORDER BY MAX(cls.lifetime_total_recommendations) DESC, MAX(cls.lifetime_recommendation_score) DESC
         LIMIT $${params.length + 1}
       `;
@@ -8718,9 +8743,14 @@ export class DatabaseStorage implements IStorage {
         lifetimeRecommendations: parseInt(row.lifetime_total_recommendations) || 0,
         lifetimeScore: parseFloat(row.lifetime_recommendation_score) || 0,
         city: row.city,
-        state: row.state,
-        county: row.city,
-        location: row.city && row.state ? `${row.city}, ${row.state}` : row.state || null,
+        county: row.county || null,
+        state: row.state_code || row.state,
+        location:
+          row.city && (row.state_code || row.state)
+            ? `${row.city}, ${row.state_code || row.state}`
+            : row.county && (row.state_code || row.state)
+              ? `${row.county}, ${row.state_code || row.state}`
+              : row.state_code || row.state || null,
       }));
     } catch (error: any) {
       console.error("Error in getLifetimeLeaderboard:", error);
