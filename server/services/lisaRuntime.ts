@@ -68,6 +68,13 @@ type CrawlerCountySignalRow = {
   request_count: number;
   last_seen_at: string | Date | null;
 };
+type CrawlerRouteInsightRow = {
+  path: string | null;
+  request_count: number;
+  error_count: number;
+  missing_count: number;
+  last_seen_at: string | Date | null;
+};
 type HomeScoutStatsRow = {
   created_count: number;
   price_changed_count: number;
@@ -232,6 +239,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     botUiResult,
     crawlerTelemetryResult,
     crawlerCountySignalResult,
+    crawlerRouteInsightResult,
     homeScoutResult,
   ] = await Promise.all([
     safeSignalQuery<ScoutDemandRow>({
@@ -387,6 +395,23 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
         limit 3
       `,
     }),
+    safeSignalQuery<CrawlerRouteInsightRow>({
+      label: "crawler-route-insights",
+      fallbackRows: [],
+      sql: `
+        select
+          e.path,
+          count(*)::int as request_count,
+          count(*) filter (where e.status_class in ('4xx', '5xx'))::int as error_count,
+          count(*) filter (where e.status_code = 404)::int as missing_count,
+          max(e.observed_at) as last_seen_at
+        from crawler_request_events e
+        where e.observed_at >= now() - interval '24 hours'
+        group by e.path
+        order by request_count desc, e.path asc
+        limit 10
+      `,
+    }),
     safeSignalQuery<HomeScoutStatsRow>({
       label: "homescout-motion",
       fallbackRows: [
@@ -413,8 +438,12 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   const botUiStats = botUiResult.rows?.[0] || {};
   const crawlerTelemetryStats = crawlerTelemetryResult.rows?.[0] || {};
   const crawlerCountySignals = crawlerCountySignalResult.rows || [];
+  const crawlerRouteInsights = crawlerRouteInsightResult.rows || [];
   const homeScoutStats = homeScoutResult.rows?.[0] || {};
   const topBotCrawlSignal = botCrawlSignals[0] || null;
+  const topCrawlerRoute = crawlerRouteInsights[0] || null;
+  const topBrokenCrawlerRoute =
+    crawlerRouteInsights.find((row) => Number(row.error_count || 0) > 0) || null;
 
   const interactionCount = Number(demand.interaction_count || 0);
   const avgConfidence = Number(demand.avg_confidence || 0);
@@ -685,6 +714,56 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     });
   }
 
+  if (topCrawlerRoute) {
+    const routePath = String(topCrawlerRoute.path || "/");
+    const routeHits = Number(topCrawlerRoute.request_count || 0);
+    const routeErrors = Number(topCrawlerRoute.error_count || 0);
+    const route404s = Number(topCrawlerRoute.missing_count || 0);
+
+    feed.push({
+      id: "crawler-route-demand",
+      priority: routeHits >= 100 ? "high" : routeHits >= 25 ? "medium" : "low",
+      sourceKind: "bot_visibility",
+      headline: `Crawler demand is concentrated on ${routePath}.`,
+      narrative:
+        routeErrors > 0
+          ? `${routePath} received ${routeHits} crawler hits in the last 24 hours, with ${routeErrors} error responses (${route404s} were 404). Action now: repair this route or add a redirect so crawl demand converts into indexable surface.`
+          : `${routePath} received ${routeHits} crawler hits in the last 24 hours with no recorded error pressure. Action now: enrich this page with stronger county/trade details because crawlers are already prioritizing it.`,
+      evidence: [
+        `path=${routePath}`,
+        `crawler_hits_24h=${routeHits}`,
+        `crawler_error_responses_24h=${routeErrors}`,
+        `crawler_404_responses_24h=${route404s}`,
+      ],
+      freshnessMinutes: minutesSince(topCrawlerRoute.last_seen_at),
+      scopeType: "surface",
+      scopeRef: routePath,
+    });
+  }
+
+  if (topBrokenCrawlerRoute) {
+    const brokenPath = String(topBrokenCrawlerRoute.path || "/");
+    const brokenHits = Number(topBrokenCrawlerRoute.request_count || 0);
+    const brokenErrors = Number(topBrokenCrawlerRoute.error_count || 0);
+    const broken404s = Number(topBrokenCrawlerRoute.missing_count || 0);
+    feed.push({
+      id: "crawler-route-repair",
+      priority: brokenErrors >= 25 || broken404s >= 10 ? "high" : "medium",
+      sourceKind: "bot_visibility",
+      headline: `Crawler-visible route health issue: ${brokenPath}.`,
+      narrative: `${brokenPath} took ${brokenHits} crawler hits with ${brokenErrors} failed responses in the last 24 hours (${broken404s} were 404). Action now: either publish/fix this path or redirect it to the canonical county/category route.`,
+      evidence: [
+        `broken_path=${brokenPath}`,
+        `broken_path_hits_24h=${brokenHits}`,
+        `broken_path_errors_24h=${brokenErrors}`,
+        `broken_path_404_24h=${broken404s}`,
+      ],
+      freshnessMinutes: minutesSince(topBrokenCrawlerRoute.last_seen_at),
+      scopeType: "surface",
+      scopeRef: brokenPath,
+    });
+  }
+
   const truthNow =
     isScoutFresh && interactionCount > 0
       ? `TradeScout is producing real human-intent data right now, and the strongest live signal is ${topCounty.county_name ? `${topCounty.county_name}` : "county-agnostic activity"}${topCounty.intent ? ` around ${String(topCounty.intent).replace(/_/g, " ")}` : ""}.`
@@ -700,11 +779,16 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     `${observationCount} canonical observations`,
     `${homeScoutCreated + homeScoutPriceChanged} HomeScout listing events`,
     `${botTotal} bot HTTP responses`,
+    topCrawlerRoute
+      ? `top route ${String(topCrawlerRoute.path || "/")} (${Number(topCrawlerRoute.request_count || 0)} hits)`
+      : "top route unavailable",
   ].join(" | ");
 
   const llmOptimizationSummary =
     botTotal > 0 || observationCount > 0
-      ? "The crawl and observation layer is active enough to generate language about what the market is noticing, not just what users have explicitly asked for."
+      ? topBrokenCrawlerRoute
+        ? `Primary optimization target now: fix ${String(topBrokenCrawlerRoute.path || "/")} because crawler demand is hitting failures.`
+        : "Primary optimization target now: strengthen content on the top crawled route and county surfaces to convert visibility into user outcomes."
       : "LLM optimization is currently constrained by low crawl and observation volume, so public-surface discoverability needs more pressure.";
 
   const feedWithTruth: LisaFeedItem[] = feed.map((item) => {
