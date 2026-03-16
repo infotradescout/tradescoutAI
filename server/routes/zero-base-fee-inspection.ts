@@ -266,7 +266,12 @@ const verifyAccessHandler = async (req: Request, res: Response) => {
     }
 
     if (!resolvedSessionId) {
-      return res.status(404).json({ error: "No recent paid access found." });
+      return res.status(200).json({
+        ok: true,
+        paid: false,
+        recoverable: true,
+        reason: "no_recent_paid_access",
+      });
     }
 
     const owned = await pool.query(
@@ -282,7 +287,12 @@ const verifyAccessHandler = async (req: Request, res: Response) => {
     );
 
     if (!owned.rows.length) {
-      return res.status(403).json({ error: "Session is not paid for this account." });
+      return res.status(200).json({
+        ok: true,
+        paid: false,
+        recoverable: false,
+        reason: "session_not_paid_for_account",
+      });
     }
 
     await pool.query(

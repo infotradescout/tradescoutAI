@@ -764,6 +764,13 @@ async function refreshBotObservationDailyAggregate(args: {
   trade: string | null;
   botFamily: string;
 }): Promise<void> {
+  const observedDate = args.observedAt.toISOString().slice(0, 10);
+  const routeFamily = String(args.routeFamily || "").trim();
+  const county = String(args.county || "").trim();
+  const state = String(args.state || "").trim();
+  const trade = String(args.trade || "").trim();
+  const botFamily = String(args.botFamily || "").trim();
+
   await pool.query(
     `
       with typed_args as (
@@ -778,17 +785,22 @@ async function refreshBotObservationDailyAggregate(args: {
       lock_key as (
         select pg_advisory_xact_lock(
           hashtext(
-            concat_ws(
+            concat(
+              coalesce(ta.observed_date::text, ''),
               '|',
-              $1::text,
-              coalesce($2::text, ''),
-              coalesce($3::text, ''),
-              coalesce($4::text, ''),
-              coalesce($5::text, ''),
-              coalesce($6::text, '')
+              coalesce(ta.route_family, ''),
+              '|',
+              coalesce(ta.county, ''),
+              '|',
+              coalesce(ta.state, ''),
+              '|',
+              coalesce(ta.trade, ''),
+              '|',
+              coalesce(ta.bot_family, '')
             )
           )
         ) as locked
+        from typed_args ta
       ),
       deleted as (
         delete from bot_observation_daily_agg d
@@ -883,14 +895,7 @@ async function refreshBotObservationDailyAggregate(args: {
         now() as updated_at
       from aggregated a
     `,
-    [
-      args.observedAt.toISOString(),
-      args.routeFamily,
-      args.county,
-      args.state,
-      args.trade,
-      args.botFamily,
-    ]
+    [observedDate, routeFamily, county, state, trade, botFamily]
   );
 }
 
