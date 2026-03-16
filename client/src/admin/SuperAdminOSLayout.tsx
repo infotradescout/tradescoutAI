@@ -25,10 +25,15 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
       const stored = window.localStorage.getItem("admin:ui:density");
       if (stored === "compact" || stored === "comfortable") {
         setDensity(stored);
+        return;
       }
     } catch {
       // ignore storage errors
     }
+
+    // New default: keep admin nav compact on mobile to prevent long-scroll menus.
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    setDensity(isDesktop ? "comfortable" : "compact");
   }, []);
 
   React.useEffect(() => {

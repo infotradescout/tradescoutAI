@@ -31,13 +31,39 @@ export function SuperAdminLeftNav({
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(COLLAPSE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") return;
-      setCollapsed(parsed as Record<string, boolean>);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          setCollapsed(parsed as Record<string, boolean>);
+          return;
+        }
+      }
     } catch {
-      // ignore storage/parse errors
+      // ignore storage/parse errors and fall back to compact defaults
     }
+
+    // Default behavior with no prior preference: collapse all sections except the
+    // currently active section (or first section if none is active).
+    const defaults: Record<string, boolean> = {};
+    for (const section of sections) defaults[section.section] = true;
+    const activeSection = sections.find((section) =>
+      section.items.some((item) => isItemActive(normalizedLocation, item))
+    )?.section;
+    if (activeSection) defaults[activeSection] = false;
+    else if (sections.length > 0) defaults[sections[0].section] = false;
+    setCollapsed(defaults);
+  }, [sections, normalizedLocation]);
+
+  const collapseAll = React.useCallback(() => {
+    const next: Record<string, boolean> = {};
+    for (const section of sections) next[section.section] = true;
+    setCollapsed(next);
+  }, [sections]);
+
+  const expandAll = React.useCallback(() => {
+    const next: Record<string, boolean> = {};
+    for (const section of sections) next[section.section] = false;
+    setCollapsed(next);
   }, []);
 
   React.useEffect(() => {
@@ -62,6 +88,22 @@ export function SuperAdminLeftNav({
     <aside className={density === "compact" ? "w-60 shrink-0" : "w-64 shrink-0"}>
       <div className={density === "compact" ? "mb-3" : "mb-4"}>
         <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Admin</div>
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={expandAll}
+            className="rounded-md border border-slate-700 px-2 py-1 text-[10px] font-medium text-slate-300 hover:bg-slate-900/60"
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            onClick={collapseAll}
+            className="rounded-md border border-slate-700 px-2 py-1 text-[10px] font-medium text-slate-300 hover:bg-slate-900/60"
+          >
+            Collapse all
+          </button>
+        </div>
       </div>
 
       <nav
