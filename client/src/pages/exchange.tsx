@@ -558,6 +558,19 @@ export default function Exchange() {
     enabled: activeTab === "browse",
   });
 
+  const { data: categoryCountItems = [] } = useQuery<ExchangeItem[]>({
+    queryKey: ["/api/exchange/items", "category-counts", stateCode, countyFips],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (stateCode) params.append("stateCode", stateCode);
+      if (countyFips) params.append("countyFips", countyFips);
+      const response = await fetch(`/api/exchange/items?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch category counts");
+      return response.json();
+    },
+    enabled: activeTab === "browse" || activeTab === "categories",
+  });
+
   const createListingMutation = useMutation({
     mutationFn: async (body: any) => {
       return apiRequest("POST", "/api/marketplace/listings", body);
@@ -715,6 +728,34 @@ export default function Exchange() {
       return matchesSearch && matchesSaved;
     });
   }, [items, searchQuery, savedOnly, favoriteListingIds]);
+
+  const categoryAvailability = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of categoryCountItems || []) {
+      const key = String(item?.category || "").trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return counts;
+  }, [categoryCountItems]);
+
+  const sortedExchangeCategories = useMemo(() => {
+    return [...EXCHANGE_CATEGORIES].sort((a, b) => {
+      const aCount = categoryAvailability.get(a.id) || 0;
+      const bCount = categoryAvailability.get(b.id) || 0;
+      const aAvailable = aCount > 0 ? 1 : 0;
+      const bAvailable = bCount > 0 ? 1 : 0;
+      if (aAvailable !== bAvailable) return bAvailable - aAvailable;
+      if (aCount !== bCount) return bCount - aCount;
+      return a.name.localeCompare(b.name);
+    });
+  }, [categoryAvailability]);
+
+  const getCategoryHref = (categoryId: string) => {
+    if (categoryId === "metals") return "/exchange/metals";
+    if (categoryId === "real-estate") return "/homescout-listings";
+    return `/exchange?tab=browse&category=${encodeURIComponent(categoryId)}`;
+  };
 
   const getCategoryIcon = (categoryId: string) => {
     const category = EXCHANGE_CATEGORIES.find((cat) => cat.id === categoryId);
@@ -922,7 +963,11 @@ export default function Exchange() {
                     className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
                       !selectedCategory ? "border-ts-orange/30" : ""
                     }`}
-                    onClick={() => setSelectedCategory("")}
+                    onClick={() => {
+                      setSelectedCategory("");
+                      setActiveTab("browse");
+                      navigate("/exchange?tab=browse");
+                    }}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-center gap-3">
@@ -939,9 +984,10 @@ export default function Exchange() {
                     </CardContent>
                   </Card>
 
-                  {EXCHANGE_CATEGORIES.map((category) => {
+                  {sortedExchangeCategories.map((category) => {
                     const IconComponent = category.icon;
                     const active = selectedCategory === category.id;
+                    const availableCount = categoryAvailability.get(category.id) || 0;
                     return (
                       <Card
                         key={category.id}
@@ -949,11 +995,9 @@ export default function Exchange() {
                           active ? "border-ts-orange/30" : ""
                         }`}
                         onClick={() => {
-                          if (category.id === "metals") {
-                            navigate("/exchange/metals");
-                            return;
-                          }
                           setSelectedCategory(category.id);
+                          setActiveTab("browse");
+                          navigate(getCategoryHref(category.id));
                         }}
                       >
                         <CardContent className="p-3">
@@ -961,13 +1005,18 @@ export default function Exchange() {
                             <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
                               <IconComponent className="h-5 w-5 text-ts-orange" />
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="text-sm font-semibold text-white truncate">
                                 {category.name}
                               </div>
-                              <div className="hidden sm:block text-[11px] text-white/60 truncate">
-                                {category.description}
-                              </div>
+                            </div>
+                            <div className="shrink-0">
+                              <Badge
+                                variant="outline"
+                                className="border-white/15 text-white/70 text-[10px]"
+                              >
+                                {availableCount}
+                              </Badge>
                             </div>
                           </div>
                         </CardContent>
@@ -975,10 +1024,7 @@ export default function Exchange() {
                     );
                   })}
                 </div>
-                <div className="mt-2 flex items-center justify-between gap-2 text-xs text-white/60">
-                  <div className="min-w-0 truncate">
-                    {activeCategoryMeta ? `Selected: ${activeCategoryMeta.name}` : "Selected: All"}
-                  </div>
+                <div className="mt-2 flex items-center justify-end gap-2 text-xs text-white/60">
                   <Button
                     size="sm"
                     variant="outline"
@@ -1632,28 +1678,39 @@ export default function Exchange() {
             </div>
           </TabsContent>
 
-          <TabsContent value="categories" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {EXCHANGE_CATEGORIES.map((category) => {
+          <TabsContent value="categories" className="space-y-4">
+            <div className="text-xs text-white/60">
+              Categories with live inventory are listed first. Tap any category to open its Exchange
+              page.
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sortedExchangeCategories.map((category) => {
                 const IconComponent = category.icon;
+                const availableCount = categoryAvailability.get(category.id) || 0;
                 return (
                   <Card
                     key={category.id}
                     className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer"
                     onClick={() => {
                       setSelectedCategory(category.id);
-                      setActiveTab("browse");
+                      navigate(getCategoryHref(category.id));
                     }}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-center mb-4">
-                        <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center mr-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
                           <IconComponent className="h-6 w-6 text-ts-orange" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-white">{category.name}</h3>
-                          <p className="text-sm text-white/60">{category.description}</p>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-white truncate">{category.name}</h3>
+                          <p className="text-xs text-white/60 truncate">{category.description}</p>
                         </div>
+                        <Badge
+                          variant="outline"
+                          className="border-white/15 text-white/70 text-[10px]"
+                        >
+                          {availableCount}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
