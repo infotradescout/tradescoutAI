@@ -409,7 +409,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
     .toLowerCase();
   const limit = Math.max(25, Math.min(500, Number(params.limit || 100)));
 
-  const [snapshot, lisaFeed] = await Promise.all([
+  const [snapshotResult, lisaFeedResult] = await Promise.allSettled([
     getPartnerCountyObservationSnapshots({
       partnerSlug: params.partnerSlug,
       window: params.window,
@@ -419,6 +419,44 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
     }),
     getLisaFeed(),
   ]);
+
+  if (snapshotResult.status === "rejected") {
+    console.error(
+      "Partner intelligence brief degraded: county observation snapshot unavailable",
+      snapshotResult.reason
+    );
+  }
+  if (lisaFeedResult.status === "rejected") {
+    console.error(
+      "Partner intelligence brief degraded: LISA feed unavailable",
+      lisaFeedResult.reason
+    );
+  }
+
+  const snapshot =
+    snapshotResult.status === "fulfilled"
+      ? snapshotResult.value
+      : {
+          generatedAt: new Date().toISOString(),
+          counties: [],
+        };
+
+  const lisaFeed: Awaited<ReturnType<typeof getLisaFeed>> =
+    lisaFeedResult.status === "fulfilled"
+      ? lisaFeedResult.value
+      : {
+          generatedAt: new Date().toISOString(),
+          summary: {
+            truthNow: "LISA feed unavailable; showing partial intelligence brief.",
+            dataProductionSummary: "LISA feed unavailable.",
+            llmOptimizationSummary: "LISA feed unavailable.",
+          },
+          feed: [],
+          runtime: {
+            mode: "tradescout_local",
+            source: "partner brief fallback",
+          },
+        };
 
   const previousHistoryResult = await pool.query(
     `
