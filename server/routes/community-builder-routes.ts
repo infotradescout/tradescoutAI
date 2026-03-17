@@ -3,6 +3,8 @@ import { storage } from "../storage";
 import { requireAuth } from "../auth";
 import { buildCountyVaultAllocation } from "../services/countyVaultAllocation";
 import Stripe from "stripe";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -360,6 +362,106 @@ router.get("/county/:countyId/leaderboard", async (req: Request, res: Response) 
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
     res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
+/**
+ * GET /api/community-builder/county/:countyId/contributors
+ * List county vault contributors tied to user identity, with profile/business context.
+ */
+router.get("/county/:countyId/contributors", async (req: Request, res: Response) => {
+  try {
+    const { countyId } = req.params;
+    const rawLimit = Number(req.query.limit ?? 50);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(200, rawLimit)) : 50;
+
+    const result = await db.execute(sql`
+      with aggregated as (
+        select
+          a.user_id as user_id,
+          coalesce(sum(a.direct_amount::numeric), 0) as direct_total,
+          coalesce(sum(a.network_amount::numeric), 0) as network_total,
+          max(a.created_at) as last_contribution_at
+        from user_county_vault_contribution_adjustments a
+        where a.county_id = ${countyId}
+        group by a.user_id
+      )
+      select
+        ag.user_id as "userId",
+        coalesce(u.first_name, '') as "firstName",
+        coalesce(u.last_name, '') as "lastName",
+        u.email as "email",
+        p.slug as "profileSlug",
+        p.display_name as "profileDisplayName",
+        b.slug as "businessSlug",
+        b.name as "businessName",
+        ag.direct_total::text as "directTotal",
+        ag.network_total::text as "networkTotal",
+        (ag.direct_total + ag.network_total)::text as "totalAmount",
+        ag.last_contribution_at as "lastContributionAt"
+      from aggregated ag
+      left join users u on u.id = ag.user_id
+      left join lateral (
+        select pr.slug, pr.display_name
+        from profiles pr
+        where pr.owner_user_id = ag.user_id
+          and pr.status = 'published'
+        order by pr.updated_at desc
+        limit 1
+      ) p on true
+      left join lateral (
+        select bs.slug, bs.name
+        from businesses bs
+        where bs.owner_user_id = ag.user_id
+          and bs.claim_status = 'claimed'
+          and bs.status <> 'suspended'
+        order by bs.updated_at desc
+        limit 1
+      ) b on true
+      order by (ag.direct_total + ag.network_total) desc, ag.last_contribution_at desc nulls last
+      limit ${limit}
+    `);
+
+    const rows = (result.rows ?? []) as Array<{
+      userId: string;
+      firstName: string | null;
+      lastName: string | null;
+      email: string | null;
+      profileSlug: string | null;
+      profileDisplayName: string | null;
+      businessSlug: string | null;
+      businessName: string | null;
+      directTotal: string | null;
+      networkTotal: string | null;
+      totalAmount: string | null;
+      lastContributionAt: string | Date | null;
+    }>;
+
+    const contributors = rows.map((row) => {
+      const fullName = `${row.firstName || ""} ${row.lastName || ""}`.trim();
+      const displayName =
+        row.profileDisplayName ||
+        row.businessName ||
+        fullName ||
+        row.email ||
+        `User ${String(row.userId || "").slice(0, 8)}`;
+
+      return {
+        userId: row.userId,
+        displayName,
+        profileSlug: row.profileSlug || null,
+        businessSlug: row.businessSlug || null,
+        directTotal: Number(row.directTotal || 0),
+        networkTotal: Number(row.networkTotal || 0),
+        totalAmount: Number(row.totalAmount || 0),
+        lastContributionAt: row.lastContributionAt ? new Date(row.lastContributionAt) : null,
+      };
+    });
+
+    return res.json(contributors);
+  } catch (error) {
+    console.error("Error fetching county contributors:", error);
+    return res.status(500).json({ error: "Failed to fetch county contributors" });
   }
 });
 
