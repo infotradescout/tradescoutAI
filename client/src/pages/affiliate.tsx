@@ -24,7 +24,7 @@ import {
   Zap,
   Wallet,
   Link as LinkIcon,
-  Download,
+  PlusSquare,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { share, shareToPlatform } from "@/utils/share";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { slugifyCountyName } from "@shared/tradeSeo";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 interface AffiliateProgram {
   id: string;
@@ -121,6 +122,7 @@ export default function AffiliatePage() {
   const [newLinkDescription, setNewLinkDescription] = useState("");
   const holdCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, isAuthenticated } = useAuth();
+  const { canPromptInstall, promptInstall } = useInstallPrompt();
 
   // Get affiliate dashboard data - automatically created for all users
   const { data: dashboardData, isLoading } = useQuery<{
@@ -209,9 +211,6 @@ export default function AffiliatePage() {
     ? `${baseUrl}/scout?ref=${encodeURIComponent(affiliateCode)}`
     : `${baseUrl}/scout`;
 
-  const currentRole = String(
-    user?.activeRole || user?.role || (Array.isArray(user?.roles) ? user.roles[0] : "") || ""
-  ).toLowerCase();
   const stateCode = String(user?.stateCode || user?.state || "")
     .trim()
     .toUpperCase();
@@ -443,72 +442,22 @@ export default function AffiliatePage() {
     clearHoldCopyTimer();
   };
 
-  const downloadShareDirectory = () => {
-    const csvEscape = (value: string) => `"${String(value || "").replace(/"/g, '""')}"`;
-    const header = ["label", "path", "share_url", "description", "suggested_caption"];
-    const lines = [header.join(",")];
+  const addShareHubShortcut = async () => {
+    const prompted = await promptInstall();
+    if (prompted) {
+      toast({
+        title: "Install prompt opened",
+        description: "Pin TradeScout to your home screen to keep Share Hub one tap away.",
+      });
+      return;
+    }
 
-    publicShareLinks.forEach((entry) => {
-      const shareUrl = resolveShareUrlForPath(entry.path);
-      const caption = buildShareCaption(entry);
-      lines.push(
-        [
-          csvEscape(entry.label),
-          csvEscape(entry.path),
-          csvEscape(shareUrl),
-          csvEscape(entry.description),
-          csvEscape(caption),
-        ].join(",")
-      );
-    });
-
-    const csv = lines.join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const datePart = new Date().toISOString().slice(0, 10);
-    link.href = url;
-    link.setAttribute("download", `tradescout-share-directory-${datePart}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
+    const shareHubUrl = `${baseUrl}/affiliate`;
+    await copyToClipboard(shareHubUrl, "Share Hub shortcut link");
     toast({
-      title: "Share directory downloaded",
-      description: "CSV exported with links, descriptions, and suggested captions.",
-    });
-  };
-
-  const downloadShareDirectoryJson = () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      affiliateCode: affiliateCode ?? null,
-      defaultInviteLink: affiliateLink,
-      links: publicShareLinks.map((entry) => ({
-        label: entry.label,
-        path: entry.path,
-        shareUrl: resolveShareUrlForPath(entry.path),
-        description: entry.description,
-        suggestedCaption: buildShareCaption(entry),
-      })),
-    };
-
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const datePart = new Date().toISOString().slice(0, 10);
-    link.href = url;
-    link.setAttribute("download", `tradescout-share-directory-${datePart}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "Share directory downloaded",
-      description: "JSON exported with full share metadata.",
+      title: "Shortcut link copied",
+      description:
+        "Paste this in your browser and use 'Add to Home screen' or 'Install app' from the browser menu.",
     });
   };
 
@@ -569,20 +518,16 @@ export default function AffiliatePage() {
                 type="button"
                 variant="outline"
                 className="border-white/15 text-white/80 hover:bg-white/5"
-                onClick={downloadShareDirectory}
+                onClick={() => void addShareHubShortcut()}
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download CSV
+                <PlusSquare className="w-4 h-4 mr-2" />
+                Add Share Hub Shortcut
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-white/15 text-white/80 hover:bg-white/5"
-                onClick={downloadShareDirectoryJson}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download JSON
-              </Button>
+              {!canPromptInstall ? (
+                <span className="self-center text-[11px] text-white/55">
+                  If install prompt doesn&apos;t open, use your browser menu → Add to Home screen.
+                </span>
+              ) : null}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
