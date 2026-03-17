@@ -11171,6 +11171,22 @@ export class DatabaseStorage implements IStorage {
       .from(affiliateReferrals)
       .where(eq(affiliateReferrals.affiliateId, affiliateProgramId));
 
+    const [commissionTotals] = await db
+      .select({
+        // Source-of-truth earned total from commission rows.
+        earned: sql<string>`coalesce(sum(coalesce(${affiliateReferrals.commissionAmount}, '0')::numeric), 0)::text`,
+      })
+      .from(affiliateReferrals)
+      .where(eq(affiliateReferrals.affiliateId, affiliateProgramId));
+
+    const [payoutTotals] = await db
+      .select({
+        // "Paid out" should only include settled payout rows.
+        paidOut: sql<string>`coalesce(sum(case when lower(coalesce(${affiliatePayouts.status}, '')) in ('paid', 'completed') then coalesce(${affiliatePayouts.payoutAmount}, '0')::numeric else 0 end), 0)::text`,
+      })
+      .from(affiliatePayouts)
+      .where(eq(affiliatePayouts.affiliateId, affiliateProgramId));
+
     const conversionRate =
       referralStats.totalReferrals > 0
         ? (referralStats.convertedReferrals / referralStats.totalReferrals) * 100
@@ -11179,8 +11195,8 @@ export class DatabaseStorage implements IStorage {
     return {
       totalReferrals: referralStats.totalReferrals || 0,
       convertedReferrals: referralStats.convertedReferrals || 0,
-      totalCommissionEarned: program.lifetimeEarned || "0",
-      totalCommissionPaid: program.lastPayoutAmount || "0",
+      totalCommissionEarned: commissionTotals?.earned || "0",
+      totalCommissionPaid: payoutTotals?.paidOut || "0",
       conversionRate: Math.round(conversionRate * 100) / 100,
     };
   }
