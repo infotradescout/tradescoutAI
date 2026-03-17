@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Copy,
   Share2,
@@ -87,11 +93,36 @@ type ShareEntry = {
   reason: string;
 };
 
+const NON_PUBLIC_SHARE_PREFIXES = [
+  "/admin",
+  "/wallet",
+  "/settings",
+  "/conversations",
+  "/onboarding",
+  "/pre-scout-setup",
+  "/identity-verification",
+  "/verification",
+  "/zero-base-fee",
+  "/community-builder/dashboard",
+  "/community-builder/contributions/new",
+  "/contractor-leads",
+  "/contractor-dashboard",
+  "/dashboard",
+];
+
+function isPublicSharePath(path: string): boolean {
+  if (!path.startsWith("/")) return false;
+  return !NON_PUBLIC_SHARE_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+  );
+}
+
 export default function AffiliatePage() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const [newLinkDestination, setNewLinkDestination] = useState("/scout");
   const [newLinkSlug, setNewLinkSlug] = useState("");
   const [newLinkDescription, setNewLinkDescription] = useState("");
+  const holdCopyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, isAuthenticated } = useAuth();
 
   // Get affiliate dashboard data - automatically created for all users
@@ -374,6 +405,17 @@ export default function AffiliatePage() {
     },
   ] as const;
 
+  const publicBestShareSections = useMemo(
+    () =>
+      bestShareSections
+        .map((section) => ({
+          ...section,
+          entries: section.entries.filter((entry) => isPublicSharePath(entry.path)),
+        }))
+        .filter((section) => section.entries.length > 0),
+    [bestShareSections]
+  );
+
   const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -456,15 +498,23 @@ export default function AffiliatePage() {
   };
 
   const buildShareCaption = (entry: ShareEntry) => {
-    const localTail = countyName && stateCode ? ` Good fit for ${countyName}, ${stateCode}.` : "";
-    return `${entry.label}: ${entry.description} ${entry.reason}.${localTail} Use my TradeScout link here:`;
+    const localTail =
+      countyName && stateCode
+        ? ` If you're in or near ${countyName}, ${stateCode}, this is especially useful.`
+        : "";
+    return `Want a faster path to ${entry.reason.toLowerCase()}? Open this TradeScout link now and take the next step.${localTail}`;
+  };
+
+  const buildOutboundShareText = (entry: ShareEntry) => {
+    const entryUrl = resolveShareUrlForPath(entry.path);
+    return `${buildShareCaption(entry)} ${entryUrl}`;
   };
 
   const shareEntryWithCaption = async (entry: ShareEntry) => {
     await share({
       path: entry.path,
       title: entry.label,
-      text: buildShareCaption(entry),
+      text: buildOutboundShareText(entry),
       contextLabel: entry.label,
       affiliateCodeOverride: affiliateCode,
     });
@@ -478,7 +528,7 @@ export default function AffiliatePage() {
       platform,
       path: entry.path,
       title: entry.label,
-      text: buildShareCaption(entry),
+      text: buildOutboundShareText(entry),
       affiliateCodeOverride: affiliateCode,
     });
   };
@@ -488,6 +538,24 @@ export default function AffiliatePage() {
     return affiliateCode
       ? `${baseUrl}${normalizedPath}?ref=${encodeURIComponent(affiliateCode)}`
       : `${baseUrl}${normalizedPath}`;
+  };
+
+  const clearHoldCopyTimer = () => {
+    if (holdCopyTimerRef.current) {
+      clearTimeout(holdCopyTimerRef.current);
+      holdCopyTimerRef.current = null;
+    }
+  };
+
+  const startHoldCopy = (text: string, type: string) => {
+    clearHoldCopyTimer();
+    holdCopyTimerRef.current = setTimeout(() => {
+      void copyToClipboard(text, type);
+    }, 550);
+  };
+
+  const cancelHoldCopy = () => {
+    clearHoldCopyTimer();
   };
 
   const downloadShareDirectory = () => {
@@ -503,7 +571,7 @@ export default function AffiliatePage() {
     ];
     const lines = [header.join(",")];
 
-    bestShareSections.forEach((section) => {
+    publicBestShareSections.forEach((section) => {
       section.entries.forEach((entry) => {
         const shareUrl = resolveShareUrlForPath(entry.path);
         const caption = buildShareCaption(entry);
@@ -544,7 +612,7 @@ export default function AffiliatePage() {
       exportedAt: new Date().toISOString(),
       affiliateCode: affiliateCode ?? null,
       defaultInviteLink: affiliateLink,
-      sections: bestShareSections.map((section) => ({
+      sections: publicBestShareSections.map((section) => ({
         title: section.title,
         description: section.description,
         entries: section.entries.map((entry) => ({
@@ -720,110 +788,148 @@ export default function AffiliatePage() {
                   can keep adding more as we expand campaigns and features.
                 </p>
               </div>
-              <div className="space-y-5">
-                {bestShareSections.map((section) => (
-                  <div
-                    key={section.title}
-                    className="rounded-xl border border-white/10 bg-black/20 p-3 md:p-4 space-y-3"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-white">{section.title}</p>
-                      <p className="text-xs text-white/60 mt-1">{section.description}</p>
-                    </div>
-                    <div className="space-y-3">
-                      {section.entries.map((entry) => {
-                        const entryUrl = resolveShareUrlForPath(entry.path);
-                        const entryCaption = buildShareCaption(entry);
-                        return (
-                          <div
-                            key={entry.path}
-                            className="rounded-lg border border-white/10 bg-black/25 p-3 space-y-2"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-white">{entry.label}</p>
-                                <p className="text-xs text-white/60">{entry.description}</p>
-                              </div>
-                              <Badge className="bg-white/10 text-white/80 border border-white/15">
-                                {entry.path}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <Badge className="bg-ts-orange/10 text-ts-orange border border-ts-orange/20">
-                                {entry.reason}
-                              </Badge>
-                            </div>
-                            <div className="text-[11px] text-white/70 font-mono truncate flex items-center gap-2">
-                              <LinkIcon className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{entryUrl}</span>
-                            </div>
-                            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45 mb-1">
-                                Suggested caption
-                              </p>
-                              <p className="text-xs text-white/75">{entryCaption}</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="border-white/10 text-white/80 hover:bg-white/5"
-                                onClick={() => copyToClipboard(entryUrl, `${entry.label} link`)}
+              <div className="space-y-2">
+                <p className="text-[11px] text-white/50">
+                  Tap a section to expand. Long-press any link row to copy instantly.
+                </p>
+                <Accordion
+                  type="multiple"
+                  className="rounded-xl border border-white/10 bg-black/20"
+                >
+                  {publicBestShareSections.map((section, sectionIndex) => (
+                    <AccordionItem
+                      key={section.title}
+                      value={`section-${sectionIndex}`}
+                      className="border-b border-white/10 last:border-b-0"
+                    >
+                      <AccordionTrigger className="px-3 md:px-4 py-3 text-left hover:no-underline">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white">{section.title}</p>
+                          <p className="text-xs text-white/60 mt-1">{section.description}</p>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-3 md:px-4 pb-3">
+                        <Accordion type="single" collapsible className="space-y-2">
+                          {section.entries.map((entry) => {
+                            const entryUrl = resolveShareUrlForPath(entry.path);
+                            const entryCaption = buildShareCaption(entry);
+                            return (
+                              <AccordionItem
+                                key={entry.path}
+                                value={`${section.title}-${entry.path}`}
+                                className="rounded-lg border border-white/10 bg-black/25 px-3 border-b-0"
                               >
-                                <Copy className="w-4 h-4 mr-2" />
-                                Copy
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="border-white/10 text-white/80 hover:bg-white/5"
-                                onClick={() =>
-                                  copyToClipboard(
-                                    `${entryCaption} ${entryUrl}`,
-                                    `${entry.label} caption`
-                                  )
-                                }
-                              >
-                                <Copy className="w-4 h-4 mr-2" />
-                                Copy caption
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="border-white/10 text-white/80 hover:bg-white/5"
-                                onClick={() => shareEntryWithCaption(entry)}
-                              >
-                                <Share2 className="w-4 h-4 mr-2" />
-                                Share
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="border-white/10 text-white/80 hover:bg-white/5"
-                                onClick={() => shareEntryToPlatform(entry, "facebook")}
-                              >
-                                Facebook
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="border-white/10 text-white/80 hover:bg-white/5"
-                                onClick={() => shareEntryToPlatform(entry, "email")}
-                              >
-                                Email
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                                <AccordionTrigger
+                                  className="py-3 text-left hover:no-underline"
+                                  onTouchStart={() =>
+                                    startHoldCopy(entryUrl, `${entry.label} link`)
+                                  }
+                                  onTouchEnd={cancelHoldCopy}
+                                  onTouchCancel={cancelHoldCopy}
+                                  onMouseDown={() => startHoldCopy(entryUrl, `${entry.label} link`)}
+                                  onMouseUp={cancelHoldCopy}
+                                  onMouseLeave={cancelHoldCopy}
+                                >
+                                  <div className="flex min-w-0 items-start justify-between gap-3 w-full pr-2">
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-white">
+                                        {entry.label}
+                                      </p>
+                                      <p className="text-[11px] text-white/50 truncate font-mono">
+                                        Destination: {entry.path}
+                                      </p>
+                                    </div>
+                                    <Badge className="bg-ts-orange/10 text-ts-orange border border-ts-orange/20 shrink-0">
+                                      Best for: {entry.reason}
+                                    </Badge>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-3">
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mb-2">
+                                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45 mb-1">
+                                      Link summary
+                                    </p>
+                                    <p className="text-xs text-white/75">{entry.description}</p>
+                                    <p className="text-[11px] text-white/55 mt-1">
+                                      Includes your affiliate tracking attribution automatically.
+                                    </p>
+                                  </div>
+                                  <div className="text-[11px] text-white/70 font-mono truncate flex items-center gap-2 mb-2">
+                                    <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate">{entryUrl}</span>
+                                  </div>
+                                  <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mb-2">
+                                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45 mb-1">
+                                      Click-ready caption
+                                    </p>
+                                    <p className="text-xs text-white/75">{entryCaption}</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/10 text-white/80 hover:bg-white/5"
+                                      onClick={() =>
+                                        copyToClipboard(entryUrl, `${entry.label} link`)
+                                      }
+                                    >
+                                      <Copy className="w-4 h-4 mr-2" />
+                                      Copy
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/10 text-white/80 hover:bg-white/5"
+                                      onClick={() =>
+                                        copyToClipboard(
+                                          buildOutboundShareText(entry),
+                                          `${entry.label} caption`
+                                        )
+                                      }
+                                    >
+                                      <Copy className="w-4 h-4 mr-2" />
+                                      Copy caption
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/10 text-white/80 hover:bg-white/5"
+                                      onClick={() => shareEntryWithCaption(entry)}
+                                    >
+                                      <Share2 className="w-4 h-4 mr-2" />
+                                      Share
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/10 text-white/80 hover:bg-white/5"
+                                      onClick={() => shareEntryToPlatform(entry, "facebook")}
+                                    >
+                                      Facebook
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-white/10 text-white/80 hover:bg-white/5"
+                                      onClick={() => shareEntryToPlatform(entry, "email")}
+                                    >
+                                      Email
+                                    </Button>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          })}
+                        </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </div>
             </div>
           </CardContent>
