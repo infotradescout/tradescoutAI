@@ -227,192 +227,79 @@ export default function AffiliatePage() {
       "okaloosa county|fl": "/tradepartners/cumulus-media/okaloosa-county-fl",
     }[normalizedCountyKey] || "/tradepartners/cumulus-media";
 
-  const bestLinksForUser = useMemo<ShareEntry[]>(() => {
-    if (
-      currentRole.includes("contractor") ||
-      currentRole.includes("pro") ||
-      currentRole.includes("business")
-    ) {
-      return [
-        {
-          label: "Direct Connect",
-          description: "Best starting point for service demand and inbound local work.",
-          path: "/direct-connect",
-          reason: "Best fit for provider-side sharing",
-        },
-        {
-          label: "TradeDeals",
-          description: "Useful for promoting partner offers and business-facing opportunities.",
-          path: "/tradedeals",
-          reason: "Good fit for business audiences",
-        },
-      ];
-    }
-
-    return [
+  const shareDirectoryEntries = useMemo<ShareEntry[]>(() => {
+    const entries: ShareEntry[] = [
       {
-        label: "Scout assistant",
-        description: "Best starting point for most people new to TradeScout.",
+        label: "Scout",
+        description: "Best all-purpose starting point for new people.",
         path: "/scout",
-        reason: "Best fit for general users",
+        reason: "Best for broad sharing",
       },
       {
-        label: "HomeScout listings",
-        description:
-          "Good when your audience cares about homes, moves, and local property activity.",
+        label: "Exchange marketplace",
+        description: "Buy, sell, and browse listings.",
+        path: "/exchange",
+        reason: "High click and conversion intent",
+      },
+      {
+        label: "Direct Connect",
+        description: "Post requests and connect with local service providers.",
+        path: "/direct-connect",
+        reason: "Best for service leads",
+      },
+      {
+        label: "HomeScout Listings",
+        description: "Explore local home inventory and opportunities.",
         path: "/homescout-listings",
-        reason: "Strong homeowner interest",
+        reason: "Great for housing interest",
+      },
+      {
+        label: "TradeDeals",
+        description: "Share live partner offers and campaign deals.",
+        path: "/tradedeals",
+        reason: "Strong offer-focused traffic",
+      },
+      {
+        label: "Community",
+        description: "Local updates, discussion, and recurring activity.",
+        path: "/community",
+        reason: "Best for repeat engagement",
+      },
+      {
+        label: "Contractors",
+        description: "Browse local pros and business profiles.",
+        path: "/contractors",
+        reason: "Useful for pro discovery",
+      },
+      {
+        label: countyName && stateCode ? "Cumulus campaign (local)" : "Cumulus campaign",
+        description: "Share the active Cumulus campaign RSVP page.",
+        path: cumulusCountyPath,
+        reason: "Active campaign destination",
       },
     ];
-  }, [currentRole]);
-
-  const countyAwareEntries = useMemo<ShareEntry[]>(() => {
-    const entries: ShareEntry[] = [];
 
     if (countyPagePath && countyName && stateCode) {
-      entries.push({
+      entries.splice(1, 0, {
         label: `${countyName}, ${stateCode} county page`,
-        description:
-          "A local-first page people can use to discover what is happening in your area.",
+        description: "County page for local discovery and recurring traffic.",
         path: countyPagePath,
-        reason: "Most locally relevant share",
+        reason: "Most local audience fit",
       });
     }
 
-    entries.push({
-      label: "Community",
-      description: "Good for ongoing local engagement and repeat traffic.",
-      path: "/community",
-      reason: "Brings people back regularly",
-    });
-
     return entries;
-  }, [countyName, stateCode, countyPagePath]);
-
-  const bestLinksToday = useMemo<ShareEntry[]>(() => {
-    const entries: ShareEntry[] = [
-      {
-        label: "Exchange marketplace",
-        description: "Strong general-purpose link when you want active browsing and conversion.",
-        path: "/exchange",
-        reason: "Always a strong daily share",
-      },
-    ];
-
-    entries.push({
-      label: countyName && stateCode ? "Cumulus campaign for your market" : "Cumulus campaign",
-      description:
-        countyName && stateCode
-          ? `Use the most relevant Cumulus campaign path for ${countyName}, ${stateCode} when available.`
-          : "Share the live Cumulus campaign and RSVP landing page.",
-      path: cumulusCountyPath,
-      reason: "Best active campaign link today",
-    });
-
-    return entries;
-  }, [countyName, stateCode, cumulusCountyPath]);
-
-  const bestShareSections = [
-    {
-      title: "Best links for this user",
-      description: "Suggested from your current role and likely audience.",
-      entries: bestLinksForUser,
-    },
-    {
-      title:
-        countyName && stateCode
-          ? `Best links for ${countyName}, ${stateCode}`
-          : "Best links for your county",
-      description:
-        countyName && stateCode
-          ? "These lean into the place you actually operate in."
-          : "These lean into local visibility and recurring county engagement.",
-      entries: countyAwareEntries,
-    },
-    {
-      title: "Best links today",
-      description: "These are the most useful current surfaces to push right now.",
-      entries: bestLinksToday,
-    },
-    {
-      title: "Best for getting signups",
-      description: "Use these when you want a broad, clean starting point for new users.",
-      entries: [
-        {
-          label: "Scout assistant",
-          description: "Start with local AI planning and next-step guidance.",
-          path: "/scout",
-          reason: "Best general starting point",
-        },
-      ],
-    },
-    {
-      title: "Best for getting buyers and leads",
-      description: "Use these when people are ready to shop, hire, or take action.",
-      entries: [
-        {
-          label: "Direct Connect",
-          description: "Post requests and connect with local service providers.",
-          path: "/direct-connect",
-          reason: "High intent for service leads",
-        },
-        {
-          label: "Exchange marketplace",
-          description: "Buy, sell, and discover local listings.",
-          path: "/exchange",
-          reason: "Strong conversion path",
-        },
-        {
-          label: "HomeScout listings",
-          description: "Search local properties and home opportunities.",
-          path: "/homescout-listings",
-          reason: "High-value housing interest",
-        },
-      ],
-    },
-    {
-      title: "Best campaign links",
-      description: "Use these when you want to push offers, promotions, or active campaigns.",
-      entries: [
-        {
-          label: "TradeDeals",
-          description: "Share exclusive TradePartner offers.",
-          path: "/tradedeals",
-          reason: "Good for promotions and partner deals",
-        },
-        {
-          label: "Cumulus campaign",
-          description: "Share the Cumulus TradePartner campaign and RSVP landing page.",
-          path: "/tradepartners/cumulus-media",
-          reason: "Campaign-specific traffic",
-        },
-      ],
-    },
-    {
-      title: "Best for local and recurring engagement",
-      description: "Use these when you want people to return often and stay active locally.",
-      entries: [
-        {
-          label: "Community",
-          description: "Local discussions, updates, and neighborhood activity.",
-          path: "/community",
-          reason: "Great for recurring engagement",
-        },
-      ],
-    },
-  ] as const;
+  }, [countyName, stateCode, countyPagePath, cumulusCountyPath]);
 
   const publicShareLinks = useMemo(() => {
     const deduped = new Map<string, ShareEntry>();
-    bestShareSections.forEach((section) => {
-      section.entries.forEach((entry) => {
-        if (!isPublicSharePath(entry.path)) return;
-        const key = entry.path.toLowerCase();
-        if (!deduped.has(key)) deduped.set(key, entry);
-      });
+    shareDirectoryEntries.forEach((entry) => {
+      if (!isPublicSharePath(entry.path)) return;
+      const key = entry.path.toLowerCase();
+      if (!deduped.has(key)) deduped.set(key, entry);
     });
     return Array.from(deduped.values());
-  }, [bestShareSections]);
+  }, [shareDirectoryEntries]);
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -634,27 +521,25 @@ export default function AffiliatePage() {
       />
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-3 bg-ts-orange/20 rounded-lg">
               <Share2 className="w-8 h-8 text-ts-orange" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-4xl font-bold text-white">Your Share Hub</h1>
-              <p className="text-sm md:text-base text-white/60">
-                Every link you share automatically keeps attribution attached and powers the 5/5/5
-                impact model
+              <h1 className="text-2xl md:text-3xl font-bold text-white">Your Share Hub</h1>
+              <p className="text-sm text-white/60">
+                Copy and share links with attribution already attached.
               </p>
             </div>
           </div>
 
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex items-start gap-3">
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
             <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-blue-200 font-medium">Automatic Affiliate Program</p>
-              <p className="text-blue-300/80 text-sm">
-                No signup needed! As a TradeScout member, 5% of platform revenue from your referrals
-                goes to you, 5% to your community vaults, and 5% to trade + culinary scholarships.
+              <p className="text-blue-300/80 text-xs">
+                5% to you, 5% to community vaults, 5% to trade + culinary scholarships.
               </p>
             </div>
             <a
@@ -668,7 +553,7 @@ export default function AffiliatePage() {
         </div>
 
         {/* Personal invite link & best links to share */}
-        <Card className="bg-white/5 border-white/10 mb-8">
+        <Card className="bg-white/5 border-white/10 mb-6">
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle className="text-white flex items-center gap-2">
@@ -676,8 +561,7 @@ export default function AffiliatePage() {
                 Best links to share
               </CardTitle>
               <CardDescription className="text-white/70">
-                Use your default invite link or pick a strategic destination below. Every link keeps
-                your affiliate code attached and routes people to the right page.
+                Flat link directory. Tap any row for actions.
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2 md:self-start">
@@ -701,15 +585,8 @@ export default function AffiliatePage() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-ts-orange/20 bg-ts-orange/5 p-3">
-              <p className="text-sm font-medium text-white">Default invite link</p>
-              <p className="text-xs text-white/60 mt-1">
-                This is your cleanest all-purpose share link. It drops people into Scout with your
-                affiliate attached.
-              </p>
-            </div>
-            <div className="flex flex-col md:flex-row gap-3">
+          <CardContent className="space-y-3">
+            <div className="flex flex-col md:flex-row gap-2">
               <Input
                 readOnly
                 value={affiliateLink}
@@ -721,7 +598,7 @@ export default function AffiliatePage() {
                 onClick={() => copyToClipboard(affiliateLink, "Invite link")}
               >
                 <Copy className="w-4 h-4 mr-2" />
-                Copy link
+                Copy invite
               </Button>
             </div>
 
@@ -761,14 +638,7 @@ export default function AffiliatePage() {
               </Button>
             </div>
 
-            <div className="pt-3 border-t border-white/10">
-              <div className="mb-3">
-                <p className="text-sm font-medium text-white">Best links to share right now</p>
-                <p className="text-xs text-white/60 mt-1">
-                  Straight link list with descriptions. Tap a link to expand details, or long-press
-                  a row to copy instantly.
-                </p>
-              </div>
+            <div className="pt-2 border-t border-white/10">
               <div className="space-y-2">
                 <Accordion
                   type="single"
@@ -796,29 +666,23 @@ export default function AffiliatePage() {
                           <div className="flex min-w-0 items-start justify-between gap-3 w-full pr-2">
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-white">{entry.label}</p>
-                              <p className="text-[11px] text-white/50 truncate font-mono">
-                                Destination: {entry.path}
+                              <p className="text-xs text-white/65 line-clamp-1">
+                                {entry.description}
                               </p>
                             </div>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="pb-3">
-                          <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mb-2">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45 mb-1">
-                              Link summary
-                            </p>
-                            <p className="text-xs text-white/75">{entry.description}</p>
-                            <p className="text-[11px] text-white/55 mt-1">
-                              Includes your affiliate tracking attribution automatically.
-                            </p>
-                          </div>
+                          <p className="text-[11px] text-white/55 mb-2">
+                            Destination: {entry.path}
+                          </p>
                           <div className="text-[11px] text-white/70 font-mono truncate flex items-center gap-2 mb-2">
                             <LinkIcon className="w-3 h-3 flex-shrink-0" />
                             <span className="truncate">{entryUrl}</span>
                           </div>
                           <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 mb-2">
                             <p className="text-[11px] uppercase tracking-[0.18em] text-white/45 mb-1">
-                              Click-ready caption
+                              Suggested message
                             </p>
                             <p className="text-xs text-white/75">{entryCaption}</p>
                           </div>
