@@ -197,6 +197,14 @@ export default function AdminLiveStreamPage() {
   });
 
   const liveStreamStatus = snapshotStatus?.statuses.find((entry) => entry.key === "live_stream");
+  const visibleEntryCount = filteredStream.length;
+  const topRouteDemand = (data?.stream || []).find((item) => item.kind === "crawler_route_demand");
+  const topCountyDemand = (data?.stream || []).find(
+    (item) => item.kind === "crawler_county_demand"
+  );
+  const topBotDemandCluster = (data?.stream || []).find(
+    (item) => item.kind === "bot_demand_cluster"
+  );
   const liveStreamStateLabel = liveStreamStatus
     ? liveStreamStatus.isStale
       ? "stale"
@@ -363,7 +371,7 @@ export default function AdminLiveStreamPage() {
                 <Badge variant="outline">{liveStreamStateLabel}</Badge>
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
-                Rows: {liveStreamStatus?.rowCount ?? 0}
+                Entries shown: {visibleEntryCount}
               </div>
               <div className="text-xs text-muted-foreground">
                 Stale after {liveStreamStatus?.staleAfterMinutes ?? 0} min
@@ -379,14 +387,34 @@ export default function AdminLiveStreamPage() {
             </div>
             <div className="rounded-lg border border-border bg-background p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Lead Geography
+                Top Demand Page
               </div>
               <div className="mt-2 text-sm text-foreground">
-                {data?.summary.currentLeadCounty && data?.summary.currentLeadState
-                  ? `${data.summary.currentLeadCounty}, ${data.summary.currentLeadState}`
-                  : "No lead geography"}
+                {topRouteDemand?.narrative || "No route-level demand signal yet"}
               </div>
             </div>
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                Top Demand County
+              </div>
+              <div className="mt-2 text-sm text-foreground">
+                {topCountyDemand?.narrative || "No county concentration signal yet"}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+            <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
+              Bot Demand Cluster
+            </div>
+            <div className="mt-2 text-sm text-cyan-50">
+              {topBotDemandCluster?.narrative ||
+                data?.summary.topBotCrawlHeadline ||
+                "No bot demand cluster yet"}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="rounded-lg border border-border bg-background p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                 Active Alerts
@@ -395,9 +423,6 @@ export default function AdminLiveStreamPage() {
                 {data?.summary.activeAlerts ?? 0}
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="rounded-lg border border-border bg-background p-4">
               <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                 LISA Entries

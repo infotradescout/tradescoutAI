@@ -187,7 +187,9 @@ router.get("/", async (_req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("[admin-tool-notifications] failed:", error);
-    return res.status(500).json({
+    // Never hard-fail admin navigation dots; degrade to zero counts.
+    return res.json({
+      degraded: true,
       message: "Failed to load admin tool notifications",
       totalUnread: 0,
       byTool: {},

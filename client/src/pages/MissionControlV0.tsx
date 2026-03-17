@@ -62,6 +62,7 @@ interface LiveStreamPreview {
   stream: Array<{
     id: string;
     timestamp: string;
+    kind?: string;
     title: string;
     narrative: string;
     source: string;
@@ -182,6 +183,15 @@ export default function MissionControlV0() {
     (snapshot) => snapshot.key === "live_stream"
   );
   const liveEvidenceCount = liveStream?.stream?.length ?? 0;
+  const topRouteDemand = (liveStream?.stream || []).find(
+    (entry) => entry.kind === "crawler_route_demand"
+  );
+  const topCountyDemand = (liveStream?.stream || []).find(
+    (entry) => entry.kind === "crawler_county_demand"
+  );
+  const topBotDemand = (liveStream?.stream || []).find(
+    (entry) => entry.kind === "bot_demand_cluster"
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -242,8 +252,31 @@ export default function MissionControlV0() {
                   : "No snapshot timestamp"}
               </span>
             </div>
-            <div className="mt-1 text-xs text-white/50">
-              Rows: {liveStreamSnapshot?.rowCount ?? 0}
+            <div className="mt-1 text-xs text-white/50">Entries shown: {liveEvidenceCount}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-lg border border-border bg-background p-4">
+            <div className="text-xs uppercase tracking-[0.22em] text-white/40">Top Demand Page</div>
+            <div className="mt-2 text-sm text-white/85">
+              {topRouteDemand?.narrative || "No route demand signal yet."}
+            </div>
+          </div>
+          <div className="rounded-lg border border-border bg-background p-4">
+            <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+              Top Demand County
+            </div>
+            <div className="mt-2 text-sm text-white/85">
+              {topCountyDemand?.narrative || "No county demand signal yet."}
+            </div>
+          </div>
+          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+            <div className="text-xs uppercase tracking-[0.22em] text-cyan-100/70">
+              Bot Demand Cluster
+            </div>
+            <div className="mt-2 text-sm text-cyan-50">
+              {topBotDemand?.narrative || "No bot demand cluster yet."}
             </div>
           </div>
         </div>
