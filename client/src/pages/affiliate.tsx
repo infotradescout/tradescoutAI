@@ -18,6 +18,7 @@ import {
   Zap,
   Wallet,
   Link as LinkIcon,
+  Download,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -489,6 +490,92 @@ export default function AffiliatePage() {
       : `${baseUrl}${normalizedPath}`;
   };
 
+  const downloadShareDirectory = () => {
+    const csvEscape = (value: string) => `"${String(value || "").replace(/"/g, '""')}"`;
+    const header = [
+      "section",
+      "label",
+      "path",
+      "share_url",
+      "reason",
+      "description",
+      "suggested_caption",
+    ];
+    const lines = [header.join(",")];
+
+    bestShareSections.forEach((section) => {
+      section.entries.forEach((entry) => {
+        const shareUrl = resolveShareUrlForPath(entry.path);
+        const caption = buildShareCaption(entry);
+        lines.push(
+          [
+            csvEscape(section.title),
+            csvEscape(entry.label),
+            csvEscape(entry.path),
+            csvEscape(shareUrl),
+            csvEscape(entry.reason),
+            csvEscape(entry.description),
+            csvEscape(caption),
+          ].join(",")
+        );
+      });
+    });
+
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const datePart = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.setAttribute("download", `tradescout-share-directory-${datePart}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Share directory downloaded",
+      description: "CSV exported with links, reasons, and suggested captions.",
+    });
+  };
+
+  const downloadShareDirectoryJson = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      affiliateCode: affiliateCode ?? null,
+      defaultInviteLink: affiliateLink,
+      sections: bestShareSections.map((section) => ({
+        title: section.title,
+        description: section.description,
+        entries: section.entries.map((entry) => ({
+          label: entry.label,
+          path: entry.path,
+          shareUrl: resolveShareUrlForPath(entry.path),
+          reason: entry.reason,
+          description: entry.description,
+          suggestedCaption: buildShareCaption(entry),
+        })),
+      })),
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const datePart = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.setAttribute("download", `tradescout-share-directory-${datePart}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Share directory downloaded",
+      description: "JSON exported with full share metadata.",
+    });
+  };
+
   return (
     <div className="px-4 py-10">
       <SEOHelmet
@@ -543,6 +630,26 @@ export default function AffiliatePage() {
                 Use your default invite link or pick a strategic destination below. Every link keeps
                 your affiliate code attached and routes people to the right page.
               </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2 md:self-start">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/15 text-white/80 hover:bg-white/5"
+                onClick={downloadShareDirectory}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download CSV
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/15 text-white/80 hover:bg-white/5"
+                onClick={downloadShareDirectoryJson}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download JSON
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
