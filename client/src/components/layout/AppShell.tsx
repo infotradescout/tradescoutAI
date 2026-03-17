@@ -113,7 +113,7 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
     },
     {
       label: "Share",
-      href: "/affiliate",
+      href: "/share",
       icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
   ];

@@ -659,7 +659,7 @@ export default function TradePartnerCumulusLanding() {
       await share({
         path: sharePath,
         title: seoTitle,
-        text: seoDescription,
+        text: `TradeScout x Cumulus Media: claim the active local campaign and RSVP for the next session.${seoDescription ? ` ${seoDescription}` : ""}`,
         contextLabel: "Share link",
       });
     } finally {

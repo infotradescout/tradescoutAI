@@ -131,6 +131,33 @@ export default function ZeroBaseFeeCameraPage() {
   const [measuredInches, setMeasuredInches] = useState<number | null>(null);
   const [calibrationMessage, setCalibrationMessage] = useState("");
   const [isDetectingAruco, setIsDetectingAruco] = useState(false);
+  const userRoles = Array.isArray((user as any)?.roles)
+    ? (user as any).roles.map((r: unknown) =>
+        String(r || "")
+          .trim()
+          .toLowerCase()
+      )
+    : [];
+  const primaryRole = String((user as any)?.role || "")
+    .trim()
+    .toLowerCase();
+  const activeRole = String((user as any)?.activeRole || "")
+    .trim()
+    .toLowerCase();
+  const isPrivilegedTester =
+    Boolean((user as any)?.isAdmin) ||
+    [primaryRole, activeRole, ...userRoles].some((r) =>
+      [
+        "super_admin",
+        "admin",
+        "ops_admin",
+        "support_agent",
+        "staff",
+        "moderator",
+        "owner",
+        "head_admin",
+      ].includes(r)
+    );
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -587,7 +614,7 @@ export default function ZeroBaseFeeCameraPage() {
         >
           Download ArUco Marker PDF (ID {ARUCO_TARGET_ID}, {ARUCO_SIZE_IN}")
         </a>
-        {!accessToken ? (
+        {!accessToken && !isPrivilegedTester ? (
           <button
             onClick={() => void createCheckout()}
             disabled={busy}
@@ -597,7 +624,9 @@ export default function ZeroBaseFeeCameraPage() {
           </button>
         ) : (
           <span className="rounded bg-emerald-600/30 px-4 py-2 text-emerald-200">
-            Payment verified. Camera unlocked.
+            {isPrivilegedTester
+              ? "Admin/staff testing access enabled. Camera unlocked."
+              : "Payment verified. Camera unlocked."}
           </span>
         )}
       </div>

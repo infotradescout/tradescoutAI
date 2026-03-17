@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,15 @@ import {
   ExternalLink,
   Zap,
   Wallet,
+  Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
-import { share } from "@/utils/share";
+import { share, shareToPlatform } from "@/utils/share";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { slugifyCountyName } from "@shared/tradeSeo";
 
 interface AffiliateProgram {
   id: string;
@@ -77,9 +79,16 @@ interface Payout {
   notes?: string;
 }
 
+type ShareEntry = {
+  label: string;
+  description: string;
+  path: string;
+  reason: string;
+};
+
 export default function AffiliatePage() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
-  const [newLinkDestination, setNewLinkDestination] = useState("/");
+  const [newLinkDestination, setNewLinkDestination] = useState("/scout");
   const [newLinkSlug, setNewLinkSlug] = useState("");
   const [newLinkDescription, setNewLinkDescription] = useState("");
   const { user, isAuthenticated } = useAuth();
@@ -233,12 +242,205 @@ export default function AffiliatePage() {
   const commissions = dashboardData.commissions || [];
   const payouts = dashboardData.payouts || [];
 
-  // Generate referral link from real affiliate code; fall back to site root if unavailable
+  // Generate referral link from real affiliate code; default to Scout path for clarity.
   const baseUrl = window.location.origin;
   const affiliateCode = program?.affiliateCode;
-  const affiliateLink =
-    program?.referralLink ||
-    (affiliateCode ? `${baseUrl}/?ref=${encodeURIComponent(affiliateCode)}` : baseUrl);
+  const affiliateLink = affiliateCode
+    ? `${baseUrl}/scout?ref=${encodeURIComponent(affiliateCode)}`
+    : `${baseUrl}/scout`;
+
+  const currentRole = String(
+    user?.activeRole || user?.role || (Array.isArray(user?.roles) ? user.roles[0] : "") || ""
+  ).toLowerCase();
+  const stateCode = String(user?.stateCode || user?.state || "")
+    .trim()
+    .toUpperCase();
+  const countyName = String(user?.countyName || user?.county || "").trim();
+  const countySlug = countyName ? slugifyCountyName(countyName) : "";
+  const countyPagePath =
+    stateCode && countySlug ? `/county/${stateCode.toLowerCase()}/${countySlug}` : null;
+  const normalizedCountyKey = `${countyName.toLowerCase()}|${stateCode.toLowerCase()}`;
+  const cumulusCountyPath =
+    {
+      "mobile county|al": "/tradepartners/cumulus-media/mobile-county-al",
+      "escambia county|fl": "/tradepartners/cumulus-media/escambia-county-fl",
+      "okaloosa county|fl": "/tradepartners/cumulus-media/okaloosa-county-fl",
+    }[normalizedCountyKey] || "/tradepartners/cumulus-media";
+
+  const bestLinksForUser = useMemo<ShareEntry[]>(() => {
+    if (
+      currentRole.includes("contractor") ||
+      currentRole.includes("pro") ||
+      currentRole.includes("business")
+    ) {
+      return [
+        {
+          label: "Direct Connect",
+          description: "Best starting point for service demand and inbound local work.",
+          path: "/direct-connect",
+          reason: "Best fit for provider-side sharing",
+        },
+        {
+          label: "TradeDeals",
+          description: "Useful for promoting partner offers and business-facing opportunities.",
+          path: "/tradedeals",
+          reason: "Good fit for business audiences",
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Scout assistant",
+        description: "Best starting point for most people new to TradeScout.",
+        path: "/scout",
+        reason: "Best fit for general users",
+      },
+      {
+        label: "HomeScout listings",
+        description:
+          "Good when your audience cares about homes, moves, and local property activity.",
+        path: "/homescout-listings",
+        reason: "Strong homeowner interest",
+      },
+    ];
+  }, [currentRole]);
+
+  const countyAwareEntries = useMemo<ShareEntry[]>(() => {
+    const entries: ShareEntry[] = [];
+
+    if (countyPagePath && countyName && stateCode) {
+      entries.push({
+        label: `${countyName}, ${stateCode} county page`,
+        description:
+          "A local-first page people can use to discover what is happening in your area.",
+        path: countyPagePath,
+        reason: "Most locally relevant share",
+      });
+    }
+
+    entries.push({
+      label: "Community",
+      description: "Good for ongoing local engagement and repeat traffic.",
+      path: "/community",
+      reason: "Brings people back regularly",
+    });
+
+    return entries;
+  }, [countyName, stateCode, countyPagePath]);
+
+  const bestLinksToday = useMemo<ShareEntry[]>(() => {
+    const entries: ShareEntry[] = [
+      {
+        label: "Exchange marketplace",
+        description: "Strong general-purpose link when you want active browsing and conversion.",
+        path: "/exchange",
+        reason: "Always a strong daily share",
+      },
+    ];
+
+    entries.push({
+      label: countyName && stateCode ? "Cumulus campaign for your market" : "Cumulus campaign",
+      description:
+        countyName && stateCode
+          ? `Use the most relevant Cumulus campaign path for ${countyName}, ${stateCode} when available.`
+          : "Share the live Cumulus campaign and RSVP landing page.",
+      path: cumulusCountyPath,
+      reason: "Best active campaign link today",
+    });
+
+    return entries;
+  }, [countyName, stateCode, cumulusCountyPath]);
+
+  const bestShareSections = [
+    {
+      title: "Best links for this user",
+      description: "Suggested from your current role and likely audience.",
+      entries: bestLinksForUser,
+    },
+    {
+      title:
+        countyName && stateCode
+          ? `Best links for ${countyName}, ${stateCode}`
+          : "Best links for your county",
+      description:
+        countyName && stateCode
+          ? "These lean into the place you actually operate in."
+          : "These lean into local visibility and recurring county engagement.",
+      entries: countyAwareEntries,
+    },
+    {
+      title: "Best links today",
+      description: "These are the most useful current surfaces to push right now.",
+      entries: bestLinksToday,
+    },
+    {
+      title: "Best for getting signups",
+      description: "Use these when you want a broad, clean starting point for new users.",
+      entries: [
+        {
+          label: "Scout assistant",
+          description: "Start with local AI planning and next-step guidance.",
+          path: "/scout",
+          reason: "Best general starting point",
+        },
+      ],
+    },
+    {
+      title: "Best for getting buyers and leads",
+      description: "Use these when people are ready to shop, hire, or take action.",
+      entries: [
+        {
+          label: "Direct Connect",
+          description: "Post requests and connect with local service providers.",
+          path: "/direct-connect",
+          reason: "High intent for service leads",
+        },
+        {
+          label: "Exchange marketplace",
+          description: "Buy, sell, and discover local listings.",
+          path: "/exchange",
+          reason: "Strong conversion path",
+        },
+        {
+          label: "HomeScout listings",
+          description: "Search local properties and home opportunities.",
+          path: "/homescout-listings",
+          reason: "High-value housing interest",
+        },
+      ],
+    },
+    {
+      title: "Best campaign links",
+      description: "Use these when you want to push offers, promotions, or active campaigns.",
+      entries: [
+        {
+          label: "TradeDeals",
+          description: "Share exclusive TradePartner offers.",
+          path: "/tradedeals",
+          reason: "Good for promotions and partner deals",
+        },
+        {
+          label: "Cumulus campaign",
+          description: "Share the Cumulus TradePartner campaign and RSVP landing page.",
+          path: "/tradepartners/cumulus-media",
+          reason: "Campaign-specific traffic",
+        },
+      ],
+    },
+    {
+      title: "Best for local and recurring engagement",
+      description: "Use these when you want people to return often and stay active locally.",
+      entries: [
+        {
+          label: "Community",
+          description: "Local discussions, updates, and neighborhood activity.",
+          path: "/community",
+          reason: "Great for recurring engagement",
+        },
+      ],
+    },
+  ] as const;
 
   const shareWithRef = async (path: string, label: string) => {
     await share({
@@ -249,11 +451,46 @@ export default function AffiliatePage() {
     });
   };
 
+  const buildShareCaption = (entry: ShareEntry) => {
+    const localTail = countyName && stateCode ? ` Good fit for ${countyName}, ${stateCode}.` : "";
+    return `${entry.label}: ${entry.description} ${entry.reason}.${localTail} Use my TradeScout link here:`;
+  };
+
+  const shareEntryWithCaption = async (entry: ShareEntry) => {
+    await share({
+      path: entry.path,
+      title: entry.label,
+      text: buildShareCaption(entry),
+      contextLabel: entry.label,
+      affiliateCodeOverride: affiliateCode,
+    });
+  };
+
+  const shareEntryToPlatform = async (
+    entry: ShareEntry,
+    platform: "facebook" | "twitter" | "email"
+  ) => {
+    await shareToPlatform({
+      platform,
+      path: entry.path,
+      title: entry.label,
+      text: buildShareCaption(entry),
+      affiliateCodeOverride: affiliateCode,
+    });
+  };
+
+  const resolveShareUrlForPath = (path: string) => {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    return affiliateCode
+      ? `${baseUrl}${normalizedPath}?ref=${encodeURIComponent(affiliateCode)}`
+      : `${baseUrl}${normalizedPath}`;
+  };
+
   return (
     <div className="px-4 py-10">
       <SEOHelmet
-        title="Affiliate Dashboard | Referral Links and Impact Tracking"
-        description="Manage TradeScout affiliate links, referral performance, and impact distribution from your affiliate dashboard."
+        title="Share Hub | Referral Links and Impact Tracking"
+        description="Use TradeScout's share hub to copy strategic links, share the right destination, and keep your referral attribution attached."
         canonical="https://www.thetradescout.com/affiliate"
       />
       <div className="container mx-auto max-w-7xl">
@@ -264,11 +501,10 @@ export default function AffiliatePage() {
               <Share2 className="w-8 h-8 text-ts-orange" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-4xl font-bold text-white">
-                Your Affiliate Dashboard
-              </h1>
+              <h1 className="text-2xl md:text-4xl font-bold text-white">Your Share Hub</h1>
               <p className="text-sm md:text-base text-white/60">
-                Every link you share automatically powers a 5/5/5 impact model
+                Every link you share automatically keeps attribution attached and powers the 5/5/5
+                impact model
               </p>
             </div>
           </div>
@@ -292,21 +528,28 @@ export default function AffiliatePage() {
           </div>
         </div>
 
-        {/* Personal invite link & quick share actions */}
+        {/* Personal invite link & best links to share */}
         <Card className="bg-white/5 border-white/10 mb-8">
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle className="text-white flex items-center gap-2">
                 <Share2 className="w-5 h-5 text-ts-orange" />
-                Your invite link
+                Best links to share
               </CardTitle>
               <CardDescription className="text-white/70">
-                Share this link anywhere. Anyone who joins through it is permanently attributed to
-                you.
+                Use your default invite link or pick a strategic destination below. Every link keeps
+                your affiliate code attached and routes people to the right page.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="rounded-lg border border-ts-orange/20 bg-ts-orange/5 p-3">
+              <p className="text-sm font-medium text-white">Default invite link</p>
+              <p className="text-xs text-white/60 mt-1">
+                This is your cleanest all-purpose share link. It drops people into Scout with your
+                affiliate attached.
+              </p>
+            </div>
             <div className="flex flex-col md:flex-row gap-3">
               <Input
                 readOnly
@@ -329,9 +572,9 @@ export default function AffiliatePage() {
                 type="button"
                 variant="outline"
                 className="border-white/15 text-white/70 hover:bg-white/5"
-                onClick={() => shareWithRef("/", "Share TradeScout")}
+                onClick={() => shareWithRef("/scout", "Share Scout")}
               >
-                Share TradeScout
+                Share Scout
               </Button>
               <Button
                 type="button"
@@ -357,6 +600,121 @@ export default function AffiliatePage() {
               >
                 Share Exchange
               </Button>
+            </div>
+
+            <div className="pt-3 border-t border-white/10">
+              <div className="mb-3">
+                <p className="text-sm font-medium text-white">Best links to share right now</p>
+                <p className="text-xs text-white/60 mt-1">
+                  These are the most useful surfaces for referrals, discovery, and conversion. We
+                  can keep adding more as we expand campaigns and features.
+                </p>
+              </div>
+              <div className="space-y-5">
+                {bestShareSections.map((section) => (
+                  <div
+                    key={section.title}
+                    className="rounded-xl border border-white/10 bg-black/20 p-3 md:p-4 space-y-3"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-white">{section.title}</p>
+                      <p className="text-xs text-white/60 mt-1">{section.description}</p>
+                    </div>
+                    <div className="space-y-3">
+                      {section.entries.map((entry) => {
+                        const entryUrl = resolveShareUrlForPath(entry.path);
+                        const entryCaption = buildShareCaption(entry);
+                        return (
+                          <div
+                            key={entry.path}
+                            className="rounded-lg border border-white/10 bg-black/25 p-3 space-y-2"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-white">{entry.label}</p>
+                                <p className="text-xs text-white/60">{entry.description}</p>
+                              </div>
+                              <Badge className="bg-white/10 text-white/80 border border-white/15">
+                                {entry.path}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge className="bg-ts-orange/10 text-ts-orange border border-ts-orange/20">
+                                {entry.reason}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-white/70 font-mono truncate flex items-center gap-2">
+                              <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">{entryUrl}</span>
+                            </div>
+                            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45 mb-1">
+                                Suggested caption
+                              </p>
+                              <p className="text-xs text-white/75">{entryCaption}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-white/10 text-white/80 hover:bg-white/5"
+                                onClick={() => copyToClipboard(entryUrl, `${entry.label} link`)}
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-white/10 text-white/80 hover:bg-white/5"
+                                onClick={() =>
+                                  copyToClipboard(
+                                    `${entryCaption} ${entryUrl}`,
+                                    `${entry.label} caption`
+                                  )
+                                }
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy caption
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-white/10 text-white/80 hover:bg-white/5"
+                                onClick={() => shareEntryWithCaption(entry)}
+                              >
+                                <Share2 className="w-4 h-4 mr-2" />
+                                Share
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-white/10 text-white/80 hover:bg-white/5"
+                                onClick={() => shareEntryToPlatform(entry, "facebook")}
+                              >
+                                Facebook
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-white/10 text-white/80 hover:bg-white/5"
+                                onClick={() => shareEntryToPlatform(entry, "email")}
+                              >
+                                Email
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -646,7 +1004,7 @@ export default function AffiliatePage() {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        setNewLinkDestination("/");
+                        setNewLinkDestination("/scout");
                         setNewLinkSlug("");
                         setNewLinkDescription("");
                       }}
@@ -756,7 +1114,7 @@ export default function AffiliatePage() {
                       Start sharing your link to earn commissions!
                     </p>
                     <Button
-                      onClick={() => shareWithRef("/", "Invite link")}
+                      onClick={() => shareWithRef("/scout", "Invite link")}
                       className="bg-ts-orange hover:bg-ts-orange-dark"
                     >
                       <Copy className="w-4 h-4 mr-2" />

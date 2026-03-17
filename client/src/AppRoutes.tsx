@@ -1141,6 +1141,9 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/affiliate">
               <LazyPage Component={Affiliate} />
             </Route>
+            <Route path="/share">
+              <LazyPage Component={Affiliate} />
+            </Route>
             <Route path="/notifications">
               <ProtectedRoute>
                 <LazyPage Component={Notifications} />

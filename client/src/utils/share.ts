@@ -48,6 +48,13 @@ function resolveOrigin(): string {
   return window.location.origin;
 }
 
+function isSelfAttributingPublicProfileUrl(url: URL): boolean {
+  const pathname = String(url.pathname || "");
+  return (
+    pathname.startsWith("/u/") || pathname.startsWith("/p/") || pathname.startsWith("/profile/")
+  );
+}
+
 export async function buildAffiliateUrl(
   rawPathOrUrl: string,
   options?: { affiliateCodeOverride?: string; suppressRef?: boolean; forceRef?: boolean }
@@ -74,16 +81,13 @@ export async function buildAffiliateUrl(
   try {
     const url = new URL(baseUrl, origin || undefined);
 
-    const pathname = url.pathname || "";
-    const looksLikePublicProfile =
-      pathname.startsWith("/profile/") ||
-      pathname.startsWith("/business/") ||
-      pathname.startsWith("/u/");
-
-    // Special rule: public profile links should stay clean (no ?ref=...),
-    // but still count as referrals server-side via clean attribution.
+    // By default, logged-in shares should carry the affiliate code.
+    // Public profile URLs are self-attributing and should stay clean.
+    // Otherwise, only suppress ?ref when a caller explicitly opts out.
     const suppressRef =
-      options?.forceRef === true ? false : options?.suppressRef === true || looksLikePublicProfile;
+      options?.forceRef === true
+        ? false
+        : options?.suppressRef === true || isSelfAttributingPublicProfileUrl(url);
 
     if (!suppressRef) {
       url.searchParams.set("ref", affiliateCode);
@@ -108,25 +112,26 @@ interface ShareOptions {
    */
   affiliateCodeOverride?: string;
   /**
-   * Keep the URL clean (no ?ref=...). Use for profile/business pages where
-   * server-side clean attribution counts as a referral without the query param.
+   * Keep the URL clean (no ?ref=...) only when a caller explicitly requests it.
    */
   suppressRef?: boolean;
   /**
-   * Force attaching ?ref=... even if the path looks like a public profile.
+   * Force attaching ?ref=... even if another caller might otherwise suppress it.
    */
   forceRef?: boolean;
 }
 
 export async function share(options: ShareOptions): Promise<void> {
   const origin = resolveOrigin();
+  const currentHref =
+    typeof window !== "undefined" && window.location?.href ? window.location.href : origin || "/";
   const baseInput =
     options.url ??
     (options.path
       ? options.path.startsWith("http")
         ? options.path
         : origin + options.path
-      : origin || "/");
+      : currentHref);
 
   try {
     const finalUrl = await buildAffiliateUrl(baseInput, {
@@ -188,13 +193,15 @@ export async function shareToPlatform(options: {
   forceRef?: boolean;
 }): Promise<void> {
   const origin = resolveOrigin();
+  const currentHref =
+    typeof window !== "undefined" && window.location?.href ? window.location.href : origin || "/";
   const baseInput =
     options.url ??
     (options.path
       ? options.path.startsWith("http")
         ? options.path
         : origin + options.path
-      : origin || "/");
+      : currentHref);
 
   try {
     const finalUrl = await buildAffiliateUrl(baseInput, {

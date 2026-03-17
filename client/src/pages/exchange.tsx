@@ -786,7 +786,7 @@ export default function Exchange() {
     await share({
       path: url,
       title,
-      text,
+      text: text || `Check out ${title} on TradeScout Exchange.`,
       contextLabel: "Share link",
     });
   };

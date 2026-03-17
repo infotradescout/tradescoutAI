@@ -176,7 +176,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
       await share({
         path: `/homescout/${encodeURIComponent(stateCode)}/${encodeURIComponent(countyFips)}`,
         title: `HomeScout Listings - ${locationLabel}`,
-        text: `HomeScout listings in ${locationLabel}`,
+        text: `Browse HomeScout listings in ${locationLabel} on TradeScout.`,
         contextLabel: "Share link",
       });
     } finally {

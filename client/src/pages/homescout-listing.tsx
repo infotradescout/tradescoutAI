@@ -475,7 +475,7 @@ export default function HomeScoutListingPage() {
       await share({
         path: `/homescout/listings/${encodeURIComponent(listingId)}`,
         title: listing.title,
-        text: locationLabel || formatCountyLabel(listing.countyFips, listing.stateCode),
+        text: `HomeScout listing: ${listing.title}${locationLabel ? ` in ${locationLabel}` : ""}.`,
         contextLabel: "Share link",
       });
     } finally {

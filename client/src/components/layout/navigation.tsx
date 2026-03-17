@@ -139,10 +139,10 @@ export default function Navigation() {
       description: "Invite friends to join TradeScout",
     },
     {
-      href: "/affiliate",
-      label: "Affiliate Program",
+      href: "/share",
+      label: "Share",
       icon: Share,
-      description: "Earn 25% commissions on referrals",
+      description: "Share the right TradeScout links with attribution attached",
     },
     { href: "/wallet", label: "Wallet", icon: DollarSign, description: "Your TradeScout balance" },
     {

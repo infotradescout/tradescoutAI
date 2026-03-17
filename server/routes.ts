@@ -4585,20 +4585,49 @@ export async function registerRoutes(app: any) {
       if (existingRef) return next();
 
       // Clean public profile attribution (no ?ref=... required).
-      if (path.startsWith("/profile/")) {
-        const parts = path.split("/").filter(Boolean);
-        const profileId = parts[1] ? decodeURIComponent(parts[1]) : "";
-        if (!profileId) return next();
-
-        // Avoid self-attribution
+      if (path.startsWith("/profile/") || path.startsWith("/u/") || path.startsWith("/p/")) {
         const authedUserId =
           ((req as any)?.user as any)?.id || ((req as any)?.user as any)?.claims?.sub || null;
-        if (authedUserId && String(authedUserId) === profileId) return next();
 
-        let program = await storage.getAffiliateProgram(profileId).catch(() => undefined);
+        let ownerUserId = "";
+        let conversionSource = "profile_clean";
+        let conversionType = "profile_view";
+
+        if (path.startsWith("/profile/")) {
+          const parts = path.split("/").filter(Boolean);
+          ownerUserId = parts[1] ? decodeURIComponent(parts[1]) : "";
+        } else {
+          const parts = path.split("/").filter(Boolean);
+          const slug = parts[1] ? decodeURIComponent(parts[1]) : "";
+          if (!slug) return next();
+
+          const [profileOwner] = await db
+            .select({ ownerUserId: profiles.ownerUserId })
+            .from(profiles)
+            .innerJoin(users, eq(profiles.ownerUserId, users.id))
+            .where(
+              and(
+                eq(profiles.slug, slug),
+                eq(profiles.status, "published" as any),
+                sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
+              )
+            )
+            .limit(1);
+
+          ownerUserId = profileOwner?.ownerUserId ? String(profileOwner.ownerUserId) : "";
+          conversionSource = "public_profile_clean";
+          conversionType = "public_profile_view";
+        }
+
+        if (!ownerUserId) return next();
+
+        // Avoid self-attribution
+        if (authedUserId && String(authedUserId) === ownerUserId) return next();
+
+        let program = await storage.getAffiliateProgram(ownerUserId).catch(() => undefined);
         if (!program) {
           program = await storage
-            .createAffiliateProgram({ userId: profileId } as any)
+            .createAffiliateProgram({ userId: ownerUserId } as any)
             .catch(() => undefined);
         }
         const referralCode = String((program as any)?.referralCode || "").trim();
@@ -4608,8 +4637,8 @@ export async function registerRoutes(app: any) {
         await recordReferralClick({
           referralCode,
           destination: req.originalUrl || path,
-          source: "profile_clean",
-          conversionType: "profile_view",
+          source: conversionSource,
+          conversionType,
         }).catch(() => {});
         return next();
       }

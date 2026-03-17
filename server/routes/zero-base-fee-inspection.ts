@@ -19,6 +19,14 @@ const PRICE_CENTS = 1000;
 const MARKER_SIZE_IN = 2;
 const TOKEN_TTL_SEC = 60 * 60 * 4;
 const ACCESS_RECOVERY_WINDOW_HOURS = 24;
+const ZERO_BASE_FEE_PRIVILEGED_ROLES = new Set([
+  "super_admin",
+  "admin",
+  "ops_admin",
+  "support_agent",
+  "staff",
+  "moderator",
+]);
 
 function clean(value: unknown, maxLen = 300): string {
   if (typeof value !== "string") return "";
@@ -31,6 +39,29 @@ function toOrigin(req: Request): string {
   const host = clean(req.get("host"), 300);
   const proto = clean(req.get("x-forwarded-proto"), 20) || req.protocol || "https";
   return host ? `${proto}://${host}` : "https://www.thetradescout.com";
+}
+
+function normalizeRoleValue(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const raw = value.trim().toLowerCase();
+  if (raw === "owner" || raw === "head_admin") return "super_admin";
+  return raw;
+}
+
+function hasPrivilegedZeroBaseFeeAccess(user: any): boolean {
+  if (!user) return false;
+  if (user.isAdmin === true) return true;
+
+  const roleCandidates: string[] = [];
+  roleCandidates.push(normalizeRoleValue(user.role));
+  roleCandidates.push(normalizeRoleValue(user.activeRole));
+  if (Array.isArray(user.roles)) {
+    for (const role of user.roles) {
+      roleCandidates.push(normalizeRoleValue(role));
+    }
+  }
+
+  return roleCandidates.some((role) => ZERO_BASE_FEE_PRIVILEGED_ROLES.has(role));
 }
 
 function b64urlEncode(raw: string): string {
@@ -133,6 +164,13 @@ router.get("/marker.pdf", async (req: Request, res: Response) => {
 });
 
 router.post("/checkout-session", requireAuth, async (req: Request, res: Response) => {
+  if (hasPrivilegedZeroBaseFeeAccess(req.user as any)) {
+    return res.status(200).json({
+      ok: true,
+      bypass: true,
+      message: "Admin/staff access enabled; checkout not required.",
+    });
+  }
   if (!stripe) return res.status(400).json({ error: "Stripe is not configured." });
   const userId = clean((req.user as any)?.id, 80);
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -247,6 +285,27 @@ const verifyAccessHandler = async (req: Request, res: Response) => {
 
   try {
     await ensureZeroBaseFeeTables();
+
+    if (hasPrivilegedZeroBaseFeeAccess(req.user as any)) {
+      const privilegedSessionId = sessionId || "privileged_bypass";
+      const token = sign({
+        typ: "zero_base_fee_access",
+        userId,
+        sessionId: privilegedSessionId,
+        privilegedBypass: true,
+        exp: now + TOKEN_TTL_SEC,
+      });
+
+      return res.json({
+        ok: true,
+        paid: true,
+        bypass: true,
+        reason: "admin_staff_bypass",
+        sessionId: privilegedSessionId,
+        accessToken: token,
+        expiresAt: now + TOKEN_TTL_SEC,
+      });
+    }
 
     let resolvedSessionId = sessionId;
     if (!resolvedSessionId) {

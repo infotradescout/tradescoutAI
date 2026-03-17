@@ -894,6 +894,26 @@ async function refreshBotObservationDailyAggregate(args: {
         a.top_path,
         now() as updated_at
       from aggregated a
+      on conflict (
+        date,
+        route_family,
+        (coalesce(county, ''::character varying)),
+        (coalesce(state, ''::character varying)),
+        (coalesce(trade, ''::character varying)),
+        bot_family
+      )
+      do update
+      set
+        hits = excluded.hits,
+        unique_urls = excluded.unique_urls,
+        avg_response_time_ms = excluded.avg_response_time_ms,
+        avg_response_bytes = excluded.avg_response_bytes,
+        status_200_count = excluded.status_200_count,
+        status_404_count = excluded.status_404_count,
+        recrawl_urls = excluded.recrawl_urls,
+        first_seen_urls = excluded.first_seen_urls,
+        top_path = excluded.top_path,
+        updated_at = now()
     `,
     [observedDate, routeFamily, county, state, trade, botFamily]
   );

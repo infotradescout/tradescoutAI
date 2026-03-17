@@ -211,6 +211,7 @@ export default function ProfilePage() {
       url: profileUrl,
       title: `${displayName}'s TradeScout profile`,
       contextLabel: "Profile link",
+      suppressRef: true,
     });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
