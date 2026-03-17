@@ -1,6 +1,6 @@
 import { pool } from "../db";
 import { getActiveAlerts } from "../observability/alerts";
-import { getCrawlerTelemetrySummary } from "./crawlerTelemetryService";
+import { getBotCrawlAggregateSignals, getCrawlerTelemetrySummary } from "./crawlerTelemetryService";
 import { getLisaFeed } from "./lisaRuntime";
 import { getPartnerIntelligenceBriefSnapshot } from "./partnerIntelligenceBriefSnapshotService";
 import {
@@ -231,18 +231,24 @@ export async function buildLiveStreamSnapshot(params?: {
 }): Promise<LiveStreamSnapshot> {
   const filters = normalizeFilters(params || {});
 
-  const [lisaFeedResult, crawlerTelemetryResult, cumulusBriefResult, activeAlertsResult] =
-    await Promise.allSettled([
-      getLisaFeed(),
-      getCrawlerTelemetrySummary(),
-      getPartnerIntelligenceBriefSnapshot({
-        partnerSlug: "cumulus-media",
-        window: "24h",
-        stateCode: filters.stateCode || undefined,
-        limit: 100,
-      }),
-      Promise.resolve(getActiveAlerts()),
-    ]);
+  const [
+    lisaFeedResult,
+    crawlerTelemetryResult,
+    botDemandSignalsResult,
+    cumulusBriefResult,
+    activeAlertsResult,
+  ] = await Promise.allSettled([
+    getLisaFeed(),
+    getCrawlerTelemetrySummary(),
+    getBotCrawlAggregateSignals(),
+    getPartnerIntelligenceBriefSnapshot({
+      partnerSlug: "cumulus-media",
+      window: "24h",
+      stateCode: filters.stateCode || undefined,
+      limit: 100,
+    }),
+    Promise.resolve(getActiveAlerts()),
+  ]);
 
   const lisaFeed =
     lisaFeedResult.status === "fulfilled"
@@ -271,6 +277,8 @@ export async function buildLiveStreamSnapshot(params?: {
           requestTypes: [],
           topCounties: [],
         };
+  const botDemandSignals =
+    botDemandSignalsResult.status === "fulfilled" ? botDemandSignalsResult.value : [];
 
   const cumulusBrief =
     cumulusBriefResult.status === "fulfilled"
@@ -311,6 +319,7 @@ export async function buildLiveStreamSnapshot(params?: {
   const degradedSources = [
     lisaFeedResult.status === "rejected" ? "lisa" : null,
     crawlerTelemetryResult.status === "rejected" ? "crawler" : null,
+    botDemandSignalsResult.status === "rejected" ? "bot-demand" : null,
     cumulusBriefResult.status === "rejected" ? "cumulus" : null,
     activeAlertsResult.status === "rejected" ? "alerts" : null,
   ].filter((value): value is string => Boolean(value));
@@ -327,6 +336,13 @@ export async function buildLiveStreamSnapshot(params?: {
       crawlerTelemetryResult.reason
     );
   }
+  if (botDemandSignalsResult.status === "rejected") {
+    degradedSourceReasons["bot-demand"] = summarizeRejectionReason(botDemandSignalsResult.reason);
+    console.error(
+      "Live stream degraded: bot demand signals unavailable",
+      botDemandSignalsResult.reason
+    );
+  }
   if (cumulusBriefResult.status === "rejected") {
     degradedSourceReasons.cumulus = summarizeRejectionReason(cumulusBriefResult.reason);
     console.error("Live stream degraded: Cumulus brief unavailable", cumulusBriefResult.reason);
@@ -340,6 +356,9 @@ export async function buildLiveStreamSnapshot(params?: {
     (item) => item.sourceKind === "bot_crawl_signals"
   );
   const topBotCrawlFinding = botCrawlFindings[0] || null;
+  const topDemandSignal = botDemandSignals[0] || null;
+  const topDemandRoutes = crawlerTelemetry.topRoutes?.slice(0, 5) || [];
+  const topDemandCounties = crawlerTelemetry.topCounties?.slice(0, 5) || [];
 
   const rawStream = [
     {
@@ -450,6 +469,69 @@ export async function buildLiveStreamSnapshot(params?: {
             source: "crawler",
             stateCode: null,
             countyName: null,
+          },
+        ]
+      : []),
+    ...(topDemandRoutes.length > 0
+      ? [
+          {
+            id: `crawler-route-demand-list-${crawlerTelemetry.generatedAt}`,
+            timestamp: crawlerTelemetry.generatedAt,
+            kind: "crawler_route_demand",
+            priority: "high" as LiveStreamPriority,
+            title: "Top crawler-demand pages (24h)",
+            narrative: topDemandRoutes
+              .map((route, idx) => `#${idx + 1} ${route.path} (${route.requestCount} hits)`)
+              .join(" | "),
+            source: "crawler",
+            stateCode: null,
+            countyName: null,
+          },
+        ]
+      : []),
+    ...(topDemandCounties.length > 0
+      ? [
+          {
+            id: `crawler-county-demand-list-${crawlerTelemetry.generatedAt}`,
+            timestamp: crawlerTelemetry.generatedAt,
+            kind: "crawler_county_demand",
+            priority: "high" as LiveStreamPriority,
+            title: "County demand concentration (24h)",
+            narrative: topDemandCounties
+              .map((county, idx) => {
+                const state = county.stateCode ? `, ${county.stateCode}` : "";
+                return `#${idx + 1} ${county.countyName}${state} on ${county.sourceSurface.replace(/_/g, " ")} (${county.requestCount})`;
+              })
+              .join(" | "),
+            source: "crawler",
+            stateCode: topDemandCounties[0]?.stateCode || null,
+            countyName: topDemandCounties[0]?.countyName || null,
+          },
+        ]
+      : []),
+    ...(topDemandSignal
+      ? [
+          {
+            id: `bot-demand-cluster-${topDemandSignal.date}-${topDemandSignal.routeFamily}`,
+            timestamp: crawlerTelemetry.generatedAt,
+            kind: "bot_demand_cluster",
+            priority:
+              topDemandSignal.status404Count >= 5 || topDemandSignal.hits >= 20
+                ? ("critical" as LiveStreamPriority)
+                : ("high" as LiveStreamPriority),
+            title: "Bot demand cluster (route + trade)",
+            narrative: `${topDemandSignal.routeFamily.replace(/_/g, " ")}${
+              topDemandSignal.trade ? ` | trade: ${topDemandSignal.trade}` : ""
+            }${
+              topDemandSignal.county
+                ? ` | county: ${topDemandSignal.county}${topDemandSignal.state ? `, ${topDemandSignal.state}` : ""}`
+                : ""
+            } | bot: ${topDemandSignal.botFamily} | hits: ${topDemandSignal.hits} | recrawls: ${topDemandSignal.recrawlUrls} | 404s: ${topDemandSignal.status404Count}${
+              topDemandSignal.topPath ? ` | hottest URL: ${topDemandSignal.topPath}` : ""
+            }`,
+            source: "bot_crawl_signals",
+            stateCode: topDemandSignal.state || null,
+            countyName: topDemandSignal.county || null,
           },
         ]
       : []),
@@ -694,7 +776,10 @@ export async function getLiveStreamSnapshotHistory(params?: {
   const historyLimit = Math.max(1, Math.min(20, Number(params?.limit || 10)));
   const lookbackDays = Math.max(
     1,
-    Math.min(LIVE_STREAM_HISTORY_RETENTION_DAYS, Number(params?.lookbackDays || LIVE_STREAM_HISTORY_LOOKBACK_DAYS))
+    Math.min(
+      LIVE_STREAM_HISTORY_RETENTION_DAYS,
+      Number(params?.lookbackDays || LIVE_STREAM_HISTORY_LOOKBACK_DAYS)
+    )
   );
   const result = await pool.query(
     `
