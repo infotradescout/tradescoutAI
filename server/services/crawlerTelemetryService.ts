@@ -32,6 +32,16 @@ const crawlerPersistenceStats = {
   lastFailureCode: null as string | null,
   lastFailureMessage: null as string | null,
 };
+const BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS = Math.max(
+  1000,
+  Number(process.env.BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS || 30000)
+);
+const botDailyAggRefreshQueue = new Map<
+  string,
+  {
+    timer: ReturnType<typeof setTimeout>;
+  }
+>();
 
 type CrawlerAttribution = {
   sourceSurface: string | null;
@@ -919,6 +929,51 @@ async function refreshBotObservationDailyAggregate(args: {
   );
 }
 
+function buildBotDailyAggQueueKey(args: {
+  observedAt: Date;
+  routeFamily: string;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  botFamily: string;
+}): string {
+  const observedDate = args.observedAt.toISOString().slice(0, 10);
+  return [
+    observedDate,
+    String(args.routeFamily || "").trim(),
+    String(args.county || "").trim(),
+    String(args.state || "").trim(),
+    String(args.trade || "").trim(),
+    String(args.botFamily || "").trim(),
+  ].join("|");
+}
+
+function scheduleBotDailyAggregateRefresh(args: {
+  observedAt: Date;
+  routeFamily: string;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  botFamily: string;
+}): void {
+  const key = buildBotDailyAggQueueKey(args);
+  const existing = botDailyAggRefreshQueue.get(key);
+  if (existing) {
+    clearTimeout(existing.timer);
+  }
+
+  const timer = setTimeout(async () => {
+    botDailyAggRefreshQueue.delete(key);
+    try {
+      await refreshBotObservationDailyAggregate(args);
+    } catch (error) {
+      console.error("[crawler-telemetry] failed queued daily aggregate refresh:", error);
+    }
+  }, BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS);
+
+  botDailyAggRefreshQueue.set(key, { timer });
+}
+
 export async function recordCrawlerRequestEvent(
   req: Request,
   statusCode: number,
@@ -1125,7 +1180,7 @@ export async function recordCrawlerRequestEvent(
       ]
     );
 
-    await refreshBotObservationDailyAggregate({
+    scheduleBotDailyAggregateRefresh({
       observedAt,
       routeFamily: routeContext.routeFamily,
       county: routeContext.county,

@@ -93,28 +93,25 @@ type ShareEntry = {
   reason: string;
 };
 
-const NON_PUBLIC_SHARE_PREFIXES = [
-  "/admin",
-  "/wallet",
-  "/settings",
-  "/conversations",
-  "/onboarding",
-  "/pre-scout-setup",
-  "/identity-verification",
-  "/verification",
-  "/zero-base-fee",
-  "/community-builder/dashboard",
-  "/community-builder/contributions/new",
-  "/contractor-leads",
-  "/contractor-dashboard",
-  "/dashboard",
-];
+const PUBLIC_SHARE_PATH_ALLOWLIST = [
+  "/scout",
+  "/community",
+  "/exchange",
+  "/homescout-listings",
+  "/direct-connect",
+  "/tradedeals",
+  "/tradepartners/cumulus-media",
+  "/county/",
+] as const;
 
 function isPublicSharePath(path: string): boolean {
   if (!path.startsWith("/")) return false;
-  return !NON_PUBLIC_SHARE_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}/`)
-  );
+  return PUBLIC_SHARE_PATH_ALLOWLIST.some((allowedPath) => {
+    if (allowedPath.endsWith("/")) {
+      return path.startsWith(allowedPath);
+    }
+    return path === allowedPath || path.startsWith(`${allowedPath}/`);
+  });
 }
 
 export default function AffiliatePage() {
@@ -514,7 +511,7 @@ export default function AffiliatePage() {
     await share({
       path: entry.path,
       title: entry.label,
-      text: buildOutboundShareText(entry),
+      text: buildShareCaption(entry),
       contextLabel: entry.label,
       affiliateCodeOverride: affiliateCode,
     });
@@ -528,7 +525,7 @@ export default function AffiliatePage() {
       platform,
       path: entry.path,
       title: entry.label,
-      text: buildOutboundShareText(entry),
+      text: buildShareCaption(entry),
       affiliateCodeOverride: affiliateCode,
     });
   };
