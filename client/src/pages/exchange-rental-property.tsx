@@ -71,9 +71,6 @@ export default function ExchangeRentalProperty() {
         <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-white/10 bg-tsCard p-6 md:p-8">
           <div className="flex flex-wrap items-center gap-3">
             <Badge className="bg-ts-orange text-black">Exchange Portal</Badge>
-            <Badge variant="outline" className="border-white/15 text-white/80">
-              Separate from HomeScout Listings
-            </Badge>
           </div>
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
@@ -84,9 +81,7 @@ export default function ExchangeRentalProperty() {
                 <h1 className="text-3xl font-black tracking-tight md:text-5xl">Rental Property</h1>
               </div>
               <p className="text-base text-white/70 md:text-lg">
-                Exchange-side rental inventory for residential and commercial property. This is the
-                rental portal, not HomeScout Listings and not the HomeScout property-management
-                system.
+                Residential and commercial rental inventory that lives in Exchange.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -102,45 +97,6 @@ export default function ExchangeRentalProperty() {
               </Link>
             </div>
           </div>
-        </div>
-
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
-          <Card className="bg-tsCard border-white/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Home className="h-5 w-5 text-ts-orange" />
-                Residential Rentals
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-white/70">
-              Houses, condos, townhomes, duplexes, and long-term living inventory that belongs in a
-              rental flow, not a sale flow.
-            </CardContent>
-          </Card>
-          <Card className="bg-tsCard border-white/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Building className="h-5 w-5 text-ts-orange" />
-                Commercial Rentals
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-white/70">
-              Storefronts, office suites, mixed-use space, warehouse bays, and other lease-first
-              inventory.
-            </CardContent>
-          </Card>
-          <Card className="bg-tsCard border-white/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Building2 className="h-5 w-5 text-ts-orange" />
-                Exchange-Only Rental Path
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-white/70">
-              Rental property stays in Exchange so sale inventory, rental inventory, and HomeScout
-              management stay separate.
-            </CardContent>
-          </Card>
         </div>
 
         <div className="mb-4 flex items-center justify-between gap-3">

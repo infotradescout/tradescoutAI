@@ -11270,6 +11270,8 @@ export async function registerRoutes(app: any) {
             condition: listing.condition,
             images: Array.isArray(listing.images) ? listing.images : [],
             location,
+            state,
+            county,
             seller: {
               id: String(listing.sellerId),
               name: sellerName,
@@ -11282,6 +11284,13 @@ export async function registerRoutes(app: any) {
             featured,
             views: Number(listing.viewCount || 0),
             favorites: Number(listing.favoriteCount || 0),
+            isLocalPickupOnly: Boolean(listing.isLocalPickupOnly),
+            shippingCost:
+              listing.shippingCost == null
+                ? null
+                : Number.isFinite(Number(listing.shippingCost))
+                  ? Number(listing.shippingCost)
+                  : null,
           };
         });
 

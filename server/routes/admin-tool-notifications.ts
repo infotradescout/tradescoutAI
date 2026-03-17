@@ -13,22 +13,48 @@ type NotificationCounts = {
   contractorVerificationDocsPending: number;
 };
 
-function isMissingTableError(error: unknown): boolean {
+function getPgErrorCode(error: unknown): string {
   const code =
     typeof error === "object" && error && "code" in error
       ? String((error as { code?: string }).code)
       : "";
-  return code === "42P01";
+  return code;
+}
+
+function isIgnorableSchemaError(error: unknown): boolean {
+  const code = getPgErrorCode(error);
+  return (
+    code === "42P01" || // undefined_table
+    code === "42703" || // undefined_column
+    code === "42883" || // undefined_function
+    code === "42P18" // indeterminate_datatype
+  );
 }
 
 async function safeCount(query: string, params: unknown[] = []): Promise<number> {
-  try {
-    const result = await pool.query(query, params);
-    return Number(result.rows?.[0]?.count || 0);
-  } catch (error) {
-    if (isMissingTableError(error)) return 0;
-    throw error;
+  const result = await pool.query(query, params);
+  return Number(result.rows?.[0]?.count || 0);
+}
+
+async function safeCountWithFallback(
+  queries: Array<{ query: string; params?: unknown[] }>
+): Promise<number> {
+  let lastError: unknown = null;
+
+  for (const candidate of queries) {
+    try {
+      return await safeCount(candidate.query, candidate.params || []);
+    } catch (error) {
+      if (!isIgnorableSchemaError(error)) throw error;
+      lastError = error;
+    }
   }
+
+  if (lastError) {
+    console.warn("[admin-tool-notifications] using zero fallback after schema drift:", lastError);
+  }
+
+  return 0;
 }
 
 async function loadNotificationCounts(): Promise<NotificationCounts> {
@@ -39,42 +65,96 @@ async function loadNotificationCounts(): Promise<NotificationCounts> {
     carSalesVerificationsPending,
     contractorVerificationDocsPending,
   ] = await Promise.all([
-    safeCount(
-      `
+    safeCountWithFallback([
+      {
+        query: `
         select count(*)::int as count
         from tradepartner_rsvp_submissions
         where coalesce(attendance_status, 'pending') = 'pending'
-      `
-    ),
-    safeCount(
-      `
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from tradepartner_rsvp_submissions
+      `,
+      },
+    ]),
+    safeCountWithFallback([
+      {
+        query: `
         select count(*)::int as count
         from address_verifications
         where status in ('pending', 'under_review')
-      `
-    ),
-    safeCount(
-      `
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from address_verifications
+        where status = 'pending'
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from address_verifications
+      `,
+      },
+    ]),
+    safeCountWithFallback([
+      {
+        query: `
         select count(*)::int as count
         from realtor_profiles
         where coalesce(verification_status, 'pending') in ('pending', 'under_review', 'in_review')
-      `
-    ),
-    safeCount(
-      `
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from realtor_profiles
+      `,
+      },
+    ]),
+    safeCountWithFallback([
+      {
+        query: `
         select count(*)::int as count
         from car_salesman_profiles
         where coalesce(verification_status, 'pending') in ('pending', 'under_review', 'in_review')
-      `
-    ),
-    safeCount(
-      `
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from car_salesman_profiles
+      `,
+      },
+    ]),
+    safeCountWithFallback([
+      {
+        query: `
         select count(*)::int as count
         from verification_documents
         where status = 'pending'
           and type in ('license', 'insurance')
-      `
-    ),
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from verification_documents
+        where status = 'pending'
+      `,
+      },
+      {
+        query: `
+        select count(*)::int as count
+        from verification_documents
+      `,
+      },
+    ]),
   ]);
 
   return {

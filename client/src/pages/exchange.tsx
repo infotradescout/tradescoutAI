@@ -107,6 +107,10 @@ interface ExchangeItem {
   featured: boolean;
   views: number;
   favorites: number;
+  isLocalPickupOnly?: boolean;
+  shippingCost?: number | null;
+  state?: string;
+  county?: string;
 }
 
 interface ExchangePromotion {
@@ -164,6 +168,7 @@ interface CompanyPromotion {
 
 type SellFormCategorySlug = Exclude<ExchangeCategorySlug, "real-estate" | "metals">;
 type ExchangePortalSlug = "" | "rental-property" | "rental-equipment";
+type ExchangeSearchScope = "local" | "state" | "nationwide";
 
 const EXCHANGE_CATEGORIES = [
   {
@@ -410,6 +415,19 @@ export default function Exchange() {
   const stateCode = locationCtx.stateCode as string | undefined;
   const countyFips = locationCtx.countyFips as string | undefined;
   const countyCommitted = hasCountyContext(locationCtx as any);
+  const [searchScope, setSearchScope] = useState<ExchangeSearchScope>(
+    countyCommitted ? "local" : stateCode ? "state" : "nationwide"
+  );
+
+  useEffect(() => {
+    if (searchScope === "local" && !countyCommitted) {
+      setSearchScope(stateCode ? "state" : "nationwide");
+      return;
+    }
+    if (searchScope === "state" && !stateCode) {
+      setSearchScope("nationwide");
+    }
+  }, [searchScope, countyCommitted, stateCode]);
 
   // Sell tab draft state (prefill from Scout)
   const [sellTitle, setSellTitle] = useState("");
@@ -522,15 +540,20 @@ export default function Exchange() {
       sortBy,
       priceRange,
       conditionFilter,
+      searchScope,
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCategory && selectedCategory !== "all") {
         params.append("categoryId", selectedCategory);
       }
-      // Local-first (not gated): pass locality context as a preference, not a filter.
-      if (stateCode) params.append("stateCode", stateCode);
-      if (countyFips) params.append("countyFips", countyFips);
+      // Exchange can broaden beyond local. Scope controls how strongly locality is applied.
+      if (searchScope === "local") {
+        if (stateCode) params.append("stateCode", stateCode);
+        if (countyFips) params.append("countyFips", countyFips);
+      } else if (searchScope === "state") {
+        if (stateCode) params.append("stateCode", stateCode);
+      }
       // Search query support
       if (searchQuery) params.append("search", searchQuery);
       if (sortBy) params.append("sort", sortBy);
@@ -559,11 +582,15 @@ export default function Exchange() {
   });
 
   const { data: categoryCountItems = [] } = useQuery<ExchangeItem[]>({
-    queryKey: ["/api/exchange/items", "category-counts", stateCode, countyFips],
+    queryKey: ["/api/exchange/items", "category-counts", stateCode, countyFips, searchScope],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (stateCode) params.append("stateCode", stateCode);
-      if (countyFips) params.append("countyFips", countyFips);
+      if (searchScope === "local") {
+        if (stateCode) params.append("stateCode", stateCode);
+        if (countyFips) params.append("countyFips", countyFips);
+      } else if (searchScope === "state") {
+        if (stateCode) params.append("stateCode", stateCode);
+      }
       const response = await fetch(`/api/exchange/items?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch category counts");
       return response.json();
@@ -718,7 +745,7 @@ export default function Exchange() {
   const filteredItems = useMemo(() => {
     if (!items) return [];
 
-    return items.filter((item) => {
+    const matches = items.filter((item) => {
       const matchesSearch =
         !searchQuery ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -727,7 +754,55 @@ export default function Exchange() {
       const matchesSaved = !savedOnly || isSaved;
       return matchesSearch && matchesSaved;
     });
-  }, [items, searchQuery, savedOnly, favoriteListingIds]);
+
+    const shippingReady = (item: ExchangeItem) =>
+      item.isLocalPickupOnly !== true || Number.isFinite(Number(item.shippingCost));
+
+    const isStateMatch = (item: ExchangeItem) =>
+      Boolean(
+        stateCode && String(item.state || "").toUpperCase() === String(stateCode).toUpperCase()
+      );
+
+    const isCountyMatch = (item: ExchangeItem) => {
+      if (!countyCommitted) return false;
+      const locationText = `${item.location} ${item.county || ""}`.toLowerCase();
+      const countyName = String(locationCtx.countyName || "")
+        .trim()
+        .toLowerCase();
+      return Boolean(countyName && locationText.includes(countyName));
+    };
+
+    return [...matches].sort((a, b) => {
+      if (searchScope === "local") {
+        const aLocal = isCountyMatch(a) ? 2 : isStateMatch(a) ? 1 : 0;
+        const bLocal = isCountyMatch(b) ? 2 : isStateMatch(b) ? 1 : 0;
+        if (aLocal !== bLocal) return bLocal - aLocal;
+      }
+
+      if (searchScope === "state") {
+        const aState = isStateMatch(a) ? 1 : 0;
+        const bState = isStateMatch(b) ? 1 : 0;
+        if (aState !== bState) return bState - aState;
+      }
+
+      if (searchScope === "nationwide") {
+        const aShipping = shippingReady(a) ? 1 : 0;
+        const bShipping = shippingReady(b) ? 1 : 0;
+        if (aShipping !== bShipping) return bShipping - aShipping;
+      }
+
+      return 0;
+    });
+  }, [
+    items,
+    searchQuery,
+    savedOnly,
+    favoriteListingIds,
+    searchScope,
+    stateCode,
+    countyCommitted,
+    locationCtx.countyName,
+  ]);
 
   const categoryAvailability = useMemo(() => {
     const counts = new Map<string, number>();
@@ -834,6 +909,13 @@ export default function Exchange() {
     return "Home county set";
   })();
 
+  const scopeLabel =
+    searchScope === "local"
+      ? `Local: ${localLabel}`
+      : searchScope === "state"
+        ? `Statewide${stateCode ? `: ${stateCode}` : ""}`
+        : "Nationwide";
+
   const formatListedTime = (dateLike: string) => {
     const ts = new Date(dateLike).getTime();
     if (!Number.isFinite(ts)) return "";
@@ -860,19 +942,48 @@ export default function Exchange() {
               <h1 className="text-xl sm:text-2xl font-semibold text-white">Exchange listings</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="border-white/10 text-white/70">
-                Local results
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-white/10 text-white/70"
-                title={
-                  countyCommitted
-                    ? "Using your committed county"
-                    : "Set your location to prioritize local listings"
-                }
-              >
-                Area: {localLabel}
+              <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
+                <Button
+                  size="sm"
+                  variant={searchScope === "local" ? "default" : "ghost"}
+                  className={
+                    searchScope === "local"
+                      ? "bg-ts-orange text-black hover:bg-ts-orange/90"
+                      : "text-white/70 hover:text-white"
+                  }
+                  disabled={!countyCommitted}
+                  onClick={() => setSearchScope("local")}
+                >
+                  Local
+                </Button>
+                <Button
+                  size="sm"
+                  variant={searchScope === "state" ? "default" : "ghost"}
+                  className={
+                    searchScope === "state"
+                      ? "bg-ts-orange text-black hover:bg-ts-orange/90"
+                      : "text-white/70 hover:text-white"
+                  }
+                  disabled={!stateCode}
+                  onClick={() => setSearchScope("state")}
+                >
+                  State
+                </Button>
+                <Button
+                  size="sm"
+                  variant={searchScope === "nationwide" ? "default" : "ghost"}
+                  className={
+                    searchScope === "nationwide"
+                      ? "bg-ts-orange text-black hover:bg-ts-orange/90"
+                      : "text-white/70 hover:text-white"
+                  }
+                  onClick={() => setSearchScope("nationwide")}
+                >
+                  Nationwide
+                </Button>
+              </div>
+              <Badge variant="outline" className="border-white/10 text-white/70" title={scopeLabel}>
+                {scopeLabel}
               </Badge>
             </div>
           </div>
@@ -1204,6 +1315,24 @@ export default function Exchange() {
                                 <span className="line-clamp-1">{item.location}</span>
                               </div>
                               <span>{formatListedTime(item.createdAt)}</span>
+                            </div>
+
+                            <div className="mb-2 flex flex-wrap gap-1">
+                              {item.isLocalPickupOnly ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-white/10 text-[10px] text-white/65"
+                                >
+                                  Local pickup
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-500/30 text-[10px] text-emerald-300"
+                                >
+                                  Shipping available
+                                </Badge>
+                              )}
                             </div>
 
                             <div className="flex items-center justify-between gap-2">

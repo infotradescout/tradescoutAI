@@ -164,86 +164,17 @@ export default function AffiliatePage() {
     },
   });
 
-  const copyToClipboard = async (text: string, type: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopySuccess(type);
-      toast({
-        title: "Copied!",
-        description: `${type} copied to clipboard`,
-      });
-      setTimeout(() => setCopySuccess(null), 2000);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to copy to clipboard",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="py-24 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="px-4 py-10">
-        <div className="container mx-auto max-w-4xl">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2 max-w-xl">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                Share TradeScout, fund your community.
-              </h1>
-              <p className="text-sm sm:text-base text-white/70">
-                Create an account or sign in to see your affiliate dashboard, get your personal
-                link, and route a slice of Exchange activity back into the county vaults you care
-                about.
-              </p>
-            </div>
-            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-white/70">
-              <span className="text-xs text-white/60">
-                Use the Create account or Log in buttons in the header to get started.
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!dashboardData) {
-    return (
-      <div className="px-4 py-10">
-        <div className="container mx-auto max-w-4xl">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3">
-            <div className="space-y-2 max-w-xl">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                Affiliate dashboard not available yet
-              </h1>
-              <p className="text-sm sm:text-base text-white/70">
-                We couldn&apos;t load your affiliate dashboard data right now. Please try again
-                later or contact support if the issue persists.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const program = dashboardData.program;
-  const stats = dashboardData.stats;
-  const referrals = dashboardData.referrals || [];
-  const commissions = dashboardData.commissions || [];
-  const payouts = dashboardData.payouts || [];
+  const program = dashboardData?.program;
+  const stats = dashboardData?.stats;
+  const referrals = dashboardData?.referrals || [];
+  const commissions = dashboardData?.commissions || [];
+  const payouts = dashboardData?.payouts || [];
 
   // Generate referral link from real affiliate code; default to Scout path for clarity.
-  const baseUrl = window.location.origin;
+  const baseUrl =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://www.thetradescout.com";
   const affiliateCode = program?.affiliateCode;
   const affiliateLink = affiliateCode
     ? `${baseUrl}/scout?ref=${encodeURIComponent(affiliateCode)}`
@@ -441,6 +372,78 @@ export default function AffiliatePage() {
       ],
     },
   ] as const;
+
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(type);
+      toast({
+        title: "Copied!",
+        description: `${type} copied to clipboard`,
+      });
+      setTimeout(() => setCopySuccess(null), 2000);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="py-24 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="px-4 py-10">
+        <div className="container mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2 max-w-xl">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Share TradeScout, fund your community.
+              </h1>
+              <p className="text-sm sm:text-base text-white/70">
+                Create an account or sign in to see your affiliate dashboard, get your personal
+                link, and route a slice of Exchange activity back into the county vaults you care
+                about.
+              </p>
+            </div>
+            <div className="mt-3 sm:mt-0 flex flex-col items-start sm:items-end gap-2 text-sm text-white/70">
+              <span className="text-xs text-white/60">
+                Use the Create account or Log in buttons in the header to get started.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="px-4 py-10">
+        <div className="container mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-6 py-7 flex flex-col gap-3">
+            <div className="space-y-2 max-w-xl">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Affiliate dashboard not available yet
+              </h1>
+              <p className="text-sm sm:text-base text-white/70">
+                We couldn&apos;t load your affiliate dashboard data right now. Please try again
+                later or contact support if the issue persists.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const shareWithRef = async (path: string, label: string) => {
     await share({

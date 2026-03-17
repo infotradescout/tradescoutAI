@@ -12,17 +12,17 @@ afterEach(() => {
 });
 
 describe("gemini model config sanitization", () => {
-  it("allows configured 3.1 models and strips models/ prefixes", () => {
-    process.env.GEMINI_MODEL =
-      "gemini-3.1-flash-lite,models/gemini-3.0-flash-exp,models/gemini-2.5-flash";
-    process.env.GEMINI_MODEL_FALLBACKS = "models/gemini-3.1-flash,gemini-2.0-flash";
+  it("allows configured supported models and strips models/ prefixes", () => {
+    process.env.GEMINI_MODEL = "gemini-2.5-flash,models/gemini-3.0-flash-exp,models/gemini-2.5-pro";
+    process.env.GEMINI_MODEL_FALLBACKS = "models/gemini-2.0-flash,gemini-2.5-pro";
 
     const selected = getGeminiModelName();
     const candidates = getGeminiModelCandidates();
 
-    expect(selected).toBe("gemini-3.1-flash-lite");
-    expect(candidates).toContain("gemini-3.1-flash-lite");
-    expect(candidates).toContain("gemini-3.1-flash");
+    expect(selected).toBe("gemini-2.5-flash");
+    expect(candidates).toContain("gemini-2.5-flash");
+    expect(candidates).toContain("gemini-2.5-pro");
+    expect(candidates).toContain("gemini-2.0-flash");
     expect(candidates).not.toContain("gemini-3.0-flash-exp");
     expect(candidates.some((model) => model.startsWith("models/"))).toBe(false);
   });

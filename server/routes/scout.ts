@@ -1230,6 +1230,15 @@ User asked: "${userMessage}"
 Knowledge from TradeScout (Layer ${knowledge.layer}):
 ${knowledge.answer}
 
+KNOWLEDGE HANDLING RULES (CRITICAL):
+- The knowledge block above is the only source-of-truth for this turn.
+- If wider-web findings were available, they are already reflected in the knowledge block above.
+- NEVER tell the user "I can't search the internet" or "I cannot browse the web" in your message.
+- Instead:
+  - If Layer 1 or 2: speak confidently from TradeScout/local data.
+  - If Layer 3: clearly say this includes wider-web or non-TradeScout findings.
+  - If Layer 4: say you do not yet have enough verified information and move them to the strongest next step inside TradeScout.
+
 **YOU MUST RESPOND WITH THIS EXACT JSON SCHEMA - NO EXCEPTIONS:**
 
 {

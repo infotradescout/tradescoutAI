@@ -158,6 +158,7 @@ export default function ZeroBaseFeeCameraPage() {
         "head_admin",
       ].includes(r)
     );
+  const hasCameraAccess = Boolean(accessToken) || isPrivilegedTester;
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -203,6 +204,8 @@ export default function ZeroBaseFeeCameraPage() {
             );
           } else if (checkedButUnpaid) {
             setPaymentError("");
+          } else if (isPrivilegedTester) {
+            setPaymentError("");
           }
           return;
         }
@@ -215,7 +218,7 @@ export default function ZeroBaseFeeCameraPage() {
       }
     };
     void run();
-  }, [sessionId, isAuthenticated]);
+  }, [sessionId, isAuthenticated, isPrivilegedTester]);
 
   useEffect(() => {
     if (!capturedDataUrl) return;
@@ -505,7 +508,8 @@ export default function ZeroBaseFeeCameraPage() {
   };
 
   const saveReport = async () => {
-    if (!accessToken) return;
+    if (!accessToken && !isPrivilegedTester) return;
+    if (!accessToken && isPrivilegedTester) return;
     try {
       const preset = getPresetById(knownReferenceId);
       await fetch("/api/zero-base-fee/report", {
@@ -614,7 +618,7 @@ export default function ZeroBaseFeeCameraPage() {
         >
           Download ArUco Marker PDF (ID {ARUCO_TARGET_ID}, {ARUCO_SIZE_IN}")
         </a>
-        {!accessToken && !isPrivilegedTester ? (
+        {!hasCameraAccess ? (
           <button
             onClick={() => void createCheckout()}
             disabled={busy}
@@ -645,14 +649,14 @@ export default function ZeroBaseFeeCameraPage() {
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => void startCamera()}
-              disabled={!accessToken}
+              disabled={!hasCameraAccess}
               className="rounded bg-white/10 px-3 py-2 disabled:opacity-40"
             >
               Start Camera
             </button>
             <button
               onClick={() => void capture()}
-              disabled={!cameraReady || !accessToken}
+              disabled={!cameraReady || !hasCameraAccess}
               className="rounded bg-white/10 px-3 py-2 disabled:opacity-40"
             >
               Capture + Stamp
