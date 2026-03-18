@@ -25,6 +25,9 @@ import {
   Wallet,
   Link as LinkIcon,
   PlusSquare,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -117,6 +120,7 @@ function isPublicSharePath(path: string): boolean {
 
 export default function AffiliatePage() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [showAdvancedAffiliate, setShowAdvancedAffiliate] = useState(false);
   const [newLinkDestination, setNewLinkDestination] = useState("/scout");
   const [newLinkSlug, setNewLinkSlug] = useState("");
   const [newLinkDescription, setNewLinkDescription] = useState("");
@@ -748,505 +752,508 @@ export default function AffiliatePage() {
           </CardContent>
         </Card>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Total Referrals
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{stats?.totalReferrals || 0}</div>
-              <p className="text-sm text-white/60 mt-1">
-                {stats?.convertedReferrals || 0} converted ({stats?.conversionRate || 0}%)
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Total Earned
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-emerald-400">
-                ${stats?.totalCommissionEarned || "0.00"}
-              </div>
-              <p className="text-sm text-white/60 mt-1">Lifetime commissions</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Paid Out
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-400">
-                ${stats?.totalCommissionPaid || "0.00"}
-              </div>
-              <p className="text-sm text-white/60 mt-1">Total payments received</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white/60 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Commission Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-ts-orange">5%</div>
-              <p className="text-sm text-white/60 mt-1">
-                Directly to you on platform revenue from your referrals
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Automatic Affiliate Tracking */}
-        <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-ts-orange/30 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Share2 className="w-5 h-5" />
-              Automatic Affiliate Tracking
+        {/* Compact snapshot */}
+        <Card className="bg-white/5 border-white/10 mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white flex items-center gap-2 text-base">
+              <BarChart3 className="w-4 h-4 text-ts-orange" />
+              Performance snapshot
             </CardTitle>
-            <CardDescription className="text-white/70">
-              ANY link you share from TradeScout automatically includes your tracking code - no
-              special link needed
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-white/5 p-6 rounded-lg border border-white/10">
-              <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-ts-orange" />
-                How It Works
-              </h4>
-              <p className="text-white/70 mb-4">
-                Share any page from TradeScout - the homepage, an Exchange listing, a contractor
-                profile, or a county page. Your unique tracking code is automatically attached to
-                every URL you share.
-              </p>
-              <div className="bg-tsCard/95 p-4 rounded border border-white/10">
-                <p className="text-white/60 text-sm mb-2">Examples of links you can share:</p>
-                <ul className="text-white/70 text-sm space-y-1 font-mono">
-                  <li>
-                     tradescout.com <span className="text-ts-orange">?ref=your_code</span>
-                  </li>
-                  <li>
-                     tradescout.com/exchange <span className="text-ts-orange">?ref=your_code</span>
-                  </li>
-                  <li>
-                     tradescout.com/county/cook-il{" "}
-                    <span className="text-ts-orange">?ref=your_code</span>
-                  </li>
-                  <li>
-                     tradescout.com/contractors{" "}
-                    <span className="text-ts-orange">?ref=your_code</span>
-                  </li>
-                </ul>
-                <p className="text-emerald-400 text-xs mt-3">
-                  ✓ Tracking code automatically added when you share any link
-                </p>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <div className="text-[11px] text-white/60">Referrals</div>
+                <div className="text-xl font-semibold text-white">{stats?.totalReferrals || 0}</div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <div className="text-[11px] text-white/60">Earned</div>
+                <div className="text-xl font-semibold text-emerald-400">
+                  ${stats?.totalCommissionEarned || "0.00"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <div className="text-[11px] text-white/60">Paid out</div>
+                <div className="text-xl font-semibold text-blue-400">
+                  ${stats?.totalCommissionPaid || "0.00"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <div className="text-[11px] text-white/60">Commission</div>
+                <div className="text-xl font-semibold text-ts-orange">5%</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white/5 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">5% To You</h4>
-                <p className="text-sm text-white/60">
-                  Direct affiliate earnings from Exchange activity and platform revenue
-                </p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">5% To Community Vaults</h4>
-                <p className="text-sm text-white/60">
-                  Automatically routes a matching share back into the community vaults you care
-                  about
-                </p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">5% To Trade Schools</h4>
-                <p className="text-sm text-white/60">
-                  Funds scholarships and training for the next generation of tradespeople
-                </p>
-              </div>
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/15 text-white/80 hover:bg-white/5"
+                onClick={() => setShowAdvancedAffiliate((current) => !current)}
+              >
+                {showAdvancedAffiliate ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    Hide advanced affiliate details
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Show advanced affiliate details
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-            <TabsTrigger value="commissions">Commissions</TabsTrigger>
-            <TabsTrigger value="payouts">Payouts</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <Card className="bg-white/5 border-white/10">
+        {showAdvancedAffiliate ? (
+          <>
+            {/* Automatic Affiliate Tracking */}
+            <Card className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-ts-orange/30 mb-8">
               <CardHeader>
-                <CardTitle className="text-white">How It Works</CardTitle>
-                <CardDescription>Your automatic affiliate program explained</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-3">
-                      <Share2 className="w-6 h-6 text-ts-orange" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-2">1. Share ANY Link</h3>
-                    <p className="text-white/60 text-sm">
-                      Share any page from TradeScout on social media, email, or anywhere online.
-                      Your tracking code is automatically added to every URL.
-                    </p>
-                  </div>
-                  <div>
-                    <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <Users className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-2">2. People Sign Up</h3>
-                    <p className="text-white/60 text-sm">
-                      When someone joins TradeScout through your link, they're automatically tracked
-                      as your referral forever.
-                    </p>
-                  </div>
-                  <div>
-                    <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
-                      <DollarSign className="w-6 h-6 text-emerald-400" />
-                    </div>
-                    <h3 className="text-white font-semibold mb-2">3. 5/5/5 Forever</h3>
-                    <p className="text-white/60 text-sm">
-                      You earn 5% of platform revenue from your referrals, while another 5% goes to
-                      community vaults and 5% to trade + culinary scholarships.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white/10 p-6 rounded-lg">
-                  <h4 className="text-white font-semibold mb-3">Why 5/5/5 is Powerful</h4>
-                  <ul className="space-y-2 text-white/70 text-sm">
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Free Platform:</strong> TradeScout is 100% free for contractors - no
-                        fees ever - making it easy to refer
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Exchange Revenue:</strong> Every Exchange promotion and transaction
-                        generates 5% commission for you and 10% for community impact
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>No Cap:</strong> There's no limit to how much you can earn - the
-                        more people you refer, the more you make
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Passive Income:</strong> After sharing once, you continue earning 5%
-                        from your referrals indefinitely while also funding communities and
-                        scholarships
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="referrals">
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Your Referrals</CardTitle>
-                <CardDescription>Track everyone who joined through your link</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6 rounded-lg border border-white/10 bg-tsCard/95 p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-white font-semibold">Custom referral links</p>
-                      <p className="text-xs text-white/60">
-                        Create clean, memorable links like{" "}
-                        <span className="font-mono text-ts-orange">/r/your-slug</span> that redirect
-                        to any page with your referral attribution baked in.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
-                        Destination
-                      </p>
-                      <Input
-                        value={newLinkDestination}
-                        onChange={(e) => setNewLinkDestination(e.target.value)}
-                        placeholder="/exchange"
-                        className="bg-black/30 border-white/10 text-white"
-                      />
-                      <p className="text-[11px] text-white/60 mt-1">
-                        Use a site path starting with "/".
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
-                        Slug (optional)
-                      </p>
-                      <Input
-                        value={newLinkSlug}
-                        onChange={(e) => setNewLinkSlug(e.target.value)}
-                        placeholder="my-town"
-                        className="bg-black/30 border-white/10 text-white"
-                      />
-                      <p className="text-[11px] text-white/60 mt-1">Letters, numbers, dash.</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
-                        Description (optional)
-                      </p>
-                      <Input
-                        value={newLinkDescription}
-                        onChange={(e) => setNewLinkDescription(e.target.value)}
-                        placeholder="Exchange landing"
-                        className="bg-black/30 border-white/10 text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setNewLinkDestination("/scout");
-                        setNewLinkSlug("");
-                        setNewLinkDescription("");
-                      }}
-                      className="border-white/10 text-white/70 hover:bg-white/5"
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() =>
-                        createShareLinkMutation.mutate({
-                          destination: newLinkDestination.trim(),
-                          slug: newLinkSlug.trim() || undefined,
-                          description: newLinkDescription.trim() || undefined,
-                        })
-                      }
-                      disabled={
-                        createShareLinkMutation.isPending ||
-                        !newLinkDestination.trim().startsWith("/")
-                      }
-                      className="bg-ts-orange hover:bg-ts-orange-dark"
-                    >
-                      {createShareLinkMutation.isPending ? "Creating..." : "Create link"}
-                    </Button>
-                  </div>
-
-                  {(shareLinksData?.links || []).length > 0 ? (
-                    <div className="pt-3 border-t border-white/10 space-y-2">
-                      {(shareLinksData?.links || []).slice(0, 8).map((l: any) => (
-                        <div
-                          key={l.id}
-                          className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2"
-                        >
-                          <div className="min-w-0">
-                            <div className="text-sm text-white font-mono truncate">
-                              {l.shortUrl || `/r/${l.slug}`}
-                            </div>
-                            <div className="text-[11px] text-white/60 truncate">
-                              {l.description || "Custom link"} • {l.destinationUrl}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 justify-end">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                copyToClipboard(String(l.shortUrl || ""), "Referral link")
-                              }
-                              className="border-white/10 text-white/70 hover:bg-white/5"
-                              disabled={!l.shortUrl}
-                            >
-                              <Copy className="w-4 h-4 mr-2" />
-                              Copy
-                            </Button>
-                            {l.shortUrl ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  window.open(String(l.shortUrl), "_blank", "noopener,noreferrer")
-                                }
-                                className="border-white/10 text-white/70 hover:bg-white/5"
-                              >
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                Visit link
-                              </Button>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-
-                {referrals.length > 0 ? (
-                  <div className="space-y-3">
-                    {referrals.map((referral) => (
-                      <div
-                        key={referral.id}
-                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
-                      >
-                        <div>
-                          <p className="text-white font-medium">
-                            Referral #{referral.id.slice(0, 8)}
-                          </p>
-                          <p className="text-sm text-white/60">
-                            {format(new Date(referral.createdAt), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                        <Badge
-                          className={
-                            referral.status === "converted" ? "bg-emerald-500" : "bg-white/10"
-                          }
-                        >
-                          {referral.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Users className="w-16 h-16 text-white/60 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No referrals yet</h3>
-                    <p className="text-white/60 mb-6">
-                      Start sharing your link to earn commissions!
-                    </p>
-                    <Button
-                      onClick={() => shareWithRef("/scout", "Invite link")}
-                      className="bg-ts-orange hover:bg-ts-orange-dark"
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copy Your Link
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="commissions">
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Commission History</CardTitle>
-                <CardDescription>View all commissions earned</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {commissions.length > 0 ? (
-                  <div className="space-y-3">
-                    {commissions.map((commission) => (
-                      <div
-                        key={commission.id}
-                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <p className="text-white font-medium">{commission.description}</p>
-                          <p className="text-sm text-white/60">
-                            {format(new Date(commission.createdAt), "MMM d, yyyy h:mm a")}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-emerald-400 font-bold text-lg">
-                            ${commission.commissionAmount}
-                          </p>
-                          <Badge
-                            className={
-                              commission.status === "paid" ? "bg-emerald-500" : "bg-yellow-500"
-                            }
-                          >
-                            {commission.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <DollarSign className="w-16 h-16 text-white/60 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No commissions yet</h3>
-                    <p className="text-white/60">Your commission earnings will appear here</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="payouts">
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Payout History</CardTitle>
-                <CardDescription>
-                  View your payment history and update payout settings
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Share2 className="w-5 h-5" />
+                  Automatic Affiliate Tracking
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  ANY link you share from TradeScout automatically includes your tracking code - no
+                  special link needed
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {payouts.length > 0 ? (
-                  <div className="space-y-3">
-                    {payouts.map((payout) => (
-                      <div
-                        key={payout.id}
-                        className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
-                      >
-                        <div>
-                          <p className="text-white font-medium">${payout.totalAmount}</p>
-                          <p className="text-sm text-white/60">
-                            {payout.payoutMethod} •{" "}
-                            {format(new Date(payout.createdAt), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                        <Badge
-                          className={
-                            payout.status === "completed" ? "bg-emerald-500" : "bg-yellow-500"
-                          }
-                        >
-                          {payout.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Calendar className="w-16 h-16 text-white/60 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No payouts yet</h3>
-                    <p className="text-white/60">
-                      Payouts are processed monthly once you reach $50
+              <CardContent className="space-y-6">
+                <div className="bg-white/5 p-6 rounded-lg border border-white/10">
+                  <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-ts-orange" />
+                    How It Works
+                  </h4>
+                  <p className="text-white/70 mb-4">
+                    Share any page from TradeScout - the homepage, an Exchange listing, a contractor
+                    profile, or a county page. Your unique tracking code is automatically attached
+                    to every URL you share.
+                  </p>
+                  <div className="bg-tsCard/95 p-4 rounded border border-white/10">
+                    <p className="text-white/60 text-sm mb-2">Examples of links you can share:</p>
+                    <ul className="text-white/70 text-sm space-y-1 font-mono">
+                      <li>
+                         tradescout.com <span className="text-ts-orange">?ref=your_code</span>
+                      </li>
+                      <li>
+                         tradescout.com/exchange{" "}
+                        <span className="text-ts-orange">?ref=your_code</span>
+                      </li>
+                      <li>
+                         tradescout.com/county/cook-il{" "}
+                        <span className="text-ts-orange">?ref=your_code</span>
+                      </li>
+                      <li>
+                         tradescout.com/contractors{" "}
+                        <span className="text-ts-orange">?ref=your_code</span>
+                      </li>
+                    </ul>
+                    <p className="text-emerald-400 text-xs mt-3">
+                      ✓ Tracking code automatically added when you share any link
                     </p>
                   </div>
-                )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white/5 p-4 rounded-lg">
+                    <h4 className="text-white font-semibold mb-2">5% To You</h4>
+                    <p className="text-sm text-white/60">
+                      Direct affiliate earnings from Exchange activity and platform revenue
+                    </p>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-lg">
+                    <h4 className="text-white font-semibold mb-2">5% To Community Vaults</h4>
+                    <p className="text-sm text-white/60">
+                      Automatically routes a matching share back into the community vaults you care
+                      about
+                    </p>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-lg">
+                    <h4 className="text-white font-semibold mb-2">5% To Trade Schools</h4>
+                    <p className="text-sm text-white/60">
+                      Funds scholarships and training for the next generation of tradespeople
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+
+            {/* Tabs */}
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="referrals">Referrals</TabsTrigger>
+                <TabsTrigger value="commissions">Commissions</TabsTrigger>
+                <TabsTrigger value="payouts">Payouts</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview">
+                <Card className="bg-white/5 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white">How It Works</CardTitle>
+                    <CardDescription>Your automatic affiliate program explained</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-3">
+                          <Share2 className="w-6 h-6 text-ts-orange" />
+                        </div>
+                        <h3 className="text-white font-semibold mb-2">1. Share ANY Link</h3>
+                        <p className="text-white/60 text-sm">
+                          Share any page from TradeScout on social media, email, or anywhere online.
+                          Your tracking code is automatically added to every URL.
+                        </p>
+                      </div>
+                      <div>
+                        <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3">
+                          <Users className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <h3 className="text-white font-semibold mb-2">2. People Sign Up</h3>
+                        <p className="text-white/60 text-sm">
+                          When someone joins TradeScout through your link, they're automatically
+                          tracked as your referral forever.
+                        </p>
+                      </div>
+                      <div>
+                        <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3">
+                          <DollarSign className="w-6 h-6 text-emerald-400" />
+                        </div>
+                        <h3 className="text-white font-semibold mb-2">3. 5/5/5 Forever</h3>
+                        <p className="text-white/60 text-sm">
+                          You earn 5% of platform revenue from your referrals, while another 5% goes
+                          to community vaults and 5% to trade + culinary scholarships.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 p-6 rounded-lg">
+                      <h4 className="text-white font-semibold mb-3">Why 5/5/5 is Powerful</h4>
+                      <ul className="space-y-2 text-white/70 text-sm">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Free Platform:</strong> TradeScout is 100% free for contractors
+                            - no fees ever - making it easy to refer
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Exchange Revenue:</strong> Every Exchange promotion and
+                            transaction generates 5% commission for you and 10% for community impact
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <span>
+                            <strong>No Cap:</strong> There's no limit to how much you can earn - the
+                            more people you refer, the more you make
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Passive Income:</strong> After sharing once, you continue
+                            earning 5% from your referrals indefinitely while also funding
+                            communities and scholarships
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="referrals">
+                <Card className="bg-white/5 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white">Your Referrals</CardTitle>
+                    <CardDescription>Track everyone who joined through your link</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-6 rounded-lg border border-white/10 bg-tsCard/95 p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-white font-semibold">Custom referral links</p>
+                          <p className="text-xs text-white/60">
+                            Create clean, memorable links like{" "}
+                            <span className="font-mono text-ts-orange">/r/your-slug</span> that
+                            redirect to any page with your referral attribution baked in.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
+                            Destination
+                          </p>
+                          <Input
+                            value={newLinkDestination}
+                            onChange={(e) => setNewLinkDestination(e.target.value)}
+                            placeholder="/exchange"
+                            className="bg-black/30 border-white/10 text-white"
+                          />
+                          <p className="text-[11px] text-white/60 mt-1">
+                            Use a site path starting with "/".
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
+                            Slug (optional)
+                          </p>
+                          <Input
+                            value={newLinkSlug}
+                            onChange={(e) => setNewLinkSlug(e.target.value)}
+                            placeholder="my-town"
+                            className="bg-black/30 border-white/10 text-white"
+                          />
+                          <p className="text-[11px] text-white/60 mt-1">Letters, numbers, dash.</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-white/60 mb-1">
+                            Description (optional)
+                          </p>
+                          <Input
+                            value={newLinkDescription}
+                            onChange={(e) => setNewLinkDescription(e.target.value)}
+                            placeholder="Exchange landing"
+                            className="bg-black/30 border-white/10 text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setNewLinkDestination("/scout");
+                            setNewLinkSlug("");
+                            setNewLinkDescription("");
+                          }}
+                          className="border-white/10 text-white/70 hover:bg-white/5"
+                        >
+                          Reset
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            createShareLinkMutation.mutate({
+                              destination: newLinkDestination.trim(),
+                              slug: newLinkSlug.trim() || undefined,
+                              description: newLinkDescription.trim() || undefined,
+                            })
+                          }
+                          disabled={
+                            createShareLinkMutation.isPending ||
+                            !newLinkDestination.trim().startsWith("/")
+                          }
+                          className="bg-ts-orange hover:bg-ts-orange-dark"
+                        >
+                          {createShareLinkMutation.isPending ? "Creating..." : "Create link"}
+                        </Button>
+                      </div>
+
+                      {(shareLinksData?.links || []).length > 0 ? (
+                        <div className="pt-3 border-t border-white/10 space-y-2">
+                          {(shareLinksData?.links || []).slice(0, 8).map((l: any) => (
+                            <div
+                              key={l.id}
+                              className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-md border border-white/10 bg-black/30 px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-sm text-white font-mono truncate">
+                                  {l.shortUrl || `/r/${l.slug}`}
+                                </div>
+                                <div className="text-[11px] text-white/60 truncate">
+                                  {l.description || "Custom link"} • {l.destinationUrl}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 justify-end">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    copyToClipboard(String(l.shortUrl || ""), "Referral link")
+                                  }
+                                  className="border-white/10 text-white/70 hover:bg-white/5"
+                                  disabled={!l.shortUrl}
+                                >
+                                  <Copy className="w-4 h-4 mr-2" />
+                                  Copy
+                                </Button>
+                                {l.shortUrl ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      window.open(
+                                        String(l.shortUrl),
+                                        "_blank",
+                                        "noopener,noreferrer"
+                                      )
+                                    }
+                                    className="border-white/10 text-white/70 hover:bg-white/5"
+                                  >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Visit link
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {referrals.length > 0 ? (
+                      <div className="space-y-3">
+                        {referrals.map((referral) => (
+                          <div
+                            key={referral.id}
+                            className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
+                          >
+                            <div>
+                              <p className="text-white font-medium">
+                                Referral #{referral.id.slice(0, 8)}
+                              </p>
+                              <p className="text-sm text-white/60">
+                                {format(new Date(referral.createdAt), "MMM d, yyyy")}
+                              </p>
+                            </div>
+                            <Badge
+                              className={
+                                referral.status === "converted" ? "bg-emerald-500" : "bg-white/10"
+                              }
+                            >
+                              {referral.status}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Users className="w-16 h-16 text-white/60 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">No referrals yet</h3>
+                        <p className="text-white/60 mb-6">
+                          Start sharing your link to earn commissions!
+                        </p>
+                        <Button
+                          onClick={() => shareWithRef("/scout", "Invite link")}
+                          className="bg-ts-orange hover:bg-ts-orange-dark"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Your Link
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="commissions">
+                <Card className="bg-white/5 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white">Commission History</CardTitle>
+                    <CardDescription>View all commissions earned</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {commissions.length > 0 ? (
+                      <div className="space-y-3">
+                        {commissions.map((commission) => (
+                          <div
+                            key={commission.id}
+                            className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <p className="text-white font-medium">{commission.description}</p>
+                              <p className="text-sm text-white/60">
+                                {format(new Date(commission.createdAt), "MMM d, yyyy h:mm a")}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-emerald-400 font-bold text-lg">
+                                ${commission.commissionAmount}
+                              </p>
+                              <Badge
+                                className={
+                                  commission.status === "paid" ? "bg-emerald-500" : "bg-yellow-500"
+                                }
+                              >
+                                {commission.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <DollarSign className="w-16 h-16 text-white/60 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          No commissions yet
+                        </h3>
+                        <p className="text-white/60">Your commission earnings will appear here</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="payouts">
+                <Card className="bg-white/5 border-white/10">
+                  <CardHeader>
+                    <CardTitle className="text-white">Payout History</CardTitle>
+                    <CardDescription>
+                      View your payment history and update payout settings
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {payouts.length > 0 ? (
+                      <div className="space-y-3">
+                        {payouts.map((payout) => (
+                          <div
+                            key={payout.id}
+                            className="flex items-center justify-between p-4 bg-white/10 rounded-lg"
+                          >
+                            <div>
+                              <p className="text-white font-medium">${payout.totalAmount}</p>
+                              <p className="text-sm text-white/60">
+                                {payout.payoutMethod} •{" "}
+                                {format(new Date(payout.createdAt), "MMM d, yyyy")}
+                              </p>
+                            </div>
+                            <Badge
+                              className={
+                                payout.status === "completed" ? "bg-emerald-500" : "bg-yellow-500"
+                              }
+                            >
+                              {payout.status}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Calendar className="w-16 h-16 text-white/60 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">No payouts yet</h3>
+                        <p className="text-white/60">
+                          Payouts are processed monthly once you reach $50
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : null}
       </div>
     </div>
   );

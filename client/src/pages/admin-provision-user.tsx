@@ -159,8 +159,8 @@ export default function AdminProvisionUser() {
   const [editSafetyKey, setEditSafetyKey] = useState("");
   const [editAllowPrivilegedTarget, setEditAllowPrivilegedTarget] = useState(false);
   const [repairPublicPresenceOnSupportEdit, setRepairPublicPresenceOnSupportEdit] = useState(false);
-  const [presenceTargetEmail, setPresenceTargetEmail] = useState("");
-  const [presenceTargetUserId, setPresenceTargetUserId] = useState("");
+  const presenceTargetEmail = "";
+  const presenceTargetUserId = "";
   const [presenceBusinessId, setPresenceBusinessId] = useState("");
   const [presenceBusinessSlug, setPresenceBusinessSlug] = useState("");
   const [presenceBusinessName, setPresenceBusinessName] = useState("");
@@ -188,8 +188,8 @@ export default function AdminProvisionUser() {
   const [presenceSeoDescription, setPresenceSeoDescription] = useState("");
   const [presenceAllowReassign, setPresenceAllowReassign] = useState(false);
   const [presenceMakePublic, setPresenceMakePublic] = useState(true);
-  const [presenceReason, setPresenceReason] = useState("");
-  const [presenceSafetyKey, setPresenceSafetyKey] = useState("");
+  const presenceReason = "";
+  const presenceSafetyKey = "";
   const [presenceResult, setPresenceResult] = useState<PublicPresenceProvisionResponse | null>(
     null
   );
