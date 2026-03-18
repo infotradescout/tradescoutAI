@@ -781,8 +781,9 @@ async function refreshBotObservationDailyAggregate(args: {
   const trade = String(args.trade || "").trim();
   const botFamily = String(args.botFamily || "").trim();
 
-  await pool.query(
-    `
+  try {
+    await pool.query(
+      `
       with typed_args as (
         select
           $1::date as observed_date,
@@ -925,8 +926,107 @@ async function refreshBotObservationDailyAggregate(args: {
         top_path = excluded.top_path,
         updated_at = now()
     `,
-    [observedDate, routeFamily, county, state, trade, botFamily]
-  );
+      [observedDate, routeFamily, county, state, trade, botFamily]
+    );
+  } catch (error) {
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code?: string }).code || "")
+        : "";
+    if (code !== "23505") {
+      throw error;
+    }
+
+    // Concurrency fallback: if another write won the unique key race, update
+    // the existing aggregate row from the latest event rollup.
+    await pool.query(
+      `
+        with typed_args as (
+          select
+            $1::date as observed_date,
+            $2::text as route_family,
+            $3::text as county,
+            $4::text as state,
+            $5::text as trade,
+            $6::text as bot_family
+        ),
+        lock_key as (
+          select pg_advisory_xact_lock(
+            hashtext(
+              concat(
+                coalesce(ta.observed_date::text, ''),
+                '|',
+                coalesce(ta.route_family, ''),
+                '|',
+                coalesce(ta.county, ''),
+                '|',
+                coalesce(ta.state, ''),
+                '|',
+                coalesce(ta.trade, ''),
+                '|',
+                coalesce(ta.bot_family, '')
+              )
+            )
+          ) as locked
+          from typed_args ta
+        ),
+        aggregated as (
+          select
+            count(*)::int as hits,
+            count(distinct canonical_url)::int as unique_urls,
+            round(avg(response_time_ms))::int as avg_response_time_ms,
+            round(avg(response_bytes))::int as avg_response_bytes,
+            count(*) filter (where status_code = 200)::int as status_200_count,
+            count(*) filter (where status_code = 404)::int as status_404_count,
+            coalesce(sum(case when is_recrawl then 1 else 0 end), 0)::int as recrawl_urls,
+            coalesce(sum(case when is_first_seen_url then 1 else 0 end), 0)::int as first_seen_urls,
+            (
+              select e2.path
+              from bot_observation_events e2
+              cross join typed_args ta2
+              where e2.observed_at::date = ta2.observed_date
+                and e2.route_family::text = ta2.route_family
+                and coalesce(e2.county::text, '') = coalesce(ta2.county, '')
+                and coalesce(e2.state::text, '') = coalesce(ta2.state, '')
+                and coalesce(e2.trade::text, '') = coalesce(ta2.trade, '')
+                and e2.bot_family::text = ta2.bot_family
+              group by e2.path
+              order by count(*) desc, e2.path asc
+              limit 1
+            ) as top_path
+          from bot_observation_events e
+          cross join typed_args ta
+          cross join lock_key lk
+          where e.observed_at::date = ta.observed_date
+            and e.route_family::text = ta.route_family
+            and coalesce(e.county::text, '') = coalesce(ta.county, '')
+            and coalesce(e.state::text, '') = coalesce(ta.state, '')
+            and coalesce(e.trade::text, '') = coalesce(ta.trade, '')
+            and e.bot_family::text = ta.bot_family
+        )
+        update bot_observation_daily_agg d
+        set
+          hits = a.hits,
+          unique_urls = a.unique_urls,
+          avg_response_time_ms = a.avg_response_time_ms,
+          avg_response_bytes = a.avg_response_bytes,
+          status_200_count = a.status_200_count,
+          status_404_count = a.status_404_count,
+          recrawl_urls = a.recrawl_urls,
+          first_seen_urls = a.first_seen_urls,
+          top_path = a.top_path,
+          updated_at = now()
+        from aggregated a, typed_args ta
+        where d.date = ta.observed_date
+          and d.route_family::text = ta.route_family
+          and coalesce(d.county::text, '') = coalesce(ta.county, '')
+          and coalesce(d.state::text, '') = coalesce(ta.state, '')
+          and coalesce(d.trade::text, '') = coalesce(ta.trade, '')
+          and d.bot_family::text = ta.bot_family
+      `,
+      [observedDate, routeFamily, county, state, trade, botFamily]
+    );
+  }
 }
 
 function buildBotDailyAggQueueKey(args: {

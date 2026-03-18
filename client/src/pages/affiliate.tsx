@@ -391,39 +391,39 @@ export default function AffiliatePage() {
       countyName && stateCode ? ` in ${countyName}, ${stateCode}` : " in your area";
 
     if (path.startsWith("/scout")) {
-      return `Start with Scout to get the fastest next step for your project${countyContext}.`;
+      return `Need a clear next step${countyContext}? Start with Scout and get routed fast.`;
     }
 
     if (path.startsWith("/direct-connect")) {
-      return `Need real local help${countyContext}? Post one request in Direct Connect and get qualified replies.`;
+      return `Need real help${countyContext}? Post once in Direct Connect and get matched replies.`;
     }
 
     if (path.startsWith("/exchange")) {
-      return "Browse Exchange listings near you, statewide, or nationwide and buy/sell in one place.";
+      return "Shop or sell on Exchange with local, statewide, and nationwide results in one feed.";
     }
 
     if (path.startsWith("/homescout-listings")) {
-      return `See active HomeScout listings${countyContext} and track market movement.`;
+      return `See active HomeScout listings${countyContext} and track price movement quickly.`;
     }
 
     if (path.startsWith("/tradepartners/cumulus-media")) {
-      return "Apply for the TradeScout x Cumulus campaign and claim your local advertising credit.";
+      return "Claim the TradeScout x Cumulus campaign offer and apply for local ad credit.";
     }
 
     if (path.startsWith("/trade-deals") || path.startsWith("/tradedeals")) {
-      return "Check active TradeDeals from partner companies and claim live offers.";
+      return "Open live TradeDeals from partner companies and claim current offers.";
     }
 
     if (path.startsWith("/community")) {
-      return `See what's happening${countyContext} and connect with verified local activity.`;
+      return `See whatâ€™s happening${countyContext} and jump into verified local activity.`;
     }
 
     if (path.startsWith("/county/")) {
-      return "Use this county page to see the local directory, activity, and opportunities in one place.";
+      return "Open the county page for directory visibility, activity, and opportunities in one place.";
     }
 
     if (path.startsWith("/contractors")) {
-      return `Browse local contractors${countyContext} and compare trusted options before contact.`;
+      return `Compare trusted local contractors${countyContext} before you reach out.`;
     }
 
     return `Open ${entry.label} on TradeScout and jump straight to the right page.`;
@@ -670,6 +670,9 @@ export default function AffiliatePage() {
                               <p className="text-xs text-white/65 line-clamp-1">
                                 {entry.description}
                               </p>
+                              <p className="text-[11px] text-ts-orange/90 line-clamp-1 mt-0.5">
+                                Best for: {entry.reason}
+                              </p>
                             </div>
                           </div>
                         </AccordionTrigger>
@@ -836,23 +839,23 @@ export default function AffiliatePage() {
                     <p className="text-white/60 text-sm mb-2">Examples of links you can share:</p>
                     <ul className="text-white/70 text-sm space-y-1 font-mono">
                       <li>
-                         tradescout.com <span className="text-ts-orange">?ref=your_code</span>
+                        • tradescout.com <span className="text-ts-orange">?ref=your_code</span>
                       </li>
                       <li>
-                         tradescout.com/exchange{" "}
+                        • tradescout.com/exchange{" "}
                         <span className="text-ts-orange">?ref=your_code</span>
                       </li>
                       <li>
-                         tradescout.com/county/cook-il{" "}
+                        • tradescout.com/county/cook-il{" "}
                         <span className="text-ts-orange">?ref=your_code</span>
                       </li>
                       <li>
-                         tradescout.com/contractors{" "}
+                        • tradescout.com/contractors{" "}
                         <span className="text-ts-orange">?ref=your_code</span>
                       </li>
                     </ul>
                     <p className="text-emerald-400 text-xs mt-3">
-                      âœ“ Tracking code automatically added when you share any link
+                      ? Tracking code is automatically added when you share any link
                     </p>
                   </div>
                 </div>

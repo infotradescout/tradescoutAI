@@ -1,10 +1,10 @@
 import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
-import { isAuthenticated, isAdmin } from "../auth";
+import { isAuthenticated } from "../auth";
 
 const router = Router();
 
-router.use(isAuthenticated, isAdmin);
+router.use(isAuthenticated);
 
 type NotificationCounts = {
   tradepartnerRsvpsPending: number;
@@ -167,6 +167,32 @@ async function loadNotificationCounts(): Promise<NotificationCounts> {
 
 router.get("/", async (_req: Request, res: Response) => {
   try {
+    const req = _req as any;
+    const role = String(req?.user?.activeRole || req?.user?.role || "")
+      .trim()
+      .toLowerCase();
+    const roles = Array.isArray(req?.user?.roles)
+      ? req.user.roles
+          .map((value: unknown) =>
+            String(value || "")
+              .trim()
+              .toLowerCase()
+          )
+          .filter(Boolean)
+      : [];
+    const isAdminLike =
+      req?.user?.isAdmin === true ||
+      role === "super_admin" ||
+      role === "ops_admin" ||
+      role === "moderator" ||
+      roles.some((value: string) =>
+        ["super_admin", "ops_admin", "moderator", "staff", "support_agent"].includes(value)
+      );
+
+    if (!isAdminLike) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
     const counts = await loadNotificationCounts();
 
     const byTool: Record<string, number> = {
