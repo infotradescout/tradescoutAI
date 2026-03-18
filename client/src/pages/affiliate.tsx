@@ -561,9 +561,9 @@ export default function AffiliatePage() {
                 type="button"
                 variant="outline"
                 className="border-white/15 text-white/70 hover:bg-white/5"
-                onClick={() => shareWithRef("/contractors", "Share contractors")}
+                onClick={() => shareWithRef("/direct-connect", "Share Direct Connect")}
               >
-                Share contractors
+                Share Direct Connect
               </Button>
               <Button
                 type="button"
