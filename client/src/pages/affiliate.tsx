@@ -382,11 +382,47 @@ export default function AffiliatePage() {
   };
 
   const buildShareCaption = (entry: ShareEntry) => {
-    const localTail =
-      countyName && stateCode
-        ? ` If you're in or near ${countyName}, ${stateCode}, this is especially useful.`
-        : "";
-    return `Looking for ${entry.label.toLowerCase()}? Open this TradeScout link and take the next step now.${localTail}`;
+    const path = entry.path.toLowerCase();
+    const countyContext =
+      countyName && stateCode ? ` in ${countyName}, ${stateCode}` : " in your area";
+
+    if (path.startsWith("/scout")) {
+      return `Start with Scout to get the fastest next step for your project${countyContext}.`;
+    }
+
+    if (path.startsWith("/direct-connect")) {
+      return `Need real local help${countyContext}? Post one request in Direct Connect and get qualified replies.`;
+    }
+
+    if (path.startsWith("/exchange")) {
+      return "Browse Exchange listings near you, statewide, or nationwide and buy/sell in one place.";
+    }
+
+    if (path.startsWith("/homescout-listings")) {
+      return `See active HomeScout listings${countyContext} and track market movement.`;
+    }
+
+    if (path.startsWith("/tradepartners/cumulus-media")) {
+      return "Apply for the TradeScout x Cumulus campaign and claim your local advertising credit.";
+    }
+
+    if (path.startsWith("/trade-deals") || path.startsWith("/tradedeals")) {
+      return "Check active TradeDeals from partner companies and claim live offers.";
+    }
+
+    if (path.startsWith("/community")) {
+      return `See what's happening${countyContext} and connect with verified local activity.`;
+    }
+
+    if (path.startsWith("/county/")) {
+      return "Use this county page to see the local directory, activity, and opportunities in one place.";
+    }
+
+    if (path.startsWith("/contractors")) {
+      return `Browse local contractors${countyContext} and compare trusted options before contact.`;
+    }
+
+    return `Open ${entry.label} on TradeScout and jump straight to the right page.`;
   };
 
   const buildOutboundShareText = (entry: ShareEntry) => {
@@ -1048,7 +1084,7 @@ export default function AffiliatePage() {
                                 className="border-white/10 text-white/70 hover:bg-white/5"
                               >
                                 <ExternalLink className="w-4 h-4 mr-2" />
-                                Open
+                                Visit link
                               </Button>
                             ) : null}
                           </div>

@@ -2038,9 +2038,9 @@ export default function ScoutOS() {
 
           const summaryLines: string[] = [];
           if (countyName && stateCode) {
-            summaryLines.push(`Area: ${countyName}, ${stateCode}`);
+            summaryLines.push(`Service area: ${countyName}, ${stateCode}`);
           } else if (stateCode) {
-            summaryLines.push(`Area: ${stateCode}`);
+            summaryLines.push(`Service area: ${stateCode}`);
           }
           if (discountTypeForForm && discountValueForForm) {
             const discountLabel =
@@ -2148,9 +2148,9 @@ export default function ScoutOS() {
 
           const summaryLines: string[] = [];
           if (countyName && stateCode) {
-            summaryLines.push(`Area: ${countyName}, ${stateCode}`);
+            summaryLines.push(`Service area: ${countyName}, ${stateCode}`);
           } else if (stateCode) {
-            summaryLines.push(`Area: ${stateCode}`);
+            summaryLines.push(`Service area: ${stateCode}`);
           }
           summaryLines.push("Scope: County community feed");
 
@@ -4371,12 +4371,6 @@ export default function ScoutOS() {
                                 {tile.description}
                               </span>
                             )}
-                            <span
-                              className="mt-1 text-[10px] font-medium"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              Start here
-                            </span>
                           </button>
                         ))}
                       </div>

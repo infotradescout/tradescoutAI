@@ -71,16 +71,15 @@ const FLOW_MODE_META: Record<
   }
 > = {
   start: {
-    title: "Start a request",
-    description:
-      "Describe what you need so the right local pros can understand the job and respond.",
+    title: "Post a request",
+    description: "Describe what you need so matched local pros can review and reply.",
     target: "post",
     sections: ["post", "pros", "board", "employment"],
     icon: <ClipboardPlus className="h-5 w-5" />,
   },
   manage: {
-    title: "Manage your requests",
-    description: "See what is still open, who replied, and what you need to do next.",
+    title: "Track requests",
+    description: "See what is open, who replied, and what needs your next action.",
     target: "engagements",
     sections: ["engagements", "inbox"],
     icon: <FolderKanban className="h-5 w-5" />,
@@ -99,38 +98,38 @@ const SECTION_META: Record<
   post: {
     title: "New request",
     description: "Tell people what you need, add photos if you have them, and send your request.",
-    actionLabel: "View My Requests",
+    actionLabel: "Track my requests",
     actionTarget: "engagements",
   },
   board: {
     title: "Local requests",
     description: "See open requests in your area.",
-    actionLabel: "Start a request",
+    actionLabel: "Post a new request",
     actionTarget: "post",
   },
   employment: {
     title: "Jobs",
     description: "Post a job or a resume and talk through Scout.",
-    actionLabel: "Start a request",
+    actionLabel: "Post a new request",
     actionTarget: "post",
   },
   inbox: {
     title: "Replies",
     description: "Review who has responded and move accepted work into conversation.",
-    actionLabel: "View my requests",
+    actionLabel: "Review my requests",
     actionTarget: "engagements",
   },
   pros: {
     title: "Find pros",
     description: "Look through local pros, then send a request when you're ready.",
-    actionLabel: "Start a request",
+    actionLabel: "Post a new request",
     actionTarget: "post",
   },
   engagements: {
     title: "My requests",
     description:
       "See what still needs your action, what is already out with pros, and what is in conversation.",
-    actionLabel: "View replies",
+    actionLabel: "Go to replies",
     actionTarget: "inbox",
   },
 };
@@ -1769,7 +1768,7 @@ export default function DirectConnectShell() {
               Direct Connect
             </h1>
             <p className="text-sm text-[color:var(--text-secondary)]">
-              Start a request, then keep track of replies, photos, and next steps in one place.
+              Post a request, get replies, and track updates in one place.
             </p>
           </div>
 

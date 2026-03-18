@@ -12,9 +12,9 @@ describe("Scout entry framing contracts", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
     expect(source).toContain("TradeScout • Scout Operating Layer");
-    expect(source).toContain("What local outcome are you trying to move forward");
+    expect(source).toContain("What do you need to get done");
     expect(source).toContain(
-      "Scout will interpret the need, explain the next step, and keep action governed."
+      "Tell Scout your goal in plain language. You'll get the next best step and a governed path to action."
     );
   });
 
@@ -22,16 +22,11 @@ describe("Scout entry framing contracts", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const osSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(inputSource).toContain("Flow options");
-    expect(inputSource).toContain("Auto-open obvious next steps");
-    expect(inputSource).toContain(
-      "Describe the local outcome, problem, or task you need to move forward"
-    );
+    expect(inputSource).toContain("Tell Scout what you need help with");
     expect(osSource).toContain("Start with Scout");
     expect(osSource).toContain(
       "Pick the operating path that matches what you need to move forward right now."
     );
-    expect(osSource).toContain("Start here");
   });
 
   it("thread and quick-start actions avoid internal controller framing", () => {

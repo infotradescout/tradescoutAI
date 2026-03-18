@@ -275,7 +275,7 @@ const RENTAL_PORTALS: Array<{
     title: "Rental Property",
     description: "Residential and commercial rentals that stay separate from HomeScout Listings.",
     href: "/exchange/rental-property",
-    cta: "Open Rental Property",
+    cta: "Browse rental property",
     icon: Building2,
   },
   {
@@ -284,7 +284,7 @@ const RENTAL_PORTALS: Array<{
     description:
       "Short-term and long-term equipment rental inventory for tools, machines, and fleets.",
     href: "/exchange/rental-equipment",
-    cta: "Open Rental Equipment",
+    cta: "Browse rental equipment",
     icon: Wrench,
   },
 ];
@@ -911,10 +911,10 @@ export default function Exchange() {
 
   const scopeLabel =
     searchScope === "local"
-      ? `Local: ${localLabel}`
+      ? `Scope: Near me (${localLabel})`
       : searchScope === "state"
-        ? `Statewide${stateCode ? `: ${stateCode}` : ""}`
-        : "Nationwide";
+        ? `Scope: My state${stateCode ? ` (${stateCode})` : ""}`
+        : "Scope: Nationwide";
 
   const formatListedTime = (dateLike: string) => {
     const ts = new Date(dateLike).getTime();
@@ -939,7 +939,11 @@ export default function Exchange() {
         <div className="mb-4 rounded-xl border border-white/10 bg-black/30 p-3 sm:p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-white">Exchange listings</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-white">Exchange marketplace</h1>
+              <p className="mt-1 text-xs sm:text-sm text-white/70">
+                Browse listings, then switch scope to search near you, across your state, or
+                nationwide.
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
@@ -954,7 +958,7 @@ export default function Exchange() {
                   disabled={!countyCommitted}
                   onClick={() => setSearchScope("local")}
                 >
-                  Local
+                  Near me
                 </Button>
                 <Button
                   size="sm"
@@ -967,7 +971,7 @@ export default function Exchange() {
                   disabled={!stateCode}
                   onClick={() => setSearchScope("state")}
                 >
-                  State
+                  My state
                 </Button>
                 <Button
                   size="sm"

@@ -24,18 +24,18 @@ export function ScoutHeader({
         style={{ color: "var(--text-primary)" }}
       >
         {hasSpecificLocation && communityText
-          ? `What local outcome are you trying to move forward in ${communityText}?`
-          : "What local outcome are you trying to move forward?"}
+          ? `What do you need to get done in ${communityText}?`
+          : "What do you need to get done?"}
       </h1>
       <p
         className="text-[12px] md:text-[13px] max-w-md mx-auto md:mx-0"
         style={{ color: "var(--text-muted)" }}
       >
         {isAuthenticated
-          ? "Ask plainly. Scout will interpret the need, explain the next step, and keep action governed."
+          ? "Tell Scout your goal in plain language. You'll get the next best step and a governed path to action."
           : isFirstGuestVisit
             ? "Explore first. Scout can map the right path before you decide to save progress or open contact."
-            : "Sign in only when you need to save progress or open contact."}
+            : "Sign in when you want to save progress or open contact."}
       </p>
     </header>
   );

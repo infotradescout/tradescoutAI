@@ -51,6 +51,105 @@ type AppShellProps = {
   footer?: ReactNode;
 };
 
+type SurfaceOrientation = {
+  title: string;
+  summary: string;
+  actionLabel?: string;
+  actionHref?: string;
+};
+
+function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null {
+  if (pathname.startsWith("/admin")) {
+    return {
+      title: "Admin controls",
+      summary: "Monitor live system status, snapshots, and operational tools in one place.",
+      actionLabel: "Go to Mission Control",
+      actionHref: "/admin/live-stream",
+    };
+  }
+  if (pathname.startsWith("/scout") || pathname === "/") {
+    return {
+      title: "Scout",
+      summary: "Tell Scout what you need. Scout routes you to the right next action.",
+      actionLabel: "Go to Direct Connect",
+      actionHref: "/direct-connect",
+    };
+  }
+  if (pathname.startsWith("/direct-connect")) {
+    return {
+      title: "Direct Connect",
+      summary: "Post requests, review replies, and track what needs action.",
+      actionLabel: "Post a request",
+      actionHref: "/direct-connect",
+    };
+  }
+  if (pathname.startsWith("/exchange")) {
+    return {
+      title: "Exchange",
+      summary: "Buy and sell listings. Switch scope to near me, state, or nationwide.",
+      actionLabel: "List an item",
+      actionHref: "/marketplace-listing",
+    };
+  }
+  if (pathname.startsWith("/homescout")) {
+    return {
+      title: "HomeScout",
+      summary: "Manage property context and listings tied to your county.",
+      actionLabel: "View HomeScout listings",
+      actionHref: "/homescout-listings",
+    };
+  }
+  if (pathname.startsWith("/community")) {
+    return {
+      title: "Community",
+      summary: "See local activity, post updates, and keep county-first context.",
+      actionLabel: "Create a post",
+      actionHref: "/community",
+    };
+  }
+  if (pathname.startsWith("/trade-deals")) {
+    return {
+      title: "TradeDeals",
+      summary: "Browse partner offers and active campaigns in your market.",
+      actionLabel: "View Cumulus campaign",
+      actionHref: "/tradepartners/cumulus-media",
+    };
+  }
+  if (pathname.startsWith("/maps")) {
+    return {
+      title: "Maps",
+      summary: "Explore county-level entities and local operational surfaces visually.",
+      actionLabel: "View county directory",
+      actionHref: "/county-directory",
+    };
+  }
+  if (pathname.startsWith("/leaderboard")) {
+    return {
+      title: "Leaderboard",
+      summary: "Track top contributors and trust activity in your county.",
+      actionLabel: "View community activity",
+      actionHref: "/community",
+    };
+  }
+  if (pathname.startsWith("/foundation")) {
+    return {
+      title: "County vaults",
+      summary: "View local contributions and county-level impact tracking.",
+      actionLabel: "View contribution dashboard",
+      actionHref: "/community-builder/dashboard",
+    };
+  }
+  if (pathname.startsWith("/share") || pathname.startsWith("/affiliate")) {
+    return {
+      title: "Share Hub",
+      summary: "Copy strategic links and share with attribution attached.",
+      actionLabel: "View best links",
+      actionHref: "/share",
+    };
+  }
+  return null;
+}
+
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
@@ -77,7 +176,7 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       icon: <Sparkles className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
-      label: "EXCHANGE",
+      label: "Exchange",
       href: ROUTES.EXCHANGE ?? "/exchange",
       icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
@@ -191,6 +290,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
   const showFeatureNav = !isAuthOrSetupSurface;
+  const surfaceOrientation = resolveSurfaceOrientation(location);
   const shouldPinRightTools =
     !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface && !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
@@ -632,6 +732,46 @@ export function AppShell({ children, footer }: AppShellProps) {
         }}
       >
         <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
+          {!isAuthOrSetupSurface && surfaceOrientation && !isMobile && (
+            <section className="mx-auto mb-3 max-w-6xl px-3 pt-3 sm:px-4 md:px-6">
+              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {surfaceOrientation.title}
+                    </p>
+                    <p className="mt-0.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+                      {surfaceOrientation.summary}
+                    </p>
+                  </div>
+                  {surfaceOrientation.actionLabel && surfaceOrientation.actionHref ? (
+                    <Link
+                      href={surfaceOrientation.actionHref}
+                      className="inline-flex shrink-0 items-center rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
+                      style={{
+                        borderColor: "var(--theme-accent-primary)",
+                        color: "var(--theme-accent-primary)",
+                      }}
+                    >
+                      {surfaceOrientation.actionLabel}
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          )}
+          {!isAuthOrSetupSurface && surfaceOrientation && isMobile && !isScoutSurface && (
+            <section className="px-3 pt-2">
+              <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
+                <p className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {surfaceOrientation.title}
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                  {surfaceOrientation.summary}
+                </p>
+              </div>
+            </section>
+          )}
           {isMobile && isScoutSurface && showMobileScoutHero && renderMobileHero()}
           {children}
         </div>

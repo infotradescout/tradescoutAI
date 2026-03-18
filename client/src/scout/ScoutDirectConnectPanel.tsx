@@ -84,7 +84,7 @@ function ActiveCoordinationPanel({
             style={{ color: "var(--theme-accent-primary)" }}
             onClick={onViewBoard}
           >
-            Open
+            View board
             <ArrowUpRight className="h-3 w-3" />
           </button>
         </div>
