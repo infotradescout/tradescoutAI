@@ -10705,12 +10705,19 @@ export class DatabaseStorage implements IStorage {
         (await this.generateAffiliateCode(affiliateId)),
     };
 
-    const [program] = await db
-      .insert(affiliateAccounts)
-      .values(payload)
-      .onConflictDoNothing({ target: affiliateAccounts.affiliateId })
-      .returning();
-    if (program) return program;
+    try {
+      const [program] = await db.insert(affiliateAccounts).values(payload).returning();
+      if (program) return program;
+    } catch (error) {
+      const code =
+        typeof error === "object" && error && "code" in error
+          ? String((error as { code?: string }).code || "")
+          : "";
+      // Handle duplicate creation race safely even if production indexes differ.
+      if (code !== "23505") {
+        throw error;
+      }
+    }
 
     const [resolved] = await db
       .select()
