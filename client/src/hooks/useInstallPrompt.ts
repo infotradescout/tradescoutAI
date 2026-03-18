@@ -14,8 +14,10 @@ export function useInstallPrompt() {
   useEffect(() => {
     const onBip = (e: Event) => {
       // Capture the event for Chromium custom prompt UX.
-      // Avoid preventDefault here to prevent console warnings when users
-      // don't immediately trigger prompt() from a gesture.
+      // Prevent default so we can trigger prompt() from an explicit user action.
+      if ("preventDefault" in e && typeof e.preventDefault === "function") {
+        e.preventDefault();
+      }
       setDeferred(e as BeforeInstallPromptEvent);
     };
 

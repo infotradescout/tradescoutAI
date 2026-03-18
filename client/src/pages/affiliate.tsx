@@ -479,22 +479,38 @@ export default function AffiliatePage() {
   };
 
   const addShareHubShortcut = async () => {
-    const prompted = await promptInstall();
-    if (prompted) {
-      toast({
-        title: "Install prompt opened",
-        description: "Pin TradeScout to your home screen to keep Share Hub one tap away.",
-      });
-      return;
-    }
+    try {
+      const prompted = await promptInstall();
+      if (prompted) {
+        toast({
+          title: "Install prompt opened",
+          description: "Pin TradeScout to your home screen to keep Share Hub one tap away.",
+        });
+        return;
+      }
 
-    const shareHubUrl = `${baseUrl}/affiliate`;
-    await copyToClipboard(shareHubUrl, "Share Hub shortcut link");
-    toast({
-      title: "Shortcut link copied",
-      description:
-        "Paste this in your browser and use 'Add to Home screen' or 'Install app' from the browser menu.",
-    });
+      const shareHubUrl = `${baseUrl}/share`;
+      try {
+        await navigator.clipboard.writeText(shareHubUrl);
+        toast({
+          title: "Shortcut link copied",
+          description:
+            "Use your browser menu and tap 'Add to Home screen' (or Install app), then paste this link if prompted.",
+        });
+      } catch {
+        window.location.assign("/install");
+        toast({
+          title: "Install steps opened",
+          description: "Your browser blocked clipboard access, so we opened install instructions.",
+        });
+      }
+    } catch {
+      window.location.assign("/install");
+      toast({
+        title: "Install steps opened",
+        description: "We couldn't open the install prompt on this device.",
+      });
+    }
   };
 
   return (
@@ -557,7 +573,7 @@ export default function AffiliatePage() {
                 onClick={() => void addShareHubShortcut()}
               >
                 <PlusSquare className="w-4 h-4 mr-2" />
-                Add Share Hub Shortcut
+                Install Share Hub Shortcut
               </Button>
               {!canPromptInstall ? (
                 <span className="self-center text-[11px] text-white/55">
