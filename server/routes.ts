@@ -15304,6 +15304,418 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Admin: attach or create a business + public profile site for an existing user.
+  // This is the "manual setup for success" path when admins need full control over public presence.
+  app.post(
+    "/api/admin/users/public-presence/provision",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const body = (req.body ?? {}) as any;
+        const targetUserIdInput = String(body.targetUserId || "")
+          .trim()
+          .toLowerCase();
+        const targetEmailInput = String(body.targetEmail || "")
+          .trim()
+          .toLowerCase();
+        const reason = normalizePrivilegedReason(body?.adminSafety?.reason, 12);
+        const confirmPhrase = String(body?.adminSafety?.confirmPhrase || "").trim();
+        const safetyKey = String(body?.adminSafety?.safetyKey || "").trim();
+
+        if (!targetUserIdInput && !targetEmailInput) {
+          return res.status(400).json({ message: "targetUserId or targetEmail is required" });
+        }
+        if (!reason) {
+          return res.status(400).json({ message: "adminSafety.reason is required (min 12 chars)" });
+        }
+        if (confirmPhrase !== ADMIN_SUPPORT_CONFIRM_PHRASE) {
+          return res.status(400).json({
+            message: `adminSafety.confirmPhrase must be exactly: ${ADMIN_SUPPORT_CONFIRM_PHRASE}`,
+          });
+        }
+
+        const safety = validateAdminWriteSafety(
+          {
+            adminSafety: {
+              reason,
+              confirmPhrase,
+              safetyKey: safetyKey || undefined,
+            },
+          },
+          req.headers as any
+        );
+        if (!safety.ok) {
+          return res.status(403).json({ message: safety.message });
+        }
+
+        const actorId = String(req?.user?.id || req?.user?.claims?.sub || "").trim();
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        if (!actor) return res.status(401).json({ message: "Unauthorized" });
+
+        const targetUser = targetUserIdInput
+          ? await storage.getUser(targetUserIdInput)
+          : await storage.getUserByEmail(targetEmailInput);
+        if (!targetUser) return res.status(404).json({ message: "Target user not found" });
+
+        const targetProtected = isProtectedAdminUser(targetUser);
+        if (targetProtected && !isSuperAdminUser(actor)) {
+          return res
+            .status(403)
+            .json({ message: "Only super admins can edit protected admin users" });
+        }
+
+        const normalizeSlug = (value: string) =>
+          String(value || "")
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/[\s_-]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 120);
+
+        const ensureUniqueProfileSlug = async (baseRaw: string): Promise<string> => {
+          const base = normalizeSlug(baseRaw) || `profile-${String(targetUser!.id).slice(0, 8)}`;
+          let candidate = base;
+          for (let i = 0; i < 50; i++) {
+            const existing = await db
+              .select({ id: profiles.id, ownerUserId: profiles.ownerUserId })
+              .from(profiles)
+              .where(eq(profiles.slug, candidate))
+              .limit(1);
+            if (!existing[0] || String(existing[0].ownerUserId || "") === String(targetUser!.id)) {
+              return candidate;
+            }
+            candidate = `${base}-${i + 2}`;
+          }
+          return `${base}-${randomUUID().slice(0, 8)}`;
+        };
+
+        const presenceInput = body && typeof body === "object" ? (body.presence ?? {}) : {};
+        const businessInput =
+          presenceInput && typeof presenceInput.business === "object" ? presenceInput.business : {};
+        const profileInput =
+          presenceInput && typeof presenceInput.profile === "object" ? presenceInput.profile : {};
+        const allowReassign = presenceInput?.allowReassign === true;
+        const makeProfilePublic = presenceInput?.makeProfilePublic !== false;
+
+        const businessIdInput = String(businessInput?.businessId || "").trim();
+        const businessSlugInput = String(businessInput?.businessSlug || "").trim();
+        const businessNameInput = String(businessInput?.name || "").trim();
+        const businessPhoneInput = String(businessInput?.phone || "").trim();
+        const businessEmailInput = String(businessInput?.email || "")
+          .trim()
+          .toLowerCase();
+        const businessWebsiteInput = String(businessInput?.website || "").trim();
+        const businessDescriptionInput = String(businessInput?.description || "").trim();
+        const businessCategoryInput = String(businessInput?.category || "").trim();
+        const businessCityInput = String(businessInput?.city || "").trim();
+        const businessStateCodeInput = String(
+          businessInput?.stateCode || targetUser.stateCode || ""
+        )
+          .trim()
+          .toUpperCase();
+        const businessZipInput = String(businessInput?.zipCode || "").trim();
+        const businessAddressInput = String(businessInput?.address || "").trim();
+        const businessRoleContextInput = String(
+          businessInput?.roleContext || targetUser.activeRole || targetUser.role || "business_owner"
+        ).trim();
+        const businessTagsInput = Array.isArray(businessInput?.services)
+          ? (businessInput.services as any[])
+              .map((v) => String(v || "").trim())
+              .filter((v) => v.length > 0)
+              .slice(0, 40)
+          : [];
+
+        const countyFipsInput = String(
+          businessInput?.countyFips || targetUser.countyFips || ""
+        ).trim();
+        if (countyFipsInput && !/^\d{5}$/.test(countyFipsInput)) {
+          return res
+            .status(400)
+            .json({ message: "business.countyFips must be a 5-digit FIPS code" });
+        }
+
+        let countyIds: string[] = [];
+        if (countyFipsInput) {
+          const countyRow = await db
+            .select({ id: counties.id })
+            .from(counties)
+            .where(eq(counties.fips, countyFipsInput))
+            .limit(1);
+          if (countyRow[0]?.id) countyIds = [String(countyRow[0].id)];
+        }
+
+        let provisionedBusiness: any = null;
+        if (businessIdInput || businessSlugInput) {
+          const existingBusiness = businessIdInput
+            ? (
+                await db
+                  .select()
+                  .from(businesses)
+                  .where(eq(businesses.id, businessIdInput))
+                  .limit(1)
+              )[0]
+            : (
+                await db
+                  .select()
+                  .from(businesses)
+                  .where(eq(businesses.slug, businessSlugInput))
+                  .limit(1)
+              )[0];
+
+          if (!existingBusiness) {
+            return res.status(404).json({ message: "Business not found for provided id/slug" });
+          }
+
+          const currentOwnerId = String(existingBusiness.ownerUserId || "").trim();
+          if (currentOwnerId && currentOwnerId !== String(targetUser.id) && !allowReassign) {
+            return res.status(409).json({
+              message:
+                "Business is owned by another user. Set allowReassign=true to transfer ownership.",
+            });
+          }
+
+          const mergedProfileData = {
+            ...((existingBusiness.profileData as any) || {}),
+            ...(businessDescriptionInput ? { description: businessDescriptionInput } : {}),
+            ...(businessCategoryInput ? { category: businessCategoryInput } : {}),
+            ...(businessTagsInput.length > 0 ? { services: businessTagsInput } : {}),
+            ...(businessWebsiteInput ? { website: businessWebsiteInput } : {}),
+            ...(businessPhoneInput ? { phone: businessPhoneInput } : {}),
+            ...(businessEmailInput ? { email: businessEmailInput } : {}),
+            ...(businessAddressInput ? { address: businessAddressInput } : {}),
+            ...(businessCityInput ? { city: businessCityInput } : {}),
+            ...(businessStateCodeInput ? { stateCode: businessStateCodeInput } : {}),
+            ...(businessZipInput ? { zipCode: businessZipInput } : {}),
+          };
+
+          const updatedRows = await db
+            .update(businesses)
+            .set({
+              ownerUserId: targetUser.id,
+              claimStatus: "claimed",
+              status: "active",
+              roleContext: businessRoleContextInput as any,
+              name: businessNameInput || existingBusiness.name,
+              profileData: mergedProfileData as any,
+              updatedAt: new Date(),
+            } as any)
+            .where(eq(businesses.id, existingBusiness.id))
+            .returning();
+
+          provisionedBusiness = updatedRows[0] || existingBusiness;
+          if (countyIds.length > 0) {
+            await db
+              .delete(businessCounties)
+              .where(eq(businessCounties.businessId, provisionedBusiness.id));
+            await db
+              .insert(businessCounties)
+              .values(
+                countyIds.map((countyId) => ({ businessId: provisionedBusiness.id, countyId }))
+              );
+          }
+        } else {
+          const createName =
+            businessNameInput ||
+            profileInput?.displayName ||
+            `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim();
+          if (!createName || String(createName).trim().length < 2) {
+            return res.status(400).json({
+              message: "business.name (or profile.displayName) is required to create a business",
+            });
+          }
+
+          provisionedBusiness = await storage.createBusinessForOwner(String(targetUser.id), {
+            name: String(createName).trim(),
+            slug: normalizeSlug(String(createName)),
+            type: "other" as any,
+            roleContext: businessRoleContextInput as any,
+            profileData: {
+              ...(businessDescriptionInput ? { description: businessDescriptionInput } : {}),
+              ...(businessCategoryInput ? { category: businessCategoryInput } : {}),
+              ...(businessTagsInput.length > 0 ? { services: businessTagsInput } : {}),
+              ...(businessWebsiteInput ? { website: businessWebsiteInput } : {}),
+              ...(businessPhoneInput ? { phone: businessPhoneInput } : {}),
+              ...(businessEmailInput ? { email: businessEmailInput } : {}),
+              ...(businessAddressInput ? { address: businessAddressInput } : {}),
+              ...(businessCityInput ? { city: businessCityInput } : {}),
+              ...(businessStateCodeInput ? { stateCode: businessStateCodeInput } : {}),
+              ...(businessZipInput ? { zipCode: businessZipInput } : {}),
+            } as any,
+            status: "active" as any,
+            publicDiscoveryEnabled: true,
+            countyIds,
+            sources: ["admin_provision"],
+          } as any);
+        }
+
+        await storage.setUserActiveBusiness(String(targetUser.id), String(provisionedBusiness.id));
+
+        const profileDisplayName = String(
+          profileInput?.displayName || provisionedBusiness.name || "TradeScout Profile"
+        ).trim();
+        const profileHeadline = String(profileInput?.headline || "").trim();
+        const profileAbout = String(profileInput?.about || businessDescriptionInput || "").trim();
+        const seoTitleInput = String(profileInput?.seoTitle || "").trim();
+        const seoDescriptionInput = String(profileInput?.seoDescription || "").trim();
+        const ctaPrimaryLabel = String(profileInput?.ctaPrimaryLabel || "").trim();
+        const ctaPrimaryKind = String(profileInput?.ctaPrimaryKind || "")
+          .trim()
+          .toLowerCase();
+        const ctaPrimaryValue = String(profileInput?.ctaPrimaryValue || "").trim();
+
+        const roleContext = String(
+          profileInput?.roleContext ||
+            businessRoleContextInput ||
+            targetUser.activeRole ||
+            targetUser.role
+        ).trim();
+
+        const contentBlocks: Array<{ type: string; data: Record<string, any> }> = [];
+        if (profileAbout) {
+          contentBlocks.push({ type: "about", data: { text: profileAbout } });
+        }
+        if (businessTagsInput.length > 0) {
+          contentBlocks.push({ type: "services", data: { items: businessTagsInput } });
+        }
+
+        const ctaConfig: Record<string, any> = {};
+        if (ctaPrimaryLabel && ctaPrimaryValue) {
+          const kind =
+            ctaPrimaryKind === "call" ||
+            ctaPrimaryKind === "email" ||
+            ctaPrimaryKind === "message" ||
+            ctaPrimaryKind === "link"
+              ? ctaPrimaryKind
+              : "message";
+          ctaConfig.primary = {
+            label: ctaPrimaryLabel,
+            kind,
+            value: ctaPrimaryValue,
+          };
+        }
+
+        const seoMeta: Record<string, any> = {};
+        if (seoTitleInput) seoMeta.title = seoTitleInput;
+        if (seoDescriptionInput) seoMeta.description = seoDescriptionInput;
+        if (!seoMeta.description && profileAbout) seoMeta.description = profileAbout.slice(0, 300);
+
+        const ownerProfiles = await storage.listProfilesByOwner(String(targetUser.id));
+        const requestedProfileId = String(profileInput?.profileId || "").trim();
+        let targetProfile =
+          (requestedProfileId &&
+            ownerProfiles.find((p: any) => String(p?.id) === requestedProfileId)) ||
+          ownerProfiles.find(
+            (p: any) => String(p?.id) === String((targetUser as any)?.activeProfileId || "")
+          ) ||
+          ownerProfiles[0];
+
+        let profileCreated = false;
+        if (!targetProfile) {
+          const requestedSlugRaw = String(profileInput?.slug || profileDisplayName || "").trim();
+          const safeSlug = await ensureUniqueProfileSlug(requestedSlugRaw);
+          targetProfile = await storage.createProfileForOwner(String(targetUser.id), {
+            businessId: String(provisionedBusiness.id),
+            roleContext: roleContext as any,
+            slug: safeSlug,
+            displayName: profileDisplayName || provisionedBusiness.name || "TradeScout Profile",
+            headline: profileHeadline || null,
+            contentBlocks: contentBlocks as any,
+            ctaConfig: ctaConfig as any,
+            seoMeta: seoMeta as any,
+            status: "published" as any,
+          } as any);
+          profileCreated = true;
+        } else {
+          const profileUpdates: Record<string, any> = {
+            businessId: String(provisionedBusiness.id),
+            roleContext: roleContext as any,
+          };
+          if (profileDisplayName) profileUpdates.displayName = profileDisplayName;
+          if (profileHeadline) profileUpdates.headline = profileHeadline;
+          if (contentBlocks.length > 0) profileUpdates.contentBlocks = contentBlocks;
+          if (Object.keys(ctaConfig).length > 0) profileUpdates.ctaConfig = ctaConfig;
+          if (Object.keys(seoMeta).length > 0) profileUpdates.seoMeta = seoMeta;
+          if (String(targetProfile.status || "").toLowerCase() !== "published") {
+            profileUpdates.status = "published";
+          }
+          targetProfile = await storage.updateProfileForOwner(
+            String(targetUser.id),
+            String(targetProfile.id),
+            profileUpdates as any
+          );
+        }
+
+        await storage.setUserActiveProfile(String(targetUser.id), String(targetProfile.id));
+
+        const currentPreferences =
+          targetUser.preferences && typeof targetUser.preferences === "object"
+            ? (targetUser.preferences as Record<string, unknown>)
+            : {};
+        const nextPreferences: Record<string, unknown> = { ...currentPreferences };
+        if (makeProfilePublic) nextPreferences.profileVisibility = "public";
+        if (profileAbout) nextPreferences.servicesDescription = profileAbout;
+
+        await storage.updateUser(String(targetUser.id), {
+          businessSlug: String(provisionedBusiness.slug || "").trim() || null,
+          preferences: nextPreferences as any,
+          updatedAt: new Date(),
+        } as any);
+
+        await auditPrivilegedAction({
+          action: "admin_user_public_presence_provision",
+          route: "/api/admin/users/public-presence/provision",
+          operationType: "provision_user_public_presence",
+          actorId: normalizeImmutableTargetId(actorId),
+          actorRole: resolvePrivilegedActor(actor).actorRole,
+          actorRoles: resolvePrivilegedActor(actor).actorRoles,
+          targetType: "user",
+          targetId: String(targetUser.id),
+          resolutionSource: targetUserIdInput ? "body:target_user_id" : "body:target_email",
+          reason,
+          outcome: "completed",
+          details: {
+            profileCreated,
+            businessId: String(provisionedBusiness.id || ""),
+            profileId: String(targetProfile.id || ""),
+            allowReassign,
+            makeProfilePublic,
+            protectedTarget: targetProtected,
+          },
+        });
+
+        return res.json({
+          ok: true,
+          message: "Public presence provisioned",
+          user: {
+            id: String(targetUser.id),
+            email: String(targetUser.email || ""),
+          },
+          business: {
+            id: String(provisionedBusiness.id || ""),
+            slug: String(provisionedBusiness.slug || ""),
+            name: String(provisionedBusiness.name || ""),
+            url: `/business/${encodeURIComponent(String(provisionedBusiness.slug || ""))}`,
+          },
+          profile: {
+            id: String(targetProfile.id || ""),
+            slug: String(targetProfile.slug || ""),
+            displayName: String(targetProfile.displayName || ""),
+            created: profileCreated,
+            url: `/u/${encodeURIComponent(String(targetProfile.slug || ""))}`,
+          },
+        });
+      } catch (error: any) {
+        console.error("Error provisioning admin public presence:", error);
+        return res.status(500).json({
+          message: "Failed to provision public presence",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
   // Admin: bulk import business owner accounts (CSV/TSV/text)
   const multer = (await import("multer")).default;
   const businessImportUpload = multer({

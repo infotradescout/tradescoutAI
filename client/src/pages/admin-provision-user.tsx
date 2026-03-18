@@ -55,6 +55,20 @@ type DirectConnectAdminResult = {
   verifyLinkIncluded?: boolean;
 };
 
+type PublicPresenceProvisionResponse = {
+  ok: boolean;
+  message?: string;
+  user?: { id?: string; email?: string };
+  business?: { id?: string; slug?: string; name?: string; url?: string };
+  profile?: {
+    id?: string;
+    slug?: string;
+    displayName?: string;
+    created?: boolean;
+    url?: string;
+  };
+};
+
 export default function AdminProvisionUser() {
   const adminDirectConnectRequestTypes = [
     {
@@ -144,6 +158,41 @@ export default function AdminProvisionUser() {
   const [editReason, setEditReason] = useState("");
   const [editSafetyKey, setEditSafetyKey] = useState("");
   const [editAllowPrivilegedTarget, setEditAllowPrivilegedTarget] = useState(false);
+  const [repairPublicPresenceOnSupportEdit, setRepairPublicPresenceOnSupportEdit] = useState(false);
+  const [presenceTargetEmail, setPresenceTargetEmail] = useState("");
+  const [presenceTargetUserId, setPresenceTargetUserId] = useState("");
+  const [presenceBusinessId, setPresenceBusinessId] = useState("");
+  const [presenceBusinessSlug, setPresenceBusinessSlug] = useState("");
+  const [presenceBusinessName, setPresenceBusinessName] = useState("");
+  const [presenceBusinessDescription, setPresenceBusinessDescription] = useState("");
+  const [presenceBusinessPhone, setPresenceBusinessPhone] = useState("");
+  const [presenceBusinessEmail, setPresenceBusinessEmail] = useState("");
+  const [presenceBusinessWebsite, setPresenceBusinessWebsite] = useState("");
+  const [presenceBusinessCategory, setPresenceBusinessCategory] = useState("");
+  const [presenceBusinessTags, setPresenceBusinessTags] = useState("");
+  const [presenceBusinessAddress, setPresenceBusinessAddress] = useState("");
+  const [presenceBusinessCity, setPresenceBusinessCity] = useState("");
+  const [presenceStateCode, setPresenceStateCode] = useState("");
+  const [presenceCountyFips, setPresenceCountyFips] = useState("");
+  const [presenceZipCode, setPresenceZipCode] = useState("");
+  const [presenceRoleContext, setPresenceRoleContext] = useState("business_owner");
+  const [presenceProfileDisplayName, setPresenceProfileDisplayName] = useState("");
+  const [presenceProfileHeadline, setPresenceProfileHeadline] = useState("");
+  const [presenceProfileAbout, setPresenceProfileAbout] = useState("");
+  const [presenceCtaLabel, setPresenceCtaLabel] = useState("Send message");
+  const [presenceCtaKind, setPresenceCtaKind] = useState<"message" | "call" | "email" | "link">(
+    "message"
+  );
+  const [presenceCtaValue, setPresenceCtaValue] = useState("");
+  const [presenceSeoTitle, setPresenceSeoTitle] = useState("");
+  const [presenceSeoDescription, setPresenceSeoDescription] = useState("");
+  const [presenceAllowReassign, setPresenceAllowReassign] = useState(false);
+  const [presenceMakePublic, setPresenceMakePublic] = useState(true);
+  const [presenceReason, setPresenceReason] = useState("");
+  const [presenceSafetyKey, setPresenceSafetyKey] = useState("");
+  const [presenceResult, setPresenceResult] = useState<PublicPresenceProvisionResponse | null>(
+    null
+  );
 
   const provision = useMutation({
     mutationFn: async () => {
@@ -294,7 +343,7 @@ export default function AdminProvisionUser() {
         patch.preferencesPatch = preferencesPatch;
       }
 
-      return apiRequest("POST", "/api/admin/users/support-edit", {
+      const supportResponse = await apiRequest("POST", "/api/admin/users/support-edit", {
         targetUserId: editTargetUserId.trim() || undefined,
         targetEmail: editTargetEmail.trim() || undefined,
         patch,
@@ -305,11 +354,80 @@ export default function AdminProvisionUser() {
           allowPrivilegedTargetEdit: editAllowPrivilegedTarget,
         },
       });
+
+      if (!repairPublicPresenceOnSupportEdit) {
+        return { supportResponse, presenceResponse: null };
+      }
+
+      const businessServices = presenceBusinessTags
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      const presenceResponse = (await apiRequest(
+        "POST",
+        "/api/admin/users/public-presence/provision",
+        {
+          targetUserId: presenceTargetUserId.trim() || editTargetUserId.trim() || undefined,
+          targetEmail:
+            presenceTargetEmail.trim().toLowerCase() ||
+            editTargetEmail.trim().toLowerCase() ||
+            undefined,
+          presence: {
+            allowReassign: presenceAllowReassign,
+            makeProfilePublic: presenceMakePublic,
+            business: {
+              businessId: presenceBusinessId.trim() || undefined,
+              businessSlug: presenceBusinessSlug.trim() || undefined,
+              name: presenceBusinessName.trim() || undefined,
+              description: presenceBusinessDescription.trim() || editBio.trim() || undefined,
+              phone: presenceBusinessPhone.trim() || editPhone.trim() || undefined,
+              email: presenceBusinessEmail.trim().toLowerCase() || undefined,
+              website: presenceBusinessWebsite.trim() || undefined,
+              category: presenceBusinessCategory.trim() || undefined,
+              services: businessServices.length > 0 ? businessServices : undefined,
+              address: presenceBusinessAddress.trim() || undefined,
+              city: presenceBusinessCity.trim() || editCity.trim() || undefined,
+              stateCode:
+                presenceStateCode.trim().toUpperCase() ||
+                editStateCode.trim().toUpperCase() ||
+                undefined,
+              countyFips: presenceCountyFips.trim() || editCountyFips.trim() || undefined,
+              zipCode: presenceZipCode.trim() || undefined,
+              roleContext: presenceRoleContext.trim() || undefined,
+            },
+            profile: {
+              displayName: presenceProfileDisplayName.trim() || undefined,
+              headline: presenceProfileHeadline.trim() || undefined,
+              about: presenceProfileAbout.trim() || editBio.trim() || undefined,
+              ctaPrimaryLabel: presenceCtaLabel.trim() || undefined,
+              ctaPrimaryKind: presenceCtaKind,
+              ctaPrimaryValue: presenceCtaValue.trim() || undefined,
+              seoTitle: presenceSeoTitle.trim() || undefined,
+              seoDescription: presenceSeoDescription.trim() || undefined,
+              roleContext: presenceRoleContext.trim() || undefined,
+            },
+          },
+          adminSafety: {
+            reason: presenceReason.trim() || editReason.trim(),
+            confirmPhrase: "I UNDERSTAND THIS EDIT IS AUDITED",
+            safetyKey: presenceSafetyKey.trim() || editSafetyKey.trim() || undefined,
+          },
+        }
+      )) as PublicPresenceProvisionResponse;
+
+      return { supportResponse, presenceResponse };
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      const presenceResponse = data?.presenceResponse as PublicPresenceProvisionResponse | null;
+      if (presenceResponse) {
+        setPresenceResult(presenceResponse);
+      }
       toast({
-        title: "User updated",
-        description: "Support edit completed and logged.",
+        title: presenceResponse ? "User updated + public presence repaired" : "User updated",
+        description: presenceResponse
+          ? `Support edit saved and linked to ${presenceResponse?.business?.name || "business profile"}.`
+          : "Support edit completed and logged.",
       });
     },
     onError: (e: any) => {
@@ -778,6 +896,210 @@ export default function AdminProvisionUser() {
               />
             </div>
 
+            <label className="flex items-center gap-2 text-xs text-white/70">
+              <Checkbox
+                checked={repairPublicPresenceOnSupportEdit}
+                onCheckedChange={(v) => setRepairPublicPresenceOnSupportEdit(v === true)}
+              />
+              Also repair/attach public business profile for this same user
+            </label>
+
+            {repairPublicPresenceOnSupportEdit ? (
+              <div className="space-y-3 rounded-md border border-[color:var(--border-subtle)] bg-black/20 p-3">
+                <div className="text-xs font-semibold text-white/80">Public Presence Controls</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    value={presenceBusinessId}
+                    onChange={(e) => setPresenceBusinessId(e.target.value)}
+                    placeholder="Existing business ID (optional)"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceBusinessSlug}
+                    onChange={(e) => setPresenceBusinessSlug(e.target.value)}
+                    placeholder="Existing business slug (optional)"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    value={presenceBusinessName}
+                    onChange={(e) => setPresenceBusinessName(e.target.value)}
+                    placeholder="Business name"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceRoleContext}
+                    onChange={(e) => setPresenceRoleContext(e.target.value)}
+                    placeholder="Role context (business_owner, contractor...)"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <Textarea
+                  value={presenceBusinessDescription}
+                  onChange={(e) => setPresenceBusinessDescription(e.target.value)}
+                  placeholder="Business description (optional)"
+                  rows={3}
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    value={presenceBusinessPhone}
+                    onChange={(e) => setPresenceBusinessPhone(e.target.value)}
+                    placeholder="Business phone"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceBusinessEmail}
+                    onChange={(e) => setPresenceBusinessEmail(e.target.value)}
+                    placeholder="Business email"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <Input
+                  value={presenceBusinessWebsite}
+                  onChange={(e) => setPresenceBusinessWebsite(e.target.value)}
+                  placeholder="Business website"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    value={presenceBusinessCategory}
+                    onChange={(e) => setPresenceBusinessCategory(e.target.value)}
+                    placeholder="Business category"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceBusinessTags}
+                    onChange={(e) => setPresenceBusinessTags(e.target.value)}
+                    placeholder="Service tags (comma separated)"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <Input
+                  value={presenceBusinessAddress}
+                  onChange={(e) => setPresenceBusinessAddress(e.target.value)}
+                  placeholder="Street address"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input
+                    value={presenceBusinessCity}
+                    onChange={(e) => setPresenceBusinessCity(e.target.value)}
+                    placeholder="City"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceStateCode}
+                    onChange={(e) => setPresenceStateCode(e.target.value)}
+                    placeholder="State code"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceZipCode}
+                    onChange={(e) => setPresenceZipCode(e.target.value)}
+                    placeholder="Zip code"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <Input
+                  value={presenceCountyFips}
+                  onChange={(e) => setPresenceCountyFips(e.target.value)}
+                  placeholder="County FIPS (optional)"
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    value={presenceProfileDisplayName}
+                    onChange={(e) => setPresenceProfileDisplayName(e.target.value)}
+                    placeholder="Public profile display name"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceProfileHeadline}
+                    onChange={(e) => setPresenceProfileHeadline(e.target.value)}
+                    placeholder="Public profile headline"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <Textarea
+                  value={presenceProfileAbout}
+                  onChange={(e) => setPresenceProfileAbout(e.target.value)}
+                  placeholder="Public profile about section"
+                  rows={3}
+                  className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input
+                    value={presenceCtaLabel}
+                    onChange={(e) => setPresenceCtaLabel(e.target.value)}
+                    placeholder="CTA label"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Select
+                    value={presenceCtaKind}
+                    onValueChange={(v) => setPresenceCtaKind(v as any)}
+                  >
+                    <SelectTrigger className="border-[color:var(--border-subtle)] bg-black/30 text-white">
+                      <SelectValue placeholder="CTA kind" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="message">message</SelectItem>
+                      <SelectItem value="call">call</SelectItem>
+                      <SelectItem value="email">email</SelectItem>
+                      <SelectItem value="link">link</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={presenceCtaValue}
+                    onChange={(e) => setPresenceCtaValue(e.target.value)}
+                    placeholder="CTA value"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    value={presenceSeoTitle}
+                    onChange={(e) => setPresenceSeoTitle(e.target.value)}
+                    placeholder="SEO title"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                  <Input
+                    value={presenceSeoDescription}
+                    onChange={(e) => setPresenceSeoDescription(e.target.value)}
+                    placeholder="SEO description"
+                    className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <Checkbox
+                    checked={presenceAllowReassign}
+                    onCheckedChange={(v) => setPresenceAllowReassign(v === true)}
+                  />
+                  Allow ownership transfer if business is owned by another user
+                </label>
+                <label className="flex items-center gap-2 text-xs text-white/70">
+                  <Checkbox
+                    checked={presenceMakePublic}
+                    onCheckedChange={(v) => setPresenceMakePublic(v === true)}
+                  />
+                  Force profile visibility to public
+                </label>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-white/60">
@@ -822,8 +1144,30 @@ export default function AdminProvisionUser() {
               }
               className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
             >
-              {supportEditUser.isPending ? "Applying edit..." : "Apply safeguarded support edit"}
+              {supportEditUser.isPending
+                ? "Applying support fix..."
+                : repairPublicPresenceOnSupportEdit
+                  ? "Apply support edit + repair public presence"
+                  : "Apply safeguarded support edit"}
             </Button>
+
+            {presenceResult ? (
+              <div className="rounded-md border border-[color:var(--border-subtle)] bg-black/25 p-3 text-xs text-white/80 space-y-1">
+                <div>
+                  Presence repair result for:{" "}
+                  {presenceResult.user?.email || presenceResult.user?.id || "unknown user"}
+                </div>
+                <div>
+                  Business: {presenceResult.business?.name || "unknown"}{" "}
+                  {presenceResult.business?.url ? `(${presenceResult.business.url})` : ""}
+                </div>
+                <div>
+                  Profile:{" "}
+                  {presenceResult.profile?.displayName || presenceResult.profile?.slug || "unknown"}{" "}
+                  {presenceResult.profile?.url ? `(${presenceResult.profile.url})` : ""}
+                </div>
+              </div>
+            ) : null}
           </form>
         </CardContent>
       </Card>
