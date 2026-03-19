@@ -66,6 +66,46 @@ type SnapshotStatusResponse = {
   }>;
 };
 
+type CrawlerTelemetrySummary = {
+  generatedAt: string;
+  totals24h: {
+    total: number;
+    ok: number;
+    clientError: number;
+    serverError: number;
+  };
+  topBots: Array<{
+    botName: string;
+    requestCount: number;
+  }>;
+  topRoutes: Array<{
+    path: string;
+    requestCount: number;
+  }>;
+  topSurfaces: Array<{
+    sourceSurface: string;
+    requestCount: number;
+  }>;
+  topCounties: Array<{
+    countyName: string;
+    stateCode: string | null;
+    countyFips: string | null;
+    sourceSurface: string;
+    requestCount: number;
+  }>;
+  requestTypes: Array<{
+    requestType: string;
+    requestCount: number;
+  }>;
+  hourlyBuckets: Array<{
+    bucketStart: string;
+    total: number;
+    ok: number;
+    clientError: number;
+    serverError: number;
+  }>;
+};
+
 function getFilenameFromHeader(headerValue: string | null): string | null {
   if (!headerValue) return null;
   const match = /filename="?([^"]+)"?/i.exec(headerValue);
@@ -196,6 +236,20 @@ export default function AdminLiveStreamPage() {
     refetchInterval: 30000,
   });
 
+  const { data: crawlerTelemetry } = useQuery<CrawlerTelemetrySummary>({
+    queryKey: ["/api/admin/observability/crawler-telemetry"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/observability/crawler-telemetry", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch crawler telemetry");
+      }
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
   const liveStreamStatus = snapshotStatus?.statuses.find((entry) => entry.key === "live_stream");
   const visibleEntryCount = filteredStream.length;
   const topRouteDemand = (data?.stream || []).find((item) => item.kind === "crawler_route_demand");
@@ -205,6 +259,49 @@ export default function AdminLiveStreamPage() {
   const topBotDemandCluster = (data?.stream || []).find(
     (item) => item.kind === "bot_demand_cluster"
   );
+  const topSurfaceBreakdown = useMemo(() => {
+    return (crawlerTelemetry?.topSurfaces || []).slice(0, 6);
+  }, [crawlerTelemetry?.topSurfaces]);
+  const signalSurfaceCount = useMemo(() => {
+    const signalFamilies = new Set([
+      "public_business",
+      "trade_county_page",
+      "trade_region_page",
+      "county_page",
+      "county_recent",
+      "public_profile",
+      "commerce_surface",
+      "public_marketing",
+      "tradepartners",
+      "homescout_listings",
+      "community",
+      "exchange",
+      "trade_deals",
+      "direct_connect",
+      "scout",
+    ]);
+    return (crawlerTelemetry?.topSurfaces || []).reduce((sum, item) => {
+      return sum + (signalFamilies.has(item.sourceSurface) ? item.requestCount : 0);
+    }, 0);
+  }, [crawlerTelemetry?.topSurfaces]);
+  const noiseSurfaceCount = useMemo(() => {
+    const noiseFamilies = new Set(["infra", "crawl_meta", "static_asset"]);
+    return (crawlerTelemetry?.topSurfaces || []).reduce((sum, item) => {
+      return sum + (noiseFamilies.has(item.sourceSurface) ? item.requestCount : 0);
+    }, 0);
+  }, [crawlerTelemetry?.topSurfaces]);
+  const unknownSurfaceCount = useMemo(() => {
+    return (crawlerTelemetry?.topSurfaces || []).reduce((sum, item) => {
+      return (
+        sum + (["other", "unknown_public"].includes(item.sourceSurface) ? item.requestCount : 0)
+      );
+    }, 0);
+  }, [crawlerTelemetry?.topSurfaces]);
+  const topUnknownSurface = useMemo(() => {
+    return (crawlerTelemetry?.topSurfaces || []).find((item) =>
+      ["other", "unknown_public"].includes(item.sourceSurface)
+    );
+  }, [crawlerTelemetry?.topSurfaces]);
   const liveStreamStateLabel = liveStreamStatus
     ? liveStreamStatus.isStale
       ? "stale"
@@ -411,6 +508,82 @@ export default function AdminLiveStreamPage() {
               {topBotDemandCluster?.narrative ||
                 data?.summary.topBotCrawlHeadline ||
                 "No bot demand cluster yet"}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
+                Useful Signal vs Noise
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
+                    Signal
+                  </div>
+                  <div className="mt-1 text-xl font-semibold text-emerald-50">
+                    {signalSurfaceCount}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                    Noise
+                  </div>
+                  <div className="mt-1 text-xl font-semibold text-amber-50">
+                    {noiseSurfaceCount}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                    Leakage
+                  </div>
+                  <div className="mt-1 text-xl font-semibold text-rose-50">
+                    {unknownSurfaceCount}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 text-xs text-emerald-100/70">
+                Signal is meaningful public discovery. Noise is infra/meta/assets. Leakage is
+                fallback traffic still landing in other/unknown_public.
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                Top Signal Buckets
+              </div>
+              <div className="mt-3 space-y-2">
+                {topSurfaceBreakdown.length === 0 ? (
+                  <div className="text-sm text-white/55">No crawler surface data yet.</div>
+                ) : (
+                  topSurfaceBreakdown.map((surface) => (
+                    <div
+                      key={surface.sourceSurface}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <div className="text-white/75">{surface.sourceSurface}</div>
+                      <Badge variant="outline" className="border-white/10 text-white/70">
+                        {surface.requestCount}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-rose-100/70">
+                Attribution Leakage
+              </div>
+              <div className="mt-2 text-sm text-rose-50">
+                {topUnknownSurface
+                  ? `${topUnknownSurface.sourceSurface} is still carrying ${topUnknownSurface.requestCount} requests in the current surface summary.`
+                  : "No fallback leakage surfaced in the current top routes."}
+              </div>
+              <div className="mt-3 text-xs text-rose-100/70">
+                Keep shrinking other/unknown_public until fallback mostly means true unknowns
+                instead of missed known route families.
+              </div>
             </div>
           </div>
 
