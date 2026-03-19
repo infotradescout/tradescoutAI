@@ -726,11 +726,21 @@ export default function AdminLiveStreamPage() {
                         </option>
                       ))}
                     </select>
+                    <button
+                      type="button"
+                      onClick={handleCopyDerived}
+                      className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-fuchsia-50 hover:bg-fuchsia-500/10"
+                    >
+                      copy
+                    </button>
                     <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
                       {focusedDerivedOutputs.length} shown
                     </Badge>
                   </div>
                 </div>
+                {copyStatus ? (
+                  <div className="mt-2 text-[11px] text-fuchsia-100/80">{copyStatus}</div>
+                ) : null}
                 <div className="mt-3 text-xs text-fuchsia-100/70">
                   Focus this view on opportunity, friction, or waste when you want a cleaner
                   strategic read instead of the full mixed picture.
