@@ -320,6 +320,7 @@ export default function AdminLiveStreamPage() {
         "attention_action_gap",
         "visibility_outpacing_coverage",
         "county_opportunity_concentration",
+        "attention_finding_dead_ends",
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);

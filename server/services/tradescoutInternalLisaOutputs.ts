@@ -361,6 +361,50 @@ export function toCountyOpportunityConcentrationFinding(params: {
   };
 }
 
+export function toAttentionFindingDeadEndsFinding(params: {
+  topBotCrawlSignal: BotCrawlAggregateSignal | null;
+  topBrokenCrawlerRoute: CrawlerRouteInsightRow | null;
+}): LisaFeedItem | null {
+  const { topBotCrawlSignal, topBrokenCrawlerRoute } = params;
+  if (!topBrokenCrawlerRoute) return null;
+  const brokenHits = Number(topBrokenCrawlerRoute.request_count || 0);
+  const brokenErrors = Number(topBrokenCrawlerRoute.error_count || 0);
+  const missing = Number(topBrokenCrawlerRoute.missing_count || 0);
+  if (brokenHits <= 0 || brokenErrors <= 0) return null;
+
+  const machineAttention = Number(topBotCrawlSignal?.hits || 0);
+  const deadEndPressure = Number(
+    (brokenHits / Math.max(1, machineAttention || brokenHits)).toFixed(2)
+  );
+  const path = String(topBrokenCrawlerRoute.path || "/");
+
+  return {
+    id: `internal-lisa-attention-dead-ends-${path}`,
+    priority: brokenErrors >= 25 || missing >= 10 ? "high" : "medium",
+    sourceKind: "bot_visibility",
+    headline: `Machine attention is finding dead ends before people can benefit from them.`,
+    narrative: formatDecisionNarrative({
+      what: `${path} absorbed ${brokenHits} crawler visits and ${brokenErrors} failed responses (${missing} were 404). Relative to top machine attention, that produces a dead-end pressure ratio of ${deadEndPressure}.`,
+      why: "this means outside systems are discovering value or relevance signals here, but the public surface is failing before that attention can become useful visibility or action.",
+      doNext:
+        "fix, redirect, or replace this route fast. Dead ends are one of the easiest ways to waste valuable machine attention and lose compounding discovery.",
+    }),
+    evidence: [
+      "internal_lisa_output=attention_finding_dead_ends",
+      "lane=crawl_visibility",
+      "signal_class=attention_finding_dead_ends",
+      `path=${path}`,
+      `broken_hits=${brokenHits}`,
+      `broken_errors=${brokenErrors}`,
+      `missing_count=${missing}`,
+      `dead_end_pressure=${deadEndPressure}`,
+    ],
+    freshnessMinutes: minutesSince(topBrokenCrawlerRoute.last_seen_at),
+    scopeType: "surface",
+    scopeRef: path,
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -384,6 +428,10 @@ export function buildTradeScoutInternalLisaOutputs(params: {
       topBotCrawlSignal: params.topBotCrawlSignal,
       topCrawlerCounty: params.topCrawlerCounty,
       actionSummary: params.actionSummary,
+    }),
+    toAttentionFindingDeadEndsFinding({
+      topBotCrawlSignal: params.topBotCrawlSignal,
+      topBrokenCrawlerRoute: params.topBrokenCrawlerRoute,
     }),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }
