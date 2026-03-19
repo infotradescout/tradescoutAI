@@ -496,6 +496,45 @@ export function toCategoryMomentumFinding(
   };
 }
 
+export function toTrustFrictionFinding(summary: ScoutActionSummary | null): LisaFeedItem | null {
+  if (!summary) return null;
+  if (summary.interactionCount <= 0) return null;
+
+  const successRate = Number(
+    ((summary.successfulCount / Math.max(1, summary.interactionCount)) * 100).toFixed(1)
+  );
+  const avgConfidence = Number(summary.avgConfidence || 0);
+  const frictionScore = Number((100 - successRate + Math.max(0, 70 - avgConfidence)).toFixed(1));
+
+  return {
+    id: `internal-lisa-trust-friction-${String(summary.topCountyName || "global")
+      .toLowerCase()
+      .replace(/\s+/g, "-")}`,
+    priority: frictionScore >= 45 ? "high" : frictionScore >= 20 ? "medium" : "low",
+    sourceKind: "scout_interactions",
+    headline: `Trust friction is shaping how easily intent becomes action.`,
+    narrative: formatDecisionNarrative({
+      what: `${summary.interactionCount} Scout interactions are converting at ${successRate}% with average confidence ${avgConfidence}. ${summary.topCountyName ? `${summary.topCountyName} is the strongest county in this trust picture.` : "No single county dominates this trust picture yet."}`,
+      why: "when success rates and confidence soften at the same time, demand may be present but trust, readiness, or fit is slowing progress.",
+      doNext:
+        "look for categories or counties where intent is real but confidence and successful outcomes are weaker, then tighten trust signals, clearer pages, or gating guidance there first.",
+    }),
+    evidence: [
+      "internal_lisa_output=trust_friction",
+      "lane=trust",
+      "signal_class=trust_friction",
+      `interaction_count=${summary.interactionCount}`,
+      `success_rate_pct=${successRate}`,
+      `avg_confidence=${avgConfidence}`,
+      `friction_score=${frictionScore}`,
+      summary.topCountyName ? `top_county=${summary.topCountyName}` : "top_county=none",
+    ],
+    freshnessMinutes: minutesSince(summary.lastSeenAt),
+    scopeType: summary.topCountyName ? "county" : "global",
+    scopeRef: summary.topCountyName || "global",
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -530,5 +569,6 @@ export function buildTradeScoutInternalLisaOutputs(params: {
       actionSummary: params.actionSummary,
     }),
     toCategoryMomentumFinding(params.topBotCrawlSignal),
+    toTrustFrictionFinding(params.actionSummary),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }

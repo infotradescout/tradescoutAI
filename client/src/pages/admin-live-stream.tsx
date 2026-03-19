@@ -323,6 +323,7 @@ export default function AdminLiveStreamPage() {
         "attention_finding_dead_ends",
         "category_signal_concentration",
         "category_momentum",
+        "trust_friction",
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
@@ -338,7 +339,7 @@ export default function AdminLiveStreamPage() {
   }, [derivedIntelligenceOutputs]);
   const frictionOutputs = useMemo(() => {
     return derivedIntelligenceOutputs.filter((item) =>
-      ["attention_action_gap"].includes(item.signalClass || "")
+      ["attention_action_gap", "trust_friction"].includes(item.signalClass || "")
     );
   }, [derivedIntelligenceOutputs]);
   const wasteOutputs = useMemo(() => {
