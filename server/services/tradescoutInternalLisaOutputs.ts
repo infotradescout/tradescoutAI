@@ -313,6 +313,54 @@ export function toVisibilityOutrunningCoverageFinding(params: {
   };
 }
 
+export function toCountyOpportunityConcentrationFinding(params: {
+  topBotCrawlSignal: BotCrawlAggregateSignal | null;
+  topCrawlerCounty: CrawlerCountySignalRow | null;
+  actionSummary: ScoutActionSummary | null;
+}): LisaFeedItem | null {
+  const { topBotCrawlSignal, topCrawlerCounty, actionSummary } = params;
+  if (!topCrawlerCounty) return null;
+  const countyRequests = Number(topCrawlerCounty.request_count || 0);
+  if (countyRequests <= 0) return null;
+
+  const machineAttention = Number(topBotCrawlSignal?.hits || 0);
+  const humanAction = Number(actionSummary?.interactionCount || 0);
+  const combinedMomentum = countyRequests + machineAttention + humanAction;
+
+  return {
+    id: `internal-lisa-county-opportunity-${topCrawlerCounty.county_fips || topCrawlerCounty.county_name || "global"}`,
+    priority: combinedMomentum >= 120 ? "high" : combinedMomentum >= 45 ? "medium" : "low",
+    sourceKind: "bot_visibility",
+    headline: `${topCrawlerCounty.county_name || "This county"} is concentrating opportunity across attention, coverage, and action.`,
+    narrative: formatDecisionNarrative({
+      what: `${topCrawlerCounty.county_name || "This county"}${topCrawlerCounty.state_code ? `, ${topCrawlerCounty.state_code}` : ""} is carrying ${countyRequests} county-surface discovery requests${machineAttention > 0 ? `, ${machineAttention} machine-attention hits` : ""}${humanAction > 0 ? `, and ${humanAction} real Scout interactions` : ""}.`,
+      why: "when county discovery, outside attention, and human action start stacking in the same place, that county becomes more important than a simple traffic number would suggest.",
+      doNext:
+        "treat this county as a concentration zone: strengthen coverage, improve routes and pages, and look for categories where demand can be captured before attention disperses.",
+    }),
+    evidence: [
+      "internal_lisa_output=county_opportunity_concentration",
+      "lane=county_intelligence",
+      "signal_class=county_opportunity_concentration",
+      `county_surface_requests=${countyRequests}`,
+      `machine_attention_hits=${machineAttention}`,
+      `human_action_count=${humanAction}`,
+      topCrawlerCounty.county_name
+        ? `county_name=${topCrawlerCounty.county_name}`
+        : "county_name=none",
+      topCrawlerCounty.state_code ? `state_code=${topCrawlerCounty.state_code}` : "state_code=none",
+      topCrawlerCounty.county_fips
+        ? `county_fips=${topCrawlerCounty.county_fips}`
+        : "county_fips=none",
+    ],
+    freshnessMinutes: minutesSince(topCrawlerCounty.last_seen_at),
+    scopeType: "county",
+    scopeRef:
+      topCrawlerCounty.county_fips ||
+      `${String(topCrawlerCounty.state_code || "").toUpperCase()}-${String(topCrawlerCounty.county_name || "unknown")}`,
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -331,6 +379,11 @@ export function buildTradeScoutInternalLisaOutputs(params: {
     toVisibilityOutrunningCoverageFinding({
       topBotCrawlSignal: params.topBotCrawlSignal,
       topCrawlerCounty: params.topCrawlerCounty,
+    }),
+    toCountyOpportunityConcentrationFinding({
+      topBotCrawlSignal: params.topBotCrawlSignal,
+      topCrawlerCounty: params.topCrawlerCounty,
+      actionSummary: params.actionSummary,
     }),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }

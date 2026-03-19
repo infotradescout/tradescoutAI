@@ -316,7 +316,11 @@ export default function AdminLiveStreamPage() {
   }, [data?.stream]);
   const derivedIntelligenceOutputs = useMemo(() => {
     return internalLisaOutputs.filter((item) =>
-      ["attention_action_gap", "visibility_outpacing_coverage"].includes(item.signalClass || "")
+      [
+        "attention_action_gap",
+        "visibility_outpacing_coverage",
+        "county_opportunity_concentration",
+      ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
   const crawlerErrorTotal = useMemo(() => {
