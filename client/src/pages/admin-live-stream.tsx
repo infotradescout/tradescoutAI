@@ -367,8 +367,12 @@ export default function AdminLiveStreamPage() {
     if (derivedFocus === "opportunity") return opportunityOutputs;
     if (derivedFocus === "friction") return frictionOutputs;
     if (derivedFocus === "waste") return wasteOutputs;
-    return derivedIntelligenceOutputs;
-  }, [derivedFocus, derivedIntelligenceOutputs, opportunityOutputs, frictionOutputs, wasteOutputs]);
+    return rankedDerivedOutputs;
+  }, [derivedFocus, rankedDerivedOutputs, opportunityOutputs, frictionOutputs, wasteOutputs]);
+  const topThreeDerivedOutputs = useMemo(
+    () => rankedDerivedOutputs.slice(0, 3),
+    [rankedDerivedOutputs]
+  );
   const crawlerErrorTotal = useMemo(() => {
     if (!crawlerTelemetry) return 0;
     return (
@@ -601,6 +605,50 @@ export default function AdminLiveStreamPage() {
                 {internalLisaOutputs.length} outputs
               </Badge>
             </div>
+
+            {topThreeDerivedOutputs.length > 0 ? (
+              <div className="mt-4 rounded-md border border-sky-300/20 bg-sky-500/10 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-[0.24em] text-sky-100/70">
+                    Top 3 Right Now
+                  </div>
+                  <Badge variant="outline" className="border-sky-200/20 text-sky-50">
+                    highest-significance signals
+                  </Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                  {topThreeDerivedOutputs.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-md border border-sky-200/10 bg-black/20 px-3 py-2"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm text-sky-50">{item.title}</div>
+                        <Badge variant="outline" className={priorityTone[item.priority]}>
+                          {item.priority}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        {item.signalClass ? (
+                          <Badge variant="outline" className="border-sky-200/20 text-sky-100">
+                            {item.signalClass}
+                          </Badge>
+                        ) : null}
+                        {typeof item.baselineDeltaPct === "number" ? (
+                          <Badge variant="outline" className="border-sky-200/20 text-sky-100">
+                            {item.baselineDeltaPct >= 0
+                              ? `+${item.baselineDeltaPct}%`
+                              : `${item.baselineDeltaPct}%`}{" "}
+                            vs baseline
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 text-xs text-sky-100/75">{item.narrative}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {derivedIntelligenceOutputs.length > 0 ? (
               <div className="mt-4 rounded-md border border-fuchsia-300/20 bg-fuchsia-500/10 p-3">
