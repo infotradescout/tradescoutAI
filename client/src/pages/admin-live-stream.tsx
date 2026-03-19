@@ -314,6 +314,11 @@ export default function AdminLiveStreamPage() {
   const internalLisaOutputs = useMemo(() => {
     return (data?.stream || []).filter((item) => item.id.startsWith("internal-lisa-"));
   }, [data?.stream]);
+  const derivedIntelligenceOutputs = useMemo(() => {
+    return internalLisaOutputs.filter((item) =>
+      ["attention_action_gap"].includes(item.signalClass || "")
+    );
+  }, [internalLisaOutputs]);
   const crawlerErrorTotal = useMemo(() => {
     if (!crawlerTelemetry) return 0;
     return (
@@ -546,14 +551,72 @@ export default function AdminLiveStreamPage() {
                 {internalLisaOutputs.length} outputs
               </Badge>
             </div>
+
+            {derivedIntelligenceOutputs.length > 0 ? (
+              <div className="mt-4 rounded-md border border-fuchsia-300/20 bg-fuchsia-500/10 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-[0.24em] text-fuchsia-100/70">
+                    Derived Intelligence
+                  </div>
+                  <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
+                    {derivedIntelligenceOutputs.length} surfaced
+                  </Badge>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {derivedIntelligenceOutputs.slice(0, 2).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-md border border-fuchsia-200/10 bg-black/20 px-3 py-2"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm text-fuchsia-50">{item.title}</div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={
+                              truthTone[item.truthStatus === "current" ? "current" : "stale"]
+                            }
+                          >
+                            {item.truthStatus === "current" ? "current" : "stale"}
+                          </Badge>
+                          <Badge variant="outline" className={priorityTone[item.priority]}>
+                            {item.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        {item.lane ? (
+                          <Badge
+                            variant="outline"
+                            className="border-fuchsia-200/20 text-fuchsia-100"
+                          >
+                            lane: {item.lane}
+                          </Badge>
+                        ) : null}
+                        {item.signalClass ? (
+                          <Badge
+                            variant="outline"
+                            className="border-fuchsia-200/20 text-fuchsia-100"
+                          >
+                            signal: {item.signalClass}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 text-xs text-fuchsia-100/75">{item.narrative}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="mt-4 space-y-2">
               {internalLisaOutputs.length === 0 ? (
                 <div className="text-sm text-violet-100/70">
-                  Waiting for entity discovery, county/category discovery, or repair pressure
-                  outputs.
+                  Waiting for entity discovery, county/category discovery, repair pressure, or
+                  derived intelligence outputs.
                 </div>
               ) : (
-                internalLisaOutputs.slice(0, 3).map((item) => (
+                internalLisaOutputs.slice(0, 4).map((item) => (
                   <div
                     key={item.id}
                     className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-2"
