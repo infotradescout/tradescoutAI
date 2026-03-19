@@ -196,6 +196,26 @@ function inferCrawlerAttribution(
 ): Omit<CrawlerAttribution, "countyFips"> {
   const path = cleanPath(pathValue).toLowerCase();
 
+  if (path === "/api/scout/health" || path === "/health") {
+    return { sourceSurface: "infra", stateCode: null, countySlug: null, categorySlug: null };
+  }
+  if (
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
+    path === "/sitemap-index.xml" ||
+    path.startsWith("/sitemap-")
+  ) {
+    return { sourceSurface: "crawl_meta", stateCode: null, countySlug: null, categorySlug: null };
+  }
+  if (
+    path === "/sw.js" ||
+    path === "/offline.html" ||
+    path === "/apple-touch-icon.png" ||
+    path.startsWith("/assets/") ||
+    /\.(?:png|jpg|jpeg|gif|webp|svg|css|js|ico)$/i.test(path)
+  ) {
+    return { sourceSurface: "static_asset", stateCode: null, countySlug: null, categorySlug: null };
+  }
   if (path === "/" || path.startsWith("/scout")) {
     return { sourceSurface: "scout", stateCode: null, countySlug: null, categorySlug: null };
   }
@@ -235,6 +255,28 @@ function inferCrawlerAttribution(
   if (path.startsWith("/business/")) {
     return {
       sourceSurface: "public_business",
+      stateCode: null,
+      countySlug: null,
+      categorySlug: null,
+    };
+  }
+  if (
+    path === "/landing" ||
+    path.startsWith("/landing/") ||
+    path === "/pre-scout-setup" ||
+    path === "/create-account" ||
+    path === "/real-estate-marketplace"
+  ) {
+    return {
+      sourceSurface: "public_marketing",
+      stateCode: null,
+      countySlug: null,
+      categorySlug: null,
+    };
+  }
+  if (path.startsWith("/collections/") || path.startsWith("/products/")) {
+    return {
+      sourceSurface: "commerce_surface",
       stateCode: null,
       countySlug: null,
       categorySlug: null,
@@ -284,7 +326,17 @@ function inferCrawlerAttribution(
     };
   }
 
-  return { sourceSurface: "other", stateCode: null, countySlug: null, categorySlug: null };
+  const tradeRegionMatch = /^\/trade\/([^/]+)\/([^/]+)/i.exec(path);
+  if (tradeRegionMatch) {
+    return {
+      sourceSurface: "trade_region_page",
+      stateCode: cleanStateCode(tradeRegionMatch[2]),
+      countySlug: null,
+      categorySlug: cleanSlug(tradeRegionMatch[1]),
+    };
+  }
+
+  return { sourceSurface: "unknown_public", stateCode: null, countySlug: null, categorySlug: null };
 }
 
 function inferBotObservationRouteContext(
@@ -330,12 +382,13 @@ function inferBotObservationRouteContext(
   }
 
   if (lowerPath.startsWith("/trade/")) {
+    const hasCountySegment = segments.length >= 4;
     return {
-      routeFamily: "trade_county_page",
-      county: cleanSlug(segments[3] || null),
+      routeFamily: hasCountySegment ? "trade_county_page" : "trade_region_page",
+      county: hasCountySegment ? cleanSlug(segments[3] || null) : null,
       state: cleanStateCode(segments[2] || null),
       trade: cleanSlug(segments[1] || null),
-      entityType: "trade_page",
+      entityType: hasCountySegment ? "trade_page" : "trade_region_page",
       entitySlug: cleanSlug(segments.slice(1).join("/")),
     };
   }
