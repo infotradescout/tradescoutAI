@@ -35,6 +35,15 @@ type BotCrawlAggregateSignal = {
   topPath: string | null;
 };
 
+type ScoutActionSummary = {
+  interactionCount: number;
+  successfulCount: number;
+  avgConfidence: number;
+  topCountyName: string | null;
+  topIntent: string | null;
+  lastSeenAt: string | Date | null;
+};
+
 function minutesSince(isoLike?: string | Date | null): number | null {
   if (!isoLike) return null;
   const date = new Date(isoLike);
@@ -155,14 +164,52 @@ export function toRepairPressureFinding(
   };
 }
 
+export function toActionGatingSummaryFinding(
+  summary: ScoutActionSummary | null
+): LisaFeedItem | null {
+  if (!summary) return null;
+  if (summary.interactionCount <= 0) return null;
+
+  const successRate =
+    summary.interactionCount > 0
+      ? Math.round((summary.successfulCount / summary.interactionCount) * 100)
+      : 0;
+
+  return {
+    id: `internal-lisa-action-gating-${String(summary.topCountyName || "global")
+      .toLowerCase()
+      .replace(/\s+/g, "-")}`,
+    priority: priorityFromCount(summary.interactionCount, 100, 25),
+    sourceKind: "scout_interactions",
+    headline: `Action and gating motion is live inside Scout right now.`,
+    narrative: `${summary.interactionCount} real Scout interactions were recorded, with ${summary.successfulCount} completed or handed-off outcomes (${successRate}% success) and average confidence ${summary.avgConfidence}. ${summary.topCountyName ? `${summary.topCountyName} is the strongest county for this action signal` : "No dominant county lead surfaced yet"}${summary.topIntent ? `, led by ${summary.topIntent.replace(/_/g, " ")} intent.` : "."}`,
+    evidence: [
+      "internal_lisa_output=action_gating_summary",
+      "lane=action",
+      "signal_class=action_gating_summary",
+      `interaction_count=${summary.interactionCount}`,
+      `successful_count=${summary.successfulCount}`,
+      `success_rate_pct=${successRate}`,
+      `avg_confidence=${summary.avgConfidence}`,
+      summary.topCountyName ? `top_county=${summary.topCountyName}` : "top_county=none",
+      summary.topIntent ? `top_intent=${summary.topIntent}` : "top_intent=none",
+    ],
+    freshnessMinutes: minutesSince(summary.lastSeenAt),
+    scopeType: summary.topCountyName ? "county" : "global",
+    scopeRef: summary.topCountyName || "global",
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
   topBrokenCrawlerRoute: CrawlerRouteInsightRow | null;
+  actionSummary: ScoutActionSummary | null;
 }): LisaFeedItem[] {
   return [
     toEntityDiscoveryFinding(params.topBotCrawlSignal),
     toCountyCategoryDiscoveryFinding(params.topCrawlerCounty),
     toRepairPressureFinding(params.topBrokenCrawlerRoute),
+    toActionGatingSummaryFinding(params.actionSummary),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }

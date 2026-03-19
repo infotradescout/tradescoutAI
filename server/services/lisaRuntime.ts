@@ -770,6 +770,14 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       topBotCrawlSignal,
       topCrawlerCounty,
       topBrokenCrawlerRoute,
+      actionSummary: {
+        interactionCount,
+        successfulCount,
+        avgConfidence,
+        topCountyName: topCounty.county_name || null,
+        topIntent: topCounty.intent || null,
+        lastSeenAt: demand.last_seen_at,
+      },
     })
   );
 
