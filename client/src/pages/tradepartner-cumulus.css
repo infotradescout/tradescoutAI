@@ -99,7 +99,7 @@
   border: 1px solid var(--tpc-line);
   border-radius: 22px;
   padding: clamp(18px, 3vw, 34px);
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.95), rgba(250, 252, 246, 0.88));
+  background: var(--tpc-paper);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
 }
 
@@ -192,7 +192,7 @@
   align-items: start;
   border-radius: 18px;
   border: 1px solid rgba(0, 95, 115, 0.22);
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.94), rgba(240, 249, 247, 0.88));
+  background: var(--tpc-paper);
   padding: clamp(14px, 2.4vw, 20px);
 }
 

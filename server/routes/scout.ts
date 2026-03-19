@@ -220,10 +220,8 @@ function buildUnifiedRouterContext(
       : undefined;
 
   const trustLevel =
-    incoming?.trustLevel === "low" ||
-    incoming?.trustLevel === "medium" ||
-    incoming?.trustLevel === "high"
-      ? incoming.trustLevel
+    user?.trustLevel === "low" || user?.trustLevel === "medium" || user?.trustLevel === "high"
+      ? user.trustLevel
       : undefined;
 
   const location =
@@ -253,7 +251,78 @@ function buildUnifiedRouterContext(
   };
 }
 
-function buildUnifiedRoutingOptions(body: unknown): {
+function toFiniteNumber(value: unknown): number | undefined {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function buildServerTrustContext(req: Request): ScoutTrustContext | undefined {
+  const authUser = (req as any)?.user;
+  if (!authUser || typeof authUser !== "object") {
+    return undefined;
+  }
+
+  const snapshotRaw =
+    authUser.trustSnapshot && typeof authUser.trustSnapshot === "object"
+      ? (authUser.trustSnapshot as Record<string, unknown>)
+      : null;
+
+  const userId =
+    typeof authUser.id === "string"
+      ? authUser.id
+      : typeof authUser.claims?.sub === "string"
+        ? authUser.claims.sub
+        : undefined;
+
+  const riskFlagsFromSnapshot = Array.isArray(snapshotRaw?.riskFlags)
+    ? snapshotRaw?.riskFlags.filter((v): v is string => typeof v === "string")
+    : undefined;
+
+  const riskFlagsFromUser = Array.isArray(authUser.riskFlags)
+    ? authUser.riskFlags.filter((v: unknown): v is string => typeof v === "string")
+    : undefined;
+
+  return {
+    userId,
+    countyFips:
+      typeof snapshotRaw?.countyFips === "string"
+        ? snapshotRaw.countyFips
+        : typeof authUser.countyFips === "string"
+          ? authUser.countyFips
+          : undefined,
+    cvsScore: toFiniteNumber(snapshotRaw?.cvsScore ?? authUser.cvsScore ?? authUser.trustScore),
+    verifiedJobsCount: toFiniteNumber(snapshotRaw?.verifiedJobsCount ?? authUser.verifiedJobsCount),
+    verifiedRecommendationsCount: toFiniteNumber(
+      snapshotRaw?.verifiedRecommendationsCount ?? authUser.verifiedRecommendationsCount
+    ),
+    verificationStatus:
+      snapshotRaw?.verificationStatus === "approved" ||
+      snapshotRaw?.verificationStatus === "pending" ||
+      snapshotRaw?.verificationStatus === "rejected" ||
+      snapshotRaw?.verificationStatus === "suspended" ||
+      snapshotRaw?.verificationStatus === "unknown"
+        ? snapshotRaw.verificationStatus
+        : authUser.verificationStatus === "approved" ||
+            authUser.verificationStatus === "pending" ||
+            authUser.verificationStatus === "rejected" ||
+            authUser.verificationStatus === "suspended" ||
+            authUser.verificationStatus === "unknown"
+          ? authUser.verificationStatus
+          : undefined,
+    riskFlags: riskFlagsFromSnapshot ?? riskFlagsFromUser,
+    confidenceLevel:
+      snapshotRaw?.confidenceLevel === "low" ||
+      snapshotRaw?.confidenceLevel === "medium" ||
+      snapshotRaw?.confidenceLevel === "high"
+        ? snapshotRaw.confidenceLevel
+        : undefined,
+  };
+}
+
+function buildUnifiedRoutingOptions(
+  req: Request,
+  body: unknown
+): {
   situation?: Omit<SituationAnalysisInput, "intent" | "userContext">;
   trust?: ScoutTrustContext;
   tone?: {
@@ -268,47 +337,11 @@ function buildUnifiedRoutingOptions(body: unknown): {
     source.situation && typeof source.situation === "object"
       ? (source.situation as Record<string, unknown>)
       : null;
-  const trustRaw =
-    source.trust && typeof source.trust === "object"
-      ? (source.trust as Record<string, unknown>)
-      : null;
   const toneRaw =
     source.tone && typeof source.tone === "object"
       ? (source.tone as Record<string, unknown>)
       : null;
-
-  const trust: ScoutTrustContext | undefined = trustRaw
-    ? {
-        userId: typeof trustRaw.userId === "string" ? trustRaw.userId : undefined,
-        countyFips: typeof trustRaw.countyFips === "string" ? trustRaw.countyFips : undefined,
-        cvsScore: Number.isFinite(Number(trustRaw.cvsScore))
-          ? Number(trustRaw.cvsScore)
-          : undefined,
-        verifiedJobsCount: Number.isFinite(Number(trustRaw.verifiedJobsCount))
-          ? Number(trustRaw.verifiedJobsCount)
-          : undefined,
-        verifiedRecommendationsCount: Number.isFinite(Number(trustRaw.verifiedRecommendationsCount))
-          ? Number(trustRaw.verifiedRecommendationsCount)
-          : undefined,
-        verificationStatus:
-          trustRaw.verificationStatus === "approved" ||
-          trustRaw.verificationStatus === "pending" ||
-          trustRaw.verificationStatus === "rejected" ||
-          trustRaw.verificationStatus === "suspended" ||
-          trustRaw.verificationStatus === "unknown"
-            ? trustRaw.verificationStatus
-            : undefined,
-        riskFlags: Array.isArray(trustRaw.riskFlags)
-          ? trustRaw.riskFlags.filter((v): v is string => typeof v === "string")
-          : undefined,
-        confidenceLevel:
-          trustRaw.confidenceLevel === "low" ||
-          trustRaw.confidenceLevel === "medium" ||
-          trustRaw.confidenceLevel === "high"
-            ? trustRaw.confidenceLevel
-            : undefined,
-      }
-    : undefined;
+  const trust = buildServerTrustContext(req);
 
   const situation = situationRaw
     ? {
@@ -5115,7 +5148,7 @@ router.post("/routing/resolve-intent", async (req: Request, res: Response) => {
     }
 
     const userContext = buildUnifiedRouterContext(req, req.body?.userContext);
-    const options = buildUnifiedRoutingOptions(req.body);
+    const options = buildUnifiedRoutingOptions(req, req.body);
     const decision = UnifiedScoutRouter.resolveIntent(trimmedIntent, userContext, options);
     if (!decision) {
       return res.json({
@@ -5162,7 +5195,7 @@ router.post("/routing/discover-features", async (req: Request, res: Response) =>
     }
 
     const userContext = buildUnifiedRouterContext(req, req.body?.userContext);
-    const options = buildUnifiedRoutingOptions(req.body);
+    const options = buildUnifiedRoutingOptions(req, req.body);
     const features = UnifiedScoutRouter.discoverFeatures(trimmedQuery, userContext, options);
     return res.json(features);
   } catch (error) {
@@ -5337,11 +5370,11 @@ router.post("/tone/build", async (req: Request, res: Response) => {
 router.post("/trust/enrich-routing", async (req: Request, res: Response) => {
   try {
     const decision = req.body?.decision;
-    const trust = req.body?.trust;
     if (!decision || typeof decision !== "object" || typeof decision.action?.type !== "string") {
       return res.status(400).json({ error: "Routing decision with action is required" });
     }
 
+    const trust = buildServerTrustContext(req);
     const enriched = ScoutTrustIntegration.attachTrustMetadata(decision, trust);
     return res.json(enriched);
   } catch (error) {

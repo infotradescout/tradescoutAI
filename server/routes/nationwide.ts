@@ -7,7 +7,6 @@ import {
   affiliateReferrals,
   counties,
   countyMetrics,
-  countyNotes,
   users,
 } from "../../shared/schema";
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
@@ -86,7 +85,7 @@ export async function requestCountyActivation(req: Request, res: Response) {
       requestedAt: new Date().toISOString(),
     };
 
-    await db.insert(countyNotes).values({
+    await storage.createCountyNote({
       countyFips,
       authorUserId: String(userId),
       category: "operations",

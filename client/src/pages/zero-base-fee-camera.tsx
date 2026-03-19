@@ -253,8 +253,8 @@ export default function ZeroBaseFeeCameraPage() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
 
-      ctx.strokeStyle = "#ff8a00";
-      ctx.fillStyle = "#ff8a00";
+      ctx.strokeStyle = "rgb(255, 138, 0)";
+      ctx.fillStyle = "rgb(255, 138, 0)";
       ctx.lineWidth = 3;
 
       for (const p of calibrationPoints) {
@@ -278,8 +278,8 @@ export default function ZeroBaseFeeCameraPage() {
         ctx.stroke();
       }
 
-      ctx.strokeStyle = "#00d9ff";
-      ctx.fillStyle = "#00d9ff";
+      ctx.strokeStyle = "rgb(0, 217, 255)";
+      ctx.fillStyle = "rgb(0, 217, 255)";
       for (const p of measurePoints) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
@@ -357,7 +357,7 @@ export default function ZeroBaseFeeCameraPage() {
     const stamp = `TradeScout | ${iso} | ${geoText}`;
     ctx.fillStyle = "rgba(0,0,0,0.66)";
     ctx.fillRect(0, height - 38, width, 38);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.font = "16px sans-serif";
     ctx.fillText(stamp, 16, height - 14);
 

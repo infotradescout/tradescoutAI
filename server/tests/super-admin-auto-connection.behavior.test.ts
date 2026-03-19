@@ -53,17 +53,18 @@ describe("super-admin auto-connection behavior", () => {
     expect(insertMock).not.toHaveBeenCalled();
   });
 
-  it("does not auto-link a super admin account to itself", async () => {
+  it("runs a full-sweep backfill when called for the super admin account", async () => {
     selectResultMock.mockResolvedValue([{ id: "super-1" }]);
+    executeMock.mockResolvedValue({});
 
     const result = await ensureSuperAdminConnectionForUser("super-1");
 
     expect(result).toEqual({
-      ensured: false,
-      reason: "self_super_admin",
+      ensured: true,
+      reason: "self_super_admin_full_sweep",
       superAdminUserId: "super-1",
     });
-    expect(executeMock).not.toHaveBeenCalled();
+    expect(executeMock).toHaveBeenCalledTimes(4);
     expect(insertMock).not.toHaveBeenCalled();
   });
 });

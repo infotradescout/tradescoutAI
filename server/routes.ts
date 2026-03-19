@@ -120,7 +120,6 @@ import {
   foundationCauses,
   marketplaceListings,
   professionalPartnerships,
-  countyNotes,
   builderContributions,
   builderReferrals,
   communityPosts,
@@ -20989,7 +20988,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         };
         const routingSummary = categoryRoutingSummary[category];
         if (resolvedCountyFips && routingSummary) {
-          await db.insert(countyNotes).values({
+          await storage.createCountyNote({
             countyFips: resolvedCountyFips,
             authorUserId: String(userId),
             category: "operations",

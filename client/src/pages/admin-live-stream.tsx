@@ -161,6 +161,9 @@ export default function AdminLiveStreamPage() {
   const [derivedFocus, setDerivedFocus] = useState<"all" | "opportunity" | "friction" | "waste">(
     "all"
   );
+  const [marketFilter, setMarketFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [copyStatus, setCopyStatus] = useState("");
   const [expandedHistorySnapshot, setExpandedHistorySnapshot] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
@@ -375,7 +378,7 @@ export default function AdminLiveStreamPage() {
       if (baselineB !== baselineA) return baselineB - baselineA;
       return a.title.localeCompare(b.title);
     });
-  }, [derivedIntelligenceOutputs]);
+  }, [marketFilteredDerivedOutputs]);
   const opportunityOutputs = useMemo(() => {
     return rankedDerivedOutputs.filter((item) =>
       [
@@ -428,6 +431,12 @@ export default function AdminLiveStreamPage() {
     const timeout = window.setTimeout(() => setRefreshMessage(""), 2500);
     return () => window.clearTimeout(timeout);
   }, [refreshMessage]);
+
+  useEffect(() => {
+    if (!copyStatus) return;
+    const timeout = window.setTimeout(() => setCopyStatus(""), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [copyStatus]);
 
   const handlePresentationModeToggle = () => {
     const params = new URLSearchParams(queryString);
@@ -496,6 +505,36 @@ export default function AdminLiveStreamPage() {
       setExportError(error instanceof Error ? error.message : "Failed to export live stream");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleCopyDerived = async () => {
+    if (!focusedDerivedOutputs.length) {
+      setCopyStatus("Nothing to copy.");
+      return;
+    }
+
+    const payload = focusedDerivedOutputs
+      .map((item, index) => {
+        const baseline =
+          typeof item.baselineDeltaPct === "number"
+            ? item.baselineDeltaPct >= 0
+              ? `+${item.baselineDeltaPct}% vs baseline`
+              : `${item.baselineDeltaPct}% vs baseline`
+            : "baseline n/a";
+        return `${index + 1}. ${item.title}\nPriority: ${item.priority} | ${baseline}\n${item.narrative}`;
+      })
+      .join("\n\n");
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payload);
+      } else {
+        throw new Error("Clipboard API unavailable");
+      }
+      setCopyStatus("Copied.");
+    } catch {
+      setCopyStatus("Copy failed.");
     }
   };
 

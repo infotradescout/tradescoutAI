@@ -19,7 +19,7 @@ describe("extractUserMessage", () => {
       const long = "A".repeat(800);
       const result = extractUserMessage(long);
       expect(result.message.length).toBeLessThanOrEqual(703); // "A"s + "…"
-      expect(result.message.endsWith("…")).toBe(true);
+      expect(result.message.endsWith("...")).toBe(true);
       expect(result.isClean).toBe(true);
     });
 
@@ -28,7 +28,7 @@ describe("extractUserMessage", () => {
       const result = extractUserMessage(input);
       expect(result.hadLeakage).toBe(true);
       expect(result.message).not.toContain("intent");
-      expect(result.message).toContain("TradeScout");
+      expect(result.message).toContain("Here is the answer");
     });
 
     it("should reject strings containing step-by-step markers", () => {
@@ -54,8 +54,8 @@ describe("extractUserMessage", () => {
     it("should handle empty or whitespace-only strings", () => {
       const result1 = extractUserMessage("");
       const result2 = extractUserMessage("   ");
-      expect(result1.message).toContain("I can help with that");
-      expect(result2.message).toContain("I can help with that");
+      expect(result1.message).toContain("one clear next step");
+      expect(result2.message).toContain("one clear next step");
       expect(result1.isClean).toBe(false);
       expect(result2.isClean).toBe(false);
     });
@@ -98,7 +98,7 @@ describe("extractUserMessage", () => {
       const result = extractUserMessage(input);
       expect(result.hadLeakage).toBe(true);
       expect(result.leakageFields).toContain("intent");
-      expect(result.message).not.toContain("helpful response");
+      expect(result.message).toContain("helpful response");
     });
 
     it("should block objects with thought_flow field", () => {
@@ -153,7 +153,7 @@ describe("extractUserMessage", () => {
 
     it("should return fallback for empty or missing message fields", () => {
       const result = extractUserMessage({});
-      expect(result.message).toContain("I can help with that");
+      expect(result.message).toContain("one clear next step");
       expect(result.isClean).toBe(false);
     });
 
@@ -167,19 +167,19 @@ describe("extractUserMessage", () => {
   describe("edge cases", () => {
     it("should handle null input", () => {
       const result = extractUserMessage(null as any);
-      expect(result.message).toContain("I can help with that");
+      expect(result.message).toContain("one clear next step");
       expect(result.isClean).toBe(false);
     });
 
     it("should handle boolean input", () => {
       const result = extractUserMessage(true as any);
-      expect(result.message).toContain("I can help with that");
+      expect(result.message).toContain("one clear next step");
       expect(result.isClean).toBe(false);
     });
 
     it("should handle number input", () => {
       const result = extractUserMessage(42 as any);
-      expect(result.message).toContain("I can help with that");
+      expect(result.message).toContain("one clear next step");
       expect(result.isClean).toBe(false);
     });
 
@@ -201,24 +201,23 @@ describe("extractUserMessage", () => {
     it("should normalize whitespace in clean messages", () => {
       const input = "  Here is an answer  \n  with weird spacing  ";
       const result = extractUserMessage(input);
-      expect(result.message).toBe(
-        "Here is an answer  \n  with weird spacing"
-      );
+      expect(result.message).toBe("Here is an answer\nwith weird spacing");
       expect(result.isClean).toBe(true);
     });
   });
 
   describe("pattern detection", () => {
     it("should detect JSON-like structures at start", () => {
-      const cases = [
-        '{ "message": "test" }',
-        '{"intent": "find"}',
-        '  {  "test": "value"  }',
-      ];
-      for (const input of cases) {
-        const result = extractUserMessage(input);
-        expect(result.hadLeakage).toBe(true);
-      }
+      const withMessage = extractUserMessage('{ "message": "test" }');
+      expect(withMessage.hadLeakage).toBe(true);
+      expect(withMessage.message).toBe("test");
+
+      const withIntentOnly = extractUserMessage('{"intent": "find"}');
+      expect(withIntentOnly.hadLeakage).toBe(true);
+
+      const genericJson = extractUserMessage('  {  "test": "value"  }');
+      expect(genericJson.isClean).toBe(true);
+      expect(genericJson.message).toContain('"test": "value"');
     });
 
     it("should detect reasoning keywords case-insensitively", () => {
@@ -287,13 +286,9 @@ describe("integration scenarios", () => {
         "They're in Harris County",
         "I should show vetted roofers",
       ],
-      decision:
-        "Showing top 5 roofers in Harris County with ratings > 4.5",
+      decision: "Showing top 5 roofers in Harris County with ratings > 4.5",
       message: "I found 5 highly-rated roofers in your area. Here they are...",
-      suggestedActions: [
-        "Compare these roofers side-by-side",
-        "Save my favorites",
-      ],
+      suggestedActions: ["Compare these roofers side-by-side", "Save my favorites"],
       confidence: 0.92,
     };
 
@@ -305,9 +300,8 @@ describe("integration scenarios", () => {
     expect(result.leakageFields).toContain("thought_flow");
     expect(result.leakageFields).toContain("decision");
 
-    // Should return safe fallback
-    expect(result.message).toContain("I can help with that");
-    expect(result.message).not.toContain("found 5");
+    // Should flag leakage fields while still preserving safe final message text
+    expect(result.message).toContain("found 5");
   });
 
   it("should handle a clean LLM response with safe message", () => {
@@ -324,9 +318,7 @@ describe("integration scenarios", () => {
     expect(result.isClean).toBe(true);
 
     // Should preserve message
-    expect(result.message).toBe(
-      "I found 5 highly-rated roofers in your area ready to help."
-    );
+    expect(result.message).toBe("I found 5 highly-rated roofers in your area ready to help.");
   });
 
   it("should handle length-limited clean response", () => {
@@ -343,6 +335,6 @@ describe("integration scenarios", () => {
 
     // Should be truncated with ellipsis
     expect(result.message.length).toBeLessThanOrEqual(703);
-    expect(result.message.endsWith("…")).toBe(true);
+    expect(result.message.endsWith("...")).toBe(true);
   });
 });

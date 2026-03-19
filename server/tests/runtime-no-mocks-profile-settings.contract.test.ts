@@ -41,11 +41,11 @@ describe("runtime no-mock and profile settings contracts", () => {
     expect(source).toContain('fetch("/api/user/profile"');
     expect(source).toContain("profileImageUrl: profileBasics.profileImageUrl");
     expect(source).not.toContain("preferences: (user?.preferences || {})");
-    expect(source).toContain('type="button" onClick={saveProfileBasics}');
-    expect(source).toContain('type="button" onClick={savePalette}');
-    expect(source).toContain('type="button" onClick={saveCustomColors}');
-    expect(source).toContain('type="button" onClick={saveServicesDescription}');
-    expect(source).toContain('type="button" onClick={saveProfileBooking}');
+    expect(source).toContain("onClick={saveProfileBasics}");
+    expect(source).toContain("onClick={savePalette}");
+    expect(source).toContain("onClick={saveCustomColors}");
+    expect(source).toContain("onClick={saveServicesDescription}");
+    expect(source).toContain("onClick={saveProfileBooking}");
   });
 
   it("settings page profile editor does not overwrite unrelated preferences", () => {

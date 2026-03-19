@@ -524,7 +524,10 @@ export function toCategoryMomentumFinding(
   };
 }
 
-export function toTrustFrictionFinding(summary: ScoutActionSummary | null): LisaFeedItem | null {
+export function toTrustFrictionFinding(
+  summary: ScoutActionSummary | null,
+  baseline?: ActionSignalBaseline | null
+): LisaFeedItem | null {
   if (!summary) return null;
   if (summary.interactionCount <= 0) return null;
 

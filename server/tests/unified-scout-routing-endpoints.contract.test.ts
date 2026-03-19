@@ -34,4 +34,11 @@ describe("unified scout routing endpoint contracts", () => {
     expect(source).toContain('router.post("/tone/build"');
     expect(source).toContain('router.post("/trust/enrich-routing"');
   });
+
+  it("derives trust context from authenticated server state, not request body trust", () => {
+    const source = read("server/routes/scout.ts");
+
+    expect(source).toContain("const trust = buildServerTrustContext(req);");
+    expect(source).not.toContain("const trust = req.body?.trust;");
+  });
 });
