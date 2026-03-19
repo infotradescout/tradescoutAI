@@ -109,7 +109,8 @@ export function toEntityDiscoveryFinding(
 }
 
 export function toCountyCategoryDiscoveryFinding(
-  countySignal: CrawlerCountySignalRow | null
+  countySignal: CrawlerCountySignalRow | null,
+  baseline?: CrawlSignalBaseline | null
 ): LisaFeedItem | null {
   if (!countySignal) return null;
   const countyName = String(countySignal.county_name || "Unknown county");
@@ -125,7 +126,7 @@ export function toCountyCategoryDiscoveryFinding(
     sourceKind: "bot_visibility",
     headline: `${countyName}${stateCode ? `, ${stateCode}` : ""} is drawing stronger outside attention.`,
     narrative: formatDecisionNarrative({
-      what: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}.`,
+      what: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}.${baseline?.deltaPct !== null && baseline?.deltaPct !== undefined ? ` That is ${baseline.deltaPct >= 0 ? `${baseline.deltaPct}% above` : `${Math.abs(baseline.deltaPct)}% below`} the recent baseline.` : ""}`,
       why: "the outside world is trying harder to understand what exists in this county, which makes it a stronger visibility, coverage, and follow-up priority.",
       doNext:
         "treat this county as a higher-priority market for better pages, stronger entity coverage, and cleaner route readiness.",
@@ -147,7 +148,8 @@ export function toCountyCategoryDiscoveryFinding(
 }
 
 export function toRepairPressureFinding(
-  routeSignal: CrawlerRouteInsightRow | null
+  routeSignal: CrawlerRouteInsightRow | null,
+  baseline?: CrawlSignalBaseline | null
 ): LisaFeedItem | null {
   if (!routeSignal) return null;
   const path = String(routeSignal.path || "/");
@@ -164,7 +166,7 @@ export function toRepairPressureFinding(
     narrative:
       errors > 0
         ? formatDecisionNarrative({
-            what: `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404).`,
+            what: `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404).${baseline?.deltaPct !== null && baseline?.deltaPct !== undefined ? ` That is ${baseline.deltaPct >= 0 ? `${baseline.deltaPct}% above` : `${Math.abs(baseline.deltaPct)}% below`} the recent baseline.` : ""}`,
             why: "outside systems are trying to understand or index this route before the product is ready for them, so attention is being wasted.",
             doNext:
               "fix or redirect this path quickly so machine attention lands on a healthy, canonical destination instead of a dead end.",
@@ -454,7 +456,8 @@ export function toCategorySignalConcentrationFinding(params: {
 }
 
 export function toCategoryMomentumFinding(
-  topBotCrawlSignal: BotCrawlAggregateSignal | null
+  topBotCrawlSignal: BotCrawlAggregateSignal | null,
+  baseline?: CrawlSignalBaseline | null
 ): LisaFeedItem | null {
   if (!topBotCrawlSignal?.trade) return null;
   const recrawls = Number(topBotCrawlSignal.recrawlUrls || 0);
@@ -473,7 +476,7 @@ export function toCategoryMomentumFinding(
     sourceKind: "bot_crawl_signals",
     headline: `${tradeLabel} is ${momentumMode} in ${locationLabel}.`,
     narrative: formatDecisionNarrative({
-      what: `${tradeLabel} is showing ${hits} machine-attention hits with ${recrawls} repeat crawls and ${firstSeen} newly seen URLs in ${locationLabel}.`,
+      what: `${tradeLabel} is showing ${hits} machine-attention hits with ${recrawls} repeat crawls and ${firstSeen} newly seen URLs in ${locationLabel}.${baseline?.deltaPct !== null && baseline?.deltaPct !== undefined ? ` That is ${baseline.deltaPct >= 0 ? `${baseline.deltaPct}% above` : `${Math.abs(baseline.deltaPct)}% below`} the recent baseline.` : ""}`,
       why:
         momentumMode === "accelerating"
           ? "repeat crawls are outpacing new discovery, which suggests outside systems are returning to this category because it is gaining importance."
@@ -546,8 +549,8 @@ export function buildTradeScoutInternalLisaOutputs(params: {
 }): LisaFeedItem[] {
   return [
     toEntityDiscoveryFinding(params.topBotCrawlSignal, params.entityDiscoveryBaseline),
-    toCountyCategoryDiscoveryFinding(params.topCrawlerCounty),
-    toRepairPressureFinding(params.topBrokenCrawlerRoute),
+    toCountyCategoryDiscoveryFinding(params.topCrawlerCounty, params.entityDiscoveryBaseline),
+    toRepairPressureFinding(params.topBrokenCrawlerRoute, params.entityDiscoveryBaseline),
     toActionGatingSummaryFinding(params.actionSummary),
     toAttentionActionGapFinding({
       topBotCrawlSignal: params.topBotCrawlSignal,
@@ -571,7 +574,7 @@ export function buildTradeScoutInternalLisaOutputs(params: {
       topCrawlerCounty: params.topCrawlerCounty,
       actionSummary: params.actionSummary,
     }),
-    toCategoryMomentumFinding(params.topBotCrawlSignal),
+    toCategoryMomentumFinding(params.topBotCrawlSignal, params.entityDiscoveryBaseline),
     toTrustFrictionFinding(params.actionSummary),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }
