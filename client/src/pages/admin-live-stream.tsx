@@ -24,6 +24,8 @@ type LiveStreamItem = {
   title: string;
   narrative: string;
   source: string;
+  lane?: string;
+  signalClass?: string;
 };
 
 type LiveStreamResponse = {
@@ -571,6 +573,18 @@ export default function AdminLiveStreamPage() {
                           {item.priority}
                         </Badge>
                       </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                      {item.lane ? (
+                        <Badge variant="outline" className="border-violet-200/20 text-violet-100">
+                          lane: {item.lane}
+                        </Badge>
+                      ) : null}
+                      {item.signalClass ? (
+                        <Badge variant="outline" className="border-violet-200/20 text-violet-100">
+                          signal: {item.signalClass}
+                        </Badge>
+                      ) : null}
                     </div>
                     <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
                   </div>

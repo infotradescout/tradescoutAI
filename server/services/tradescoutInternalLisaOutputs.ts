@@ -68,6 +68,8 @@ export function toEntityDiscoveryFinding(
     narrative: `${signal.botFamily} generated ${signal.hits} hits across ${signal.uniqueUrls} public business URLs${signal.recrawlUrls > 0 ? ` with ${signal.recrawlUrls} recrawls` : ""}. ${signal.topPath ? `${signal.topPath} is the hottest entity route right now.` : "Public business discovery is carrying the strongest current external attention."}`,
     evidence: [
       "internal_lisa_output=entity_discovery",
+      "lane=crawl_visibility",
+      "signal_class=entity_discovery",
       `route_family=${signal.routeFamily}`,
       `bot_family=${signal.botFamily}`,
       `hits=${signal.hits}`,
@@ -105,6 +107,8 @@ export function toCountyCategoryDiscoveryFinding(
     narrative: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}. This is county-first discovery pressure and should influence coverage, content, and route prioritization.`,
     evidence: [
       "internal_lisa_output=county_category_discovery",
+      "lane=crawl_visibility",
+      "signal_class=county_category_discovery",
       `county_name=${countyName}`,
       stateCode ? `state_code=${stateCode}` : "state_code=none",
       `source_surface=${sourceSurface}`,
@@ -138,6 +142,8 @@ export function toRepairPressureFinding(
         : `${path} is drawing ${hits} crawler hits without current error pressure. Keep this route enriched and canonical so demand keeps compounding cleanly.`,
     evidence: [
       "internal_lisa_output=repair_pressure",
+      "lane=crawl_visibility",
+      "signal_class=repair_pressure",
       `path=${path}`,
       `hits=${hits}`,
       `error_count=${errors}`,

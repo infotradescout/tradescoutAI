@@ -20,6 +20,8 @@ export type LiveStreamSnapshotEntry = {
   title: string;
   narrative: string;
   source: string;
+  lane?: string;
+  signalClass?: string;
   stateCode: string | null;
   countyName: string | null;
 };
@@ -566,6 +568,10 @@ export async function buildLiveStreamSnapshot(params?: {
       title: item.headline,
       narrative: item.narrative,
       source: item.sourceKind,
+      lane: item.evidence.find((entry) => entry.startsWith("lane="))?.split("=")[1] || undefined,
+      signalClass:
+        item.evidence.find((entry) => entry.startsWith("signal_class="))?.split("=")[1] ||
+        undefined,
       stateCode: null,
       countyName:
         item.scopeType === "county" && item.scopeRef
