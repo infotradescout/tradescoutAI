@@ -322,6 +322,7 @@ export default function AdminLiveStreamPage() {
         "county_opportunity_concentration",
         "attention_finding_dead_ends",
         "category_signal_concentration",
+        "category_momentum",
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
@@ -331,6 +332,7 @@ export default function AdminLiveStreamPage() {
         "county_opportunity_concentration",
         "visibility_outpacing_coverage",
         "category_signal_concentration",
+        "category_momentum",
       ].includes(item.signalClass || "")
     );
   }, [derivedIntelligenceOutputs]);

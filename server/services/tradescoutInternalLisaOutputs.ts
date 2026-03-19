@@ -451,6 +451,51 @@ export function toCategorySignalConcentrationFinding(params: {
   };
 }
 
+export function toCategoryMomentumFinding(
+  topBotCrawlSignal: BotCrawlAggregateSignal | null
+): LisaFeedItem | null {
+  if (!topBotCrawlSignal?.trade) return null;
+  const recrawls = Number(topBotCrawlSignal.recrawlUrls || 0);
+  const firstSeen = Number(topBotCrawlSignal.firstSeenUrls || 0);
+  const hits = Number(topBotCrawlSignal.hits || 0);
+  if (hits <= 0) return null;
+
+  const momentumMode =
+    recrawls > firstSeen ? "accelerating" : firstSeen > recrawls ? "emerging" : "steady";
+  const tradeLabel = String(topBotCrawlSignal.trade).replace(/[-_]/g, " ");
+  const locationLabel = topBotCrawlSignal.county || topBotCrawlSignal.state || "this market";
+
+  return {
+    id: `internal-lisa-category-momentum-${topBotCrawlSignal.trade}-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
+    priority: hits >= 50 ? "high" : hits >= 15 ? "medium" : "low",
+    sourceKind: "bot_crawl_signals",
+    headline: `${tradeLabel} is ${momentumMode} in ${locationLabel}.`,
+    narrative: formatDecisionNarrative({
+      what: `${tradeLabel} is showing ${hits} machine-attention hits with ${recrawls} repeat crawls and ${firstSeen} newly seen URLs in ${locationLabel}.`,
+      why:
+        momentumMode === "accelerating"
+          ? "repeat crawls are outpacing new discovery, which suggests outside systems are returning to this category because it is gaining importance."
+          : momentumMode === "emerging"
+            ? "newly seen URLs are outpacing repeat crawls, which suggests this category is opening up as a fresh area of attention rather than just being revisited."
+            : "repeat and newly seen discovery are balanced, which suggests the category is holding attention instead of spiking or fading.",
+      doNext: `watch ${tradeLabel} in ${locationLabel} across the next windows and decide whether to strengthen coverage, improve category pages, or compare it against adjacent categories for faster movement.`,
+    }),
+    evidence: [
+      "internal_lisa_output=category_momentum",
+      "lane=crawl_visibility",
+      "signal_class=category_momentum",
+      `trade=${topBotCrawlSignal.trade}`,
+      `hits=${hits}`,
+      `recrawls=${recrawls}`,
+      `first_seen_urls=${firstSeen}`,
+      `momentum_mode=${momentumMode}`,
+    ],
+    freshnessMinutes: 15,
+    scopeType: "category",
+    scopeRef: `${topBotCrawlSignal.trade}:${locationLabel}`,
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -484,5 +529,6 @@ export function buildTradeScoutInternalLisaOutputs(params: {
       topCrawlerCounty: params.topCrawlerCounty,
       actionSummary: params.actionSummary,
     }),
+    toCategoryMomentumFinding(params.topBotCrawlSignal),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }
