@@ -1,5 +1,5 @@
 import type { LisaFeedItem, LisaFeedPriority } from "../../shared/lisa";
-import type { CrawlSignalBaseline } from "./internalLisaBaselineService";
+import type { ActionSignalBaseline, CrawlSignalBaseline } from "./internalLisaBaselineService";
 
 type CrawlerCountySignalRow = {
   county_fips: string | null;
@@ -202,7 +202,8 @@ export function toRepairPressureFinding(
 }
 
 export function toActionGatingSummaryFinding(
-  summary: ScoutActionSummary | null
+  summary: ScoutActionSummary | null,
+  baseline?: ActionSignalBaseline | null
 ): LisaFeedItem | null {
   if (!summary) return null;
   if (summary.interactionCount <= 0) return null;
@@ -220,7 +221,7 @@ export function toActionGatingSummaryFinding(
     sourceKind: "scout_interactions",
     headline: `Human intent is successfully turning into action inside Scout.`,
     narrative: formatDecisionNarrative({
-      what: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate. ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}.`,
+      what: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate.${baseline?.deltaPct !== null && baseline?.deltaPct !== undefined ? ` Interaction volume is ${baseline.deltaPct >= 0 ? `${baseline.deltaPct}% above` : `${Math.abs(baseline.deltaPct)}% below`} the recent baseline.` : ""} ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}.`,
       why: "this is the human-side counterpart to machine attention: people are not just looking, they are moving forward.",
       doNext:
         "compare these action signals against machine attention so you can spot where visibility is converting well and where interest is stalling before action.",
@@ -235,6 +236,9 @@ export function toActionGatingSummaryFinding(
       `avg_confidence=${summary.avgConfidence}`,
       summary.topCountyName ? `top_county=${summary.topCountyName}` : "top_county=none",
       summary.topIntent ? `top_intent=${summary.topIntent}` : "top_intent=none",
+      baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
+        ? `baseline_delta_pct=${baseline.deltaPct}`
+        : "baseline_delta_pct=none",
     ],
     freshnessMinutes: minutesSince(summary.lastSeenAt),
     scopeType: summary.topCountyName ? "county" : "global",
@@ -531,7 +535,7 @@ export function toTrustFrictionFinding(summary: ScoutActionSummary | null): Lisa
     sourceKind: "scout_interactions",
     headline: `Trust friction is slowing how easily intent becomes action.`,
     narrative: formatDecisionNarrative({
-      what: `${summary.interactionCount} Scout interactions are converting at ${successRate}% with average confidence ${avgConfidence}. ${summary.topCountyName ? `${summary.topCountyName} is the strongest county in this trust picture.` : "No single county dominates this trust picture yet."}`,
+      what: `${summary.interactionCount} Scout interactions are converting at ${successRate}% with average confidence ${avgConfidence}.${baseline?.deltaPct !== null && baseline?.deltaPct !== undefined ? ` Interaction volume is ${baseline.deltaPct >= 0 ? `${baseline.deltaPct}% above` : `${Math.abs(baseline.deltaPct)}% below`} the recent baseline.` : ""} ${summary.topCountyName ? `${summary.topCountyName} is the strongest county in this trust picture.` : "No single county dominates this trust picture yet."}`,
       why: "when success rates and confidence soften at the same time, demand may be present but trust, readiness, or fit is slowing progress.",
       doNext:
         "look for categories or counties where intent is real but confidence and successful outcomes are weaker, then tighten trust signals, clearer pages, or gating guidance there first.",
@@ -545,6 +549,9 @@ export function toTrustFrictionFinding(summary: ScoutActionSummary | null): Lisa
       `avg_confidence=${avgConfidence}`,
       `friction_score=${frictionScore}`,
       summary.topCountyName ? `top_county=${summary.topCountyName}` : "top_county=none",
+      baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
+        ? `baseline_delta_pct=${baseline.deltaPct}`
+        : "baseline_delta_pct=none",
     ],
     freshnessMinutes: minutesSince(summary.lastSeenAt),
     scopeType: summary.topCountyName ? "county" : "global",
@@ -558,12 +565,13 @@ export function buildTradeScoutInternalLisaOutputs(params: {
   topBrokenCrawlerRoute: CrawlerRouteInsightRow | null;
   actionSummary: ScoutActionSummary | null;
   entityDiscoveryBaseline?: CrawlSignalBaseline | null;
+  actionBaseline?: ActionSignalBaseline | null;
 }): LisaFeedItem[] {
   return [
     toEntityDiscoveryFinding(params.topBotCrawlSignal, params.entityDiscoveryBaseline),
     toCountyCategoryDiscoveryFinding(params.topCrawlerCounty, params.entityDiscoveryBaseline),
     toRepairPressureFinding(params.topBrokenCrawlerRoute, params.entityDiscoveryBaseline),
-    toActionGatingSummaryFinding(params.actionSummary),
+    toActionGatingSummaryFinding(params.actionSummary, params.actionBaseline),
     toAttentionActionGapFinding({
       topBotCrawlSignal: params.topBotCrawlSignal,
       actionSummary: params.actionSummary,
@@ -587,6 +595,6 @@ export function buildTradeScoutInternalLisaOutputs(params: {
       actionSummary: params.actionSummary,
     }),
     toCategoryMomentumFinding(params.topBotCrawlSignal, params.entityDiscoveryBaseline),
-    toTrustFrictionFinding(params.actionSummary),
+    toTrustFrictionFinding(params.actionSummary, params.actionBaseline),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }

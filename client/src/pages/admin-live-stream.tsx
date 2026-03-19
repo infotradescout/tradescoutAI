@@ -332,9 +332,21 @@ export default function AdminLiveStreamPage() {
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
+  const availableMarkets = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of derivedIntelligenceOutputs) {
+      const match = item.title.match(/ in ([A-Za-z0-9 ,\-]+)\.?$/);
+      if (match?.[1]) set.add(match[1].trim());
+    }
+    return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [derivedIntelligenceOutputs]);
+  const marketFilteredDerivedOutputs = useMemo(() => {
+    if (marketFilter === "all") return derivedIntelligenceOutputs;
+    return derivedIntelligenceOutputs.filter((item) => item.title.includes(` in ${marketFilter}`));
+  }, [derivedIntelligenceOutputs, marketFilter]);
   const rankedDerivedOutputs = useMemo(() => {
     const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 } as const;
-    return [...derivedIntelligenceOutputs].sort((a, b) => {
+    return [...marketFilteredDerivedOutputs].sort((a, b) => {
       const priorityDelta = priorityWeight[b.priority] - priorityWeight[a.priority];
       if (priorityDelta !== 0) return priorityDelta;
       const baselineA = Math.abs(a.baselineDeltaPct ?? 0);
@@ -674,6 +686,17 @@ export default function AdminLiveStreamPage() {
                         </button>
                       ))}
                     </div>
+                    <select
+                      value={marketFilter}
+                      onChange={(e) => setMarketFilter(e.target.value)}
+                      className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
+                    >
+                      {availableMarkets.map((market) => (
+                        <option key={market} value={market}>
+                          {market === "all" ? "all markets" : market}
+                        </option>
+                      ))}
+                    </select>
                     <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
                       {focusedDerivedOutputs.length} shown
                     </Badge>

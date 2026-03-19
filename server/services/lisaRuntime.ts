@@ -20,7 +20,7 @@ import {
   resolveMaxAgeMinutesForSignal,
 } from "../../shared/signalDurability";
 import { buildTradeScoutInternalLisaOutputs } from "./tradescoutInternalLisaOutputs";
-import { getBotSignalBaseline } from "./internalLisaBaselineService";
+import { getBotSignalBaseline, getScoutInteractionBaseline } from "./internalLisaBaselineService";
 
 type QueryResultRow = Record<string, unknown>;
 type ScoutDemandRow = {
@@ -529,6 +529,12 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
         currentHits: topBotCrawlSignal.hits,
       })
     : null;
+  const actionBaseline =
+    interactionCount > 0
+      ? await getScoutInteractionBaseline({
+          currentValue: interactionCount,
+        })
+      : null;
 
   const feed: LisaFeedItem[] = [];
 
@@ -782,6 +788,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       topCrawlerCounty,
       topBrokenCrawlerRoute,
       entityDiscoveryBaseline,
+      actionBaseline,
       actionSummary: {
         interactionCount,
         successfulCount,
