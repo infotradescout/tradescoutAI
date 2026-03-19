@@ -309,6 +309,9 @@ export default function AdminLiveStreamPage() {
     return (crawlerTelemetry?.topCounties || []).slice(0, 5);
   }, [crawlerTelemetry?.topCounties]);
   const topCountyDiscoveryLead = topCountyDiscovery[0] || null;
+  const internalLisaOutputs = useMemo(() => {
+    return (data?.stream || []).filter((item) => item.id.startsWith("internal-lisa-"));
+  }, [data?.stream]);
   const crawlerErrorTotal = useMemo(() => {
     if (!crawlerTelemetry) return 0;
     return (
@@ -522,6 +525,57 @@ export default function AdminLiveStreamPage() {
               {topBotDemandCluster?.narrative ||
                 data?.summary.topBotCrawlHeadline ||
                 "No bot demand cluster yet"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
+                  TradeScout Internal LISA Outputs
+                </div>
+                <div className="mt-2 text-sm text-violet-50">
+                  {internalLisaOutputs.length > 0
+                    ? `TradeScout internal LISA is emitting ${internalLisaOutputs.length} normalized outputs into the live feed right now.`
+                    : "No normalized internal-LISA outputs have surfaced in the live feed yet."}
+                </div>
+              </div>
+              <Badge variant="outline" className="border-violet-200/20 text-violet-50">
+                {internalLisaOutputs.length} outputs
+              </Badge>
+            </div>
+            <div className="mt-4 space-y-2">
+              {internalLisaOutputs.length === 0 ? (
+                <div className="text-sm text-violet-100/70">
+                  Waiting for entity discovery, county/category discovery, or repair pressure
+                  outputs.
+                </div>
+              ) : (
+                internalLisaOutputs.slice(0, 3).map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-2"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm text-violet-50">{item.title}</div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={
+                            truthTone[item.truthStatus === "current" ? "current" : "stale"]
+                          }
+                        >
+                          {item.truthStatus === "current" ? "current" : "stale"}
+                        </Badge>
+                        <Badge variant="outline" className={priorityTone[item.priority]}>
+                          {item.priority}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
