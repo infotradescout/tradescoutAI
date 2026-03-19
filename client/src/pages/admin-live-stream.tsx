@@ -324,6 +324,23 @@ export default function AdminLiveStreamPage() {
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
+  const opportunityOutputs = useMemo(() => {
+    return derivedIntelligenceOutputs.filter((item) =>
+      ["county_opportunity_concentration", "visibility_outpacing_coverage"].includes(
+        item.signalClass || ""
+      )
+    );
+  }, [derivedIntelligenceOutputs]);
+  const frictionOutputs = useMemo(() => {
+    return derivedIntelligenceOutputs.filter((item) =>
+      ["attention_action_gap"].includes(item.signalClass || "")
+    );
+  }, [derivedIntelligenceOutputs]);
+  const wasteOutputs = useMemo(() => {
+    return derivedIntelligenceOutputs.filter((item) =>
+      ["attention_finding_dead_ends"].includes(item.signalClass || "")
+    );
+  }, [derivedIntelligenceOutputs]);
   const crawlerErrorTotal = useMemo(() => {
     if (!crawlerTelemetry) return 0;
     return (
@@ -567,49 +584,90 @@ export default function AdminLiveStreamPage() {
                     {derivedIntelligenceOutputs.length} surfaced
                   </Badge>
                 </div>
-                <div className="mt-3 space-y-2">
-                  {derivedIntelligenceOutputs.slice(0, 2).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-md border border-fuchsia-200/10 bg-black/20 px-3 py-2"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm text-fuchsia-50">{item.title}</div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={
-                              truthTone[item.truthStatus === "current" ? "current" : "stale"]
-                            }
-                          >
-                            {item.truthStatus === "current" ? "current" : "stale"}
-                          </Badge>
-                          <Badge variant="outline" className={priorityTone[item.priority]}>
-                            {item.priority}
-                          </Badge>
-                        </div>
+                <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                  <div className="rounded-md border border-emerald-300/20 bg-emerald-500/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-100/70">
+                        Opportunity
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                        {item.lane ? (
-                          <Badge
-                            variant="outline"
-                            className="border-fuchsia-200/20 text-fuchsia-100"
-                          >
-                            lane: {item.lane}
-                          </Badge>
-                        ) : null}
-                        {item.signalClass ? (
-                          <Badge
-                            variant="outline"
-                            className="border-fuchsia-200/20 text-fuchsia-100"
-                          >
-                            signal: {item.signalClass}
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 text-xs text-fuchsia-100/75">{item.narrative}</div>
+                      <Badge variant="outline" className="border-emerald-200/20 text-emerald-50">
+                        {opportunityOutputs.length}
+                      </Badge>
                     </div>
-                  ))}
+                    <div className="mt-3 space-y-2">
+                      {opportunityOutputs.length === 0 ? (
+                        <div className="text-xs text-emerald-100/70">
+                          No opportunity signals surfaced yet.
+                        </div>
+                      ) : (
+                        opportunityOutputs.slice(0, 2).map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2"
+                          >
+                            <div className="text-sm text-emerald-50">{item.title}</div>
+                            <div className="mt-1 text-xs text-emerald-100/75">{item.narrative}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-amber-300/20 bg-amber-500/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-amber-100/70">
+                        Friction
+                      </div>
+                      <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                        {frictionOutputs.length}
+                      </Badge>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {frictionOutputs.length === 0 ? (
+                        <div className="text-xs text-amber-100/70">
+                          No friction signals surfaced yet.
+                        </div>
+                      ) : (
+                        frictionOutputs.slice(0, 2).map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
+                          >
+                            <div className="text-sm text-amber-50">{item.title}</div>
+                            <div className="mt-1 text-xs text-amber-100/75">{item.narrative}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border border-rose-300/20 bg-rose-500/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-rose-100/70">
+                        Waste
+                      </div>
+                      <Badge variant="outline" className="border-rose-200/20 text-rose-50">
+                        {wasteOutputs.length}
+                      </Badge>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {wasteOutputs.length === 0 ? (
+                        <div className="text-xs text-rose-100/70">
+                          No waste signals surfaced yet.
+                        </div>
+                      ) : (
+                        wasteOutputs.slice(0, 2).map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-md border border-rose-200/10 bg-black/20 px-3 py-2"
+                          >
+                            <div className="text-sm text-rose-50">{item.title}</div>
+                            <div className="mt-1 text-xs text-rose-100/75">{item.narrative}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : null}
