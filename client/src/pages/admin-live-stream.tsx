@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 
 type LiveStreamItem = {
@@ -153,6 +154,9 @@ export default function AdminLiveStreamPage() {
   const [county, setCounty] = useState("all");
   const [limit, setLimit] = useState("20");
   const [historyDays, setHistoryDays] = useState("7");
+  const [derivedFocus, setDerivedFocus] = useState<"all" | "opportunity" | "friction" | "waste">(
+    "all"
+  );
   const [expandedHistorySnapshot, setExpandedHistorySnapshot] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
@@ -347,6 +351,12 @@ export default function AdminLiveStreamPage() {
       ["attention_finding_dead_ends"].includes(item.signalClass || "")
     );
   }, [derivedIntelligenceOutputs]);
+  const focusedDerivedOutputs = useMemo(() => {
+    if (derivedFocus === "opportunity") return opportunityOutputs;
+    if (derivedFocus === "friction") return frictionOutputs;
+    if (derivedFocus === "waste") return wasteOutputs;
+    return derivedIntelligenceOutputs;
+  }, [derivedFocus, derivedIntelligenceOutputs, opportunityOutputs, frictionOutputs, wasteOutputs]);
   const crawlerErrorTotal = useMemo(() => {
     if (!crawlerTelemetry) return 0;
     return (
@@ -586,9 +596,32 @@ export default function AdminLiveStreamPage() {
                   <div className="text-xs uppercase tracking-[0.24em] text-fuchsia-100/70">
                     Derived Intelligence
                   </div>
-                  <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
-                    {derivedIntelligenceOutputs.length} surfaced
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 rounded-md border border-fuchsia-200/20 bg-black/20 p-1">
+                      {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setDerivedFocus(mode)}
+                          className={cn(
+                            "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                            derivedFocus === mode
+                              ? "bg-fuchsia-500/20 text-fuchsia-50"
+                              : "text-fuchsia-100/60 hover:text-fuchsia-50"
+                          )}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                    <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
+                      {focusedDerivedOutputs.length} shown
+                    </Badge>
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-fuchsia-100/70">
+                  Focus this view on opportunity, friction, or waste when you want a cleaner
+                  strategic read instead of the full mixed picture.
                 </div>
                 <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
                   <div className="rounded-md border border-emerald-300/20 bg-emerald-500/10 p-3">

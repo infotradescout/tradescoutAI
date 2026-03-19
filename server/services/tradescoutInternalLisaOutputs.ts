@@ -245,7 +245,7 @@ export function toAttentionActionGapFinding(params: {
     id: `internal-lisa-attention-action-gap-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
     priority: attentionPerAction >= 3 ? "high" : attentionPerAction >= 1.5 ? "medium" : "low",
     sourceKind: "bot_crawl_signals",
-    headline: `Machine attention and human action are diverging in useful ways.`,
+    headline: `Attention is outrunning action in a way that can be measured.`,
     narrative: formatDecisionNarrative({
       what: `Top machine attention is generating ${topBotCrawlSignal.hits} crawl hits while Scout is seeing ${actionSummary.interactionCount} real interactions, or about ${attentionPerAction} attention signals per action.`,
       why: "this helps reveal whether visibility is outrunning action or whether attention is converting into real movement.",
@@ -287,7 +287,7 @@ export function toVisibilityOutrunningCoverageFinding(params: {
     id: `internal-lisa-visibility-coverage-gap-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
     priority: ratio >= 2 ? "high" : ratio >= 1.2 ? "medium" : "low",
     sourceKind: "bot_crawl_signals",
-    headline: `Visibility is outrunning coverage in ${topBotCrawlSignal.county || topCrawlerCounty.county_name || "this market"}.`,
+    headline: `Visibility is arriving faster than coverage in ${topBotCrawlSignal.county || topCrawlerCounty.county_name || "this market"}.`,
     narrative: formatDecisionNarrative({
       what: `Machine attention is generating ${visibilityPressure} top-line crawl hits while the leading county discovery surface is only carrying ${countyCoverage} requests, a visibility-to-coverage ratio of ${ratio}.`,
       why: "this usually means outside systems are trying to learn more about a market faster than your current county/category surface is absorbing that attention.",
@@ -512,7 +512,7 @@ export function toTrustFrictionFinding(summary: ScoutActionSummary | null): Lisa
       .replace(/\s+/g, "-")}`,
     priority: frictionScore >= 45 ? "high" : frictionScore >= 20 ? "medium" : "low",
     sourceKind: "scout_interactions",
-    headline: `Trust friction is shaping how easily intent becomes action.`,
+    headline: `Trust friction is slowing how easily intent becomes action.`,
     narrative: formatDecisionNarrative({
       what: `${summary.interactionCount} Scout interactions are converting at ${successRate}% with average confidence ${avgConfidence}. ${summary.topCountyName ? `${summary.topCountyName} is the strongest county in this trust picture.` : "No single county dominates this trust picture yet."}`,
       why: "when success rates and confidence soften at the same time, demand may be present but trust, readiness, or fit is slowing progress.",
