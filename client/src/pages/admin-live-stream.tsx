@@ -28,6 +28,9 @@ type LiveStreamItem = {
   lane?: string;
   signalClass?: string;
   baselineDeltaPct?: number;
+  category?: string;
+  county?: string;
+  state?: string;
 };
 
 type LiveStreamResponse = {

@@ -97,6 +97,7 @@ export function toEntityDiscoveryFinding(
       `recrawls=${signal.recrawlUrls}`,
       signal.county ? `county=${signal.county}` : "county=none",
       signal.state ? `state=${signal.state}` : "state=none",
+      signal.trade ? `category=${signal.trade}` : "category=none",
       signal.topPath ? `top_path=${signal.topPath}` : "top_path=none",
       baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
         ? `baseline_delta_pct=${baseline.deltaPct}`
@@ -143,6 +144,8 @@ export function toCountyCategoryDiscoveryFinding(
       `source_surface=${sourceSurface}`,
       `request_count=${requestCount}`,
       countySignal.county_fips ? `county_fips=${countySignal.county_fips}` : "county_fips=none",
+      `county=${countyName}`,
+      stateCode ? `state=${stateCode}` : "state=none",
       baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
         ? `baseline_delta_pct=${baseline.deltaPct}`
         : "baseline_delta_pct=none",
@@ -411,6 +414,9 @@ export function toAttentionFindingDeadEndsFinding(params: {
       "lane=crawl_visibility",
       "signal_class=attention_finding_dead_ends",
       `path=${path}`,
+      topBotCrawlSignal?.county ? `county=${topBotCrawlSignal.county}` : "county=none",
+      topBotCrawlSignal?.state ? `state=${topBotCrawlSignal.state}` : "state=none",
+      topBotCrawlSignal?.trade ? `category=${topBotCrawlSignal.trade}` : "category=none",
       `broken_hits=${brokenHits}`,
       `broken_errors=${brokenErrors}`,
       `missing_count=${missing}`,
@@ -457,6 +463,7 @@ export function toCategorySignalConcentrationFinding(params: {
       "lane=crawl_visibility",
       "signal_class=category_signal_concentration",
       `trade=${topBotCrawlSignal.trade}`,
+      `category=${topBotCrawlSignal.trade}`,
       `machine_attention_hits=${attention}`,
       `county_surface_requests=${countyCoverage}`,
       `human_action_count=${humanAction}`,

@@ -23,6 +23,9 @@ export type LiveStreamSnapshotEntry = {
   lane?: string;
   signalClass?: string;
   baselineDeltaPct?: number;
+  category?: string;
+  county?: string;
+  state?: string;
   stateCode: string | null;
   countyName: string | null;
 };
