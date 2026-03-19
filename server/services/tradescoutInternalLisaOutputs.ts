@@ -271,6 +271,48 @@ export function toAttentionActionGapFinding(params: {
   };
 }
 
+export function toVisibilityOutrunningCoverageFinding(params: {
+  topBotCrawlSignal: BotCrawlAggregateSignal | null;
+  topCrawlerCounty: CrawlerCountySignalRow | null;
+}): LisaFeedItem | null {
+  const { topBotCrawlSignal, topCrawlerCounty } = params;
+  if (!topBotCrawlSignal || !topCrawlerCounty) return null;
+  const visibilityPressure = Number(topBotCrawlSignal.hits || 0);
+  const countyCoverage = Number(topCrawlerCounty.request_count || 0);
+  if (visibilityPressure <= 0 || countyCoverage <= 0) return null;
+
+  const ratio = Number((visibilityPressure / Math.max(1, countyCoverage)).toFixed(2));
+
+  return {
+    id: `internal-lisa-visibility-coverage-gap-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
+    priority: ratio >= 2 ? "high" : ratio >= 1.2 ? "medium" : "low",
+    sourceKind: "bot_crawl_signals",
+    headline: `Visibility is outrunning coverage in ${topBotCrawlSignal.county || topCrawlerCounty.county_name || "this market"}.`,
+    narrative: formatDecisionNarrative({
+      what: `Machine attention is generating ${visibilityPressure} top-line crawl hits while the leading county discovery surface is only carrying ${countyCoverage} requests, a visibility-to-coverage ratio of ${ratio}.`,
+      why: "this usually means outside systems are trying to learn more about a market faster than your current county/category surface is absorbing that attention.",
+      doNext:
+        "expand county pages, strengthen category and entity coverage, and make sure the public surface in this market is rich enough to hold the visibility it is already attracting.",
+    }),
+    evidence: [
+      "internal_lisa_output=visibility_outpacing_coverage",
+      "lane=crawl_visibility",
+      "signal_class=visibility_outpacing_coverage",
+      `machine_attention_hits=${visibilityPressure}`,
+      `county_surface_requests=${countyCoverage}`,
+      `visibility_coverage_ratio=${ratio}`,
+      topBotCrawlSignal.county ? `county=${topBotCrawlSignal.county}` : "county=none",
+      topBotCrawlSignal.state ? `state=${topBotCrawlSignal.state}` : "state=none",
+    ],
+    freshnessMinutes: 15,
+    scopeType: topBotCrawlSignal.county || topCrawlerCounty.county_name ? "county" : "global",
+    scopeRef:
+      topBotCrawlSignal.county && topBotCrawlSignal.state
+        ? `${String(topBotCrawlSignal.state).toUpperCase()}-${topBotCrawlSignal.county}`
+        : topCrawlerCounty.county_fips || topBotCrawlSignal.state || "global",
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -285,6 +327,10 @@ export function buildTradeScoutInternalLisaOutputs(params: {
     toAttentionActionGapFinding({
       topBotCrawlSignal: params.topBotCrawlSignal,
       actionSummary: params.actionSummary,
+    }),
+    toVisibilityOutrunningCoverageFinding({
+      topBotCrawlSignal: params.topBotCrawlSignal,
+      topCrawlerCounty: params.topCrawlerCounty,
     }),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }
