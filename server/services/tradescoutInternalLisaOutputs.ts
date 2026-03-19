@@ -1,4 +1,5 @@
 import type { LisaFeedItem, LisaFeedPriority } from "../../shared/lisa";
+import type { CrawlSignalBaseline } from "./internalLisaBaselineService";
 
 type CrawlerCountySignalRow = {
   county_fips: string | null;
@@ -62,7 +63,8 @@ function formatDecisionNarrative(parts: { what: string; why: string; doNext: str
 }
 
 export function toEntityDiscoveryFinding(
-  signal: BotCrawlAggregateSignal | null
+  signal: BotCrawlAggregateSignal | null,
+  baseline?: CrawlSignalBaseline | null
 ): LisaFeedItem | null {
   if (!signal) return null;
   if (signal.routeFamily !== "public_business") return null;
@@ -79,7 +81,7 @@ export function toEntityDiscoveryFinding(
     sourceKind: "bot_crawl_signals",
     headline: `Outside attention is concentrating on businesses in ${countyLabel}.`,
     narrative: formatDecisionNarrative({
-      what: `${signal.hits} crawler visits touched ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}. ${signal.topPath ? `Right now ${signal.topPath} is attracting the most repeat machine attention.` : "Machine attention is clustering around local business visibility here."}`,
+      what: `${signal.hits} crawler visits touched ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}.${baseline?.deltaPct !== null && baseline?.deltaPct !== undefined ? ` That is ${baseline.deltaPct >= 0 ? `${baseline.deltaPct}% above` : `${Math.abs(baseline.deltaPct)}% below`} the recent baseline.` : ""} ${signal.topPath ? `Right now ${signal.topPath} is attracting the most repeat machine attention.` : "Machine attention is clustering around local business visibility here."}`,
       why: "external systems are not just glancing at this area — they are coming back to understand it, which is one of the clearest signs that visibility is strengthening.",
       doNext:
         "improve business page quality, strengthen category coverage, and make sure the paths attracting repeat attention convert into useful discovery and action.",
@@ -540,9 +542,10 @@ export function buildTradeScoutInternalLisaOutputs(params: {
   topCrawlerCounty: CrawlerCountySignalRow | null;
   topBrokenCrawlerRoute: CrawlerRouteInsightRow | null;
   actionSummary: ScoutActionSummary | null;
+  entityDiscoveryBaseline?: CrawlSignalBaseline | null;
 }): LisaFeedItem[] {
   return [
-    toEntityDiscoveryFinding(params.topBotCrawlSignal),
+    toEntityDiscoveryFinding(params.topBotCrawlSignal, params.entityDiscoveryBaseline),
     toCountyCategoryDiscoveryFinding(params.topCrawlerCounty),
     toRepairPressureFinding(params.topBrokenCrawlerRoute),
     toActionGatingSummaryFinding(params.actionSummary),

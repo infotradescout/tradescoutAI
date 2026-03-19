@@ -20,6 +20,7 @@ import {
   resolveMaxAgeMinutesForSignal,
 } from "../../shared/signalDurability";
 import { buildTradeScoutInternalLisaOutputs } from "./tradescoutInternalLisaOutputs";
+import { getBotSignalBaseline } from "./internalLisaBaselineService";
 
 type QueryResultRow = Record<string, unknown>;
 type ScoutDemandRow = {
@@ -519,6 +520,16 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     })
   );
 
+  const entityDiscoveryBaseline = topBotCrawlSignal
+    ? await getBotSignalBaseline({
+        routeFamily: topBotCrawlSignal.routeFamily,
+        county: topBotCrawlSignal.county,
+        state: topBotCrawlSignal.state,
+        trade: topBotCrawlSignal.trade,
+        currentHits: topBotCrawlSignal.hits,
+      })
+    : null;
+
   const feed: LisaFeedItem[] = [];
 
   feed.push({
@@ -770,6 +781,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       topBotCrawlSignal,
       topCrawlerCounty,
       topBrokenCrawlerRoute,
+      entityDiscoveryBaseline,
       actionSummary: {
         interactionCount,
         successfulCount,
