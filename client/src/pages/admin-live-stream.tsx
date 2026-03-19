@@ -305,6 +305,10 @@ export default function AdminLiveStreamPage() {
   const topRepairRoutes = useMemo(() => {
     return (crawlerTelemetry?.topRoutes || []).slice(0, 5);
   }, [crawlerTelemetry?.topRoutes]);
+  const topCountyDiscovery = useMemo(() => {
+    return (crawlerTelemetry?.topCounties || []).slice(0, 5);
+  }, [crawlerTelemetry?.topCounties]);
+  const topCountyDiscoveryLead = topCountyDiscovery[0] || null;
   const crawlerErrorTotal = useMemo(() => {
     if (!crawlerTelemetry) return 0;
     return (
@@ -594,6 +598,52 @@ export default function AdminLiveStreamPage() {
                 Keep shrinking other/unknown_public until fallback mostly means true unknowns
                 instead of missed known route families.
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
+                  County + Category Discovery
+                </div>
+                <div className="mt-2 text-sm text-indigo-50">
+                  {topCountyDiscoveryLead
+                    ? `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} is the current lead county surface with ${topCountyDiscoveryLead.requestCount} crawler requests.`
+                    : "No county discovery concentration surfaced yet."}
+                </div>
+              </div>
+              <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
+                {topCountyDiscovery.length} surfaced counties
+              </Badge>
+            </div>
+            <div className="mt-4 space-y-2">
+              {topCountyDiscovery.length === 0 ? (
+                <div className="text-sm text-indigo-100/70">
+                  No county discovery routes available yet.
+                </div>
+              ) : (
+                topCountyDiscovery.map((countyEntry) => (
+                  <div
+                    key={`${countyEntry.sourceSurface}:${countyEntry.countyName}:${countyEntry.stateCode || "na"}`}
+                    className="flex items-center justify-between gap-3 rounded-md border border-indigo-200/10 bg-black/20 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm text-indigo-50">
+                        {countyEntry.countyName}
+                        {countyEntry.stateCode ? `, ${countyEntry.stateCode}` : ""}
+                      </div>
+                      <div className="text-xs text-indigo-100/60">
+                        {countyEntry.sourceSurface}
+                        {countyEntry.countyFips ? ` • FIPS ${countyEntry.countyFips}` : ""}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
+                      {countyEntry.requestCount}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
