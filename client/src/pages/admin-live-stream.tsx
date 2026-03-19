@@ -321,14 +321,17 @@ export default function AdminLiveStreamPage() {
         "visibility_outpacing_coverage",
         "county_opportunity_concentration",
         "attention_finding_dead_ends",
+        "category_signal_concentration",
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
   const opportunityOutputs = useMemo(() => {
     return derivedIntelligenceOutputs.filter((item) =>
-      ["county_opportunity_concentration", "visibility_outpacing_coverage"].includes(
-        item.signalClass || ""
-      )
+      [
+        "county_opportunity_concentration",
+        "visibility_outpacing_coverage",
+        "category_signal_concentration",
+      ].includes(item.signalClass || "")
     );
   }, [derivedIntelligenceOutputs]);
   const frictionOutputs = useMemo(() => {

@@ -405,6 +405,52 @@ export function toAttentionFindingDeadEndsFinding(params: {
   };
 }
 
+export function toCategorySignalConcentrationFinding(params: {
+  topBotCrawlSignal: BotCrawlAggregateSignal | null;
+  topCrawlerCounty: CrawlerCountySignalRow | null;
+  actionSummary: ScoutActionSummary | null;
+}): LisaFeedItem | null {
+  const { topBotCrawlSignal, topCrawlerCounty, actionSummary } = params;
+  if (!topBotCrawlSignal?.trade) return null;
+
+  const tradeLabel = String(topBotCrawlSignal.trade).replace(/[-_]/g, " ");
+  const countyLabel =
+    topBotCrawlSignal.county ||
+    topCrawlerCounty?.county_name ||
+    actionSummary?.topCountyName ||
+    "this market";
+  const attention = Number(topBotCrawlSignal.hits || 0);
+  const countyCoverage = Number(topCrawlerCounty?.request_count || 0);
+  const humanAction = Number(actionSummary?.interactionCount || 0);
+  const combined = attention + countyCoverage + humanAction;
+  if (combined <= 0) return null;
+
+  return {
+    id: `internal-lisa-category-concentration-${topBotCrawlSignal.trade}-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
+    priority: combined >= 120 ? "high" : combined >= 45 ? "medium" : "low",
+    sourceKind: "bot_crawl_signals",
+    headline: `${tradeLabel} is becoming a clearer signal category in ${countyLabel}.`,
+    narrative: formatDecisionNarrative({
+      what: `${tradeLabel} is showing ${attention} machine-attention hits${countyCoverage > 0 ? `, ${countyCoverage} county-surface discovery requests` : ""}${humanAction > 0 ? `, and ${humanAction} human action signals` : ""} in ${countyLabel}.`,
+      why: "when a category starts appearing across attention, coverage, and action at the same time, it becomes more than noise — it becomes a candidate market signal.",
+      doNext: `treat ${tradeLabel} in ${countyLabel} as a category to watch closely: improve the relevant pages, strengthen the supporting entities, and compare whether the category keeps gaining signal over the next windows.`,
+    }),
+    evidence: [
+      "internal_lisa_output=category_signal_concentration",
+      "lane=crawl_visibility",
+      "signal_class=category_signal_concentration",
+      `trade=${topBotCrawlSignal.trade}`,
+      `machine_attention_hits=${attention}`,
+      `county_surface_requests=${countyCoverage}`,
+      `human_action_count=${humanAction}`,
+      `county=${countyLabel}`,
+    ],
+    freshnessMinutes: 15,
+    scopeType: "category",
+    scopeRef: `${topBotCrawlSignal.trade}:${countyLabel}`,
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -432,6 +478,11 @@ export function buildTradeScoutInternalLisaOutputs(params: {
     toAttentionFindingDeadEndsFinding({
       topBotCrawlSignal: params.topBotCrawlSignal,
       topBrokenCrawlerRoute: params.topBrokenCrawlerRoute,
+    }),
+    toCategorySignalConcentrationFinding({
+      topBotCrawlSignal: params.topBotCrawlSignal,
+      topCrawlerCounty: params.topCrawlerCounty,
+      actionSummary: params.actionSummary,
     }),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }
