@@ -19,6 +19,7 @@ import {
   minutesSinceTimestamp,
   resolveMaxAgeMinutesForSignal,
 } from "../../shared/signalDurability";
+import { buildTradeScoutInternalLisaOutputs } from "./tradescoutInternalLisaOutputs";
 
 type QueryResultRow = Record<string, unknown>;
 type ScoutDemandRow = {
@@ -763,6 +764,14 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
       scopeRef: brokenPath,
     });
   }
+
+  feed.push(
+    ...buildTradeScoutInternalLisaOutputs({
+      topBotCrawlSignal,
+      topCrawlerCounty,
+      topBrokenCrawlerRoute,
+    })
+  );
 
   const truthNow =
     isScoutFresh && interactionCount > 0
