@@ -57,6 +57,10 @@ function priorityFromCount(count: number, high = 50, medium = 15): LisaFeedPrior
   return "low";
 }
 
+function formatDecisionNarrative(parts: { what: string; why: string; doNext: string }): string {
+  return `${parts.what} Why it matters: ${parts.why} What to do: ${parts.doNext}`;
+}
+
 export function toEntityDiscoveryFinding(
   signal: BotCrawlAggregateSignal | null
 ): LisaFeedItem | null {
@@ -74,7 +78,12 @@ export function toEntityDiscoveryFinding(
     priority: priorityFromCount(signal.hits, 20, 8),
     sourceKind: "bot_crawl_signals",
     headline: `Outside attention is concentrating on businesses in ${countyLabel}.`,
-    narrative: `${signal.hits} crawler visits touched ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}. That means external systems are not just glancing at this area — they are coming back to understand it. ${signal.topPath ? `Right now ${signal.topPath} is attracting the most repeat machine attention.` : "This is one of the clearest signals that business visibility is strengthening here."}`,
+    narrative: formatDecisionNarrative({
+      what: `${signal.hits} crawler visits touched ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}. ${signal.topPath ? `Right now ${signal.topPath} is attracting the most repeat machine attention.` : "Machine attention is clustering around local business visibility here."}`,
+      why: "external systems are not just glancing at this area — they are coming back to understand it, which is one of the clearest signs that visibility is strengthening.",
+      doNext:
+        "improve business page quality, strengthen category coverage, and make sure the paths attracting repeat attention convert into useful discovery and action.",
+    }),
     evidence: [
       "internal_lisa_output=entity_discovery",
       "lane=crawl_visibility",
@@ -113,7 +122,12 @@ export function toCountyCategoryDiscoveryFinding(
     priority: priorityFromCount(requestCount, 40, 12),
     sourceKind: "bot_visibility",
     headline: `${countyName}${stateCode ? `, ${stateCode}` : ""} is drawing stronger outside attention.`,
-    narrative: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}. In plain English: the outside world is trying harder to understand what exists in this county, which makes it a stronger visibility, coverage, and follow-up priority.`,
+    narrative: formatDecisionNarrative({
+      what: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}.`,
+      why: "the outside world is trying harder to understand what exists in this county, which makes it a stronger visibility, coverage, and follow-up priority.",
+      doNext:
+        "treat this county as a higher-priority market for better pages, stronger entity coverage, and cleaner route readiness.",
+    }),
     evidence: [
       "internal_lisa_output=county_category_discovery",
       "lane=crawl_visibility",
@@ -147,8 +161,18 @@ export function toRepairPressureFinding(
     headline: `Machine attention is finding a weak spot at ${path}.`,
     narrative:
       errors > 0
-        ? `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404). In other words, outside systems are trying to understand or index this route before the product is ready for them. Fixing or redirecting it should recover lost visibility fast.`
-        : `${path} is drawing ${hits} crawler visits without current error pressure. This route is already attracting machine attention, which makes it worth keeping accurate, rich, and canonical.`,
+        ? formatDecisionNarrative({
+            what: `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404).`,
+            why: "outside systems are trying to understand or index this route before the product is ready for them, so attention is being wasted.",
+            doNext:
+              "fix or redirect this path quickly so machine attention lands on a healthy, canonical destination instead of a dead end.",
+          })
+        : formatDecisionNarrative({
+            what: `${path} is drawing ${hits} crawler visits without current error pressure.`,
+            why: "machine attention is already landing here, which makes the route more valuable than a normal cold page.",
+            doNext:
+              "keep this route accurate, rich, and canonical so the attention compounds instead of decays.",
+          }),
     evidence: [
       "internal_lisa_output=repair_pressure",
       "lane=crawl_visibility",
@@ -182,7 +206,12 @@ export function toActionGatingSummaryFinding(
     priority: priorityFromCount(summary.interactionCount, 100, 25),
     sourceKind: "scout_interactions",
     headline: `Human intent is successfully turning into action inside Scout.`,
-    narrative: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate. ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}. This is the human-side counterpart to the machine attention signal: people are not just looking, they are moving forward.`,
+    narrative: formatDecisionNarrative({
+      what: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate. ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}.`,
+      why: "this is the human-side counterpart to machine attention: people are not just looking, they are moving forward.",
+      doNext:
+        "compare these action signals against machine attention so you can spot where visibility is converting well and where interest is stalling before action.",
+    }),
     evidence: [
       "internal_lisa_output=action_gating_summary",
       "lane=action",
@@ -200,6 +229,48 @@ export function toActionGatingSummaryFinding(
   };
 }
 
+export function toAttentionActionGapFinding(params: {
+  topBotCrawlSignal: BotCrawlAggregateSignal | null;
+  actionSummary: ScoutActionSummary | null;
+}): LisaFeedItem | null {
+  const { topBotCrawlSignal, actionSummary } = params;
+  if (!topBotCrawlSignal || !actionSummary) return null;
+  if (topBotCrawlSignal.hits <= 0 || actionSummary.interactionCount <= 0) return null;
+
+  const attentionPerAction = Number(
+    (topBotCrawlSignal.hits / Math.max(1, actionSummary.interactionCount)).toFixed(2)
+  );
+
+  return {
+    id: `internal-lisa-attention-action-gap-${topBotCrawlSignal.county || topBotCrawlSignal.state || "global"}`,
+    priority: attentionPerAction >= 3 ? "high" : attentionPerAction >= 1.5 ? "medium" : "low",
+    sourceKind: "bot_crawl_signals",
+    headline: `Machine attention and human action are diverging in useful ways.`,
+    narrative: formatDecisionNarrative({
+      what: `Top machine attention is generating ${topBotCrawlSignal.hits} crawl hits while Scout is seeing ${actionSummary.interactionCount} real interactions, or about ${attentionPerAction} attention signals per action.`,
+      why: "this helps reveal whether visibility is outrunning action or whether attention is converting into real movement.",
+      doNext:
+        "look at counties and categories where attention is high but action is lagging, because those are the clearest places to improve pages, routing, or supply before spending more money.",
+    }),
+    evidence: [
+      "internal_lisa_output=attention_action_gap",
+      "lane=action",
+      "signal_class=attention_action_gap",
+      `machine_attention_hits=${topBotCrawlSignal.hits}`,
+      `human_interactions=${actionSummary.interactionCount}`,
+      `attention_per_action=${attentionPerAction}`,
+      topBotCrawlSignal.county ? `county=${topBotCrawlSignal.county}` : "county=none",
+      topBotCrawlSignal.state ? `state=${topBotCrawlSignal.state}` : "state=none",
+    ],
+    freshnessMinutes: 15,
+    scopeType: topBotCrawlSignal.county ? "county" : "global",
+    scopeRef:
+      topBotCrawlSignal.county && topBotCrawlSignal.state
+        ? `${String(topBotCrawlSignal.state).toUpperCase()}-${topBotCrawlSignal.county}`
+        : topBotCrawlSignal.state || "global",
+  };
+}
+
 export function buildTradeScoutInternalLisaOutputs(params: {
   topBotCrawlSignal: BotCrawlAggregateSignal | null;
   topCrawlerCounty: CrawlerCountySignalRow | null;
@@ -211,5 +282,9 @@ export function buildTradeScoutInternalLisaOutputs(params: {
     toCountyCategoryDiscoveryFinding(params.topCrawlerCounty),
     toRepairPressureFinding(params.topBrokenCrawlerRoute),
     toActionGatingSummaryFinding(params.actionSummary),
+    toAttentionActionGapFinding({
+      topBotCrawlSignal: params.topBotCrawlSignal,
+      actionSummary: params.actionSummary,
+    }),
   ].filter((item): item is LisaFeedItem => Boolean(item));
 }
