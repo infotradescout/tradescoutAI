@@ -340,10 +340,28 @@ export default function AdminLiveStreamPage() {
     }
     return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
   }, [derivedIntelligenceOutputs]);
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of derivedIntelligenceOutputs) {
+      const text = `${item.title} ${item.narrative}`.toLowerCase();
+      ["roofing", "hvac", "electrical", "plumbing", "home builder", "custom home builder"].forEach(
+        (candidate) => {
+          if (text.includes(candidate)) set.add(candidate);
+        }
+      );
+    }
+    return ["all", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [derivedIntelligenceOutputs]);
   const marketFilteredDerivedOutputs = useMemo(() => {
-    if (marketFilter === "all") return derivedIntelligenceOutputs;
-    return derivedIntelligenceOutputs.filter((item) => item.title.includes(` in ${marketFilter}`));
-  }, [derivedIntelligenceOutputs, marketFilter]);
+    const marketScoped =
+      marketFilter === "all"
+        ? derivedIntelligenceOutputs
+        : derivedIntelligenceOutputs.filter((item) => item.title.includes(` in ${marketFilter}`));
+    if (categoryFilter === "all") return marketScoped;
+    return marketScoped.filter((item) =>
+      `${item.title} ${item.narrative}`.toLowerCase().includes(categoryFilter)
+    );
+  }, [derivedIntelligenceOutputs, marketFilter, categoryFilter]);
   const rankedDerivedOutputs = useMemo(() => {
     const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 } as const;
     return [...marketFilteredDerivedOutputs].sort((a, b) => {
@@ -694,6 +712,17 @@ export default function AdminLiveStreamPage() {
                       {availableMarkets.map((market) => (
                         <option key={market} value={market}>
                           {market === "all" ? "all markets" : market}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
+                    >
+                      {availableCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category === "all" ? "all categories" : category}
                         </option>
                       ))}
                     </select>
