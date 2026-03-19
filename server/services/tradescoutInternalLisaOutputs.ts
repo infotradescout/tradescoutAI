@@ -73,8 +73,8 @@ export function toEntityDiscoveryFinding(
     id: `internal-lisa-entity-discovery-${signal.date}-${signal.county || signal.state || "global"}`,
     priority: priorityFromCount(signal.hits, 20, 8),
     sourceKind: "bot_crawl_signals",
-    headline: `Entity discovery is active on public business surfaces in ${countyLabel}.`,
-    narrative: `${signal.botFamily} generated ${signal.hits} hits across ${signal.uniqueUrls} public business URLs${signal.recrawlUrls > 0 ? ` with ${signal.recrawlUrls} recrawls` : ""}. ${signal.topPath ? `${signal.topPath} is the hottest entity route right now.` : "Public business discovery is carrying the strongest current external attention."}`,
+    headline: `Business discovery is rising in ${countyLabel}.`,
+    narrative: `${signal.hits} crawler visits hit ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}. That means outside attention is concentrating here, not just passing through once. ${signal.topPath ? `Right now ${signal.topPath} is drawing the most repeat interest.` : "This is a readable sign of growing public visibility around local businesses in this area."}`,
     evidence: [
       "internal_lisa_output=entity_discovery",
       "lane=crawl_visibility",
@@ -112,8 +112,8 @@ export function toCountyCategoryDiscoveryFinding(
     id: `internal-lisa-county-discovery-${countySignal.county_fips || `${stateCode}-${countyName}`}`,
     priority: priorityFromCount(requestCount, 40, 12),
     sourceKind: "bot_visibility",
-    headline: `${countyName}${stateCode ? `, ${stateCode}` : ""} is the leading county/category discovery surface right now.`,
-    narrative: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}. This is county-first discovery pressure and should influence coverage, content, and route prioritization.`,
+    headline: `${countyName}${stateCode ? `, ${stateCode}` : ""} is becoming a stronger discovery market.`,
+    narrative: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}. In plain English: this county is attracting more outside attention than usual and should be treated as a stronger visibility and coverage priority.`,
     evidence: [
       "internal_lisa_output=county_category_discovery",
       "lane=crawl_visibility",
@@ -144,11 +144,11 @@ export function toRepairPressureFinding(
     id: `internal-lisa-repair-pressure-${path}`,
     priority: errors >= 25 || missing >= 10 ? "high" : "medium",
     sourceKind: "bot_visibility",
-    headline: `Repair pressure is building on ${path}.`,
+    headline: `Attention is landing on a route that needs work: ${path}.`,
     narrative:
       errors > 0
-        ? `${path} took ${hits} crawler hits with ${errors} failed responses (${missing} were 404). This route is attracting attention but failing to convert that attention into healthy visibility.`
-        : `${path} is drawing ${hits} crawler hits without current error pressure. Keep this route enriched and canonical so demand keeps compounding cleanly.`,
+        ? `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404). That means demand is finding this path before the product is ready for it. Fixing or redirecting this route should recover lost visibility quickly.`
+        : `${path} is drawing ${hits} crawler visits without current error pressure. This route is worth keeping accurate, rich, and canonical because it is already earning attention.`,
     evidence: [
       "internal_lisa_output=repair_pressure",
       "lane=crawl_visibility",
@@ -181,8 +181,8 @@ export function toActionGatingSummaryFinding(
       .replace(/\s+/g, "-")}`,
     priority: priorityFromCount(summary.interactionCount, 100, 25),
     sourceKind: "scout_interactions",
-    headline: `Action and gating motion is live inside Scout right now.`,
-    narrative: `${summary.interactionCount} real Scout interactions were recorded, with ${summary.successfulCount} completed or handed-off outcomes (${successRate}% success) and average confidence ${summary.avgConfidence}. ${summary.topCountyName ? `${summary.topCountyName} is the strongest county for this action signal` : "No dominant county lead surfaced yet"}${summary.topIntent ? `, led by ${summary.topIntent.replace(/_/g, " ")} intent.` : "."}`,
+    headline: `People are moving from intent toward action inside Scout.`,
+    narrative: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate. ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}. This is one of the clearest signs that the system is helping people do something real, not just browse.`,
     evidence: [
       "internal_lisa_output=action_gating_summary",
       "lane=action",
