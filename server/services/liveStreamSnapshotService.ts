@@ -22,6 +22,7 @@ export type LiveStreamSnapshotEntry = {
   source: string;
   lane?: string;
   signalClass?: string;
+  baselineDeltaPct?: number;
   stateCode: string | null;
   countyName: string | null;
 };
@@ -572,6 +573,12 @@ export async function buildLiveStreamSnapshot(params?: {
       signalClass:
         item.evidence.find((entry) => entry.startsWith("signal_class="))?.split("=")[1] ||
         undefined,
+      baselineDeltaPct: (() => {
+        const raw = item.evidence
+          .find((entry) => entry.startsWith("baseline_delta_pct="))
+          ?.split("=")[1];
+        return raw ? Number(raw) : undefined;
+      })(),
       stateCode: null,
       countyName:
         item.scopeType === "county" && item.scopeRef

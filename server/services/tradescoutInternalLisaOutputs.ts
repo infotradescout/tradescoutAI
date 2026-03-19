@@ -98,6 +98,9 @@ export function toEntityDiscoveryFinding(
       signal.county ? `county=${signal.county}` : "county=none",
       signal.state ? `state=${signal.state}` : "state=none",
       signal.topPath ? `top_path=${signal.topPath}` : "top_path=none",
+      baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
+        ? `baseline_delta_pct=${baseline.deltaPct}`
+        : "baseline_delta_pct=none",
     ],
     freshnessMinutes: 15,
     scopeType: signal.county ? "county" : "surface",
@@ -140,6 +143,9 @@ export function toCountyCategoryDiscoveryFinding(
       `source_surface=${sourceSurface}`,
       `request_count=${requestCount}`,
       countySignal.county_fips ? `county_fips=${countySignal.county_fips}` : "county_fips=none",
+      baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
+        ? `baseline_delta_pct=${baseline.deltaPct}`
+        : "baseline_delta_pct=none",
     ],
     freshnessMinutes: minutesSince(countySignal.last_seen_at),
     scopeType: "county",
@@ -185,6 +191,9 @@ export function toRepairPressureFinding(
       `hits=${hits}`,
       `error_count=${errors}`,
       `missing_count=${missing}`,
+      baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
+        ? `baseline_delta_pct=${baseline.deltaPct}`
+        : "baseline_delta_pct=none",
     ],
     freshnessMinutes: minutesSince(routeSignal.last_seen_at),
     scopeType: "surface",
@@ -494,6 +503,9 @@ export function toCategoryMomentumFinding(
       `recrawls=${recrawls}`,
       `first_seen_urls=${firstSeen}`,
       `momentum_mode=${momentumMode}`,
+      baseline?.deltaPct !== null && baseline?.deltaPct !== undefined
+        ? `baseline_delta_pct=${baseline.deltaPct}`
+        : "baseline_delta_pct=none",
     ],
     freshnessMinutes: 15,
     scopeType: "category",

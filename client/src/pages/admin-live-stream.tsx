@@ -27,6 +27,7 @@ type LiveStreamItem = {
   source: string;
   lane?: string;
   signalClass?: string;
+  baselineDeltaPct?: number;
 };
 
 type LiveStreamResponse = {
@@ -645,6 +646,14 @@ export default function AdminLiveStreamPage() {
                             className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2"
                           >
                             <div className="text-sm text-emerald-50">{item.title}</div>
+                            {typeof item.baselineDeltaPct === "number" ? (
+                              <div className="mt-1 text-[11px] text-emerald-100/80">
+                                {item.baselineDeltaPct >= 0
+                                  ? `+${item.baselineDeltaPct}%`
+                                  : `${item.baselineDeltaPct}%`}{" "}
+                                vs baseline
+                              </div>
+                            ) : null}
                             <div className="mt-1 text-xs text-emerald-100/75">{item.narrative}</div>
                           </div>
                         ))
@@ -673,6 +682,14 @@ export default function AdminLiveStreamPage() {
                             className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
                           >
                             <div className="text-sm text-amber-50">{item.title}</div>
+                            {typeof item.baselineDeltaPct === "number" ? (
+                              <div className="mt-1 text-[11px] text-amber-100/80">
+                                {item.baselineDeltaPct >= 0
+                                  ? `+${item.baselineDeltaPct}%`
+                                  : `${item.baselineDeltaPct}%`}{" "}
+                                vs baseline
+                              </div>
+                            ) : null}
                             <div className="mt-1 text-xs text-amber-100/75">{item.narrative}</div>
                           </div>
                         ))
@@ -701,6 +718,14 @@ export default function AdminLiveStreamPage() {
                             className="rounded-md border border-rose-200/10 bg-black/20 px-3 py-2"
                           >
                             <div className="text-sm text-rose-50">{item.title}</div>
+                            {typeof item.baselineDeltaPct === "number" ? (
+                              <div className="mt-1 text-[11px] text-rose-100/80">
+                                {item.baselineDeltaPct >= 0
+                                  ? `+${item.baselineDeltaPct}%`
+                                  : `${item.baselineDeltaPct}%`}{" "}
+                                vs baseline
+                              </div>
+                            ) : null}
                             <div className="mt-1 text-xs text-rose-100/75">{item.narrative}</div>
                           </div>
                         ))
