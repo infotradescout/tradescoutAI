@@ -302,6 +302,16 @@ export default function AdminLiveStreamPage() {
       ["other", "unknown_public"].includes(item.sourceSurface)
     );
   }, [crawlerTelemetry?.topSurfaces]);
+  const topRepairRoutes = useMemo(() => {
+    return (crawlerTelemetry?.topRoutes || []).slice(0, 5);
+  }, [crawlerTelemetry?.topRoutes]);
+  const crawlerErrorTotal = useMemo(() => {
+    if (!crawlerTelemetry) return 0;
+    return (
+      (crawlerTelemetry.totals24h?.clientError || 0) +
+      (crawlerTelemetry.totals24h?.serverError || 0)
+    );
+  }, [crawlerTelemetry]);
   const liveStreamStateLabel = liveStreamStatus
     ? liveStreamStatus.isStale
       ? "stale"
@@ -584,6 +594,48 @@ export default function AdminLiveStreamPage() {
                 Keep shrinking other/unknown_public until fallback mostly means true unknowns
                 instead of missed known route families.
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
+                  Repair Pressure
+                </div>
+                <div className="mt-2 text-sm text-amber-50">
+                  {crawlerErrorTotal > 0
+                    ? `${crawlerErrorTotal} crawler error responses were observed in the last 24 hours. Focus on high-demand broken routes first.`
+                    : "No crawler error pressure surfaced in the current 24-hour summary."}
+                </div>
+              </div>
+              <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                {crawlerErrorTotal} errors / 24h
+              </Badge>
+            </div>
+            <div className="mt-4 space-y-2">
+              {topRepairRoutes.length === 0 ? (
+                <div className="text-sm text-amber-100/70">
+                  No top crawler routes available yet.
+                </div>
+              ) : (
+                topRepairRoutes.map((route) => (
+                  <div
+                    key={route.path}
+                    className="flex items-center justify-between gap-3 rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm text-amber-50">{route.path}</div>
+                      <div className="text-xs text-amber-100/60">
+                        Prioritize repair or redirect if this route is broken or stale.
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                      {route.requestCount}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
