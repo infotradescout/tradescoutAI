@@ -73,8 +73,8 @@ export function toEntityDiscoveryFinding(
     id: `internal-lisa-entity-discovery-${signal.date}-${signal.county || signal.state || "global"}`,
     priority: priorityFromCount(signal.hits, 20, 8),
     sourceKind: "bot_crawl_signals",
-    headline: `Business discovery is rising in ${countyLabel}.`,
-    narrative: `${signal.hits} crawler visits hit ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}. That means outside attention is concentrating here, not just passing through once. ${signal.topPath ? `Right now ${signal.topPath} is drawing the most repeat interest.` : "This is a readable sign of growing public visibility around local businesses in this area."}`,
+    headline: `Outside attention is concentrating on businesses in ${countyLabel}.`,
+    narrative: `${signal.hits} crawler visits touched ${signal.uniqueUrls} public business pages${signal.recrawlUrls > 0 ? `, including ${signal.recrawlUrls} repeat visits` : ""}. That means external systems are not just glancing at this area — they are coming back to understand it. ${signal.topPath ? `Right now ${signal.topPath} is attracting the most repeat machine attention.` : "This is one of the clearest signals that business visibility is strengthening here."}`,
     evidence: [
       "internal_lisa_output=entity_discovery",
       "lane=crawl_visibility",
@@ -112,8 +112,8 @@ export function toCountyCategoryDiscoveryFinding(
     id: `internal-lisa-county-discovery-${countySignal.county_fips || `${stateCode}-${countyName}`}`,
     priority: priorityFromCount(requestCount, 40, 12),
     sourceKind: "bot_visibility",
-    headline: `${countyName}${stateCode ? `, ${stateCode}` : ""} is becoming a stronger discovery market.`,
-    narrative: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}. In plain English: this county is attracting more outside attention than usual and should be treated as a stronger visibility and coverage priority.`,
+    headline: `${countyName}${stateCode ? `, ${stateCode}` : ""} is drawing stronger outside attention.`,
+    narrative: `${requestCount} crawler requests concentrated on the ${sourceSurface.replace(/_/g, " ")} surface in ${countyName}${stateCode ? `, ${stateCode}` : ""}. In plain English: the outside world is trying harder to understand what exists in this county, which makes it a stronger visibility, coverage, and follow-up priority.`,
     evidence: [
       "internal_lisa_output=county_category_discovery",
       "lane=crawl_visibility",
@@ -144,11 +144,11 @@ export function toRepairPressureFinding(
     id: `internal-lisa-repair-pressure-${path}`,
     priority: errors >= 25 || missing >= 10 ? "high" : "medium",
     sourceKind: "bot_visibility",
-    headline: `Attention is landing on a route that needs work: ${path}.`,
+    headline: `Machine attention is finding a weak spot at ${path}.`,
     narrative:
       errors > 0
-        ? `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404). That means demand is finding this path before the product is ready for it. Fixing or redirecting this route should recover lost visibility quickly.`
-        : `${path} is drawing ${hits} crawler visits without current error pressure. This route is worth keeping accurate, rich, and canonical because it is already earning attention.`,
+        ? `${path} drew ${hits} crawler visits, but ${errors} of those visits hit failures (${missing} were 404). In other words, outside systems are trying to understand or index this route before the product is ready for them. Fixing or redirecting it should recover lost visibility fast.`
+        : `${path} is drawing ${hits} crawler visits without current error pressure. This route is already attracting machine attention, which makes it worth keeping accurate, rich, and canonical.`,
     evidence: [
       "internal_lisa_output=repair_pressure",
       "lane=crawl_visibility",
@@ -181,8 +181,8 @@ export function toActionGatingSummaryFinding(
       .replace(/\s+/g, "-")}`,
     priority: priorityFromCount(summary.interactionCount, 100, 25),
     sourceKind: "scout_interactions",
-    headline: `People are moving from intent toward action inside Scout.`,
-    narrative: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate. ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}. This is one of the clearest signs that the system is helping people do something real, not just browse.`,
+    headline: `Human intent is successfully turning into action inside Scout.`,
+    narrative: `${summary.interactionCount} real Scout interactions produced ${summary.successfulCount} completed or handed-off outcomes, a ${successRate}% success rate. ${summary.topCountyName ? `${summary.topCountyName} is leading this action flow` : "No single county is dominating yet"}${summary.topIntent ? `, driven most by ${summary.topIntent.replace(/_/g, " ")} intent` : ""}. This is the human-side counterpart to the machine attention signal: people are not just looking, they are moving forward.`,
     evidence: [
       "internal_lisa_output=action_gating_summary",
       "lane=action",
