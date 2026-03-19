@@ -332,8 +332,19 @@ export default function AdminLiveStreamPage() {
       ].includes(item.signalClass || "")
     );
   }, [internalLisaOutputs]);
+  const rankedDerivedOutputs = useMemo(() => {
+    const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 } as const;
+    return [...derivedIntelligenceOutputs].sort((a, b) => {
+      const priorityDelta = priorityWeight[b.priority] - priorityWeight[a.priority];
+      if (priorityDelta !== 0) return priorityDelta;
+      const baselineA = Math.abs(a.baselineDeltaPct ?? 0);
+      const baselineB = Math.abs(b.baselineDeltaPct ?? 0);
+      if (baselineB !== baselineA) return baselineB - baselineA;
+      return a.title.localeCompare(b.title);
+    });
+  }, [derivedIntelligenceOutputs]);
   const opportunityOutputs = useMemo(() => {
-    return derivedIntelligenceOutputs.filter((item) =>
+    return rankedDerivedOutputs.filter((item) =>
       [
         "county_opportunity_concentration",
         "visibility_outpacing_coverage",
@@ -341,17 +352,17 @@ export default function AdminLiveStreamPage() {
         "category_momentum",
       ].includes(item.signalClass || "")
     );
-  }, [derivedIntelligenceOutputs]);
+  }, [rankedDerivedOutputs]);
   const frictionOutputs = useMemo(() => {
-    return derivedIntelligenceOutputs.filter((item) =>
+    return rankedDerivedOutputs.filter((item) =>
       ["attention_action_gap", "trust_friction"].includes(item.signalClass || "")
     );
-  }, [derivedIntelligenceOutputs]);
+  }, [rankedDerivedOutputs]);
   const wasteOutputs = useMemo(() => {
-    return derivedIntelligenceOutputs.filter((item) =>
+    return rankedDerivedOutputs.filter((item) =>
       ["attention_finding_dead_ends"].includes(item.signalClass || "")
     );
-  }, [derivedIntelligenceOutputs]);
+  }, [rankedDerivedOutputs]);
   const focusedDerivedOutputs = useMemo(() => {
     if (derivedFocus === "opportunity") return opportunityOutputs;
     if (derivedFocus === "friction") return frictionOutputs;
