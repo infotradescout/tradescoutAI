@@ -53,6 +53,7 @@ import {
   buildPublicDatasetsLandingHtml,
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
+import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
@@ -927,6 +928,36 @@ app.use(botReadOnlyGuard);
                     }
                   },
                 })
+              );
+
+              app.get(
+                ["/", "/landing", "/landing/:variant", "/lp", "/lp/:variant"],
+                async (req, res) => {
+                  try {
+                    const indexPath = path.join(publicDistPath, "index.html");
+                    const templateHtml = getCachedTemplate(indexPath);
+                    if (!templateHtml) return res.status(404).send("Application files not found");
+
+                    const origin = resolvePublicOrigin(req);
+                    const variant =
+                      typeof req.params.variant === "string" ? req.params.variant : null;
+                    const html = await buildPublicLandingHtml({
+                      origin,
+                      templateHtml,
+                      requestPath: req.originalUrl || req.path,
+                      variant,
+                    });
+
+                    res.setHeader(
+                      "Cache-Control",
+                      "public, max-age=300, stale-while-revalidate=86400"
+                    );
+                    res.send(html);
+                  } catch (err) {
+                    console.error("Error rendering landing HTML:", err);
+                    res.status(500).send("Failed to render landing page");
+                  }
+                }
               );
 
               // Public profile pages: server-rendered HTML for crawlability
