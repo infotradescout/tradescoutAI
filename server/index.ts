@@ -922,6 +922,7 @@ app.use(botReadOnlyGuard);
               // 2) Serve other static files (index.html, icons, etc.)
               app.use(
                 express.static(publicDistPath, {
+                  index: false,
                   setHeaders: (res, filePath) => {
                     if (filePath.endsWith(".html")) {
                       res.setHeader("Cache-Control", "no-store");

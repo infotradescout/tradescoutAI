@@ -118,6 +118,11 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
   html = upsertTag(
     html,
+    /<meta name="viewport"[^>]*>/i,
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />'
+  );
+  html = upsertTag(
+    html,
     /<meta name="description"[^>]*>/i,
     `<meta name="description" content="${escapeHtml(meta.description)}" />`
   );

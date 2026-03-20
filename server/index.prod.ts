@@ -751,6 +751,7 @@ app.use(botReadOnlyGuard);
 
             app.use(
               express.static(publicDistPath, {
+                index: false,
                 setHeaders: (res, filePath) => {
                   if (filePath.endsWith(".html")) {
                     res.setHeader("Cache-Control", "no-store");
