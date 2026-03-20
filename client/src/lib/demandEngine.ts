@@ -11,6 +11,9 @@ type DemandAttribution = {
   lastSeenAt: string;
 };
 
+type SegmentCategory = "homeowner" | "contractor" | "mixed" | "unknown";
+type SegmentIntentLevel = "passive" | "problem_aware" | "actively_looking" | "unknown";
+
 const STORAGE_KEY = "ts_demand_attribution_v1";
 
 function normalize(value: string | null | undefined): string | null {
@@ -61,6 +64,120 @@ function writeStored(value: DemandAttribution) {
   } catch {
     // fail-soft: tracking must never break UX
   }
+}
+
+function normalizeCountyFips(value: string | null | undefined): string | undefined {
+  const raw = String(value || "").trim();
+  return /^\d{5}$/.test(raw) ? raw : undefined;
+}
+
+function readUserLocationCountyFips(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem("userLocation");
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { countyFips?: unknown; county_fips?: unknown };
+    return normalizeCountyFips(
+      typeof parsed?.countyFips === "string"
+        ? parsed.countyFips
+        : typeof parsed?.county_fips === "string"
+          ? parsed.county_fips
+          : undefined
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+function readStringField(
+  payload: Record<string, unknown> | undefined,
+  keys: string[]
+): string | undefined {
+  if (!payload) return undefined;
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function deriveCountyFips(payload: Record<string, unknown> | undefined): string | undefined {
+  const fromPayload = normalizeCountyFips(
+    readStringField(payload, ["county_fips", "countyFips", "county"])
+  );
+  if (fromPayload) return fromPayload;
+
+  if (typeof window !== "undefined") {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      const fromQuery = normalizeCountyFips(params.get("countyFips") || params.get("county"));
+      if (fromQuery) return fromQuery;
+    } catch {
+      // fall through
+    }
+  }
+
+  return readUserLocationCountyFips();
+}
+
+function normalizeSegmentCategory(value: string | undefined): SegmentCategory | undefined {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "homeowner") return "homeowner";
+  if (normalized === "contractor") return "contractor";
+  if (normalized === "mixed") return "mixed";
+  if (normalized === "unknown") return "unknown";
+  return undefined;
+}
+
+function deriveSegmentCategory(payload: Record<string, unknown> | undefined): SegmentCategory {
+  const explicit = normalizeSegmentCategory(
+    readStringField(payload, ["segment_category", "segmentCategory", "userRole", "audience"])
+  );
+  if (explicit) return explicit;
+
+  const presenceType = String(readStringField(payload, ["presenceType", "presence_type"]) || "")
+    .trim()
+    .toLowerCase();
+  if (presenceType === "personal") return "homeowner";
+  if (presenceType === "represent_business") return "contractor";
+
+  return "mixed";
+}
+
+function normalizeIntentLevel(value: string | undefined): SegmentIntentLevel | undefined {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "passive") return "passive";
+  if (normalized === "problem_aware") return "problem_aware";
+  if (normalized === "actively_looking") return "actively_looking";
+  if (normalized === "unknown") return "unknown";
+  return undefined;
+}
+
+function deriveSegmentIntentLevel(
+  event:
+    | "landing_view"
+    | "cta_click"
+    | "auth_view"
+    | "signin_success"
+    | "create_success"
+    | "setup_complete"
+    | "intent_submitted",
+  payload: Record<string, unknown> | undefined
+): SegmentIntentLevel {
+  const explicit = normalizeIntentLevel(
+    readStringField(payload, ["segment_intent_level", "segmentIntentLevel", "intentLevel"])
+  );
+  if (explicit) return explicit;
+
+  if (event === "landing_view") return "passive";
+  if (event === "cta_click" || event === "auth_view") return "problem_aware";
+  return "actively_looking";
 }
 
 export function bootstrapDemandAttribution(rawUrl?: string): DemandAttribution | null {
@@ -155,11 +272,21 @@ export async function trackDemandEvent(
 ) {
   if (typeof window === "undefined") return;
 
+  const normalizedPayload = payload || {};
+  const countyFips = deriveCountyFips(normalizedPayload);
+  const segmentCategory = deriveSegmentCategory(normalizedPayload);
+  const segmentIntentLevel = deriveSegmentIntentLevel(event, normalizedPayload);
   const attribution = bootstrapDemandAttribution();
   const body = {
     eventType: `demand.${event}`,
     data: {
-      ...(payload || {}),
+      ...normalizedPayload,
+      countyFips: countyFips || null,
+      county_fips: countyFips || null,
+      segmentCategory,
+      segment_category: segmentCategory,
+      segmentIntentLevel,
+      segment_intent_level: segmentIntentLevel,
       attribution,
       path: window.location.pathname,
       search: window.location.search,
