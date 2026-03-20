@@ -3,7 +3,7 @@ services:
     name: tradescout-pro
     runtime: node
     buildCommand: npm run build
-    startCommand: node server.mjs
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: "20"
