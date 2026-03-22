@@ -178,6 +178,7 @@ async function main() {
     NODE_ENV: "test",
     SESSION_SECRET: process.env.SESSION_SECRET || "local-release-gates-session-secret",
     SCHEDULER_ENABLED: "false",
+    ENABLE_VITE_HMR: "true",
     VITE_HMR_PORT: String(hmrPort),
     MASTER_ADMIN_EMAIL: masterEmail,
     MASTER_ADMIN_PASSWORD: masterPassword,

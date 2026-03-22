@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,15 +34,15 @@ import { apiRequest } from "@/lib/queryClient";
 /**
  * PublicBusinessProfileView
  *
- * Renders a public business profile page at /business/:slug.
+ * Renders a public business page at /business/:slug.
  *
  * Contract:
  * - Fetches via GET /api/business-profile/slug/:slug
  * - Renders: name, location, description, service areas, website
  * - Primary CTA: "Contact via TradeScout" → routes to Direct Connect or Scout
- * - Owner-only: Shows "Edit Profile" button
+ * - Owner-only: Shows "Edit Business Page" button
  * - Telemetry: business_profile_viewed { slug, isOwner }
- * - Empty state: "Tell your community about your business" if no description
+ * - Empty state: encourages adding business details if no description
  */
 export default function BusinessProfileView() {
   const { slug } = useParams<{ slug: string }>();
@@ -236,7 +236,157 @@ export default function BusinessProfileView() {
   }
 
   const hasDescription = profile.description && profile.description.trim().length > 0;
+  const hasHeadline = Boolean(profile.headline && String(profile.headline).trim().length > 0);
   const hasServiceAreas = profile.serviceAreas && profile.serviceAreas.length > 0;
+  const serviceList = Array.isArray(profile.services) ? profile.services.filter(Boolean) : [];
+  const visibleSections = {
+    about: profile.profileSections?.about !== false,
+    rolesAndBadges: profile.profileSections?.rolesAndBadges !== false,
+    stats: profile.profileSections?.stats !== false,
+    services: profile.profileSections?.services !== false,
+    marketplaceListings: profile.profileSections?.marketplaceListings !== false,
+    reviews: profile.profileSections?.reviews !== false,
+    communityActivity: profile.profileSections?.communityActivity === true,
+    contactCard: profile.profileSections?.contactCard !== false,
+  };
+  const contentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  const bookingConfig = profile.bookingConfig || null;
+  const hasCustomHero = contentBlocks.some((block: any) => String(block?.type || "").toLowerCase() === "hero");
+  const hasCustomCta = contentBlocks.some((block: any) => String(block?.type || "").toLowerCase() === "cta");
+  const businessPromise =
+    profile.headline ||
+    (serviceList.length > 0
+      ? `${profile.name} helps with ${serviceList.slice(0, 3).join(", ")} across ${profile.countyName || "the local area"}.`
+      : profile.description
+        ? `${profile.name} serves ${profile.countyName || profile.city || "the local area"} through TradeScout.`
+        : `${profile.name} is building a trusted public business page on TradeScout.`);
+  const serviceSummaryText =
+    serviceList.length > 0
+      ? serviceList.slice(0, 5).join(" • ")
+      : profile.description
+        ? "Business details, trust signals, and contact options are available through this page."
+        : "Services, trust details, and contact options will keep improving as this business builds out its TradeScout presence.";
+  const trustHighlights = [
+    verificationLabel,
+    addressVerified ? "Address verified" : "Address verification pending",
+    bookingConfig?.enabled ? "Booking available" : null,
+    profile.customDomainVerification?.state === "verified" ? "Custom domain connected" : "Custom domain ready",
+  ].filter(Boolean) as string[];
+  const trustProofItems = [
+    verificationLabel,
+    addressVerified ? "Address has been verified on TradeScout." : "Address verification can improve trust on this page.",
+    profile.customDomainVerification?.state === "verified"
+      ? "This business page is live on a connected custom domain."
+      : "This business page can be connected to a custom domain.",
+    listings.length > 0 ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.` : "Listings can appear here as this business adds offers.",
+  ];
+
+  function renderContentBlock(block: any, idx: number) {
+    const type = String(block?.type || "text").toLowerCase();
+    const key = block?.id || `${type}-${idx}`;
+
+    if (type === "hero") {
+      return (
+        <Card key={key} className="border-2" style={themeStyle}>
+          <CardContent className="pt-6 space-y-3">
+            {block?.title ? <h2 className="text-2xl font-bold">{block.title}</h2> : null}
+            {block?.body ? <p className="text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
+            {block?.imageUrl ? <a href={block.imageUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">View hero image</a> : null}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (type === "faq") {
+      return (
+        <Card key={key} style={themeStyle}>
+          <CardHeader>
+            <CardTitle>{block?.title || "FAQ"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block?.body || ""}</p>
+            {block?.secondaryBody ? <p className="text-xs text-muted-foreground whitespace-pre-wrap">{block.secondaryBody}</p> : null}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (type === "proof") {
+      return (
+        <Card key={key} style={themeStyle}>
+          <CardHeader>
+            <CardTitle>{block?.title || "Proof"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {block?.body ? <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
+            {block?.secondaryBody ? <p className="text-xs text-muted-foreground whitespace-pre-wrap">{block.secondaryBody}</p> : null}
+            <Badge variant="secondary">Trust Signal</Badge>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (type === "cta") {
+      return (
+        <Card key={key} className="border-2" style={themeStyle}>
+          <CardContent className="pt-6 text-center space-y-3">
+            {block?.title ? <h3 className="text-xl font-semibold">{block.title}</h3> : null}
+            {block?.body ? <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
+            <Button
+              onClick={() => {
+                const params = new URLSearchParams({
+                  prefill_businessName: profile.name,
+                  prefill_businessSlug: profile.slug,
+                  prefill_countyFips: profile.countyFips || "",
+                });
+                setLocation(`/direct-connect?${params.toString()}`);
+              }}
+            >
+              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (type === "gallery") {
+      return (
+        <Card key={key} style={themeStyle}>
+          <CardHeader>
+            <CardTitle>{block?.title || "Gallery"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {block?.body ? <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
+            {block?.imageUrl ? <a href={block.imageUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open gallery image</a> : <p className="text-xs text-muted-foreground">Add an image URL to feature media here.</p>}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div key={key} className="rounded border p-4">
+        {block?.title ? <h3 className="font-semibold mb-2">{block.title}</h3> : null}
+        {block?.body ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{block.body}</p> : null}
+        {block?.imageUrl ? (
+          <a href={block.imageUrl} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline mt-2 inline-block">View image</a>
+        ) : null}
+      </div>
+    );
+  }
+  const themeStyle = {
+    background:
+      profile.theme?.customColors?.background && String(profile.theme.customColors.background).trim()
+        ? String(profile.theme.customColors.background)
+        : undefined,
+    color:
+      profile.theme?.customColors?.text && String(profile.theme.customColors.text).trim()
+        ? String(profile.theme.customColors.text)
+        : undefined,
+    borderColor:
+      profile.theme?.customColors?.primary && String(profile.theme.customColors.primary).trim()
+        ? String(profile.theme.customColors.primary)
+        : undefined,
+  } as React.CSSProperties;
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
   const rawCvs =
@@ -273,13 +423,16 @@ export default function BusinessProfileView() {
 
   // SEO metadata
   const pageTitle =
-    profile.countyName && profile.stateCode
+    profile.seoMeta?.title ||
+    (profile.countyName && profile.stateCode
       ? `${profile.name} in ${profile.countyName}, ${profile.stateCode} | TradeScout`
-      : `${profile.name} | TradeScout`;
+      : `${profile.name} | TradeScout`);
 
-  const pageDescription = hasDescription
-    ? (profile.description || "").slice(0, 155) // Meta description limit
-    : `${profile.name} serving ${profile.countyName || "local areas"}${profile.serviceAreas && profile.serviceAreas.length > 0 ? " and nearby areas" : ""}. Contact via TradeScout.`;
+  const pageDescription =
+    profile.seoMeta?.description ||
+    (hasDescription
+      ? (profile.description || "").slice(0, 155)
+      : `${profile.name} serving ${profile.countyName || "local areas"}${profile.serviceAreas && profile.serviceAreas.length > 0 ? " and nearby areas" : ""}. Contact via TradeScout.`);
 
   const canonicalUrl = `${window.location.origin}/business/${profile.slug}`;
   const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
@@ -307,8 +460,8 @@ export default function BusinessProfileView() {
         structuredData={structuredData}
       />
       {/* Header Card */}
-      <Card className="mb-6">
-        <CardHeader>
+      <Card className="mb-6 overflow-hidden border-2" style={themeStyle}>
+        <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4">
             <div className="flex-1">
               <CardTitle
@@ -318,6 +471,9 @@ export default function BusinessProfileView() {
                 <Building2 className="h-8 w-8" />
                 {profile.name}
               </CardTitle>
+              {hasHeadline ? (
+                <p className="text-base sm:text-lg text-muted-foreground mb-3">{profile.headline}</p>
+              ) : null}
 
               {/* Location */}
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
@@ -364,6 +520,11 @@ export default function BusinessProfileView() {
                 </div>
               )}
 
+              <div className="mt-4 rounded-lg border bg-background/40 p-4">
+                <p className="text-sm sm:text-base font-medium">{businessPromise}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{serviceSummaryText}</p>
+              </div>
+
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 {showUnclaimedBadge ? <Badge variant="secondary">Unclaimed</Badge> : null}
                 <Badge className={verificationTone}>
@@ -385,6 +546,12 @@ export default function BusinessProfileView() {
                   </Badge>
                 )}
               </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {trustHighlights.map((item) => (
+                  <Badge key={item} variant="secondary">{item}</Badge>
+                ))}
+              </div>
             </div>
 
             {/* Owner-only: Edit button */}
@@ -395,7 +562,7 @@ export default function BusinessProfileView() {
                 onClick={() => setLocation(`/business/${slug}/edit`)}
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
+                Edit Business Page
               </Button>
             ) : (
               <div className="flex flex-col sm:flex-row gap-2">
@@ -438,16 +605,20 @@ export default function BusinessProfileView() {
               {profile.description}
             </p>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="rounded-lg border bg-background/40 p-5 text-sm text-muted-foreground">
               {isOwner ? (
                 <>
-                  <p className="mb-4">Tell your community about your business.</p>
+                  <p className="mb-3">
+                    This public business page is already live. Add a short description to make your website feel even more complete.
+                  </p>
                   <Button variant="outline" onClick={() => setLocation(`/business/${slug}/edit`)}>
-                    Add Description
+                    Add Business Description
                   </Button>
                 </>
               ) : (
-                <p>This business hasn't added a description yet.</p>
+                <p>
+                  This business is using TradeScout as a public business page. More about the business will appear here as the page is updated.
+                </p>
               )}
             </div>
           )}
@@ -507,7 +678,7 @@ export default function BusinessProfileView() {
                 return (
                   <article
                     key={listing.id}
-                    className="flex gap-3 rounded-lg border border-border p-3"
+                    className="flex gap-3 rounded-xl border border-border bg-background/40 p-4 shadow-sm"
                     data-testid="bp-listing-card"
                   >
                     {thumbnailUrl && (
@@ -543,6 +714,9 @@ export default function BusinessProfileView() {
                         {categoryName ? <span>• {categoryName}</span> : null}
                         {createdAt ? <span>• {createdAt}</span> : null}
                       </div>
+                      <div className="mt-3 text-xs font-medium text-primary">
+                        Listed on this business page
+                      </div>
                     </div>
                   </article>
                 );
@@ -554,14 +728,118 @@ export default function BusinessProfileView() {
 
       <Separator className="my-6" />
 
+      {visibleSections.services && serviceList.length > 0 ? (
+        <Card className="mb-6" style={themeStyle}>
+          <CardHeader>
+            <CardTitle>Services</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {serviceList.map((service, idx) => (
+                <div key={`${service}-${idx}`} className="rounded-lg border bg-background/40 p-4">
+                  <div className="font-medium">{service}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Available through this TradeScout business page.</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {visibleSections.about && hasDescription ? (
+        <Card className="mb-6" style={themeStyle}>
+          <CardHeader>
+            <CardTitle>About</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{profile.description}</p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {contentBlocks.length > 0 ? (
+        <div className="mb-6 space-y-4">
+          {contentBlocks.map((block: any, idx: number) => renderContentBlock(block, idx))}
+        </div>
+      ) : null}
+
+      {!hasCustomHero ? (
+        <Card className="mb-6 border-dashed" style={themeStyle}>
+          <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
+            <div>
+              <div className="text-sm font-medium">Website-ready by default</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                This TradeScout page is designed to work as a real public website, even without manual customization.
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium">Domain-ready</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                {profile.customDomainVerification?.state === "verified"
+                  ? "A custom domain is already connected to this business page."
+                  : "Attach a custom domain anytime and send people straight here."}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium">TradeScout-powered contact</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Leads and contact stay routed through TradeScout instead of exposing raw contact details.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card className="mb-6" style={themeStyle}>
+        <CardHeader>
+          <CardTitle>Trust & Page Signals</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          {trustProofItems.map((item) => (
+            <div key={item} className="rounded-lg border bg-background/40 p-4 text-sm text-muted-foreground">
+              {item}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {bookingConfig?.enabled ? (
+        <Card className="mb-6" style={themeStyle}>
+          <CardHeader>
+            <CardTitle>Booking</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              {bookingConfig.paidBookings
+                ? `Paid booking available${typeof bookingConfig.bookingPriceUsd === "number" ? ` · $${bookingConfig.bookingPriceUsd}` : ""}`
+                : "Booking available through TradeScout."}
+            </p>
+            {bookingConfig.timezone ? <p>Timezone: {bookingConfig.timezone}</p> : null}
+            {bookingConfig.pricingTableEnabled && Array.isArray(bookingConfig.pricingRows) && bookingConfig.pricingRows.length > 0 ? (
+              <div className="space-y-2">
+                {bookingConfig.pricingRows.map((row: any) => (
+                  <div key={row.id || row.name} className="rounded border p-3">
+                    <div className="font-medium">{row.name} {row.priceLabel ? `· ${row.priceLabel}` : ""}</div>
+                    {row.description ? <div className="text-xs text-muted-foreground mt-1">{row.description}</div> : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Primary CTA: Contact via TradeScout */}
-      {!isOwner && (
-        <Card>
+      {!isOwner && visibleSections.contactCard && !hasCustomCta && (
+        <Card className="border-2" style={themeStyle}>
           <CardContent className="pt-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-2">Connect with {profile.name}</h3>
-              <p className="text-muted-foreground mb-4">
-                Reach out through TradeScout for trusted local connections.
+            <div className="text-center max-w-2xl mx-auto">
+              <h3 className="text-xl font-semibold mb-2">Start with {profile.name}</h3>
+              <p className="text-muted-foreground mb-2">
+                Use TradeScout to request a quote, start a conversation, or route your need to the right next step.
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                This page is built to work as a shareable public website and can be connected to a custom domain.
               </p>
               <div className="flex flex-col items-center gap-2">
                 <Button
@@ -579,7 +857,7 @@ export default function BusinessProfileView() {
                   }}
                 >
                   <MessageSquare className="h-5 w-5 mr-2" />
-                  Contact via TradeScout
+                  {profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
                 </Button>
 
                 {/* Directory-only: verified users can call after Decision Card confirmation */}

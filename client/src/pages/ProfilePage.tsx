@@ -86,6 +86,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
+  const [businessSlug, setBusinessSlug] = useState<string | null>(null);
   const [activatingPublic, setActivatingPublic] = useState(false);
 
   useEffect(() => {
@@ -95,6 +96,20 @@ export default function ProfilePage() {
       if (!user?.id) return;
 
       try {
+        try {
+          const business = (await apiRequest("GET", "/api/business-profile/me")) as {
+            slug?: string | null;
+            visibility?: "public" | "private";
+          };
+          if (!cancelled && business?.slug) {
+            setBusinessSlug(String(business.slug));
+          }
+        } catch {
+          if (!cancelled) {
+            setBusinessSlug(null);
+          }
+        }
+
         const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
 
         if (!Array.isArray(list) || list.length === 0) return;
@@ -201,16 +216,18 @@ export default function ProfilePage() {
     ["--user-border" as any]: "var(--border-primary)",
   } as React.CSSProperties;
 
-  const profileUrl = profileSlug
-    ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
-    : `${getCanonicalAppOrigin()}/profile/${user.id}`;
+  const profileUrl = businessSlug
+    ? `${getCanonicalAppOrigin()}/business/${businessSlug}`
+    : profileSlug
+      ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
+      : `${getCanonicalAppOrigin()}/profile/${user.id}`;
   const isPublic = user.preferences?.profileVisibility === "public";
 
   const copyProfileUrl = async () => {
     await share({
       url: profileUrl,
-      title: `${displayName}'s TradeScout profile`,
-      contextLabel: "Profile link",
+      title: businessSlug ? `${displayName}'s TradeScout business page` : `${displayName}'s TradeScout profile`,
+      contextLabel: businessSlug ? "Business page link" : "Profile link",
       suppressRef: true,
     });
     setCopied(true);
@@ -304,7 +321,7 @@ export default function ProfilePage() {
                       {isPublic ? (
                         <>
                           <Globe className="h-4 w-4 text-green-400" />
-                          <span className="text-green-400">Public Profile</span>
+                          <span className="text-green-400">{businessSlug ? "Public Business Page" : "Public Profile"}</span>
                         </>
                       ) : (
                         <>
@@ -354,7 +371,7 @@ export default function ProfilePage() {
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/60 mb-1">Your Public Profile URL</p>
+                      <p className="text-xs text-white/60 mb-1">{businessSlug ? "Your Public Business Page URL" : "Your Public Profile URL"}</p>
                       <code
                         className="text-sm truncate block"
                         style={{ color: "var(--user-primary)" }}
@@ -389,7 +406,7 @@ export default function ProfilePage() {
                         style={{ backgroundColor: "var(--user-primary)" }}
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
-                        View
+                        {businessSlug ? "View Business Page" : "View Profile"}
                       </Button>
                     </div>
                   </div>
@@ -446,10 +463,10 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <Globe className="h-5 w-5 text-ts-orange" />
-                    Your Profile is Your Website
+                    {businessSlug ? "Your Business Page Is Your Website" : "Your Profile is Your Website"}
                   </CardTitle>
                   <CardDescription className="text-white/60">
-                    Your profile replaces the need for a traditional website
+                    {businessSlug ? "Your public TradeScout business page replaces the need for a traditional website" : "Your profile replaces the need for a traditional website"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-white">

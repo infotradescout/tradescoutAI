@@ -24,6 +24,8 @@ npm run dev
 
 # Health check
 Invoke-RestMethod "http://localhost:5000/api/health"
+# If 5000 is occupied locally, the app will fall back to the next port and print it in the server log.
+# Example: http://localhost:5001/api/health
 ```
 
 ## Verification lanes (what to run)

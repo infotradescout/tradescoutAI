@@ -4,6 +4,10 @@ import path from "path";
 
 const r = (p: string) => path.resolve(__dirname, p);
 
+const serialNoSkips = ["1", "true", "yes", "on"].includes(
+  String(process.env.VITEST_SERIAL || "").toLowerCase()
+);
+
 export default defineConfig({
   test: {
     globals: true,
@@ -11,6 +15,7 @@ export default defineConfig({
     include: ["server/tests/**/*.test.ts", "server/utils/**/*.test.ts", "client/src/**/*.test.ts"],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     passWithNoTests: false,
+    fileParallelism: !serialNoSkips,
     reporters: ["default", "html"],
     outputFile: {
       // Keep Vitest HTML output out of git-tracked root files (and inside an ignored folder).

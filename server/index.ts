@@ -665,6 +665,7 @@ app.use(botReadOnlyGuard);
 
     // Track the last port we attempted so we can increment it if needed.
     let currentPort = PORT;
+    let hasLoggedFallbackNotice = false;
 
     const warnOnAuthOriginMismatch = (activePort: number) => {
       const envKeys = [
@@ -724,6 +725,12 @@ app.use(botReadOnlyGuard);
           host: "0.0.0.0",
         },
         () => {
+          if (portToUse !== PORT && !hasLoggedFallbackNotice) {
+            console.warn(
+              `[DEV] Primary port ${PORT} was unavailable. TradeScout is running on fallback port ${portToUse}.`
+            );
+            hasLoggedFallbackNotice = true;
+          }
           log(`serving on port ${portToUse}`);
           warnOnAuthOriginMismatch(portToUse);
 

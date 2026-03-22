@@ -6,6 +6,78 @@
  * Once published, they become the canonical source of truth for public display.
  */
 
+export interface BusinessProfileSeoMeta {
+  title?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+}
+
+export interface BusinessProfileCta {
+  label?: string | null;
+  kind?: "message" | "direct_connect" | "quote" | "booking" | "marketplace" | null;
+}
+
+export interface BusinessProfileCtaConfig {
+  primary?: BusinessProfileCta | null;
+  secondary?: BusinessProfileCta | null;
+}
+
+export interface BusinessProfileSections {
+  about?: boolean;
+  rolesAndBadges?: boolean;
+  stats?: boolean;
+  services?: boolean;
+  marketplaceListings?: boolean;
+  reviews?: boolean;
+  communityActivity?: boolean;
+  contactCard?: boolean;
+}
+
+export interface BusinessProfileTheme {
+  preset?: string | null;
+  customColors?: {
+    primary?: string | null;
+    secondary?: string | null;
+    background?: string | null;
+    text?: string | null;
+  } | null;
+}
+
+export interface BusinessProfileBookingSlot {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  label?: string | null;
+  active?: boolean;
+}
+
+export interface BusinessProfilePricingRow {
+  id: string;
+  name: string;
+  priceLabel: string;
+  description?: string | null;
+}
+
+export interface BusinessProfileBookingConfig {
+  enabled?: boolean;
+  paidBookings?: boolean;
+  bookingPriceUsd?: number;
+  calendarVisibility?: "public" | "private";
+  timezone?: string | null;
+  slots?: BusinessProfileBookingSlot[];
+  pricingTableEnabled?: boolean;
+  pricingRows?: BusinessProfilePricingRow[];
+}
+
+export interface BusinessProfileContentBlock {
+  id: string;
+  type: string;
+  title?: string | null;
+  body?: string | null;
+  imageUrl?: string | null;
+}
+
 export interface BusinessProfile {
   id: string;
   userId: string;
@@ -22,6 +94,13 @@ export interface BusinessProfile {
   stateCode: string; // State abbreviation (e.g., "TX")
   serviceAreas: string[]; // Array of county FIPS codes
   website?: string | null; // External website (optional)
+  seoMeta?: BusinessProfileSeoMeta | null;
+  ctaConfig?: BusinessProfileCtaConfig | null;
+  contentBlocks?: BusinessProfileContentBlock[] | null;
+  profileSections?: BusinessProfileSections | null;
+  theme?: BusinessProfileTheme | null;
+  bookingConfig?: BusinessProfileBookingConfig | null;
+  visibility?: "public" | "private";
   customDomain?: string | null;
   customDomainVerification?: {
     state: "unverified" | "pending" | "verified" | "failed";
@@ -52,6 +131,13 @@ export interface PublishProfilePayload {
   stateCode: string;
   serviceAreas?: string[];
   website?: string | null;
+  seoMeta?: BusinessProfileSeoMeta | null;
+  ctaConfig?: BusinessProfileCtaConfig | null;
+  contentBlocks?: BusinessProfileContentBlock[] | null;
+  profileSections?: BusinessProfileSections | null;
+  theme?: BusinessProfileTheme | null;
+  bookingConfig?: BusinessProfileBookingConfig | null;
+  visibility?: "public" | "private";
 }
 
 /**
@@ -70,6 +156,13 @@ export interface UpdateProfilePayload {
   zipCode?: string | null;
   serviceAreas?: string[];
   website?: string | null;
+  seoMeta?: BusinessProfileSeoMeta | null;
+  ctaConfig?: BusinessProfileCtaConfig | null;
+  contentBlocks?: BusinessProfileContentBlock[] | null;
+  profileSections?: BusinessProfileSections | null;
+  theme?: BusinessProfileTheme | null;
+  bookingConfig?: BusinessProfileBookingConfig | null;
+  visibility?: "public" | "private";
 }
 
 /**

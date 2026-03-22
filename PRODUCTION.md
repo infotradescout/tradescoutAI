@@ -58,22 +58,24 @@ Expected response:
 ```
 
 ## 7. Pre-Deploy Release Gates
-Run these in order before shipping:
+Recommended pre-ship lane:
 ```bash
-npm run verify
+npm run verify:release
 npm run build
 ```
 
-For end-to-end release gates (with app running):
+If you want to run the lanes individually:
 ```bash
-npm run dev
-npm run test:release-gates
-npm run report:release-gates
+npm run verify:db
+npm run test:release-gates:local
+npm run build
 ```
 
 Expected artifacts:
 - `.playwright/test-results/results.json`
 - `artifacts/release-gate-metrics.json`
+- `artifacts/test-skip-delta.no-skips.json`
+- `artifacts/test-skip-delta.no-skips.md`
 
 ## 8. Ongoing Maintenance
 - **Backups**: Ensure regular backups of your Postgres database.

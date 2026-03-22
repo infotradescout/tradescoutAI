@@ -19,6 +19,98 @@ import type {
   BusinessProfile,
 } from "../../shared/businessProfile";
 
+function sanitizePublicCtaConfig(ctaConfig: unknown) {
+  const safe = (ctaConfig && typeof ctaConfig === "object" ? ctaConfig : {}) as Record<string, any>;
+  const sanitize = (cta: unknown) => {
+    if (!cta || typeof cta !== "object") return null;
+    const source = cta as Record<string, any>;
+    const kind = typeof source.kind === "string" ? source.kind : "direct_connect";
+    const label = typeof source.label === "string" ? source.label.trim().slice(0, 80) : "Contact on TradeScout";
+    return { label, kind, value: null, requiresTradeScoutAccount: true, route: "/direct-connect" };
+  };
+  return { primary: sanitize(safe.primary), secondary: sanitize(safe.secondary) };
+}
+
+function sanitizePublicBookingConfig(raw: unknown) {
+  const source = raw && typeof raw === "object" ? (raw as Record<string, any>) : {};
+  const calendarVisibility = source.calendarVisibility === "private" ? "private" : "public";
+  return {
+    enabled: source.enabled === true,
+    paidBookings: source.paidBookings === true,
+    bookingPriceUsd:
+      Number.isFinite(Number(source.bookingPriceUsd)) && Number(source.bookingPriceUsd) >= 0
+        ? Number(Number(source.bookingPriceUsd).toFixed(2))
+        : 0,
+    calendarVisibility,
+    timezone:
+      typeof source.timezone === "string" && source.timezone.trim().length > 0
+        ? source.timezone.trim()
+        : "America/Chicago",
+    slots:
+      calendarVisibility === "public" && Array.isArray(source.slots)
+        ? source.slots.map((slot: any) => ({
+            id: String(slot?.id || ""),
+            dayOfWeek: Number(slot?.dayOfWeek || 0),
+            startTime: String(slot?.startTime || "09:00"),
+            endTime: String(slot?.endTime || "17:00"),
+            label: typeof slot?.label === "string" ? slot.label.slice(0, 80) : "",
+            active: slot?.active !== false,
+          }))
+        : [],
+    pricingTableEnabled: source.pricingTableEnabled === true,
+    pricingRows: Array.isArray(source.pricingRows)
+      ? source.pricingRows
+          .map((row: any) => ({
+            id: String(row?.id || ""),
+            name: String(row?.name || "").slice(0, 80),
+            priceLabel: String(row?.priceLabel || "").slice(0, 40),
+            description: typeof row?.description === "string" ? row.description.slice(0, 240) : "",
+          }))
+          .filter((row: any) => row.name && row.priceLabel)
+      : [],
+  };
+}
+
+function sanitizePublicContentBlocks(raw: unknown) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((block) => block && typeof block === "object")
+    .map((block: any) => ({
+      id: String(block?.id || ""),
+      type: String(block?.type || "text"),
+      title: typeof block?.title === "string" ? block.title.slice(0, 120) : null,
+      body: typeof block?.body === "string" ? block.body.slice(0, 4000) : null,
+      imageUrl: typeof block?.imageUrl === "string" ? block.imageUrl : null,
+    }));
+}
+
+function buildDefaultSections() {
+  return {
+    about: true,
+    rolesAndBadges: true,
+    stats: true,
+    services: true,
+    marketplaceListings: true,
+    reviews: true,
+    communityActivity: false,
+    contactCard: true,
+  };
+}
+
+function buildDefaultTheme() {
+  return { preset: "default", customColors: null };
+}
+
+function buildDefaultSeoMeta(profile: Partial<BusinessProfile>) {
+  const name = String(profile.name || "TradeScout Business").trim();
+  const place = [profile.countyName, profile.stateCode].filter(Boolean).join(", ");
+  const title = place ? `${name} | ${place} | TradeScout` : `${name} | TradeScout`;
+  const description =
+    String(profile.description || profile.headline || "").trim() ||
+    `View ${name} on TradeScout.`;
+  return { title: title.slice(0, 120), description: description.slice(0, 300), imageUrl: null };
+}
+
 interface AuthedRequest extends Request {
   user?: {
     id: string;
@@ -180,6 +272,13 @@ export function registerBusinessProfileRoutes(app: Express) {
           stateCode: payload.stateCode,
           serviceAreas: payload.serviceAreas || [payload.countyFips],
           website: payload.website || null,
+          seoMeta: payload.seoMeta || existing?.seoMeta || buildDefaultSeoMeta({ name: payload.name, description: payload.description || null, countyName: payload.countyName || null, stateCode: payload.stateCode }),
+          ctaConfig: payload.ctaConfig || existing?.ctaConfig || null,
+          contentBlocks: payload.contentBlocks || existing?.contentBlocks || [],
+          profileSections: payload.profileSections || existing?.profileSections || buildDefaultSections(),
+          theme: payload.theme || existing?.theme || buildDefaultTheme(),
+          bookingConfig: payload.bookingConfig || existing?.bookingConfig || null,
+          visibility: payload.visibility === "public" ? "public" : existing?.visibility || "private",
           createdAt: existing?.createdAt || now,
           updatedAt: now,
           publishedAt: existing?.publishedAt || now,
@@ -214,7 +313,7 @@ export function registerBusinessProfileRoutes(app: Express) {
       const { slug } = req.params;
       const profile = await storage.getBusinessProfileBySlug(slug);
 
-      if (!profile) {
+      if (!profile || profile.visibility !== "public") {
         return res.status(404).json({ message: "Profile not found" });
       }
 
@@ -224,12 +323,24 @@ export function registerBusinessProfileRoutes(app: Express) {
         id: profile.id,
         slug: profile.slug,
         name: profile.name,
+        headline: profile.headline || null,
         description: profile.description,
+        services: profile.services || [],
         countyFips: profile.countyFips,
         countyName: profile.countyName,
         city: profile.city,
         stateCode: profile.stateCode,
         serviceAreas: profile.serviceAreas,
+        seoMeta: profile.seoMeta || buildDefaultSeoMeta(profile),
+        ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
+        contentBlocks: sanitizePublicContentBlocks(profile.contentBlocks),
+        profileSections: profile.profileSections || buildDefaultSections(),
+        theme: profile.theme || buildDefaultTheme(),
+        bookingConfig: sanitizePublicBookingConfig(profile.bookingConfig),
+        visibility: profile.visibility,
+        verificationStatus: profile.verificationStatus || null,
+        addressVerified: profile.addressVerified ?? false,
+        cvsScore: profile.cvsScore ?? null,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
         publishedAt: profile.publishedAt,
@@ -305,7 +416,15 @@ export function registerBusinessProfileRoutes(app: Express) {
       const updatedProfile: BusinessProfile = {
         ...existing,
         name: updates.name ?? existing.name,
+        headline:
+          updates.headline !== undefined ? String(updates.headline || "").trim() || null : existing.headline || null,
         description: updates.description !== undefined ? updates.description : existing.description,
+        services:
+          updates.services !== undefined
+            ? Array.isArray(updates.services)
+              ? updates.services.map((service) => String(service).trim()).filter(Boolean).slice(0, 24)
+              : []
+            : existing.services || [],
         countyFips: nextCountyFips,
         countyName: updates.countyName !== undefined ? updates.countyName : existing.countyName,
         city: updates.city !== undefined ? updates.city : existing.city,
@@ -314,6 +433,32 @@ export function registerBusinessProfileRoutes(app: Express) {
         zipCode: updates.zipCode !== undefined ? updates.zipCode : existing.zipCode || null,
         serviceAreas: updates.serviceAreas ?? existing.serviceAreas,
         website: updates.website !== undefined ? updates.website : existing.website,
+        seoMeta: updates.seoMeta !== undefined ? updates.seoMeta : existing.seoMeta || buildDefaultSeoMeta(existing),
+        ctaConfig: updates.ctaConfig !== undefined ? updates.ctaConfig : existing.ctaConfig || null,
+        contentBlocks:
+          updates.contentBlocks !== undefined
+            ? Array.isArray(updates.contentBlocks)
+              ? updates.contentBlocks
+              : []
+            : existing.contentBlocks || [],
+        profileSections:
+          updates.profileSections !== undefined
+            ? { ...buildDefaultSections(), ...(updates.profileSections || {}) }
+            : existing.profileSections || buildDefaultSections(),
+        theme:
+          updates.theme !== undefined
+            ? updates.theme || buildDefaultTheme()
+            : existing.theme || buildDefaultTheme(),
+        bookingConfig:
+          updates.bookingConfig !== undefined
+            ? updates.bookingConfig || null
+            : existing.bookingConfig || null,
+        visibility:
+          updates.visibility !== undefined
+            ? updates.visibility === "public"
+              ? "public"
+              : "private"
+            : existing.visibility || "private",
         updatedAt: new Date().toISOString(),
       };
 

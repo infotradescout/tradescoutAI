@@ -64,21 +64,25 @@ function buildBusinessMeta(args: {
   origin: string;
   slug: string;
   name: string;
+  headline?: string | null;
   description?: string | null;
+  seoMeta?: { title?: string | null; description?: string | null; imageUrl?: string | null } | null;
   countyName?: string | null;
   stateCode?: string | null;
   categories?: string[];
   serviceAreas?: string[];
+  services?: string[];
   verificationLabel?: string;
 }) {
   const name = args.name.trim();
   const place =
     args.countyName && args.stateCode ? ` in ${args.countyName}, ${args.stateCode}` : "";
-  const title = formatTradeScoutTitle(`${name}${place} | TradeScout`);
+  const title = formatTradeScoutTitle(args.seoMeta?.title || `${name}${place} | TradeScout`);
 
-  const rawDescription = String(args.description || "").trim();
+  const rawDescription = String(args.seoMeta?.description || args.description || args.headline || "").trim();
   const fallbackBits = [
     args.categories?.length ? `Categories: ${args.categories.slice(0, 4).join(", ")}.` : "",
+    args.services?.length ? `Services: ${args.services.slice(0, 6).join(", ")}.` : "",
     args.serviceAreas?.length ? `Service areas: ${args.serviceAreas.slice(0, 6).join(", ")}.` : "",
     args.verificationLabel ? `Verification: ${args.verificationLabel}.` : "",
     "Contact is protected through TradeScout Direct Connect.",
@@ -91,12 +95,13 @@ function buildBusinessMeta(args: {
     .slice(0, 300);
 
   const canonical = `${args.origin}/business/${encodeURIComponent(args.slug)}`;
-  const imageUrl = `${args.origin}/tradescout-social-preview.png?v=10`;
+  const imageUrl = args.seoMeta?.imageUrl || `${args.origin}/tradescout-social-preview.png?v=10`;
   const keywords = [
     name,
     args.countyName || "",
     args.stateCode || "",
     ...(args.categories || []),
+    ...(args.services || []),
     "TradeScout",
     "local services",
   ]
@@ -123,10 +128,13 @@ export async function buildPublicBusinessHtml({
       origin,
       slug: safeSlug,
       name: published.name,
+      headline: published.headline,
       description: published.description,
+      seoMeta: published.seoMeta || null,
       countyName: published.countyName,
       stateCode: published.stateCode,
       serviceAreas: published.serviceAreas || [],
+      services: published.services || [],
       verificationLabel: published.verificationStatus || undefined,
     });
 
@@ -136,7 +144,17 @@ export async function buildPublicBusinessHtml({
       name: published.name,
       description: meta.description,
       url: meta.canonical,
+      slogan: published.headline || undefined,
       areaServed: (published.serviceAreas || []).slice(0, 12),
+      makesOffer: Array.isArray(published.services)
+        ? published.services.slice(0, 8).map((service) => ({
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: String(service),
+            },
+          }))
+        : undefined,
       sameAs: published.website ? [published.website] : undefined,
       hasCredential: published.verificationStatus
         ? {
@@ -233,13 +251,66 @@ export async function buildPublicBusinessHtml({
           )}`
         : "";
 
+    const servicesSummary = Array.isArray(published.services)
+      ? published.services.filter(Boolean).slice(0, 8)
+      : [];
+    const contentBlocks = Array.isArray(published.contentBlocks)
+      ? published.contentBlocks.filter((block: any) => block && typeof block === "object").slice(0, 6)
+      : [];
+    const renderSeoContentBlock = (block: any) => {
+      const type = String(block?.type || "text").toLowerCase();
+      const title = block?.title ? `<h2>${escapeHtml(String(block.title))}</h2>` : "";
+      const body = block?.body ? `<p>${escapeHtml(String(block.body))}</p>` : "";
+      const secondary = block?.secondaryBody ? `<p>${escapeHtml(String(block.secondaryBody))}</p>` : "";
+      if (type === "faq") return `<section data-block-type=\"faq\">${title}${body}${secondary}</section>`;
+      if (type === "proof") return `<section data-block-type=\"proof\">${title}${body}${secondary}<p>Trust signal published on TradeScout.</p></section>`;
+      if (type === "cta") return `<section data-block-type=\"cta\">${title}${body}<p>${escapeHtml(String(block?.ctaLabel || "Contact through TradeScout Direct Connect."))}</p></section>`;
+      if (type === "gallery") return `<section data-block-type=\"gallery\">${title}${body}${block?.imageUrl ? `<p>Featured image available.</p>` : ""}</section>`;
+      if (type === "hero") return `<section data-block-type=\"hero\">${title}${body}</section>`;
+      return `<section data-block-type=\"text\">${title}${body}</section>`;
+    };
+    const bookingRows =
+      published.bookingConfig?.pricingTableEnabled && Array.isArray(published.bookingConfig?.pricingRows)
+        ? published.bookingConfig.pricingRows
+            .map((row: any) =>
+              [String(row?.name || "").trim(), String(row?.priceLabel || "").trim()]
+                .filter((part) => part.length > 0)
+                .join(": ")
+            )
+            .filter((line: string) => line.length > 0)
+            .slice(0, 6)
+        : [];
+    const bookingSummary =
+      published.bookingConfig?.enabled === true
+        ? published.bookingConfig?.paidBookings
+          ? `Bookings enabled. Paid booking deposit: $${Number(published.bookingConfig?.bookingPriceUsd || 0).toFixed(2)}.`
+          : "Bookings enabled."
+        : "Bookings not enabled.";
+    const websiteReadySummary =
+      published.customDomainVerification?.state === "verified"
+        ? "This public TradeScout business page has a connected custom domain and can function as the business website."
+        : "This public TradeScout business page is website-ready by default and can be connected to a custom domain.";
+    const trustSummary = [
+      published.verificationStatus ? `Verification: ${published.verificationStatus}.` : "Verification details available on TradeScout.",
+      published.addressVerified ? "Address verified on TradeScout." : "Address verification can improve trust on this page.",
+      Array.isArray(published.services) && published.services.length > 0 ? `Services are listed directly on this business page.` : "Business services can be added directly on this page.",
+    ].join(" ");
+
     const summary = `
 <main data-seo-business="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(published.name)}</h1>
+    ${published.headline ? `<p><strong>${escapeHtml(String(published.headline))}</strong></p>` : ""}
     <p>${escapeHtml(meta.description)}</p>
+    ${servicesSummary.length > 0 ? `<p><strong>Services:</strong> ${escapeHtml(servicesSummary.join(", "))}</p>` : ""}
+    ${(published.serviceAreas || []).length > 0 ? `<p><strong>Service areas:</strong> ${escapeHtml((published.serviceAreas || []).slice(0, 8).join(", "))}</p>` : ""}
+    <p>${escapeHtml(websiteReadySummary)}</p>
+    <p>${escapeHtml(trustSummary)}</p>
     ${cityHref ? `<p><a href="${cityHref}">Browse ${escapeHtml(String(published.city || ""))}</a></p>` : ""}
     ${countyHref ? `<p><a href="${countyHref}">Browse ${escapeHtml(String(published.countyName || ""))}</a></p>` : ""}
+    ${contentBlocks.length > 0 ? contentBlocks.map((block: any) => renderSeoContentBlock(block)).join("") : ""}
+    <p>${escapeHtml(bookingSummary)}</p>
+    ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
     <p>Contact is protected through TradeScout Direct Connect.</p>
   </article>
 </main>`;
@@ -327,6 +398,7 @@ export async function buildPublicBusinessHtml({
     origin,
     slug: safeSlug,
     name: String((directory as any).name || safeSlug),
+    headline: tagline || null,
     description: isStale
       ? "This listing is inactive or out of date."
       : description || tagline || null,
@@ -334,6 +406,7 @@ export async function buildPublicBusinessHtml({
     stateCode,
     categories,
     serviceAreas: countyNames,
+    services: categories,
     verificationLabel,
   });
 
