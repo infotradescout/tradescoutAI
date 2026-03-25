@@ -50,12 +50,12 @@ describe("business profile public contracts", () => {
   it("business profile editor uses a real block-type select and block-specific fields", () => {
     const source = read("client/src/pages/BusinessProfileEditor.tsx");
 
-    expect(source).toContain("<Select value={block.type || \"text\"}");
-    expect(source).toContain("<SelectItem value=\"hero\">Hero</SelectItem>");
-    expect(source).toContain("<SelectItem value=\"gallery\">Gallery</SelectItem>");
-    expect(source).toContain("<SelectItem value=\"faq\">FAQ</SelectItem>");
-    expect(source).toContain("<SelectItem value=\"proof\">Proof</SelectItem>");
-    expect(source).toContain("<SelectItem value=\"cta\">CTA</SelectItem>");
+    expect(source).toContain('<Select value={block.type || "text"}');
+    expect(source).toContain('<SelectItem value="hero">Hero</SelectItem>');
+    expect(source).toContain('<SelectItem value="gallery">Gallery</SelectItem>');
+    expect(source).toContain('<SelectItem value="faq">FAQ</SelectItem>');
+    expect(source).toContain('<SelectItem value="proof">Proof</SelectItem>');
+    expect(source).toContain('<SelectItem value="cta">CTA</SelectItem>');
     expect(source).toContain("secondaryBody");
     expect(source).toContain("ctaLabel");
   });

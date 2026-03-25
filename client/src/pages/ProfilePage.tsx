@@ -226,7 +226,9 @@ export default function ProfilePage() {
   const copyProfileUrl = async () => {
     await share({
       url: profileUrl,
-      title: businessSlug ? `${displayName}'s TradeScout business page` : `${displayName}'s TradeScout profile`,
+      title: businessSlug
+        ? `${displayName}'s TradeScout business page`
+        : `${displayName}'s TradeScout profile`,
       contextLabel: businessSlug ? "Business page link" : "Profile link",
       suppressRef: true,
     });
@@ -321,7 +323,9 @@ export default function ProfilePage() {
                       {isPublic ? (
                         <>
                           <Globe className="h-4 w-4 text-green-400" />
-                          <span className="text-green-400">{businessSlug ? "Public Business Page" : "Public Profile"}</span>
+                          <span className="text-green-400">
+                            {businessSlug ? "Public Business Page" : "Public Profile"}
+                          </span>
                         </>
                       ) : (
                         <>
@@ -371,7 +375,9 @@ export default function ProfilePage() {
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/60 mb-1">{businessSlug ? "Your Public Business Page URL" : "Your Public Profile URL"}</p>
+                      <p className="text-xs text-white/60 mb-1">
+                        {businessSlug ? "Your Public Business Page URL" : "Your Public Profile URL"}
+                      </p>
                       <code
                         className="text-sm truncate block"
                         style={{ color: "var(--user-primary)" }}
@@ -463,10 +469,14 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <Globe className="h-5 w-5 text-ts-orange" />
-                    {businessSlug ? "Your Business Page Is Your Website" : "Your Profile is Your Website"}
+                    {businessSlug
+                      ? "Your Business Page Is Your Website"
+                      : "Your Profile is Your Website"}
                   </CardTitle>
                   <CardDescription className="text-white/60">
-                    {businessSlug ? "Your public TradeScout business page replaces the need for a traditional website" : "Your profile replaces the need for a traditional website"}
+                    {businessSlug
+                      ? "Your public TradeScout business page replaces the need for a traditional website"
+                      : "Your profile replaces the need for a traditional website"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-white">

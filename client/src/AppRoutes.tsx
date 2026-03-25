@@ -3,14 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
-import { AppShell } from "./components/layout/AppShell";
-import { CommunityPageShell } from "./shells/CommunityPageShell";
-import { GroupsShell } from "./shells/GroupsShell";
-import { HOADashboardShell } from "./shells/HOADashboardShell";
-import { HOAManagementShell } from "./shells/HOAManagementShell";
-import Foundation from "./pages/foundation";
-import ScoutOS from "./scout";
-import SmartHome from "./SmartHome";
+
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
 import { isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
@@ -187,6 +180,15 @@ const RootLanding = memo(function RootLanding() {
 });
 
 // Lazy load all pages by category for better code splitting
+const AppShell = React.lazy(() => import("./components/layout/AppShell"));
+const CommunityPageShell = React.lazy(() => import("./shells/CommunityPageShell"));
+const GroupsShell = React.lazy(() => import("./shells/GroupsShell"));
+const HOADashboardShell = React.lazy(() => import("./shells/HOADashboardShell"));
+const HOAManagementShell = React.lazy(() => import("./shells/HOAManagementShell"));
+const Foundation = React.lazy(() => import("./pages/foundation"));
+const ScoutOS = React.lazy(() => import("./scout"));
+const SmartHome = React.lazy(() => import("./SmartHome"));
+
 // Core Pages
 // Contractors: canonical path is the licensed/verified contractor search
 const ContractorProfile = React.lazy(() => import("./pages/contractor-profile"));
@@ -567,9 +569,10 @@ export const AppRoutes = memo(function AppRoutes({
           </Route>
         </Switch>
       ) : (
-        <AppShell>
-          <AuthenticatedOnboardingGate />
-          <Switch>
+        <Suspense fallback={<PageLoader />}>
+          <AppShell>
+            <AuthenticatedOnboardingGate />
+            <Switch>
             {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
             <Route path="/" component={RootLanding} />
             <Route path="/landing">
@@ -1798,8 +1801,9 @@ export const AppRoutes = memo(function AppRoutes({
             <Route path="/:rest*">
               <LazyPage Component={NotFound} />
             </Route>
-          </Switch>
-        </AppShell>
+            </Switch>
+          </AppShell>
+        </Suspense>
       )}
     </>
   );

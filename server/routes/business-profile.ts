@@ -25,7 +25,8 @@ function sanitizePublicCtaConfig(ctaConfig: unknown) {
     if (!cta || typeof cta !== "object") return null;
     const source = cta as Record<string, any>;
     const kind = typeof source.kind === "string" ? source.kind : "direct_connect";
-    const label = typeof source.label === "string" ? source.label.trim().slice(0, 80) : "Contact on TradeScout";
+    const label =
+      typeof source.label === "string" ? source.label.trim().slice(0, 80) : "Contact on TradeScout";
     return { label, kind, value: null, requiresTradeScoutAccount: true, route: "/direct-connect" };
   };
   return { primary: sanitize(safe.primary), secondary: sanitize(safe.secondary) };
@@ -106,8 +107,7 @@ function buildDefaultSeoMeta(profile: Partial<BusinessProfile>) {
   const place = [profile.countyName, profile.stateCode].filter(Boolean).join(", ");
   const title = place ? `${name} | ${place} | TradeScout` : `${name} | TradeScout`;
   const description =
-    String(profile.description || profile.headline || "").trim() ||
-    `View ${name} on TradeScout.`;
+    String(profile.description || profile.headline || "").trim() || `View ${name} on TradeScout.`;
   return { title: title.slice(0, 120), description: description.slice(0, 300), imageUrl: null };
 }
 
@@ -272,13 +272,23 @@ export function registerBusinessProfileRoutes(app: Express) {
           stateCode: payload.stateCode,
           serviceAreas: payload.serviceAreas || [payload.countyFips],
           website: payload.website || null,
-          seoMeta: payload.seoMeta || existing?.seoMeta || buildDefaultSeoMeta({ name: payload.name, description: payload.description || null, countyName: payload.countyName || null, stateCode: payload.stateCode }),
+          seoMeta:
+            payload.seoMeta ||
+            existing?.seoMeta ||
+            buildDefaultSeoMeta({
+              name: payload.name,
+              description: payload.description || null,
+              countyName: payload.countyName || null,
+              stateCode: payload.stateCode,
+            }),
           ctaConfig: payload.ctaConfig || existing?.ctaConfig || null,
           contentBlocks: payload.contentBlocks || existing?.contentBlocks || [],
-          profileSections: payload.profileSections || existing?.profileSections || buildDefaultSections(),
+          profileSections:
+            payload.profileSections || existing?.profileSections || buildDefaultSections(),
           theme: payload.theme || existing?.theme || buildDefaultTheme(),
           bookingConfig: payload.bookingConfig || existing?.bookingConfig || null,
-          visibility: payload.visibility === "public" ? "public" : existing?.visibility || "private",
+          visibility:
+            payload.visibility === "public" ? "public" : existing?.visibility || "private",
           createdAt: existing?.createdAt || now,
           updatedAt: now,
           publishedAt: existing?.publishedAt || now,
@@ -417,12 +427,17 @@ export function registerBusinessProfileRoutes(app: Express) {
         ...existing,
         name: updates.name ?? existing.name,
         headline:
-          updates.headline !== undefined ? String(updates.headline || "").trim() || null : existing.headline || null,
+          updates.headline !== undefined
+            ? String(updates.headline || "").trim() || null
+            : existing.headline || null,
         description: updates.description !== undefined ? updates.description : existing.description,
         services:
           updates.services !== undefined
             ? Array.isArray(updates.services)
-              ? updates.services.map((service) => String(service).trim()).filter(Boolean).slice(0, 24)
+              ? updates.services
+                  .map((service) => String(service).trim())
+                  .filter(Boolean)
+                  .slice(0, 24)
               : []
             : existing.services || [],
         countyFips: nextCountyFips,
@@ -433,7 +448,10 @@ export function registerBusinessProfileRoutes(app: Express) {
         zipCode: updates.zipCode !== undefined ? updates.zipCode : existing.zipCode || null,
         serviceAreas: updates.serviceAreas ?? existing.serviceAreas,
         website: updates.website !== undefined ? updates.website : existing.website,
-        seoMeta: updates.seoMeta !== undefined ? updates.seoMeta : existing.seoMeta || buildDefaultSeoMeta(existing),
+        seoMeta:
+          updates.seoMeta !== undefined
+            ? updates.seoMeta
+            : existing.seoMeta || buildDefaultSeoMeta(existing),
         ctaConfig: updates.ctaConfig !== undefined ? updates.ctaConfig : existing.ctaConfig || null,
         contentBlocks:
           updates.contentBlocks !== undefined

@@ -251,8 +251,12 @@ export default function BusinessProfileView() {
   };
   const contentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
   const bookingConfig = profile.bookingConfig || null;
-  const hasCustomHero = contentBlocks.some((block: any) => String(block?.type || "").toLowerCase() === "hero");
-  const hasCustomCta = contentBlocks.some((block: any) => String(block?.type || "").toLowerCase() === "cta");
+  const hasCustomHero = contentBlocks.some(
+    (block: any) => String(block?.type || "").toLowerCase() === "hero"
+  );
+  const hasCustomCta = contentBlocks.some(
+    (block: any) => String(block?.type || "").toLowerCase() === "cta"
+  );
   const businessPromise =
     profile.headline ||
     (serviceList.length > 0
@@ -270,15 +274,21 @@ export default function BusinessProfileView() {
     verificationLabel,
     addressVerified ? "Address verified" : "Address verification pending",
     bookingConfig?.enabled ? "Booking available" : null,
-    profile.customDomainVerification?.state === "verified" ? "Custom domain connected" : "Custom domain ready",
+    profile.customDomainVerification?.state === "verified"
+      ? "Custom domain connected"
+      : "Custom domain ready",
   ].filter(Boolean) as string[];
   const trustProofItems = [
     verificationLabel,
-    addressVerified ? "Address has been verified on TradeScout." : "Address verification can improve trust on this page.",
+    addressVerified
+      ? "Address has been verified on TradeScout."
+      : "Address verification can improve trust on this page.",
     profile.customDomainVerification?.state === "verified"
       ? "This business page is live on a connected custom domain."
       : "This business page can be connected to a custom domain.",
-    listings.length > 0 ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.` : "Listings can appear here as this business adds offers.",
+    listings.length > 0
+      ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.`
+      : "Listings can appear here as this business adds offers.",
   ];
 
   function renderContentBlock(block: any, idx: number) {
@@ -290,8 +300,19 @@ export default function BusinessProfileView() {
         <Card key={key} className="border-2" style={themeStyle}>
           <CardContent className="pt-6 space-y-3">
             {block?.title ? <h2 className="text-2xl font-bold">{block.title}</h2> : null}
-            {block?.body ? <p className="text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
-            {block?.imageUrl ? <a href={block.imageUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">View hero image</a> : null}
+            {block?.body ? (
+              <p className="text-muted-foreground whitespace-pre-wrap">{block.body}</p>
+            ) : null}
+            {block?.imageUrl ? (
+              <a
+                href={block.imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline"
+              >
+                View hero image
+              </a>
+            ) : null}
           </CardContent>
         </Card>
       );
@@ -305,7 +326,11 @@ export default function BusinessProfileView() {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block?.body || ""}</p>
-            {block?.secondaryBody ? <p className="text-xs text-muted-foreground whitespace-pre-wrap">{block.secondaryBody}</p> : null}
+            {block?.secondaryBody ? (
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                {block.secondaryBody}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       );
@@ -318,8 +343,14 @@ export default function BusinessProfileView() {
             <CardTitle>{block?.title || "Proof"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {block?.body ? <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
-            {block?.secondaryBody ? <p className="text-xs text-muted-foreground whitespace-pre-wrap">{block.secondaryBody}</p> : null}
+            {block?.body ? (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p>
+            ) : null}
+            {block?.secondaryBody ? (
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                {block.secondaryBody}
+              </p>
+            ) : null}
             <Badge variant="secondary">Trust Signal</Badge>
           </CardContent>
         </Card>
@@ -331,7 +362,9 @@ export default function BusinessProfileView() {
         <Card key={key} className="border-2" style={themeStyle}>
           <CardContent className="pt-6 text-center space-y-3">
             {block?.title ? <h3 className="text-xl font-semibold">{block.title}</h3> : null}
-            {block?.body ? <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
+            {block?.body ? (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p>
+            ) : null}
             <Button
               onClick={() => {
                 const params = new URLSearchParams({
@@ -356,8 +389,23 @@ export default function BusinessProfileView() {
             <CardTitle>{block?.title || "Gallery"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {block?.body ? <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p> : null}
-            {block?.imageUrl ? <a href={block.imageUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open gallery image</a> : <p className="text-xs text-muted-foreground">Add an image URL to feature media here.</p>}
+            {block?.body ? (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p>
+            ) : null}
+            {block?.imageUrl ? (
+              <a
+                href={block.imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline"
+              >
+                Open gallery image
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Add an image URL to feature media here.
+              </p>
+            )}
           </CardContent>
         </Card>
       );
@@ -366,16 +414,26 @@ export default function BusinessProfileView() {
     return (
       <div key={key} className="rounded border p-4">
         {block?.title ? <h3 className="font-semibold mb-2">{block.title}</h3> : null}
-        {block?.body ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{block.body}</p> : null}
+        {block?.body ? (
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{block.body}</p>
+        ) : null}
         {block?.imageUrl ? (
-          <a href={block.imageUrl} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline mt-2 inline-block">View image</a>
+          <a
+            href={block.imageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary hover:underline mt-2 inline-block"
+          >
+            View image
+          </a>
         ) : null}
       </div>
     );
   }
   const themeStyle = {
     background:
-      profile.theme?.customColors?.background && String(profile.theme.customColors.background).trim()
+      profile.theme?.customColors?.background &&
+      String(profile.theme.customColors.background).trim()
         ? String(profile.theme.customColors.background)
         : undefined,
     color:
@@ -472,7 +530,9 @@ export default function BusinessProfileView() {
                 {profile.name}
               </CardTitle>
               {hasHeadline ? (
-                <p className="text-base sm:text-lg text-muted-foreground mb-3">{profile.headline}</p>
+                <p className="text-base sm:text-lg text-muted-foreground mb-3">
+                  {profile.headline}
+                </p>
               ) : null}
 
               {/* Location */}
@@ -549,7 +609,9 @@ export default function BusinessProfileView() {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {trustHighlights.map((item) => (
-                  <Badge key={item} variant="secondary">{item}</Badge>
+                  <Badge key={item} variant="secondary">
+                    {item}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -609,7 +671,8 @@ export default function BusinessProfileView() {
               {isOwner ? (
                 <>
                   <p className="mb-3">
-                    This public business page is already live. Add a short description to make your website feel even more complete.
+                    This public business page is already live. Add a short description to make your
+                    website feel even more complete.
                   </p>
                   <Button variant="outline" onClick={() => setLocation(`/business/${slug}/edit`)}>
                     Add Business Description
@@ -617,7 +680,8 @@ export default function BusinessProfileView() {
                 </>
               ) : (
                 <p>
-                  This business is using TradeScout as a public business page. More about the business will appear here as the page is updated.
+                  This business is using TradeScout as a public business page. More about the
+                  business will appear here as the page is updated.
                 </p>
               )}
             </div>
@@ -738,7 +802,9 @@ export default function BusinessProfileView() {
               {serviceList.map((service, idx) => (
                 <div key={`${service}-${idx}`} className="rounded-lg border bg-background/40 p-4">
                   <div className="font-medium">{service}</div>
-                  <div className="text-xs text-muted-foreground mt-1">Available through this TradeScout business page.</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Available through this TradeScout business page.
+                  </div>
                 </div>
               ))}
             </div>
@@ -752,7 +818,9 @@ export default function BusinessProfileView() {
             <CardTitle>About</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{profile.description}</p>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+              {profile.description}
+            </p>
           </CardContent>
         </Card>
       ) : null}
@@ -769,7 +837,8 @@ export default function BusinessProfileView() {
             <div>
               <div className="text-sm font-medium">Website-ready by default</div>
               <div className="text-sm text-muted-foreground mt-1">
-                This TradeScout page is designed to work as a real public website, even without manual customization.
+                This TradeScout page is designed to work as a real public website, even without
+                manual customization.
               </div>
             </div>
             <div>
@@ -783,7 +852,8 @@ export default function BusinessProfileView() {
             <div>
               <div className="text-sm font-medium">TradeScout-powered contact</div>
               <div className="text-sm text-muted-foreground mt-1">
-                Leads and contact stay routed through TradeScout instead of exposing raw contact details.
+                Leads and contact stay routed through TradeScout instead of exposing raw contact
+                details.
               </div>
             </div>
           </CardContent>
@@ -796,7 +866,10 @@ export default function BusinessProfileView() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
           {trustProofItems.map((item) => (
-            <div key={item} className="rounded-lg border bg-background/40 p-4 text-sm text-muted-foreground">
+            <div
+              key={item}
+              className="rounded-lg border bg-background/40 p-4 text-sm text-muted-foreground"
+            >
               {item}
             </div>
           ))}
@@ -815,12 +888,18 @@ export default function BusinessProfileView() {
                 : "Booking available through TradeScout."}
             </p>
             {bookingConfig.timezone ? <p>Timezone: {bookingConfig.timezone}</p> : null}
-            {bookingConfig.pricingTableEnabled && Array.isArray(bookingConfig.pricingRows) && bookingConfig.pricingRows.length > 0 ? (
+            {bookingConfig.pricingTableEnabled &&
+            Array.isArray(bookingConfig.pricingRows) &&
+            bookingConfig.pricingRows.length > 0 ? (
               <div className="space-y-2">
                 {bookingConfig.pricingRows.map((row: any) => (
                   <div key={row.id || row.name} className="rounded border p-3">
-                    <div className="font-medium">{row.name} {row.priceLabel ? `· ${row.priceLabel}` : ""}</div>
-                    {row.description ? <div className="text-xs text-muted-foreground mt-1">{row.description}</div> : null}
+                    <div className="font-medium">
+                      {row.name} {row.priceLabel ? `· ${row.priceLabel}` : ""}
+                    </div>
+                    {row.description ? (
+                      <div className="text-xs text-muted-foreground mt-1">{row.description}</div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -836,10 +915,12 @@ export default function BusinessProfileView() {
             <div className="text-center max-w-2xl mx-auto">
               <h3 className="text-xl font-semibold mb-2">Start with {profile.name}</h3>
               <p className="text-muted-foreground mb-2">
-                Use TradeScout to request a quote, start a conversation, or route your need to the right next step.
+                Use TradeScout to request a quote, start a conversation, or route your need to the
+                right next step.
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                This page is built to work as a shareable public website and can be connected to a custom domain.
+                This page is built to work as a shareable public website and can be connected to a
+                custom domain.
               </p>
               <div className="flex flex-col items-center gap-2">
                 <Button

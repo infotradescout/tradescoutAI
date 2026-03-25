@@ -70,6 +70,7 @@ import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scout
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
 import ScoutProactiveWatchdog from "../services/scoutProactiveWatchdog";
 import ScoutToneAwareBuilder, { type ToneScenario } from "../services/scoutToneAwareBuilder";
+import scoutNormalizeRouter from "./scout-normalize";
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
 import {
@@ -187,6 +188,8 @@ router.use((req, res, next) => {
 
   next();
 });
+
+router.use(scoutNormalizeRouter);
 
 function normalizeScoutRole(role?: string | null): InsertScoutInteraction["userRole"] {
   if (!role) return "homeowner";

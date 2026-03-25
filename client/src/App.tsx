@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { Suspense, memo, useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Router, useLocation } from "wouter";
 import { X } from "lucide-react";
@@ -9,22 +9,16 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { SessionProvider } from "./contexts/SessionContext";
 import { useAuth } from "./hooks/useAuth";
 import { resolveDefaultHomeRoute, type DefaultHomePage } from "./lib/homeRoute";
-import { PreferredSourcePrompt } from "./components/PreferredSourcePrompt";
 import {
   FEATURE_HOLD_TO_EXPLAIN,
   FEATURE_HOLD_INTRO_TUTORIAL,
   FEATURE_EDUCATION_REPLACEMENT,
 } from "@shared/governanceFlags";
-import { HoldToExplainProvider } from "./components/hold/HoldToExplainProvider";
-import { HoldIntroTutorial } from "./components/onboarding/HoldIntroTutorial";
 import { registerStarterActionDescriptors } from "./lib/actionDescriptorSeeds";
 import TradeScoutBackground from "./components/TradeScoutBackground";
 
 // Only load essential components eagerly
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
-import SimpleSubtleHints from "./components/onboarding/SimpleSubtleHints";
-import ProfileCompletionBanner from "./components/onboarding/ProfileCompletionBanner";
-import SimpleBugReportTool from "./components/SimpleBugReportTool";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { isSuperAdminLike } from "./lib/roleChecks";
 
@@ -35,6 +29,17 @@ import { AppRoutes } from "./AppRoutes";
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
+
+const PreferredSourcePrompt = React.lazy(() => import("./components/PreferredSourcePrompt"));
+const HoldToExplainProvider = React.lazy(
+  () => import("./components/hold/HoldToExplainProvider")
+);
+const HoldIntroTutorial = React.lazy(() => import("./components/onboarding/HoldIntroTutorial"));
+const SimpleSubtleHints = React.lazy(() => import("./components/onboarding/SimpleSubtleHints"));
+const ProfileCompletionBanner = React.lazy(
+  () => import("./components/onboarding/ProfileCompletionBanner")
+);
+const SimpleBugReportTool = React.lazy(() => import("./components/SimpleBugReportTool"));
 
 function isDefaultHomePage(value: unknown): value is DefaultHomePage {
   return (
@@ -233,24 +238,44 @@ const AppLayout = memo(function AppLayout() {
       {/* Global components - CONTENT ONLY, NO NAV (AppShell owns all navigation) */}
 
       {/* Preferred Source Prompt - earned at 5 completed actions */}
-      {isAuthenticated && user?.id && <PreferredSourcePrompt userId={user.id} onClose={() => {}} />}
+      {isAuthenticated && user?.id && (
+        <Suspense fallback={null}>
+          <PreferredSourcePrompt userId={user.id} onClose={() => {}} />
+        </Suspense>
+      )}
 
       {/* Hold-to-Explain (ships dark behind flag) */}
-      {FEATURE_HOLD_TO_EXPLAIN && <HoldToExplainProvider />}
+      {FEATURE_HOLD_TO_EXPLAIN && (
+        <Suspense fallback={null}>
+          <HoldToExplainProvider />
+        </Suspense>
+      )}
 
       {/* One-time Hold explainer (ships dark behind flag) */}
-      {FEATURE_HOLD_INTRO_TUTORIAL && <HoldIntroTutorial />}
+      {FEATURE_HOLD_INTRO_TUTORIAL && (
+        <Suspense fallback={null}>
+          <HoldIntroTutorial />
+        </Suspense>
+      )}
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
       {!isLlmRoute && !isLandingRoute && !isShareRoute && !FEATURE_EDUCATION_REPLACEMENT && (
-        <SimpleSubtleHints />
+        <Suspense fallback={null}>
+          <SimpleSubtleHints />
+        </Suspense>
       )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
-      {!isLlmRoute && !isLandingRoute && !isShareRoute && <ProfileCompletionBanner />}
+      {!isLlmRoute && !isLandingRoute && !isShareRoute && (
+        <Suspense fallback={null}>
+          <ProfileCompletionBanner />
+        </Suspense>
+      )}
 
       {/* Bug report tool - always available */}
-      <SimpleBugReportTool />
+      <Suspense fallback={null}>
+        <SimpleBugReportTool />
+      </Suspense>
     </SimpleMobileGestures>
   );
 });

@@ -79,7 +79,9 @@ function buildBusinessMeta(args: {
     args.countyName && args.stateCode ? ` in ${args.countyName}, ${args.stateCode}` : "";
   const title = formatTradeScoutTitle(args.seoMeta?.title || `${name}${place} | TradeScout`);
 
-  const rawDescription = String(args.seoMeta?.description || args.description || args.headline || "").trim();
+  const rawDescription = String(
+    args.seoMeta?.description || args.description || args.headline || ""
+  ).trim();
   const fallbackBits = [
     args.categories?.length ? `Categories: ${args.categories.slice(0, 4).join(", ")}.` : "",
     args.services?.length ? `Services: ${args.services.slice(0, 6).join(", ")}.` : "",
@@ -255,22 +257,31 @@ export async function buildPublicBusinessHtml({
       ? published.services.filter(Boolean).slice(0, 8)
       : [];
     const contentBlocks = Array.isArray(published.contentBlocks)
-      ? published.contentBlocks.filter((block: any) => block && typeof block === "object").slice(0, 6)
+      ? published.contentBlocks
+          .filter((block: any) => block && typeof block === "object")
+          .slice(0, 6)
       : [];
     const renderSeoContentBlock = (block: any) => {
       const type = String(block?.type || "text").toLowerCase();
       const title = block?.title ? `<h2>${escapeHtml(String(block.title))}</h2>` : "";
       const body = block?.body ? `<p>${escapeHtml(String(block.body))}</p>` : "";
-      const secondary = block?.secondaryBody ? `<p>${escapeHtml(String(block.secondaryBody))}</p>` : "";
-      if (type === "faq") return `<section data-block-type=\"faq\">${title}${body}${secondary}</section>`;
-      if (type === "proof") return `<section data-block-type=\"proof\">${title}${body}${secondary}<p>Trust signal published on TradeScout.</p></section>`;
-      if (type === "cta") return `<section data-block-type=\"cta\">${title}${body}<p>${escapeHtml(String(block?.ctaLabel || "Contact through TradeScout Direct Connect."))}</p></section>`;
-      if (type === "gallery") return `<section data-block-type=\"gallery\">${title}${body}${block?.imageUrl ? `<p>Featured image available.</p>` : ""}</section>`;
+      const secondary = block?.secondaryBody
+        ? `<p>${escapeHtml(String(block.secondaryBody))}</p>`
+        : "";
+      if (type === "faq")
+        return `<section data-block-type=\"faq\">${title}${body}${secondary}</section>`;
+      if (type === "proof")
+        return `<section data-block-type=\"proof\">${title}${body}${secondary}<p>Trust signal published on TradeScout.</p></section>`;
+      if (type === "cta")
+        return `<section data-block-type=\"cta\">${title}${body}<p>${escapeHtml(String(block?.ctaLabel || "Contact through TradeScout Direct Connect."))}</p></section>`;
+      if (type === "gallery")
+        return `<section data-block-type=\"gallery\">${title}${body}${block?.imageUrl ? `<p>Featured image available.</p>` : ""}</section>`;
       if (type === "hero") return `<section data-block-type=\"hero\">${title}${body}</section>`;
       return `<section data-block-type=\"text\">${title}${body}</section>`;
     };
     const bookingRows =
-      published.bookingConfig?.pricingTableEnabled && Array.isArray(published.bookingConfig?.pricingRows)
+      published.bookingConfig?.pricingTableEnabled &&
+      Array.isArray(published.bookingConfig?.pricingRows)
         ? published.bookingConfig.pricingRows
             .map((row: any) =>
               [String(row?.name || "").trim(), String(row?.priceLabel || "").trim()]
@@ -291,9 +302,15 @@ export async function buildPublicBusinessHtml({
         ? "This public TradeScout business page has a connected custom domain and can function as the business website."
         : "This public TradeScout business page is website-ready by default and can be connected to a custom domain.";
     const trustSummary = [
-      published.verificationStatus ? `Verification: ${published.verificationStatus}.` : "Verification details available on TradeScout.",
-      published.addressVerified ? "Address verified on TradeScout." : "Address verification can improve trust on this page.",
-      Array.isArray(published.services) && published.services.length > 0 ? `Services are listed directly on this business page.` : "Business services can be added directly on this page.",
+      published.verificationStatus
+        ? `Verification: ${published.verificationStatus}.`
+        : "Verification details available on TradeScout.",
+      published.addressVerified
+        ? "Address verified on TradeScout."
+        : "Address verification can improve trust on this page.",
+      Array.isArray(published.services) && published.services.length > 0
+        ? `Services are listed directly on this business page.`
+        : "Business services can be added directly on this page.",
     ].join(" ");
 
     const summary = `

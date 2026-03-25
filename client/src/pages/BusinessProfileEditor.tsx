@@ -770,7 +770,8 @@ export default function BusinessProfileEditor() {
                     <div>
                       <Label htmlFor="customDomain">Custom Domain</Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Connect your own domain and use this TradeScout page as your free website equivalent.
+                        Connect your own domain and use this TradeScout page as your free website
+                        equivalent.
                       </p>
                     </div>
                     <Badge variant="secondary">{domainState}</Badge>
@@ -779,12 +780,15 @@ export default function BusinessProfileEditor() {
                   <div className="grid gap-3 md:grid-cols-2 text-sm">
                     <div className="rounded border p-3">
                       <div className="font-medium">Default TradeScout URL</div>
-                      <div className="text-muted-foreground break-all mt-1">tradescout.com{publicUrl}</div>
+                      <div className="text-muted-foreground break-all mt-1">
+                        tradescout.com{publicUrl}
+                      </div>
                     </div>
                     <div className="rounded border p-3">
                       <div className="font-medium">Your domain</div>
                       <div className="text-muted-foreground break-all mt-1">
-                        {profile.customDomainVerification?.state === "verified" && profile.customDomain
+                        {profile.customDomainVerification?.state === "verified" &&
+                        profile.customDomain
                           ? `https://${profile.customDomain}`
                           : domainInput
                             ? `https://${domainInput}`
@@ -849,10 +853,27 @@ export default function BusinessProfileEditor() {
                       </div>
                       <div className="break-all">https://{profile.customDomain}</div>
                       <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" size="sm" onClick={() => copyDomainValue("Custom domain", `https://${profile.customDomain}`)}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            copyDomainValue("Custom domain", `https://${profile.customDomain}`)
+                          }
+                        >
                           Copy Website URL
                         </Button>
-                        <Button type="button" size="sm" onClick={() => window.open(`https://${profile.customDomain}`, "_blank", "noopener,noreferrer")}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() =>
+                            window.open(
+                              `https://${profile.customDomain}`,
+                              "_blank",
+                              "noopener,noreferrer"
+                            )
+                          }
+                        >
                           Open Website
                         </Button>
                       </div>
@@ -864,30 +885,53 @@ export default function BusinessProfileEditor() {
                   <Alert>
                     <AlertDescription className="space-y-2 text-xs">
                       <div>
-                        Add this DNS TXT record at your registrar, then click <strong>Verify Domain</strong>.
+                        Add this DNS TXT record at your registrar, then click{" "}
+                        <strong>Verify Domain</strong>.
                       </div>
                       <div className="rounded border bg-background p-3 space-y-2">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div><strong>Host</strong></div>
-                            <div className="break-all">_tradescout-verify.{profile.customDomain}</div>
+                            <div>
+                              <strong>Host</strong>
+                            </div>
+                            <div className="break-all">
+                              _tradescout-verify.{profile.customDomain}
+                            </div>
                           </div>
-                          <Button type="button" variant="outline" size="sm" onClick={() => copyDomainValue("DNS host", `_tradescout-verify.${profile.customDomain}`)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              copyDomainValue(
+                                "DNS host",
+                                `_tradescout-verify.${profile.customDomain}`
+                              )
+                            }
+                          >
                             Copy Host
                           </Button>
                         </div>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div><strong>Value</strong></div>
+                            <div>
+                              <strong>Value</strong>
+                            </div>
                             <div className="break-all">{domainToken}</div>
                           </div>
-                          <Button type="button" variant="outline" size="sm" onClick={() => copyDomainValue("DNS value", domainToken)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyDomainValue("DNS value", domainToken)}
+                          >
                             Copy Value
                           </Button>
                         </div>
                       </div>
                       <div className="text-muted-foreground">
-                        Once verified, visitors can use your domain as the main website for this business page.
+                        Once verified, visitors can use your domain as the main website for this
+                        business page.
                       </div>
                     </AlertDescription>
                   </Alert>
@@ -904,37 +948,95 @@ export default function BusinessProfileEditor() {
             <TabsContent value="seo" className="space-y-4 mt-6">
               <div className="space-y-2">
                 <Label htmlFor="seoTitle">SEO Title</Label>
-                <Input id="seoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Business title for search/social" />
+                <Input
+                  id="seoTitle"
+                  value={seoTitle}
+                  onChange={(e) => setSeoTitle(e.target.value)}
+                  placeholder="Business title for search/social"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="seoDescription">SEO Description</Label>
-                <Textarea id="seoDescription" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="Short description for search/social" rows={4} />
+                <Textarea
+                  id="seoDescription"
+                  value={seoDescription}
+                  onChange={(e) => setSeoDescription(e.target.value)}
+                  placeholder="Short description for search/social"
+                  rows={4}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="seoImageUrl">SEO Image URL</Label>
-                <Input id="seoImageUrl" value={seoImageUrl} onChange={(e) => setSeoImageUrl(e.target.value)} placeholder="https://example.com/social-image.png" />
+                <Input
+                  id="seoImageUrl"
+                  value={seoImageUrl}
+                  onChange={(e) => setSeoImageUrl(e.target.value)}
+                  placeholder="https://example.com/social-image.png"
+                />
               </div>
             </TabsContent>
 
             <TabsContent value="theme" className="space-y-4 mt-6">
               <div className="space-y-2">
                 <Label htmlFor="themePreset">Theme Preset</Label>
-                <Input id="themePreset" value={themePreset} onChange={(e) => setThemePreset(e.target.value)} placeholder="default" />
+                <Input
+                  id="themePreset"
+                  value={themePreset}
+                  onChange={(e) => setThemePreset(e.target.value)}
+                  placeholder="default"
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Primary</Label><Input value={themeColors.primary} onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })} placeholder="#000000" /></div>
-                <div className="space-y-2"><Label>Secondary</Label><Input value={themeColors.secondary} onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })} placeholder="#333333" /></div>
-                <div className="space-y-2"><Label>Background</Label><Input value={themeColors.background} onChange={(e) => setThemeColors({ ...themeColors, background: e.target.value })} placeholder="#ffffff" /></div>
-                <div className="space-y-2"><Label>Text</Label><Input value={themeColors.text} onChange={(e) => setThemeColors({ ...themeColors, text: e.target.value })} placeholder="#111111" /></div>
+                <div className="space-y-2">
+                  <Label>Primary</Label>
+                  <Input
+                    value={themeColors.primary}
+                    onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })}
+                    placeholder="#000000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Secondary</Label>
+                  <Input
+                    value={themeColors.secondary}
+                    onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })}
+                    placeholder="#333333"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Background</Label>
+                  <Input
+                    value={themeColors.background}
+                    onChange={(e) => setThemeColors({ ...themeColors, background: e.target.value })}
+                    placeholder="#ffffff"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Text</Label>
+                  <Input
+                    value={themeColors.text}
+                    onChange={(e) => setThemeColors({ ...themeColors, text: e.target.value })}
+                    placeholder="#111111"
+                  />
+                </div>
               </div>
             </TabsContent>
 
             <TabsContent value="sections" className="space-y-4 mt-6">
               <div className="grid gap-3 md:grid-cols-2">
                 {Object.entries(profileSections).map(([key, enabled]) => (
-                  <label key={key} className="flex items-center justify-between rounded border p-3 text-sm">
+                  <label
+                    key={key}
+                    className="flex items-center justify-between rounded border p-3 text-sm"
+                  >
                     <span>{key}</span>
-                    <input type="checkbox" checked={enabled} onChange={(e) => setProfileSections({ ...profileSections, [key]: e.target.checked })} />
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={(e) =>
+                        setProfileSections({ ...profileSections, [key]: e.target.checked })
+                      }
+                    />
                   </label>
                 ))}
               </div>
@@ -942,19 +1044,75 @@ export default function BusinessProfileEditor() {
 
             <TabsContent value="ctas" className="space-y-4 mt-6">
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Primary CTA Label</Label><Input value={primaryCtaLabel} onChange={(e) => setPrimaryCtaLabel(e.target.value)} placeholder="Request a quote" /></div>
-                <div className="space-y-2"><Label>Primary CTA Kind</Label><Input value={primaryCtaKind} onChange={(e) => setPrimaryCtaKind(e.target.value)} placeholder="direct_connect" /></div>
-                <div className="space-y-2"><Label>Secondary CTA Label</Label><Input value={secondaryCtaLabel} onChange={(e) => setSecondaryCtaLabel(e.target.value)} placeholder="Message" /></div>
-                <div className="space-y-2"><Label>Secondary CTA Kind</Label><Input value={secondaryCtaKind} onChange={(e) => setSecondaryCtaKind(e.target.value)} placeholder="message" /></div>
+                <div className="space-y-2">
+                  <Label>Primary CTA Label</Label>
+                  <Input
+                    value={primaryCtaLabel}
+                    onChange={(e) => setPrimaryCtaLabel(e.target.value)}
+                    placeholder="Request a quote"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Primary CTA Kind</Label>
+                  <Input
+                    value={primaryCtaKind}
+                    onChange={(e) => setPrimaryCtaKind(e.target.value)}
+                    placeholder="direct_connect"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Secondary CTA Label</Label>
+                  <Input
+                    value={secondaryCtaLabel}
+                    onChange={(e) => setSecondaryCtaLabel(e.target.value)}
+                    placeholder="Message"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Secondary CTA Kind</Label>
+                  <Input
+                    value={secondaryCtaKind}
+                    onChange={(e) => setSecondaryCtaKind(e.target.value)}
+                    placeholder="message"
+                  />
+                </div>
               </div>
             </TabsContent>
 
             <TabsContent value="booking" className="space-y-4 mt-6">
               <div className="grid gap-4 md:grid-cols-2">
-                <label className="flex items-center justify-between rounded border p-3 text-sm"><span>Enable Booking</span><input type="checkbox" checked={bookingEnabled} onChange={(e) => setBookingEnabled(e.target.checked)} /></label>
-                <label className="flex items-center justify-between rounded border p-3 text-sm"><span>Enable Pricing Table</span><input type="checkbox" checked={pricingTableEnabled} onChange={(e) => setPricingTableEnabled(e.target.checked)} /></label>
-                <div className="space-y-2"><Label>Booking Price (USD)</Label><Input value={bookingPriceUsd} onChange={(e) => setBookingPriceUsd(e.target.value)} placeholder="0" /></div>
-                <div className="space-y-2"><Label>Timezone</Label><Input value={bookingTimezone} onChange={(e) => setBookingTimezone(e.target.value)} placeholder="America/Chicago" /></div>
+                <label className="flex items-center justify-between rounded border p-3 text-sm">
+                  <span>Enable Booking</span>
+                  <input
+                    type="checkbox"
+                    checked={bookingEnabled}
+                    onChange={(e) => setBookingEnabled(e.target.checked)}
+                  />
+                </label>
+                <label className="flex items-center justify-between rounded border p-3 text-sm">
+                  <span>Enable Pricing Table</span>
+                  <input
+                    type="checkbox"
+                    checked={pricingTableEnabled}
+                    onChange={(e) => setPricingTableEnabled(e.target.checked)}
+                  />
+                </label>
+                <div className="space-y-2">
+                  <Label>Booking Price (USD)</Label>
+                  <Input
+                    value={bookingPriceUsd}
+                    onChange={(e) => setBookingPriceUsd(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Timezone</Label>
+                  <Input
+                    value={bookingTimezone}
+                    onChange={(e) => setBookingTimezone(e.target.value)}
+                    placeholder="America/Chicago"
+                  />
+                </div>
               </div>
             </TabsContent>
 
@@ -962,7 +1120,9 @@ export default function BusinessProfileEditor() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Label>Content Blocks</Label>
-                  <p className="text-sm text-muted-foreground">Build extra sections for your public business website page.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Build extra sections for your public business website page.
+                  </p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addContentBlock}>
                   + Add Block
@@ -980,7 +1140,12 @@ export default function BusinessProfileEditor() {
                       <CardHeader>
                         <div className="flex items-center justify-between gap-3">
                           <CardTitle className="text-base">Block {idx + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => removeContentBlock(block.id)}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeContentBlock(block.id)}
+                          >
                             Remove
                           </Button>
                         </div>
@@ -988,7 +1153,10 @@ export default function BusinessProfileEditor() {
                       <CardContent className="space-y-3">
                         <div className="space-y-2">
                           <Label>Type</Label>
-                          <Select value={block.type || "text"} onValueChange={(value) => updateContentBlock(block.id, "type", value)}>
+                          <Select
+                            value={block.type || "text"}
+                            onValueChange={(value) => updateContentBlock(block.id, "type", value)}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Choose a block type" />
                             </SelectTrigger>
@@ -1001,34 +1169,80 @@ export default function BusinessProfileEditor() {
                               <SelectItem value="cta">CTA</SelectItem>
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground">{getContentBlockHelp(block.type || "text")}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {getContentBlockHelp(block.type || "text")}
+                          </p>
                         </div>
                         <div className="space-y-2">
                           <Label>Title</Label>
-                          <Input value={block.title || ""} onChange={(e) => updateContentBlock(block.id, "title", e.target.value)} placeholder="Section title" />
+                          <Input
+                            value={block.title || ""}
+                            onChange={(e) => updateContentBlock(block.id, "title", e.target.value)}
+                            placeholder="Section title"
+                          />
                         </div>
                         <div className="space-y-2">
-                          <Label>{block.type === "faq" ? "Answer" : block.type === "proof" ? "Primary Proof Text" : block.type === "cta" ? "Supporting Text" : "Body"}</Label>
-                          <Textarea value={block.body || ""} onChange={(e) => updateContentBlock(block.id, "body", e.target.value)} rows={5} placeholder="Section content" />
+                          <Label>
+                            {block.type === "faq"
+                              ? "Answer"
+                              : block.type === "proof"
+                                ? "Primary Proof Text"
+                                : block.type === "cta"
+                                  ? "Supporting Text"
+                                  : "Body"}
+                          </Label>
+                          <Textarea
+                            value={block.body || ""}
+                            onChange={(e) => updateContentBlock(block.id, "body", e.target.value)}
+                            rows={5}
+                            placeholder="Section content"
+                          />
                         </div>
 
                         {(block.type === "faq" || block.type === "proof") && (
                           <div className="space-y-2">
-                            <Label>{block.type === "faq" ? "Short follow-up / extra note" : "Testimonial / evidence detail"}</Label>
-                            <Textarea value={block.secondaryBody || ""} onChange={(e) => updateContentBlock(block.id, "secondaryBody", e.target.value)} rows={3} placeholder={block.type === "faq" ? "Optional follow-up detail" : "Optional testimonial, certification note, or evidence detail"} />
+                            <Label>
+                              {block.type === "faq"
+                                ? "Short follow-up / extra note"
+                                : "Testimonial / evidence detail"}
+                            </Label>
+                            <Textarea
+                              value={block.secondaryBody || ""}
+                              onChange={(e) =>
+                                updateContentBlock(block.id, "secondaryBody", e.target.value)
+                              }
+                              rows={3}
+                              placeholder={
+                                block.type === "faq"
+                                  ? "Optional follow-up detail"
+                                  : "Optional testimonial, certification note, or evidence detail"
+                              }
+                            />
                           </div>
                         )}
 
                         {block.type === "cta" && (
                           <div className="space-y-2">
                             <Label>CTA Button Label</Label>
-                            <Input value={block.ctaLabel || ""} onChange={(e) => updateContentBlock(block.id, "ctaLabel", e.target.value)} placeholder="Request a quote" />
+                            <Input
+                              value={block.ctaLabel || ""}
+                              onChange={(e) =>
+                                updateContentBlock(block.id, "ctaLabel", e.target.value)
+                              }
+                              placeholder="Request a quote"
+                            />
                           </div>
                         )}
 
                         <div className="space-y-2">
                           <Label>Image URL</Label>
-                          <Input value={block.imageUrl || ""} onChange={(e) => updateContentBlock(block.id, "imageUrl", e.target.value)} placeholder="https://example.com/image.jpg" />
+                          <Input
+                            value={block.imageUrl || ""}
+                            onChange={(e) =>
+                              updateContentBlock(block.id, "imageUrl", e.target.value)
+                            }
+                            placeholder="https://example.com/image.jpg"
+                          />
                         </div>
                       </CardContent>
                     </Card>
