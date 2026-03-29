@@ -162,6 +162,12 @@ const urgencyTone: Record<string, string> = {
   "watch soon": "border-blue-300/20 bg-blue-500/10 text-blue-50",
 };
 
+const actionStatusTone: Record<string, string> = {
+  new: "border-white/10 bg-white/5 text-white/80",
+  "in progress": "border-amber-300/20 bg-amber-500/10 text-amber-50",
+  cleared: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
+};
+
 function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
   if (source === "crawler" || source === "alerts" || source === "bot_crawl_signals") {
     return "volatile";
@@ -406,6 +412,9 @@ export default function AdminLiveStreamPage() {
   const [refreshError, setRefreshError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const [actionStatuses, setActionStatuses] = useState<
+    Record<string, "new" | "in progress" | "cleared">
+  >({});
   const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
     return new URLSearchParams(rawQuery).get("presentationMode") === "1";
@@ -765,6 +774,26 @@ export default function AdminLiveStreamPage() {
   }, [refreshMessage]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem("admin-live-stream-action-statuses");
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as Record<string, "new" | "in progress" | "cleared">;
+      setActionStatuses(parsed);
+    } catch {
+      // Ignore malformed local state and start clean.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      "admin-live-stream-action-statuses",
+      JSON.stringify(actionStatuses)
+    );
+  }, [actionStatuses]);
+
+  useEffect(() => {
     if (!copyStatus) return;
     const timeout = window.setTimeout(() => setCopyStatus(""), 2500);
     return () => window.clearTimeout(timeout);
@@ -804,6 +833,13 @@ export default function AdminLiveStreamPage() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const setOperatorActionStatus = (actionId: string, status: "new" | "in progress" | "cleared") => {
+    setActionStatuses((current) => ({
+      ...current,
+      [actionId]: status,
+    }));
   };
 
   const handleExport = async () => {
@@ -984,6 +1020,7 @@ export default function AdminLiveStreamPage() {
         title: item.title,
         owner: resolveEntryOwner(item),
         urgency: resolveEntryUrgency(item),
+        status: actionStatuses[item.id] || "new",
         task: resolveEntryActionTask(item),
       }))
       .filter(
@@ -995,6 +1032,7 @@ export default function AdminLiveStreamPage() {
           title: string;
           owner: string;
           urgency: string;
+          status: "new" | "in progress" | "cleared";
           task: string;
         } => {
           if (!item.task) return false;
@@ -1005,7 +1043,7 @@ export default function AdminLiveStreamPage() {
         }
       )
       .slice(0, 6);
-  }, [groupedLiveFeed]);
+  }, [actionStatuses, groupedLiveFeed]);
   const operatorOwnerBreakdown = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of operatorQueue) {
@@ -1022,6 +1060,15 @@ export default function AdminLiveStreamPage() {
     }
     return ["drop everything", "today", "watch soon"]
       .map((urgency) => ({ urgency, count: counts.get(urgency) || 0 }))
+      .filter((item) => item.count > 0);
+  }, [operatorQueue]);
+  const operatorStatusBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of operatorQueue) {
+      counts.set(item.status, (counts.get(item.status) || 0) + 1);
+    }
+    return ["new", "in progress", "cleared"]
+      .map((status) => ({ status, count: counts.get(status) || 0 }))
       .filter((item) => item.count > 0);
   }, [operatorQueue]);
 
@@ -2248,6 +2295,14 @@ export default function AdminLiveStreamPage() {
                       {item.urgency}: {item.count}
                     </Badge>
                   ))}
+                  {operatorStatusBreakdown.map((item) => (
+                    <Badge
+                      key={item.status}
+                      className={actionStatusTone[item.status] || actionStatusTone.new}
+                    >
+                      {item.status}: {item.count}
+                    </Badge>
+                  ))}
                   {operatorOwnerBreakdown.map((item) => (
                     <Badge
                       key={item.owner}
@@ -2275,6 +2330,9 @@ export default function AdminLiveStreamPage() {
                         <Badge className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}>
                           {item.urgency}
                         </Badge>
+                        <Badge className={actionStatusTone[item.status] || actionStatusTone.new}>
+                          {item.status}
+                        </Badge>
                         <Badge className={ownerTone[item.owner] || ownerTone["operator watch"]}>
                           {item.owner}
                         </Badge>
@@ -2284,6 +2342,22 @@ export default function AdminLiveStreamPage() {
                       </div>
                       <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
                       <div className="mt-1 text-xs text-white/55">{item.title}</div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {(["new", "in progress", "cleared"] as const).map((status) => (
+                          <Button
+                            key={status}
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "h-8 border-white/10 text-xs capitalize",
+                              item.status === status ? "bg-white/10 text-white" : "text-white/60"
+                            )}
+                            onClick={() => setOperatorActionStatus(item.id, status)}
+                          >
+                            {status}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
