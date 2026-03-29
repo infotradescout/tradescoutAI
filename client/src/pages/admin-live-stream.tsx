@@ -156,6 +156,12 @@ const ownerTone: Record<string, string> = {
   "operator watch": "border-white/10 bg-white/5 text-white/70",
 };
 
+const urgencyTone: Record<string, string> = {
+  "drop everything": "border-red-400/30 bg-red-600/20 text-red-100",
+  today: "border-orange-300/20 bg-orange-500/10 text-orange-50",
+  "watch soon": "border-blue-300/20 bg-blue-500/10 text-blue-50",
+};
+
 function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
   if (source === "crawler" || source === "alerts" || source === "bot_crawl_signals") {
     return "volatile";
@@ -294,6 +300,12 @@ function resolveEntryOwner(item: LiveStreamItem): string {
   return "operator watch";
 }
 
+function resolveEntryUrgency(item: Pick<LiveStreamItem, "priority" | "truthStatus">): string {
+  if (item.priority === "critical") return "drop everything";
+  if (item.priority === "high" || item.truthStatus === "stale") return "today";
+  return "watch soon";
+}
+
 function buildEntryContextTokens(item: LiveStreamItem): string[] {
   const tokens: string[] = [];
   if (item.county) tokens.push(item.county);
@@ -310,6 +322,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
   const actionHint = resolveEntryActionHint(item);
   const contextTokens = buildEntryContextTokens(item);
   const owner = resolveEntryOwner(item);
+  const urgency = resolveEntryUrgency(item);
 
   return (
     <div
@@ -345,6 +358,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+        <Badge className={urgencyTone[urgency]}>{urgency}</Badge>
         <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
         <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
         <Badge className={ownerTone[owner] || ownerTone["operator watch"]}>{owner}</Badge>
@@ -969,6 +983,7 @@ export default function AdminLiveStreamPage() {
         priority: item.priority,
         title: item.title,
         owner: resolveEntryOwner(item),
+        urgency: resolveEntryUrgency(item),
         task: resolveEntryActionTask(item),
       }))
       .filter(
@@ -979,6 +994,7 @@ export default function AdminLiveStreamPage() {
           priority: LiveStreamItem["priority"];
           title: string;
           owner: string;
+          urgency: string;
           task: string;
         } => {
           if (!item.task) return false;
@@ -998,6 +1014,15 @@ export default function AdminLiveStreamPage() {
     return Array.from(counts.entries())
       .map(([owner, count]) => ({ owner, count }))
       .sort((a, b) => b.count - a.count || a.owner.localeCompare(b.owner));
+  }, [operatorQueue]);
+  const operatorUrgencyBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of operatorQueue) {
+      counts.set(item.urgency, (counts.get(item.urgency) || 0) + 1);
+    }
+    return ["drop everything", "today", "watch soon"]
+      .map((urgency) => ({ urgency, count: counts.get(urgency) || 0 }))
+      .filter((item) => item.count > 0);
   }, [operatorQueue]);
 
   return (
@@ -2215,6 +2240,14 @@ export default function AdminLiveStreamPage() {
               </div>
               {operatorOwnerBreakdown.length ? (
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {operatorUrgencyBreakdown.map((item) => (
+                    <Badge
+                      key={item.urgency}
+                      className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}
+                    >
+                      {item.urgency}: {item.count}
+                    </Badge>
+                  ))}
                   {operatorOwnerBreakdown.map((item) => (
                     <Badge
                       key={item.owner}
@@ -2239,6 +2272,9 @@ export default function AdminLiveStreamPage() {
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+                        <Badge className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}>
+                          {item.urgency}
+                        </Badge>
                         <Badge className={ownerTone[item.owner] || ownerTone["operator watch"]}>
                           {item.owner}
                         </Badge>
