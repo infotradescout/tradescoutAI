@@ -8,6 +8,7 @@ import {
   resolveSignalDurability,
   resolveMaxAgeMinutesForSignal,
 } from "../../shared/signalDurability";
+import type { LisaFeedItem } from "../../shared/lisa";
 
 type LiveStreamPriority = "critical" | "high" | "medium" | "low";
 
@@ -229,6 +230,59 @@ function resolveEntryTruthStatus(entry: LiveStreamSnapshotEntry): "current" | "s
   return "stale";
 }
 
+function getEvidenceValue(evidence: string[] | undefined, key: string): string | null {
+  if (!Array.isArray(evidence)) return null;
+  const match = evidence.find((entry) => entry.startsWith(`${key}=`));
+  if (!match) return null;
+  const value = match.slice(key.length + 1).trim();
+  if (!value || value === "none") return null;
+  return value;
+}
+
+function toLiveStreamEntryFromLisaItem(
+  item: LisaFeedItem,
+  generatedAt: string
+): LiveStreamSnapshotEntry {
+  const county = getEvidenceValue(item.evidence, "county");
+  const state =
+    getEvidenceValue(item.evidence, "state") || getEvidenceValue(item.evidence, "state_code");
+  const category =
+    getEvidenceValue(item.evidence, "category") || getEvidenceValue(item.evidence, "trade");
+  const lane = getEvidenceValue(item.evidence, "lane") || undefined;
+  const signalClass = getEvidenceValue(item.evidence, "signal_class") || undefined;
+  const baselineDeltaRaw = getEvidenceValue(item.evidence, "baseline_delta_pct");
+  const baselineDeltaPct =
+    baselineDeltaRaw && Number.isFinite(Number(baselineDeltaRaw))
+      ? Number(baselineDeltaRaw)
+      : undefined;
+
+  return {
+    id: item.id,
+    timestamp:
+      item.freshnessMinutes !== null
+        ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
+        : generatedAt,
+    kind: "finding",
+    priority: item.priority,
+    truthStatus: item.truthStatus === "current" ? "current" : "stale",
+    title: item.headline,
+    narrative: item.narrative,
+    source: item.sourceKind,
+    lane,
+    signalClass,
+    baselineDeltaPct,
+    category: category || undefined,
+    county: county || undefined,
+    state: state || undefined,
+    stateCode: state || null,
+    countyName:
+      county ||
+      (item.scopeType === "county" && item.scopeRef
+        ? String(item.scopeRef).replace(/[-_]/g, " ")
+        : null),
+  };
+}
+
 export async function buildLiveStreamSnapshot(params?: {
   source?: string;
   stateCode?: string;
@@ -371,56 +425,12 @@ export async function buildLiveStreamSnapshot(params?: {
       id: `lisa-truth-${lisaFeed.generatedAt}`,
       timestamp: lisaFeed.generatedAt,
       kind: "truth_now",
-      priority: "high",
-      title: "Truth Now",
+      priority: "medium",
+      title: "Current operating truth",
       narrative: lisaFeed.summary.truthNow,
       source: "lisa",
       stateCode: null,
       countyName: null,
-    },
-    {
-      id: `lisa-data-${lisaFeed.generatedAt}`,
-      timestamp: lisaFeed.generatedAt,
-      kind: "data_production",
-      priority: "medium",
-      title: "Data Production",
-      narrative: lisaFeed.summary.dataProductionSummary,
-      source: "lisa",
-      stateCode: null,
-      countyName: null,
-    },
-    {
-      id: `lisa-llm-${lisaFeed.generatedAt}`,
-      timestamp: lisaFeed.generatedAt,
-      kind: "llm_optimization",
-      priority: "medium",
-      title: "LLM Optimization",
-      narrative: lisaFeed.summary.llmOptimizationSummary,
-      source: "lisa",
-      stateCode: null,
-      countyName: null,
-    },
-    {
-      id: `cumulus-brief-${cumulusBrief.generatedAt}`,
-      timestamp: cumulusBrief.generatedAt,
-      kind: "partner_brief",
-      priority: "high",
-      title: "Partner Brief",
-      narrative: cumulusBrief.executiveSummary,
-      source: "cumulus",
-      stateCode: cumulusBrief.summary.currentLeadState || null,
-      countyName: cumulusBrief.summary.currentLeadCounty || null,
-    },
-    {
-      id: `cumulus-delta-${cumulusBrief.generatedAt}`,
-      timestamp: cumulusBrief.generatedAt,
-      kind: "partner_delta",
-      priority: "medium",
-      title: "Partner Delta",
-      narrative: cumulusBrief.summary.deltaSummary,
-      source: "cumulus",
-      stateCode: cumulusBrief.summary.currentLeadState || null,
-      countyName: cumulusBrief.summary.currentLeadCounty || null,
     },
     ...(cumulusBrief.topCounties?.[0]
       ? [
@@ -428,9 +438,9 @@ export async function buildLiveStreamSnapshot(params?: {
             id: `cumulus-county-${cumulusBrief.generatedAt}-${cumulusBrief.topCounties[0].countyFips}`,
             timestamp: cumulusBrief.generatedAt,
             kind: "county_lead",
-            priority: "medium" as LiveStreamPriority,
-            title: "Leading County",
-            narrative: `${cumulusBrief.topCounties[0].countyName}, ${cumulusBrief.topCounties[0].stateCode} leads with ${cumulusBrief.topCounties[0].requestCount} requests. ${cumulusBrief.topCounties[0].dominantSurface.replace(/_/g, " ")} is the dominant surface.`,
+            priority: "high" as LiveStreamPriority,
+            title: "County lead requiring attention",
+            narrative: `${cumulusBrief.topCounties[0].countyName}, ${cumulusBrief.topCounties[0].stateCode} is leading with ${cumulusBrief.topCounties[0].requestCount} requests on ${cumulusBrief.topCounties[0].dominantSurface.replace(/_/g, " ")}. Treat this county as the first market to inspect, package, or repair.`,
             source: "cumulus",
             stateCode: cumulusBrief.topCounties[0].stateCode,
             countyName: cumulusBrief.topCounties[0].countyName,
@@ -478,43 +488,30 @@ export async function buildLiveStreamSnapshot(params?: {
           },
         ]
       : []),
-    ...(topDemandRoutes.length > 0
-      ? [
-          {
-            id: `crawler-route-demand-list-${crawlerTelemetry.generatedAt}`,
-            timestamp: crawlerTelemetry.generatedAt,
-            kind: "crawler_route_demand",
-            priority: "high" as LiveStreamPriority,
-            title: "Top crawler-demand pages (24h)",
-            narrative: topDemandRoutes
-              .map((route, idx) => `#${idx + 1} ${route.path} (${route.requestCount} hits)`)
-              .join(" | "),
-            source: "crawler",
-            stateCode: null,
-            countyName: null,
-          },
-        ]
-      : []),
-    ...(topDemandCounties.length > 0
-      ? [
-          {
-            id: `crawler-county-demand-list-${crawlerTelemetry.generatedAt}`,
-            timestamp: crawlerTelemetry.generatedAt,
-            kind: "crawler_county_demand",
-            priority: "high" as LiveStreamPriority,
-            title: "County demand concentration (24h)",
-            narrative: topDemandCounties
-              .map((county, idx) => {
-                const state = county.stateCode ? `, ${county.stateCode}` : "";
-                return `#${idx + 1} ${county.countyName}${state} on ${county.sourceSurface.replace(/_/g, " ")} (${county.requestCount})`;
-              })
-              .join(" | "),
-            source: "crawler",
-            stateCode: topDemandCounties[0]?.stateCode || null,
-            countyName: topDemandCounties[0]?.countyName || null,
-          },
-        ]
-      : []),
+    ...topDemandRoutes.slice(0, 3).map((route, idx) => ({
+      id: `crawler-route-demand-${crawlerTelemetry.generatedAt}-${idx}-${route.path}`,
+      timestamp: crawlerTelemetry.generatedAt,
+      kind: "crawler_route_demand",
+      priority: idx === 0 ? ("high" as LiveStreamPriority) : ("medium" as LiveStreamPriority),
+      title: `Route demand hotspot ${idx + 1}`,
+      narrative: `${route.path} drew ${route.requestCount} crawler hits in the last 24 hours. This is a specific route to inspect for health, canonicalization, and whether the page is actually usable.`,
+      source: "crawler",
+      stateCode: null,
+      countyName: null,
+    })),
+    ...topDemandCounties.slice(0, 3).map((county, idx) => ({
+      id: `crawler-county-demand-${crawlerTelemetry.generatedAt}-${idx}-${county.countyFips || county.countyName}`,
+      timestamp: crawlerTelemetry.generatedAt,
+      kind: "crawler_county_demand",
+      priority: idx === 0 ? ("high" as LiveStreamPriority) : ("medium" as LiveStreamPriority),
+      title: `County demand hotspot ${idx + 1}`,
+      narrative: `${county.countyName}${county.stateCode ? `, ${county.stateCode}` : ""} is drawing ${county.requestCount} requests on ${county.sourceSurface.replace(/_/g, " ")}. This county should be checked for surface quality, category coverage, and whether the visible path can convert.`,
+      source: "crawler",
+      stateCode: county.stateCode || null,
+      countyName: county.countyName || null,
+      county: county.countyName || undefined,
+      state: county.stateCode || undefined,
+    })),
     ...(topDemandSignal
       ? [
           {
@@ -536,6 +533,9 @@ export async function buildLiveStreamSnapshot(params?: {
               topDemandSignal.topPath ? ` | hottest URL: ${topDemandSignal.topPath}` : ""
             }`,
             source: "bot_crawl_signals",
+            category: topDemandSignal.trade || undefined,
+            county: topDemandSignal.county || undefined,
+            state: topDemandSignal.state || undefined,
             stateCode: topDemandSignal.state || null,
             countyName: topDemandSignal.county || null,
           },
@@ -560,34 +560,15 @@ export async function buildLiveStreamSnapshot(params?: {
           .toUpperCase() || null,
       countyName: String(alert.labels?.countyName || "").trim() || null,
     })),
-    ...lisaFeed.feed.slice(0, 8).map((item) => ({
-      id: item.id,
-      timestamp:
-        item.freshnessMinutes !== null
-          ? new Date(Date.now() - item.freshnessMinutes * 60_000).toISOString()
-          : lisaFeed.generatedAt,
-      kind: "finding",
-      priority: item.priority,
-      truthStatus: item.truthStatus === "current" ? "current" : "stale",
-      title: item.headline,
-      narrative: item.narrative,
-      source: item.sourceKind,
-      lane: item.evidence.find((entry) => entry.startsWith("lane="))?.split("=")[1] || undefined,
-      signalClass:
-        item.evidence.find((entry) => entry.startsWith("signal_class="))?.split("=")[1] ||
-        undefined,
-      baselineDeltaPct: (() => {
-        const raw = item.evidence
-          .find((entry) => entry.startsWith("baseline_delta_pct="))
-          ?.split("=")[1];
-        return raw ? Number(raw) : undefined;
-      })(),
-      stateCode: null,
-      countyName:
-        item.scopeType === "county" && item.scopeRef
-          ? String(item.scopeRef).replace(/[-_]/g, " ")
-          : null,
-    })),
+    ...lisaFeed.feed
+      .filter(
+        (item) =>
+          !["entity_discovery", "county_category_discovery", "action_gating_summary"].includes(
+            getEvidenceValue(item.evidence, "signal_class") || ""
+          )
+      )
+      .slice(0, 10)
+      .map((item) => toLiveStreamEntryFromLisaItem(item, lisaFeed.generatedAt)),
   ] as LiveStreamSnapshotEntry[];
   const stream: LiveStreamSnapshotEntry[] = rawStream
     .filter((entry) => {
