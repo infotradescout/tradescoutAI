@@ -147,13 +147,13 @@ const sourceTone: Record<string, string> = {
 };
 
 const ownerTone: Record<string, string> = {
-  "route repair": "border-rose-300/20 bg-rose-500/10 text-rose-50",
-  "county coverage": "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
-  "trust/gating": "border-amber-300/20 bg-amber-500/10 text-amber-50",
+  "surface repair": "border-rose-300/20 bg-rose-500/10 text-rose-50",
+  "ad launch": "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
+  "advertiser sales": "border-amber-300/20 bg-amber-500/10 text-amber-50",
   "crawler ops": "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
-  "market expansion": "border-violet-300/20 bg-violet-500/10 text-violet-50",
+  "market move": "border-violet-300/20 bg-violet-500/10 text-violet-50",
   "partner intel": "border-sky-300/20 bg-sky-500/10 text-sky-50",
-  "operator watch": "border-white/10 bg-white/5 text-white/70",
+  "sales watch": "border-white/10 bg-white/5 text-white/70",
 };
 
 const urgencyTone: Record<string, string> = {
@@ -180,19 +180,19 @@ function resolveDurabilityClass(source: string): "volatile" | "stable" | "persis
 
 function resolveEntryActionHint(item: LiveStreamItem): string | null {
   if (item.kind === "crawler_route_demand") {
-    return "Check route health, redirect quality, and attribution on this page first.";
+    return "Use this route as a live attention pocket for ads or sales once the page can hold traffic.";
   }
   if (item.kind === "crawler_county_demand") {
-    return "Validate county page coverage and make sure this county has an action-ready surface.";
+    return "This county is showing real attention. Package it for ads, sponsorship, or local sales outreach.";
   }
   if (item.kind === "bot_demand_cluster") {
-    return "Inspect the route-plus-trade pairing and decide whether to harden or exploit this demand.";
+    return "This is a tradable demand pocket. Decide whether to run ads, sell sponsorship, or expand presence.";
   }
   if (item.kind === "alert") {
-    return "Treat this as an operator interrupt and verify owner, severity, and next step.";
+    return "Treat this as a blocker to monetizing current attention until it is resolved.";
   }
   if (item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction") {
-    return "Reduce the blocker between discovery and action on this path.";
+    return "This is sellable attention being slowed before action. Unblock it so ads and outreach convert.";
   }
   if (
     item.signalClass === "county_opportunity_concentration" ||
@@ -200,10 +200,10 @@ function resolveEntryActionHint(item: LiveStreamItem): string | null {
     item.signalClass === "category_signal_concentration" ||
     item.signalClass === "category_momentum"
   ) {
-    return "Turn this signal into coverage, packaging, or outreach while attention is present.";
+    return "Turn this into a live market move while attention is present: ads, county packaging, or advertiser pitch.";
   }
   if (item.signalClass === "attention_finding_dead_ends") {
-    return "Fix the dead end or reroute attention into a county surface that can convert.";
+    return "Repair this dead end before it burns a monetizable attention pocket.";
   }
   return null;
 }
@@ -225,34 +225,34 @@ function resolveEntryActionTask(item: LiveStreamItem): string | null {
 
   if (item.kind === "crawler_route_demand") {
     return routeTarget
-      ? `Repair or redirect ${routeTarget} before it wastes more attention.`
-      : "Repair the highest-pressure route before it wastes more attention.";
+      ? `Open an ad or sponsor play on ${routeTarget}, but repair or redirect it first so the traffic can be monetized.`
+      : "Repair the highest-pressure route, then turn that attention into an ad or sponsor play.";
   }
   if (item.kind === "alert") {
-    return "Triage this alert now and assign an owner before it goes stale.";
+    return "Clear this blocker now so current attention can be monetized safely.";
   }
   if (
     item.signalClass === "repair_pressure" ||
     item.signalClass === "attention_finding_dead_ends"
   ) {
     return routeTarget
-      ? `Fix the dead end on ${routeTarget} and reroute users into a working surface.`
-      : "Fix the broken path and reroute users into a working surface.";
+      ? `Fix the dead end on ${routeTarget}, then route that attention into a sellable surface.`
+      : "Fix the broken path and reroute that attention into a sellable surface.";
   }
   if (item.kind === "crawler_county_demand") {
     return countyLabel
-      ? `Strengthen the county surface for ${countyLabel} while demand is active.`
-      : "Strengthen the county surface where demand is concentrating.";
+      ? `Launch a county ad push or local sales package for ${countyLabel} while demand is active.`
+      : "Launch a county-level ad or sales move where demand is concentrating.";
   }
   if (item.kind === "bot_demand_cluster") {
     return countyLabel
-      ? `Decide whether to harden or expand ${categoryLabel} in ${countyLabel}.`
-      : `Decide whether to harden or expand ${categoryLabel} where this cluster is forming.`;
+      ? `Pitch ${categoryLabel} advertisers and expand paid presence in ${countyLabel}.`
+      : `Pitch ${categoryLabel} advertisers where this cluster is forming.`;
   }
   if (item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction") {
     return countyLabel
-      ? `Remove the action blocker on ${categoryLabel} in ${countyLabel}.`
-      : `Remove the action blocker on ${categoryLabel}.`;
+      ? `Unblock conversion on ${categoryLabel} in ${countyLabel} so ad spend and outreach pay off.`
+      : `Unblock conversion on ${categoryLabel} so ad spend and outreach pay off.`;
   }
   if (
     item.signalClass === "county_opportunity_concentration" ||
@@ -261,8 +261,8 @@ function resolveEntryActionTask(item: LiveStreamItem): string | null {
     item.signalClass === "category_momentum"
   ) {
     return countyLabel
-      ? `Turn ${categoryLabel} demand in ${countyLabel} into a stronger action surface.`
-      : `Turn ${categoryLabel} demand into a stronger action surface.`;
+      ? `Use ${categoryLabel} demand in ${countyLabel} to open an ad, sales, or category expansion move.`
+      : `Use ${categoryLabel} demand to open an ad, sales, or category expansion move.`;
   }
   return null;
 }
@@ -274,17 +274,17 @@ function resolveEntryOwner(item: LiveStreamItem): string {
     item.signalClass === "repair_pressure" ||
     item.signalClass === "attention_finding_dead_ends"
   ) {
-    return "route repair";
+    return "surface repair";
   }
   if (
     item.kind === "crawler_county_demand" ||
     item.signalClass === "county_opportunity_concentration" ||
     item.signalClass === "visibility_outpacing_coverage"
   ) {
-    return "county coverage";
+    return "ad launch";
   }
   if (item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction") {
-    return "trust/gating";
+    return "advertiser sales";
   }
   if (
     item.kind === "crawler_volume" ||
@@ -298,12 +298,12 @@ function resolveEntryOwner(item: LiveStreamItem): string {
     item.signalClass === "category_signal_concentration" ||
     item.signalClass === "category_momentum"
   ) {
-    return "market expansion";
+    return "market move";
   }
   if (item.source === "cumulus") {
     return "partner intel";
   }
-  return "operator watch";
+  return "sales watch";
 }
 
 function resolveEntryUrgency(item: Pick<LiveStreamItem, "priority" | "truthStatus">): string {
@@ -383,7 +383,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
 
       {actionHint ? (
         <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-          Next move: {actionHint}
+          Commercial use: {actionHint}
         </div>
       ) : null}
     </div>
@@ -2275,10 +2275,10 @@ export default function AdminLiveStreamPage() {
             <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-white">Operator Queue</div>
+                  <div className="text-sm font-semibold text-white">Signal Playbook</div>
                   <div className="mt-1 text-xs text-white/65">
-                    Concrete next steps pulled from the live stream so you can act without decoding
-                    the feed.
+                    Revenue and market moves pulled from the live stream so you can fire ads, make
+                    market calls, and pitch advertisers without decoding raw telemetry.
                   </div>
                 </div>
                 <Badge variant="outline" className="border-sky-200/20 text-sky-50">
