@@ -436,6 +436,15 @@ export default function AdminLiveStreamPage() {
 
   const liveStreamStatus = snapshotStatus?.statuses.find((entry) => entry.key === "live_stream");
   const visibleEntryCount = filteredStream.length;
+  const snapshotAgeMinutes = useMemo(() => {
+    if (!data?.generatedAt) return null;
+    const generatedAtMs = new Date(data.generatedAt).getTime();
+    if (!Number.isFinite(generatedAtMs)) return null;
+    return Math.max(0, Math.round((Date.now() - generatedAtMs) / 60000));
+  }, [data?.generatedAt]);
+  const degradedSourceEntries = useMemo(() => {
+    return Object.entries(data?.summary.degradedSourceReasons || {});
+  }, [data?.summary.degradedSourceReasons]);
   const topRouteDemand = (data?.stream || []).find((item) => item.kind === "crawler_route_demand");
   const topCountyDemand = (data?.stream || []).find(
     (item) => item.kind === "crawler_county_demand"
@@ -974,19 +983,91 @@ export default function AdminLiveStreamPage() {
             </div>
           ) : null}
 
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                Stream Freshness
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge
+                  className={
+                    liveStreamStateLabel === "fresh"
+                      ? "bg-emerald-600/20 text-emerald-100 border-emerald-500/30"
+                      : liveStreamStateLabel === "stale"
+                        ? "bg-amber-600/20 text-amber-100 border-amber-500/30"
+                        : "bg-rose-600/20 text-rose-100 border-rose-500/30"
+                  }
+                >
+                  {liveStreamStateLabel}
+                </Badge>
+                {snapshotAgeMinutes !== null ? (
+                  <span className="text-sm text-white/80">{snapshotAgeMinutes} min old</span>
+                ) : (
+                  <span className="text-sm text-white/55">Age unavailable</span>
+                )}
+              </div>
+              <div className="mt-2 text-xs text-white/60">
+                {data?.generatedAt
+                  ? `Last built ${new Date(data.generatedAt).toLocaleString()}`
+                  : "No snapshot timestamp available."}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/45">Source Health</div>
+              <div className="mt-2 text-sm text-white/85">
+                {data?.summary.degradedSources?.length
+                  ? `${data.summary.degradedSources.length} degraded source${data.summary.degradedSources.length === 1 ? "" : "s"}`
+                  : "All tracked sources responded"}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(data?.summary.degradedSources || []).length ? (
+                  data!.summary.degradedSources!.map((sourceName) => (
+                    <Badge
+                      key={sourceName}
+                      className="bg-rose-600/20 text-rose-100 border-rose-500/30"
+                    >
+                      {sourceName}
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge className="bg-emerald-600/20 text-emerald-100 border-emerald-500/30">
+                    healthy
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/45">Feed Strength</div>
+              <div className="mt-2 text-sm text-white/85">
+                {visibleEntryCount} visible entries across{" "}
+                {(data?.summary.sourceCounts && Object.keys(data.summary.sourceCounts).length) || 0}{" "}
+                sources
+              </div>
+              <div className="mt-2 text-xs text-white/60">
+                {visibleEntryCount === 0
+                  ? "This feed is not actionable yet. Refresh or widen filters."
+                  : visibleEntryCount < 5
+                    ? "Signal density is thin. Treat this as partial situational awareness."
+                    : "Enough signal is present to prioritize work from the queue and buckets."}
+              </div>
+            </div>
+          </div>
+
           {data?.summary.degradedSources?.length ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Live stream is using fallback data for: {data.summary.degradedSources.join(", ")}.
-              {data.summary.degradedSourceReasons &&
-              Object.keys(data.summary.degradedSourceReasons).length ? (
+              Live stream is partially degraded and is retrying weak snapshots more aggressively.
+              <div className="mt-2 text-destructive/90">
+                Fallback sources: {data.summary.degradedSources.join(", ")}.
+              </div>
+              {degradedSourceEntries.length ? (
                 <div className="mt-2 space-y-1 text-xs text-destructive/90">
-                  {Object.entries(data.summary.degradedSourceReasons).map(
-                    ([sourceName, reason]) => (
-                      <div key={sourceName}>
-                        {sourceName}: {reason}
-                      </div>
-                    )
-                  )}
+                  {degradedSourceEntries.map(([sourceName, reason]) => (
+                    <div key={sourceName}>
+                      {sourceName}: {reason}
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>

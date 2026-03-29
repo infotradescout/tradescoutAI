@@ -78,6 +78,10 @@ const LIVE_STREAM_HISTORY_LOOKBACK_DAYS = Math.max(
   1,
   Number(process.env.LIVE_STREAM_HISTORY_LOOKBACK_DAYS || 7)
 );
+const LIVE_STREAM_DEGRADED_RETRY_MINUTES = Math.max(
+  1,
+  Number(process.env.LIVE_STREAM_DEGRADED_RETRY_MINUTES || 2)
+);
 
 export async function ensureLiveStreamSnapshotTables(): Promise<void> {
   if (!ensurePromise) {
@@ -237,6 +241,23 @@ function getEvidenceValue(evidence: string[] | undefined, key: string): string |
   const value = match.slice(key.length + 1).trim();
   if (!value || value === "none") return null;
   return value;
+}
+
+function shouldRefreshWeakSnapshot(args: {
+  summary: LiveStreamSnapshot["summary"] | null;
+  stream: LiveStreamSnapshotEntry[];
+  computedAt: Date | null;
+}): boolean {
+  const { summary, stream, computedAt } = args;
+  if (!computedAt || !Number.isFinite(computedAt.getTime())) return true;
+
+  const ageMs = Date.now() - computedAt.getTime();
+  const retryAgeMs = LIVE_STREAM_DEGRADED_RETRY_MINUTES * 60 * 1000;
+  const degradedSources = Array.isArray(summary?.degradedSources) ? summary!.degradedSources : [];
+
+  if (degradedSources.length > 0 && ageMs >= retryAgeMs) return true;
+  if (stream.length === 0 && ageMs >= retryAgeMs) return true;
+  return false;
 }
 
 function toLiveStreamEntryFromLisaItem(
@@ -727,12 +748,19 @@ export async function getLiveStreamSnapshot(params?: {
   );
   const row = result.rows?.[0];
   const computedAt = row?.computed_at ? new Date(String(row.computed_at)) : null;
+  const summary =
+    row?.summary_json && typeof row.summary_json === "object"
+      ? (row.summary_json as LiveStreamSnapshot["summary"])
+      : null;
+  const stream = Array.isArray(row?.stream_json)
+    ? (row.stream_json as LiveStreamSnapshotEntry[])
+    : [];
   const isStale =
     !computedAt ||
     !Number.isFinite(computedAt.getTime()) ||
     Date.now() - computedAt.getTime() > maxSnapshotAgeMinutes * 60 * 1000;
 
-  if (!row || isStale) {
+  if (!row || isStale || shouldRefreshWeakSnapshot({ summary, stream, computedAt })) {
     return refreshLiveStreamSnapshot(filters);
   }
 
@@ -744,19 +772,18 @@ export async function getLiveStreamSnapshot(params?: {
       county: filters.county || null,
       limit: filters.limit,
     },
-    summary:
-      row.summary_json && typeof row.summary_json === "object"
-        ? row.summary_json
-        : {
-            truthNow: "",
-            currentLeadCounty: null,
-            currentLeadState: null,
-            crawlerRequests24h: 0,
-            activeAlerts: 0,
-            sourceCounts: {},
-            degradedSources: [],
-          },
-    stream: Array.isArray(row.stream_json) ? row.stream_json : [],
+    summary: summary || {
+      truthNow: "",
+      currentLeadCounty: null,
+      currentLeadState: null,
+      crawlerRequests24h: 0,
+      activeAlerts: 0,
+      botCrawlSignals: 0,
+      topBotCrawlHeadline: null,
+      sourceCounts: {},
+      degradedSources: [],
+    },
+    stream,
   };
 }
 
