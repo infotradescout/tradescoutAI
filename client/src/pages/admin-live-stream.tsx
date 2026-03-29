@@ -186,6 +186,65 @@ function resolveEntryActionHint(item: LiveStreamItem): string | null {
   return null;
 }
 
+function extractRouteTarget(item: LiveStreamItem): string | null {
+  const candidates = [item.title, item.narrative];
+  for (const candidate of candidates) {
+    const match = candidate.match(/(\/[A-Za-z0-9\-/_]+)/);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function resolveEntryActionTask(item: LiveStreamItem): string | null {
+  const countyLabel =
+    item.county && item.state ? `${item.county}, ${item.state}` : item.county || item.state || null;
+  const routeTarget = extractRouteTarget(item);
+  const categoryLabel = item.category || "this category";
+
+  if (item.kind === "crawler_route_demand") {
+    return routeTarget
+      ? `Repair or redirect ${routeTarget} before it wastes more attention.`
+      : "Repair the highest-pressure route before it wastes more attention.";
+  }
+  if (item.kind === "alert") {
+    return "Triage this alert now and assign an owner before it goes stale.";
+  }
+  if (
+    item.signalClass === "repair_pressure" ||
+    item.signalClass === "attention_finding_dead_ends"
+  ) {
+    return routeTarget
+      ? `Fix the dead end on ${routeTarget} and reroute users into a working surface.`
+      : "Fix the broken path and reroute users into a working surface.";
+  }
+  if (item.kind === "crawler_county_demand") {
+    return countyLabel
+      ? `Strengthen the county surface for ${countyLabel} while demand is active.`
+      : "Strengthen the county surface where demand is concentrating.";
+  }
+  if (item.kind === "bot_demand_cluster") {
+    return countyLabel
+      ? `Decide whether to harden or expand ${categoryLabel} in ${countyLabel}.`
+      : `Decide whether to harden or expand ${categoryLabel} where this cluster is forming.`;
+  }
+  if (item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction") {
+    return countyLabel
+      ? `Remove the action blocker on ${categoryLabel} in ${countyLabel}.`
+      : `Remove the action blocker on ${categoryLabel}.`;
+  }
+  if (
+    item.signalClass === "county_opportunity_concentration" ||
+    item.signalClass === "visibility_outpacing_coverage" ||
+    item.signalClass === "category_signal_concentration" ||
+    item.signalClass === "category_momentum"
+  ) {
+    return countyLabel
+      ? `Turn ${categoryLabel} demand in ${countyLabel} into a stronger action surface.`
+      : `Turn ${categoryLabel} demand into a stronger action surface.`;
+  }
+  return null;
+}
+
 function buildEntryContextTokens(item: LiveStreamItem): string[] {
   const tokens: string[] = [];
   if (item.county) tokens.push(item.county);
@@ -835,6 +894,39 @@ export default function AdminLiveStreamPage() {
 
     return groups;
   }, [filteredStream]);
+  const operatorQueue = useMemo(() => {
+    const prioritizedItems = [
+      ...groupedLiveFeed.broken,
+      ...groupedLiveFeed.friction,
+      ...groupedLiveFeed.opportunity,
+    ];
+    const seen = new Set<string>();
+
+    return prioritizedItems
+      .map((item) => ({
+        id: item.id,
+        priority: item.priority,
+        title: item.title,
+        task: resolveEntryActionTask(item),
+      }))
+      .filter(
+        (
+          item
+        ): item is {
+          id: string;
+          priority: LiveStreamItem["priority"];
+          title: string;
+          task: string;
+        } => {
+          if (!item.task) return false;
+          const dedupeKey = item.task.toLowerCase();
+          if (seen.has(dedupeKey)) return false;
+          seen.add(dedupeKey);
+          return true;
+        }
+      )
+      .slice(0, 6);
+  }, [groupedLiveFeed]);
 
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
@@ -1964,6 +2056,45 @@ export default function AdminLiveStreamPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold text-white">Operator Queue</div>
+                  <div className="mt-1 text-xs text-white/65">
+                    Concrete next steps pulled from the live stream so you can act without decoding
+                    the feed.
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-sky-200/20 text-sky-50">
+                  {operatorQueue.length} actions
+                </Badge>
+              </div>
+              {operatorQueue.length === 0 ? (
+                <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                  No direct actions surfaced from the current feed. Refresh the stream or widen
+                  filters.
+                </div>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  {operatorQueue.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="rounded-md border border-white/10 bg-black/20 px-3 py-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+                        <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                          Action {index + 1}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
+                      <div className="mt-1 text-xs text-white/55">{item.title}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {filteredStream.length === 0 ? (
               <div className="text-sm text-white/65">
                 {isLoading ? "Loading stream..." : "No live entries available."}
