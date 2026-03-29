@@ -31,6 +31,16 @@ type LiveStreamItem = {
   category?: string;
   county?: string;
   state?: string;
+  commercialBucket?:
+    | "ad plays"
+    | "advertiser pitches"
+    | "market moves"
+    | "monetization leaks"
+    | "watchlist";
+  recommendedPlay?: string;
+  salesAngle?: string;
+  targetMarket?: string;
+  monetizationStage?: "spend" | "sell" | "expand" | "repair" | "watch";
 };
 
 type LiveStreamResponse = {
@@ -187,6 +197,7 @@ function resolveDurabilityClass(source: string): "volatile" | "stable" | "persis
 }
 
 function resolveEntryActionHint(item: LiveStreamItem): string | null {
+  if (item.salesAngle) return item.salesAngle;
   if (item.kind === "crawler_route_demand") {
     return "Use this route as a live attention pocket for ads or sales once the page can hold traffic.";
   }
@@ -226,6 +237,7 @@ function extractRouteTarget(item: LiveStreamItem): string | null {
 }
 
 function resolveEntryActionTask(item: LiveStreamItem): string | null {
+  if (item.recommendedPlay) return item.recommendedPlay;
   const countyLabel =
     item.county && item.state ? `${item.county}, ${item.state}` : item.county || item.state || null;
   const routeTarget = extractRouteTarget(item);
@@ -321,6 +333,7 @@ function resolveEntryUrgency(item: Pick<LiveStreamItem, "priority" | "truthStatu
 }
 
 function resolveEntryCommercialBucket(item: LiveStreamItem): string {
+  if (item.commercialBucket) return item.commercialBucket;
   const signalClass = item.signalClass || "";
   if (
     item.kind === "alert" ||
@@ -400,6 +413,7 @@ function buildEntryContextTokens(item: LiveStreamItem): string[] {
   if (item.county) tokens.push(item.county);
   if (item.state) tokens.push(item.state);
   if (item.category) tokens.push(item.category);
+  if (item.monetizationStage) tokens.push(`stage:${item.monetizationStage}`);
   if (item.lane) tokens.push(`lane:${item.lane}`);
   if (item.signalClass) tokens.push(`signal:${item.signalClass}`);
   return tokens;
@@ -467,6 +481,25 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
       {actionHint ? (
         <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
           Commercial use: {actionHint}
+        </div>
+      ) : null}
+
+      {item.recommendedPlay || item.targetMarket ? (
+        <div className="grid gap-2 md:grid-cols-2">
+          {item.recommendedPlay ? (
+            <div className="rounded-md border border-emerald-400/15 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-50">
+              <div className="uppercase tracking-[0.18em] text-emerald-100/60">
+                Recommended Play
+              </div>
+              <div className="mt-1">{item.recommendedPlay}</div>
+            </div>
+          ) : null}
+          {item.targetMarket ? (
+            <div className="rounded-md border border-sky-400/15 bg-sky-500/10 px-3 py-2 text-xs text-sky-50">
+              <div className="uppercase tracking-[0.18em] text-sky-100/60">Target Market</div>
+              <div className="mt-1">{item.targetMarket}</div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

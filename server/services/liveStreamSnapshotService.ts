@@ -27,6 +27,16 @@ export type LiveStreamSnapshotEntry = {
   category?: string;
   county?: string;
   state?: string;
+  commercialBucket?:
+    | "ad plays"
+    | "advertiser pitches"
+    | "market moves"
+    | "monetization leaks"
+    | "watchlist";
+  recommendedPlay?: string;
+  salesAngle?: string;
+  targetMarket?: string;
+  monetizationStage?: "spend" | "sell" | "expand" | "repair" | "watch";
   stateCode: string | null;
   countyName: string | null;
 };
@@ -241,6 +251,117 @@ function getEvidenceValue(evidence: string[] | undefined, key: string): string |
   const value = match.slice(key.length + 1).trim();
   if (!value || value === "none") return null;
   return value;
+}
+
+function extractRouteTarget(text: string): string | null {
+  const match = text.match(/(\/[A-Za-z0-9\-/_]+)/);
+  return match?.[1] || null;
+}
+
+function buildTargetMarket(entry: LiveStreamSnapshotEntry): string | undefined {
+  const countyLabel =
+    entry.county && entry.state ? `${entry.county}, ${entry.state}` : entry.county || entry.state;
+  if (countyLabel && entry.category) return `${entry.category} in ${countyLabel}`;
+  if (countyLabel) return countyLabel;
+  if (entry.category) return entry.category;
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  return routeTarget || undefined;
+}
+
+function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEntry {
+  const signalClass = entry.signalClass || "";
+  const targetMarket = buildTargetMarket(entry);
+
+  if (
+    entry.kind === "alert" ||
+    signalClass === "repair_pressure" ||
+    signalClass === "attention_finding_dead_ends" ||
+    signalClass === "attention_action_gap" ||
+    signalClass === "trust_friction"
+  ) {
+    return {
+      ...entry,
+      commercialBucket: "monetization leaks",
+      monetizationStage: "repair",
+      recommendedPlay:
+        entry.kind === "alert"
+          ? "Clear the blocker before spending into this traffic."
+          : "Repair the leak before routing more paid or sales attention here.",
+      salesAngle: targetMarket
+        ? `${targetMarket} is already drawing attention, but revenue is leaking before conversion.`
+        : "Attention is present, but monetization is leaking before conversion.",
+      targetMarket,
+    };
+  }
+
+  if (
+    entry.kind === "crawler_county_demand" ||
+    signalClass === "county_opportunity_concentration" ||
+    signalClass === "visibility_outpacing_coverage"
+  ) {
+    return {
+      ...entry,
+      commercialBucket: "ad plays",
+      monetizationStage: "spend",
+      recommendedPlay: targetMarket
+        ? `Open a county ad push around ${targetMarket}.`
+        : "Open a county-level ad push while attention is present.",
+      salesAngle: targetMarket
+        ? `${targetMarket} is showing live demand you can package into paid reach.`
+        : "This is a live county demand pocket you can package into paid reach.",
+      targetMarket,
+    };
+  }
+
+  if (
+    entry.kind === "bot_demand_cluster" ||
+    signalClass === "category_signal_concentration" ||
+    signalClass === "category_momentum" ||
+    entry.source === "cumulus"
+  ) {
+    return {
+      ...entry,
+      commercialBucket: "advertiser pitches",
+      monetizationStage: "sell",
+      recommendedPlay: targetMarket
+        ? `Pitch advertisers around ${targetMarket}.`
+        : "Pitch advertisers around this active demand pocket.",
+      salesAngle: entry.category
+        ? `${entry.category} has active attention you can turn into a sponsor or advertiser story.`
+        : "This demand pocket can support a sponsor or advertiser pitch.",
+      targetMarket,
+    };
+  }
+
+  if (
+    entry.kind === "crawler_route_demand" ||
+    entry.kind === "crawler_volume" ||
+    entry.kind === "crawler_top_bot" ||
+    entry.source === "crawler"
+  ) {
+    return {
+      ...entry,
+      commercialBucket: "market moves",
+      monetizationStage: "expand",
+      recommendedPlay: targetMarket
+        ? `Use ${targetMarket} as a market movement signal for expansion, redirects, or prioritization.`
+        : "Use this route pressure to guide expansion, redirects, or prioritization.",
+      salesAngle: targetMarket
+        ? `${targetMarket} is where attention is moving right now.`
+        : "This is where attention is moving right now.",
+      targetMarket,
+    };
+  }
+
+  return {
+    ...entry,
+    commercialBucket: "watchlist",
+    monetizationStage: "watch",
+    recommendedPlay:
+      "Keep this on watch until it sharpens into a spend, sell, expand, or repair move.",
+    salesAngle: "Supporting market context.",
+    targetMarket,
+  };
 }
 
 function shouldRefreshWeakSnapshot(args: {
@@ -605,10 +726,10 @@ export async function buildLiveStreamSnapshot(params?: {
     })
     .map((entry) => {
       const truthStatus = resolveEntryTruthStatus(entry);
-      return {
+      return decorateCommercialSignal({
         ...entry,
         truthStatus,
-      };
+      });
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, filters.limit);
