@@ -146,6 +146,16 @@ const sourceTone: Record<string, string> = {
   cumulus: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
 };
 
+const ownerTone: Record<string, string> = {
+  "route repair": "border-rose-300/20 bg-rose-500/10 text-rose-50",
+  "county coverage": "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
+  "trust/gating": "border-amber-300/20 bg-amber-500/10 text-amber-50",
+  "crawler ops": "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
+  "market expansion": "border-violet-300/20 bg-violet-500/10 text-violet-50",
+  "partner intel": "border-sky-300/20 bg-sky-500/10 text-sky-50",
+  "operator watch": "border-white/10 bg-white/5 text-white/70",
+};
+
 function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
   if (source === "crawler" || source === "alerts" || source === "bot_crawl_signals") {
     return "volatile";
@@ -245,6 +255,45 @@ function resolveEntryActionTask(item: LiveStreamItem): string | null {
   return null;
 }
 
+function resolveEntryOwner(item: LiveStreamItem): string {
+  if (
+    item.kind === "crawler_route_demand" ||
+    item.kind === "alert" ||
+    item.signalClass === "repair_pressure" ||
+    item.signalClass === "attention_finding_dead_ends"
+  ) {
+    return "route repair";
+  }
+  if (
+    item.kind === "crawler_county_demand" ||
+    item.signalClass === "county_opportunity_concentration" ||
+    item.signalClass === "visibility_outpacing_coverage"
+  ) {
+    return "county coverage";
+  }
+  if (item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction") {
+    return "trust/gating";
+  }
+  if (
+    item.kind === "crawler_volume" ||
+    item.kind === "crawler_top_bot" ||
+    item.source === "crawler"
+  ) {
+    return "crawler ops";
+  }
+  if (
+    item.kind === "bot_demand_cluster" ||
+    item.signalClass === "category_signal_concentration" ||
+    item.signalClass === "category_momentum"
+  ) {
+    return "market expansion";
+  }
+  if (item.source === "cumulus") {
+    return "partner intel";
+  }
+  return "operator watch";
+}
+
 function buildEntryContextTokens(item: LiveStreamItem): string[] {
   const tokens: string[] = [];
   if (item.county) tokens.push(item.county);
@@ -260,6 +309,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
   const durabilityClass = resolveDurabilityClass(item.source);
   const actionHint = resolveEntryActionHint(item);
   const contextTokens = buildEntryContextTokens(item);
+  const owner = resolveEntryOwner(item);
 
   return (
     <div
@@ -297,6 +347,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
         <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
         <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
+        <Badge className={ownerTone[owner] || ownerTone["operator watch"]}>{owner}</Badge>
         {contextTokens.map((token) => (
           <Badge
             key={`${item.id}:${token}`}
@@ -445,6 +496,7 @@ export default function AdminLiveStreamPage() {
   const degradedSourceEntries = useMemo(() => {
     return Object.entries(data?.summary.degradedSourceReasons || {});
   }, [data?.summary.degradedSourceReasons]);
+  const degradedSources = data?.summary.degradedSources || [];
   const topRouteDemand = (data?.stream || []).find((item) => item.kind === "crawler_route_demand");
   const topCountyDemand = (data?.stream || []).find(
     (item) => item.kind === "crawler_county_demand"
@@ -916,6 +968,7 @@ export default function AdminLiveStreamPage() {
         id: item.id,
         priority: item.priority,
         title: item.title,
+        owner: resolveEntryOwner(item),
         task: resolveEntryActionTask(item),
       }))
       .filter(
@@ -925,6 +978,7 @@ export default function AdminLiveStreamPage() {
           id: string;
           priority: LiveStreamItem["priority"];
           title: string;
+          owner: string;
           task: string;
         } => {
           if (!item.task) return false;
@@ -936,6 +990,15 @@ export default function AdminLiveStreamPage() {
       )
       .slice(0, 6);
   }, [groupedLiveFeed]);
+  const operatorOwnerBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of operatorQueue) {
+      counts.set(item.owner, (counts.get(item.owner) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([owner, count]) => ({ owner, count }))
+      .sort((a, b) => b.count - a.count || a.owner.localeCompare(b.owner));
+  }, [operatorQueue]);
 
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
@@ -1021,8 +1084,8 @@ export default function AdminLiveStreamPage() {
                   : "All tracked sources responded"}
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {(data?.summary.degradedSources || []).length ? (
-                  data!.summary.degradedSources!.map((sourceName) => (
+                {degradedSources.length ? (
+                  degradedSources.map((sourceName) => (
                     <Badge
                       key={sourceName}
                       className="bg-rose-600/20 text-rose-100 border-rose-500/30"
@@ -1055,11 +1118,11 @@ export default function AdminLiveStreamPage() {
             </div>
           </div>
 
-          {data?.summary.degradedSources?.length ? (
+          {degradedSources.length ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Live stream is partially degraded and is retrying weak snapshots more aggressively.
               <div className="mt-2 text-destructive/90">
-                Fallback sources: {data.summary.degradedSources.join(", ")}.
+                Fallback sources: {degradedSources.join(", ")}.
               </div>
               {degradedSourceEntries.length ? (
                 <div className="mt-2 space-y-1 text-xs text-destructive/90">
@@ -2150,6 +2213,18 @@ export default function AdminLiveStreamPage() {
                   {operatorQueue.length} actions
                 </Badge>
               </div>
+              {operatorOwnerBreakdown.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {operatorOwnerBreakdown.map((item) => (
+                    <Badge
+                      key={item.owner}
+                      className={ownerTone[item.owner] || ownerTone["operator watch"]}
+                    >
+                      {item.owner}: {item.count}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
               {operatorQueue.length === 0 ? (
                 <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
                   No direct actions surfaced from the current feed. Refresh the stream or widen
@@ -2164,6 +2239,9 @@ export default function AdminLiveStreamPage() {
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+                        <Badge className={ownerTone[item.owner] || ownerTone["operator watch"]}>
+                          {item.owner}
+                        </Badge>
                         <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
                           Action {index + 1}
                         </span>
