@@ -795,6 +795,46 @@ export default function AdminLiveStreamPage() {
     ];
     return parts.join(" | ");
   }, [source, truthFilter, durabilityFilter, stateCode, county, limit, historyDays]);
+  const groupedLiveFeed = useMemo(() => {
+    const groups = {
+      broken: [] as LiveStreamItem[],
+      opportunity: [] as LiveStreamItem[],
+      friction: [] as LiveStreamItem[],
+      watch: [] as LiveStreamItem[],
+    };
+
+    for (const item of filteredStream) {
+      const signalClass = item.signalClass || "";
+      if (
+        item.kind === "alert" ||
+        signalClass === "repair_pressure" ||
+        signalClass === "attention_finding_dead_ends"
+      ) {
+        groups.broken.push(item);
+        continue;
+      }
+      if (
+        [
+          "county_opportunity_concentration",
+          "visibility_outpacing_coverage",
+          "category_signal_concentration",
+          "category_momentum",
+        ].includes(signalClass) ||
+        item.kind === "crawler_county_demand" ||
+        item.kind === "bot_demand_cluster"
+      ) {
+        groups.opportunity.push(item);
+        continue;
+      }
+      if (["attention_action_gap", "trust_friction"].includes(signalClass)) {
+        groups.friction.push(item);
+        continue;
+      }
+      groups.watch.push(item);
+    }
+
+    return groups;
+  }, [filteredStream]);
 
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
@@ -1929,7 +1969,58 @@ export default function AdminLiveStreamPage() {
                 {isLoading ? "Loading stream..." : "No live entries available."}
               </div>
             ) : (
-              filteredStream.map((item) => <StreamEntryCard key={item.id} item={item} />)
+              <>
+                {[
+                  {
+                    key: "broken",
+                    title: "Broken Now",
+                    description: "Routes, alerts, and dead ends that need repair first.",
+                    items: groupedLiveFeed.broken,
+                    tone: "border-rose-500/20 bg-rose-500/10",
+                  },
+                  {
+                    key: "opportunity",
+                    title: "Opportunity Now",
+                    description: "Counties, categories, and demand pockets worth leaning into.",
+                    items: groupedLiveFeed.opportunity,
+                    tone: "border-emerald-500/20 bg-emerald-500/10",
+                  },
+                  {
+                    key: "friction",
+                    title: "Friction Now",
+                    description: "Signals where attention or intent is being slowed before action.",
+                    items: groupedLiveFeed.friction,
+                    tone: "border-amber-500/20 bg-amber-500/10",
+                  },
+                  {
+                    key: "watch",
+                    title: "Watchlist",
+                    description:
+                      "Context and supporting signals that matter, but are not first-action items.",
+                    items: groupedLiveFeed.watch,
+                    tone: "border-white/10 bg-black/20",
+                  },
+                ]
+                  .filter((group) => group.items.length > 0)
+                  .map((group) => (
+                    <div key={group.key} className={cn("rounded-lg border p-4", group.tone)}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-white">{group.title}</div>
+                          <div className="mt-1 text-xs text-white/65">{group.description}</div>
+                        </div>
+                        <Badge variant="outline" className="border-white/15 text-white/70">
+                          {group.items.length}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {group.items.map((item) => (
+                          <StreamEntryCard key={item.id} item={item} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </>
             )}
           </div>
         </CardContent>
