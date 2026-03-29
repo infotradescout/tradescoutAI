@@ -138,6 +138,14 @@ const durabilityTone: Record<"volatile" | "stable" | "persistent", string> = {
   persistent: "bg-violet-600/20 text-violet-100 border-violet-500/30",
 };
 
+const sourceTone: Record<string, string> = {
+  lisa: "border-violet-300/20 bg-violet-500/10 text-violet-50",
+  crawler: "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
+  alerts: "border-red-300/20 bg-red-500/10 text-red-50",
+  bot_crawl_signals: "border-amber-300/20 bg-amber-500/10 text-amber-50",
+  cumulus: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
+};
+
 function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
   if (source === "crawler" || source === "alerts" || source === "bot_crawl_signals") {
     return "volatile";
@@ -146,6 +154,110 @@ function resolveDurabilityClass(source: string): "volatile" | "stable" | "persis
     return "persistent";
   }
   return "stable";
+}
+
+function resolveEntryActionHint(item: LiveStreamItem): string | null {
+  if (item.kind === "crawler_route_demand") {
+    return "Check route health, redirect quality, and attribution on this page first.";
+  }
+  if (item.kind === "crawler_county_demand") {
+    return "Validate county page coverage and make sure this county has an action-ready surface.";
+  }
+  if (item.kind === "bot_demand_cluster") {
+    return "Inspect the route-plus-trade pairing and decide whether to harden or exploit this demand.";
+  }
+  if (item.kind === "alert") {
+    return "Treat this as an operator interrupt and verify owner, severity, and next step.";
+  }
+  if (item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction") {
+    return "Reduce the blocker between discovery and action on this path.";
+  }
+  if (
+    item.signalClass === "county_opportunity_concentration" ||
+    item.signalClass === "visibility_outpacing_coverage" ||
+    item.signalClass === "category_signal_concentration" ||
+    item.signalClass === "category_momentum"
+  ) {
+    return "Turn this signal into coverage, packaging, or outreach while attention is present.";
+  }
+  if (item.signalClass === "attention_finding_dead_ends") {
+    return "Fix the dead end or reroute attention into a county surface that can convert.";
+  }
+  return null;
+}
+
+function buildEntryContextTokens(item: LiveStreamItem): string[] {
+  const tokens: string[] = [];
+  if (item.county) tokens.push(item.county);
+  if (item.state) tokens.push(item.state);
+  if (item.category) tokens.push(item.category);
+  if (item.lane) tokens.push(`lane:${item.lane}`);
+  if (item.signalClass) tokens.push(`signal:${item.signalClass}`);
+  return tokens;
+}
+
+function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; compact?: boolean }) {
+  const truthStatus = item.truthStatus === "current" ? "current" : "stale";
+  const durabilityClass = resolveDurabilityClass(item.source);
+  const actionHint = resolveEntryActionHint(item);
+  const contextTokens = buildEntryContextTokens(item);
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-white/10 bg-black/20",
+        compact ? "p-3" : "p-4 space-y-3"
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className={cn(
+                "uppercase tracking-[0.18em]",
+                sourceTone[item.source] || "border-white/10 text-white/60"
+              )}
+            >
+              {item.source.replaceAll("_", " ")}
+            </Badge>
+            {item.kind ? (
+              <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                {item.kind.replaceAll("_", " ")}
+              </span>
+            ) : null}
+          </div>
+          <div className={cn("mt-2 font-semibold text-white", compact ? "text-xs" : "text-sm")}>
+            {item.title}
+          </div>
+        </div>
+        <div className="text-xs text-white/50">{new Date(item.timestamp).toLocaleString()}</div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+        <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
+        <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
+        {contextTokens.map((token) => (
+          <Badge
+            key={`${item.id}:${token}`}
+            variant="outline"
+            className="border-white/10 text-white/60"
+          >
+            {token}
+          </Badge>
+        ))}
+      </div>
+
+      <div className={cn("text-white/80", compact ? "text-xs" : "text-sm")}>{item.narrative}</div>
+
+      {actionHint ? (
+        <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+          Next move: {actionHint}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export default function AdminLiveStreamPage() {
@@ -1724,32 +1836,7 @@ export default function AdminLiveStreamPage() {
                 {isLoading ? "Loading stream..." : "No live entries available."}
               </div>
             ) : (
-              filteredStream.map((item) => {
-                const truthStatus = item.truthStatus === "current" ? "current" : "stale";
-                const durabilityClass = resolveDurabilityClass(item.source);
-                return (
-                  <div
-                    key={item.id}
-                    className="rounded-lg border border-white/10 bg-black/20 p-4 space-y-2"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-sm font-semibold text-white">{item.title}</div>
-                        <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
-                        <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
-                        <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
-                        <Badge variant="outline" className="border-white/10 text-white/60">
-                          {item.source}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-white/50">
-                        {new Date(item.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="text-sm text-white/80">{item.narrative}</div>
-                  </div>
-                );
-              })
+              filteredStream.map((item) => <StreamEntryCard key={item.id} item={item} />)
             )}
           </div>
         </CardContent>
@@ -1814,40 +1901,9 @@ export default function AdminLiveStreamPage() {
                             No entries stored in this snapshot.
                           </div>
                         ) : (
-                          (snapshot.stream || []).map((entry) => {
-                            const truthStatus =
-                              entry.truthStatus === "current" ? "current" : "stale";
-                            const durabilityClass = resolveDurabilityClass(entry.source);
-                            return (
-                              <div
-                                key={entry.id}
-                                className="rounded border border-white/10 bg-black/20 p-2"
-                              >
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-xs font-semibold text-white/90">
-                                    {entry.title}
-                                  </span>
-                                  <Badge className={priorityTone[entry.priority]}>
-                                    {entry.priority}
-                                  </Badge>
-                                  <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
-                                  <Badge className={durabilityTone[durabilityClass]}>
-                                    {durabilityClass}
-                                  </Badge>
-                                  <Badge
-                                    variant="outline"
-                                    className="border-white/10 text-white/60"
-                                  >
-                                    {entry.source}
-                                  </Badge>
-                                </div>
-                                <div className="mt-1 text-xs text-white/50">
-                                  {new Date(entry.timestamp).toLocaleString()}
-                                </div>
-                                <div className="mt-1 text-xs text-white/80">{entry.narrative}</div>
-                              </div>
-                            );
-                          })
+                          (snapshot.stream || []).map((entry) => (
+                            <StreamEntryCard key={entry.id} item={entry} compact />
+                          ))
                         )}
                       </div>
                     ) : null}
