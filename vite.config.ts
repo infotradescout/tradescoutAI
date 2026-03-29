@@ -51,31 +51,6 @@ export default defineConfig({
           }
 
           if (
-            id.includes("/react/") ||
-            id.includes("/react-dom/") ||
-            id.includes("/scheduler/")
-          ) {
-            return "vendor-react";
-          }
-
-          if (
-            id.includes("/@tanstack/") ||
-            id.includes("/wouter/") ||
-            id.includes("/react-router/") ||
-            id.includes("/react-router-dom/")
-          ) {
-            return "vendor-routing";
-          }
-
-          if (id.includes("/lucide-react/") || id.includes("/react-icons/")) {
-            return "vendor-icons";
-          }
-
-          if (id.includes("/@radix-ui/") || id.includes("/cmdk/") || id.includes("/vaul/")) {
-            return "vendor-ui";
-          }
-
-          if (
             id.includes("/recharts/") ||
             id.includes("/d3-") ||
             id.includes("/topojson-client/") ||
@@ -99,27 +74,6 @@ export default defineConfig({
           if (id.includes("/@googlemaps/") || id.includes("/google-auth-library/")) {
             return "vendor-google";
           }
-
-          if (
-            id.includes("/framer-motion/") ||
-            id.includes("/embla-carousel-react/") ||
-            id.includes("/react-day-picker/") ||
-            id.includes("/date-fns/")
-          ) {
-            return "vendor-interactions";
-          }
-
-          if (
-            id.includes("/@uppy/") ||
-            id.includes("/socket.io-client/") ||
-            id.includes("/openai/") ||
-            id.includes("/@anthropic-ai/") ||
-            id.includes("/@google/generative-ai/")
-          ) {
-            return "vendor-integrations";
-          }
-
-          return "vendor-misc";
         },
       },
     },
