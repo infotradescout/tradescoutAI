@@ -88,6 +88,26 @@ type GroupedMeetingSession = {
   }>;
 };
 
+type MeetingSlot = {
+  id: string;
+  countySlug: string;
+  countyLabel: string;
+  meetingCity: string;
+  meetingDate: string;
+  dateLabel: string;
+  timeLabel: string;
+  startDateTime: string;
+  addressLine1: string;
+  addressLine2: string;
+  teaser: string;
+};
+
+type CalendarMonthGroup = {
+  key: string;
+  label: string;
+  sessions: GroupedMeetingSession[];
+};
+
 const COUNTY_SEO: Record<string, CountySeoConfig> = {
   "mobile-county-al": {
     slug: "mobile-county-al",
@@ -279,6 +299,9 @@ const OFFER_HIGHLIGHTS = [
   "Mobile, Escambia, Okaloosa",
 ];
 
+const BIWEEKLY_REPEAT_DAYS = 14;
+const FUTURE_SESSION_COUNT = 8;
+
 const LOCATION_BY_COUNTY: Record<
   string,
   { addressLine1: string; addressLine2: string; phone?: string }
@@ -338,6 +361,124 @@ function isCompleteCampaignMeeting(meeting: CampaignMeeting): boolean {
     meeting.timeLabel &&
     meeting.meetingCity
   );
+}
+
+function formatDateLabel(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function parseMeetingDateValue(dateText: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateText)) return null;
+  const parsed = new Date(`${dateText}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function toIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizeTimeToken(timeLabel: string): string {
+  return timeLabel.toLowerCase().replace(/[^0-9apm]+/g, "");
+}
+
+function parseTimeLabelToParts(timeLabel: string): { hours: number; minutes: number } | null {
+  const match = /^\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*$/i.exec(timeLabel);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] || "0");
+  const meridiem = match[3].toUpperCase();
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
+
+  if (meridiem === "AM") {
+    if (hours === 12) hours = 0;
+  } else if (hours !== 12) {
+    hours += 12;
+  }
+
+  return { hours, minutes };
+}
+
+function buildStartDateTime(dateText: string, timeLabel: string): string {
+  const parts = parseTimeLabelToParts(timeLabel);
+  if (!parts) return `${dateText}T12:00:00`;
+
+  const hourText = String(parts.hours).padStart(2, "0");
+  const minuteText = String(parts.minutes).padStart(2, "0");
+  return `${dateText}T${hourText}:${minuteText}:00`;
+}
+
+function getTimeSortValue(slot: { startDateTime?: string; timeLabel?: string }): number {
+  if (slot.startDateTime) {
+    const timestamp = new Date(slot.startDateTime).getTime();
+    if (Number.isFinite(timestamp)) return timestamp;
+  }
+
+  const parts = parseTimeLabelToParts(slot.timeLabel || "");
+  if (!parts) return Number.MAX_SAFE_INTEGER;
+  return parts.hours * 60 + parts.minutes;
+}
+
+function buildRecurringMeetingSlots(meetings: MeetingSlot[]): MeetingSlot[] {
+  if (!meetings.length) return [];
+
+  const existingKeys = new Set(
+    meetings.map((meeting) => `${meeting.countySlug}|${meeting.meetingDate}|${meeting.timeLabel}`)
+  );
+  const latestTemplateBySeries = new Map<string, MeetingSlot>();
+
+  for (const meeting of meetings) {
+    const seriesKey = `${meeting.countySlug}|${normalizeTimeToken(meeting.timeLabel)}`;
+    const currentTemplate = latestTemplateBySeries.get(seriesKey);
+    if (!currentTemplate || meeting.meetingDate > currentTemplate.meetingDate) {
+      latestTemplateBySeries.set(seriesKey, meeting);
+    }
+  }
+
+  const generated: MeetingSlot[] = [];
+
+  for (const template of latestTemplateBySeries.values()) {
+    const baseDate = parseMeetingDateValue(template.meetingDate);
+    if (!baseDate) continue;
+
+    let nextDate = addDays(baseDate, BIWEEKLY_REPEAT_DAYS);
+    let generatedCount = 0;
+
+    while (generatedCount < FUTURE_SESSION_COUNT) {
+      const nextDateText = toIsoDate(nextDate);
+      const nextKey = `${template.countySlug}|${nextDateText}|${template.timeLabel}`;
+
+      if (!existingKeys.has(nextKey)) {
+        generated.push({
+          ...template,
+          id: `${template.countySlug}-${nextDateText}-${normalizeTimeToken(template.timeLabel)}`,
+          meetingDate: nextDateText,
+          dateLabel: formatDateLabel(nextDate),
+          startDateTime: buildStartDateTime(nextDateText, template.timeLabel),
+        });
+        existingKeys.add(nextKey);
+        generatedCount += 1;
+      }
+
+      nextDate = addDays(nextDate, BIWEEKLY_REPEAT_DAYS);
+    }
+  }
+
+  return generated;
 }
 
 function getUserBusinessName(user: Record<string, unknown> | null): string {
@@ -537,7 +678,7 @@ export default function TradePartnerCumulusLanding() {
     return new URLSearchParams(search);
   }, [location]);
 
-  const campaignMeetings = useMemo(() => {
+  const campaignMeetings = useMemo<MeetingSlot[]>(() => {
     if (
       Array.isArray(campaignConfig?.meetings) &&
       campaignConfig.meetings.length > 0 &&
@@ -566,12 +707,27 @@ export default function TradePartnerCumulusLanding() {
     }));
   }, [campaignConfig?.meetings]);
 
+  const recurringCampaignMeetings = useMemo(
+    () => buildRecurringMeetingSlots(campaignMeetings),
+    [campaignMeetings]
+  );
+
+  const allCampaignMeetings = useMemo(
+    () =>
+      [...campaignMeetings, ...recurringCampaignMeetings].sort((a, b) => {
+        const dateCompare = a.meetingDate.localeCompare(b.meetingDate);
+        if (dateCompare !== 0) return dateCompare;
+        return getTimeSortValue(a) - getTimeSortValue(b);
+      }),
+    [campaignMeetings, recurringCampaignMeetings]
+  );
+
   const visibleMeetingSlots = useMemo(
     () =>
       activeCounty
-        ? campaignMeetings.filter((slot) => slot.countySlug === activeCounty.slug)
-        : campaignMeetings,
-    [activeCounty, campaignMeetings]
+        ? allCampaignMeetings.filter((slot) => slot.countySlug === activeCounty.slug)
+        : allCampaignMeetings,
+    [activeCounty, allCampaignMeetings]
   );
 
   const groupedMeetingSessions = useMemo(() => {
@@ -608,19 +764,39 @@ export default function TradePartnerCumulusLanding() {
       });
     }
 
-    return Array.from(grouped.values()).map((group) => ({
-      ...group,
-      slots: [...group.slots].sort((a, b) => {
-        const aTime = a.startDateTime
-          ? new Date(a.startDateTime).getTime()
-          : Number.MAX_SAFE_INTEGER;
-        const bTime = b.startDateTime
-          ? new Date(b.startDateTime).getTime()
-          : Number.MAX_SAFE_INTEGER;
-        return aTime - bTime;
-      }),
-    }));
+    return Array.from(grouped.values())
+      .map((group) => ({
+        ...group,
+        slots: [...group.slots].sort((a, b) => {
+          return getTimeSortValue(a) - getTimeSortValue(b);
+        }),
+      }))
+      .sort((a, b) => a.meetingDate.localeCompare(b.meetingDate));
   }, [visibleMeetingSlots]);
+
+  const calendarMonths = useMemo<CalendarMonthGroup[]>(() => {
+    const grouped = new Map<string, CalendarMonthGroup>();
+
+    for (const session of groupedMeetingSessions) {
+      const monthDate = parseMeetingDateValue(session.meetingDate);
+      const monthKey = session.meetingDate.slice(0, 7);
+      const monthLabel = monthDate
+        ? monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+        : monthKey;
+
+      if (!grouped.has(monthKey)) {
+        grouped.set(monthKey, {
+          key: monthKey,
+          label: monthLabel,
+          sessions: [],
+        });
+      }
+
+      grouped.get(monthKey)?.sessions.push(session);
+    }
+
+    return Array.from(grouped.values());
+  }, [groupedMeetingSessions]);
 
   useEffect(() => {
     if (!visibleMeetingSlots.length) return;
@@ -986,8 +1162,8 @@ export default function TradePartnerCumulusLanding() {
             <h2>Regional Sessions</h2>
             <p>
               Pick the session that serves your county. Each one includes lunch, local networking,
-              and time with Cumulus and TradeScout. Space is limited at each session, with roughly
-              10 spots per RSVP time.
+              and time with Cumulus and TradeScout. Sessions repeat every two weeks on the same day
+              and time windows so you can book further out.
             </p>
             <div className="tpc-county-list">
               {groupedMeetingSessions.map((session) => (
@@ -1073,6 +1249,51 @@ export default function TradePartnerCumulusLanding() {
                   </div>
                 </article>
               ))}
+            </div>
+
+            <div className="tpc-booking-calendar">
+              <div className="tpc-booking-calendar-head">
+                <h3>Biweekly Booking Calendar</h3>
+                <p>
+                  Browse the next several session cycles by month. Choose any listed time to lock in
+                  a future RSVP.
+                </p>
+              </div>
+              <div className="tpc-calendar-months">
+                {calendarMonths.map((month) => (
+                  <section key={month.key} className="tpc-calendar-month">
+                    <header className="tpc-calendar-month-header">
+                      <h4>{month.label}</h4>
+                    </header>
+                    <div className="tpc-calendar-session-grid">
+                      {month.sessions.map((session) => (
+                        <article key={session.id} className="tpc-calendar-session-card">
+                          <div className="tpc-calendar-session-topline">
+                            <strong>{session.meetingCity || session.countyLabel}</strong>
+                            <span>Serving {session.countyLabel}</span>
+                          </div>
+                          <p className="tpc-calendar-session-date">{session.dateLabel}</p>
+                          <div className="tpc-calendar-slot-row">
+                            {session.slots.map((slot) => (
+                              <button
+                                key={slot.id}
+                                type="button"
+                                className={`tpc-calendar-slot-button${meetingSlotId === slot.id ? " is-selected" : ""}`}
+                                onClick={() => {
+                                  setMeetingSlotId(slot.id);
+                                  scrollToElementById("cumulus-rsvp-form");
+                                }}
+                              >
+                                {slot.timeLabel || "TBD"}
+                              </button>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
             </div>
           </section>
 

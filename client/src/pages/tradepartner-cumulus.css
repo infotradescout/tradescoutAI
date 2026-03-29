@@ -321,6 +321,110 @@
   width: 100%;
 }
 
+.tpc-booking-calendar {
+  margin-top: 18px;
+  border-top: 1px solid rgba(16, 36, 24, 0.1);
+  padding-top: 16px;
+}
+
+.tpc-booking-calendar-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #114656;
+}
+
+.tpc-booking-calendar-head p {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+}
+
+.tpc-calendar-months {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.tpc-calendar-month {
+  border-radius: 14px;
+  border: 1px solid rgba(0, 95, 115, 0.14);
+  background: rgba(247, 251, 244, 0.9);
+  padding: 12px;
+}
+
+.tpc-calendar-month-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #0f4859;
+}
+
+.tpc-calendar-session-grid {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.tpc-calendar-session-card {
+  border-radius: 12px;
+  border: 1px solid rgba(16, 36, 24, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px;
+}
+
+.tpc-calendar-session-topline {
+  display: grid;
+  gap: 3px;
+}
+
+.tpc-calendar-session-topline strong {
+  color: #114656;
+  font-size: 0.9rem;
+}
+
+.tpc-calendar-session-topline span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4a685b;
+}
+
+.tpc-calendar-session-date {
+  margin: 8px 0 0 !important;
+  font-size: 0.84rem !important;
+  font-weight: 700;
+  color: #0d5565 !important;
+}
+
+.tpc-calendar-slot-row {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tpc-calendar-slot-button {
+  appearance: none;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 95, 115, 0.2);
+  background: rgba(0, 95, 115, 0.06);
+  color: #0f5668;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.tpc-calendar-slot-button:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 95, 115, 0.12);
+}
+
+.tpc-calendar-slot-button.is-selected {
+  background: var(--tpc-brand);
+  color: #f5f9f7;
+  border-color: var(--tpc-brand);
+}
+
 .tpc-form-panel {
   border-color: rgba(0, 95, 115, 0.26);
   background:
@@ -736,6 +840,10 @@
   .tpc-check-grid,
   .tpc-proof-grid,
   .tpc-benefit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tpc-calendar-session-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
