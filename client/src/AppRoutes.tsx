@@ -181,10 +181,26 @@ const RootLanding = memo(function RootLanding() {
 
 // Lazy load all pages by category for better code splitting
 const AppShell = React.lazy(() => import("./components/layout/AppShell"));
-const CommunityPageShell = React.lazy(() => import("./shells/CommunityPageShell"));
-const GroupsShell = React.lazy(() => import("./shells/GroupsShell"));
-const HOADashboardShell = React.lazy(() => import("./shells/HOADashboardShell"));
-const HOAManagementShell = React.lazy(() => import("./shells/HOAManagementShell"));
+const CommunityPageShell = React.lazy(() =>
+  import("./shells/CommunityPageShell").then((module) => ({
+    default: module.CommunityPageShell,
+  }))
+);
+const GroupsShell = React.lazy(() =>
+  import("./shells/GroupsShell").then((module) => ({
+    default: module.GroupsShell,
+  }))
+);
+const HOADashboardShell = React.lazy(() =>
+  import("./shells/HOADashboardShell").then((module) => ({
+    default: module.HOADashboardShell,
+  }))
+);
+const HOAManagementShell = React.lazy(() =>
+  import("./shells/HOAManagementShell").then((module) => ({
+    default: module.HOAManagementShell,
+  }))
+);
 const Foundation = React.lazy(() => import("./pages/foundation"));
 const ScoutOS = React.lazy(() => import("./scout"));
 const SmartHome = React.lazy(() => import("./SmartHome"));
@@ -573,483 +589,483 @@ export const AppRoutes = memo(function AppRoutes({
           <AppShell>
             <AuthenticatedOnboardingGate />
             <Switch>
-            {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
-            <Route path="/" component={RootLanding} />
-            <Route path="/landing">
-              <LandingAccessGate>
-                <LazyPage Component={Landing} />
-              </LandingAccessGate>
-            </Route>
-            <Route path="/landing/:variant">
-              <LandingAccessGate>
-                <LazyPage Component={Landing} />
-              </LandingAccessGate>
-            </Route>
-            <Route path="/lp">
-              <LandingAccessGate>
-                <LazyPage Component={Landing} />
-              </LandingAccessGate>
-            </Route>
-            <Route path="/lp/:variant">
-              <LandingAccessGate>
-                <LazyPage Component={Landing} />
-              </LandingAccessGate>
-            </Route>
-            {/* Scout OS: primary AI controller surface */}
-            <Route path="/scout" component={ScoutOS} />
-            {/* Home routes */}
-            <Route path="/home" component={SmartHome} />
+              {/* Root: resolve to CommunityOS for most users, dashboard for admins */}
+              <Route path="/" component={RootLanding} />
+              <Route path="/landing">
+                <LandingAccessGate>
+                  <LazyPage Component={Landing} />
+                </LandingAccessGate>
+              </Route>
+              <Route path="/landing/:variant">
+                <LandingAccessGate>
+                  <LazyPage Component={Landing} />
+                </LandingAccessGate>
+              </Route>
+              <Route path="/lp">
+                <LandingAccessGate>
+                  <LazyPage Component={Landing} />
+                </LandingAccessGate>
+              </Route>
+              <Route path="/lp/:variant">
+                <LandingAccessGate>
+                  <LazyPage Component={Landing} />
+                </LandingAccessGate>
+              </Route>
+              {/* Scout OS: primary AI controller surface */}
+              <Route path="/scout" component={ScoutOS} />
+              {/* Home routes */}
+              <Route path="/home" component={SmartHome} />
 
-            {/* Role hubs for each user type */}
-            <Route path="/roles/:roleKey">
-              <LazyPage Component={RoleHubPage} />
-            </Route>
+              {/* Role hubs for each user type */}
+              <Route path="/roles/:roleKey">
+                <LazyPage Component={RoleHubPage} />
+              </Route>
 
-            {/* Dashboard routes (auth required) */}
-            <Route path="/my-tradescout">
-              <ProtectedRoute>
-                <RedirectTo to="/scout" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/dashboard">
-              <ProtectedRoute>
-                <RedirectTo to="/scout" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/dashboard/jobs">
-              <ProtectedRoute>
-                <LazyPage Component={DashboardJobs} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/dashboard-settings">
-              <ProtectedRoute>
-                <LazyPage Component={DashboardSettings} />
-              </ProtectedRoute>
-            </Route>
+              {/* Dashboard routes (auth required) */}
+              <Route path="/my-tradescout">
+                <ProtectedRoute>
+                  <RedirectTo to="/scout" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/dashboard">
+                <ProtectedRoute>
+                  <RedirectTo to="/scout" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/dashboard/jobs">
+                <ProtectedRoute>
+                  <LazyPage Component={DashboardJobs} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/dashboard-settings">
+                <ProtectedRoute>
+                  <LazyPage Component={DashboardSettings} />
+                </ProtectedRoute>
+              </Route>
 
-            {/* Public commercial landing */}
-            <Route path="/hardrock">
-              <LandingAccessGate>
-                <LazyPage Component={HardrockLanding} />
-              </LandingAccessGate>
-            </Route>
-            <Route path="/commercial/p/:slug">
-              <LandingAccessGate>
-                <LazyPage Component={CommercialProjectLandingPage} />
-              </LandingAccessGate>
-            </Route>
+              {/* Public commercial landing */}
+              <Route path="/hardrock">
+                <LandingAccessGate>
+                  <LazyPage Component={HardrockLanding} />
+                </LandingAccessGate>
+              </Route>
+              <Route path="/commercial/p/:slug">
+                <LandingAccessGate>
+                  <LazyPage Component={CommercialProjectLandingPage} />
+                </LandingAccessGate>
+              </Route>
 
-            {/* Auth routes. Canonical entry is /pre-scout-setup; aliases map to explicit modes. */}
-            <Route path="/login">
-              <RedirectTo to="/pre-scout-setup?mode=signin" />
-            </Route>
-            <Route path="/login/legacy">
-              <LazyPage Component={Login} />
-            </Route>
-            <Route path="/register">
-              <RedirectTo to="/pre-scout-setup?mode=create" />
-            </Route>
-            <Route path="/signup">
-              <RedirectTo to="/pre-scout-setup?mode=create" />
-            </Route>
-            <Route path="/create-account">
-              <RedirectTo to="/pre-scout-setup?mode=create" />
-            </Route>
-            <Route path="/create-account/legacy">
-              <LazyPage Component={CreateAccount} />
-            </Route>
-            <Route path="/claim-my-business">
-              <LazyPage Component={ClaimMyBusiness} />
-            </Route>
-            <Route path="/reset-password">
-              <LazyPage Component={ResetPassword} />
-            </Route>
-            <Route path="/verify-email">
-              <LazyPage Component={VerifyEmail} />
-            </Route>
-            <Route path="/check-email">
-              <LazyPage Component={CheckEmail} />
-            </Route>
-            <Route path="/install">
-              <LazyPage Component={Install} />
-            </Route>
-            <Route path="/pre-scout-setup">
-              <LazyPage Component={PreScoutSetup} />
-            </Route>
-            {/* Onboarding: profile normalization flow (auth required). */}
-            <Route path="/onboarding/profile">
-              <ProtectedRoute>
-                <LazyPage Component={OnboardingProfile} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/onboarding/intent">
-              <ProtectedRoute>
-                <LazyPage Component={OnboardingIntent} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/profile-setup">
-              <RedirectTo to="/onboarding/profile" />
-            </Route>
+              {/* Auth routes. Canonical entry is /pre-scout-setup; aliases map to explicit modes. */}
+              <Route path="/login">
+                <RedirectTo to="/pre-scout-setup?mode=signin" />
+              </Route>
+              <Route path="/login/legacy">
+                <LazyPage Component={Login} />
+              </Route>
+              <Route path="/register">
+                <RedirectTo to="/pre-scout-setup?mode=create" />
+              </Route>
+              <Route path="/signup">
+                <RedirectTo to="/pre-scout-setup?mode=create" />
+              </Route>
+              <Route path="/create-account">
+                <RedirectTo to="/pre-scout-setup?mode=create" />
+              </Route>
+              <Route path="/create-account/legacy">
+                <LazyPage Component={CreateAccount} />
+              </Route>
+              <Route path="/claim-my-business">
+                <LazyPage Component={ClaimMyBusiness} />
+              </Route>
+              <Route path="/reset-password">
+                <LazyPage Component={ResetPassword} />
+              </Route>
+              <Route path="/verify-email">
+                <LazyPage Component={VerifyEmail} />
+              </Route>
+              <Route path="/check-email">
+                <LazyPage Component={CheckEmail} />
+              </Route>
+              <Route path="/install">
+                <LazyPage Component={Install} />
+              </Route>
+              <Route path="/pre-scout-setup">
+                <LazyPage Component={PreScoutSetup} />
+              </Route>
+              {/* Onboarding: profile normalization flow (auth required). */}
+              <Route path="/onboarding/profile">
+                <ProtectedRoute>
+                  <LazyPage Component={OnboardingProfile} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/onboarding/intent">
+                <ProtectedRoute>
+                  <LazyPage Component={OnboardingIntent} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/profile-setup">
+                <RedirectTo to="/onboarding/profile" />
+              </Route>
 
-            {/* Legacy auth URLs map directly to mode-specific pre-scout entry. */}
-            <Route path="/auth/login">
-              <RedirectTo to="/pre-scout-setup?mode=signin" />
-            </Route>
-            <Route path="/auth/signup">
-              <RedirectTo to="/pre-scout-setup?mode=create" />
-            </Route>
-            <Route path="/address-verification">
-              <ProtectedRoute>
-                <LazyPage Component={AddressVerification} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/unauthorized">
-              <LazyPage Component={Unauthorized} />
-            </Route>
+              {/* Legacy auth URLs map directly to mode-specific pre-scout entry. */}
+              <Route path="/auth/login">
+                <RedirectTo to="/pre-scout-setup?mode=signin" />
+              </Route>
+              <Route path="/auth/signup">
+                <RedirectTo to="/pre-scout-setup?mode=create" />
+              </Route>
+              <Route path="/address-verification">
+                <ProtectedRoute>
+                  <LazyPage Component={AddressVerification} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/unauthorized">
+                <LazyPage Component={Unauthorized} />
+              </Route>
 
-            {/* Core pages */}
-            {/* Contractors: profiles remain addressable; listing surfaces now route through Direct Connect */}
-            <Route path="/contractors/apply">
-              <LazyPage Component={ContractorApply} />
-            </Route>
-            <Route path="/contractors/top">
-              <LazyPage Component={ContractorsTop} />
-            </Route>
-            {/* Legacy alias: older pages link to /contractors/board for contractor search */}
-            <Route path="/contractors/board">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-            <Route path="/contractors/:slug">
-              <LazyPage Component={ContractorProfile} />
-            </Route>
-            <Route path="/contractors">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-
-            {/* Contractor project requests / leads */}
-            <Route path="/contractor-leads">
-              <ProtectedRoute>
-                <LazyPage Component={ContractorLeads} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/contractor/leads">
-              <RedirectTo to="/contractor-leads" />
-            </Route>
-
-            {/* Helpers + Direct Connect */}
-            <Route path="/helpers">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-            <Route path="/trade-deals">
-              <LazyPage Component={TradeDealsPage} />
-            </Route>
-            <Route path="/daily-deals/:rest*">
-              <LazyPage Component={DailyDeals} />
-            </Route>
-            <Route path="/help-demo/:rest*">
-              <LazyPage Component={HelpDemo} />
-            </Route>
-            <Route path="/test-page/:rest*">
-              <LazyPage Component={TestPage} />
-            </Route>
-            <Route path="/profile">
-              <ProtectedRoute>
-                <LazyPage Component={Profile} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/profile/:userId">
-              <LazyPage Component={PublicProfileView} />
-            </Route>
-            <Route path="/u/:slug">
-              <LazyPage Component={ProfileSiteView} />
-            </Route>
-            <Route path="/p/:slug">
-              <LazyPage Component={ProfileSiteView} />
-            </Route>
-            <Route path="/p/:slug/edit">
-              <ProtectedRoute>
-                <LazyPage Component={ProfileSiteEditor} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/u/:slug/edit">
-              <ProtectedRoute>
-                <LazyPage Component={ProfileSiteEditor} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/business/:slug">
-              <LazyPage Component={BusinessProfileView} />
-            </Route>
-            <Route path="/business/:slug/edit">
-              <ProtectedRoute>
-                <LazyPage Component={BusinessProfileEditor} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/directory/businesses">
-              <LazyPage Component={BusinessDirectoryPage} />
-            </Route>
-
-            {/* Business routes */}
-            <Route path="/contractor-board">
-              <RedirectTo to="/contractor-dashboard" />
-            </Route>
-            <Route path="/commercial-directory">
-              <ProtectedRoute>
-                <LazyPage Component={CommercialDirectoryPage} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin/commercial-directory">
-              <ProtectedRoute adminOnly>
-                <LazyPage Component={AdminCommercialDirectoryPage} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin/commercial-contractors">
-              <ProtectedRoute adminOnly>
-                <LazyPage Component={AdminCommercialContractorsPage} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/contractor-apply">
-              <LazyPage Component={ContractorApply} />
-            </Route>
-            <Route path="/offer-services">
-              <ProtectedRoute>
+              {/* Core pages */}
+              {/* Contractors: profiles remain addressable; listing surfaces now route through Direct Connect */}
+              <Route path="/contractors/apply">
                 <LazyPage Component={ContractorApply} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/business-listing">
-              <LazyPage Component={BusinessListing} />
-            </Route>
-            <Route path="/business-owner-dashboard">
-              <LazyPage Component={BusinessOwnerDashboard} />
-            </Route>
+              </Route>
+              <Route path="/contractors/top">
+                <LazyPage Component={ContractorsTop} />
+              </Route>
+              {/* Legacy alias: older pages link to /contractors/board for contractor search */}
+              <Route path="/contractors/board">
+                <RedirectTo to="/direct-connect" />
+              </Route>
+              <Route path="/contractors/:slug">
+                <LazyPage Component={ContractorProfile} />
+              </Route>
+              <Route path="/contractors">
+                <RedirectTo to="/direct-connect" />
+              </Route>
 
-            {/* Marketplace routes */}
-            <Route path="/worker-marketplace">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-            <Route path="/marketplace">
-              <RedirectTo to="/exchange" />
-            </Route>
-            <Route path="/marketplace/new">
-              <ProtectedRoute>
-                <LazyPage Component={MarketplaceListing} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/exchange/list">
-              <RedirectTo to="/exchange" />
-            </Route>
-            <Route path="/vehicle-marketplace">
-              <LazyPage Component={VehicleMarketplace} />
-            </Route>
-            <Route path="/homescout-listings">
-              <LazyPage Component={RealEstateMarketplace} />
-            </Route>
-            <Route path="/real-estate-marketplace">
-              <RedirectTo to="/homescout-listings" />
-            </Route>
-            <Route path="/homescout/listings/:id">
-              <LazyPage Component={HomeScoutListing} />
-            </Route>
-            <Route path="/homescout/:stateCode/:countyFips">
-              <LazyPage Component={HomeScoutCounty} />
-            </Route>
-            <Route path="/homescout/new">
-              <ProtectedRoute>
-                <LazyPage Component={PropertyListing} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/homes">
-              <ProtectedRoute>
-                <LazyPage Component={lazy(() => import("./pages/homes"))} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/vehicles">
-              <ProtectedRoute>
-                <LazyPage Component={lazy(() => import("./pages/vehicles"))} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/property-listing">
-              <RedirectTo to="/homescout/new" />
-            </Route>
-            <Route path="/handmade-marketplace">
-              <LazyPage Component={HandmadeMarketplace} />
-            </Route>
-            <Route path="/exchange/metals">
-              <LazyPage Component={MetalsExchange} />
-            </Route>
-            <Route path="/exchange/rental-property">
-              <LazyPage Component={ExchangeRentalProperty} />
-            </Route>
-            <Route path="/exchange/rental-equipment">
-              <LazyPage Component={ExchangeRentalEquipment} />
-            </Route>
-            <Route path="/exchange">
-              <LazyPage Component={Exchange} />
-            </Route>
-            {/* Groups routes */}
-            <Route path="/groups">
-              <GroupsShell>
-                <LazyPage Component={Groups} />
-              </GroupsShell>
-            </Route>
-            <Route path="/group/:id">
-              <LazyPage Component={GroupDetail} />
-            </Route>
-            <Route path="/hoa-management">
-              <ProtectedRoute>
-                <HOAManagementShell>
-                  <LazyPage Component={HoaManagement} />
-                </HOAManagementShell>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/hoa/residents">
-              <ProtectedRoute>
-                <LazyPage Component={HoaResidents} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/hoa/maintenance">
-              <ProtectedRoute>
-                <LazyPage Component={HoaMaintenance} />
-              </ProtectedRoute>
-            </Route>
-            {/* Community tab should show the rich Nextdoor-style feed */}
-            <Route path="/community">
-              <CommunityPageShell>
-                <LazyPage Component={CommunityFeed} />
-              </CommunityPageShell>
-            </Route>
-            <Route path="/community-feed">
-              <CommunityPageShell>
-                <LazyPage Component={CommunityFeed} />
-              </CommunityPageShell>
-            </Route>
-            <Route path="/community/u/:userId">
-              <LazyPage Component={CommunityProfile} />
-            </Route>
-            <Route path="/community-moderation">
-              <LazyPage Component={CommunityModerationDemo} />
-            </Route>
+              {/* Contractor project requests / leads */}
+              <Route path="/contractor-leads">
+                <ProtectedRoute>
+                  <LazyPage Component={ContractorLeads} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/contractor/leads">
+                <RedirectTo to="/contractor-leads" />
+              </Route>
 
-            {/* Social features: discovery, friends, messaging */}
-            <Route path="/discover-people">
-              <ProtectedRoute>
-                <LazyPage Component={lazy(() => import("./components/social/SocialDiscovery"))} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/conversations">
-              <ProtectedRoute>
-                <LazyPage Component={lazy(() => import("./components/messages/MessagesPanel"))} />
-              </ProtectedRoute>
-            </Route>
+              {/* Helpers + Direct Connect */}
+              <Route path="/helpers">
+                <RedirectTo to="/direct-connect" />
+              </Route>
+              <Route path="/trade-deals">
+                <LazyPage Component={TradeDealsPage} />
+              </Route>
+              <Route path="/daily-deals/:rest*">
+                <LazyPage Component={DailyDeals} />
+              </Route>
+              <Route path="/help-demo/:rest*">
+                <LazyPage Component={HelpDemo} />
+              </Route>
+              <Route path="/test-page/:rest*">
+                <LazyPage Component={TestPage} />
+              </Route>
+              <Route path="/profile">
+                <ProtectedRoute>
+                  <LazyPage Component={Profile} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/profile/:userId">
+                <LazyPage Component={PublicProfileView} />
+              </Route>
+              <Route path="/u/:slug">
+                <LazyPage Component={ProfileSiteView} />
+              </Route>
+              <Route path="/p/:slug">
+                <LazyPage Component={ProfileSiteView} />
+              </Route>
+              <Route path="/p/:slug/edit">
+                <ProtectedRoute>
+                  <LazyPage Component={ProfileSiteEditor} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/u/:slug/edit">
+                <ProtectedRoute>
+                  <LazyPage Component={ProfileSiteEditor} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/business/:slug">
+                <LazyPage Component={BusinessProfileView} />
+              </Route>
+              <Route path="/business/:slug/edit">
+                <ProtectedRoute>
+                  <LazyPage Component={BusinessProfileEditor} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/directory/businesses">
+                <LazyPage Component={BusinessDirectoryPage} />
+              </Route>
 
-            {/* Community Builder routes */}
-            <Route path="/profile/:profileId/community">
-              <LazyPage Component={ProfileCommunity} />
-            </Route>
-            <Route path="/community-builder/dashboard">
-              <ProtectedRoute>
-                <LazyPage Component={CommunityBuilderDashboard} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/community-builder/contributions/new">
-              <ProtectedRoute>
-                <LazyPage Component={CommunityBuilderNewContribution} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/community-builder/contributions/:id">
-              <ProtectedRoute>
-                <LazyPage Component={CommunityBuilderContributionDetail} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/community-builder/setup">
-              <ProtectedRoute>
-                <RedirectTo to="/community-builder/dashboard" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/community-builder/verify">
-              <ProtectedRoute>
-                <RedirectTo to="/community-builder/dashboard" />
-              </ProtectedRoute>
-            </Route>
-            {/* Community Builder setup route temporarily disabled until page is restored */}
-            <Route path="/community-builder/contributions/:id/success">
-              <ProtectedRoute>
-                <LazyPage Component={CommunityBuilderContributionSuccess} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/county/:countyId/transparency">
-              <LazyPage Component={CountyTransparency} />
-            </Route>
+              {/* Business routes */}
+              <Route path="/contractor-board">
+                <RedirectTo to="/contractor-dashboard" />
+              </Route>
+              <Route path="/commercial-directory">
+                <ProtectedRoute>
+                  <LazyPage Component={CommercialDirectoryPage} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/commercial-directory">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminCommercialDirectoryPage} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/commercial-contractors">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminCommercialContractorsPage} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/contractor-apply">
+                <LazyPage Component={ContractorApply} />
+              </Route>
+              <Route path="/offer-services">
+                <ProtectedRoute>
+                  <LazyPage Component={ContractorApply} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/business-listing">
+                <LazyPage Component={BusinessListing} />
+              </Route>
+              <Route path="/business-owner-dashboard">
+                <LazyPage Component={BusinessOwnerDashboard} />
+              </Route>
 
-            {/* Admin routes (gated by user.isAdmin === true) */}
-            <Route path="/admin">
-              <ProtectedRoute adminOnly>
-                <LazyPage Component={AdminShell} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin-panel">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/panel" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin-dashboard">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin/dashboard">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin-users">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/users" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/admin/:rest*">
-              <ProtectedRoute adminOnly>
-                <LazyPage Component={AdminShell} />
-              </ProtectedRoute>
-            </Route>
+              {/* Marketplace routes */}
+              <Route path="/worker-marketplace">
+                <RedirectTo to="/direct-connect" />
+              </Route>
+              <Route path="/marketplace">
+                <RedirectTo to="/exchange" />
+              </Route>
+              <Route path="/marketplace/new">
+                <ProtectedRoute>
+                  <LazyPage Component={MarketplaceListing} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/exchange/list">
+                <RedirectTo to="/exchange" />
+              </Route>
+              <Route path="/vehicle-marketplace">
+                <LazyPage Component={VehicleMarketplace} />
+              </Route>
+              <Route path="/homescout-listings">
+                <LazyPage Component={RealEstateMarketplace} />
+              </Route>
+              <Route path="/real-estate-marketplace">
+                <RedirectTo to="/homescout-listings" />
+              </Route>
+              <Route path="/homescout/listings/:id">
+                <LazyPage Component={HomeScoutListing} />
+              </Route>
+              <Route path="/homescout/:stateCode/:countyFips">
+                <LazyPage Component={HomeScoutCounty} />
+              </Route>
+              <Route path="/homescout/new">
+                <ProtectedRoute>
+                  <LazyPage Component={PropertyListing} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/homes">
+                <ProtectedRoute>
+                  <LazyPage Component={lazy(() => import("./pages/homes"))} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/vehicles">
+                <ProtectedRoute>
+                  <LazyPage Component={lazy(() => import("./pages/vehicles"))} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/property-listing">
+                <RedirectTo to="/homescout/new" />
+              </Route>
+              <Route path="/handmade-marketplace">
+                <LazyPage Component={HandmadeMarketplace} />
+              </Route>
+              <Route path="/exchange/metals">
+                <LazyPage Component={MetalsExchange} />
+              </Route>
+              <Route path="/exchange/rental-property">
+                <LazyPage Component={ExchangeRentalProperty} />
+              </Route>
+              <Route path="/exchange/rental-equipment">
+                <LazyPage Component={ExchangeRentalEquipment} />
+              </Route>
+              <Route path="/exchange">
+                <LazyPage Component={Exchange} />
+              </Route>
+              {/* Groups routes */}
+              <Route path="/groups">
+                <GroupsShell>
+                  <LazyPage Component={Groups} />
+                </GroupsShell>
+              </Route>
+              <Route path="/group/:id">
+                <LazyPage Component={GroupDetail} />
+              </Route>
+              <Route path="/hoa-management">
+                <ProtectedRoute>
+                  <HOAManagementShell>
+                    <LazyPage Component={HoaManagement} />
+                  </HOAManagementShell>
+                </ProtectedRoute>
+              </Route>
+              <Route path="/hoa/residents">
+                <ProtectedRoute>
+                  <LazyPage Component={HoaResidents} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/hoa/maintenance">
+                <ProtectedRoute>
+                  <LazyPage Component={HoaMaintenance} />
+                </ProtectedRoute>
+              </Route>
+              {/* Community tab should show the rich Nextdoor-style feed */}
+              <Route path="/community">
+                <CommunityPageShell>
+                  <LazyPage Component={CommunityFeed} />
+                </CommunityPageShell>
+              </Route>
+              <Route path="/community-feed">
+                <CommunityPageShell>
+                  <LazyPage Component={CommunityFeed} />
+                </CommunityPageShell>
+              </Route>
+              <Route path="/community/u/:userId">
+                <LazyPage Component={CommunityProfile} />
+              </Route>
+              <Route path="/community-moderation">
+                <LazyPage Component={CommunityModerationDemo} />
+              </Route>
 
-            {/* Admin Observability Dashboard (Phase 2) */}
-            <Route path="/admin-observability">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/observability" />
-              </ProtectedRoute>
-            </Route>
+              {/* Social features: discovery, friends, messaging */}
+              <Route path="/discover-people">
+                <ProtectedRoute>
+                  <LazyPage Component={lazy(() => import("./components/social/SocialDiscovery"))} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/conversations">
+                <ProtectedRoute>
+                  <LazyPage Component={lazy(() => import("./components/messages/MessagesPanel"))} />
+                </ProtectedRoute>
+              </Route>
 
-            {/* Dashboard routes (auth required) */}
-            <Route path="/contractor-dashboard">
-              <ProtectedRoute>
-                <LazyPage Component={ContractorDashboard} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/homeowner-dashboard">
-              <ProtectedRoute>
-                <LazyPage Component={HomeownerDashboard} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/realtor-dashboard">
-              <ProtectedRoute>
-                <LazyPage Component={RealtorDashboard} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/car-salesman-dashboard">
-              <ProtectedRoute>
-                <LazyPage Component={CarSalesmanDashboard} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/helper-dashboard">
-              <ProtectedRoute>
-                <LazyPage Component={HelperDashboard} />
-              </ProtectedRoute>
-            </Route>
-            {/* Role-specific KPI dashboards (dealer/insurance/property/mortgage) have been
+              {/* Community Builder routes */}
+              <Route path="/profile/:profileId/community">
+                <LazyPage Component={ProfileCommunity} />
+              </Route>
+              <Route path="/community-builder/dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={CommunityBuilderDashboard} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/community-builder/contributions/new">
+                <ProtectedRoute>
+                  <LazyPage Component={CommunityBuilderNewContribution} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/community-builder/contributions/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={CommunityBuilderContributionDetail} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/community-builder/setup">
+                <ProtectedRoute>
+                  <RedirectTo to="/community-builder/dashboard" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/community-builder/verify">
+                <ProtectedRoute>
+                  <RedirectTo to="/community-builder/dashboard" />
+                </ProtectedRoute>
+              </Route>
+              {/* Community Builder setup route temporarily disabled until page is restored */}
+              <Route path="/community-builder/contributions/:id/success">
+                <ProtectedRoute>
+                  <LazyPage Component={CommunityBuilderContributionSuccess} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/county/:countyId/transparency">
+                <LazyPage Component={CountyTransparency} />
+              </Route>
+
+              {/* Admin routes (gated by user.isAdmin === true) */}
+              <Route path="/admin">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminShell} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin-panel">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/panel" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin-dashboard">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/dashboard">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin-users">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/users" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/:rest*">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminShell} />
+                </ProtectedRoute>
+              </Route>
+
+              {/* Admin Observability Dashboard (Phase 2) */}
+              <Route path="/admin-observability">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/observability" />
+                </ProtectedRoute>
+              </Route>
+
+              {/* Dashboard routes (auth required) */}
+              <Route path="/contractor-dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={ContractorDashboard} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/homeowner-dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={HomeownerDashboard} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/realtor-dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={RealtorDashboard} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/car-salesman-dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={CarSalesmanDashboard} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/helper-dashboard">
+                <ProtectedRoute>
+                  <LazyPage Component={HelperDashboard} />
+                </ProtectedRoute>
+              </Route>
+              {/* Role-specific KPI dashboards (dealer/insurance/property/mortgage) have been
                       deprecated in favor of the unified, action-aware dashboard. Routes are
                       intentionally removed to avoid exposing mock performance metrics. */}
-            {/* Staff dashboard route is disabled for now while we stabilize core flows */}
-            {/*
+              {/* Staff dashboard route is disabled for now while we stabilize core flows */}
+              {/*
                   <Route path="/staff-dashboard">
                     <ProtectedRoute>
                       <LazyPage Component={StaffDashboard} />
@@ -1057,750 +1073,750 @@ export const AppRoutes = memo(function AppRoutes({
                   </Route>
                   */}
 
-            <Route path="/staff/hardrock-directory">
-              <ProtectedRoute
-                requiredRoles={[
-                  "support_agent",
-                  "content_moderator",
-                  "territory_manager",
-                  "contractor_success",
-                  "content_seo",
-                  "analytics_specialist",
-                  "marketing_specialist",
-                  "moderator",
-                  "ops_admin",
-                  "super_admin",
-                ]}
-              >
-                <LazyPage Component={StaffHardrockDirectory} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/staff/share-links">
-              <ProtectedRoute
-                requiredRoles={[
-                  "support_agent",
-                  "content_moderator",
-                  "territory_manager",
-                  "contractor_success",
-                  "content_seo",
-                  "analytics_specialist",
-                  "marketing_specialist",
-                  "moderator",
-                  "ops_admin",
-                  "super_admin",
-                ]}
-              >
-                <LazyPage Component={StaffShareLinks} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/staff/inspection-intelligence">
-              <ProtectedRoute
-                requiredRoles={[
-                  "support_agent",
-                  "content_moderator",
-                  "territory_manager",
-                  "contractor_success",
-                  "content_seo",
-                  "analytics_specialist",
-                  "marketing_specialist",
-                  "moderator",
-                  "ops_admin",
-                  "super_admin",
-                ]}
-              >
-                <LazyPage Component={AdminInspectionIntelligence} />
-              </ProtectedRoute>
-            </Route>
+              <Route path="/staff/hardrock-directory">
+                <ProtectedRoute
+                  requiredRoles={[
+                    "support_agent",
+                    "content_moderator",
+                    "territory_manager",
+                    "contractor_success",
+                    "content_seo",
+                    "analytics_specialist",
+                    "marketing_specialist",
+                    "moderator",
+                    "ops_admin",
+                    "super_admin",
+                  ]}
+                >
+                  <LazyPage Component={StaffHardrockDirectory} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/staff/share-links">
+                <ProtectedRoute
+                  requiredRoles={[
+                    "support_agent",
+                    "content_moderator",
+                    "territory_manager",
+                    "contractor_success",
+                    "content_seo",
+                    "analytics_specialist",
+                    "marketing_specialist",
+                    "moderator",
+                    "ops_admin",
+                    "super_admin",
+                  ]}
+                >
+                  <LazyPage Component={StaffShareLinks} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/staff/inspection-intelligence">
+                <ProtectedRoute
+                  requiredRoles={[
+                    "support_agent",
+                    "content_moderator",
+                    "territory_manager",
+                    "contractor_success",
+                    "content_seo",
+                    "analytics_specialist",
+                    "marketing_specialist",
+                    "moderator",
+                    "ops_admin",
+                    "super_admin",
+                  ]}
+                >
+                  <LazyPage Component={AdminInspectionIntelligence} />
+                </ProtectedRoute>
+              </Route>
 
-            {/* Common pages */}
-            <Route path="/chat">
-              <ProtectedRoute>
-                <LazyPage Component={Chat} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/messages">
-              <ProtectedRoute>
-                <CommunityPageShell>
-                  <LazyPage Component={Messages} />
-                </CommunityPageShell>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/saved-ads">
-              <ProtectedRoute>
-                <LazyPage Component={SavedAds} />
-              </ProtectedRoute>
-            </Route>
-            {/* Back-compat: right panel links */}
-            <Route path="/saved">
-              <ProtectedRoute>
+              {/* Common pages */}
+              <Route path="/chat">
+                <ProtectedRoute>
+                  <LazyPage Component={Chat} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/messages">
+                <ProtectedRoute>
+                  <CommunityPageShell>
+                    <LazyPage Component={Messages} />
+                  </CommunityPageShell>
+                </ProtectedRoute>
+              </Route>
+              <Route path="/saved-ads">
+                <ProtectedRoute>
+                  <LazyPage Component={SavedAds} />
+                </ProtectedRoute>
+              </Route>
+              {/* Back-compat: right panel links */}
+              <Route path="/saved">
+                <ProtectedRoute>
+                  <RedirectTo to="/saved-ads" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/saved-contractors">
+                <ProtectedRoute>
+                  <LazyPage Component={SavedContractors} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/affiliate">
+                <LazyPage Component={Affiliate} />
+              </Route>
+              <Route path="/share">
+                <LazyPage Component={Affiliate} />
+              </Route>
+              <Route path="/notifications">
+                <ProtectedRoute>
+                  <LazyPage Component={Notifications} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/settings">
+                <ProtectedRoute>
+                  <LazyPage Component={Settings} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/profile-settings">
+                <ProtectedRoute>
+                  <LazyPage Component={ProfileSettings} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/help">
+                <LazyPage Component={Help} />
+              </Route>
+              <Route path="/help/how-tradescout-works">
+                <LazyPage Component={HowTradeScoutWorks} />
+              </Route>
+              <Route path="/invite">
+                <ProtectedRoute>
+                  <LazyPage Component={Invite} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/checkout">
+                <ProtectedRoute>
+                  <LazyPage Component={Checkout} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/payment-success">
+                <ProtectedRoute>
+                  <LazyPage Component={PaymentSuccess} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/payment-history">
+                <ProtectedRoute>
+                  <LazyPage Component={PaymentHistory} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/wallet">
+                <ProtectedRoute>
+                  <LazyPage Component={Wallet} />
+                </ProtectedRoute>
+              </Route>
+
+              {/* Business Tools */}
+              <Route path="/boosts">
+                <LazyPage Component={Boosts} />
+              </Route>
+              <Route path="/analytics">
+                <LazyPage Component={Analytics} />
+              </Route>
+              <Route path="/crm">
+                <LazyPage Component={CRM} />
+              </Route>
+              <Route path="/marketing/scoutfitters">
+                <ProtectedRoute>
+                  <LazyPage Component={ScoutFitters} />
+                </ProtectedRoute>
+              </Route>
+              {/* Finances workspace (aliases /finances and /accounting for back-compat) */}
+              <Route path="/finances">
+                <ProtectedRoute>
+                  <LazyPage Component={Accounting} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/invoices">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesInvoices} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/expenses">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesExpenses} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/clients">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesClients} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/materials">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesMaterials} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/estimates">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesEstimates} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/jobs">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesJobs} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/employees">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesEmployees} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/payroll">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesPayroll} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/vendors">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesVendors} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/bank-accounts">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesBankAccounts} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/reports">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesReports} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/records">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesRecords} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/finances/settings">
+                <ProtectedRoute>
+                  <LazyPage Component={FinancesSettings} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/accounting">
+                <ProtectedRoute>
+                  <LazyPage Component={Accounting} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/project-tracker">
+                <LazyPage Component={ProjectTracker} />
+              </Route>
+              <Route path="/lead-management">
+                <LazyPage Component={ProjectTracker} />
+              </Route>
+              <Route path="/ad-creator">
+                <LazyPage Component={AdCreator} />
+              </Route>
+              <Route path="/promotions">
+                <LazyPage Component={Promotions} />
+              </Route>
+              <Route path="/quote-calculator">
+                <RedirectTo to="/scout?intent=estimate" />
+              </Route>
+              <Route path="/quote">
+                <RedirectTo to="/scout?intent=estimate" />
+              </Route>
+              <Route path="/recommendations">
+                <ProtectedRoute>
+                  <LazyPage Component={RecommendationGeneratorPage} />
+                </ProtectedRoute>
+              </Route>
+
+              {/* Community & Geographic */}
+              <Route path="/datasets">
+                <LazyPage Component={DatasetsLandingPage} />
+              </Route>
+              <Route path="/datasets/trades">
+                <LazyPage Component={DatasetsTradesPage} />
+              </Route>
+              <Route path="/datasets/counties">
+                <LazyPage Component={DatasetsCountiesPage} />
+              </Route>
+              <Route path="/datasets/cities">
+                <LazyPage Component={DatasetsCitiesPage} />
+              </Route>
+              <Route path="/best/:tradeSlug/:stateCode/city/:citySlug">
+                <LazyPage Component={BestTradeCityPage} />
+              </Route>
+              <Route path="/best/:tradeSlug/:stateCode/:countySlug">
+                <LazyPage Component={BestTradeCountyPage} />
+              </Route>
+              <Route path="/trade">
+                <LazyPage Component={TradeDirectoryPage} />
+              </Route>
+              <Route path="/trade/:tradeSlug/:stateCode/city/:citySlug/recent">
+                <LazyPage Component={TradeCityRecentPage} />
+              </Route>
+              <Route path="/trade/:tradeSlug/:stateCode/city/:citySlug">
+                <LazyPage Component={TradeCityPage} />
+              </Route>
+              <Route path="/trade/:tradeSlug/:stateCode/:countySlug/recent">
+                <LazyPage Component={TradeCountyRecentPage} />
+              </Route>
+              <Route path="/trade/:tradeSlug/:stateCode/:countySlug">
+                <LazyPage Component={TradeCountyPage} />
+              </Route>
+              <Route path="/trade/:tradeSlug/:stateCode">
+                <LazyPage Component={TradeStatePage} />
+              </Route>
+              <Route path="/trade/:tradeSlug">
+                <LazyPage Component={TradeOverviewPage} />
+              </Route>
+              <Route path="/city/:stateCode/:citySlug/recent">
+                <LazyPage Component={CityRecentPage} />
+              </Route>
+              <Route path="/city/:stateCode/:citySlug">
+                <LazyPage Component={CityPage} />
+              </Route>
+              <Route path="/county/:stateCode/:countySlug/recent">
+                <LazyPage Component={CountyRecentPage} />
+              </Route>
+              <Route path="/county/:stateCode/:countySlug">
+                <LazyPage Component={CountyPage} />
+              </Route>
+              <Route path="/county-directory">
+                <LazyPage Component={CountyDirectory} />
+              </Route>
+              <Route path="/county-hub">
+                <LazyPage Component={CountyHub} />
+              </Route>
+              <Route path="/maps">
+                <LazyPage Component={MapsPage} />
+              </Route>
+              <Route path="/leaderboard">
+                <LazyPage Component={Leaderboard} />
+              </Route>
+              <Route path="/foundation">
+                <Foundation />
+              </Route>
+              <Route path="/tradepartners/cumulus-media">
+                <LazyPage Component={TradePartnerCumulusLanding} />
+              </Route>
+              <Route path="/tradepartners/cumulus-media/mobile-county-al">
+                <LazyPage Component={TradePartnerCumulusLanding} />
+              </Route>
+              <Route path="/tradepartners/cumulus-media/escambia-county-fl">
+                <LazyPage Component={TradePartnerCumulusLanding} />
+              </Route>
+              <Route path="/tradepartners/cumulus-media/okaloosa-county-fl">
+                <LazyPage Component={TradePartnerCumulusLanding} />
+              </Route>
+              <Route path="/tradepartners/:countySlug/:categorySlug">
+                <LazyPage Component={TradePartnerCountyLanding} />
+              </Route>
+              <Route path="/tradepartners/:countySlug/:rest*">
+                {(params) => (
+                  <RedirectTo
+                    to={`/tradepartners/${encodeURIComponent(String(params?.countySlug || ""))}`}
+                  />
+                )}
+              </Route>
+              <Route path="/tradepartners/:countySlug">
+                <LazyPage Component={TradePartnerCountyLanding} />
+              </Route>
+              <Route path="/coffee-company">
+                <LazyPage Component={CoffeeCompany} />
+              </Route>
+              <Route path="/resource-center">
+                <LazyPage Component={ResourceCenter} />
+              </Route>
+
+              {/* Additional Features */}
+              <Route path="/hoa-dashboard">
+                <ProtectedRoute>
+                  <HOADashboardShell>
+                    <LazyPage Component={HOADashboard} />
+                  </HOADashboardShell>
+                </ProtectedRoute>
+              </Route>
+              <Route path="/hoa-dashboard/:hoaId">
+                <ProtectedRoute>
+                  <HOADashboardShell>
+                    <LazyPage Component={HOADashboard} />
+                  </HOADashboardShell>
+                </ProtectedRoute>
+              </Route>
+              <Route path="/membership-portal">
+                <LazyPage Component={MembershipPortal} />
+              </Route>
+              <Route path="/training-center">
+                <LazyPage Component={TrainingCenter} />
+              </Route>
+              <Route path="/application-tracker">
+                <LazyPage Component={ApplicationTracker} />
+              </Route>
+              <Route path="/administrative-dashboard">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/advanced-search">
+                <RedirectTo to="/direct-connect" />
+              </Route>
+              <Route path="/search">
+                <RedirectTo to="/direct-connect" />
+              </Route>
+
+              {/* Applications */}
+              <Route path="/realtor-application">
+                <LazyPage Component={RealtorApplication} />
+              </Route>
+              <Route path="/car-salesman-application">
+                <LazyPage Component={CarSalesmanApplication} />
+              </Route>
+
+              {/* Car Sales Features */}
+              <Route path="/car-sales-new-listing">
+                <LazyPage Component={CarSalesNewListing} />
+              </Route>
+              <Route path="/car-sales-customers">
+                <LazyPage Component={CarSalesCustomers} />
+              </Route>
+              <Route path="/car-sales-financing">
+                <LazyPage Component={CarSalesFinancing} />
+              </Route>
+              <Route path="/car-sales-trade-in">
+                <LazyPage Component={CarSalesTradeIn} />
+              </Route>
+              <Route path="/car-sales-payment-calculator">
+                <LazyPage Component={CarSalesPaymentCalculator} />
+              </Route>
+              <Route path="/car-sales-vin-lookup">
+                <LazyPage Component={CarSalesVinLookup} />
+              </Route>
+              <Route path="/car-sales-appointments">
+                <LazyPage Component={CarSalesAppointments} />
+              </Route>
+              <Route path="/car-sales-follow-up">
+                <LazyPage Component={CarSalesFollowUp} />
+              </Route>
+
+              {/* Realtor Features */}
+              <Route path="/realtor-clients">
+                <LazyPage Component={RealtorClients} />
+              </Route>
+              <Route path="/realtor-market-analysis">
+                <LazyPage Component={RealtorMarketAnalysis} />
+              </Route>
+              <Route path="/realtor-connections">
+                <LazyPage Component={RealtorConnections} />
+              </Route>
+              <Route path="/connections">
+                <ProtectedRoute>
+                  <LazyPage Component={ConnectionsPage} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/realtor-calculator">
+                <LazyPage Component={RealtorCalculator} />
+              </Route>
+              <Route path="/realtor-cma">
+                <LazyPage Component={RealtorCMA} />
+              </Route>
+              <Route path="/realtor-appointments">
+                <LazyPage Component={RealtorAppointments} />
+              </Route>
+              <Route path="/realtor-contacts">
+                <LazyPage Component={RealtorContacts} />
+              </Route>
+
+              {/* Verification & Compliance */}
+              <Route path="/verification">
+                <LazyPage Component={Verification} />
+              </Route>
+              <Route path="/identity-verification">
+                <LazyPage Component={IdentityVerification} />
+              </Route>
+              <Route path="/insurance-verification">
+                <LazyPage Component={InsuranceVerification} />
+              </Route>
+              <Route path="/license-verification">
+                <LazyPage Component={LicenseVerification} />
+              </Route>
+              <Route path="/background-check">
+                <LazyPage Component={BackgroundCheck} />
+              </Route>
+              <Route path="/compliance">
+                <LazyPage Component={Compliance} />
+              </Route>
+              <Route path="/documentation">
+                <LazyPage Component={Documentation} />
+              </Route>
+
+              {/* Advanced Admin */}
+              <Route path="/contractor-verification">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={ContractorVerification} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/content-moderation">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/moderation" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/system-settings">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/site-settings" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/support-tickets">
+                <LazyPage Component={SupportTickets} />
+              </Route>
+              <Route path="/platform-analytics">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/platform-analytics" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/manage-users">
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/users" />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/payment-processing">
+                <LazyPage Component={PaymentProcessing} />
+              </Route>
+              <Route path="/file-management">
+                <LazyPage Component={FileManagement} />
+              </Route>
+
+              {/* Social & Integration */}
+              <Route path="/social-integration">
+                <LazyPage Component={SocialIntegration} />
+              </Route>
+              <Route path="/referral-dashboard">
+                <LazyPage Component={ReferralDashboard} />
+              </Route>
+              <Route path="/event-management">
+                <LazyPage Component={EventManagement} />
+              </Route>
+              <Route path="/api-integrations">
+                <LazyPage Component={APIIntegrations} />
+              </Route>
+
+              {/* Interactive Pages */}
+              <Route path="/schedule-consultation">
+                <LazyPage Component={ScheduleConsultation} />
+              </Route>
+              <Route path="/request-quote">
+                <LazyPage Component={RequestQuote} />
+              </Route>
+              <Route path="/zero-base-fee">
+                <ProtectedRoute
+                  requiredRoles={[
+                    "support_agent",
+                    "content_moderator",
+                    "territory_manager",
+                    "contractor_success",
+                    "content_seo",
+                    "analytics_specialist",
+                    "marketing_specialist",
+                    "moderator",
+                    "ops_admin",
+                    "super_admin",
+                  ]}
+                >
+                  <LazyPage Component={ZeroBaseFeeCamera} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/zero-base-fee/camera">
+                <ProtectedRoute
+                  requiredRoles={[
+                    "support_agent",
+                    "content_moderator",
+                    "territory_manager",
+                    "contractor_success",
+                    "content_seo",
+                    "analytics_specialist",
+                    "marketing_specialist",
+                    "moderator",
+                    "ops_admin",
+                    "super_admin",
+                  ]}
+                >
+                  <LazyPage Component={ZeroBaseFeeCamera} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/direct-connect">
+                <LazyPage Component={DirectConnectShell} />
+              </Route>
+              <Route path="/direct-connect/:rest*">
+                <LazyPage Component={DirectConnectShell} />
+              </Route>
+              <Route path="/tasks">
+                <RedirectTo to="/direct-connect" />
+              </Route>
+
+              {/* Notes */}
+              <Route path="/notes">
+                <LazyPage Component={NotesPage} />
+              </Route>
+
+              {/* Legal pages */}
+              <Route path="/pricing">
+                <LazyPage Component={Pricing} />
+              </Route>
+              <Route path="/how-it-works">
+                <LazyPage Component={HowItWorks} />
+              </Route>
+              <Route path="/trust-model">
+                <LazyPage Component={TrustModel} />
+              </Route>
+              <Route path="/direct-connect-info">
+                <LazyPage Component={DirectConnectInfo} />
+              </Route>
+              <Route path="/compare">
+                <LazyPage Component={CompareHub} />
+              </Route>
+              <Route path="/compare/angi">
+                <LazyPage Component={CompareAngi} />
+              </Route>
+              <Route path="/compare/home-services">
+                <LazyPage Component={CompareHomeServices} />
+              </Route>
+              <Route path="/compare/real-estate">
+                <LazyPage Component={CompareRealEstate} />
+              </Route>
+              <Route path="/compare/community">
+                <LazyPage Component={CompareCommunity} />
+              </Route>
+              <Route path="/compare/local-business">
+                <LazyPage Component={CompareLocalBusiness} />
+              </Route>
+              <Route path="/compare/coordination">
+                <LazyPage Component={CompareCoordination} />
+              </Route>
+              <Route path="/compare/lead-generation">
+                <LazyPage Component={CompareLeadGeneration} />
+              </Route>
+              <Route path="/compare/homeadvisor">
+                <LazyPage Component={CompareHomeAdvisor} />
+              </Route>
+              <Route path="/terms">
+                <LazyPage Component={Terms} />
+              </Route>
+              <Route path="/privacy">
+                <LazyPage Component={Privacy} />
+              </Route>
+              <Route path="/privacy-request">
+                <LazyPage Component={PrivacyRequest} />
+              </Route>
+              <Route path="/legal/remote-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
+              <Route path="/services/remote-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
+              <Route path="/legal/mobile-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
+              <Route path="/services/mobile-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
+              <Route path="/about">
+                <LazyPage Component={About} />
+              </Route>
+              <Route path="/contact">
+                <RedirectTo to="/scout?intent=support&source=contact-route" />
+              </Route>
+
+              {/* Story Generator */}
+              <Route path="/story-generator">
+                <LazyPage Component={StoryGeneratorPage} />
+              </Route>
+
+              {/* Back-compat aliases for legacy buttons/links */}
+              <Route path="/settings/profile">
+                <RedirectTo to="/profile-settings" />
+              </Route>
+              <Route path="/settings/location">
+                <RedirectTo to="/settings?tab=profile" />
+              </Route>
+              <Route path="/contractor/dashboard">
+                <RedirectTo to="/contractor-dashboard" />
+              </Route>
+              <Route path="/contractor-profile">
+                <RedirectTo to="/contractors" />
+              </Route>
+              <Route path="/payments/history">
+                <RedirectTo to="/payment-history" />
+              </Route>
+              <Route path="/saved">
                 <RedirectTo to="/saved-ads" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/saved-contractors">
-              <ProtectedRoute>
-                <LazyPage Component={SavedContractors} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/affiliate">
-              <LazyPage Component={Affiliate} />
-            </Route>
-            <Route path="/share">
-              <LazyPage Component={Affiliate} />
-            </Route>
-            <Route path="/notifications">
-              <ProtectedRoute>
-                <LazyPage Component={Notifications} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/settings">
-              <ProtectedRoute>
-                <LazyPage Component={Settings} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/profile-settings">
-              <ProtectedRoute>
-                <LazyPage Component={ProfileSettings} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/help">
-              <LazyPage Component={Help} />
-            </Route>
-            <Route path="/help/how-tradescout-works">
-              <LazyPage Component={HowTradeScoutWorks} />
-            </Route>
-            <Route path="/invite">
-              <ProtectedRoute>
-                <LazyPage Component={Invite} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/checkout">
-              <ProtectedRoute>
-                <LazyPage Component={Checkout} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/payment-success">
-              <ProtectedRoute>
-                <LazyPage Component={PaymentSuccess} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/payment-history">
-              <ProtectedRoute>
-                <LazyPage Component={PaymentHistory} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/wallet">
-              <ProtectedRoute>
-                <LazyPage Component={Wallet} />
-              </ProtectedRoute>
-            </Route>
+              </Route>
+              <Route path="/community-builder">
+                <RedirectTo to="/community-builder/dashboard" />
+              </Route>
+              <Route path="/county/transparency">
+                <RedirectTo to="/county-hub" />
+              </Route>
+              <Route path="/contractors/signup">
+                <RedirectTo to="/contractors/apply" />
+              </Route>
+              <Route path="/contractor-join">
+                <RedirectTo to="/contractors/apply" />
+              </Route>
+              <Route path="/contractors/accelerator">
+                <RedirectTo to="/contractors/apply" />
+              </Route>
+              <Route path="/payroll-helper">
+                <RedirectTo to="/finances/payroll" />
+              </Route>
+              <Route path="/cookie-preferences">
+                <RedirectTo to="/privacy" />
+              </Route>
+              <Route path="/auth/logout">
+                <HardRedirectTo to="/api/auth/logout" />
+              </Route>
+              <Route path="/logout">
+                <HardRedirectTo to="/api/auth/logout" />
+              </Route>
+              <Route path="/tools/estimate-calculator">
+                <RedirectTo to="/quote-calculator" />
+              </Route>
+              <Route path="/tools/invoice-calculator">
+                <RedirectTo to="/finances/invoices" />
+              </Route>
+              <Route path="/tools/expense-helper">
+                <RedirectTo to="/finances/expenses" />
+              </Route>
+              <Route path="/legal/privacy-policy">
+                <RedirectTo to="/privacy" />
+              </Route>
+              <Route path="/legal/cookie-policy">
+                <RedirectTo to="/privacy" />
+              </Route>
+              <Route path="/legal/compliance">
+                <RedirectTo to="/compliance" />
+              </Route>
+              <Route path="/legal/accessibility">
+                <RedirectTo to="/compliance" />
+              </Route>
+              <Route path="/legal/seller-agreement">
+                <RedirectTo to="/terms" />
+              </Route>
+              <Route path="/legal/community-guidelines">
+                <RedirectTo to="/terms" />
+              </Route>
+              <Route path="/legal/dispute-resolution">
+                <RedirectTo to="/terms" />
+              </Route>
+              {/* Legacy commerce URL aliases (old storefront links). */}
+              <Route path="/collections/:collectionSlug/products/:productSlug">
+                <RedirectTo to="/trade-deals" />
+              </Route>
+              <Route path="/collections/:rest*">
+                <RedirectTo to="/trade-deals" />
+              </Route>
+              <Route path="/products/:productSlug">
+                <RedirectTo to="/trade-deals" />
+              </Route>
 
-            {/* Business Tools */}
-            <Route path="/boosts">
-              <LazyPage Component={Boosts} />
-            </Route>
-            <Route path="/analytics">
-              <LazyPage Component={Analytics} />
-            </Route>
-            <Route path="/crm">
-              <LazyPage Component={CRM} />
-            </Route>
-            <Route path="/marketing/scoutfitters">
-              <ProtectedRoute>
-                <LazyPage Component={ScoutFitters} />
-              </ProtectedRoute>
-            </Route>
-            {/* Finances workspace (aliases /finances and /accounting for back-compat) */}
-            <Route path="/finances">
-              <ProtectedRoute>
-                <LazyPage Component={Accounting} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/invoices">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesInvoices} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/expenses">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesExpenses} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/clients">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesClients} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/materials">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesMaterials} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/estimates">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesEstimates} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/jobs">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesJobs} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/employees">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesEmployees} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/payroll">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesPayroll} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/vendors">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesVendors} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/bank-accounts">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesBankAccounts} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/reports">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesReports} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/records">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesRecords} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/finances/settings">
-              <ProtectedRoute>
-                <LazyPage Component={FinancesSettings} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/accounting">
-              <ProtectedRoute>
-                <LazyPage Component={Accounting} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/project-tracker">
-              <LazyPage Component={ProjectTracker} />
-            </Route>
-            <Route path="/lead-management">
-              <LazyPage Component={ProjectTracker} />
-            </Route>
-            <Route path="/ad-creator">
-              <LazyPage Component={AdCreator} />
-            </Route>
-            <Route path="/promotions">
-              <LazyPage Component={Promotions} />
-            </Route>
-            <Route path="/quote-calculator">
-              <RedirectTo to="/scout?intent=estimate" />
-            </Route>
-            <Route path="/quote">
-              <RedirectTo to="/scout?intent=estimate" />
-            </Route>
-            <Route path="/recommendations">
-              <ProtectedRoute>
-                <LazyPage Component={RecommendationGeneratorPage} />
-              </ProtectedRoute>
-            </Route>
-
-            {/* Community & Geographic */}
-            <Route path="/datasets">
-              <LazyPage Component={DatasetsLandingPage} />
-            </Route>
-            <Route path="/datasets/trades">
-              <LazyPage Component={DatasetsTradesPage} />
-            </Route>
-            <Route path="/datasets/counties">
-              <LazyPage Component={DatasetsCountiesPage} />
-            </Route>
-            <Route path="/datasets/cities">
-              <LazyPage Component={DatasetsCitiesPage} />
-            </Route>
-            <Route path="/best/:tradeSlug/:stateCode/city/:citySlug">
-              <LazyPage Component={BestTradeCityPage} />
-            </Route>
-            <Route path="/best/:tradeSlug/:stateCode/:countySlug">
-              <LazyPage Component={BestTradeCountyPage} />
-            </Route>
-            <Route path="/trade">
-              <LazyPage Component={TradeDirectoryPage} />
-            </Route>
-            <Route path="/trade/:tradeSlug/:stateCode/city/:citySlug/recent">
-              <LazyPage Component={TradeCityRecentPage} />
-            </Route>
-            <Route path="/trade/:tradeSlug/:stateCode/city/:citySlug">
-              <LazyPage Component={TradeCityPage} />
-            </Route>
-            <Route path="/trade/:tradeSlug/:stateCode/:countySlug/recent">
-              <LazyPage Component={TradeCountyRecentPage} />
-            </Route>
-            <Route path="/trade/:tradeSlug/:stateCode/:countySlug">
-              <LazyPage Component={TradeCountyPage} />
-            </Route>
-            <Route path="/trade/:tradeSlug/:stateCode">
-              <LazyPage Component={TradeStatePage} />
-            </Route>
-            <Route path="/trade/:tradeSlug">
-              <LazyPage Component={TradeOverviewPage} />
-            </Route>
-            <Route path="/city/:stateCode/:citySlug/recent">
-              <LazyPage Component={CityRecentPage} />
-            </Route>
-            <Route path="/city/:stateCode/:citySlug">
-              <LazyPage Component={CityPage} />
-            </Route>
-            <Route path="/county/:stateCode/:countySlug/recent">
-              <LazyPage Component={CountyRecentPage} />
-            </Route>
-            <Route path="/county/:stateCode/:countySlug">
-              <LazyPage Component={CountyPage} />
-            </Route>
-            <Route path="/county-directory">
-              <LazyPage Component={CountyDirectory} />
-            </Route>
-            <Route path="/county-hub">
-              <LazyPage Component={CountyHub} />
-            </Route>
-            <Route path="/maps">
-              <LazyPage Component={MapsPage} />
-            </Route>
-            <Route path="/leaderboard">
-              <LazyPage Component={Leaderboard} />
-            </Route>
-            <Route path="/foundation">
-              <Foundation />
-            </Route>
-            <Route path="/tradepartners/cumulus-media">
-              <LazyPage Component={TradePartnerCumulusLanding} />
-            </Route>
-            <Route path="/tradepartners/cumulus-media/mobile-county-al">
-              <LazyPage Component={TradePartnerCumulusLanding} />
-            </Route>
-            <Route path="/tradepartners/cumulus-media/escambia-county-fl">
-              <LazyPage Component={TradePartnerCumulusLanding} />
-            </Route>
-            <Route path="/tradepartners/cumulus-media/okaloosa-county-fl">
-              <LazyPage Component={TradePartnerCumulusLanding} />
-            </Route>
-            <Route path="/tradepartners/:countySlug/:categorySlug">
-              <LazyPage Component={TradePartnerCountyLanding} />
-            </Route>
-            <Route path="/tradepartners/:countySlug/:rest*">
-              {(params) => (
-                <RedirectTo
-                  to={`/tradepartners/${encodeURIComponent(String(params?.countySlug || ""))}`}
-                />
-              )}
-            </Route>
-            <Route path="/tradepartners/:countySlug">
-              <LazyPage Component={TradePartnerCountyLanding} />
-            </Route>
-            <Route path="/coffee-company">
-              <LazyPage Component={CoffeeCompany} />
-            </Route>
-            <Route path="/resource-center">
-              <LazyPage Component={ResourceCenter} />
-            </Route>
-
-            {/* Additional Features */}
-            <Route path="/hoa-dashboard">
-              <ProtectedRoute>
-                <HOADashboardShell>
-                  <LazyPage Component={HOADashboard} />
-                </HOADashboardShell>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/hoa-dashboard/:hoaId">
-              <ProtectedRoute>
-                <HOADashboardShell>
-                  <LazyPage Component={HOADashboard} />
-                </HOADashboardShell>
-              </ProtectedRoute>
-            </Route>
-            <Route path="/membership-portal">
-              <LazyPage Component={MembershipPortal} />
-            </Route>
-            <Route path="/training-center">
-              <LazyPage Component={TrainingCenter} />
-            </Route>
-            <Route path="/application-tracker">
-              <LazyPage Component={ApplicationTracker} />
-            </Route>
-            <Route path="/administrative-dashboard">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/advanced-search">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-            <Route path="/search">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-
-            {/* Applications */}
-            <Route path="/realtor-application">
-              <LazyPage Component={RealtorApplication} />
-            </Route>
-            <Route path="/car-salesman-application">
-              <LazyPage Component={CarSalesmanApplication} />
-            </Route>
-
-            {/* Car Sales Features */}
-            <Route path="/car-sales-new-listing">
-              <LazyPage Component={CarSalesNewListing} />
-            </Route>
-            <Route path="/car-sales-customers">
-              <LazyPage Component={CarSalesCustomers} />
-            </Route>
-            <Route path="/car-sales-financing">
-              <LazyPage Component={CarSalesFinancing} />
-            </Route>
-            <Route path="/car-sales-trade-in">
-              <LazyPage Component={CarSalesTradeIn} />
-            </Route>
-            <Route path="/car-sales-payment-calculator">
-              <LazyPage Component={CarSalesPaymentCalculator} />
-            </Route>
-            <Route path="/car-sales-vin-lookup">
-              <LazyPage Component={CarSalesVinLookup} />
-            </Route>
-            <Route path="/car-sales-appointments">
-              <LazyPage Component={CarSalesAppointments} />
-            </Route>
-            <Route path="/car-sales-follow-up">
-              <LazyPage Component={CarSalesFollowUp} />
-            </Route>
-
-            {/* Realtor Features */}
-            <Route path="/realtor-clients">
-              <LazyPage Component={RealtorClients} />
-            </Route>
-            <Route path="/realtor-market-analysis">
-              <LazyPage Component={RealtorMarketAnalysis} />
-            </Route>
-            <Route path="/realtor-connections">
-              <LazyPage Component={RealtorConnections} />
-            </Route>
-            <Route path="/connections">
-              <ProtectedRoute>
-                <LazyPage Component={ConnectionsPage} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/realtor-calculator">
-              <LazyPage Component={RealtorCalculator} />
-            </Route>
-            <Route path="/realtor-cma">
-              <LazyPage Component={RealtorCMA} />
-            </Route>
-            <Route path="/realtor-appointments">
-              <LazyPage Component={RealtorAppointments} />
-            </Route>
-            <Route path="/realtor-contacts">
-              <LazyPage Component={RealtorContacts} />
-            </Route>
-
-            {/* Verification & Compliance */}
-            <Route path="/verification">
-              <LazyPage Component={Verification} />
-            </Route>
-            <Route path="/identity-verification">
-              <LazyPage Component={IdentityVerification} />
-            </Route>
-            <Route path="/insurance-verification">
-              <LazyPage Component={InsuranceVerification} />
-            </Route>
-            <Route path="/license-verification">
-              <LazyPage Component={LicenseVerification} />
-            </Route>
-            <Route path="/background-check">
-              <LazyPage Component={BackgroundCheck} />
-            </Route>
-            <Route path="/compliance">
-              <LazyPage Component={Compliance} />
-            </Route>
-            <Route path="/documentation">
-              <LazyPage Component={Documentation} />
-            </Route>
-
-            {/* Advanced Admin */}
-            <Route path="/contractor-verification">
-              <ProtectedRoute adminOnly>
-                <LazyPage Component={ContractorVerification} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/content-moderation">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/moderation" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/system-settings">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/site-settings" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/support-tickets">
-              <LazyPage Component={SupportTickets} />
-            </Route>
-            <Route path="/platform-analytics">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/platform-analytics" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/manage-users">
-              <ProtectedRoute adminOnly>
-                <RedirectTo to="/admin/users" />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/payment-processing">
-              <LazyPage Component={PaymentProcessing} />
-            </Route>
-            <Route path="/file-management">
-              <LazyPage Component={FileManagement} />
-            </Route>
-
-            {/* Social & Integration */}
-            <Route path="/social-integration">
-              <LazyPage Component={SocialIntegration} />
-            </Route>
-            <Route path="/referral-dashboard">
-              <LazyPage Component={ReferralDashboard} />
-            </Route>
-            <Route path="/event-management">
-              <LazyPage Component={EventManagement} />
-            </Route>
-            <Route path="/api-integrations">
-              <LazyPage Component={APIIntegrations} />
-            </Route>
-
-            {/* Interactive Pages */}
-            <Route path="/schedule-consultation">
-              <LazyPage Component={ScheduleConsultation} />
-            </Route>
-            <Route path="/request-quote">
-              <LazyPage Component={RequestQuote} />
-            </Route>
-            <Route path="/zero-base-fee">
-              <ProtectedRoute
-                requiredRoles={[
-                  "support_agent",
-                  "content_moderator",
-                  "territory_manager",
-                  "contractor_success",
-                  "content_seo",
-                  "analytics_specialist",
-                  "marketing_specialist",
-                  "moderator",
-                  "ops_admin",
-                  "super_admin",
-                ]}
-              >
-                <LazyPage Component={ZeroBaseFeeCamera} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/zero-base-fee/camera">
-              <ProtectedRoute
-                requiredRoles={[
-                  "support_agent",
-                  "content_moderator",
-                  "territory_manager",
-                  "contractor_success",
-                  "content_seo",
-                  "analytics_specialist",
-                  "marketing_specialist",
-                  "moderator",
-                  "ops_admin",
-                  "super_admin",
-                ]}
-              >
-                <LazyPage Component={ZeroBaseFeeCamera} />
-              </ProtectedRoute>
-            </Route>
-            <Route path="/direct-connect">
-              <LazyPage Component={DirectConnectShell} />
-            </Route>
-            <Route path="/direct-connect/:rest*">
-              <LazyPage Component={DirectConnectShell} />
-            </Route>
-            <Route path="/tasks">
-              <RedirectTo to="/direct-connect" />
-            </Route>
-
-            {/* Notes */}
-            <Route path="/notes">
-              <LazyPage Component={NotesPage} />
-            </Route>
-
-            {/* Legal pages */}
-            <Route path="/pricing">
-              <LazyPage Component={Pricing} />
-            </Route>
-            <Route path="/how-it-works">
-              <LazyPage Component={HowItWorks} />
-            </Route>
-            <Route path="/trust-model">
-              <LazyPage Component={TrustModel} />
-            </Route>
-            <Route path="/direct-connect-info">
-              <LazyPage Component={DirectConnectInfo} />
-            </Route>
-            <Route path="/compare">
-              <LazyPage Component={CompareHub} />
-            </Route>
-            <Route path="/compare/angi">
-              <LazyPage Component={CompareAngi} />
-            </Route>
-            <Route path="/compare/home-services">
-              <LazyPage Component={CompareHomeServices} />
-            </Route>
-            <Route path="/compare/real-estate">
-              <LazyPage Component={CompareRealEstate} />
-            </Route>
-            <Route path="/compare/community">
-              <LazyPage Component={CompareCommunity} />
-            </Route>
-            <Route path="/compare/local-business">
-              <LazyPage Component={CompareLocalBusiness} />
-            </Route>
-            <Route path="/compare/coordination">
-              <LazyPage Component={CompareCoordination} />
-            </Route>
-            <Route path="/compare/lead-generation">
-              <LazyPage Component={CompareLeadGeneration} />
-            </Route>
-            <Route path="/compare/homeadvisor">
-              <LazyPage Component={CompareHomeAdvisor} />
-            </Route>
-            <Route path="/terms">
-              <LazyPage Component={Terms} />
-            </Route>
-            <Route path="/privacy">
-              <LazyPage Component={Privacy} />
-            </Route>
-            <Route path="/privacy-request">
-              <LazyPage Component={PrivacyRequest} />
-            </Route>
-            <Route path="/legal/remote-notary">
-              <LazyPage Component={RemoteNotary} />
-            </Route>
-            <Route path="/services/remote-notary">
-              <LazyPage Component={RemoteNotary} />
-            </Route>
-            <Route path="/legal/mobile-notary">
-              <LazyPage Component={RemoteNotary} />
-            </Route>
-            <Route path="/services/mobile-notary">
-              <LazyPage Component={RemoteNotary} />
-            </Route>
-            <Route path="/about">
-              <LazyPage Component={About} />
-            </Route>
-            <Route path="/contact">
-              <RedirectTo to="/scout?intent=support&source=contact-route" />
-            </Route>
-
-            {/* Story Generator */}
-            <Route path="/story-generator">
-              <LazyPage Component={StoryGeneratorPage} />
-            </Route>
-
-            {/* Back-compat aliases for legacy buttons/links */}
-            <Route path="/settings/profile">
-              <RedirectTo to="/profile-settings" />
-            </Route>
-            <Route path="/settings/location">
-              <RedirectTo to="/settings?tab=profile" />
-            </Route>
-            <Route path="/contractor/dashboard">
-              <RedirectTo to="/contractor-dashboard" />
-            </Route>
-            <Route path="/contractor-profile">
-              <RedirectTo to="/contractors" />
-            </Route>
-            <Route path="/payments/history">
-              <RedirectTo to="/payment-history" />
-            </Route>
-            <Route path="/saved">
-              <RedirectTo to="/saved-ads" />
-            </Route>
-            <Route path="/community-builder">
-              <RedirectTo to="/community-builder/dashboard" />
-            </Route>
-            <Route path="/county/transparency">
-              <RedirectTo to="/county-hub" />
-            </Route>
-            <Route path="/contractors/signup">
-              <RedirectTo to="/contractors/apply" />
-            </Route>
-            <Route path="/contractor-join">
-              <RedirectTo to="/contractors/apply" />
-            </Route>
-            <Route path="/contractors/accelerator">
-              <RedirectTo to="/contractors/apply" />
-            </Route>
-            <Route path="/payroll-helper">
-              <RedirectTo to="/finances/payroll" />
-            </Route>
-            <Route path="/cookie-preferences">
-              <RedirectTo to="/privacy" />
-            </Route>
-            <Route path="/auth/logout">
-              <HardRedirectTo to="/api/auth/logout" />
-            </Route>
-            <Route path="/logout">
-              <HardRedirectTo to="/api/auth/logout" />
-            </Route>
-            <Route path="/tools/estimate-calculator">
-              <RedirectTo to="/quote-calculator" />
-            </Route>
-            <Route path="/tools/invoice-calculator">
-              <RedirectTo to="/finances/invoices" />
-            </Route>
-            <Route path="/tools/expense-helper">
-              <RedirectTo to="/finances/expenses" />
-            </Route>
-            <Route path="/legal/privacy-policy">
-              <RedirectTo to="/privacy" />
-            </Route>
-            <Route path="/legal/cookie-policy">
-              <RedirectTo to="/privacy" />
-            </Route>
-            <Route path="/legal/compliance">
-              <RedirectTo to="/compliance" />
-            </Route>
-            <Route path="/legal/accessibility">
-              <RedirectTo to="/compliance" />
-            </Route>
-            <Route path="/legal/seller-agreement">
-              <RedirectTo to="/terms" />
-            </Route>
-            <Route path="/legal/community-guidelines">
-              <RedirectTo to="/terms" />
-            </Route>
-            <Route path="/legal/dispute-resolution">
-              <RedirectTo to="/terms" />
-            </Route>
-            {/* Legacy commerce URL aliases (old storefront links). */}
-            <Route path="/collections/:collectionSlug/products/:productSlug">
-              <RedirectTo to="/trade-deals" />
-            </Route>
-            <Route path="/collections/:rest*">
-              <RedirectTo to="/trade-deals" />
-            </Route>
-            <Route path="/products/:productSlug">
-              <RedirectTo to="/trade-deals" />
-            </Route>
-
-            {/* 404 - this should be last */}
-            <Route path="/:rest*">
-              <LazyPage Component={NotFound} />
-            </Route>
+              {/* 404 - this should be last */}
+              <Route path="/:rest*">
+                <LazyPage Component={NotFound} />
+              </Route>
             </Switch>
           </AppShell>
         </Suspense>

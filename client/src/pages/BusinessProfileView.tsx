@@ -235,6 +235,7 @@ export default function BusinessProfileView() {
     );
   }
 
+  const businessProfile = profile;
   const hasDescription = profile.description && profile.description.trim().length > 0;
   const hasHeadline = Boolean(profile.headline && String(profile.headline).trim().length > 0);
   const hasServiceAreas = profile.serviceAreas && profile.serviceAreas.length > 0;
@@ -270,6 +271,35 @@ export default function BusinessProfileView() {
       : profile.description
         ? "Business details, trust signals, and contact options are available through this page."
         : "Services, trust details, and contact options will keep improving as this business builds out its TradeScout presence.";
+  const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
+  const addressVerified = Boolean(profile.addressVerified);
+  const rawCvs =
+    typeof profile.cvsScore === "number"
+      ? profile.cvsScore
+      : typeof profile.cvsScore === "string" && profile.cvsScore.trim().length > 0
+        ? Number(profile.cvsScore)
+        : null;
+  const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
+  const verificationTone = (() => {
+    if (verificationStatus === "approved") return "bg-emerald-600 text-white";
+    if (verificationStatus === "under_review" || verificationStatus === "pending") {
+      return "bg-amber-500 text-black";
+    }
+    if (verificationStatus === "rejected" || verificationStatus === "expired") {
+      return "bg-red-600 text-white";
+    }
+    if (verificationStatus === "suspended") return "bg-white/10 text-white";
+    return "bg-white/10 text-white";
+  })();
+  const verificationLabel = (() => {
+    if (verificationStatus === "approved") return "Professional Verified";
+    if (verificationStatus === "under_review") return "Verification Review";
+    if (verificationStatus === "pending") return "Verification Pending";
+    if (verificationStatus === "rejected") return "Verification Required";
+    if (verificationStatus === "expired") return "Verification Expired";
+    if (verificationStatus === "suspended") return "Verification Suspended";
+    return "Verification Pending";
+  })();
   const trustHighlights = [
     verificationLabel,
     addressVerified ? "Address verified" : "Address verification pending",
@@ -368,14 +398,16 @@ export default function BusinessProfileView() {
             <Button
               onClick={() => {
                 const params = new URLSearchParams({
-                  prefill_businessName: profile.name,
-                  prefill_businessSlug: profile.slug,
-                  prefill_countyFips: profile.countyFips || "",
+                  prefill_businessName: businessProfile.name,
+                  prefill_businessSlug: businessProfile.slug,
+                  prefill_countyFips: businessProfile.countyFips || "",
                 });
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
-              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
+              {block?.ctaLabel ||
+                businessProfile.ctaConfig?.primary?.label ||
+                "Contact via TradeScout"}
             </Button>
           </CardContent>
         </Card>
@@ -445,36 +477,6 @@ export default function BusinessProfileView() {
         ? String(profile.theme.customColors.primary)
         : undefined,
   } as React.CSSProperties;
-  const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
-  const addressVerified = Boolean(profile.addressVerified);
-  const rawCvs =
-    typeof profile.cvsScore === "number"
-      ? profile.cvsScore
-      : typeof profile.cvsScore === "string" && profile.cvsScore.trim().length > 0
-        ? Number(profile.cvsScore)
-        : null;
-  const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
-  const verificationTone = (() => {
-    if (verificationStatus === "approved") return "bg-emerald-600 text-white";
-    if (verificationStatus === "under_review" || verificationStatus === "pending") {
-      return "bg-amber-500 text-black";
-    }
-    if (verificationStatus === "rejected" || verificationStatus === "expired") {
-      return "bg-red-600 text-white";
-    }
-    if (verificationStatus === "suspended") return "bg-white/10 text-white";
-    return "bg-white/10 text-white";
-  })();
-  const verificationLabel = (() => {
-    if (verificationStatus === "approved") return "Professional Verified";
-    if (verificationStatus === "under_review") return "Verification Review";
-    if (verificationStatus === "pending") return "Verification Pending";
-    if (verificationStatus === "rejected") return "Verification Required";
-    if (verificationStatus === "expired") return "Verification Expired";
-    if (verificationStatus === "suspended") return "Verification Suspended";
-    return "Verification Pending";
-  })();
-
   // Decision-layer visibility: internal scoring and detailed trust signals should not be public/crawler-visible.
   // Keep discovery signals public (location, trade/category, unclaimed/claimed, basic verification label).
   const canShowDecisionSignals = Boolean(isAuthenticated);

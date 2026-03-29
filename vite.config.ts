@@ -13,6 +13,55 @@ const buildId =
   process.env.COMMIT_REF ||
   `${Date.now()}`;
 
+function getNodeModulePath(id: string): string | null {
+  const normalized = id.replace(/\\/g, "/");
+  const nodeModulesIndex = normalized.lastIndexOf("/node_modules/");
+  if (nodeModulesIndex === -1) {
+    return null;
+  }
+
+  return normalized.slice(nodeModulesIndex + "/node_modules/".length);
+}
+
+function getPackageChunkName(id: string): string | undefined {
+  const modulePath = getNodeModulePath(id);
+  if (!modulePath) {
+    return undefined;
+  }
+
+  const packageName = modulePath.startsWith("@")
+    ? modulePath.split("/", 2).join("/")
+    : modulePath.split("/", 1)[0];
+
+  const chunkByPackage: Record<string, string> = {
+    recharts: "vendor-recharts",
+    "d3-array": "vendor-d3",
+    "d3-color": "vendor-d3",
+    "d3-ease": "vendor-d3",
+    "d3-format": "vendor-d3",
+    "d3-interpolate": "vendor-d3",
+    "d3-path": "vendor-d3",
+    "d3-scale": "vendor-d3",
+    "d3-shape": "vendor-d3",
+    "d3-time": "vendor-d3",
+    "d3-time-format": "vendor-d3",
+    "d3-timer": "vendor-d3",
+    "d3-geo": "vendor-d3-geo",
+    "topojson-client": "vendor-topojson",
+    xlsx: "vendor-xlsx",
+    jszip: "vendor-jszip",
+    html2canvas: "vendor-html2canvas",
+    fabric: "vendor-fabric",
+    jspdf: "vendor-jspdf",
+    pdfkit: "vendor-pdfkit",
+    mammoth: "vendor-mammoth",
+    "@googlemaps/markerclusterer": "vendor-googlemaps",
+    "google-auth-library": "vendor-google-auth",
+  };
+
+  return chunkByPackage[packageName];
+}
+
 export default defineConfig({
   define: {
     __APP_BUILD_ID__: JSON.stringify(buildId),
@@ -50,30 +99,7 @@ export default defineConfig({
             return;
           }
 
-          if (
-            id.includes("/recharts/") ||
-            id.includes("/d3-") ||
-            id.includes("/topojson-client/") ||
-            id.includes("/us-atlas/")
-          ) {
-            return "vendor-analytics";
-          }
-
-          if (
-            id.includes("/xlsx/") ||
-            id.includes("/jszip/") ||
-            id.includes("/html2canvas/") ||
-            id.includes("/fabric/") ||
-            id.includes("/jspdf/") ||
-            id.includes("/pdfkit/") ||
-            id.includes("/mammoth/")
-          ) {
-            return "vendor-docs";
-          }
-
-          if (id.includes("/@googlemaps/") || id.includes("/google-auth-library/")) {
-            return "vendor-google";
-          }
+          return getPackageChunkName(id);
         },
       },
     },

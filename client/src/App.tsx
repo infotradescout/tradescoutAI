@@ -30,11 +30,21 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
-const PreferredSourcePrompt = React.lazy(() => import("./components/PreferredSourcePrompt"));
-const HoldToExplainProvider = React.lazy(
-  () => import("./components/hold/HoldToExplainProvider")
+const PreferredSourcePrompt = React.lazy(() =>
+  import("./components/PreferredSourcePrompt").then((module) => ({
+    default: module.PreferredSourcePrompt,
+  }))
 );
-const HoldIntroTutorial = React.lazy(() => import("./components/onboarding/HoldIntroTutorial"));
+const HoldToExplainProvider = React.lazy(() =>
+  import("./components/hold/HoldToExplainProvider").then((module) => ({
+    default: module.HoldToExplainProvider,
+  }))
+);
+const HoldIntroTutorial = React.lazy(() =>
+  import("./components/onboarding/HoldIntroTutorial").then((module) => ({
+    default: module.HoldIntroTutorial,
+  }))
+);
 const SimpleSubtleHints = React.lazy(() => import("./components/onboarding/SimpleSubtleHints"));
 const ProfileCompletionBanner = React.lazy(
   () => import("./components/onboarding/ProfileCompletionBanner")

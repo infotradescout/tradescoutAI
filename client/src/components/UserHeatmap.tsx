@@ -25,9 +25,7 @@ import { isSuperAdminLike } from "@/lib/roleChecks";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { geoAlbersUsa, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - JSON import provided by us-atlas
-import usCounties from "us-atlas/counties-10m.json";
+import usCountiesUrl from "us-atlas/counties-10m.json?url";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -71,6 +69,12 @@ type CountyFeature = {
   id?: string | number;
   properties?: Record<string, any>;
   geometry: any;
+};
+
+type CountiesTopology = {
+  objects: {
+    counties: unknown;
+  };
 };
 
 type HoveredCounty = {
@@ -181,6 +185,8 @@ function CountyHeatmapMap({
   const [searchFocused, setSearchFocused] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [countiesTopology, setCountiesTopology] = useState<CountiesTopology | null>(null);
+  const [mapDataError, setMapDataError] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef({
     active: false,
@@ -191,11 +197,45 @@ function CountyHeatmapMap({
     moved: false,
   });
 
-  const counties = useMemo(() => {
-    const topo = usCounties as any;
-    const geo = feature(topo, topo.objects.counties) as any;
-    return (geo.features || []) as CountyFeature[];
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCountyMap = async () => {
+      try {
+        const response = await fetch(usCountiesUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to load county map (${response.status})`);
+        }
+
+        const topology = (await response.json()) as CountiesTopology;
+        if (!cancelled) {
+          setCountiesTopology(topology);
+          setMapDataError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message =
+            error instanceof Error ? error.message : "Unable to load county map data.";
+          setMapDataError(message);
+        }
+      }
+    };
+
+    void loadCountyMap();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const counties = useMemo(() => {
+    if (!countiesTopology) {
+      return [] as CountyFeature[];
+    }
+
+    const geo = feature(countiesTopology as any, countiesTopology.objects.counties) as any;
+    return (geo.features || []) as CountyFeature[];
+  }, [countiesTopology]);
 
   const projection = useMemo(() => geoAlbersUsa().scale(1300).translate([487.5, 305]), []);
   const path = useMemo(() => geoPath(projection), [projection]);
@@ -480,6 +520,18 @@ function CountyHeatmapMap({
       <div className="absolute bottom-3 left-3 rounded bg-tsCard/95 px-2 py-1 text-[10px] text-white/70 border border-white/10">
         {metricLabel} per county (log scale) · scroll/double-click to zoom · drag to pan
       </div>
+
+      {!countiesTopology && !mapDataError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-tsCard/70 text-sm text-white/70">
+          Loading county map...
+        </div>
+      ) : null}
+
+      {mapDataError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-tsCard/80 px-4 text-center text-sm text-red-200">
+          {mapDataError}
+        </div>
+      ) : null}
 
       <div className="absolute top-3 right-3 rounded-md bg-tsCard/95 border border-white/10 shadow-md p-1.5 flex items-center gap-1">
         <Button
