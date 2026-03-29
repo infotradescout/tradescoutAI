@@ -425,6 +425,92 @@ export default function AdminLiveStreamPage() {
     snapshotStatus &&
     snapshotStatus.schedulerEnabled === false &&
     (!liveStreamStatus || liveStreamStatus.isStale || liveStreamStateLabel === "missing");
+  const topOpportunity = opportunityOutputs[0] || null;
+  const topFriction = frictionOutputs[0] || null;
+  const topWaste = wasteOutputs[0] || null;
+  const firstRepairRoute = topRepairRoutes[0] || null;
+  const primaryActionItems = useMemo(() => {
+    const items: Array<{ title: string; detail: string; tone: string }> = [];
+    if (crawlerErrorTotal > 0 && firstRepairRoute) {
+      items.push({
+        title: "Repair route first",
+        detail: `${firstRepairRoute.path} is carrying ${firstRepairRoute.requestCount} recent crawler hits. Fix or redirect this route before lower-demand cleanup.`,
+        tone: "border-amber-300/20 bg-amber-500/10 text-amber-50",
+      });
+    }
+    if (topFriction) {
+      items.push({
+        title: "Remove contractor friction",
+        detail: `${topFriction.title}. ${topFriction.narrative}`,
+        tone: "border-orange-300/20 bg-orange-500/10 text-orange-50",
+      });
+    }
+    if (topWaste) {
+      items.push({
+        title: "Stop wasted attention",
+        detail: `${topWaste.title}. ${topWaste.narrative}`,
+        tone: "border-rose-300/20 bg-rose-500/10 text-rose-50",
+      });
+    }
+    if (unknownSurfaceCount > 0 && topUnknownSurface) {
+      items.push({
+        title: "Shrink attribution leakage",
+        detail: `${topUnknownSurface.sourceSurface} is still holding ${topUnknownSurface.requestCount} requests. Route this traffic into a known surface family.`,
+        tone: "border-fuchsia-300/20 bg-fuchsia-500/10 text-fuchsia-50",
+      });
+    }
+    if (schedulerDisabledWarning) {
+      items.push({
+        title: "Restore scheduled refresh",
+        detail:
+          "The scheduler is disabled, so snapshot truth can go stale until a manual refresh happens.",
+        tone: "border-yellow-300/20 bg-yellow-500/10 text-yellow-50",
+      });
+    }
+    return items.slice(0, 4);
+  }, [
+    crawlerErrorTotal,
+    firstRepairRoute,
+    topFriction,
+    topWaste,
+    unknownSurfaceCount,
+    topUnknownSurface,
+    schedulerDisabledWarning,
+  ]);
+  const watchItems = useMemo(() => {
+    const items: Array<{ label: string; value: string }> = [];
+    if (topCountyDiscoveryLead) {
+      items.push({
+        label: "County lead",
+        value: `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} with ${topCountyDiscoveryLead.requestCount} requests`,
+      });
+    }
+    if (topOpportunity) {
+      items.push({
+        label: "Best opportunity",
+        value: topOpportunity.title,
+      });
+    }
+    if (topBotDemandCluster?.narrative || data?.summary.topBotCrawlHeadline) {
+      items.push({
+        label: "Bot pressure",
+        value: topBotDemandCluster?.narrative || data?.summary.topBotCrawlHeadline || "None",
+      });
+    }
+    if (topRouteDemand?.narrative) {
+      items.push({
+        label: "Demand route",
+        value: topRouteDemand.narrative,
+      });
+    }
+    return items.slice(0, 4);
+  }, [
+    topCountyDiscoveryLead,
+    topOpportunity,
+    topBotDemandCluster?.narrative,
+    data?.summary.topBotCrawlHeadline,
+    topRouteDemand?.narrative,
+  ]);
 
   useEffect(() => {
     if (!refreshMessage) return;
@@ -601,6 +687,269 @@ export default function AdminLiveStreamPage() {
               ) : null}
             </div>
           ) : null}
+
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                  Operator Summary
+                </div>
+                <div className="mt-2 text-sm text-white/80">
+                  This is the shortest read on what matters right now, what needs action, and what
+                  deserves monitoring.
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{liveStreamStateLabel}</Badge>
+                <Badge variant="outline">{visibleEntryCount} visible entries</Badge>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
+              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
+                  What Matters Now
+                </div>
+                <div className="mt-3 space-y-3">
+                  <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
+                      Current truth
+                    </div>
+                    <div className="mt-1 text-sm text-cyan-50">
+                      {topCountyDemand?.narrative || data?.summary.truthNow || "Unavailable"}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
+                        Demand route
+                      </div>
+                      <div className="mt-1 text-sm text-cyan-50">
+                        {topRouteDemand?.narrative || "No route-level demand signal yet"}
+                      </div>
+                    </div>
+                    <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
+                        Best opportunity
+                      </div>
+                      <div className="mt-1 text-sm text-cyan-50">
+                        {topOpportunity?.title || "No opportunity signal surfaced yet"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
+                      Bot pressure
+                    </div>
+                    <div className="mt-1 text-sm text-cyan-50">
+                      {topBotDemandCluster?.narrative ||
+                        data?.summary.topBotCrawlHeadline ||
+                        "No bot demand cluster yet"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
+                    Immediate Actions
+                  </div>
+                  <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                    {primaryActionItems.length} queued
+                  </Badge>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {primaryActionItems.length === 0 ? (
+                    <div className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-3 text-sm text-amber-50">
+                      No urgent action surfaced right now. Stay on opportunity creation and watch
+                      for new friction or route breakage.
+                    </div>
+                  ) : (
+                    primaryActionItems.map((item) => (
+                      <div
+                        key={item.title}
+                        className={cn("rounded-md border px-3 py-3", item.tone)}
+                      >
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-current/70">
+                          {item.title}
+                        </div>
+                        <div className="mt-1 text-sm text-current">{item.detail}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
+                  Watchlist
+                </div>
+                <div className="mt-3 space-y-3">
+                  {watchItems.length === 0 ? (
+                    <div className="text-sm text-indigo-100/70">No watch items surfaced yet.</div>
+                  ) : (
+                    watchItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-md border border-indigo-200/10 bg-black/20 px-3 py-3"
+                      >
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-indigo-100/60">
+                          {item.label}
+                        </div>
+                        <div className="mt-1 text-sm text-indigo-50">{item.value}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
+                  Surface Health
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
+                      Signal
+                    </div>
+                    <div className="mt-1 text-xl font-semibold text-emerald-50">
+                      {signalSurfaceCount}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                      Noise
+                    </div>
+                    <div className="mt-1 text-xl font-semibold text-amber-50">
+                      {noiseSurfaceCount}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                      Leakage
+                    </div>
+                    <div className="mt-1 text-xl font-semibold text-rose-50">
+                      {unknownSurfaceCount}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {topSurfaceBreakdown.length === 0 ? (
+                    <div className="text-sm text-emerald-100/70">No crawler surface data yet.</div>
+                  ) : (
+                    topSurfaceBreakdown.slice(0, 4).map((surface) => (
+                      <div
+                        key={surface.sourceSurface}
+                        className="flex items-center justify-between gap-3 rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2 text-sm"
+                      >
+                        <div className="text-emerald-50">{surface.sourceSurface}</div>
+                        <Badge variant="outline" className="border-emerald-200/20 text-emerald-50">
+                          {surface.requestCount}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
+                    Priority Signals
+                  </div>
+                  <Badge variant="outline" className="border-violet-200/20 text-violet-50">
+                    {focusedDerivedOutputs.length} shown
+                  </Badge>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
+                    {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setDerivedFocus(mode)}
+                        className={cn(
+                          "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                          derivedFocus === mode
+                            ? "bg-violet-500/20 text-violet-50"
+                            : "text-violet-100/60 hover:text-violet-50"
+                        )}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                  <select
+                    value={marketFilter}
+                    onChange={(e) => setMarketFilter(e.target.value)}
+                    className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                  >
+                    {availableMarkets.map((market) => (
+                      <option key={market} value={market}>
+                        {market === "all" ? "all markets" : market}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                  >
+                    {availableCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category === "all" ? "all categories" : category}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleCopyDerived}
+                    className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
+                  >
+                    copy
+                  </button>
+                </div>
+                {copyStatus ? (
+                  <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
+                ) : null}
+                <div className="mt-3 space-y-2">
+                  {focusedDerivedOutputs.length === 0 ? (
+                    <div className="text-sm text-violet-100/70">
+                      Waiting for internal LISA to surface opportunity, friction, or waste signals.
+                    </div>
+                  ) : (
+                    focusedDerivedOutputs.slice(0, 4).map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-sm text-violet-50">{item.title}</div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                truthTone[item.truthStatus === "current" ? "current" : "stale"]
+                              }
+                            >
+                              {item.truthStatus === "current" ? "current" : "stale"}
+                            </Badge>
+                            <Badge variant="outline" className={priorityTone[item.priority]}>
+                              {item.priority}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="rounded-lg border border-border bg-background p-4">

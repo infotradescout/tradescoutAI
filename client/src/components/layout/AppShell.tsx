@@ -268,6 +268,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/homescout/") ||
     location.startsWith("/tradepartners/") ||
     location.startsWith("/collections/");
+  const isAdminSurface = location.startsWith("/admin");
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
   const role =
     typeof (user as any)?.role === "string"
@@ -289,10 +290,15 @@ export function AppShell({ children, footer }: AppShellProps) {
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
-  const showFeatureNav = !isAuthOrSetupSurface;
-  const surfaceOrientation = resolveSurfaceOrientation(location);
+  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
+  const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const shouldPinRightTools =
-    !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface && !isPortalSurface;
+    !isMobile &&
+    !isAuthOrSetupSurface &&
+    !isAdminSurface &&
+    !isScoutSurface &&
+    !isSettingsSurface &&
+    !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
@@ -484,7 +490,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
       {/* TOP APP NAV HEADER (MOBILE/COMPACT) */}
-      {isMobile ? (
+      {!isAdminSurface && isMobile ? (
         <header
           className="fixed top-0 inset-x-0 z-50 flex items-center px-3 md:hidden"
           style={{
@@ -575,7 +581,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             )}
           </div>
         </header>
-      ) : (
+      ) : !isAdminSurface ? (
         <header
           className={`fixed top-0 inset-x-0 z-40 glass-header flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
@@ -704,7 +710,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             )}
           </div>
         </header>
-      )}
+      ) : null}
 
       {/* Mobile hero/context strip (scrolls with content) */}
       {/* Main content: ONLY scroll container */}
@@ -719,7 +725,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           touch-pan-y
         `}
         style={{
-          top: "var(--top-nav-h)",
+          top: isAdminSurface ? 0 : "var(--top-nav-h)",
           bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0,
           paddingRight: shouldPinRightTools
             ? isRightToolsCollapsed
