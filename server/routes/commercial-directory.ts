@@ -1148,22 +1148,6 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const userId = toUserId(req);
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        const role = String(req.user?.role || "")
-          .trim()
-          .toLowerCase();
-        const normalizedRole = role === "owner" || role === "head_admin" ? "super_admin" : role;
-        const isAdminRole = normalizedRole === "ops_admin" || normalizedRole === "super_admin";
-
-        if (!isAdminRole) {
-          const contractor = await getVerifiedContractorForUser(userId);
-          if (!contractor) {
-            return res.status(403).json({
-              message:
-                "Commercial directory access requires verified contractor status (license + insurance).",
-            });
-          }
-        }
-
         const countyFips =
           typeof req.query.countyFips === "string" && req.query.countyFips.length === 5
             ? req.query.countyFips
@@ -1225,22 +1209,34 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const projectId = String(req.params.id || "");
         if (!projectId) return res.status(400).json({ message: "Project ID required" });
 
-        const role = String(req.user?.role || "")
-          .trim()
-          .toLowerCase();
-        const normalizedRole = role === "owner" || role === "head_admin" ? "super_admin" : role;
-        const isAdminRole = normalizedRole === "ops_admin" || normalizedRole === "super_admin";
-
         let contractorId: string | null = null;
-        if (!isAdminRole) {
-          const contractor = await getVerifiedContractorForUser(userId);
-          if (!contractor) {
-            return res.status(403).json({
-              message:
-                "Commercial directory access requires verified contractor status (license + insurance).",
-            });
-          }
-          contractorId = String((contractor as any).id);
+        let submissionAccess = {
+          canBid: false,
+          hasContractorProfile: false,
+          isVerifiedForCommercial: false,
+          requires: ["contractor_profile", "approved_license", "approved_insurance"] as string[],
+          message:
+            "You can review this opportunity now. Create or complete your contractor verification to bid.",
+        };
+
+        const contractorProfile = await storage.getContractorByUserId(userId);
+        if (contractorProfile?.id) {
+          contractorId = String((contractorProfile as any).id);
+          const docsState = await getContractorVerificationDocumentState(contractorId);
+          const requires: string[] = [];
+          if (!docsState.hasApprovedLicenseDoc) requires.push("approved_license");
+          if (!docsState.hasApprovedInsuranceDoc) requires.push("approved_insurance");
+
+          submissionAccess = {
+            canBid: requires.length === 0,
+            hasContractorProfile: true,
+            isVerifiedForCommercial: requires.length === 0,
+            requires,
+            message:
+              requires.length === 0
+                ? "Commercial verification is complete for bid submission."
+                : "Review this opportunity now. Approval of the required verification documents is still needed before bid submission.",
+          };
         }
 
         const [project] = await db
@@ -1298,6 +1294,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
           documents: docs,
           bidsCount: stats?.bidsCount || 0,
           myBid,
+          submissionAccess,
         });
       } catch (error: any) {
         console.error("Error fetching commercial project details:", error);
