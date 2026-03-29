@@ -951,513 +951,535 @@ export default function AdminLiveStreamPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Last Refresh
-              </div>
-              <div className="mt-2 text-sm text-foreground">
-                {data?.generatedAt
-                  ? new Date(data.generatedAt).toLocaleString()
-                  : isLoading
-                    ? "Loading..."
-                    : "Unavailable"}
-              </div>
-              <div className="mt-2">
-                <Badge variant="outline">{liveStreamStateLabel}</Badge>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                Entries shown: {visibleEntryCount}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Stale after {liveStreamStatus?.staleAfterMinutes ?? 0} min
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Truth Now
-              </div>
-              <div className="mt-2 text-sm text-foreground">
-                {data?.summary.truthNow || "Unavailable"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Top Demand Page
-              </div>
-              <div className="mt-2 text-sm text-foreground">
-                {topRouteDemand?.narrative || "No route-level demand signal yet"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Top Demand County
-              </div>
-              <div className="mt-2 text-sm text-foreground">
-                {topCountyDemand?.narrative || "No county concentration signal yet"}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
-            <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
-              Bot Demand Cluster
-            </div>
-            <div className="mt-2 text-sm text-cyan-50">
-              {topBotDemandCluster?.narrative ||
-                data?.summary.topBotCrawlHeadline ||
-                "No bot demand cluster yet"}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
-                  TradeScout Internal LISA Outputs
-                </div>
-                <div className="mt-2 text-sm text-violet-50">
-                  {internalLisaOutputs.length > 0
-                    ? `TradeScout internal LISA is emitting ${internalLisaOutputs.length} normalized outputs into the live feed right now.`
-                    : "No normalized internal-LISA outputs have surfaced in the live feed yet."}
-                </div>
-              </div>
-              <Badge variant="outline" className="border-violet-200/20 text-violet-50">
-                {internalLisaOutputs.length} outputs
-              </Badge>
-            </div>
-
-            {topThreeDerivedOutputs.length > 0 ? (
-              <div className="mt-4 rounded-md border border-sky-300/20 bg-sky-500/10 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-[0.24em] text-sky-100/70">
-                    Top 3 Right Now
+          <details className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <summary className="cursor-pointer list-none text-sm font-medium text-white/85">
+              Open deep-dive telemetry
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Last Refresh
                   </div>
-                  <Badge variant="outline" className="border-sky-200/20 text-sky-50">
-                    highest-significance signals
+                  <div className="mt-2 text-sm text-foreground">
+                    {data?.generatedAt
+                      ? new Date(data.generatedAt).toLocaleString()
+                      : isLoading
+                        ? "Loading..."
+                        : "Unavailable"}
+                  </div>
+                  <div className="mt-2">
+                    <Badge variant="outline">{liveStreamStateLabel}</Badge>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Entries shown: {visibleEntryCount}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Stale after {liveStreamStatus?.staleAfterMinutes ?? 0} min
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Truth Now
+                  </div>
+                  <div className="mt-2 text-sm text-foreground">
+                    {data?.summary.truthNow || "Unavailable"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Top Demand Page
+                  </div>
+                  <div className="mt-2 text-sm text-foreground">
+                    {topRouteDemand?.narrative || "No route-level demand signal yet"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Top Demand County
+                  </div>
+                  <div className="mt-2 text-sm text-foreground">
+                    {topCountyDemand?.narrative || "No county concentration signal yet"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
+                  Bot Demand Cluster
+                </div>
+                <div className="mt-2 text-sm text-cyan-50">
+                  {topBotDemandCluster?.narrative ||
+                    data?.summary.topBotCrawlHeadline ||
+                    "No bot demand cluster yet"}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
+                      TradeScout Internal LISA Outputs
+                    </div>
+                    <div className="mt-2 text-sm text-violet-50">
+                      {internalLisaOutputs.length > 0
+                        ? `TradeScout internal LISA is emitting ${internalLisaOutputs.length} normalized outputs into the live feed right now.`
+                        : "No normalized internal-LISA outputs have surfaced in the live feed yet."}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="border-violet-200/20 text-violet-50">
+                    {internalLisaOutputs.length} outputs
                   </Badge>
                 </div>
-                <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
-                  {topThreeDerivedOutputs.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-md border border-sky-200/10 bg-black/20 px-3 py-2"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm text-sky-50">{item.title}</div>
-                        <Badge variant="outline" className={priorityTone[item.priority]}>
-                          {item.priority}
-                        </Badge>
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                        {item.signalClass ? (
-                          <Badge variant="outline" className="border-sky-200/20 text-sky-100">
-                            {item.signalClass}
-                          </Badge>
-                        ) : null}
-                        {typeof item.baselineDeltaPct === "number" ? (
-                          <Badge variant="outline" className="border-sky-200/20 text-sky-100">
-                            {item.baselineDeltaPct >= 0
-                              ? `+${item.baselineDeltaPct}%`
-                              : `${item.baselineDeltaPct}%`}{" "}
-                            vs baseline
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 text-xs text-sky-100/75">{item.narrative}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
 
-            {derivedIntelligenceOutputs.length > 0 ? (
-              <div className="mt-4 rounded-md border border-fuchsia-300/20 bg-fuchsia-500/10 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-[0.24em] text-fuchsia-100/70">
-                    Derived Intelligence
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1 rounded-md border border-fuchsia-200/20 bg-black/20 p-1">
-                      {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => setDerivedFocus(mode)}
-                          className={cn(
-                            "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
-                            derivedFocus === mode
-                              ? "bg-fuchsia-500/20 text-fuchsia-50"
-                              : "text-fuchsia-100/60 hover:text-fuchsia-50"
-                          )}
-                        >
-                          {mode}
-                        </button>
-                      ))}
-                    </div>
-                    <select
-                      value={marketFilter}
-                      onChange={(e) => setMarketFilter(e.target.value)}
-                      className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
-                    >
-                      {availableMarkets.map((market) => (
-                        <option key={market} value={market}>
-                          {market === "all" ? "all markets" : market}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
-                    >
-                      {availableCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {category === "all" ? "all categories" : category}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={handleCopyDerived}
-                      className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-fuchsia-50 hover:bg-fuchsia-500/10"
-                    >
-                      copy
-                    </button>
-                    <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
-                      {focusedDerivedOutputs.length} shown
-                    </Badge>
-                  </div>
-                </div>
-                {copyStatus ? (
-                  <div className="mt-2 text-[11px] text-fuchsia-100/80">{copyStatus}</div>
-                ) : null}
-                <div className="mt-3 text-xs text-fuchsia-100/70">
-                  Focus this view on opportunity, friction, or waste when you want a cleaner
-                  strategic read instead of the full mixed picture.
-                </div>
-                <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
-                  <div className="rounded-md border border-emerald-300/20 bg-emerald-500/10 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-100/70">
-                        Opportunity
-                      </div>
-                      <Badge variant="outline" className="border-emerald-200/20 text-emerald-50">
-                        {opportunityOutputs.length}
-                      </Badge>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {opportunityOutputs.length === 0 ? (
-                        <div className="text-xs text-emerald-100/70">
-                          No opportunity signals surfaced yet.
-                        </div>
-                      ) : (
-                        opportunityOutputs.slice(0, 2).map((item) => (
-                          <div
-                            key={item.id}
-                            className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2"
-                          >
-                            <div className="text-sm text-emerald-50">{item.title}</div>
-                            {typeof item.baselineDeltaPct === "number" ? (
-                              <div className="mt-1 text-[11px] text-emerald-100/80">
-                                {item.baselineDeltaPct >= 0
-                                  ? `+${item.baselineDeltaPct}%`
-                                  : `${item.baselineDeltaPct}%`}{" "}
-                                vs baseline
-                              </div>
-                            ) : null}
-                            <div className="mt-1 text-xs text-emerald-100/75">{item.narrative}</div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-md border border-amber-300/20 bg-amber-500/10 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-amber-100/70">
-                        Friction
-                      </div>
-                      <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                        {frictionOutputs.length}
-                      </Badge>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {frictionOutputs.length === 0 ? (
-                        <div className="text-xs text-amber-100/70">
-                          No friction signals surfaced yet.
-                        </div>
-                      ) : (
-                        frictionOutputs.slice(0, 2).map((item) => (
-                          <div
-                            key={item.id}
-                            className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
-                          >
-                            <div className="text-sm text-amber-50">{item.title}</div>
-                            {typeof item.baselineDeltaPct === "number" ? (
-                              <div className="mt-1 text-[11px] text-amber-100/80">
-                                {item.baselineDeltaPct >= 0
-                                  ? `+${item.baselineDeltaPct}%`
-                                  : `${item.baselineDeltaPct}%`}{" "}
-                                vs baseline
-                              </div>
-                            ) : null}
-                            <div className="mt-1 text-xs text-amber-100/75">{item.narrative}</div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-md border border-rose-300/20 bg-rose-500/10 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-rose-100/70">
-                        Waste
-                      </div>
-                      <Badge variant="outline" className="border-rose-200/20 text-rose-50">
-                        {wasteOutputs.length}
-                      </Badge>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {wasteOutputs.length === 0 ? (
-                        <div className="text-xs text-rose-100/70">
-                          No waste signals surfaced yet.
-                        </div>
-                      ) : (
-                        wasteOutputs.slice(0, 2).map((item) => (
-                          <div
-                            key={item.id}
-                            className="rounded-md border border-rose-200/10 bg-black/20 px-3 py-2"
-                          >
-                            <div className="text-sm text-rose-50">{item.title}</div>
-                            {typeof item.baselineDeltaPct === "number" ? (
-                              <div className="mt-1 text-[11px] text-rose-100/80">
-                                {item.baselineDeltaPct >= 0
-                                  ? `+${item.baselineDeltaPct}%`
-                                  : `${item.baselineDeltaPct}%`}{" "}
-                                vs baseline
-                              </div>
-                            ) : null}
-                            <div className="mt-1 text-xs text-rose-100/75">{item.narrative}</div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-4 space-y-2">
-              {internalLisaOutputs.length === 0 ? (
-                <div className="text-sm text-violet-100/70">
-                  Waiting for entity discovery, county/category discovery, repair pressure, or
-                  derived intelligence outputs.
-                </div>
-              ) : (
-                internalLisaOutputs.slice(0, 4).map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-2"
-                  >
+                {topThreeDerivedOutputs.length > 0 ? (
+                  <div className="mt-4 rounded-md border border-sky-300/20 bg-sky-500/10 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-sm text-violet-50">{item.title}</div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={
-                            truthTone[item.truthStatus === "current" ? "current" : "stale"]
-                          }
-                        >
-                          {item.truthStatus === "current" ? "current" : "stale"}
-                        </Badge>
-                        <Badge variant="outline" className={priorityTone[item.priority]}>
-                          {item.priority}
-                        </Badge>
+                      <div className="text-xs uppercase tracking-[0.24em] text-sky-100/70">
+                        Top 3 Right Now
                       </div>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                      {item.lane ? (
-                        <Badge variant="outline" className="border-violet-200/20 text-violet-100">
-                          lane: {item.lane}
-                        </Badge>
-                      ) : null}
-                      {item.signalClass ? (
-                        <Badge variant="outline" className="border-violet-200/20 text-violet-100">
-                          signal: {item.signalClass}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
-                Useful Signal vs Noise
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
-                    Signal
-                  </div>
-                  <div className="mt-1 text-xl font-semibold text-emerald-50">
-                    {signalSurfaceCount}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
-                    Noise
-                  </div>
-                  <div className="mt-1 text-xl font-semibold text-amber-50">
-                    {noiseSurfaceCount}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
-                    Leakage
-                  </div>
-                  <div className="mt-1 text-xl font-semibold text-rose-50">
-                    {unknownSurfaceCount}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 text-xs text-emerald-100/70">
-                Signal is meaningful public discovery. Noise is infra/meta/assets. Leakage is
-                fallback traffic still landing in other/unknown_public.
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/40">
-                Top Signal Buckets
-              </div>
-              <div className="mt-3 space-y-2">
-                {topSurfaceBreakdown.length === 0 ? (
-                  <div className="text-sm text-white/55">No crawler surface data yet.</div>
-                ) : (
-                  topSurfaceBreakdown.map((surface) => (
-                    <div
-                      key={surface.sourceSurface}
-                      className="flex items-center justify-between gap-3 text-sm"
-                    >
-                      <div className="text-white/75">{surface.sourceSurface}</div>
-                      <Badge variant="outline" className="border-white/10 text-white/70">
-                        {surface.requestCount}
+                      <Badge variant="outline" className="border-sky-200/20 text-sky-50">
+                        highest-significance signals
                       </Badge>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                      {topThreeDerivedOutputs.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-md border border-sky-200/10 bg-black/20 px-3 py-2"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-sm text-sky-50">{item.title}</div>
+                            <Badge variant="outline" className={priorityTone[item.priority]}>
+                              {item.priority}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                            {item.signalClass ? (
+                              <Badge variant="outline" className="border-sky-200/20 text-sky-100">
+                                {item.signalClass}
+                              </Badge>
+                            ) : null}
+                            {typeof item.baselineDeltaPct === "number" ? (
+                              <Badge variant="outline" className="border-sky-200/20 text-sky-100">
+                                {item.baselineDeltaPct >= 0
+                                  ? `+${item.baselineDeltaPct}%`
+                                  : `${item.baselineDeltaPct}%`}{" "}
+                                vs baseline
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <div className="mt-2 text-xs text-sky-100/75">{item.narrative}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
-            <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-rose-100/70">
-                Attribution Leakage
-              </div>
-              <div className="mt-2 text-sm text-rose-50">
-                {topUnknownSurface
-                  ? `${topUnknownSurface.sourceSurface} is still carrying ${topUnknownSurface.requestCount} requests in the current surface summary.`
-                  : "No fallback leakage surfaced in the current top routes."}
-              </div>
-              <div className="mt-3 text-xs text-rose-100/70">
-                Keep shrinking other/unknown_public until fallback mostly means true unknowns
-                instead of missed known route families.
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
-                  County + Category Discovery
-                </div>
-                <div className="mt-2 text-sm text-indigo-50">
-                  {topCountyDiscoveryLead
-                    ? `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} is the current lead county surface with ${topCountyDiscoveryLead.requestCount} crawler requests.`
-                    : "No county discovery concentration surfaced yet."}
-                </div>
-              </div>
-              <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
-                {topCountyDiscovery.length} surfaced counties
-              </Badge>
-            </div>
-            <div className="mt-4 space-y-2">
-              {topCountyDiscovery.length === 0 ? (
-                <div className="text-sm text-indigo-100/70">
-                  No county discovery routes available yet.
-                </div>
-              ) : (
-                topCountyDiscovery.map((countyEntry) => (
-                  <div
-                    key={`${countyEntry.sourceSurface}:${countyEntry.countyName}:${countyEntry.stateCode || "na"}`}
-                    className="flex items-center justify-between gap-3 rounded-md border border-indigo-200/10 bg-black/20 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm text-indigo-50">
-                        {countyEntry.countyName}
-                        {countyEntry.stateCode ? `, ${countyEntry.stateCode}` : ""}
+                {derivedIntelligenceOutputs.length > 0 ? (
+                  <div className="mt-4 rounded-md border border-fuchsia-300/20 bg-fuchsia-500/10 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-xs uppercase tracking-[0.24em] text-fuchsia-100/70">
+                        Derived Intelligence
                       </div>
-                      <div className="text-xs text-indigo-100/60">
-                        {countyEntry.sourceSurface}
-                        {countyEntry.countyFips ? ` • FIPS ${countyEntry.countyFips}` : ""}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1 rounded-md border border-fuchsia-200/20 bg-black/20 p-1">
+                          {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setDerivedFocus(mode)}
+                              className={cn(
+                                "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                                derivedFocus === mode
+                                  ? "bg-fuchsia-500/20 text-fuchsia-50"
+                                  : "text-fuchsia-100/60 hover:text-fuchsia-50"
+                              )}
+                            >
+                              {mode}
+                            </button>
+                          ))}
+                        </div>
+                        <select
+                          value={marketFilter}
+                          onChange={(e) => setMarketFilter(e.target.value)}
+                          className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
+                        >
+                          {availableMarkets.map((market) => (
+                            <option key={market} value={market}>
+                              {market === "all" ? "all markets" : market}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={categoryFilter}
+                          onChange={(e) => setCategoryFilter(e.target.value)}
+                          className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
+                        >
+                          {availableCategories.map((category) => (
+                            <option key={category} value={category}>
+                              {category === "all" ? "all categories" : category}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={handleCopyDerived}
+                          className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-fuchsia-50 hover:bg-fuchsia-500/10"
+                        >
+                          copy
+                        </button>
+                        <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
+                          {focusedDerivedOutputs.length} shown
+                        </Badge>
                       </div>
                     </div>
-                    <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
-                      {countyEntry.requestCount}
-                    </Badge>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                    {copyStatus ? (
+                      <div className="mt-2 text-[11px] text-fuchsia-100/80">{copyStatus}</div>
+                    ) : null}
+                    <div className="mt-3 text-xs text-fuchsia-100/70">
+                      Focus this view on opportunity, friction, or waste when you want a cleaner
+                      strategic read instead of the full mixed picture.
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                      <div className="rounded-md border border-emerald-300/20 bg-emerald-500/10 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-100/70">
+                            Opportunity
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-200/20 text-emerald-50"
+                          >
+                            {opportunityOutputs.length}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {opportunityOutputs.length === 0 ? (
+                            <div className="text-xs text-emerald-100/70">
+                              No opportunity signals surfaced yet.
+                            </div>
+                          ) : (
+                            opportunityOutputs.slice(0, 2).map((item) => (
+                              <div
+                                key={item.id}
+                                className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2"
+                              >
+                                <div className="text-sm text-emerald-50">{item.title}</div>
+                                {typeof item.baselineDeltaPct === "number" ? (
+                                  <div className="mt-1 text-[11px] text-emerald-100/80">
+                                    {item.baselineDeltaPct >= 0
+                                      ? `+${item.baselineDeltaPct}%`
+                                      : `${item.baselineDeltaPct}%`}{" "}
+                                    vs baseline
+                                  </div>
+                                ) : null}
+                                <div className="mt-1 text-xs text-emerald-100/75">
+                                  {item.narrative}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
 
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
-                  Repair Pressure
-                </div>
-                <div className="mt-2 text-sm text-amber-50">
-                  {crawlerErrorTotal > 0
-                    ? `${crawlerErrorTotal} crawler error responses were observed in the last 24 hours. Focus on high-demand broken routes first.`
-                    : "No crawler error pressure surfaced in the current 24-hour summary."}
-                </div>
-              </div>
-              <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                {crawlerErrorTotal} errors / 24h
-              </Badge>
-            </div>
-            <div className="mt-4 space-y-2">
-              {topRepairRoutes.length === 0 ? (
-                <div className="text-sm text-amber-100/70">
-                  No top crawler routes available yet.
-                </div>
-              ) : (
-                topRepairRoutes.map((route) => (
-                  <div
-                    key={route.path}
-                    className="flex items-center justify-between gap-3 rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm text-amber-50">{route.path}</div>
-                      <div className="text-xs text-amber-100/60">
-                        Prioritize repair or redirect if this route is broken or stale.
+                      <div className="rounded-md border border-amber-300/20 bg-amber-500/10 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] uppercase tracking-[0.24em] text-amber-100/70">
+                            Friction
+                          </div>
+                          <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                            {frictionOutputs.length}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {frictionOutputs.length === 0 ? (
+                            <div className="text-xs text-amber-100/70">
+                              No friction signals surfaced yet.
+                            </div>
+                          ) : (
+                            frictionOutputs.slice(0, 2).map((item) => (
+                              <div
+                                key={item.id}
+                                className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
+                              >
+                                <div className="text-sm text-amber-50">{item.title}</div>
+                                {typeof item.baselineDeltaPct === "number" ? (
+                                  <div className="mt-1 text-[11px] text-amber-100/80">
+                                    {item.baselineDeltaPct >= 0
+                                      ? `+${item.baselineDeltaPct}%`
+                                      : `${item.baselineDeltaPct}%`}{" "}
+                                    vs baseline
+                                  </div>
+                                ) : null}
+                                <div className="mt-1 text-xs text-amber-100/75">
+                                  {item.narrative}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-md border border-rose-300/20 bg-rose-500/10 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] uppercase tracking-[0.24em] text-rose-100/70">
+                            Waste
+                          </div>
+                          <Badge variant="outline" className="border-rose-200/20 text-rose-50">
+                            {wasteOutputs.length}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {wasteOutputs.length === 0 ? (
+                            <div className="text-xs text-rose-100/70">
+                              No waste signals surfaced yet.
+                            </div>
+                          ) : (
+                            wasteOutputs.slice(0, 2).map((item) => (
+                              <div
+                                key={item.id}
+                                className="rounded-md border border-rose-200/10 bg-black/20 px-3 py-2"
+                              >
+                                <div className="text-sm text-rose-50">{item.title}</div>
+                                {typeof item.baselineDeltaPct === "number" ? (
+                                  <div className="mt-1 text-[11px] text-rose-100/80">
+                                    {item.baselineDeltaPct >= 0
+                                      ? `+${item.baselineDeltaPct}%`
+                                      : `${item.baselineDeltaPct}%`}{" "}
+                                    vs baseline
+                                  </div>
+                                ) : null}
+                                <div className="mt-1 text-xs text-rose-100/75">
+                                  {item.narrative}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                      {route.requestCount}
-                    </Badge>
                   </div>
-                ))
-              )}
+                ) : null}
+
+                <div className="mt-4 space-y-2">
+                  {internalLisaOutputs.length === 0 ? (
+                    <div className="text-sm text-violet-100/70">
+                      Waiting for entity discovery, county/category discovery, repair pressure, or
+                      derived intelligence outputs.
+                    </div>
+                  ) : (
+                    internalLisaOutputs.slice(0, 4).map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-2"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-sm text-violet-50">{item.title}</div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                truthTone[item.truthStatus === "current" ? "current" : "stale"]
+                              }
+                            >
+                              {item.truthStatus === "current" ? "current" : "stale"}
+                            </Badge>
+                            <Badge variant="outline" className={priorityTone[item.priority]}>
+                              {item.priority}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                          {item.lane ? (
+                            <Badge
+                              variant="outline"
+                              className="border-violet-200/20 text-violet-100"
+                            >
+                              lane: {item.lane}
+                            </Badge>
+                          ) : null}
+                          {item.signalClass ? (
+                            <Badge
+                              variant="outline"
+                              className="border-violet-200/20 text-violet-100"
+                            >
+                              signal: {item.signalClass}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
+                    Useful Signal vs Noise
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
+                        Signal
+                      </div>
+                      <div className="mt-1 text-xl font-semibold text-emerald-50">
+                        {signalSurfaceCount}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                        Noise
+                      </div>
+                      <div className="mt-1 text-xl font-semibold text-amber-50">
+                        {noiseSurfaceCount}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                        Leakage
+                      </div>
+                      <div className="mt-1 text-xl font-semibold text-rose-50">
+                        {unknownSurfaceCount}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-emerald-100/70">
+                    Signal is meaningful public discovery. Noise is infra/meta/assets. Leakage is
+                    fallback traffic still landing in other/unknown_public.
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                    Top Signal Buckets
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {topSurfaceBreakdown.length === 0 ? (
+                      <div className="text-sm text-white/55">No crawler surface data yet.</div>
+                    ) : (
+                      topSurfaceBreakdown.map((surface) => (
+                        <div
+                          key={surface.sourceSurface}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <div className="text-white/75">{surface.sourceSurface}</div>
+                          <Badge variant="outline" className="border-white/10 text-white/70">
+                            {surface.requestCount}
+                          </Badge>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-rose-100/70">
+                    Attribution Leakage
+                  </div>
+                  <div className="mt-2 text-sm text-rose-50">
+                    {topUnknownSurface
+                      ? `${topUnknownSurface.sourceSurface} is still carrying ${topUnknownSurface.requestCount} requests in the current surface summary.`
+                      : "No fallback leakage surfaced in the current top routes."}
+                  </div>
+                  <div className="mt-3 text-xs text-rose-100/70">
+                    Keep shrinking other/unknown_public until fallback mostly means true unknowns
+                    instead of missed known route families.
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
+                      County + Category Discovery
+                    </div>
+                    <div className="mt-2 text-sm text-indigo-50">
+                      {topCountyDiscoveryLead
+                        ? `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} is the current lead county surface with ${topCountyDiscoveryLead.requestCount} crawler requests.`
+                        : "No county discovery concentration surfaced yet."}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
+                    {topCountyDiscovery.length} surfaced counties
+                  </Badge>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {topCountyDiscovery.length === 0 ? (
+                    <div className="text-sm text-indigo-100/70">
+                      No county discovery routes available yet.
+                    </div>
+                  ) : (
+                    topCountyDiscovery.map((countyEntry) => (
+                      <div
+                        key={`${countyEntry.sourceSurface}:${countyEntry.countyName}:${countyEntry.stateCode || "na"}`}
+                        className="flex items-center justify-between gap-3 rounded-md border border-indigo-200/10 bg-black/20 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-indigo-50">
+                            {countyEntry.countyName}
+                            {countyEntry.stateCode ? `, ${countyEntry.stateCode}` : ""}
+                          </div>
+                          <div className="text-xs text-indigo-100/60">
+                            {countyEntry.sourceSurface}
+                            {countyEntry.countyFips ? ` • FIPS ${countyEntry.countyFips}` : ""}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
+                          {countyEntry.requestCount}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
+                      Repair Pressure
+                    </div>
+                    <div className="mt-2 text-sm text-amber-50">
+                      {crawlerErrorTotal > 0
+                        ? `${crawlerErrorTotal} crawler error responses were observed in the last 24 hours. Focus on high-demand broken routes first.`
+                        : "No crawler error pressure surfaced in the current 24-hour summary."}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                    {crawlerErrorTotal} errors / 24h
+                  </Badge>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {topRepairRoutes.length === 0 ? (
+                    <div className="text-sm text-amber-100/70">
+                      No top crawler routes available yet.
+                    </div>
+                  ) : (
+                    topRepairRoutes.map((route) => (
+                      <div
+                        key={route.path}
+                        className="flex items-center justify-between gap-3 rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-amber-50">{route.path}</div>
+                          <div className="text-xs text-amber-100/60">
+                            Prioritize repair or redirect if this route is broken or stale.
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                          {route.requestCount}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="rounded-lg border border-border bg-background p-4">
