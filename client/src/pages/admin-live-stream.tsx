@@ -736,6 +736,66 @@ export default function AdminLiveStreamPage() {
     }
   };
 
+  const applyFeedPreset = (
+    preset: "all" | "urgent" | "crawler_ops" | "lisa_only" | "county_watch"
+  ) => {
+    if (preset === "all") {
+      setSource("all");
+      setTruthFilter("all");
+      setDurabilityFilter("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
+    if (preset === "urgent") {
+      setSource("all");
+      setTruthFilter("current");
+      setDurabilityFilter("volatile");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("15");
+      return;
+    }
+    if (preset === "crawler_ops") {
+      setSource("crawler");
+      setTruthFilter("all");
+      setDurabilityFilter("volatile");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
+    if (preset === "lisa_only") {
+      setSource("lisa");
+      setTruthFilter("current");
+      setDurabilityFilter("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
+    setSource("all");
+    setTruthFilter("current");
+    setDurabilityFilter("all");
+    setStateCode("all");
+    setCounty("all");
+    setLimit("25");
+  };
+
+  const activeFilterSummary = useMemo(() => {
+    const parts = [
+      source === "all" ? "all sources" : `source:${source}`,
+      truthFilter === "all" ? "all truth states" : `truth:${truthFilter}`,
+      durabilityFilter === "all" ? "all durability" : `durability:${durabilityFilter}`,
+      stateCode === "all" ? "all states" : `state:${stateCode}`,
+      county === "all" ? "all counties" : `county:${county}`,
+      `limit:${limit || "20"}`,
+      `history:${historyDays || "7"}d`,
+    ];
+    return parts.join(" | ");
+  }, [source, truthFilter, durabilityFilter, stateCode, county, limit, historyDays]);
+
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
       <Card className="bg-card border-border">
@@ -1641,6 +1701,39 @@ export default function AdminLiveStreamPage() {
               <div className="mt-2 text-2xl font-semibold text-foreground">
                 {data?.summary.sourceCounts?.alerts ?? 0}
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                  Feed Controls
+                </div>
+                <div className="mt-2 text-sm text-white/80">
+                  Start from a preset, then narrow with filters only if you need a sharper cut.
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("all")}>
+                Reset Filters
+              </Button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("urgent")}>
+                Urgent
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("crawler_ops")}>
+                Crawler Ops
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("lisa_only")}>
+                LISA Only
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("county_watch")}>
+                County Watch
+              </Button>
+            </div>
+            <div className="mt-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/65">
+              Viewing: {activeFilterSummary}
             </div>
           </div>
 
