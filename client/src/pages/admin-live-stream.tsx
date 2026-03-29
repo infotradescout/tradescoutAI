@@ -168,6 +168,14 @@ const actionStatusTone: Record<string, string> = {
   cleared: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
 };
 
+const commercialBucketTone: Record<string, string> = {
+  "ad plays": "border-emerald-500/20 bg-emerald-500/10",
+  "advertiser pitches": "border-amber-500/20 bg-amber-500/10",
+  "market moves": "border-violet-500/20 bg-violet-500/10",
+  "monetization leaks": "border-rose-500/20 bg-rose-500/10",
+  watchlist: "border-white/10 bg-black/20",
+};
+
 function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
   if (source === "crawler" || source === "alerts" || source === "bot_crawl_signals") {
     return "volatile";
@@ -312,6 +320,81 @@ function resolveEntryUrgency(item: Pick<LiveStreamItem, "priority" | "truthStatu
   return "watch soon";
 }
 
+function resolveEntryCommercialBucket(item: LiveStreamItem): string {
+  const signalClass = item.signalClass || "";
+  if (
+    item.kind === "alert" ||
+    signalClass === "repair_pressure" ||
+    signalClass === "attention_finding_dead_ends" ||
+    signalClass === "attention_action_gap" ||
+    signalClass === "trust_friction"
+  ) {
+    return "monetization leaks";
+  }
+  if (
+    item.kind === "crawler_county_demand" ||
+    signalClass === "county_opportunity_concentration" ||
+    signalClass === "visibility_outpacing_coverage"
+  ) {
+    return "ad plays";
+  }
+  if (
+    item.kind === "bot_demand_cluster" ||
+    signalClass === "category_signal_concentration" ||
+    signalClass === "category_momentum" ||
+    item.source === "cumulus"
+  ) {
+    return "advertiser pitches";
+  }
+  if (
+    item.kind === "crawler_route_demand" ||
+    item.kind === "crawler_volume" ||
+    item.kind === "crawler_top_bot" ||
+    item.source === "crawler"
+  ) {
+    return "market moves";
+  }
+  return "watchlist";
+}
+
+function resolveBestCountyToSell(args: {
+  topCountyDemand: LiveStreamItem | null | undefined;
+  topOpportunity: LiveStreamItem | null | undefined;
+}): string {
+  const county =
+    args.topCountyDemand?.county ||
+    args.topOpportunity?.county ||
+    args.topCountyDemand?.title ||
+    args.topOpportunity?.title;
+  const state = args.topCountyDemand?.state || args.topOpportunity?.state;
+  if (!county) return "No county sales pocket surfaced yet";
+  return state ? `${county}, ${state}` : county;
+}
+
+function resolveBestCategoryToPitch(args: {
+  topBotDemandCluster: LiveStreamItem | null | undefined;
+  topOpportunity: LiveStreamItem | null | undefined;
+}): string {
+  return (
+    args.topBotDemandCluster?.category ||
+    args.topOpportunity?.category ||
+    "No category pitch surfaced yet"
+  );
+}
+
+function resolveBiggestLeak(args: {
+  topWaste: LiveStreamItem | null | undefined;
+  topFriction: LiveStreamItem | null | undefined;
+  firstRepairRoute: { path: string; requestCount: number } | null | undefined;
+}): string {
+  if (args.topWaste) return args.topWaste.title;
+  if (args.topFriction) return args.topFriction.title;
+  if (args.firstRepairRoute) {
+    return `${args.firstRepairRoute.path} is taking ${args.firstRepairRoute.requestCount} requests before monetization`;
+  }
+  return "No major monetization leak surfaced yet";
+}
+
 function buildEntryContextTokens(item: LiveStreamItem): string[] {
   const tokens: string[] = [];
   if (item.county) tokens.push(item.county);
@@ -367,7 +450,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         <Badge className={urgencyTone[urgency]}>{urgency}</Badge>
         <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
         <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
-        <Badge className={ownerTone[owner] || ownerTone["operator watch"]}>{owner}</Badge>
+        <Badge className={ownerTone[owner] || ownerTone["sales watch"]}>{owner}</Badge>
         {contextTokens.map((token) => (
           <Badge
             key={`${item.id}:${token}`}
@@ -967,49 +1050,30 @@ export default function AdminLiveStreamPage() {
   }, [source, truthFilter, durabilityFilter, stateCode, county, limit, historyDays]);
   const groupedLiveFeed = useMemo(() => {
     const groups = {
-      broken: [] as LiveStreamItem[],
-      opportunity: [] as LiveStreamItem[],
-      friction: [] as LiveStreamItem[],
+      adPlays: [] as LiveStreamItem[],
+      advertiserPitches: [] as LiveStreamItem[],
+      marketMoves: [] as LiveStreamItem[],
+      monetizationLeaks: [] as LiveStreamItem[],
       watch: [] as LiveStreamItem[],
     };
 
     for (const item of filteredStream) {
-      const signalClass = item.signalClass || "";
-      if (
-        item.kind === "alert" ||
-        signalClass === "repair_pressure" ||
-        signalClass === "attention_finding_dead_ends"
-      ) {
-        groups.broken.push(item);
-        continue;
-      }
-      if (
-        [
-          "county_opportunity_concentration",
-          "visibility_outpacing_coverage",
-          "category_signal_concentration",
-          "category_momentum",
-        ].includes(signalClass) ||
-        item.kind === "crawler_county_demand" ||
-        item.kind === "bot_demand_cluster"
-      ) {
-        groups.opportunity.push(item);
-        continue;
-      }
-      if (["attention_action_gap", "trust_friction"].includes(signalClass)) {
-        groups.friction.push(item);
-        continue;
-      }
-      groups.watch.push(item);
+      const bucket = resolveEntryCommercialBucket(item);
+      if (bucket === "ad plays") groups.adPlays.push(item);
+      else if (bucket === "advertiser pitches") groups.advertiserPitches.push(item);
+      else if (bucket === "market moves") groups.marketMoves.push(item);
+      else if (bucket === "monetization leaks") groups.monetizationLeaks.push(item);
+      else groups.watch.push(item);
     }
 
     return groups;
   }, [filteredStream]);
   const operatorQueue = useMemo(() => {
     const prioritizedItems = [
-      ...groupedLiveFeed.broken,
-      ...groupedLiveFeed.friction,
-      ...groupedLiveFeed.opportunity,
+      ...groupedLiveFeed.monetizationLeaks,
+      ...groupedLiveFeed.advertiserPitches,
+      ...groupedLiveFeed.adPlays,
+      ...groupedLiveFeed.marketMoves,
     ];
     const seen = new Set<string>();
 
@@ -1212,11 +1276,11 @@ export default function AdminLiveStreamPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div className="text-xs uppercase tracking-[0.24em] text-white/45">
-                  Operator Summary
+                  Market Signal Board
                 </div>
                 <div className="mt-2 text-sm text-white/80">
-                  This is the shortest read on what matters right now, what needs action, and what
-                  deserves monitoring.
+                  The shortest read on what you can sell, where to spend, where to move next, and
+                  what leak is killing monetizable attention.
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -1228,21 +1292,21 @@ export default function AdminLiveStreamPage() {
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
               <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
                 <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
-                  What Matters Now
+                  What To Sell Now
                 </div>
                 <div className="mt-3 space-y-3">
                   <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
                     <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                      Current truth
+                      Best county to sell
                     </div>
                     <div className="mt-1 text-sm text-cyan-50">
-                      {topCountyDemand?.narrative || data?.summary.truthNow || "Unavailable"}
+                      {resolveBestCountyToSell({ topCountyDemand, topOpportunity })}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
                       <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                        Demand route
+                        Best ad pocket
                       </div>
                       <div className="mt-1 text-sm text-cyan-50">
                         {topRouteDemand?.narrative || "No route-level demand signal yet"}
@@ -1250,21 +1314,19 @@ export default function AdminLiveStreamPage() {
                     </div>
                     <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
                       <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                        Best opportunity
+                        Best category to pitch
                       </div>
                       <div className="mt-1 text-sm text-cyan-50">
-                        {topOpportunity?.title || "No opportunity signal surfaced yet"}
+                        {resolveBestCategoryToPitch({ topBotDemandCluster, topOpportunity })}
                       </div>
                     </div>
                   </div>
                   <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
                     <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                      Bot pressure
+                      Biggest monetization leak
                     </div>
                     <div className="mt-1 text-sm text-cyan-50">
-                      {topBotDemandCluster?.narrative ||
-                        data?.summary.topBotCrawlHeadline ||
-                        "No bot demand cluster yet"}
+                      {resolveBiggestLeak({ topWaste, topFriction, firstRepairRoute })}
                     </div>
                   </div>
                 </div>
@@ -1273,7 +1335,7 @@ export default function AdminLiveStreamPage() {
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
-                    Immediate Actions
+                    Immediate Revenue Moves
                   </div>
                   <Badge variant="outline" className="border-amber-200/20 text-amber-50">
                     {primaryActionItems.length} queued
@@ -1282,8 +1344,8 @@ export default function AdminLiveStreamPage() {
                 <div className="mt-3 space-y-3">
                   {primaryActionItems.length === 0 ? (
                     <div className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-3 text-sm text-amber-50">
-                      No urgent action surfaced right now. Stay on opportunity creation and watch
-                      for new friction or route breakage.
+                      No urgent revenue move surfaced right now. Stay on county packaging,
+                      advertiser outreach, and leak monitoring.
                     </div>
                   ) : (
                     primaryActionItems.map((item) => (
@@ -1305,7 +1367,7 @@ export default function AdminLiveStreamPage() {
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
                 <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
-                  Watchlist
+                  Sales Watchlist
                 </div>
                 <div className="mt-3 space-y-3">
                   {watchItems.length === 0 ? (
@@ -2275,10 +2337,10 @@ export default function AdminLiveStreamPage() {
             <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-white">Signal Playbook</div>
+                  <div className="text-sm font-semibold text-white">Revenue Playbook</div>
                   <div className="mt-1 text-xs text-white/65">
-                    Revenue and market moves pulled from the live stream so you can fire ads, make
-                    market calls, and pitch advertisers without decoding raw telemetry.
+                    Revenue and market moves pulled from the stream so you can launch ads, make
+                    market calls, and pitch advertisers without reading generic telemetry.
                   </div>
                 </div>
                 <Badge variant="outline" className="border-sky-200/20 text-sky-50">
@@ -2306,7 +2368,7 @@ export default function AdminLiveStreamPage() {
                   {operatorOwnerBreakdown.map((item) => (
                     <Badge
                       key={item.owner}
-                      className={ownerTone[item.owner] || ownerTone["operator watch"]}
+                      className={ownerTone[item.owner] || ownerTone["sales watch"]}
                     >
                       {item.owner}: {item.count}
                     </Badge>
@@ -2315,8 +2377,8 @@ export default function AdminLiveStreamPage() {
               ) : null}
               {operatorQueue.length === 0 ? (
                 <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                  No direct actions surfaced from the current feed. Refresh the stream or widen
-                  filters.
+                  No direct revenue actions surfaced from the current feed. Refresh the stream or
+                  widen filters.
                 </div>
               ) : (
                 <div className="mt-3 space-y-3">
@@ -2333,7 +2395,7 @@ export default function AdminLiveStreamPage() {
                         <Badge className={actionStatusTone[item.status] || actionStatusTone.new}>
                           {item.status}
                         </Badge>
-                        <Badge className={ownerTone[item.owner] || ownerTone["operator watch"]}>
+                        <Badge className={ownerTone[item.owner] || ownerTone["sales watch"]}>
                           {item.owner}
                         </Badge>
                         <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
@@ -2372,33 +2434,44 @@ export default function AdminLiveStreamPage() {
               <>
                 {[
                   {
-                    key: "broken",
-                    title: "Broken Now",
-                    description: "Routes, alerts, and dead ends that need repair first.",
-                    items: groupedLiveFeed.broken,
-                    tone: "border-rose-500/20 bg-rose-500/10",
+                    key: "ad-plays",
+                    title: "Ad Plays",
+                    description:
+                      "Counties and surfaces where active demand supports paid spend now.",
+                    items: groupedLiveFeed.adPlays,
+                    tone: commercialBucketTone["ad plays"],
                   },
                   {
-                    key: "opportunity",
-                    title: "Opportunity Now",
-                    description: "Counties, categories, and demand pockets worth leaning into.",
-                    items: groupedLiveFeed.opportunity,
-                    tone: "border-emerald-500/20 bg-emerald-500/10",
+                    key: "advertiser-pitches",
+                    title: "Advertiser Pitches",
+                    description:
+                      "Categories and counties that give you a clean story to sell sponsors and advertisers.",
+                    items: groupedLiveFeed.advertiserPitches,
+                    tone: commercialBucketTone["advertiser pitches"],
                   },
                   {
-                    key: "friction",
-                    title: "Friction Now",
-                    description: "Signals where attention or intent is being slowed before action.",
-                    items: groupedLiveFeed.friction,
-                    tone: "border-amber-500/20 bg-amber-500/10",
+                    key: "market-moves",
+                    title: "Market Moves",
+                    description:
+                      "Route pressure and surface movement that can justify expansion, redirects, or repositioning.",
+                    items: groupedLiveFeed.marketMoves,
+                    tone: commercialBucketTone["market moves"],
+                  },
+                  {
+                    key: "monetization-leaks",
+                    title: "Monetization Leaks",
+                    description:
+                      "Breaks, friction, and dead ends that waste attention before it turns into revenue.",
+                    items: groupedLiveFeed.monetizationLeaks,
+                    tone: commercialBucketTone["monetization leaks"],
                   },
                   {
                     key: "watch",
-                    title: "Watchlist",
+                    title: "Sales Watchlist",
                     description:
-                      "Context and supporting signals that matter, but are not first-action items.",
+                      "Context and supporting signals that matter, but are not first commercial moves.",
                     items: groupedLiveFeed.watch,
-                    tone: "border-white/10 bg-black/20",
+                    tone: commercialBucketTone.watchlist,
                   },
                 ]
                   .filter((group) => group.items.length > 0)
