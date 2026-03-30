@@ -255,6 +255,24 @@ function summarizeRejectionReason(reason: unknown): string {
   return "unknown_error";
 }
 
+function parseTimestamp(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
+function isFreshTimestamp(value: string | Date | null | undefined, maxAgeHours: number): boolean {
+  const parsed = parseTimestamp(value);
+  if (!parsed) return false;
+  return Date.now() - parsed.getTime() <= maxAgeHours * 60 * 60 * 1000;
+}
+
+function buildStaleReason(label: string, value: string | Date | null | undefined): string {
+  const parsed = parseTimestamp(value);
+  if (!parsed) return `${label} did not include a valid timestamp`;
+  return `${label} is stale (last update ${parsed.toISOString()})`;
+}
+
 function isPersistentEntryKind(entry: Pick<LiveStreamSnapshotEntry, "kind" | "source">): boolean {
   if (entry.kind === "partner_brief" || entry.kind === "partner_delta") return true;
   if (entry.kind === "county_lead" || entry.kind === "state_lead") return true;
@@ -1024,66 +1042,12 @@ export async function buildLiveStreamSnapshot(params?: {
     `),
   ]);
 
-  const lisaFeed =
-    lisaFeedResult.status === "fulfilled"
-      ? lisaFeedResult.value
-      : {
-          generatedAt: new Date().toISOString(),
-          runtimeMode: "tradescout_local",
-          source: "fallback",
-          summary: {
-            truthNow: "LISA feed unavailable; showing partial live stream.",
-            dataProductionSummary: "LISA feed unavailable.",
-            llmOptimizationSummary: "LISA feed unavailable.",
-          },
-          feed: [],
-        };
-
-  const crawlerTelemetry =
-    crawlerTelemetryResult.status === "fulfilled"
-      ? crawlerTelemetryResult.value
-      : {
-          generatedAt: new Date().toISOString(),
-          totals24h: { total: 0, ok: 0, clientError: 0, serverError: 0 },
-          topBots: [],
-          topRoutes: [],
-          topSurfaces: [],
-          requestTypes: [],
-          topCounties: [],
-        };
+  let lisaFeed = lisaFeedResult.status === "fulfilled" ? lisaFeedResult.value : null;
+  let crawlerTelemetry =
+    crawlerTelemetryResult.status === "fulfilled" ? crawlerTelemetryResult.value : null;
   const botDemandSignals =
     botDemandSignalsResult.status === "fulfilled" ? botDemandSignalsResult.value : [];
-
-  const cumulusBrief =
-    cumulusBriefResult.status === "fulfilled"
-      ? cumulusBriefResult.value
-      : {
-          partnerSlug: "cumulus-media",
-          generatedAt: new Date().toISOString(),
-          filters: {
-            window: "24h",
-            stateCode: filters.stateCode || null,
-            surface: null,
-            limit: 100,
-          },
-          executiveSummary: "Cumulus brief unavailable; showing partial live stream.",
-          activationSummary: "Cumulus brief unavailable.",
-          topCounties: [],
-          topStates: [],
-          summary: {
-            deltaSummary: "No Cumulus delta available.",
-            currentLeadCounty: null,
-            currentLeadState: null,
-            currentLeadSurface: null,
-            stateLead: null,
-          },
-          lisa: {
-            truthNow: "",
-            dataProductionSummary: "",
-            llmOptimizationSummary: "",
-            topFindings: [],
-          },
-        };
+  let cumulusBrief = cumulusBriefResult.status === "fulfilled" ? cumulusBriefResult.value : null;
 
   const activeAlerts =
     activeAlertsResult.status === "fulfilled" && Array.isArray(activeAlertsResult.value)
@@ -1103,6 +1067,7 @@ export async function buildLiveStreamSnapshot(params?: {
     directoryInventoryLeadResult.status === "rejected" ? "directory" : null,
   ].filter((value): value is string => Boolean(value));
   const degradedSourceReasons: Record<string, string> = {};
+  const degradedSourceSet = new Set(degradedSources);
 
   if (lisaFeedResult.status === "rejected") {
     degradedSourceReasons.lisa = summarizeRejectionReason(lisaFeedResult.reason);
@@ -1148,38 +1113,98 @@ export async function buildLiveStreamSnapshot(params?: {
     degradedSourceReasons.directory = summarizeRejectionReason(directoryInventoryLeadResult.reason);
   }
 
-  const botCrawlFindings = (lisaFeed.feed || []).filter(
+  if (lisaFeed && !isFreshTimestamp(lisaFeed.generatedAt, 6)) {
+    degradedSourceSet.add("lisa");
+    degradedSourceReasons.lisa =
+      degradedSourceReasons.lisa || buildStaleReason("LISA feed", lisaFeed.generatedAt);
+    lisaFeed = null;
+  }
+  if (crawlerTelemetry && !isFreshTimestamp(crawlerTelemetry.generatedAt, 6)) {
+    degradedSourceSet.add("crawler");
+    degradedSourceReasons.crawler =
+      degradedSourceReasons.crawler ||
+      buildStaleReason("crawler telemetry", crawlerTelemetry.generatedAt);
+    crawlerTelemetry = null;
+  }
+  if (cumulusBrief && !isFreshTimestamp(cumulusBrief.generatedAt, 12)) {
+    degradedSourceSet.add("cumulus");
+    degradedSourceReasons.cumulus =
+      degradedSourceReasons.cumulus || buildStaleReason("Cumulus brief", cumulusBrief.generatedAt);
+    cumulusBrief = null;
+  }
+
+  const botCrawlFindings = (lisaFeed?.feed || []).filter(
     (item) => item.sourceKind === "bot_crawl_signals"
   );
-  const scoutCountyDemand =
+  let scoutCountyDemand =
     scoutCountyDemandResult.status === "fulfilled" ? scoutCountyDemandResult.value.rows[0] : null;
-  const tradeDealsLead =
+  let tradeDealsLead =
     tradeDealsLeadResult.status === "fulfilled" ? tradeDealsLeadResult.value.rows[0] : null;
-  const homeScoutLead =
+  let homeScoutLead =
     homeScoutLeadResult.status === "fulfilled" ? homeScoutLeadResult.value.rows[0] : null;
-  const observationsLead =
+  let observationsLead =
     observationsLeadResult.status === "fulfilled" ? observationsLeadResult.value.rows[0] : null;
-  const directoryInventoryLead =
+  let directoryInventoryLead =
     directoryInventoryLeadResult.status === "fulfilled"
       ? directoryInventoryLeadResult.value.rows[0]
       : null;
+  if (scoutCountyDemand && !isFreshTimestamp(scoutCountyDemand.last_seen_at, 36)) {
+    degradedSourceSet.add("scout-interactions");
+    degradedSourceReasons["scout-interactions"] =
+      degradedSourceReasons["scout-interactions"] ||
+      buildStaleReason("Scout interactions", scoutCountyDemand.last_seen_at);
+    scoutCountyDemand = null;
+  }
+  if (tradeDealsLead && !isFreshTimestamp(tradeDealsLead.updated_at, 72)) {
+    degradedSourceSet.add("trade-deals");
+    degradedSourceReasons["trade-deals"] =
+      degradedSourceReasons["trade-deals"] ||
+      buildStaleReason("TradeDeals lead", tradeDealsLead.updated_at);
+    tradeDealsLead = null;
+  }
+  if (homeScoutLead && !isFreshTimestamp(homeScoutLead.updated_at, 72)) {
+    degradedSourceSet.add("homescout");
+    degradedSourceReasons.homescout =
+      degradedSourceReasons.homescout ||
+      buildStaleReason("HomeScout lead", homeScoutLead.updated_at);
+    homeScoutLead = null;
+  }
+  if (observationsLead && !isFreshTimestamp(observationsLead.updated_at, 168)) {
+    degradedSourceSet.add("observations");
+    degradedSourceReasons.observations =
+      degradedSourceReasons.observations ||
+      buildStaleReason("observations lead", observationsLead.updated_at);
+    observationsLead = null;
+  }
+  if (directoryInventoryLead && !isFreshTimestamp(directoryInventoryLead.updated_at, 168)) {
+    degradedSourceSet.add("directory");
+    degradedSourceReasons.directory =
+      degradedSourceReasons.directory ||
+      buildStaleReason("directory inventory", directoryInventoryLead.updated_at);
+    directoryInventoryLead = null;
+  }
+
   const topBotCrawlFinding = botCrawlFindings[0] || null;
   const topDemandSignal = botDemandSignals[0] || null;
-  const topDemandRoutes = crawlerTelemetry.topRoutes?.slice(0, 5) || [];
-  const topDemandCounties = crawlerTelemetry.topCounties?.slice(0, 5) || [];
+  const topDemandRoutes = crawlerTelemetry?.topRoutes?.slice(0, 5) || [];
+  const topDemandCounties = crawlerTelemetry?.topCounties?.slice(0, 5) || [];
 
   const rawStream = [
-    {
-      id: `lisa-truth-${lisaFeed.generatedAt}`,
-      timestamp: lisaFeed.generatedAt,
-      kind: "truth_now",
-      priority: "medium",
-      title: "Current operating truth",
-      narrative: lisaFeed.summary.truthNow,
-      source: "lisa",
-      stateCode: null,
-      countyName: null,
-    },
+    ...(lisaFeed?.summary.truthNow?.trim()
+      ? [
+          {
+            id: `lisa-truth-${lisaFeed.generatedAt}`,
+            timestamp: lisaFeed.generatedAt,
+            kind: "truth_now",
+            priority: "medium" as LiveStreamPriority,
+            title: "Current operating truth",
+            narrative: lisaFeed.summary.truthNow,
+            source: "lisa",
+            stateCode: null,
+            countyName: null,
+          },
+        ]
+      : []),
     ...(scoutCountyDemand?.county_name
       ? [
           {
@@ -1338,7 +1363,7 @@ export async function buildLiveStreamSnapshot(params?: {
           },
         ]
       : []),
-    ...(cumulusBrief.topCounties?.[0]
+    ...(cumulusBrief?.topCounties?.[0]
       ? [
           {
             id: `cumulus-county-${cumulusBrief.generatedAt}-${cumulusBrief.topCounties[0].countyFips}`,
@@ -1353,7 +1378,7 @@ export async function buildLiveStreamSnapshot(params?: {
           },
         ]
       : []),
-    ...(cumulusBrief.topStates?.[0]
+    ...(cumulusBrief?.topStates?.[0]
       ? [
           {
             id: `cumulus-state-${cumulusBrief.generatedAt}-${cumulusBrief.topStates[0].stateCode}`,
@@ -1368,22 +1393,26 @@ export async function buildLiveStreamSnapshot(params?: {
           },
         ]
       : []),
-    {
-      id: `crawler-total-${crawlerTelemetry.generatedAt}`,
-      timestamp: crawlerTelemetry.generatedAt,
-      kind: "crawler_volume",
-      priority: "medium",
-      title: "Crawler Volume",
-      narrative: `${crawlerTelemetry.totals24h.total} crawler requests were observed in the last 24 hours with ${crawlerTelemetry.totals24h.ok} returning 2xx and ${crawlerTelemetry.totals24h.serverError} returning 5xx.`,
-      source: "crawler",
-      stateCode: null,
-      countyName: null,
-    },
-    ...(crawlerTelemetry.topBots?.[0]
+    ...(crawlerTelemetry
+      ? [
+          {
+            id: `crawler-total-${crawlerTelemetry.generatedAt}`,
+            timestamp: crawlerTelemetry.generatedAt,
+            kind: "crawler_volume",
+            priority: "medium" as LiveStreamPriority,
+            title: "Crawler Volume",
+            narrative: `${crawlerTelemetry.totals24h.total} crawler requests were observed in the last 24 hours with ${crawlerTelemetry.totals24h.ok} returning 2xx and ${crawlerTelemetry.totals24h.serverError} returning 5xx.`,
+            source: "crawler",
+            stateCode: null,
+            countyName: null,
+          },
+        ]
+      : []),
+    ...(crawlerTelemetry?.topBots?.[0]
       ? [
           {
             id: `crawler-bot-${crawlerTelemetry.generatedAt}-${crawlerTelemetry.topBots[0].botName}`,
-            timestamp: crawlerTelemetry.generatedAt,
+            timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
             kind: "crawler_top_bot",
             priority: "low" as LiveStreamPriority,
             title: "Top Bot",
@@ -1395,8 +1424,8 @@ export async function buildLiveStreamSnapshot(params?: {
         ]
       : []),
     ...topDemandRoutes.slice(0, 3).map((route, idx) => ({
-      id: `crawler-route-demand-${crawlerTelemetry.generatedAt}-${idx}-${route.path}`,
-      timestamp: crawlerTelemetry.generatedAt,
+      id: `crawler-route-demand-${crawlerTelemetry?.generatedAt || "na"}-${idx}-${route.path}`,
+      timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
       kind: "crawler_route_demand",
       priority: idx === 0 ? ("high" as LiveStreamPriority) : ("medium" as LiveStreamPriority),
       title: `Route demand hotspot ${idx + 1}`,
@@ -1406,8 +1435,8 @@ export async function buildLiveStreamSnapshot(params?: {
       countyName: null,
     })),
     ...topDemandCounties.slice(0, 3).map((county, idx) => ({
-      id: `crawler-county-demand-${crawlerTelemetry.generatedAt}-${idx}-${county.countyFips || county.countyName}`,
-      timestamp: crawlerTelemetry.generatedAt,
+      id: `crawler-county-demand-${crawlerTelemetry?.generatedAt || "na"}-${idx}-${county.countyFips || county.countyName}`,
+      timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
       kind: "crawler_county_demand",
       priority: idx === 0 ? ("high" as LiveStreamPriority) : ("medium" as LiveStreamPriority),
       title: `County demand hotspot ${idx + 1}`,
@@ -1422,7 +1451,7 @@ export async function buildLiveStreamSnapshot(params?: {
       ? [
           {
             id: `bot-demand-cluster-${topDemandSignal.date}-${topDemandSignal.routeFamily}`,
-            timestamp: crawlerTelemetry.generatedAt,
+            timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
             kind: "bot_demand_cluster",
             priority:
               topDemandSignal.status404Count >= 5 || topDemandSignal.hits >= 20
@@ -1466,7 +1495,7 @@ export async function buildLiveStreamSnapshot(params?: {
           .toUpperCase() || null,
       countyName: String(alert.labels?.countyName || "").trim() || null,
     })),
-    ...lisaFeed.feed
+    ...(lisaFeed?.feed || [])
       .filter(
         (item) =>
           !["entity_discovery", "county_category_discovery", "action_gating_summary"].includes(
@@ -1474,7 +1503,9 @@ export async function buildLiveStreamSnapshot(params?: {
           )
       )
       .slice(0, 10)
-      .map((item) => toLiveStreamEntryFromLisaItem(item, lisaFeed.generatedAt)),
+      .map((item) =>
+        toLiveStreamEntryFromLisaItem(item, lisaFeed?.generatedAt || new Date().toISOString())
+      ),
   ] as LiveStreamSnapshotEntry[];
   const decoratedStream: LiveStreamSnapshotEntry[] = rawStream
     .filter((entry) => {
@@ -1519,15 +1550,15 @@ export async function buildLiveStreamSnapshot(params?: {
       limit: filters.limit,
     },
     summary: {
-      truthNow: lisaFeed.summary.truthNow,
-      currentLeadCounty: cumulusBrief.summary.currentLeadCounty,
-      currentLeadState: cumulusBrief.summary.currentLeadState,
-      crawlerRequests24h: crawlerTelemetry.totals24h.total,
+      truthNow: lisaFeed?.summary.truthNow?.trim() || "",
+      currentLeadCounty: cumulusBrief?.summary.currentLeadCounty || null,
+      currentLeadState: cumulusBrief?.summary.currentLeadState || null,
+      crawlerRequests24h: crawlerTelemetry?.totals24h.total || 0,
       activeAlerts: activeAlerts.length,
       botCrawlSignals: botCrawlFindings.length,
       topBotCrawlHeadline: topBotCrawlFinding?.headline || null,
       sourceCounts,
-      degradedSources,
+      degradedSources: Array.from(degradedSourceSet),
       degradedSourceReasons: Object.keys(degradedSourceReasons).length
         ? degradedSourceReasons
         : undefined,

@@ -169,6 +169,23 @@ const sourceTone: Record<string, string> = {
   alerts: "border-red-300/20 bg-red-500/10 text-red-50",
   bot_crawl_signals: "border-amber-300/20 bg-amber-500/10 text-amber-50",
   cumulus: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
+  scout_interactions: "border-blue-300/20 bg-blue-500/10 text-blue-50",
+  tradedeals: "border-lime-300/20 bg-lime-500/10 text-lime-50",
+  homescout: "border-sky-300/20 bg-sky-500/10 text-sky-50",
+  observations: "border-fuchsia-300/20 bg-fuchsia-500/10 text-fuchsia-50",
+  directory: "border-teal-300/20 bg-teal-500/10 text-teal-50",
+};
+
+const familyTone: Record<string, string> = {
+  "site demand": "border-blue-300/20 bg-blue-500/10 text-blue-50",
+  deals: "border-lime-300/20 bg-lime-500/10 text-lime-50",
+  "real estate": "border-sky-300/20 bg-sky-500/10 text-sky-50",
+  directory: "border-teal-300/20 bg-teal-500/10 text-teal-50",
+  observations: "border-fuchsia-300/20 bg-fuchsia-500/10 text-fuchsia-50",
+  partner: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
+  crawler: "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
+  alerts: "border-red-300/20 bg-red-500/10 text-red-50",
+  intelligence: "border-violet-300/20 bg-violet-500/10 text-violet-50",
 };
 
 const ownerTone: Record<string, string> = {
@@ -209,6 +226,18 @@ function resolveDurabilityClass(source: string): "volatile" | "stable" | "persis
     return "persistent";
   }
   return "stable";
+}
+
+function resolveSignalFamily(item: Pick<LiveStreamItem, "source">): string {
+  if (item.source === "scout_interactions") return "site demand";
+  if (item.source === "tradedeals") return "deals";
+  if (item.source === "homescout") return "real estate";
+  if (item.source === "directory") return "directory";
+  if (item.source === "observations") return "observations";
+  if (item.source === "cumulus") return "partner";
+  if (item.source === "alerts") return "alerts";
+  if (item.source === "crawler" || item.source === "bot_crawl_signals") return "crawler";
+  return "intelligence";
 }
 
 function resolveEntryActionHint(item: LiveStreamItem): string | null {
@@ -441,6 +470,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
   const contextTokens = buildEntryContextTokens(item);
   const owner = resolveEntryOwner(item);
   const urgency = resolveEntryUrgency(item);
+  const signalFamily = resolveSignalFamily(item);
 
   return (
     <div
@@ -460,6 +490,9 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
               )}
             >
               {item.source.replaceAll("_", " ")}
+            </Badge>
+            <Badge className={familyTone[signalFamily] || familyTone.intelligence}>
+              {signalFamily}
             </Badge>
             {item.kind ? (
               <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
@@ -530,6 +563,7 @@ export default function AdminLiveStreamPage() {
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
   const [source, setSource] = useState("all");
+  const [sourceFamilyFilter, setSourceFamilyFilter] = useState("all");
   const [truthFilter, setTruthFilter] = useState("all");
   const [durabilityFilter, setDurabilityFilter] = useState("all");
   const [stateCode, setStateCode] = useState("all");
@@ -610,11 +644,13 @@ export default function AdminLiveStreamPage() {
     return (data?.stream || []).filter((item) => {
       const truthStatus = item.truthStatus === "current" ? "current" : "stale";
       const durabilityClass = resolveDurabilityClass(item.source);
+      const family = resolveSignalFamily(item);
       const truthMatch = truthFilter === "all" || truthStatus === truthFilter;
       const durabilityMatch = durabilityFilter === "all" || durabilityClass === durabilityFilter;
-      return truthMatch && durabilityMatch;
+      const familyMatch = sourceFamilyFilter === "all" || family === sourceFamilyFilter;
+      return truthMatch && durabilityMatch && familyMatch;
     });
-  }, [data?.stream, truthFilter, durabilityFilter]);
+  }, [data?.stream, truthFilter, durabilityFilter, sourceFamilyFilter]);
 
   const { data: snapshotStatus } = useQuery<SnapshotStatusResponse>({
     queryKey: ["/api/admin/observability/snapshot-status"],
@@ -1043,10 +1079,20 @@ export default function AdminLiveStreamPage() {
   };
 
   const applyFeedPreset = (
-    preset: "all" | "urgent" | "crawler_ops" | "lisa_only" | "county_watch"
+    preset:
+      | "all"
+      | "urgent"
+      | "crawler_ops"
+      | "lisa_only"
+      | "county_watch"
+      | "site_demand"
+      | "inventory"
+      | "deals"
+      | "real_estate"
   ) => {
     if (preset === "all") {
       setSource("all");
+      setSourceFamilyFilter("all");
       setTruthFilter("all");
       setDurabilityFilter("all");
       setStateCode("all");
@@ -1056,6 +1102,7 @@ export default function AdminLiveStreamPage() {
     }
     if (preset === "urgent") {
       setSource("all");
+      setSourceFamilyFilter("all");
       setTruthFilter("current");
       setDurabilityFilter("volatile");
       setStateCode("all");
@@ -1065,6 +1112,7 @@ export default function AdminLiveStreamPage() {
     }
     if (preset === "crawler_ops") {
       setSource("crawler");
+      setSourceFamilyFilter("crawler");
       setTruthFilter("all");
       setDurabilityFilter("volatile");
       setStateCode("all");
@@ -1074,6 +1122,7 @@ export default function AdminLiveStreamPage() {
     }
     if (preset === "lisa_only") {
       setSource("lisa");
+      setSourceFamilyFilter("intelligence");
       setTruthFilter("current");
       setDurabilityFilter("all");
       setStateCode("all");
@@ -1081,7 +1130,48 @@ export default function AdminLiveStreamPage() {
       setLimit("20");
       return;
     }
+    if (preset === "site_demand") {
+      setSource("all");
+      setSourceFamilyFilter("site demand");
+      setTruthFilter("current");
+      setDurabilityFilter("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
+    if (preset === "inventory") {
+      setSource("all");
+      setSourceFamilyFilter("directory");
+      setTruthFilter("all");
+      setDurabilityFilter("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
+    if (preset === "deals") {
+      setSource("all");
+      setSourceFamilyFilter("deals");
+      setTruthFilter("all");
+      setDurabilityFilter("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
+    if (preset === "real_estate") {
+      setSource("all");
+      setSourceFamilyFilter("real estate");
+      setTruthFilter("all");
+      setDurabilityFilter("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("20");
+      return;
+    }
     setSource("all");
+    setSourceFamilyFilter("all");
     setTruthFilter("current");
     setDurabilityFilter("all");
     setStateCode("all");
@@ -1092,6 +1182,7 @@ export default function AdminLiveStreamPage() {
   const activeFilterSummary = useMemo(() => {
     const parts = [
       source === "all" ? "all sources" : `source:${source}`,
+      sourceFamilyFilter === "all" ? "all families" : `family:${sourceFamilyFilter}`,
       truthFilter === "all" ? "all truth states" : `truth:${truthFilter}`,
       durabilityFilter === "all" ? "all durability" : `durability:${durabilityFilter}`,
       stateCode === "all" ? "all states" : `state:${stateCode}`,
@@ -1100,7 +1191,16 @@ export default function AdminLiveStreamPage() {
       `history:${historyDays || "7"}d`,
     ];
     return parts.join(" | ");
-  }, [source, truthFilter, durabilityFilter, stateCode, county, limit, historyDays]);
+  }, [
+    source,
+    sourceFamilyFilter,
+    truthFilter,
+    durabilityFilter,
+    stateCode,
+    county,
+    limit,
+    historyDays,
+  ]);
   const groupedLiveFeed = useMemo(() => {
     const groups = {
       adPlays: [] as LiveStreamItem[],
@@ -1243,8 +1343,9 @@ export default function AdminLiveStreamPage() {
             <div>
               <CardTitle className="text-white">TradeScout Live Stream</CardTitle>
               <CardDescription className="text-white/70">
-                Real-time natural-language stream of current system truth, crawler activity, partner
-                intelligence, and LISA findings.
+                Source-backed site signals across demand, inventory, deals, real estate, partner
+                intel, alerts, and crawler health. Degraded or stale inputs should be flagged, not
+                invented.
               </CardDescription>
             </div>
             <Button onClick={handlePresentationModeToggle} variant="outline">
@@ -1330,19 +1431,20 @@ export default function AdminLiveStreamPage() {
               </div>
               <div className="mt-2 text-xs text-white/60">
                 {visibleEntryCount === 0
-                  ? "This feed is not actionable yet. Refresh or widen filters."
+                  ? "No trustworthy live signals are available right now. The stream is hiding stale or degraded entries instead of filling with guesses."
                   : visibleEntryCount < 5
-                    ? "Signal density is thin. Treat this as partial situational awareness."
-                    : "Enough signal is present to prioritize work from the queue and buckets."}
+                    ? "Signal density is thin. Treat this as partial awareness until more source-backed entries arrive."
+                    : "Enough source-backed signal is present to prioritize work from the queue and buckets."}
               </div>
             </div>
           </div>
 
           {degradedSources.length ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Live stream is partially degraded and is retrying weak snapshots more aggressively.
+              Live stream is partially degraded. Stale or failed sources are being withheld instead
+              of replaced with synthetic filler.
               <div className="mt-2 text-destructive/90">
-                Fallback sources: {degradedSources.join(", ")}.
+                Affected sources: {degradedSources.join(", ")}.
               </div>
               {degradedSourceEntries.length ? (
                 <div className="mt-2 space-y-1 text-xs text-destructive/90">
@@ -1364,7 +1466,7 @@ export default function AdminLiveStreamPage() {
                 </div>
                 <div className="mt-2 text-sm text-white/80">
                   The shortest read on what you can sell, where to spend, where to move next, and
-                  what leak is killing monetizable attention.
+                  what leak is killing monetizable attention, using only source-backed entries.
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -2256,6 +2358,18 @@ export default function AdminLiveStreamPage() {
               <Button variant="outline" size="sm" onClick={() => applyFeedPreset("urgent")}>
                 Urgent
               </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("site_demand")}>
+                Site Demand
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("inventory")}>
+                Directory
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("deals")}>
+                Deals
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("real_estate")}>
+                Real Estate
+              </Button>
               <Button variant="outline" size="sm" onClick={() => applyFeedPreset("crawler_ops")}>
                 Crawler Ops
               </Button>
@@ -2272,8 +2386,28 @@ export default function AdminLiveStreamPage() {
           </div>
 
           <div
-            className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-7" : "md:grid-cols-7"} gap-4`}
+            className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-8" : "md:grid-cols-8"} gap-4`}
           >
+            <div className="space-y-1">
+              <Label>Family</Label>
+              <Select value={sourceFamilyFilter} onValueChange={setSourceFamilyFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All families</SelectItem>
+                  <SelectItem value="site demand">Site demand</SelectItem>
+                  <SelectItem value="directory">Directory</SelectItem>
+                  <SelectItem value="deals">Deals</SelectItem>
+                  <SelectItem value="real estate">Real estate</SelectItem>
+                  <SelectItem value="observations">Observations</SelectItem>
+                  <SelectItem value="partner">Partner</SelectItem>
+                  <SelectItem value="crawler">Crawler</SelectItem>
+                  <SelectItem value="alerts">Alerts</SelectItem>
+                  <SelectItem value="intelligence">Intelligence</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label>Source</Label>
               <Select value={source} onValueChange={setSource}>
@@ -2282,6 +2416,11 @@ export default function AdminLiveStreamPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
+                  <SelectItem value="scout_interactions">Scout Interactions</SelectItem>
+                  <SelectItem value="tradedeals">TradeDeals</SelectItem>
+                  <SelectItem value="homescout">HomeScout</SelectItem>
+                  <SelectItem value="directory">Directory</SelectItem>
+                  <SelectItem value="observations">Observations</SelectItem>
                   <SelectItem value="lisa">LISA</SelectItem>
                   <SelectItem value="bot_crawl_signals">Bot Crawl</SelectItem>
                   <SelectItem value="cumulus">Cumulus</SelectItem>
@@ -2463,8 +2602,9 @@ export default function AdminLiveStreamPage() {
                 <div>
                   <div className="text-sm font-semibold text-white">Revenue Playbook</div>
                   <div className="mt-1 text-xs text-white/65">
-                    Revenue and market moves pulled from the stream so you can launch ads, make
-                    market calls, and pitch advertisers without reading generic telemetry.
+                    Revenue and market moves pulled from trustworthy stream entries so you can
+                    launch ads, make market calls, and pitch advertisers without reading generic
+                    telemetry.
                   </div>
                 </div>
                 <Badge variant="outline" className="border-sky-200/20 text-sky-50">
@@ -2658,7 +2798,7 @@ export default function AdminLiveStreamPage() {
 
             {filteredStream.length === 0 ? (
               <div className="text-sm text-white/65">
-                {isLoading ? "Loading stream..." : "No live entries available."}
+                {isLoading ? "Loading stream..." : "No trustworthy live entries available."}
               </div>
             ) : (
               <>
