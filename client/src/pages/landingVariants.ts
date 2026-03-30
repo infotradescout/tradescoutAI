@@ -207,7 +207,6 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   supplier: {
     displayName: "Suppliers",
     badgeText: "Local Distribution Intelligence",
-    headlineLines: ["Reach Local", "Demand Through", "Governed Paths"],
     headlineLines: ["Reach Local", "Demand Through", "Better Paths"],
     subhead:
       "Scout helps suppliers and vendors connect with real local demand without spam-based distribution.",

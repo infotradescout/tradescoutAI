@@ -1037,8 +1037,8 @@ export default function AdminLiveStreamPage() {
       const summary = buildUsefulSignalSummary(topOpportunity);
       items.push({
         label: "Strongest signal",
-        value: summary.fact,
-        detail: summary.trigger || summary.support,
+        value: summary.marketSignal,
+        detail: summary.trigger || summary.prospects || summary.inventory,
       });
     }
     if (topBotDemandCluster) {
@@ -1046,7 +1046,7 @@ export default function AdminLiveStreamPage() {
       items.push({
         label: "What triggered it",
         value: summary.trigger || summary.headline,
-        detail: summary.fact,
+        detail: summary.marketSignal,
       });
     }
     const biggestLeak = resolveBiggestLeak({ topWaste, topFriction, firstRepairRoute });
