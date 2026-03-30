@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeDisplay, nameToSlug } from "./tradeSeoHelpers";
+import { localBrowseCopy, stripCountySuffix, toLocalMarketLabel } from "@/lib/userFacingCopy";
 
 type PublicBusinessListItem = {
   id: string;
@@ -117,7 +118,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
             <p className="text-red-700 mb-4">The requested trade/county could not be resolved.</p>
             <Link href="/county-directory">
               <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Browse Counties
+                Browse Markets
               </a>
             </Link>
           </CardContent>
@@ -126,8 +127,9 @@ const TradeCountyPage = memo(function TradeCountyPage() {
     );
   }
 
-  const title = `${trade.name} in ${county.name}, ${state.code} | TradeScout`;
-  const description = `Directory of ${trade.name} serving ${county.name}, ${state.code}. Listings may be unclaimed. Contact remains protected through TradeScout Direct Connect.`;
+  const marketLabel = toLocalMarketLabel(county.name, state.code);
+  const title = `${trade.name} in ${marketLabel} | TradeScout`;
+  const description = `Directory of ${trade.name} serving ${marketLabel}. Narrow by city to get closer to the neighborhood you care about.`;
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: "Trades", url: "/trade" },
@@ -153,10 +155,10 @@ const TradeCountyPage = memo(function TradeCountyPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-6">
           <h1 className="text-4xl font-bold text-white mb-2">
-            {trade.name} in {county.name}, {state.code}
+            {trade.name} in {marketLabel}
           </h1>
           <p className="text-white/60">
-            Listings may be unclaimed. Verification appears on each business page.
+            Start with the local market, then narrow by city or neighborhood. {localBrowseCopy()}
           </p>
         </div>
 
@@ -166,7 +168,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={`Search ${trade.name} in ${county.name}...`}
+                placeholder={`Search ${trade.name} in ${stripCountySuffix(county.name)}...`}
               />
               <Input
                 value={city}

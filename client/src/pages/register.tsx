@@ -216,7 +216,7 @@ export default function Register() {
               <li>Choose your colors and profile layout.</li>
               <li>
                 Toggle which sections appear on your public profile (About, services,
-                RECOMMENDATIONS, and more).
+                recommendations, and more).
               </li>
               <li>Connect Marketplace, Community, and any future roles under one profile URL.</li>
             </ul>

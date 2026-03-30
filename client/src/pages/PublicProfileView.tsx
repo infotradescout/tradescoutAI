@@ -996,7 +996,7 @@ export default function PublicProfileView() {
               </Card>
             )}
 
-            {/* RECOMMENDATIONS summary */}
+            {/* Recommendations summary */}
             {showReviews && sellerRatings && sellerRatings.count > 0 && (
               <Card>
                 <CardHeader>
@@ -1005,7 +1005,7 @@ export default function PublicProfileView() {
                       className="h-5 w-5"
                       style={{ color: "var(--user-primary, #f97316)" }}
                     />
-                    RECOMMENDATIONS
+                    Recommendations
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

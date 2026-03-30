@@ -66,7 +66,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     cards: [
       {
         title: "For People Hiring",
-        desc: "Clear decisions, governed next steps, and gated contact without chaos.",
+        desc: "Clear next steps, better local matches, and less outreach chaos.",
       },
       {
         title: "For Pros & Providers",
@@ -77,7 +77,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   cta: {
     label: "Start With Scout",
     titleLines: ["Ready to get the", "right local next step?"],
-    desc: "Start with Scout. Get the right next step, the right local path, and the right contact flow without losing trust or context.",
+    desc: "Start with Scout. Figure out what you need, see the best local path forward, and reach out without the usual chaos.",
     primaryLabel: "Get Started",
     primaryHref: "/pre-scout-setup?mode=create",
     secondaryLabel: "Sign In",
@@ -91,15 +91,15 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Trusted Work Pipeline",
     headlineLines: ["Operate Inside", "The Trusted", "Local Work System"],
     subhead:
-      "Scout routes relevant local demand to pros who match the work, the trust profile, and the community context. No bidding chaos, no lead reselling.",
+      "TradeScout helps serious pros get better local opportunities without bidding chaos or lead reselling.",
     audience: {
       sectionLabel: "For Contractors",
       sectionTitle: "Get Better Jobs, Not Bigger Spam Lists",
       sectionDesc:
         "TradeScout helps you compete on trust and delivery. Visibility comes from verified work, not ad spend.",
       cards: [
-        { title: "Qualified Demand", desc: "Intent-based requests with clear context." },
-        { title: "Fair Exposure", desc: "Ranking follows trust signals and consistency." },
+        { title: "Better Leads", desc: "Requests come with clearer context and less noise." },
+        { title: "Fair Exposure", desc: "The best providers rise through trust and consistency." },
       ],
     } as LandingVariant["audience"],
   },
@@ -142,12 +142,12 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Community Operations",
     headlineLines: ["Community Work", "Run With", "Governed Clarity"],
     subhead:
-      "Scout helps communities coordinate local providers with clear approvals and gated contact.",
+      "Scout helps communities coordinate local providers with clear approvals and cleaner communication.",
     audience: {
       sectionLabel: "For Communities",
       sectionTitle: "Decisions You Can Audit",
       sectionDesc:
-        "Scout supports clear routing: intent, decision, then contact. Stakeholders stay aligned.",
+        "Scout keeps everyone aligned on what needs to happen next and who should be involved.",
       cards: [
         { title: "Boards & Managers", desc: "Reduce churn and miscommunication." },
         { title: "Residents", desc: "Understand what is happening and why." },
@@ -158,8 +158,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     displayName: "Property Managers",
     badgeText: "Multi-Property Coordination",
     headlineLines: ["Coordinate", "Local Operations", "Without Contact Chaos"],
-    subhead:
-      "Scout helps property teams route maintenance demand to trusted local providers without contact chaos.",
+    subhead: "Scout helps property teams line up trusted local providers without contact chaos.",
     audience: {
       sectionLabel: "For Property Teams",
       sectionTitle: "Portfolio Workflows, Simplified",
@@ -209,6 +208,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     displayName: "Suppliers",
     badgeText: "Local Distribution Intelligence",
     headlineLines: ["Reach Local", "Demand Through", "Governed Paths"],
+    headlineLines: ["Reach Local", "Demand Through", "Better Paths"],
     subhead:
       "Scout helps suppliers and vendors connect with real local demand without spam-based distribution.",
     audience: {

@@ -46,7 +46,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How does TradeScout match me with contractors?",
       answer:
-        "You tell Scout what you need, and Scout looks for local pros who fit the job, serve your area, and have the right trust signals. Paying more does not move someone ahead in the line.",
+        "You tell Scout what you need, and Scout looks for local pros who fit the job, serve your area, and have strong CVS. Paying more does not move someone ahead in the line.",
     },
     {
       question: "What is the trust system?",
@@ -56,7 +56,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Payment never influences ranking, routing, or trust authority.",
+        "TradeScout does not sell leads and does not charge to connect. Payment never changes who shows up first or who gets matched.",
     },
     {
       question: "What is Scout?",
@@ -107,7 +107,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Shield,
       title: "Community Verification Score",
-      desc: "Every pro has a CVS score based on public trust checks.",
+      desc: "Every pro has a CVS score built from real trust checks people can understand.",
       bullets: [
         "Verified identity (real person, real business)",
         "Active license & insurance (state-verified)",
@@ -138,7 +138,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Users,
       title: "Community-Verified",
-      desc: "Recommendations come from real neighbors, not anonymous reviews.",
+      desc: "Recommendations come from real neighbors, not anonymous accounts.",
     },
     {
       icon: Zap,

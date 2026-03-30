@@ -2,17 +2,7 @@ import { memo, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Link } from "wouter";
 import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
-import {
-  Shield,
-  CheckCircle,
-  Users,
-  TrendingUp,
-  Star,
-  Lock,
-  AlertCircle,
-  ArrowRight,
-  Eye,
-} from "lucide-react";
+import { Shield, CheckCircle, Users, TrendingUp, Star, Lock, AlertCircle, Eye } from "lucide-react";
 
 function Reveal({
   children,
@@ -43,21 +33,21 @@ const TrustModelPage = memo(function TrustModelPage() {
     {
       question: "What is the Community Verification Score (CVS)?",
       answer:
-        "CVS is TradeScout's trust score. It looks at verified identity, license and insurance status, work history, community recommendations, and how problems were handled.",
+        "CVS is TradeScout's trust system. It looks at verified identity, license and insurance status, work history, community recommendations, and how problems were handled.",
     },
     {
       question: "How are contractors verified?",
       answer:
-        "Pros go through identity, license, insurance, and background checks, then start building trust through real work and real reviews.",
+        "Pros go through identity, license, insurance, and background checks, then start building trust through real work and real recommendations.",
     },
     {
-      question: "Why are reviews not anonymous?",
+      question: "Why are recommendations not anonymous?",
       answer:
-        "Because anonymous reviews are easy to fake. TradeScout ties reviews to real, verified people who actually worked with the pro.",
+        "Because anonymous recommendations are easy to fake. TradeScout ties recommendations to real, verified people who actually worked with the pro.",
     },
     {
-      question: "Can contractors pay to change trust score or ranking?",
-      answer: "No. Paying more does not improve trust score or move someone ahead in ranking.",
+      question: "Can contractors pay to change CVS or ranking?",
+      answer: "No. Paying more does not improve CVS or move someone ahead in ranking.",
     },
     {
       question: "What happens if a contractor's license expires?",
@@ -107,9 +97,9 @@ const TrustModelPage = memo(function TrustModelPage() {
       points: 20,
       bullets: [
         "Neighbor endorsements: From verified community members",
-        "Review lineage: Every review tied to a real person who worked with the contractor",
-        "No anonymous reviews: Prevents fake testimonials and retaliation",
-        "Quality over quantity: Weighted by reviewer trust score",
+        "Recommendation lineage: Every recommendation is tied to a real person who worked with the contractor",
+        "No anonymous recommendations: Prevents fake testimonials and retaliation",
+        "Quality over quantity: Weighted by the recommender's own standing",
       ],
     },
     {
@@ -280,36 +270,36 @@ const TrustModelPage = memo(function TrustModelPage() {
             </Reveal>
           </section>
 
-          {/* Why Not Anonymous Reviews */}
+          {/* Why Recommendations Are Not Anonymous */}
           <section>
             <Reveal className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
                 <Users className="w-4 h-4 text-ts-orange" />
-                <span className="text-sm font-medium text-ts-orange">Review Lineage</span>
+                <span className="text-sm font-medium text-ts-orange">Recommendation Lineage</span>
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
-                Why Reviews Are Not Anonymous
+                Why Recommendations Are Not Anonymous
               </h2>
             </Reveal>
             <div className="grid md:grid-cols-2 gap-4">
               {[
                 {
-                  title: "The Problem with Anonymous Reviews",
+                  title: "The Problem with Anonymous Recommendations",
                   items: [
                     "Fake testimonials from contractors themselves",
-                    "Retaliation reviews from competitors",
+                    "Retaliation recommendations from competitors",
                     "No accountability for false claims",
-                    "Gaming the system with bulk reviews",
+                    "Gaming the system with bulk recommendations",
                   ],
                   negative: true,
                 },
                 {
                   title: "TradeScout's Approach",
                   items: [
-                    "Every review tied to a verified community member",
-                    "Reviewer must have actually worked with the contractor",
-                    "Review lineage is publicly auditable",
-                    "Weighted by reviewer's own trust score",
+                    "Every recommendation is tied to a verified community member",
+                    "The person recommending must have actually worked with the contractor",
+                    "Recommendation lineage is publicly auditable",
+                    "Weighted by the recommender's own standing",
                   ],
                   negative: false,
                 },

@@ -33,12 +33,12 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "What is the main difference between TradeScout and Angi?",
       answer:
-        "TradeScout does not sell leads. Scout routes requests using trust and context, and contact stays gated until a match accepts.",
+        "TradeScout does not sell leads. Scout helps you find the right pros, and contact stays closed until a pro accepts.",
     },
     {
       question: "Why does TradeScout keep contact gated?",
       answer:
-        "Contact stays locked until a provider accepts your request. This keeps communication tied to a real match and prevents random outreach.",
+        "Contact stays locked until a provider accepts your request. That keeps the conversation tied to a real response and cuts down on random outreach.",
     },
     {
       question: "Is TradeScout a bidding marketplace?",
@@ -48,7 +48,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       question: "What is the Community Verification Score (CVS)?",
       answer:
-        "CVS is a composite trust metric based on verified identity, license/insurance, work history, and community signals. Payment cannot override it.",
+        "CVS pulls together verified identity, license and insurance, work history, and community recommendations. Payment cannot override it.",
     },
     {
       question: "Is TradeScout really free?",
@@ -78,13 +78,13 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     {
       feature: "Contact",
       angi: "Often opens immediately",
-      ts: "Intent-gated until acceptance",
+      ts: "Opens after a pro accepts",
       tsPos: true,
     },
     {
       feature: "Exposure Logic",
       angi: "Varies by platform",
-      ts: "Trust (CVS) determines exposure",
+      ts: "CVS helps shape who you see first",
       tsPos: true,
     },
     {
@@ -98,7 +98,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
   const changes = [
     {
       title: "Smaller Routing Set",
-      desc: "Your request is routed to a small set of relevant, trust-verified contractors.",
+      desc: "Your request goes to a small set of local contractors who actually fit the job.",
     },
     {
       title: "Not A Bidding Marketplace",
@@ -106,11 +106,11 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     },
     {
       title: "Trust Determines Visibility",
-      desc: "Trust signals determine exposure. Payment cannot override CVS.",
+      desc: "CVS helps determine who you see first. Payment cannot override it.",
     },
     {
-      title: "Community-Verified Reviews",
-      desc: "Reviews come from verified neighbors who actually worked with the contractor.",
+      title: "Community Recommendations",
+      desc: "Recommendations come from verified neighbors who actually worked with the contractor.",
     },
   ];
 
@@ -118,8 +118,8 @@ const CompareAngiPage = memo(function CompareAngiPage() {
     <>
       <SEOHelmet
         title="TradeScout vs. Angi - Trust-First Matching | TradeScout"
-        description="Compare approaches to contractor matching. TradeScout routes requests using trust and context, with intent-gated contact and no lead sales."
-        keywords="tradescout vs angi, angi alternative, trust-first matching, intent-gated contact, no lead sales"
+        description="Compare approaches to contractor matching. TradeScout helps you find stronger local pros, keeps contact closed until acceptance, and does not sell leads."
+        keywords="tradescout vs angi, angi alternative, cvs matching, contact opens after acceptance, no lead sales"
         canonical="https://www.thetradescout.com/compare/angi"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -294,7 +294,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
                 Try TradeScout
               </h2>
               <p className="text-white/60 text-sm mb-4">
-                Experience trust-first matching with intent-gated contact.
+                See how TradeScout keeps contact closed until a pro accepts.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">

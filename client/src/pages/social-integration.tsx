@@ -256,7 +256,7 @@ const SocialIntegration = memo(function SocialIntegration() {
                         enabled: true,
                       },
                       {
-                        label: "Customer RECOMMENDATIONS",
+                        label: "Customer recommendations",
                         description: "Share verified customer recommendations (no star ratings)",
                         enabled: true,
                       },

@@ -8,10 +8,17 @@ import {
   createFAQStructuredData,
   createBreadcrumbStructuredData,
 } from "@/components/SEOHelmet";
-import { US_STATES_COUNTIES, getStateByCode, getCountiesByState } from "@shared/states-counties";
+import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeBySlug } from "@shared/tradeSeo";
 import { ChevronRight, MapPin, Users, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  protectedContactCopy,
+  stripCountySuffix,
+  toLocalMarketLabel,
+  trustScoreDescription,
+  trustScoreLabel,
+} from "@/lib/userFacingCopy";
 
 interface CountyCoverageData {
   countyFips: string;
@@ -44,27 +51,28 @@ function buildCountyFAQs(
   stateName: string,
   coverage: CountyCoverageData | null
 ): Array<{ question: string; answer: string }> {
+  const marketName = stripCountySuffix(countyName) || countyName;
   if (!coverage) {
     return [
       {
-        question: `How do I find contractors in ${countyName}?`,
-        answer: `Use Direct Connect to search verified local contractors. Match on trust and relevance, not cost per lead.`,
+        question: `How do I find contractors near ${marketName}?`,
+        answer: `Use Direct Connect to search verified local contractors, compare the fit, and narrow by city or nearby neighborhood.`,
       },
       {
-        question: `Is ${countyName} covered by TradeScout?`,
+        question: `Does TradeScout cover ${marketName}?`,
         answer: `Coverage information is loading. Please check back.`,
       },
       {
-        question: `What services are available in ${countyName}?`,
-        answer: `Common services include roofing, plumbing, electrical, HVAC, and general contracting. Availability varies by county.`,
+        question: `What services are available near ${marketName}?`,
+        answer: `Common services include roofing, plumbing, electrical, HVAC, and general contracting. Availability varies by city and local coverage.`,
       },
       {
         question: `How is TradeScout different from Angi/HomeAdvisor?`,
-        answer: `Intent-gated contact. Trust-first matching using Community Verification Score (CVS). We match on relevance and trust, not price competition.`,
+        answer: `TradeScout helps you see who looks strongest first, then reach out through the platform without the usual lead spam.`,
       },
       {
-        question: `What is the Community Verification Score (CVS)?`,
-        answer: `A public trust metric based on verified identity, license/insurance status, work history, and community recommendations. Payment cannot override trust.`,
+        question: `What is the ${trustScoreLabel()}?`,
+        answer: `${trustScoreDescription()} Payment cannot buy a higher spot.`,
       },
     ];
   }
@@ -73,34 +81,34 @@ function buildCountyFAQs(
 
   return [
     {
-      question: `How do I find contractors in ${countyName}?`,
+      question: `How do I find contractors near ${marketName}?`,
       answer:
         coverageStatus === "full"
-          ? `Use Direct Connect to search ${affiliateCount} verified contractors. Match on trust and relevance, not cost per lead. ${countyName} is fully covered with dedicated support.`
+          ? `Use Direct Connect to search ${affiliateCount} verified contractors serving ${marketName}. Start broad, then narrow by city or neighborhood.`
           : coverageStatus === "partial"
-            ? `Use Direct Connect to search ${affiliateCount} verified contractors currently serving ${countyName}. Coverage is growing.`
-            : `${countyName} is on our expansion roadmap. Request coverage to prioritize your county.`,
+            ? `Use Direct Connect to search ${affiliateCount} verified contractors currently serving ${marketName}. Coverage is growing across nearby neighborhoods.`
+            : `${marketName} is still building out. Tell Scout where you need help so we can prioritize local coverage.`,
     },
     {
-      question: `Is ${countyName} fully covered?`,
+      question: `How strong is TradeScout coverage near ${marketName}?`,
       answer:
         coverageStatus === "full"
-          ? `Yes. ${affiliateCount} verified contractors + ${territoryManagerCount} territory manager serve ${countyName}. We maintain continuous support.`
+          ? `Strong. ${affiliateCount} verified contractors and ${territoryManagerCount} local support lead${territoryManagerCount !== 1 ? "s" : ""} are already active around ${marketName}.`
           : coverageStatus === "partial"
-            ? `Partially. ${affiliateCount} contractors are active in ${countyName}, and we're adding more. Growth is ongoing.`
-            : `Not yet. ${countyName} is in our coverage roadmap. We prioritize based on demand.`,
+            ? `Growing. ${affiliateCount} contractors are already active around ${marketName}, and more coverage is being added.`
+            : `Coverage is still early around ${marketName}. We prioritize expansion based on real local demand.`,
     },
     {
-      question: `What services are available in ${countyName}?`,
-      answer: `Common services include roofing, plumbing, electrical, HVAC, and general home improvement. Contractor specializations vary by county. Use Direct Connect to filter by trade.`,
+      question: `What services are available near ${marketName}?`,
+      answer: `Common services include roofing, plumbing, electrical, HVAC, and general home improvement. Specialties vary by city and neighborhood, so use Direct Connect to filter by trade.`,
     },
     {
-      question: `How is TradeScout different from Angi/HomeAdvisor in ${countyName}?`,
-      answer: `Intent-gated contact. Trust-first matching using Community Verification Score (CVS). We match on trust and relevance, not price competition. ${countyName} contractors benefit from context-aware routing and no excessive request flooding.`,
+      question: `How is TradeScout different from Angi/HomeAdvisor near ${marketName}?`,
+      answer: `TradeScout shows you who looks strongest first, keeps contact tighter, and does not sell your request as a lead.`,
     },
     {
-      question: `What is the Community Verification Score (CVS)?`,
-      answer: `A public, auditable trust metric based on verified identity, license/insurance, work history, and community recommendations. Payment cannot override it. It's the foundation of ${countyName} contractor credibility on TradeScout.`,
+      question: `What is the ${trustScoreLabel()}?`,
+      answer: `${trustScoreDescription()} Around ${marketName}, it helps you quickly see who has earned trust versus who is still building it.`,
     },
   ];
 }
@@ -111,18 +119,19 @@ function buildCountyDescription(
   stateName: string,
   coverage: CountyCoverageData | null
 ): string {
+  const marketLabel = toLocalMarketLabel(countyName, stateName);
   if (!coverage) {
-    return `Find verified contractors in ${countyName}, ${stateName}. Trust-first matching with no lead spam or bidding wars.`;
+    return `Find verified contractors in ${marketLabel}. Compare local options without lead spam or bidding wars.`;
   }
 
   const { coverageStatus, affiliateCount } = coverage;
   if (coverageStatus === "full") {
-    return `Find ${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching with Community Verification Score (CVS). Intent-gated contact.`;
+    return `Find ${affiliateCount} verified contractors in ${marketLabel}. See CVS, compare business details, and reach out through TradeScout.`;
   }
   if (coverageStatus === "partial") {
-    return `${affiliateCount} verified contractors in ${countyName}, ${stateName}. Trust-first matching. Growing coverage. Intent-gated contact.`;
+    return `${affiliateCount} verified contractors currently serve ${marketLabel}. Coverage is growing across nearby neighborhoods.`;
   }
-  return `Find verified contractors in ${countyName}, ${stateName}. Coverage is still building; request county coverage and use Scout to route verified intent.`;
+  return `Find verified contractors in ${marketLabel}. Coverage is still building, but you can tell Scout where you need help and we'll prioritize it.`;
 }
 
 // Build keywords
@@ -138,9 +147,9 @@ function buildBreadcrumbs(
 ): Array<{ name: string; url: string }> {
   return [
     { name: "Home", url: "/" },
-    { name: "Counties", url: "/county-directory" },
+    { name: "Markets", url: "/county-directory" },
     { name: stateName, url: `/states/${stateCode.toLowerCase()}` },
-    { name: countyName, url: "" },
+    { name: stripCountySuffix(countyName) || countyName, url: "" },
   ];
 }
 
@@ -175,7 +184,7 @@ const CountyPage = memo(function CountyPage() {
             </p>
             <Link href="/county-directory">
               <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Browse All Counties
+                Browse All Markets
               </a>
             </Link>
           </CardContent>
@@ -208,6 +217,8 @@ const CountyPage = memo(function CountyPage() {
   const breadcrumbSchema = createBreadcrumbStructuredData(breadcrumbs);
 
   const seoTitle = `${county.name}, ${state.code} | TradeScout`;
+  const marketName = stripCountySuffix(county.name) || county.name;
+  const marketLabel = toLocalMarketLabel(county.name, state.code);
   const featuredTradeSlugs = [
     "plumbing",
     "electrical",
@@ -259,21 +270,17 @@ const CountyPage = memo(function CountyPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-white">
-            {county.name}, {state.code}
-          </h1>
+          <h1 className="text-4xl font-bold mb-2 text-white">{marketLabel}</h1>
           <p className="text-lg text-white/60 flex items-center gap-2">
             <MapPin className="w-5 h-5" />
-            {state.name}
+            Start with the local market, then narrow by city or neighborhood
           </p>
         </div>
 
         {/* Trade landing links (crawl paths) */}
         <Card className="bg-white/5 border-white/10 mb-8">
           <CardContent className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-3">
-              Browse trades in {county.name}
-            </h2>
+            <h2 className="text-xl font-semibold text-white mb-3">Browse trades in {marketName}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {featuredTrades.map((trade) => (
                 <Link
@@ -320,7 +327,7 @@ const CountyPage = memo(function CountyPage() {
                     <p className="text-green-800 mb-3">
                       <strong>{coverage.affiliateCount}</strong> verified contractors +{" "}
                       <strong>{coverage.territoryManagerCount}</strong> territory manager
-                      {coverage.territoryManagerCount !== 1 ? "s" : ""} serve {county.name}.
+                      {coverage.territoryManagerCount !== 1 ? "s" : ""} serve {marketName}.
                     </p>
                     <Link href={`/direct-connect?county=${county.fipsCode}`}>
                       <a className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -337,7 +344,7 @@ const CountyPage = memo(function CountyPage() {
                     <h3 className="font-semibold text-blue-900 mb-1">Partial Coverage</h3>
                     <p className="text-blue-800 mb-3">
                       <strong>{coverage.affiliateCount}</strong> verified contractors currently
-                      serve {county.name}. Coverage is growing.
+                      serve {marketName}. Coverage is growing.
                     </p>
                     <Link href={`/direct-connect?county=${county.fipsCode}`}>
                       <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -352,12 +359,15 @@ const CountyPage = memo(function CountyPage() {
                   <AlertCircle className="w-5 h-5 text-white/60 mt-1" />
                   <div>
                     <h3 className="font-semibold text-white mb-1">Not Yet Covered</h3>
-                    <p className="text-white/70 mb-3">{county.name} is on our expansion roadmap.</p>
+                    <p className="text-white/70 mb-3">
+                      {marketName} is still early for us. Tell Scout which city or neighborhood you
+                      need help in so we can prioritize real local demand.
+                    </p>
                     <Link
                       href={`/scout?intent=county-coverage-request&county=${encodeURIComponent(county.name)}&countyFips=${encodeURIComponent(county.fipsCode)}`}
                     >
                       <a className="inline-block px-4 py-2 bg-white/10 text-white rounded hover:bg-white/10">
-                        Request Coverage →
+                        Request Local Coverage →
                       </a>
                     </Link>
                   </div>
@@ -370,9 +380,10 @@ const CountyPage = memo(function CountyPage() {
         {/* Direct Connect Section */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Find Contractors in {county.name}</h2>
+            <h2 className="text-2xl font-bold mb-4">Find contractors near {marketName}</h2>
             <p className="text-white/70 mb-6">
-              Search verified contractors by trade. Match on trust and relevance, not price wars.
+              Search verified contractors by trade, then narrow by city or neighborhood.{" "}
+              {protectedContactCopy()}
             </p>
             <Link href={`/direct-connect?county=${county.fipsCode}`}>
               <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
@@ -387,7 +398,7 @@ const CountyPage = memo(function CountyPage() {
           <CardContent className="p-6">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
               <Users className="w-6 h-6" />
-              Community in {county.name}
+              Community around {marketName}
             </h2>
             <p className="text-white/70 mb-6">
               Join neighbors, contractors, and professionals. Share trusted local signals, post

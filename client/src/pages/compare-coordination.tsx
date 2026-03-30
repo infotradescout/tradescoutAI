@@ -13,9 +13,9 @@ const config: CompareCategoryConfig = {
   badgeLabel: "Coordination Comparison",
   categoryName: "Local Coordination Tools",
   categorySummary:
-    "Coordination tools can help people post jobs, schedule work, or find a fast responder, but they usually optimize around transaction speed instead of trust-governed community interaction.",
+    "Coordination tools can help people post jobs, schedule work, or find a fast responder, but they usually optimize around speed instead of trust and follow-through.",
   tradeScoutSummary:
-    "TradeScout coordinates action through Scout, CVS, local context, and authority-first routing. That keeps transactions inside a trusted local system instead of treating them like isolated gigs.",
+    "TradeScout coordinates action through Scout, CVS, and local context. That keeps the process inside one trusted system instead of treating it like a one-off gig.",
   platforms: [
     {
       name: "Taskrabbit",
@@ -35,7 +35,7 @@ const config: CompareCategoryConfig = {
     {
       name: "Scheduling tools",
       model: "Coordination utility",
-      pressure: "Good for managing appointments, not for governing trust.",
+      pressure: "Good for managing appointments, not for helping people judge trust.",
     },
     {
       name: "Referral threads",
@@ -52,12 +52,12 @@ const config: CompareCategoryConfig = {
     {
       feature: "Primary Pattern",
       category: "Fast task coordination or booking",
-      tradeScout: "Coordinated action inside a trust-governed local system",
+      tradeScout: "Coordinated action inside one trusted local system",
     },
     {
       feature: "Trust Model",
       category: "Varies by ratings, thread history, or platform rules",
-      tradeScout: "CVS, authority rules, and local proof remain explicit",
+      tradeScout: "CVS and local proof are easy to see",
       tradeScoutPositive: true,
     },
     {
@@ -69,7 +69,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Action Layer",
       category: "Optimized for getting a task moving quickly",
-      tradeScout: "Optimized for trusted outcomes and context-aware routing",
+      tradeScout: "Optimized for stronger outcomes and smarter matching",
     },
     {
       feature: "Community Memory",
@@ -91,11 +91,11 @@ const config: CompareCategoryConfig = {
     },
     {
       title: "Context stays attached",
-      desc: "Scout carries local and trust context through the interaction instead of resetting every time a new task starts.",
+      desc: "Scout carries local context and trust signals through the interaction instead of resetting every time a new task starts.",
     },
     {
-      title: "Authority scales across categories",
-      desc: "The same system can coordinate service, business, neighborhood, and local decision flows.",
+      title: "One system across categories",
+      desc: "The same system can coordinate service, business, neighborhood, and local decisions.",
     },
     {
       title: "Outcome over speed",
@@ -111,7 +111,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Why compare TradeScout to Craigslist services?",
       answer:
-        "Because both can route people toward local help, but only one is designed around trust, authority, and community continuity.",
+        "Because both can point people toward local help, but only one is designed around trust, CVS, and community continuity.",
     },
     {
       question: "Can TradeScout still help people get something done quickly?",
@@ -121,12 +121,11 @@ const config: CompareCategoryConfig = {
     {
       question: "What about monetization?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Paid shortcuts do not override trust.",
+        "TradeScout does not sell leads and does not charge to connect. Paid shortcuts do not override CVS.",
     },
   ],
   ctaTitle: "Replace Transaction-Only Coordination",
-  ctaDescription:
-    "Coordinate local action inside a trust-governed system, not a disposable task board.",
+  ctaDescription: "Coordinate local action inside a trusted system, not a disposable task board.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/community", label: "Community Platforms →" },

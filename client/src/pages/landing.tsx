@@ -321,7 +321,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
           >
             <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
               Scout is the operating layer for local interaction. It helps you figure out what you
-              need, route the right next step, understand why trust matters, and keep contact clear
+              need, see the right next step, understand how CVS works, and keep contact clear
               instead of chaotic.
             </p>
           </motion.div>
@@ -436,17 +436,17 @@ function HowItWorksSection() {
     {
       icon: Search,
       title: "Scout Interprets",
-      desc: "Scout turns your request into a local decision path using trust, trade fit, and location context.",
+      desc: "Scout turns your request into a clear local path using CVS, trade fit, and location.",
     },
     {
       icon: CheckCircle,
       title: "Scout Routes",
-      desc: "The system routes the request to the right next step, whether that is a match, a decision card, or a governed hold.",
+      desc: "The system shows the right next step, whether that is a match, a Decision Card, or a short hold while details get sorted out.",
     },
     {
       icon: Handshake,
-      title: "Contact Stays Governed",
-      desc: "Only after fit and intent are clear does contact open. You stay in control without losing privacy or context.",
+      title: "Contact Opens After Acceptance",
+      desc: "A pro accepts before contact opens, so you stay in control without losing privacy or context.",
     },
   ];
 
@@ -465,8 +465,8 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to
-            governed action.
+            TradeScout is not a lead funnel. Scout runs the full flow from asking for help to
+            talking with the right pro.
           </p>
         </Reveal>
 
@@ -503,7 +503,7 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
     {
       icon: Users,
       title: "Community Recommendations",
-      desc: "Neighbor endorsements, not anonymous reviews",
+      desc: "Neighbor endorsements, not anonymous recommendations",
     },
     { icon: Eye, title: "Dispute Resolution", desc: "How conflicts were handled" },
   ];
@@ -516,17 +516,15 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             <div>
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
                 <Shield className="w-4 h-4 text-ts-orange" />
-                <span className="text-sm font-medium text-ts-orange">
-                  Community Verification Score
-                </span>
+                <span className="text-sm font-medium text-ts-orange">CVS</span>
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 Trust, Not Payment
               </h2>
               <p className="text-sm text-white/60 mb-3">
-                Every pro has a Community Verification Score (CVS) based on verified identity,
-                active credentials, work history, community recommendations, and dispute resolution.
-                Trust metrics are public and auditable.
+                Every pro has a CVS view based on verified identity, active credentials, work
+                history, community recommendations, and dispute resolution. You can quickly see why
+                someone looks solid before you reach out.
               </p>
               <div className="space-y-2.5">
                 {layers.map((layer, i) => {
@@ -571,8 +569,8 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
                 Payment Cannot Override Trust
               </h3>
               <p className="text-sm text-white/70">
-                A pro with CVS 40 cannot pay to rank above a pro with CVS 80. Financial activity is
-                excluded from ranking logic. Trust always comes first.
+                A lower-trust pro cannot pay to outrank a stronger one. Money is excluded from
+                ranking logic, so trust stays first.
               </p>
             </div>
           </div>
@@ -622,7 +620,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 No Bidding Wars.
               </h2>
               <p className="text-sm text-white/60 mb-3">
-                Scout routes your request to 1-3 qualified pros. They accept or decline upfront. No
+                Scout sends your request to 1-3 qualified pros. They accept or decline upfront. No
                 wasted time, no spam calls.
               </p>
               <div className="space-y-2.5">
@@ -797,11 +795,11 @@ function FAQSection() {
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
-      a: "The big pain point is lead reselling: one homeowner request gets sold to many contractors, and the homeowner gets flooded. TradeScout does not resell your request. Scout routes to 1-3 relevant matches, and trust determines ranking, not payment.",
+      a: "The big pain point is lead reselling: one homeowner request gets sold to many contractors, and the homeowner gets flooded. TradeScout does not resell your request. Scout sends your request to 1-3 relevant matches, and CVS determines ranking, not payment.",
     },
     {
-      q: "What is the Community Verification Score (CVS)?",
-      a: "It's a public, auditable score based on verified identity, active credentials, work history, community recommendations, and dispute resolution. You can see exactly why Scout matched you with a pro.",
+      q: "What is CVS?",
+      a: "CVS is the Community Verification Score. It gives you a quick read on identity, active credentials, work history, community recommendations, and dispute history so you can see why Scout matched you with someone.",
     },
     {
       q: "Can pros pay to change their ranking?",

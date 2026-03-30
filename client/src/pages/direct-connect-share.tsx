@@ -150,8 +150,8 @@ export default function DirectConnectSharePage() {
                 {data?.scopeSummary || "Project scope is available after loading."}
               </p>
               <div className="rounded-md border border-[color:var(--border-subtle)] p-3 text-xs text-[color:var(--text-secondary)]">
-                Contact details and claim controls are locked on shared previews. Join TradeScout
-                and complete verification to continue through the request flow.
+                Contact details and claim controls stay hidden on shared previews. Join TradeScout
+                and complete verification to continue.
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button

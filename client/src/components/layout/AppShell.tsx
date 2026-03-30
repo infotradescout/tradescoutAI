@@ -62,7 +62,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/admin")) {
     return {
       title: "Admin controls",
-      summary: "Monitor live system status, snapshots, and operational tools in one place.",
+      summary: "Watch system activity, snapshots, and ops tools in one place.",
       actionLabel: "Go to Mission Control",
       actionHref: "/admin/live-stream",
     };
@@ -70,7 +70,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/scout") || pathname === "/") {
     return {
       title: "Scout",
-      summary: "Tell Scout what you need. Scout routes you to the right next action.",
+      summary: "Tell Scout what you need and get the right next step.",
       actionLabel: "Go to Direct Connect",
       actionHref: "/direct-connect",
     };
@@ -94,7 +94,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/homescout")) {
     return {
       title: "HomeScout",
-      summary: "Manage property context and listings tied to your county.",
+      summary: "Manage property details, listings, and updates in one place.",
       actionLabel: "View HomeScout listings",
       actionHref: "/homescout-listings",
     };
@@ -102,7 +102,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/community")) {
     return {
       title: "Community",
-      summary: "See local activity, post updates, and keep county-first context.",
+      summary: "See what's happening nearby, post updates, and stay connected locally.",
       actionLabel: "Create a post",
       actionHref: "/community",
     };
@@ -118,7 +118,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/maps")) {
     return {
       title: "Maps",
-      summary: "Explore county-level entities and local operational surfaces visually.",
+      summary: "See businesses, coverage, and local activity on the map.",
       actionLabel: "View county directory",
       actionHref: "/county-directory",
     };
@@ -126,7 +126,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/leaderboard")) {
     return {
       title: "Leaderboard",
-      summary: "Track top contributors and trust activity in your county.",
+      summary: "See who's active and who's earning trust in your area.",
       actionLabel: "View community activity",
       actionHref: "/community",
     };
@@ -134,7 +134,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/foundation")) {
     return {
       title: "County vaults",
-      summary: "View local contributions and county-level impact tracking.",
+      summary: "See local contributions and what community builders are funding nearby.",
       actionLabel: "View contribution dashboard",
       actionHref: "/community-builder/dashboard",
     };
@@ -142,7 +142,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/share") || pathname.startsWith("/affiliate")) {
     return {
       title: "Share Hub",
-      summary: "Copy strategic links and share with attribution attached.",
+      summary: "Copy your best links and share them without losing attribution.",
       actionLabel: "View best links",
       actionHref: "/share",
     };

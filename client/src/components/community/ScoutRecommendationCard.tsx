@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   CheckCircle2,
   AlertCircle,
@@ -11,8 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
-import { ContactOutcomeModal, ContactOutcome } from "./ContactOutcomeModal";
+import { ContactOutcomeModal } from "./ContactOutcomeModal";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export interface ScoutRecommendation {
@@ -47,8 +46,6 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   onDismiss,
 }) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
   const [showContactModal, setShowContactModal] = useState(false);
 
   // Action mutation (accept/dismiss)
@@ -143,7 +140,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         {/* Header: governance framing */}
         <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingUp className="w-4 h-4" />
-          <span className="font-medium">Human recommendation, Scout-governed</span>
+          <span className="font-medium">Scout recommendation</span>
         </div>
 
         {/* Target User */}
@@ -282,7 +279,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             riskFlags: recommendation.riskFlags,
             sourceScoutRecommendationId: recommendation.recommendationId, // D2: Scout rec ID
             decisionScope: recommendation.decisionScope || "",
-            decisionTitle: "Scout-governed signal",
+            decisionTitle: "Scout recommendation",
           }}
           onClose={() => setShowContactModal(false)}
         />

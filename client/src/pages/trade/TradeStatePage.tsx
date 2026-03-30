@@ -4,6 +4,7 @@ import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelme
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeDisplay, nameToSlug } from "./tradeSeoHelpers";
+import { localBrowseCopy, stripCountySuffix, toLocalMarketLabel } from "@/lib/userFacingCopy";
 
 const TradeStatePage = memo(function TradeStatePage() {
   const { tradeSlug, stateCode } = useParams<{ tradeSlug: string; stateCode: string }>();
@@ -24,7 +25,7 @@ const TradeStatePage = memo(function TradeStatePage() {
             <p className="text-red-700 mb-4">The requested trade/state could not be resolved.</p>
             <Link href="/county-directory">
               <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Browse Counties
+                Browse Markets
               </a>
             </Link>
           </CardContent>
@@ -33,8 +34,8 @@ const TradeStatePage = memo(function TradeStatePage() {
     );
   }
 
-  const title = `${trade.name} in ${state.name} | County Directory | TradeScout`;
-  const description = `Browse ${trade.name} in ${state.name} by county. Select a county to view local directory listings.`;
+  const title = `${trade.name} in ${state.name} | Local Directory | TradeScout`;
+  const description = `Browse ${trade.name} in ${state.name} by local market. Start with the place you care about, then narrow to city or neighborhood.`;
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: "Trades", url: "/trade" },
@@ -47,7 +48,7 @@ const TradeStatePage = memo(function TradeStatePage() {
       <SEOHelmet
         title={title}
         description={description}
-        keywords={`${trade.name}, ${state.name}, counties, contractors, directory, TradeScout`}
+        keywords={`${trade.name}, ${state.name}, local contractors, directory, TradeScout`}
         canonical={`https://www.thetradescout.com/trade/${encodeURIComponent(
           trade.canonicalSlug
         )}/${encodeURIComponent(state.code.toLowerCase())}`}
@@ -61,7 +62,8 @@ const TradeStatePage = memo(function TradeStatePage() {
               {trade.name} in {state.name}
             </CardTitle>
             <p className="text-white/60">
-              Pick a county to view directory listings. Contact stays gated through TradeScout.
+              Pick the local market you want to start in, then narrow by city or neighborhood.{" "}
+              {localBrowseCopy()}
             </p>
           </CardHeader>
           <CardContent className="p-6 pt-0">
@@ -78,7 +80,7 @@ const TradeStatePage = memo(function TradeStatePage() {
                     )}/${encodeURIComponent(countySlug)}`}
                   >
                     <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                      {county.name}
+                      {toLocalMarketLabel(stripCountySuffix(county.name), state.code)}
                     </a>
                   </Link>
                 );

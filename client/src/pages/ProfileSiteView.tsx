@@ -319,7 +319,7 @@ export default function ProfileSiteView() {
                       {isSuperAdminViewer
                         ? "Super Admin override active. You are automatically connected through Direct Connect."
                         : hasViewerSession
-                          ? "Open Direct Connect to contact this profile through governed routing."
+                          ? "Open Direct Connect to contact this profile inside TradeScout."
                           : "Create a free TradeScout account to contact this profile through Direct Connect."}
                     </p>
                   </div>

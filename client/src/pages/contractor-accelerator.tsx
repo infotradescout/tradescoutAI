@@ -20,8 +20,7 @@ export default function ContractorAccelerator() {
             or ranking placement.
           </p>
           <p>
-            Contractor opportunity is governed by verification, trust signals, fit, and
-            availability.
+            Contractor opportunity depends on verification, trust signals, fit, and availability.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             <Button onClick={() => navigate("/contractors/apply")}>Complete Verification</Button>

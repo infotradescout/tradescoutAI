@@ -274,13 +274,13 @@ const DIRECT_CONNECT_STRUCTURED_DATA = {
       "@type": "WebPage",
       name: "Direct Connect",
       description:
-        "Post local requests, review provider replies, and move work forward through county-aware gated flows.",
+        "Post local requests, review provider replies, and move work forward with clearer local coordination.",
       url: "https://www.thetradescout.com/direct-connect",
     },
     createServiceStructuredData({
       name: "TradeScout Direct Connect",
       description:
-        "County-aware request routing that lets members post needs, receive replies, and move into gated contact flows.",
+        "Local request routing that lets members post what they need, review replies, and reach out without the usual spam.",
       category: "Local contractor request platform",
       areaServed: "United States",
     }),

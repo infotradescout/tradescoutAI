@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,7 @@ type LiveStreamItem = {
   }>;
   marketGapSummary?: string;
   revenueScore?: number;
+  evidence?: string[];
 };
 
 type LiveStreamResponse = {
@@ -414,31 +415,6 @@ function resolveEntryCommercialBucket(item: LiveStreamItem): string {
   return "watchlist";
 }
 
-function resolveBestCountyToSell(args: {
-  topCountyDemand: LiveStreamItem | null | undefined;
-  topOpportunity: LiveStreamItem | null | undefined;
-}): string {
-  const county =
-    args.topCountyDemand?.county ||
-    args.topOpportunity?.county ||
-    args.topCountyDemand?.title ||
-    args.topOpportunity?.title;
-  const state = args.topCountyDemand?.state || args.topOpportunity?.state;
-  if (!county) return "No county sales pocket surfaced yet";
-  return state ? `${county}, ${state}` : county;
-}
-
-function resolveBestCategoryToPitch(args: {
-  topBotDemandCluster: LiveStreamItem | null | undefined;
-  topOpportunity: LiveStreamItem | null | undefined;
-}): string {
-  return (
-    args.topBotDemandCluster?.category ||
-    args.topOpportunity?.category ||
-    "No category pitch surfaced yet"
-  );
-}
-
 function resolveBiggestLeak(args: {
   topWaste: LiveStreamItem | null | undefined;
   topFriction: LiveStreamItem | null | undefined;
@@ -450,6 +426,151 @@ function resolveBiggestLeak(args: {
     return `${args.firstRepairRoute.path} is taking ${args.firstRepairRoute.requestCount} requests before monetization`;
   }
   return "No major monetization leak surfaced yet";
+}
+
+function splitDecisionNarrative(narrative?: string | null): {
+  what: string;
+  why: string;
+  doNext: string;
+} {
+  const raw = String(narrative || "").trim();
+  const [whatPart, restAfterWhyMarker] = raw.split(" Why it matters: ");
+  const [whyPart, doNextPart] = (restAfterWhyMarker || "").split(" What to do: ");
+  return {
+    what: whatPart?.trim() || raw,
+    why: whyPart?.trim() || raw,
+    doNext: doNextPart?.trim() || "",
+  };
+}
+
+function humanizeSurfaceLabel(surface: string): string {
+  const labels: Record<string, string> = {
+    public_business: "Business pages",
+    static_asset: "Static assets",
+    trade_county_page: "Trade county pages",
+    trade_region_page: "Trade region pages",
+    county_page: "County pages",
+    county_recent: "County recents",
+    public_profile: "Public profiles",
+    commerce_surface: "Commerce surfaces",
+    public_marketing: "Marketing pages",
+    tradepartners: "Trade partner pages",
+    homescout_listings: "HomeScout listings",
+    community: "Community",
+    exchange: "Exchange",
+    trade_deals: "Trade deals",
+    direct_connect: "Direct Connect",
+    scout: "Scout",
+    infra: "Infrastructure",
+    crawl_meta: "Crawler metadata",
+    other: "Unattributed",
+    unknown_public: "Unknown public pages",
+  };
+
+  return (
+    labels[surface] ||
+    surface
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ")
+  );
+}
+
+function buildUsefulSignalSummary(item: LiveStreamItem): {
+  headline: string;
+  fact: string;
+  support?: string;
+  trigger?: string;
+  action: string;
+} {
+  const parts = splitDecisionNarrative(item.narrative);
+  const evidence = Array.isArray(item.evidence) ? item.evidence : [];
+  const readEvidence = (key: string): string | null => {
+    const match = evidence.find((entry) => entry.startsWith(`${key}=`));
+    if (!match) return null;
+    return match.slice(key.length + 1);
+  };
+  const path = readEvidence("top_path") || readEvidence("path") || readEvidence("broken_path");
+  const routeFamily = readEvidence("route_family");
+  const botFamily = readEvidence("bot_family");
+  const hits =
+    readEvidence("hits") ||
+    readEvidence("machine_attention_hits") ||
+    readEvidence("request_count") ||
+    readEvidence("county_surface_requests") ||
+    readEvidence("crawler_requests_24h");
+  const recrawls = readEvidence("recrawls");
+  const firstSeen = readEvidence("first_seen_urls");
+  const notFound = readEvidence("status_404_count") || readEvidence("missing_count");
+  const triggerParts = [
+    path && path !== "none" ? `path ${path}` : null,
+    routeFamily ? `surface ${routeFamily.replace(/_/g, " ")}` : null,
+    botFamily ? `bot ${botFamily}` : null,
+    hits ? `${hits} hits` : null,
+    recrawls ? `${recrawls} recrawls` : null,
+    firstSeen ? `${firstSeen} new URLs` : null,
+    notFound ? `${notFound} missing/404` : null,
+  ].filter(Boolean);
+  const fact =
+    item.marketGapSummary ||
+    item.inventorySummary ||
+    item.whyNow ||
+    item.salesAngle ||
+    parts.what ||
+    item.narrative;
+  const support =
+    item.prospectSummary ||
+    parts.why ||
+    (item.inventorySummary && item.inventorySummary !== fact ? item.inventorySummary : undefined);
+  return {
+    headline: item.targetMarket || item.title,
+    fact,
+    support,
+    trigger: triggerParts.length ? triggerParts.join(" | ") : undefined,
+    action:
+      item.recommendedPlay ||
+      parts.doNext ||
+      resolveEntryActionTask(item) ||
+      resolveEntryActionHint(item) ||
+      "Monitor this signal and decide the next operator move.",
+  };
+}
+
+function SignalBoardPanel({
+  title,
+  subtitle,
+  badge,
+  toneClass,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  toneClass?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("rounded-lg border p-4", toneClass || "border-white/10 bg-black/20")}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.24em] text-white/55">{title}</div>
+          {subtitle ? <div className="mt-1 text-sm text-white/72">{subtitle}</div> : null}
+        </div>
+        {badge ? <Badge variant="outline">{badge}</Badge> : null}
+      </div>
+      <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+function BriefTile({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-white/48">{label}</div>
+      <div className="mt-1 text-sm text-white/92">{value}</div>
+      {detail ? <div className="mt-1 text-xs text-white/68">{detail}</div> : null}
+    </div>
+  );
 }
 
 function buildEntryContextTokens(item: LiveStreamItem): string[] {
@@ -904,39 +1025,50 @@ export default function AdminLiveStreamPage() {
     topUnknownSurface,
     schedulerDisabledWarning,
   ]);
-  const watchItems = useMemo(() => {
-    const items: Array<{ label: string; value: string }> = [];
+  const marketBriefs = useMemo(() => {
+    const items: Array<{ label: string; value: string; detail?: string }> = [];
     if (topCountyDiscoveryLead) {
       items.push({
-        label: "County lead",
-        value: `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} with ${topCountyDiscoveryLead.requestCount} requests`,
+        label: "Lead county",
+        value: `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""}`,
+        detail: `${topCountyDiscoveryLead.requestCount} crawler requests on ${humanizeSurfaceLabel(topCountyDiscoveryLead.sourceSurface)}.`,
       });
     }
     if (topOpportunity) {
+      const summary = buildUsefulSignalSummary(topOpportunity);
       items.push({
-        label: "Best opportunity",
-        value: topOpportunity.title,
+        label: "Strongest signal",
+        value: summary.fact,
+        detail: summary.trigger || summary.support,
       });
     }
-    if (topBotDemandCluster?.narrative || data?.summary.topBotCrawlHeadline) {
+    if (topBotDemandCluster) {
+      const summary = buildUsefulSignalSummary(topBotDemandCluster);
       items.push({
-        label: "Bot pressure",
-        value: topBotDemandCluster?.narrative || data?.summary.topBotCrawlHeadline || "None",
+        label: "What triggered it",
+        value: summary.trigger || summary.headline,
+        detail: summary.fact,
       });
     }
-    if (topRouteDemand?.narrative) {
+    const biggestLeak = resolveBiggestLeak({ topWaste, topFriction, firstRepairRoute });
+    if (biggestLeak) {
       items.push({
-        label: "Demand route",
-        value: topRouteDemand.narrative,
+        label: "Biggest leak",
+        value: biggestLeak,
+        detail:
+          topWaste?.narrative ||
+          topFriction?.narrative ||
+          (firstRepairRoute ? "This route is taking attention before it can convert." : undefined),
       });
     }
     return items.slice(0, 4);
   }, [
+    firstRepairRoute,
+    topBotDemandCluster,
     topCountyDiscoveryLead,
+    topFriction,
     topOpportunity,
-    topBotDemandCluster?.narrative,
-    data?.summary.topBotCrawlHeadline,
-    topRouteDemand?.narrative,
+    topWaste,
   ]);
 
   useEffect(() => {
@@ -1475,286 +1607,274 @@ export default function AdminLiveStreamPage() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_1fr]">
-              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
-                <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
-                  What To Sell Now
-                </div>
-                <div className="mt-3 space-y-3">
-                  <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                      Best county to sell
-                    </div>
-                    <div className="mt-1 text-sm text-cyan-50">
-                      {resolveBestCountyToSell({ topCountyDemand, topOpportunity })}
-                    </div>
-                  </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_0.95fr]">
+              <div className="space-y-4">
+                <SignalBoardPanel
+                  title="Market Brief"
+                  subtitle="One pass across what moved, what triggered it, and where the current leak sits."
+                  badge={`${marketBriefs.length} key reads`}
+                  toneClass="border-cyan-500/20 bg-cyan-500/10"
+                >
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                    <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
-                      <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                        Best ad pocket
+                    {marketBriefs.length === 0 ? (
+                      <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                        No useful market brief surfaced yet.
                       </div>
-                      <div className="mt-1 text-sm text-cyan-50">
-                        {topRouteDemand?.narrative || "No route-level demand signal yet"}
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
-                      <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                        Best category to pitch
-                      </div>
-                      <div className="mt-1 text-sm text-cyan-50">
-                        {resolveBestCategoryToPitch({ topBotDemandCluster, topOpportunity })}
-                      </div>
-                    </div>
+                    ) : (
+                      marketBriefs.map((item) => (
+                        <BriefTile
+                          key={`${item.label}-${item.value}`}
+                          label={item.label}
+                          value={item.value}
+                          detail={item.detail}
+                        />
+                      ))
+                    )}
                   </div>
-                  <div className="rounded-md border border-cyan-200/10 bg-black/20 px-3 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/60">
-                      Biggest monetization leak
-                    </div>
-                    <div className="mt-1 text-sm text-cyan-50">
-                      {resolveBiggestLeak({ topWaste, topFriction, firstRepairRoute })}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </SignalBoardPanel>
 
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
-                    Immediate Revenue Moves
-                  </div>
-                  <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                    {primaryActionItems.length} queued
-                  </Badge>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {primaryActionItems.length === 0 ? (
-                    <div className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-3 text-sm text-amber-50">
-                      No urgent revenue move surfaced right now. Stay on county packaging,
-                      advertiser outreach, and leak monitoring.
-                    </div>
-                  ) : (
-                    primaryActionItems.map((item) => (
-                      <div
-                        key={item.title}
-                        className={cn("rounded-md border px-3 py-3", item.tone)}
-                      >
-                        <div className="text-[11px] uppercase tracking-[0.2em] text-current/70">
-                          {item.title}
-                        </div>
-                        <div className="mt-1 text-sm text-current">{item.detail}</div>
+                <SignalBoardPanel
+                  title="Ranked Signals"
+                  subtitle="Top source-backed opportunities ordered by commercial strength."
+                  badge={topRevenueSignals.length ? `${topRevenueSignals.length} ranked` : "none"}
+                  toneClass="border-emerald-500/20 bg-emerald-500/10"
+                >
+                  <div className="space-y-3">
+                    {topRevenueSignals.length === 0 ? (
+                      <div className="text-sm text-emerald-100/70">
+                        No ranked revenue signals surfaced yet.
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
-                <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
-                  Sales Watchlist
-                </div>
-                <div className="mt-3 space-y-3">
-                  {watchItems.length === 0 ? (
-                    <div className="text-sm text-indigo-100/70">No watch items surfaced yet.</div>
-                  ) : (
-                    watchItems.map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-md border border-indigo-200/10 bg-black/20 px-3 py-3"
-                      >
-                        <div className="text-[11px] uppercase tracking-[0.2em] text-indigo-100/60">
-                          {item.label}
-                        </div>
-                        <div className="mt-1 text-sm text-indigo-50">{item.value}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
-                    Top Revenue Signals
-                  </div>
-                  <Badge variant="outline" className="border-emerald-200/20 text-emerald-50">
-                    ranked
-                  </Badge>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {topRevenueSignals.length === 0 ? (
-                    <div className="text-sm text-emerald-100/70">
-                      No ranked revenue signals surfaced yet.
-                    </div>
-                  ) : (
-                    topRevenueSignals.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-[11px] uppercase tracking-[0.2em] text-emerald-100/60">
-                            #{index + 1} {item.commercialBucket || "watchlist"}
+                    ) : (
+                      topRevenueSignals.map((item, index) => {
+                        const summary = buildUsefulSignalSummary(item);
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="text-[11px] uppercase tracking-[0.2em] text-emerald-100/60">
+                                #{index + 1} {item.commercialBucket || "watchlist"}
+                              </div>
+                              <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+                                {item.revenueScore || 0}
+                              </Badge>
+                            </div>
+                            <div className="mt-1 text-sm text-emerald-50">{summary.headline}</div>
+                            <div className="mt-1 text-xs text-emerald-50">{summary.fact}</div>
+                            {summary.trigger ? (
+                              <div className="mt-1 text-xs text-emerald-100/85">
+                                Triggered by: {summary.trigger}
+                              </div>
+                            ) : null}
+                            {summary.support ? (
+                              <div className="mt-1 text-xs text-emerald-100/75">
+                                {summary.support}
+                              </div>
+                            ) : null}
+                            <div className="mt-2 text-xs font-medium text-emerald-50">
+                              Next move: {summary.action}
+                            </div>
                           </div>
-                          <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
-                            {item.revenueScore || 0}
+                        );
+                      })
+                    )}
+                  </div>
+                </SignalBoardPanel>
+              </div>
+
+              <div className="space-y-4">
+                <SignalBoardPanel
+                  title="Do Now"
+                  subtitle="Operator actions worth taking before the signal cools off."
+                  badge={`${primaryActionItems.length} queued`}
+                  toneClass="border-amber-500/20 bg-amber-500/10"
+                >
+                  <div className="space-y-3">
+                    {primaryActionItems.length === 0 ? (
+                      <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                        No urgent operator action surfaced right now.
+                      </div>
+                    ) : (
+                      primaryActionItems.map((item) => (
+                        <div
+                          key={item.title}
+                          className={cn("rounded-md border px-3 py-3", item.tone)}
+                        >
+                          <div className="text-[11px] uppercase tracking-[0.2em] text-current/70">
+                            {item.title}
+                          </div>
+                          <div className="mt-1 text-sm text-current">{item.detail}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </SignalBoardPanel>
+
+                <SignalBoardPanel
+                  title="Surface Health"
+                  subtitle="Useful traffic versus waste and unattributed crawl pressure."
+                  badge={`${signalSurfaceCount} useful`}
+                  toneClass="border-teal-500/20 bg-teal-500/10"
+                >
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-teal-100/60">
+                        Useful
+                      </div>
+                      <div className="mt-1 text-xl font-semibold text-teal-50">
+                        {signalSurfaceCount}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                        Infra
+                      </div>
+                      <div className="mt-1 text-xl font-semibold text-amber-50">
+                        {noiseSurfaceCount}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                        Unknown
+                      </div>
+                      <div className="mt-1 text-xl font-semibold text-rose-50">
+                        {unknownSurfaceCount}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {topSurfaceBreakdown.length === 0 ? (
+                      <div className="text-sm text-teal-100/70">No crawler surface data yet.</div>
+                    ) : (
+                      topSurfaceBreakdown.slice(0, 4).map((surface) => (
+                        <div
+                          key={surface.sourceSurface}
+                          className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm"
+                        >
+                          <div className="text-teal-50">
+                            {humanizeSurfaceLabel(surface.sourceSurface)}
+                          </div>
+                          <Badge variant="outline" className="border-white/10 text-teal-50">
+                            {surface.requestCount}
                           </Badge>
                         </div>
-                        <div className="mt-1 text-sm text-emerald-50">
-                          {item.targetMarket || item.title}
-                        </div>
-                        <div className="mt-1 text-xs text-emerald-100/70">
-                          {item.recommendedPlay || item.salesAngle || item.title}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                      ))
+                    )}
+                  </div>
+                </SignalBoardPanel>
 
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
-                <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
-                  Surface Health
-                </div>
-                <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
-                      Signal
+                <SignalBoardPanel
+                  title="Priority Signals"
+                  subtitle="Filtered internal findings for opportunity, friction, and waste."
+                  badge={`${focusedDerivedOutputs.length} shown`}
+                  toneClass="border-violet-500/20 bg-violet-500/10"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
+                      {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setDerivedFocus(mode)}
+                          className={cn(
+                            "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                            derivedFocus === mode
+                              ? "bg-violet-500/20 text-violet-50"
+                              : "text-violet-100/60 hover:text-violet-50"
+                          )}
+                        >
+                          {mode}
+                        </button>
+                      ))}
                     </div>
-                    <div className="mt-1 text-xl font-semibold text-emerald-50">
-                      {signalSurfaceCount}
-                    </div>
+                    <select
+                      value={marketFilter}
+                      onChange={(e) => setMarketFilter(e.target.value)}
+                      className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                    >
+                      {availableMarkets.map((market) => (
+                        <option key={market} value={market}>
+                          {market === "all" ? "all markets" : market}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                    >
+                      {availableCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category === "all" ? "all categories" : category}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleCopyDerived}
+                      className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
+                    >
+                      copy
+                    </button>
                   </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
-                      Noise
-                    </div>
-                    <div className="mt-1 text-xl font-semibold text-amber-50">
-                      {noiseSurfaceCount}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
-                      Leakage
-                    </div>
-                    <div className="mt-1 text-xl font-semibold text-rose-50">
-                      {unknownSurfaceCount}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {topSurfaceBreakdown.length === 0 ? (
-                    <div className="text-sm text-emerald-100/70">No crawler surface data yet.</div>
-                  ) : (
-                    topSurfaceBreakdown.slice(0, 4).map((surface) => (
-                      <div
-                        key={surface.sourceSurface}
-                        className="flex items-center justify-between gap-3 rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2 text-sm"
-                      >
-                        <div className="text-emerald-50">{surface.sourceSurface}</div>
-                        <Badge variant="outline" className="border-emerald-200/20 text-emerald-50">
-                          {surface.requestCount}
-                        </Badge>
+                  {copyStatus ? (
+                    <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
+                  ) : null}
+                  <div className="mt-3 space-y-2">
+                    {focusedDerivedOutputs.length === 0 ? (
+                      <div className="text-sm text-violet-100/70">
+                        No clear operator-grade priority has surfaced yet.
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
-                    Priority Signals
-                  </div>
-                  <Badge variant="outline" className="border-violet-200/20 text-violet-50">
-                    {focusedDerivedOutputs.length} shown
-                  </Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
-                    {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setDerivedFocus(mode)}
-                        className={cn(
-                          "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
-                          derivedFocus === mode
-                            ? "bg-violet-500/20 text-violet-50"
-                            : "text-violet-100/60 hover:text-violet-50"
-                        )}
-                      >
-                        {mode}
-                      </button>
-                    ))}
-                  </div>
-                  <select
-                    value={marketFilter}
-                    onChange={(e) => setMarketFilter(e.target.value)}
-                    className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
-                  >
-                    {availableMarkets.map((market) => (
-                      <option key={market} value={market}>
-                        {market === "all" ? "all markets" : market}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
-                  >
-                    {availableCategories.map((category) => (
-                      <option key={category} value={category}>
-                        {category === "all" ? "all categories" : category}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={handleCopyDerived}
-                    className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
-                  >
-                    copy
-                  </button>
-                </div>
-                {copyStatus ? (
-                  <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
-                ) : null}
-                <div className="mt-3 space-y-2">
-                  {focusedDerivedOutputs.length === 0 ? (
-                    <div className="text-sm text-violet-100/70">
-                      Waiting for internal LISA to surface opportunity, friction, or waste signals.
-                    </div>
-                  ) : (
-                    focusedDerivedOutputs.slice(0, 4).map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-sm text-violet-50">{item.title}</div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={
-                                truthTone[item.truthStatus === "current" ? "current" : "stale"]
-                              }
-                            >
-                              {item.truthStatus === "current" ? "current" : "stale"}
-                            </Badge>
-                            <Badge variant="outline" className={priorityTone[item.priority]}>
-                              {item.priority}
-                            </Badge>
+                    ) : (
+                      focusedDerivedOutputs.slice(0, 4).map((item) => {
+                        const parts = splitDecisionNarrative(item.narrative);
+                        const summary = buildUsefulSignalSummary(item);
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="text-sm text-violet-50">{item.title}</div>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    truthTone[item.truthStatus === "current" ? "current" : "stale"]
+                                  }
+                                >
+                                  {item.truthStatus === "current" ? "current" : "stale"}
+                                </Badge>
+                                <Badge variant="outline" className={priorityTone[item.priority]}>
+                                  {item.priority}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="mt-2 text-xs text-violet-100/75">
+                              {parts.what || item.narrative}
+                            </div>
+                            {summary.trigger ? (
+                              <div className="mt-2 text-xs text-violet-100/85">
+                                Triggered by: {summary.trigger}
+                              </div>
+                            ) : null}
+                            {parts.why ? (
+                              <div className="mt-2 text-xs text-violet-100/65">
+                                Why this matters: {parts.why}
+                              </div>
+                            ) : null}
+                            {parts.doNext ? (
+                              <div className="mt-2 text-xs font-medium text-violet-50">
+                                Next move: {parts.doNext}
+                              </div>
+                            ) : null}
                           </div>
-                        </div>
-                        <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </SignalBoardPanel>
               </div>
             </div>
           </div>

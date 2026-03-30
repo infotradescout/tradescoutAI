@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRIMARY_TRADE_SLUGS, getTradeBySlug } from "@shared/tradeSeo";
+import { localBrowseCopy } from "@/lib/userFacingCopy";
 
 const TradeDirectoryPage = memo(function TradeDirectoryPage() {
   const items = PRIMARY_TRADE_SLUGS.map((slug) => {
@@ -14,8 +15,8 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
     <>
       <SEOHelmet
         title="Trades Directory | TradeScout"
-        description="Browse trades by category, then select a state and county to view local directory listings."
-        keywords="trades, contractors, directory, counties, TradeScout"
+        description="Browse trades by category, then jump into the city or local market you care about."
+        keywords="trades, contractors, directory, local services, TradeScout"
         canonical="https://www.thetradescout.com/trade"
       />
 
@@ -24,8 +25,8 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
           <CardHeader>
             <CardTitle className="text-3xl text-white">Trades Directory</CardTitle>
             <p className="text-white/60">
-              Select a trade to browse state and county landing pages. Listings may be unclaimed;
-              contact stays gated through TradeScout Direct Connect.
+              Select a trade, pick your market, and narrow from there by city or neighborhood.{" "}
+              {localBrowseCopy()}
             </p>
           </CardHeader>
           <CardContent className="p-6 pt-0">

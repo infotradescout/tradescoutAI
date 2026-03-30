@@ -52,7 +52,7 @@ const faqs = [
   {
     question: "Is TradeScout only for homeowners and contractors?",
     answer:
-      "No. That was an early starting point, not the full product boundary. TradeScout serves every level of community interaction, including discovery, trust, local coordination, neighborhood context, and category-specific operating flows.",
+      "No. That was an early starting point, not the full product. TradeScout covers discovery, CVS, local coordination, neighborhood context, and the next steps that follow.",
   },
   {
     question: "How does TradeScout make money if it is not another intermediary platform?",

@@ -6,21 +6,21 @@ const config: CompareCategoryConfig = {
     "Compare TradeScout to local business discovery and review surfaces like Yelp, Google Business Profiles, and directory-style local search products people use to find nearby businesses.",
   seoTitle: "Find Local Businesses | TradeScout vs. Discovery Platforms",
   seoDescription:
-    "See how TradeScout helps users find local businesses, compare options, and take the next step through Scout instead of stopping at reviews, directories, and map listings.",
+    "See how TradeScout helps users find local businesses, compare options, and take the next step through Scout instead of stopping at recommendations, directories, and map listings.",
   seoKeywords:
     "find local businesses, local business platform, tradescout vs yelp, google business profile alternative, local directory alternative",
   canonical: "https://www.thetradescout.com/compare/local-business",
   badgeLabel: "Local Business Comparison",
   categoryName: "Local Business Discovery Platforms",
   categorySummary:
-    "Discovery and review platforms help users find businesses, but they usually stop at awareness, reviews, and basic contact.",
+    "Discovery and recommendation platforms help users find businesses, but they usually stop at awareness, recommendations, and basic contact.",
   tradeScoutSummary:
-    "TradeScout turns local discovery into governed local action. Businesses do not just get seen; their exposure, trust, and action paths stay connected to system rules and local outcomes.",
+    "TradeScout turns local discovery into something more useful. Businesses do not just get seen; users can compare CVS, recommendations, and next steps in one place.",
   platforms: [
     {
       name: "Yelp",
       model: "Review and discovery platform",
-      pressure: "Strong awareness and reviews, but limited governed follow-through.",
+      pressure: "Strong awareness and recommendations, but limited follow-through.",
     },
     {
       name: "Google Business Profiles",
@@ -30,12 +30,12 @@ const config: CompareCategoryConfig = {
     {
       name: "Yellow Pages-style directories",
       model: "Local listing directory",
-      pressure: "Useful for lookup, not for trust-governed operating flow.",
+      pressure: "Useful for lookup, not for helping people through the full decision.",
     },
     {
       name: "Local business apps",
       model: "Directory or map browse layer",
-      pressure: "Good at visibility, weak at authority-first coordination.",
+      pressure: "Good at visibility, weak at helping people move to the next step.",
     },
     {
       name: "Marketplace directories",
@@ -51,13 +51,13 @@ const config: CompareCategoryConfig = {
   tableRows: [
     {
       feature: "Primary Value",
-      category: "Discovery, reviews, and lookup",
-      tradeScout: "Discovery plus trust-governed local action",
+      category: "Discovery, recommendations, and lookup",
+      tradeScout: "Discovery plus clear next steps",
     },
     {
       feature: "Business Exposure",
-      category: "Often driven by search, reviews, and listing presence",
-      tradeScout: "Exposure remains accountable to trust and system rules",
+      category: "Often driven by search, recommendations, and listing presence",
+      tradeScout: "Exposure stays tied to CVS and business quality",
       tradeScoutPositive: true,
     },
     {
@@ -69,13 +69,13 @@ const config: CompareCategoryConfig = {
     {
       feature: "Trust Model",
       category: "Review quality and platform norms vary",
-      tradeScout: "CVS and local proof stay explicit",
+      tradeScout: "CVS and local proof are easy to see",
       tradeScoutPositive: true,
     },
     {
       feature: "Scope",
       category: "Business discovery only",
-      tradeScout: "Business discovery connected to a broader local system",
+      tradeScout: "Business discovery connected to the rest of the local workflow",
     },
     {
       feature: "Main Risk",
@@ -91,7 +91,7 @@ const config: CompareCategoryConfig = {
     },
     {
       title: "Businesses operate inside community trust",
-      desc: "TradeScout connects business visibility to community trust and local proof instead of leaving them as separate layers.",
+      desc: "TradeScout connects business visibility to CVS, recommendations, and local proof instead of leaving them as separate layers.",
     },
     {
       title: "Scout compresses the path",
@@ -106,26 +106,26 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout another Yelp?",
       answer:
-        "No. Yelp is primarily a discovery and review layer. TradeScout is built to help people move from discovery to a trusted next step.",
+        "No. Yelp is primarily a discovery and recommendation layer. TradeScout is built to help people move from discovery to the next step.",
     },
     {
       question: "Why compare TradeScout to Google Business Profiles?",
       answer:
-        "Because many local journeys begin in search visibility, but those systems do not govern the full trust and action path.",
+        "Because many local journeys begin in search visibility, but those systems do not help much once someone is trying to decide who to trust.",
     },
     {
       question: "Can TradeScout still help local businesses get found?",
       answer:
-        "Yes, but visibility is tied to system trust and operating logic rather than being treated as the whole product.",
+        "Yes, but visibility is tied to CVS, recommendations, and business quality rather than being treated as the whole product.",
     },
     {
       question: "How does payment work?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Payment never overrides CVS, ranking, or trust.",
+        "TradeScout does not sell leads and does not charge to connect. Payment never overrides CVS or ranking.",
     },
   ],
   ctaTitle: "Replace Discovery-Only Local Search",
-  ctaDescription: "Use a platform that can govern what local discovery turns into.",
+  ctaDescription: "Use a platform that helps local discovery turn into a real decision.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/community", label: "Community Platforms →" },

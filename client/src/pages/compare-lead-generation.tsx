@@ -226,7 +226,7 @@ const CompareLeadGenerationPage = memo(function CompareLeadGenerationPage() {
                   <h3 className="text-sm font-semibold text-ts-orange mb-2">TradeScout</h3>
                   <p className="text-xs text-white/60 leading-relaxed">
                     TradeScout does not sell leads. TradeScout does not charge to connect. Scout
-                    routes requests using trust, local context, and intent-gated contact.
+                    helps you find stronger local matches, and contact opens after acceptance.
                   </p>
                 </div>
               </div>

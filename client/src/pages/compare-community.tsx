@@ -13,14 +13,14 @@ const config: CompareCategoryConfig = {
   badgeLabel: "Community Comparison",
   categoryName: "Community Platforms",
   categorySummary:
-    "Community platforms are good at conversation and awareness, but they usually behave like feeds. Visibility, contact, and action are driven by posting patterns more than authority, trust, or governed local routing.",
+    "Community platforms are good at conversation and awareness, but they usually behave like feeds. What people see next often depends more on posting momentum than on trust or clear next steps.",
   tradeScoutSummary:
-    "TradeScout keeps community memory, local authority, and action pathways structured. Scout is the bridge from discovery to action, not just another chat or feed layer.",
+    "TradeScout keeps local conversation tied to real next steps. Scout helps people move from a question or recommendation to actual action instead of getting stuck in a feed.",
   platforms: [
     {
       name: "Nextdoor",
       model: "Neighborhood feed",
-      pressure: "Optimized for posting and local conversation, not governed action.",
+      pressure: "Optimized for posting and local conversation, not clear follow-through.",
     },
     {
       name: "Facebook Groups",
@@ -35,12 +35,12 @@ const config: CompareCategoryConfig = {
     {
       name: "Neighborhood apps",
       model: "Community awareness layer",
-      pressure: "Great for updates, weaker for trusted operational flows.",
+      pressure: "Great for updates, weaker for trusted follow-through.",
     },
     {
       name: "Forum-style local communities",
       model: "Discussion board",
-      pressure: "Knowledge persists, but decision pathways are rarely governed.",
+      pressure: "Knowledge persists, but next steps are usually loose and informal.",
     },
     {
       name: "Message-first community tools",
@@ -52,12 +52,12 @@ const config: CompareCategoryConfig = {
     {
       feature: "Primary Pattern",
       category: "Posts, threads, and replies",
-      tradeScout: "Community memory plus routed actions",
+      tradeScout: "Community memory plus clear next steps",
     },
     {
       feature: "Authority Model",
       category: "Often informal or moderator-driven",
-      tradeScout: "Authority is explicit and system-governed",
+      tradeScout: "Who can do what is clear",
       tradeScoutPositive: true,
     },
     {
@@ -69,63 +69,64 @@ const config: CompareCategoryConfig = {
     {
       feature: "Trust Signals",
       category: "Often social and uneven",
-      tradeScout: "Verification, CVS, and local proof are explicit",
+      tradeScout: "Verification, CVS, and local proof are easy to see",
     },
     {
       feature: "Contact",
       category: "Often immediate or uncontrolled",
-      tradeScout: "Contact remains governed by context and acceptance",
+      tradeScout: "Contact stays tighter and opens after acceptance",
       tradeScoutPositive: true,
     },
     {
       feature: "Main Risk",
       category: "Visibility and influence can drift into feed dynamics",
-      tradeScout: "TradeScout is designed around authority, not feed popularity",
+      tradeScout: "TradeScout is designed around trusted outcomes, not feed popularity",
       categoryWarning: true,
     },
   ],
   differences: [
     {
       title: "Communities keep memory",
-      desc: "TradeScout is built for communities that retain memory and structured local context, not endless feed churn.",
+      desc: "TradeScout is built for communities that remember what happened and help people move forward, not endless feed churn.",
     },
     {
-      title: "Action is governed",
-      desc: "Users can go from a local question to a local action without leaving trust behind.",
+      title: "Action stays organized",
+      desc: "Users can go from a local question to a real next step without losing trust or context.",
     },
     {
-      title: "Authority stays explicit",
-      desc: "Awareness does not silently become access or influence.",
+      title: "Who can act stays clear",
+      desc: "Seeing something does not automatically open contact or give someone more influence.",
     },
     {
       title: "Scout replaces feed confusion",
-      desc: "Scout can surface next steps directly instead of forcing users to infer what to do from comment threads.",
+      desc: "Scout can show the next step directly instead of making people guess from comment threads.",
     },
   ],
   faqs: [
     {
       question: "Is TradeScout trying to replace Nextdoor?",
       answer:
-        "TradeScout serves a different role. It is not just a neighborhood feed; it is built to connect local conversation to trusted action.",
+        "TradeScout serves a different role. It is not just a neighborhood feed; it is built to connect local conversation to real action.",
     },
     {
       question: "Why compare TradeScout to Facebook Groups?",
       answer:
-        "Because many local communities try to coordinate through group threads even though authority, trust, and next steps are not governed.",
+        "Because many local communities try to coordinate through group threads even though trust is unclear and next steps get messy fast.",
     },
     {
       question: "Can TradeScout still support community conversation?",
       answer:
-        "Yes, but conversation is connected to authority, trust, and action instead of existing as an isolated feed.",
+        "Yes, but conversation is connected to trust, recommendations, and action instead of existing as an isolated feed.",
     },
     {
       question: "What keeps the system honest?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Trust and authority remain public system rules rather than monetized shortcuts.",
+        "TradeScout does not sell leads and does not charge to connect. Payment does not buy better placement or shortcut the system.",
     },
   ],
   ctaTitle: "Replace Feed-Only Community Tools",
-  ctaDescription: "Move from neighborhood chatter to a platform built for trusted local action.",
+  ctaDescription:
+    "Move from neighborhood chatter to a platform that helps people actually get things done.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/real-estate", label: "Real Estate →" },

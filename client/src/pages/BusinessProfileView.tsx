@@ -30,6 +30,7 @@ import { SEOHelmet, createLocalBusinessStructuredData } from "@/components/SEOHe
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "@/components/community/DecisionCard";
 import { apiRequest } from "@/lib/queryClient";
+import { matchFlowCopy, stripCountySuffix, trustScoreLabel } from "@/lib/userFacingCopy";
 
 /**
  * PublicBusinessProfileView
@@ -261,9 +262,9 @@ export default function BusinessProfileView() {
   const businessPromise =
     profile.headline ||
     (serviceList.length > 0
-      ? `${profile.name} helps with ${serviceList.slice(0, 3).join(", ")} across ${profile.countyName || "the local area"}.`
+      ? `${profile.name} helps with ${serviceList.slice(0, 3).join(", ")} in ${stripCountySuffix(profile.countyName) || profile.city || "your local market"} and nearby neighborhoods.`
       : profile.description
-        ? `${profile.name} serves ${profile.countyName || profile.city || "the local area"} through TradeScout.`
+        ? `${profile.name} serves ${stripCountySuffix(profile.countyName) || profile.city || "your local market"} through TradeScout.`
         : `${profile.name} is building a trusted public business page on TradeScout.`);
   const serviceSummaryText =
     serviceList.length > 0
@@ -599,7 +600,9 @@ export default function BusinessProfileView() {
                       {addressVerified ? "Address Verified" : "Address Verification Required"}
                     </Badge>
                     <Badge variant="outline" className="border-[color:var(--border-subtle)]">
-                      {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Available"}
+                      {cvsScore !== null
+                        ? `${trustScoreLabel()} ${Math.round(cvsScore)}`
+                        : `${trustScoreLabel()} available`}
                     </Badge>
                   </>
                 ) : (
@@ -854,7 +857,7 @@ export default function BusinessProfileView() {
             <div>
               <div className="text-sm font-medium">TradeScout-powered contact</div>
               <div className="text-sm text-muted-foreground mt-1">
-                Leads and contact stay routed through TradeScout instead of exposing raw contact
+                Requests and replies stay inside TradeScout instead of dumping out your raw contact
                 details.
               </div>
             </div>
@@ -917,8 +920,8 @@ export default function BusinessProfileView() {
             <div className="text-center max-w-2xl mx-auto">
               <h3 className="text-xl font-semibold mb-2">Start with {profile.name}</h3>
               <p className="text-muted-foreground mb-2">
-                Use TradeScout to request a quote, start a conversation, or route your need to the
-                right next step.
+                Use TradeScout to request a quote, wait for acceptance, and keep the conversation in
+                one place.
               </p>
               <p className="text-sm text-muted-foreground mb-4">
                 This page is built to work as a shareable public website and can be connected to a
@@ -972,8 +975,8 @@ export default function BusinessProfileView() {
                     }}
                     title={
                       user && viewerVerified
-                        ? "Call this business (Decision Card required)"
-                        : "Verify your address to call (browse is allowed)."
+                        ? "Confirm your reason for calling and unlock the number"
+                        : "Verify your address to call. Browsing is still open."
                     }
                   >
                     <Shield className="h-5 w-5 mr-2" />
@@ -993,7 +996,7 @@ export default function BusinessProfileView() {
             context={{
               targetName: profile.name,
               targetRole: "Directory business (unclaimed)",
-              communitySignal: "Contact is intent-gated (Decision Card required).",
+              communitySignal: "Confirm the fit before you call.",
               absenceNote:
                 "This business is not on TradeScout yet — your verified account can still call.",
             }}
@@ -1002,8 +1005,8 @@ export default function BusinessProfileView() {
               "Contact is logged and rate-limited to reduce spam and scraping.",
               "If the number is wrong, report it and use Direct Connect instead.",
             ]}
-            guidance="Your account is verified. Scout will unlock the phone number for this call after you confirm intent."
-            explanation="Intent → Decision Card → Contact"
+            guidance={`Your account is verified. ${matchFlowCopy()}`}
+            explanation="Tell Scout what you need → confirm the fit → reach out"
             onAskScout={() => {
               const params = new URLSearchParams({
                 intent: "hire",
@@ -1161,7 +1164,8 @@ export default function BusinessProfileView() {
             href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, "-")}`}
             className="text-primary hover:underline"
           >
-            Explore more businesses in {profile.countyName}
+            Explore more businesses near{" "}
+            {stripCountySuffix(profile.countyName) || profile.countyName}
           </a>
         </div>
       )}

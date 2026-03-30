@@ -286,8 +286,8 @@ export function ContextualHelp({ topic, compact = false }: ContextualHelpProps) 
                       <span className="text-white/70 text-xs font-semibold">CVS</span>
                     </div>
                     <p className="text-sm text-white/70">
-                      Ask satisfied customers for RECOMMENDATIONS - 90% of homeowners read
-                      RECOMMENDATIONS before hiring.
+                      Ask satisfied customers for recommendations. Most homeowners read
+                      recommendations before hiring.
                     </p>
                   </div>
                 </CardContent>

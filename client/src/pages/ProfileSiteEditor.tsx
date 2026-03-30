@@ -106,13 +106,21 @@ const PROFILE_SECTION_OPTIONS: Array<{
     label: "Exchange listings",
     description: "Active Exchange listings connected to this profile.",
   },
-  { key: "reviews", label: "Reviews", description: "Public recommendations and reviews." },
+  {
+    key: "reviews",
+    label: "Recommendations",
+    description: "Public recommendations from people you've worked with.",
+  },
   {
     key: "communityActivity",
     label: "Community activity",
     description: "Recent community posts and interactions.",
   },
-  { key: "contactCard", label: "Contact card", description: "Decision-card gated contact entry." },
+  {
+    key: "contactCard",
+    label: "Contact card",
+    description: "Protected contact entry through TradeScout.",
+  },
 ];
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

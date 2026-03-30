@@ -33,12 +33,12 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "What is the main difference between TradeScout and HomeAdvisor?",
       answer:
-        "TradeScout does not sell leads. Scout routes requests using trust and context, and contact stays gated until a match accepts.",
+        "TradeScout helps you compare the best-fit pros first, then reach out without your request getting blasted everywhere.",
     },
     {
-      question: "Why does TradeScout keep contact gated?",
+      question: "Why doesn't TradeScout open contact right away?",
       answer:
-        "Contact stays locked until a provider accepts your request. This keeps communication tied to a real match and prevents random outreach.",
+        "Because most people do not want random calls and rushed quoting. Contact opens after a pro accepts your request, which keeps outreach tied to a real response instead of a free-for-all.",
     },
     {
       question: "Why do HomeAdvisor quotes often come in low then balloon?",
@@ -48,7 +48,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "How does HomeAdvisor verify contractors?",
       answer:
-        "HomeAdvisor uses reviews, which can be gamed. TradeScout uses Community Verification Score (CVS): verified identity, license/insurance, work history, and community recommendations. CVS is public, auditable, and payment cannot override it.",
+        "HomeAdvisor leans heavily on recommendations and ratings. TradeScout shows CVS, which pulls together verified identity, license or insurance status, work history, and community recommendations.",
     },
     {
       question: "What is different about Scout?",
@@ -58,7 +58,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "Is TradeScout really $0 to use?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Payment never affects CVS, ranking, or matching.",
+        "Yes. TradeScout does not charge you to connect, and paying never changes ranking or matching.",
     },
   ];
 
@@ -83,19 +83,19 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       feature: "Contact",
       ha: "Often opens immediately",
-      ts: "Intent-gated until acceptance",
+      ts: "Opens after a pro accepts",
       tsPos: true,
     },
     {
       feature: "Exposure Logic",
       ha: "Varies by platform",
-      ts: "Trust (CVS) determines exposure",
+      ts: "Verified identity, license, insurance, work history, and real recommendations shape who shows up first",
       tsPos: true,
     },
     {
       feature: "Trust Verification",
       ha: "Varies by platform",
-      ts: "CVS: license + insurance + work history + community",
+      ts: "Verified identity, credentials, work history, and community feedback",
     },
     { feature: "Access", ha: "Varies by platform", ts: "No charge to connect" },
   ];
@@ -103,19 +103,19 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
   const changes = [
     {
       title: "Smaller Routing Set",
-      desc: "Your request is routed to a small set of relevant, trust-verified contractors.",
+      desc: "Your request goes to a smaller set of relevant contractors instead of being sprayed out widely.",
     },
     {
       title: "Not A Bidding Marketplace",
-      desc: "Scout matches on trust and relevance first. Pros accept or decline before contact opens.",
+      desc: "You see stronger options first, and contact opens only after a pro accepts or declines.",
     },
     {
-      title: "Trust Determines Visibility",
-      desc: "Trust signals determine exposure. Payment cannot override CVS.",
+      title: "CVS Shapes Who You See",
+      desc: "CVS helps move stronger providers up based on verified identity, license, insurance, work history, and recommendations from real customers. Money does not buy a better spot.",
     },
     {
-      title: "Community-Verified Reviews",
-      desc: "Reviews come from verified neighbors who actually worked with the contractor.",
+      title: "Community Recommendations",
+      desc: "Recommendations come from verified neighbors who actually worked with the contractor.",
     },
   ];
 
@@ -123,8 +123,8 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     <>
       <SEOHelmet
         title="TradeScout vs. HomeAdvisor - Trust-First Matching | TradeScout"
-        description="Compare approaches to contractor matching. TradeScout routes requests using trust and context, with intent-gated contact and no lead sales."
-        keywords="tradescout vs homeadvisor, homeadvisor alternative, trust-first matching, intent-gated contact, no lead sales"
+        description="Compare contractor search experiences. TradeScout focuses on fewer spam calls, better matches, and visible proof of who is actually solid."
+        keywords="tradescout vs homeadvisor, homeadvisor alternative, better contractor matches, less spam, trusted local pros"
         canonical="https://www.thetradescout.com/compare/homeadvisor"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -182,7 +182,8 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                     TradeScout (Trust Model)
                   </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    No lead sales. No pay-to-play visibility. Incentive: match quality over volume.
+                    No lead sales. No paying for a better spot. Incentive: better matches over more
+                    noise.
                   </p>
                 </div>
               </div>
@@ -299,7 +300,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 Try TradeScout
               </h2>
               <p className="text-white/60 text-sm mb-4">
-                Experience trust-first matching with intent-gated contact.
+                See how TradeScout keeps contact closed until a pro accepts.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">

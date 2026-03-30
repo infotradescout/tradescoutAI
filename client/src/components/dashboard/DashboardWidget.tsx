@@ -224,10 +224,10 @@ export function RatingWidget({
       <DashboardWidget
         title="Trust (CVS)"
         value={`${Math.round(rating)}`}
-        subtitle={`From ${recommendationCount} RECOMMENDATIONS`}
+        subtitle={`From ${recommendationCount} recommendations`}
         icon={<ShieldCheck className="h-5 w-5 text-ts-orange" />}
         status={rating >= 85 ? "success" : rating >= 70 ? "warning" : "info"}
-        tooltipContent="CVS is TradeScout's trust authority score. It reflects verification and reliability signals, not payment."
+        tooltipContent="CVS is TradeScout's trust score. It reflects verification and reliability signals, not payment."
         tooltipIllustration="paintbrush"
         actionLabel="Manage Recommendations"
         actionHref="/recommendations"

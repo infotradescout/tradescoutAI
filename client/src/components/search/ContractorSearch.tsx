@@ -287,7 +287,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                       <ShieldCheck className="h-4 w-4 text-ts-orange" />
                       Min Trust (CVS)
                       <ContextualTooltip
-                        content="CVS is TradeScout's trust authority score (0-100). It reflects verification and performance signals, not payment."
+                        content="CVS runs from 0 to 100. It reflects verification and performance signals, not payment."
                         illustration="paintbrush"
                         size="sm"
                         variant="contractor"

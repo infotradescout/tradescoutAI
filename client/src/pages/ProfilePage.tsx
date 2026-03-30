@@ -428,7 +428,7 @@ export default function ProfilePage() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="listings">Listings</TabsTrigger>
-            <TabsTrigger value="reviews">RECOMMENDATIONS</TabsTrigger>
+            <TabsTrigger value="reviews">Recommendations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -499,7 +499,7 @@ export default function ProfilePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-                      <span>Activity and RECOMMENDATIONS build your reputation</span>
+                      <span>Activity and recommendations build your reputation</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -569,7 +569,7 @@ export default function ProfilePage() {
                       <div className="text-2xl font-bold text-ts-orange">
                         {user?.stats?.reviews ?? "—"}
                       </div>
-                      <div className="text-xs text-white/60">RECOMMENDATIONS</div>
+                      <div className="text-xs text-white/60">Recommendations</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-ts-orange flex items-center justify-center gap-1">
@@ -661,14 +661,14 @@ export default function ProfilePage() {
           <TabsContent value="reviews">
             <Card className="bg-tsCard border-white/10">
               <CardHeader>
-                <CardTitle className="text-white">RECOMMENDATIONS</CardTitle>
+                <CardTitle className="text-white">Recommendations</CardTitle>
                 <CardDescription className="text-white/60">
-                  RECOMMENDATIONS from other community members
+                  Recommendations from other community members
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-white/60 text-center py-8">
-                  No RECOMMENDATIONS yet. Complete transactions to receive RECOMMENDATIONS!
+                  No recommendations yet. Complete transactions to receive recommendations.
                 </p>
               </CardContent>
             </Card>

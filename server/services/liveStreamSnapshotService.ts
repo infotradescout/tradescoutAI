@@ -85,6 +85,7 @@ export type LiveStreamSnapshotEntry = {
   prospectClasses?: ProspectClassSummary[];
   marketGapSummary?: string;
   revenueScore?: number;
+  evidence?: string[];
   stateCode: string | null;
   countyName: string | null;
 };
@@ -936,6 +937,7 @@ function toLiveStreamEntryFromLisaItem(
     lane,
     signalClass,
     baselineDeltaPct,
+    evidence: Array.isArray(item.evidence) ? item.evidence : [],
     category: category || undefined,
     county: county || undefined,
     state: state || undefined,

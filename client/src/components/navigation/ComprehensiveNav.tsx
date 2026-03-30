@@ -279,7 +279,7 @@ const ALL_NAVIGATION: NavItem[] = [
         roles: ["business_owner"],
       },
       {
-        label: "Customer RECOMMENDATIONS",
+        label: "Customer recommendations",
         href: "/business/reviews",
         icon: Star,
         roles: ["business_owner"],

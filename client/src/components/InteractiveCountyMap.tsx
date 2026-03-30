@@ -376,7 +376,7 @@ export function InteractiveCountyMap({
                                                 <span>CVS pending</span>
                                                 <span className="text-white/40">•</span>
                                                 <span>
-                                                  {contractor.recommendationCount} RECOMMENDATIONS
+                                                  {contractor.recommendationCount} recommendations
                                                 </span>
                                               </span>
                                             </div>

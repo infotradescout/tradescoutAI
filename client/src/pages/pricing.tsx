@@ -38,7 +38,7 @@ const featureLines = [
 const sponsorLines = [
   "$0 for access to TradeScout features, connections, and information",
   "No lead sales and no pay-to-play visibility",
-  "Payment data is excluded from ranking and trust authority",
+  "Payment data is excluded from CVS and ranking",
   "No paid access tiers and no pay-for-ranking controls",
   "Core platform access remains open for all users",
 ];
@@ -86,8 +86,8 @@ const Pricing = memo(function Pricing() {
             className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
           >
             Use everything without a paywall. Search contractors, run community playbooks, manage
-            your Direct Connect requests, and chat with Scout — all included. Payment never affects
-            trust authority, ranking, or routing.
+            your Direct Connect requests, and chat with Scout, all included. Payment never affects
+            CVS, ranking, or matching.
           </motion.p>
         </div>
 
@@ -143,9 +143,9 @@ const Pricing = memo(function Pricing() {
               </span>
             </div>
             <p className="text-sm text-white/70 mb-4 leading-relaxed">
-              Community Builders aren't just organizing projects — they earn a badge that lets them
+              Community Builders aren't just organizing projects. They earn a badge that lets them
               send and vote on causes funded from the community vault. Our Community Builders model
-              routes resources back to the neighborhoods that generated them.
+              sends resources back to the neighborhoods that generated them.
             </p>
             <ul className="space-y-2.5">
               {communityLines.map((line) => (
@@ -169,8 +169,8 @@ const Pricing = memo(function Pricing() {
               Start building without a credit card
             </h2>
             <p className="text-white/60 text-sm max-w-xl mx-auto">
-              Jump in, invite your team, and explore every feature. No payment is used to alter
-              trust authority, ranking, or connection access.
+              Jump in, invite your team, and explore every feature. No payment is used to alter CVS,
+              ranking, or connection access.
             </p>
           </div>
         </Reveal>

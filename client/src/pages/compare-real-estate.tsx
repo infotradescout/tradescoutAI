@@ -13,9 +13,9 @@ const config: CompareCategoryConfig = {
   badgeLabel: "Real Estate Comparison",
   categoryName: "Real Estate Platforms",
   categorySummary:
-    "Real-estate platforms are strong at listings, browsing, and market discovery, but they are not built to carry trust, routing, and local follow-through beyond the listing itself.",
+    "Real-estate platforms are strong at listings, browsing, and market discovery, but they are not built to carry trust and follow-through beyond the listing itself.",
   tradeScoutSummary:
-    "TradeScout treats real estate as one part of a broader local system. Scout carries trust, context, and next steps across discovery, verification, and decision-making.",
+    "TradeScout treats real estate as one part of a broader local system. Scout carries CVS, context, and next steps across discovery, verification, and decision-making.",
   platforms: [
     {
       name: "Zillow",
@@ -26,23 +26,23 @@ const config: CompareCategoryConfig = {
       name: "Realtor.com",
       model: "Listing network",
       pressure:
-        "Optimized for property discovery and lead handoff, not full community operating flow.",
+        "Optimized for property discovery and lead handoff, not the full local decision flow.",
     },
     {
       name: "Redfin",
       model: "Brokerage plus discovery",
-      pressure: "Great transaction tooling, but narrower than full local operating logic.",
+      pressure: "Great transaction tooling, but narrower than a full local workflow.",
     },
     {
       name: "Trulia",
       model: "Search and neighborhood browse layer",
-      pressure: "Awareness-heavy discovery without governing the entire local action path.",
+      pressure: "Awareness-heavy discovery without helping much with the full action path.",
     },
     {
       name: "Homes.com",
       model: "Listing and search surface",
       pressure:
-        "Supports real-estate discovery, but not broader community authority or cross-category interaction.",
+        "Supports real-estate discovery, but not broader community context or cross-category interaction.",
     },
     {
       name: "Portal-style real-estate sites",
@@ -54,7 +54,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Primary Strength",
       category: "Listings, search, browse, and market awareness",
-      tradeScout: "Discovery plus routed local action across categories",
+      tradeScout: "Discovery plus clear local action across categories",
     },
     {
       feature: "System Scope",
@@ -71,18 +71,18 @@ const config: CompareCategoryConfig = {
     {
       feature: "Trust Layer",
       category: "Reviews, agent branding, and platform context vary",
-      tradeScout: "Authority, verification, and local context are explicit system rules",
+      tradeScout: "CVS, verification, and local context are easy to see",
     },
     {
       feature: "Community Context",
       category: "Usually secondary to listings",
-      tradeScout: "Community memory and local operating context remain central",
+      tradeScout: "Community memory and local context remain central",
       tradeScoutPositive: true,
     },
     {
       feature: "Main Risk",
-      category: "High awareness without governing what happens next",
-      tradeScout: "TradeScout keeps discovery tied to local decision structure",
+      category: "High awareness without enough help on what happens next",
+      tradeScout: "TradeScout keeps discovery tied to the next local step",
       categoryWarning: true,
     },
   ],
@@ -92,12 +92,12 @@ const config: CompareCategoryConfig = {
       desc: "TradeScout connects real-estate activity to the wider local context instead of trapping it inside listing search alone.",
     },
     {
-      title: "Scout governs next steps",
-      desc: "Users do not have to leave one platform to get from awareness to routed action.",
+      title: "Scout keeps the next step clear",
+      desc: "Users do not have to leave one platform to get from awareness to action.",
     },
     {
-      title: "Local authority persists",
-      desc: "Counties, communities, and trusted operators remain part of the action model instead of acting like optional metadata.",
+      title: "Local context stays attached",
+      desc: "Markets, communities, and trusted operators remain part of the process instead of acting like optional metadata.",
     },
     {
       title: "Cross-category continuity",
@@ -123,7 +123,7 @@ const config: CompareCategoryConfig = {
     {
       question: "How does monetization differ?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Trust and routing stay separate from paid visibility.",
+        "TradeScout does not sell leads and does not charge to connect. CVS and matching stay separate from paid visibility.",
     },
   ],
   ctaTitle: "Replace Listing-Only Local Discovery",

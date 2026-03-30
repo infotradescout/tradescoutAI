@@ -18,7 +18,8 @@ const DatasetsLandingPage = memo(function DatasetsLandingPage() {
           <CardHeader>
             <CardTitle className="text-3xl text-white">Open Datasets</CardTitle>
             <p className="text-white/60">
-              Read-only discovery datasets. Business contact remains intent-gated inside TradeScout.
+              Read-only discovery datasets. Business contact still stays protected inside
+              TradeScout.
             </p>
           </CardHeader>
           <CardContent className="p-6 pt-0">
@@ -43,7 +44,7 @@ const DatasetsLandingPage = memo(function DatasetsLandingPage() {
             <div className="mt-4 text-xs text-white/60">
               JSON endpoints live under{" "}
               <span className="text-white/70">/api/public/datasets/*</span> (not indexed by default
-              robots rules). These pages are the crawlable layer.
+              robots rules). These pages are the public browse layer.
             </div>
           </CardContent>
         </Card>

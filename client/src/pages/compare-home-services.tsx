@@ -13,9 +13,9 @@ const config: CompareCategoryConfig = {
   badgeLabel: "Home Services Comparison",
   categoryName: "Home Services Platforms",
   categorySummary:
-    "Home-services platforms often center on contractor discovery, lead flow, listings, quote competition, or early-open contact. The system pressure usually favors more activity before trust is fully established.",
+    "Home-services platforms often center on listings, quote volume, and early contact. That usually means more noise before you know who is actually solid.",
   tradeScoutSummary:
-    "TradeScout does not sell leads and does not charge to connect. Scout routes requests using trust, local context, and intent-gated contact so fit matters more than marketplace volume.",
+    "TradeScout does not sell leads and does not charge to connect. It helps you see stronger local options first, then talk to a pro after acceptance instead of getting flooded.",
   platforms: [
     {
       name: "Angi",
@@ -45,7 +45,7 @@ const config: CompareCategoryConfig = {
     {
       name: "Houzz",
       model: "Directory and inspiration layer",
-      pressure: "Discovery can start long before governed routing or local fit.",
+      pressure: "People can browse for a long time before they know who is actually a good hire.",
     },
   ],
   tableRows: [
@@ -57,25 +57,25 @@ const config: CompareCategoryConfig = {
     {
       feature: "Contact Timing",
       category: "Contact often opens early",
-      tradeScout: "Intent-gated until a provider accepts",
+      tradeScout: "Contact opens after a pro accepts",
       tradeScoutPositive: true,
     },
     {
       feature: "Routing Logic",
       category: "Often broad distribution or quote competition",
-      tradeScout: "Scout routes to a smaller trust-qualified set",
+      tradeScout: "A smaller set of local pros who actually fit the job",
       tradeScoutPositive: true,
     },
     {
       feature: "Visibility",
       category: "Can be shaped by marketplace dynamics or paid exposure",
-      tradeScout: "CVS and trust signals govern exposure",
+      tradeScout: "CVS helps shape who appears first",
       tradeScoutPositive: true,
     },
     {
       feature: "Verification",
       category: "Varies by platform",
-      tradeScout: "CVS combines identity, licensing, insurance, work history, and community proof",
+      tradeScout: "Verified identity, credentials, work history, and community feedback",
     },
     {
       feature: "Main Risk",
@@ -91,11 +91,11 @@ const config: CompareCategoryConfig = {
     },
     {
       title: "Scout replaces form-hopping",
-      desc: "Users can move from question to routing to decision in one place instead of jumping across listings and quote forms.",
+      desc: "Users can move from question to shortlist in one place instead of bouncing between listings and quote forms.",
     },
     {
-      title: "Trust governs exposure",
-      desc: "Visibility is governed by CVS and local proof rather than being unlocked by marketplace pressure.",
+      title: "Trust shapes who you see",
+      desc: "CVS helps move stronger providers up based on verified identity, license, insurance, work history, and recommendations.",
     },
     {
       title: "No lead resale",
@@ -111,7 +111,7 @@ const config: CompareCategoryConfig = {
     {
       question: "How is TradeScout different from Angi or HomeAdvisor?",
       answer:
-        "TradeScout does not sell leads. Scout routes with trust and context, and contact stays gated until there is an accepted match.",
+        "TradeScout does not sell leads. It shows you who looks strongest, keeps contact closed until a pro accepts, and cuts down on random outreach.",
     },
     {
       question: "Does TradeScout still work for hiring local pros?",
@@ -126,7 +126,7 @@ const config: CompareCategoryConfig = {
   ],
   ctaTitle: "Replace Home Services Lead Flow",
   ctaDescription:
-    "Use Scout to move from search to routed action without turning your local decision into a lead-sale event.",
+    "Use Scout to move from search to a better shortlist without turning your local decision into a lead-sale event.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/lead-generation", label: "Lead Generation →" },

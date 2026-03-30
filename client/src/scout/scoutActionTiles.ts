@@ -59,8 +59,8 @@ export type ScoutActionTile = {
 export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
-    label: "Start a governed local request",
-    description: "Describe the work once and let Scout route the trusted next step",
+    label: "Start a local request",
+    description: "Describe the work once and let Scout move it to the right next step",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
@@ -88,7 +88,7 @@ export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "find_pros",
     label: "Find the right local providers",
-    description: "Compare trust-backed providers before you open contact",
+    description: "Compare local providers before contact opens",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {

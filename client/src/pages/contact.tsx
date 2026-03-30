@@ -20,8 +20,8 @@ export default function ContactGatePage() {
             Contact Requires Intent Confirmation
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            TradeScout routes outreach through Scout and Direct Connect to prevent spam and preserve
-            trusted contact flows.
+            Start in Scout or Direct Connect so your request stays organized and you do not get hit
+            with random outreach.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
