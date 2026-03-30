@@ -110,27 +110,30 @@ export default function NextBrowse() {
           </div>
         </div>
 
-        <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-          <Card className="border-white/10 bg-white/[0.03]">
-            <CardHeader>
-              <CardTitle className="text-2xl">Browse with more control</CardTitle>
-              <CardDescription className="max-w-2xl text-white/62">
-                If you already know what you want, this gives you a cleaner way to get there.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
+        <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">
+              Browse with more control
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+              Go where you mean to go.
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
+              If you already know what you want, this gives you a cleaner way to get there.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {["Find Help", "Explore Local", "Business Tools"].map((label) => (
                 <div
                   key={label}
-                  className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/72"
+                  className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-white/72"
                 >
                   {label}
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(249,115,22,0.12),rgba(255,255,255,0.02))]">
+          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(249,115,22,0.16),rgba(255,255,255,0.02))]">
             <CardHeader>
               <Building2 className="mb-3 h-5 w-5 text-ts-orange" />
               <CardTitle className="text-2xl">Need the faster path?</CardTitle>
@@ -140,7 +143,10 @@ export default function NextBrowse() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/scout" className={cn(buttonVariants({ size: "lg" }), "justify-between")}>
+              <Link
+                href="/scout"
+                className={cn(buttonVariants({ size: "lg" }), "justify-between rounded-2xl px-5")}
+              >
                 Ask Scout instead
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -152,8 +158,11 @@ export default function NextBrowse() {
           {browseBuckets.map((bucket) => {
             const Icon = bucket.icon;
             return (
-              <Card key={bucket.title} className="border-white/10 bg-white/[0.03] backdrop-blur-sm">
-                <CardHeader>
+              <Card
+                key={bucket.title}
+                className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] backdrop-blur-sm"
+              >
+                <CardHeader className="pb-4">
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/25">
                     <Icon className="h-5 w-5 text-ts-orange" />
                   </div>
@@ -165,7 +174,7 @@ export default function NextBrowse() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
+                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3.5 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
                     >
                       <span>{link.label}</span>
                       <ArrowRight className="h-4 w-4 text-white/35" />

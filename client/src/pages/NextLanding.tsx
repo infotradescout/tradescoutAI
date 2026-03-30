@@ -120,6 +120,27 @@ export default function NextLanding() {
               </p>
             </div>
 
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/scout"
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "min-w-[12rem] justify-center rounded-2xl px-6"
+                )}
+              >
+                Ask Scout
+              </Link>
+              <Link
+                href="/next/browse"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "min-w-[12rem] justify-center rounded-2xl px-6"
+                )}
+              >
+                Explore on your own
+              </Link>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               {modeCards.map((card) => (
                 <Card
@@ -152,55 +173,48 @@ export default function NextLanding() {
             </div>
           </div>
 
-          <Card className="overflow-hidden border-white/10 bg-[#0b0d11]/95 shadow-[0_40px_140px_-60px_rgba(0,0,0,0.92)]">
-            <CardHeader className="border-b border-white/8 pb-5">
-              <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-ts-orange/20 bg-ts-orange/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-ts-orange">
-                <Sparkles className="h-3.5 w-3.5" />
-                Ask Scout
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b0d11]/95 p-6 shadow-[0_40px_140px_-60px_rgba(0,0,0,0.92)]">
+            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="absolute right-[-4rem] top-[-3rem] h-40 w-40 rounded-full bg-ts-orange/12 blur-3xl" />
+            <div className="relative space-y-6">
+              <div>
+                <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-ts-orange/20 bg-ts-orange/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-ts-orange">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Ask Scout
+                </div>
+                <div className="text-sm uppercase tracking-[0.18em] text-white/42">Fast lane</div>
+                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                  Tell Scout what is going on.
+                </h2>
+                <p className="mt-3 max-w-lg text-base leading-7 text-white/62">
+                  It helps sort the request, narrow the next step, and keep you from wandering the
+                  product.
+                </p>
               </div>
-              <CardTitle className="text-2xl">The fastest way to get unstuck</CardTitle>
-              <CardDescription className="text-white/62">
-                Tell Scout what is going on. It helps sort the request, narrow the next step, and
-                keep you from wandering the product.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 pt-5">
-              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
+
+              <div className="rounded-[1.5rem] border border-white/10 bg-black/30 p-4">
+                <div className="mb-3 text-xs uppercase tracking-[0.18em] text-white/45">
+                  Start here
+                </div>
                 <Input
                   value="What do you need help with today?"
                   readOnly
-                  className="h-12 border-0 bg-transparent px-1 text-base text-white/90 shadow-none"
+                  className="h-12 border-0 bg-transparent px-0 text-base text-white/90 shadow-none"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+
+              <div className="grid gap-2">
                 {samplePrompts.map((prompt) => (
                   <div
                     key={prompt}
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/70"
+                    className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/72"
                   >
                     {prompt}
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/scout"
-                  className={cn(buttonVariants({ size: "lg" }), "min-w-[12rem] justify-center")}
-                >
-                  Ask Scout
-                </Link>
-                <Link
-                  href="/next/browse"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "lg" }),
-                    "min-w-[12rem] justify-center"
-                  )}
-                >
-                  Explore on your own
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </section>
 
         <section className="mt-16 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
@@ -235,8 +249,11 @@ export default function NextLanding() {
               const icons = [Search, Compass, LayoutDashboard];
               const Icon = icons[index] ?? Search;
               return (
-                <Card key={bucket.title} className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
+                <Card
+                  key={bucket.title}
+                  className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]"
+                >
+                  <CardHeader className="min-h-[10.5rem]">
                     <Icon className="mb-3 h-5 w-5 text-ts-orange" />
                     <CardTitle className="text-lg">{bucket.title}</CardTitle>
                     <CardDescription className="text-white/58">
@@ -252,7 +269,7 @@ export default function NextLanding() {
         <section className="mt-14 flex flex-wrap items-center gap-3">
           <Link
             href="/next/home"
-            className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
+            className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "rounded-2xl px-6")}
           >
             See the calmer home
           </Link>

@@ -132,25 +132,24 @@ export default function NextHome() {
         </header>
 
         <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]">
-            <CardHeader>
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-6">
+            <div className="absolute right-[-4rem] top-[-3rem] h-40 w-40 rounded-full bg-ts-orange/10 blur-3xl" />
+            <div className="relative">
               <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-ts-orange/20 bg-ts-orange/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-ts-orange">
                 <Sparkles className="h-3.5 w-3.5" />
                 {isAuthenticated ? "Pick up where you left off" : "Start with Scout"}
               </div>
-              <CardTitle className="text-3xl">
+              <h2 className="max-w-2xl text-3xl font-semibold tracking-tight text-white">
                 {isAuthenticated
                   ? "The next step should be easy to find"
                   : "The first step should be obvious"}
-              </CardTitle>
-              <CardDescription className="max-w-xl text-white/62">
+              </h2>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
                 {isAuthenticated
                   ? "Scout is still the quickest way to move active work forward without bouncing between sections."
                   : "If you are not sure where to begin, Scout gives you the clearest way into the product."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-black/25 p-4">
+              </p>
+              <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-black/25 p-4">
                 <div className="mb-3 text-sm font-medium text-white/55">
                   {isAuthenticated ? "Pick up where you left off" : "Start here"}
                 </div>
@@ -164,10 +163,10 @@ export default function NextHome() {
                   className="h-12 border-0 bg-transparent px-0 text-base text-white shadow-none"
                 />
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Link
                   href="/scout"
-                  className={cn(buttonVariants({ size: "lg" }), "justify-center")}
+                  className={cn(buttonVariants({ size: "lg" }), "justify-center rounded-2xl px-6")}
                 >
                   {isAuthenticated ? "Continue with Scout" : "Ask Scout"}
                 </Link>
@@ -175,14 +174,14 @@ export default function NextHome() {
                   href="/next/browse"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
-                    "justify-center"
+                    "justify-center rounded-2xl px-6"
                   )}
                 >
                   Explore on your own
                 </Link>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <Card className="border-white/10 bg-white/[0.03]">
             <CardHeader>
@@ -193,10 +192,15 @@ export default function NextHome() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-white/72">
-              {rhythmItems.map((item) => (
+              {rhythmItems.map((item, index) => (
                 <div
                   key={item}
-                  className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                  className={cn(
+                    "rounded-2xl border px-4 py-3",
+                    index === 0
+                      ? "border-ts-orange/20 bg-ts-orange/8 text-white"
+                      : "border-white/10 bg-black/20"
+                  )}
                 >
                   {item}
                 </div>
@@ -206,7 +210,7 @@ export default function NextHome() {
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="border-white/10 bg-white/[0.03]">
+          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
             <CardHeader>
               <CardTitle className="text-2xl">
                 {isAuthenticated ? "Keep moving" : "What this home could hold"}
@@ -221,7 +225,7 @@ export default function NextHome() {
               {activeWork.map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-3xl border border-white/10 bg-black/20 px-4 py-4"
+                  className="rounded-3xl border border-white/10 bg-black/20 px-4 py-4 transition hover:border-white/16"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -241,7 +245,10 @@ export default function NextHome() {
             {utilities.map((utility) => {
               const Icon = utility.icon;
               return (
-                <Card key={utility.title} className="border-white/10 bg-white/[0.03]">
+                <Card
+                  key={utility.title}
+                  className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]"
+                >
                   <CardHeader>
                     <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
                       <Icon className="h-5 w-5 text-ts-orange" />
@@ -252,7 +259,7 @@ export default function NextHome() {
                   <CardContent>
                     <Link
                       href={utility.href}
-                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
+                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3.5 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
                     >
                       Go to {utility.title}
                       <ArrowRight className="h-4 w-4 text-white/35" />
@@ -262,7 +269,7 @@ export default function NextHome() {
               );
             })}
             {isBusinessUser ? (
-              <Card className="border-white/10 bg-white/[0.03]">
+              <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
                 <CardHeader>
                   <CardTitle className="text-xl">Business tools</CardTitle>
                   <CardDescription className="text-white/58">
