@@ -18,7 +18,7 @@ export function ScoutHeader({
 
   return (
     <header className="scout-header space-y-2 text-center md:text-left">
-      <div className="scout-header-eyebrow">TradeScout • Scout Operating Layer</div>
+      <div className="scout-header-eyebrow">TradeScout • Ask Scout</div>
       <h1
         className="text-xl md:text-2xl font-medium tracking-tight"
         style={{ color: "var(--text-primary)" }}
@@ -32,10 +32,10 @@ export function ScoutHeader({
         style={{ color: "var(--text-muted)" }}
       >
         {isAuthenticated
-          ? "Tell Scout your goal in plain language. You'll get the next best step without digging through the site."
+          ? "Tell Scout what you need in plain language. It will help you figure out the next step without digging through the site."
           : isFirstGuestVisit
-            ? "Explore first. Scout can show you the right path before you decide to save progress or open contact."
-            : "Sign in when you want to save progress or open contact."}
+            ? "Start here if you want the clearest path forward before you save progress or open contact."
+            : "Sign in when you want to save progress or unlock the next step."}
       </p>
     </header>
   );
