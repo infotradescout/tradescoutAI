@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const browseBuckets = [
   {
     title: "Find Help",
-    description: "Fast paths for requests, provider discovery, and guided coordination.",
+    description: "Start a request, find someone trustworthy, or move a project forward.",
     icon: Search,
     links: [
       { label: "Scout", href: "/scout" },
@@ -27,7 +27,7 @@ const browseBuckets = [
   },
   {
     title: "Explore Local",
-    description: "Public-facing surfaces organized around county, business, and local discovery.",
+    description: "Look through county, business, and local surfaces without route sprawl.",
     icon: Compass,
     links: [
       { label: "Business Directory", href: "/business-directory" },
@@ -38,7 +38,7 @@ const browseBuckets = [
   },
   {
     title: "Community",
-    description: "Spaces for neighborhood signals, updates, and discussion without route sprawl.",
+    description: "Check conversations, groups, and local activity in one place.",
     icon: MessageCircle,
     links: [
       { label: "Community", href: "/community" },
@@ -49,7 +49,7 @@ const browseBuckets = [
   },
   {
     title: "My Activity",
-    description: "A lighter personal layer for what needs attention next.",
+    description: "See what needs your attention without opening a dashboard maze.",
     icon: UserSquare2,
     links: [
       { label: "Next Home", href: "/next/home" },
@@ -60,7 +60,7 @@ const browseBuckets = [
   },
   {
     title: "Business Tools",
-    description: "Operational tools grouped separately so the rest of the product stays calmer.",
+    description: "Keep the heavier operator tools in their own lane.",
     icon: Briefcase,
     links: [
       { label: "CRM", href: "/crm" },
@@ -85,7 +85,7 @@ export default function NextBrowse() {
           <div>
             <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">Browse mode</div>
             <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">
-              A designed browse system, not a sitemap dump.
+              Explore TradeScout without feeling lost.
             </h1>
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
@@ -115,8 +115,7 @@ export default function NextBrowse() {
             <CardHeader>
               <CardTitle className="text-2xl">Browse with more control</CardTitle>
               <CardDescription className="max-w-2xl text-white/62">
-                This preview groups TradeScout into a few calm buckets so direct exploration feels
-                intentional, not sprawling.
+                If you already know what you want, this gives you a cleaner way to get there.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -134,15 +133,15 @@ export default function NextBrowse() {
           <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(249,115,22,0.12),rgba(255,255,255,0.02))]">
             <CardHeader>
               <Building2 className="mb-3 h-5 w-5 text-ts-orange" />
-              <CardTitle className="text-2xl">Use Scout when browse is too much</CardTitle>
+              <CardTitle className="text-2xl">Need the faster path?</CardTitle>
               <CardDescription className="text-white/62">
-                Browse mode should help people who want control. It should never force route hunting
-                on users who just need the next move.
+                When you do not want to think about routes, jump back into Scout and let it guide
+                the next move.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/scout" className={cn(buttonVariants({ size: "lg" }), "justify-between")}>
-                Switch to Scout mode
+                Ask Scout instead
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </CardContent>

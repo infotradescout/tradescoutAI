@@ -15,25 +15,25 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const samplePrompts = [
-  "Find a roofer I can trust in my county",
-  "Help me compare quotes before I contact anyone",
-  "What should I ask before hiring a plumber?",
+  "Find a roofer I can trust nearby",
+  "Help me compare quotes before I call anyone",
+  "What should I ask before I hire a plumber?",
 ];
 
 const modeCards = [
   {
-    title: "Guided mode",
+    title: "Ask Scout",
     description:
-      "Start with Scout when you want clarity fast. Ask once, get routed, and keep the next step obvious.",
+      "Start here when you want the fastest path forward. Ask once, get direction, and keep the next move clear.",
     href: "/scout",
-    badge: "Fast lane",
+    badge: "Fastest path",
   },
   {
-    title: "Browse mode",
+    title: "Browse on your own",
     description:
-      "Use a calmer navigation system when you want to explore categories, tools, and local surfaces directly.",
+      "Start here when you know what you want and just need a calmer way to move through TradeScout.",
     href: "/next/browse",
-    badge: "Structured",
+    badge: "More control",
   },
 ];
 
@@ -74,7 +74,7 @@ export default function NextLanding() {
             <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">
               TradeScout Next
             </div>
-            <div className="mt-1 text-lg font-semibold tracking-tight">Parallel UX preview</div>
+            <div className="mt-1 text-lg font-semibold tracking-tight">A simpler way in</div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-white/70">
             <Link
@@ -99,7 +99,7 @@ export default function NextLanding() {
               href="/landing"
               className="rounded-full px-3 py-1.5 transition hover:bg-white/6 hover:text-white"
             >
-              Current landing
+              Current site
             </Link>
           </div>
         </nav>
@@ -108,16 +108,15 @@ export default function NextLanding() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.22em] text-white/60">
               <ShieldCheck className="h-3.5 w-3.5 text-ts-orange" />
-              Calm, dual-mode navigation
+              Find help without the noise
             </div>
             <div className="space-y-4">
               <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                One product, two clear ways to move through TradeScout.
+                Start with Scout, or explore at your own pace.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-white/68 sm:text-lg">
-                Scout mode is the guided fast lane. Browse mode is the calmer structured lane. This
-                preview separates them on purpose so the product feels easier to trust and easier to
-                use.
+                Use Scout when you want a quick answer and a clear next step. Browse when you want
+                to look around without feeling buried in routes and options.
               </p>
             </div>
 
@@ -144,7 +143,7 @@ export default function NextLanding() {
                         "w-full justify-between"
                       )}
                     >
-                      Open {card.title}
+                      {card.title}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </CardContent>
@@ -159,16 +158,16 @@ export default function NextLanding() {
                 <Sparkles className="h-3.5 w-3.5" />
                 Ask Scout
               </div>
-              <CardTitle className="text-2xl">Guided when you want speed</CardTitle>
+              <CardTitle className="text-2xl">The fastest way to get unstuck</CardTitle>
               <CardDescription className="text-white/62">
-                Keep the primary action obvious. Ask once, let Scout normalize intent, then route
-                the next move.
+                Tell Scout what is going on. It helps sort the request, narrow the next step, and
+                keep you from wandering the product.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 pt-5">
               <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
                 <Input
-                  value="Need help finding a trusted electrician in my county"
+                  value="What do you need help with today?"
                   readOnly
                   className="h-12 border-0 bg-transparent px-1 text-base text-white/90 shadow-none"
                 />
@@ -188,7 +187,7 @@ export default function NextLanding() {
                   href="/scout"
                   className={cn(buttonVariants({ size: "lg" }), "min-w-[12rem] justify-center")}
                 >
-                  Continue to Scout
+                  Ask Scout
                 </Link>
                 <Link
                   href="/next/browse"
@@ -197,7 +196,7 @@ export default function NextLanding() {
                     "min-w-[12rem] justify-center"
                   )}
                 >
-                  Browse instead
+                  Explore on your own
                 </Link>
               </div>
             </CardContent>
@@ -207,10 +206,10 @@ export default function NextLanding() {
         <section className="mt-16 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
           <Card className="border-white/10 bg-white/[0.03]">
             <CardHeader>
-              <CardTitle className="text-xl">The distinction should feel obvious</CardTitle>
+              <CardTitle className="text-xl">Two good ways to use TradeScout</CardTitle>
               <CardDescription className="text-white/60">
-                Guided mode handles uncertainty. Browse mode handles exploration. Both stay inside
-                the same TradeScout product truth.
+                Some days you want guidance. Some days you want control. You should be able to tell
+                which path fits right away.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -218,14 +217,14 @@ export default function NextLanding() {
                 <MessageSquareText className="mb-3 h-5 w-5 text-ts-orange" />
                 <div className="text-sm font-semibold text-white">Ask Scout</div>
                 <div className="mt-2 text-sm leading-6 text-white/62">
-                  Best when the user wants guidance, not route hunting.
+                  Start here when you want the next step handed to you clearly.
                 </div>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <Compass className="mb-3 h-5 w-5 text-sky-300" />
                 <div className="text-sm font-semibold text-white">Browse TradeScout</div>
                 <div className="mt-2 text-sm leading-6 text-white/62">
-                  Best when the user wants direct access to structured sections.
+                  Start here when you want to move directly through the product.
                 </div>
               </div>
             </CardContent>
@@ -255,10 +254,10 @@ export default function NextLanding() {
             href="/next/home"
             className={cn(buttonVariants({ variant: "secondary", size: "lg" }))}
           >
-            Preview calmer home
+            See the calmer home
           </Link>
           <Button variant="ghost" size="lg" asChild>
-            <a href="/landing">Compare against current production landing</a>
+            <a href="/landing">See current landing</a>
           </Button>
         </section>
       </div>

@@ -1,9 +1,19 @@
-import { ArrowRight, Bell, Compass, MessageSquare, Sparkles, TimerReset } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  Compass,
+  Loader2,
+  MessageSquare,
+  Sparkles,
+  TimerReset,
+} from "lucide-react";
 import { Link } from "wouter";
 import { PageHead } from "@/components/PageHead";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 
 const activeWork = [
@@ -24,28 +34,70 @@ const activeWork = [
   },
 ];
 
-const utilities = [
-  {
-    title: "Messages",
-    detail: "See recent replies and keep open threads from scattering across the app.",
-    href: "/messages",
-    icon: MessageSquare,
-  },
-  {
-    title: "Browse categories",
-    detail: "Jump into the curated browse hub when you want direct control.",
-    href: "/next/browse",
-    icon: Compass,
-  },
-  {
-    title: "Notifications",
-    detail: "Review alerts, saved work, and upcoming follow-up moments.",
-    href: "/notifications",
-    icon: Bell,
-  },
-];
-
 export default function NextHome() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { unreadCount } = useNotifications();
+  const firstName = user?.firstName || user?.username || user?.email?.split("@")[0] || "there";
+  const isBusinessUser = Boolean(
+    user?.role === "contractor_user" ||
+    user?.role === "accelerator_member" ||
+    user?.role === "realtor" ||
+    user?.role === "insurance_agent" ||
+    user?.role === "mortgage_broker" ||
+    user?.role === "property_manager" ||
+    user?.role === "car_salesman"
+  );
+  const rhythmItems = isAuthenticated
+    ? [
+        "You have open work that can move forward with one more step.",
+        unreadCount > 0
+          ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"} waiting.`
+          : "Your inbox is quiet right now.",
+        "Explore is still here when you want to look around on your own.",
+      ]
+    : [
+        "Sign in to see your saved progress and messages.",
+        "Scout is still the fastest way to get started.",
+        "Explore is here if you want to look around first.",
+      ];
+  const utilities = [
+    {
+      title: "Messages",
+      detail: isAuthenticated
+        ? "See recent replies and keep active conversations together."
+        : "Sign in to see replies and keep conversations moving.",
+      href: "/messages",
+      icon: MessageSquare,
+    },
+    {
+      title: "Explore",
+      detail: "Move through the calmer browse hub when you want more control.",
+      href: "/next/browse",
+      icon: Compass,
+    },
+    {
+      title: unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications",
+      detail: isAuthenticated
+        ? "Check alerts and anything that needs attention."
+        : "Sign in to see alerts and recent activity.",
+      href: "/notifications",
+      icon: Bell,
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-[#050609] text-white">
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="flex items-center gap-3 text-white/70">
+            <Loader2 className="h-5 w-5 animate-spin text-ts-orange" />
+            Loading your home...
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#050609] text-white">
       <PageHead
@@ -58,14 +110,17 @@ export default function NextHome() {
         <header className="mb-10 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
           <div>
             <div className="text-[11px] uppercase tracking-[0.28em] text-white/45">
-              Signed-in home preview
+              A calmer home
             </div>
             <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">
-              Start with the next move, not the whole platform.
+              {isAuthenticated
+                ? `Welcome back, ${firstName}.`
+                : "Come back in without the clutter."}
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
-              This concept turns the signed-in home into a quieter action surface: one clear Scout
-              entry, active work in view, and secondary tools pushed back.
+              {isAuthenticated
+                ? "Start where you left off, move the important work first, and keep the rest of the platform out of your way."
+                : "This home is built to feel lighter: one clear way to start, a calmer browse path, and less dashboard noise."}
             </p>
           </div>
           <Link
@@ -81,21 +136,30 @@ export default function NextHome() {
             <CardHeader>
               <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-ts-orange/20 bg-ts-orange/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-ts-orange">
                 <Sparkles className="h-3.5 w-3.5" />
-                Continue with Scout
+                {isAuthenticated ? "Pick up where you left off" : "Start with Scout"}
               </div>
-              <CardTitle className="text-3xl">Keep the primary action unmistakable</CardTitle>
+              <CardTitle className="text-3xl">
+                {isAuthenticated
+                  ? "The next step should be easy to find"
+                  : "The first step should be obvious"}
+              </CardTitle>
               <CardDescription className="max-w-xl text-white/62">
-                For most people, the fastest way forward is still Scout. Home should reinforce that
-                instead of competing with every workspace at once.
+                {isAuthenticated
+                  ? "Scout is still the quickest way to move active work forward without bouncing between sections."
+                  : "If you are not sure where to begin, Scout gives you the clearest way into the product."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-3xl border border-white/10 bg-black/25 p-4">
                 <div className="mb-3 text-sm font-medium text-white/55">
-                  Pick up where you left off
+                  {isAuthenticated ? "Pick up where you left off" : "Start here"}
                 </div>
                 <Input
-                  value="Compare these contractor responses before I contact anyone."
+                  value={
+                    isAuthenticated
+                      ? "Compare these contractor responses before I contact anyone."
+                      : "What do you need help with today?"
+                  }
                   readOnly
                   className="h-12 border-0 bg-transparent px-0 text-base text-white shadow-none"
                 />
@@ -105,7 +169,7 @@ export default function NextHome() {
                   href="/scout"
                   className={cn(buttonVariants({ size: "lg" }), "justify-center")}
                 >
-                  Open Scout
+                  {isAuthenticated ? "Continue with Scout" : "Ask Scout"}
                 </Link>
                 <Link
                   href="/next/browse"
@@ -114,7 +178,7 @@ export default function NextHome() {
                     "justify-center"
                   )}
                 >
-                  Browse categories
+                  Explore on your own
                 </Link>
               </div>
             </CardContent>
@@ -123,21 +187,20 @@ export default function NextHome() {
           <Card className="border-white/10 bg-white/[0.03]">
             <CardHeader>
               <TimerReset className="mb-3 h-5 w-5 text-ts-orange" />
-              <CardTitle className="text-2xl">Today’s rhythm</CardTitle>
+              <CardTitle className="text-2xl">What needs your attention</CardTitle>
               <CardDescription className="text-white/60">
-                A short operational summary keeps the home surface useful without becoming noisy.
+                A short read on what matters now keeps home useful without making it noisy.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-white/72">
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                2 active requests are waiting on a user decision.
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                1 conversation needs a reply before end of day.
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                Browse mode is available if you want direct route access instead.
-              </div>
+              {rhythmItems.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                >
+                  {item}
+                </div>
+              ))}
             </CardContent>
           </Card>
         </section>
@@ -145,9 +208,13 @@ export default function NextHome() {
         <section className="mt-8 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
           <Card className="border-white/10 bg-white/[0.03]">
             <CardHeader>
-              <CardTitle className="text-2xl">Active work</CardTitle>
+              <CardTitle className="text-2xl">
+                {isAuthenticated ? "Keep moving" : "What this home could hold"}
+              </CardTitle>
               <CardDescription className="text-white/60">
-                Keep in-flight work visible, but don’t let it take over the entire screen.
+                {isAuthenticated
+                  ? "Keep in-flight work visible, but do not let it take over the whole screen."
+                  : "Once you sign in, this space can hold your active work without turning into a crowded dashboard."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -187,13 +254,32 @@ export default function NextHome() {
                       href={utility.href}
                       className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
                     >
-                      Open {utility.title}
+                      Go to {utility.title}
                       <ArrowRight className="h-4 w-4 text-white/35" />
                     </Link>
                   </CardContent>
                 </Card>
               );
             })}
+            {isBusinessUser ? (
+              <Card className="border-white/10 bg-white/[0.03]">
+                <CardHeader>
+                  <CardTitle className="text-xl">Business tools</CardTitle>
+                  <CardDescription className="text-white/58">
+                    Keep the heavier operator tools close, but out of the main flow.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link
+                    href="/business-owner-dashboard"
+                    className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
+                  >
+                    Open business workspace
+                    <ArrowRight className="h-4 w-4 text-white/35" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
         </section>
       </div>
