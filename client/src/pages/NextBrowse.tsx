@@ -163,6 +163,17 @@ export default function NextBrowse() {
                 className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] backdrop-blur-sm"
               >
                 <CardHeader className="pb-4">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
+                    {bucket.title === "Find Help"
+                      ? "Start"
+                      : bucket.title === "Explore Local"
+                        ? "Discover"
+                        : bucket.title === "Community"
+                          ? "Connect"
+                          : bucket.title === "My Activity"
+                            ? "Return"
+                            : "Operate"}
+                  </div>
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/25">
                     <Icon className="h-5 w-5 text-ts-orange" />
                   </div>

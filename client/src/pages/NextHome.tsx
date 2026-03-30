@@ -131,6 +131,18 @@ export default function NextHome() {
           </Link>
         </header>
 
+        <div className="mb-6 flex flex-wrap gap-2">
+          <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/50">
+            {isAuthenticated ? "Focused home" : "Lighter entry"}
+          </div>
+          <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/50">
+            {isAuthenticated ? "Action first" : "Scout first"}
+          </div>
+          <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/50">
+            Less dashboard noise
+          </div>
+        </div>
+
         <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-6">
             <div className="absolute right-[-4rem] top-[-3rem] h-40 w-40 rounded-full bg-ts-orange/10 blur-3xl" />
@@ -202,6 +214,9 @@ export default function NextHome() {
                       : "border-white/10 bg-black/20"
                   )}
                 >
+                  <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-white/40">
+                    {index === 0 ? "Now" : index === 1 ? "Watch" : "Optional"}
+                  </div>
                   {item}
                 </div>
               ))}

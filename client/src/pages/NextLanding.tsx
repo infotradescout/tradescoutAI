@@ -142,10 +142,13 @@ export default function NextLanding() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {modeCards.map((card) => (
+              {modeCards.map((card, index) => (
                 <Card
                   key={card.title}
-                  className="border-white/10 bg-white/[0.04] backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06]"
+                  className={cn(
+                    "border-white/10 bg-white/[0.04] backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06]",
+                    index === 0 ? "md:translate-y-4" : ""
+                  )}
                 >
                   <CardHeader>
                     <div className="mb-3 inline-flex w-fit rounded-full border border-white/10 bg-white/6 px-3 py-1 text-xs uppercase tracking-[0.18em] text-white/55">
@@ -205,12 +208,13 @@ export default function NextLanding() {
 
               <div className="grid gap-2">
                 {samplePrompts.map((prompt) => (
-                  <div
+                  <button
                     key={prompt}
-                    className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/72"
+                    type="button"
+                    className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left text-sm text-white/72 transition hover:border-white/16 hover:bg-white/[0.05] hover:text-white"
                   >
                     {prompt}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -218,7 +222,7 @@ export default function NextLanding() {
         </section>
 
         <section className="mt-16 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <Card className="border-white/10 bg-white/[0.03]">
+          <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))]">
             <CardHeader>
               <CardTitle className="text-xl">Two good ways to use TradeScout</CardTitle>
               <CardDescription className="text-white/60">
@@ -229,6 +233,9 @@ export default function NextLanding() {
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <MessageSquareText className="mb-3 h-5 w-5 text-ts-orange" />
+                <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
+                  Fast lane
+                </div>
                 <div className="text-sm font-semibold text-white">Ask Scout</div>
                 <div className="mt-2 text-sm leading-6 text-white/62">
                   Start here when you want the next step handed to you clearly.
@@ -236,6 +243,9 @@ export default function NextLanding() {
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <Compass className="mb-3 h-5 w-5 text-sky-300" />
+                <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
+                  Open lane
+                </div>
                 <div className="text-sm font-semibold text-white">Browse TradeScout</div>
                 <div className="mt-2 text-sm leading-6 text-white/62">
                   Start here when you want to move directly through the product.
@@ -254,6 +264,9 @@ export default function NextLanding() {
                   className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]"
                 >
                   <CardHeader className="min-h-[10.5rem]">
+                    <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
+                      Preview
+                    </div>
                     <Icon className="mb-3 h-5 w-5 text-ts-orange" />
                     <CardTitle className="text-lg">{bucket.title}</CardTitle>
                     <CardDescription className="text-white/58">
