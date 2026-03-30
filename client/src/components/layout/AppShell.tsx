@@ -290,15 +290,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
-  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
+  const showFeatureNav = !isAuthOrSetupSurface;
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const shouldPinRightTools =
-    !isMobile &&
-    !isAuthOrSetupSurface &&
-    !isAdminSurface &&
-    !isScoutSurface &&
-    !isSettingsSurface &&
-    !isPortalSurface;
+    !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface && !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
@@ -788,7 +783,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         <aside
           className="fixed z-40"
           style={{
-            top: "var(--top-nav-h)",
+            top: isAdminSurface ? 0 : "var(--top-nav-h)",
             bottom: "var(--bottom-nav-h)",
             right: 0,
             width: isRightToolsCollapsed ? RIGHT_TOOLS_COLLAPSED_W : "var(--right-nav-w)",
