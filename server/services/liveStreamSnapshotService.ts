@@ -30,6 +30,10 @@ type MarketExampleBusiness = {
   name: string;
   slug: string | null;
 };
+type ProspectClassSummary = {
+  label: string;
+  count: number;
+};
 
 export type LiveStreamSnapshotEntry = {
   id: string;
@@ -56,6 +60,9 @@ export type LiveStreamSnapshotEntry = {
   whyNow?: string;
   inventorySummary?: string;
   exampleBusinesses?: MarketExampleBusiness[];
+  prospectSummary?: string;
+  prospectClasses?: ProspectClassSummary[];
+  marketGapSummary?: string;
   revenueScore?: number;
   stateCode: string | null;
   countyName: string | null;
@@ -637,7 +644,31 @@ async function enrichEntryWithMarketInventory(
     ).ok;
   });
 
+  const classifiedBusinesses = viableBusinesses.map((row) => {
+    const tier = derivePublicationTier({
+      ownerUserId: row.owner_user_id ? String(row.owner_user_id) : null,
+      claimStatus: row.claim_status ? String(row.claim_status) : null,
+      ownerVerificationStatus: row.owner_verification_status
+        ? String(row.owner_verification_status)
+        : null,
+      ownerAddressVerified:
+        typeof row.owner_address_verified === "boolean" ? row.owner_address_verified : null,
+    });
+    const prospectClass =
+      tier === "verified"
+        ? "verified sponsor targets"
+        : tier === "claimed_unverified"
+          ? "warm claim targets"
+          : "recruitable inventory";
+    return {
+      row,
+      tier,
+      prospectClass,
+    };
+  });
+
   let inventorySummary: string | undefined;
+  let marketGapSummary: string | undefined;
   if (normalizedCategory) {
     const scopedCountResult = await pool.query<{ business_count: number }>(
       `
@@ -658,19 +689,41 @@ async function enrichEntryWithMarketInventory(
     inventorySummary = publicCount
       ? `${publicCount} public ${categoryLabel} businesses are already visible in ${entry.county}, ${entry.state}.`
       : `No public ${categoryLabel} businesses are currently visible in ${entry.county}, ${entry.state}.`;
+    if (publicCount === 0) {
+      marketGapSummary = `${entry.county}, ${entry.state} is showing demand without visible ${categoryLabel} inventory.`;
+    } else if (publicCount <= 3) {
+      marketGapSummary = `${entry.county}, ${entry.state} has thin ${categoryLabel} inventory, so this is both a sell and recruit market.`;
+    }
   } else if (viableBusinesses.length > 0) {
     inventorySummary = `${viableBusinesses.length} public businesses are currently visible in ${entry.county}, ${entry.state}.`;
+    if (viableBusinesses.length <= 3) {
+      marketGapSummary = `${entry.county}, ${entry.state} has thin visible inventory relative to live demand.`;
+    }
   }
 
   if (!inventorySummary && viableBusinesses.length === 0) return entry;
 
+  const classCounts = new Map<string, number>();
+  for (const business of classifiedBusinesses) {
+    classCounts.set(business.prospectClass, (classCounts.get(business.prospectClass) || 0) + 1);
+  }
+  const prospectClasses = Array.from(classCounts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  const prospectSummary = prospectClasses.length
+    ? prospectClasses.map((item) => `${item.label}: ${item.count}`).join(" | ")
+    : undefined;
+
   return {
     ...entry,
     inventorySummary,
-    exampleBusinesses: viableBusinesses.slice(0, 3).map((row) => ({
+    exampleBusinesses: classifiedBusinesses.slice(0, 3).map(({ row }) => ({
       name: String(row.name || "Unknown business"),
       slug: row.slug ? String(row.slug) : null,
     })),
+    prospectSummary,
+    prospectClasses,
+    marketGapSummary,
   };
 }
 

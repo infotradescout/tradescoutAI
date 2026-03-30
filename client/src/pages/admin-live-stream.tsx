@@ -49,6 +49,12 @@ type LiveStreamItem = {
     name: string;
     slug: string | null;
   }>;
+  prospectSummary?: string;
+  prospectClasses?: Array<{
+    label: string;
+    count: number;
+  }>;
+  marketGapSummary?: string;
   revenueScore?: number;
 };
 
@@ -1144,6 +1150,9 @@ export default function AdminLiveStreamPage() {
           salesAngle?: string;
           inventorySummary?: string;
           exampleBusinesses?: Array<{ name: string; slug: string | null }>;
+          prospectSummary?: string;
+          prospectClasses?: Array<{ label: string; count: number }>;
+          marketGapSummary?: string;
           owner: string;
           urgency: string;
           status: "new" | "in progress" | "cleared";
@@ -1167,6 +1176,9 @@ export default function AdminLiveStreamPage() {
           salesAngle: item.salesAngle,
           inventorySummary: item.inventorySummary,
           exampleBusinesses: item.exampleBusinesses,
+          prospectSummary: item.prospectSummary,
+          prospectClasses: item.prospectClasses,
+          marketGapSummary: item.marketGapSummary,
           owner: resolveEntryOwner(item),
           urgency: resolveEntryUrgency(item),
           status: actionStatuses[item.id] || "new",
@@ -2541,7 +2553,10 @@ export default function AdminLiveStreamPage() {
                           ) : null}
                         </div>
                       ) : null}
-                      {item.inventorySummary || item.exampleBusinesses?.length ? (
+                      {item.inventorySummary ||
+                      item.exampleBusinesses?.length ||
+                      item.prospectSummary ||
+                      item.marketGapSummary ? (
                         <div className="mt-3 grid gap-2 md:grid-cols-2">
                           {item.inventorySummary ? (
                             <div className="rounded-md border border-cyan-300/15 bg-cyan-500/10 px-3 py-2">
@@ -2550,6 +2565,16 @@ export default function AdminLiveStreamPage() {
                               </div>
                               <div className="mt-1 text-xs text-cyan-50">
                                 {item.inventorySummary}
+                              </div>
+                            </div>
+                          ) : null}
+                          {item.prospectSummary ? (
+                            <div className="rounded-md border border-blue-300/15 bg-blue-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-blue-100/60">
+                                Buyer Classes
+                              </div>
+                              <div className="mt-1 text-xs text-blue-50">
+                                {item.prospectSummary}
                               </div>
                             </div>
                           ) : null}
@@ -2562,6 +2587,16 @@ export default function AdminLiveStreamPage() {
                                 {item.exampleBusinesses
                                   .map((business) => business.name)
                                   .join(" | ")}
+                              </div>
+                            </div>
+                          ) : null}
+                          {item.marketGapSummary ? (
+                            <div className="rounded-md border border-rose-300/15 bg-rose-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-rose-100/60">
+                                Market Gap
+                              </div>
+                              <div className="mt-1 text-xs text-rose-50">
+                                {item.marketGapSummary}
                               </div>
                             </div>
                           ) : null}
