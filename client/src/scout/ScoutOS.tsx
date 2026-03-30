@@ -96,10 +96,10 @@ const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 const SCOUT_QUICK_START_PROMPTS = [
-  "Find local providers for my project",
-  "Help me plan budget and timeline",
-  "What permits do I need for this job?",
-  "Show relevant exchange items nearby",
+  "Help me find the right local help",
+  "Help me figure out budget and timing",
+  "Do I need permits for this job?",
+  "Show me useful listings nearby",
 ] as const;
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
@@ -4124,7 +4124,7 @@ export default function ScoutOS() {
 
                 {!isAuthenticated && (
                   <div className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Explore first.{" "}
+                    Start here first.{" "}
                     <button
                       type="button"
                       className="font-medium underline underline-offset-2"
@@ -4133,7 +4133,7 @@ export default function ScoutOS() {
                     >
                       Sign in
                     </button>{" "}
-                    only when you need to save progress or open messaging.
+                    when you want to save progress or keep the conversation going.
                   </div>
                 )}
 

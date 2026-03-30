@@ -8,25 +8,25 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as the operating layer and focuses on outcomes", () => {
+  it("header frames Scout as a clear ask surface and focuses on outcomes", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("TradeScout • Scout Operating Layer");
+    expect(source).toContain("TradeScout • Ask Scout");
     expect(source).toContain("What do you need to get done");
     expect(source).toContain(
-      "Tell Scout your goal in plain language. You'll get the next best step and a governed path to action."
+      "Tell Scout what you need in plain language. It will help you figure out the next step without digging through the site."
     );
   });
 
-  it("input row and quick-start surfaces use operating-flow language", () => {
+  it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const osSource = read("client/src/scout/ScoutOS.tsx");
 
     expect(inputSource).toContain("Tell Scout what you need help with");
-    expect(osSource).toContain("Start with Scout");
-    expect(osSource).toContain(
-      "Pick the operating path that matches what you need to move forward right now."
-    );
+    expect(inputSource).toContain("Your area:");
+    expect(inputSource).toContain("Use current location");
+    expect(osSource).toContain("Help me find the right local help");
+    expect(osSource).toContain("Start here first.");
   });
 
   it("thread and quick-start actions avoid internal controller framing", () => {
@@ -37,7 +37,7 @@ describe("Scout entry framing contracts", () => {
     expect(threadSource).toContain("Next steps");
     expect(threadSource).toContain("Keep going");
     expect(threadSource).not.toContain("Controller actions");
-    expect(tilesSource).toContain('label: "Start a governed local request"');
+    expect(tilesSource).toContain('label: "Start a local request"');
     expect(tilesSource).toContain('label: "Find the right local providers"');
   });
 });

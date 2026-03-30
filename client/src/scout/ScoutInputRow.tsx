@@ -43,7 +43,7 @@ export function ScoutInputRow({
                   color: "var(--text-primary)",
                 }}
               >
-                Operating area: {heroLocationLabel}
+                Your area: {heroLocationLabel}
               </span>
               <button
                 type="button"
@@ -60,7 +60,7 @@ export function ScoutInputRow({
                 className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
                 style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
               >
-                {isUpdatingGeo ? "Updating..." : "Use device area"}
+                {isUpdatingGeo ? "Updating..." : "Use current location"}
               </button>
             </>
           )}
