@@ -160,7 +160,7 @@ export default function NextBrowse() {
             return (
               <Card
                 key={bucket.title}
-                className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] backdrop-blur-sm"
+                className="group border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-white/16"
               >
                 <CardHeader className="pb-4">
                   <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/40">
@@ -175,7 +175,7 @@ export default function NextBrowse() {
                             : "Operate"}
                   </div>
                   <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/25">
-                    <Icon className="h-5 w-5 text-ts-orange" />
+                    <Icon className="h-5 w-5 text-ts-orange transition group-hover:scale-105" />
                   </div>
                   <CardTitle className="text-xl">{bucket.title}</CardTitle>
                   <CardDescription className="text-white/58">{bucket.description}</CardDescription>
@@ -185,10 +185,10 @@ export default function NextBrowse() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3.5 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
+                      className="group/link flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3.5 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
                     >
                       <span>{link.label}</span>
-                      <ArrowRight className="h-4 w-4 text-white/35" />
+                      <ArrowRight className="h-4 w-4 text-white/35 transition group-hover/link:translate-x-0.5 group-hover/link:text-ts-orange" />
                     </Link>
                   ))}
                 </CardContent>

@@ -240,7 +240,7 @@ export default function NextHome() {
               {activeWork.map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-3xl border border-white/10 bg-black/20 px-4 py-4 transition hover:border-white/16"
+                  className="rounded-3xl border border-white/10 bg-black/20 px-4 py-4 transition hover:-translate-y-0.5 hover:border-white/16"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -262,11 +262,11 @@ export default function NextHome() {
               return (
                 <Card
                   key={utility.title}
-                  className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]"
+                  className="group border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] transition hover:-translate-y-0.5 hover:border-white/16"
                 >
                   <CardHeader>
                     <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/20">
-                      <Icon className="h-5 w-5 text-ts-orange" />
+                      <Icon className="h-5 w-5 text-ts-orange transition group-hover:scale-105" />
                     </div>
                     <CardTitle className="text-xl">{utility.title}</CardTitle>
                     <CardDescription className="text-white/58">{utility.detail}</CardDescription>
@@ -274,17 +274,17 @@ export default function NextHome() {
                   <CardContent>
                     <Link
                       href={utility.href}
-                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3.5 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
+                      className="group/link flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3.5 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
                     >
                       Go to {utility.title}
-                      <ArrowRight className="h-4 w-4 text-white/35" />
+                      <ArrowRight className="h-4 w-4 text-white/35 transition group-hover/link:translate-x-0.5 group-hover/link:text-ts-orange" />
                     </Link>
                   </CardContent>
                 </Card>
               );
             })}
             {isBusinessUser ? (
-              <Card className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]">
+              <Card className="group border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] transition hover:-translate-y-0.5 hover:border-white/16">
                 <CardHeader>
                   <CardTitle className="text-xl">Business tools</CardTitle>
                   <CardDescription className="text-white/58">
@@ -294,10 +294,10 @@ export default function NextHome() {
                 <CardContent>
                   <Link
                     href="/business-owner-dashboard"
-                    className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
+                    className="group/link flex items-center justify-between rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/78 transition hover:border-white/16 hover:bg-black/30 hover:text-white"
                   >
                     Open business workspace
-                    <ArrowRight className="h-4 w-4 text-white/35" />
+                    <ArrowRight className="h-4 w-4 text-white/35 transition group-hover/link:translate-x-0.5 group-hover/link:text-ts-orange" />
                   </Link>
                 </CardContent>
               </Card>

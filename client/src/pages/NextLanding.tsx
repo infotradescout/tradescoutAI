@@ -20,6 +20,10 @@ const samplePrompts = [
   "What should I ask before I hire a plumber?",
 ];
 
+function buildScoutPromptHref(prompt: string) {
+  return `/scout?prompt=${encodeURIComponent(prompt)}`;
+}
+
 const modeCards = [
   {
     title: "Ask Scout",
@@ -146,7 +150,7 @@ export default function NextLanding() {
                 <Card
                   key={card.title}
                   className={cn(
-                    "border-white/10 bg-white/[0.04] backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06]",
+                    "border-white/10 bg-white/[0.04] backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]",
                     index === 0 ? "md:translate-y-4" : ""
                   )}
                 >
@@ -208,13 +212,14 @@ export default function NextLanding() {
 
               <div className="grid gap-2">
                 {samplePrompts.map((prompt) => (
-                  <button
+                  <Link
                     key={prompt}
-                    type="button"
-                    className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left text-sm text-white/72 transition hover:border-white/16 hover:bg-white/[0.05] hover:text-white"
+                    href={buildScoutPromptHref(prompt)}
+                    className="group flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left text-sm text-white/72 transition hover:border-ts-orange/30 hover:bg-white/[0.05] hover:text-white"
                   >
-                    {prompt}
-                  </button>
+                    <span>{prompt}</span>
+                    <ArrowRight className="h-4 w-4 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                  </Link>
                 ))}
               </div>
             </div>
