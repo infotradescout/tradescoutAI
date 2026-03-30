@@ -97,9 +97,9 @@ const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 const SCOUT_QUICK_START_PROMPTS = [
   "Help me find the right local help",
-  "Help me figure out budget and timing",
-  "Do I need permits for this job?",
-  "Show me useful listings nearby",
+  "Help me figure out cost and timing",
+  "Do I need permits for this?",
+  "Show me what's happening nearby",
 ] as const;
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
@@ -4133,7 +4133,7 @@ export default function ScoutOS() {
                     >
                       Sign in
                     </button>{" "}
-                    when you want to save progress or keep the conversation going.
+                    only when you want to save this or come back to it later.
                   </div>
                 )}
 

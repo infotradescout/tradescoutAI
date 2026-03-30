@@ -90,7 +90,7 @@ export function ScoutInputRow({
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
-        placeholder="Tell Scout what you need help with..."
+        placeholder="What do you need help with today?"
         onSend={onSend}
         onUserTyping={onTyping}
         prefillKey="scout-main"

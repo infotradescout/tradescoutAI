@@ -14,7 +14,7 @@ describe("Scout entry framing contracts", () => {
     expect(source).toContain("TradeScout • Ask Scout");
     expect(source).toContain("What do you need to get done");
     expect(source).toContain(
-      "Tell Scout what you need in plain language. It will help you figure out the next step without digging through the site."
+      "Tell Scout what you need in plain language and it will point you to the right next step."
     );
   });
 
@@ -22,10 +22,11 @@ describe("Scout entry framing contracts", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const osSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(inputSource).toContain("Tell Scout what you need help with");
+    expect(inputSource).toContain("What do you need help with today?");
     expect(inputSource).toContain("Your area:");
     expect(inputSource).toContain("Use current location");
     expect(osSource).toContain("Help me find the right local help");
+    expect(osSource).toContain("Help me figure out cost and timing");
     expect(osSource).toContain("Start here first.");
   });
 
@@ -38,6 +39,7 @@ describe("Scout entry framing contracts", () => {
     expect(threadSource).toContain("Keep going");
     expect(threadSource).not.toContain("Controller actions");
     expect(tilesSource).toContain('label: "Start a local request"');
-    expect(tilesSource).toContain('label: "Find the right local providers"');
+    expect(tilesSource).toContain('label: "Find local pros"');
+    expect(tilesSource).toContain('label: "Browse Exchange"');
   });
 });

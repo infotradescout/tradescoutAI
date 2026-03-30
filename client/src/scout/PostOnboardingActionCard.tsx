@@ -63,10 +63,10 @@ export const PostOnboardingActionCard: React.FC<PostOnboardingActionCardProps> =
     >
       <div className="space-y-3">
         <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          What's next?
+          Ready for the next move?
         </p>
         <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          Based on what you're looking to do, here are some next steps:
+          Here are the clearest ways to keep going.
         </p>
 
         <div className="space-y-2 pt-2">
@@ -96,7 +96,7 @@ export const PostOnboardingActionCard: React.FC<PostOnboardingActionCardProps> =
         </div>
 
         <p className="text-xs pt-2" style={{ color: "var(--text-secondary)" }}>
-          You can always change your mind. Scout is here to help anytime.
+          Not sure yet? You can come back to Scout anytime.
         </p>
       </div>
     </Card>

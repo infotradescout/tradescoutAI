@@ -32,10 +32,10 @@ export function ScoutHeader({
         style={{ color: "var(--text-muted)" }}
       >
         {isAuthenticated
-          ? "Tell Scout what you need in plain language. It will help you figure out the next step without digging through the site."
+          ? "Tell Scout what you need in plain language and it will point you to the right next step."
           : isFirstGuestVisit
-            ? "Start here if you want the clearest path forward before you save progress or open contact."
-            : "Sign in when you want to save progress or unlock the next step."}
+            ? "Start here if you want the clearest path before you save progress or open contact."
+            : "Sign in when you want to save this or come back to it later."}
       </p>
     </header>
   );
