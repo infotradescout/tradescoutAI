@@ -283,6 +283,29 @@ function extractLargestNumber(text: string): number {
   }, 0);
 }
 
+function formatCountyState(entry: LiveStreamSnapshotEntry): string | undefined {
+  if (entry.county && entry.state) return `${entry.county}, ${entry.state}`;
+  return entry.county || entry.state || undefined;
+}
+
+function inferSurfaceLabel(entry: LiveStreamSnapshotEntry): string | undefined {
+  const text = `${entry.title} ${entry.narrative}`.toLowerCase();
+  if (text.includes("county page")) return "county page";
+  if (text.includes("public business")) return "public business surface";
+  if (text.includes("category")) return "category surface";
+  if (text.includes("trade county")) return "trade county surface";
+  return undefined;
+}
+
+function formatBaselineShift(entry: LiveStreamSnapshotEntry): string | undefined {
+  if (typeof entry.baselineDeltaPct !== "number" || !Number.isFinite(entry.baselineDeltaPct)) {
+    return undefined;
+  }
+  const rounded = Math.round(entry.baselineDeltaPct);
+  if (rounded === 0) return "flat to baseline";
+  return rounded > 0 ? `up ${rounded}% vs baseline` : `down ${Math.abs(rounded)}% vs baseline`;
+}
+
 function resolveRevenueScore(entry: LiveStreamSnapshotEntry): number {
   const priorityWeight = { critical: 35, high: 24, medium: 15, low: 8 } as const;
   const bucketWeight = {
@@ -322,9 +345,183 @@ function withRevenueScore(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEnt
 
 function buildWhyNow(entry: LiveStreamSnapshotEntry): string {
   const score = extractLargestNumber(`${entry.title} ${entry.narrative}`);
+  const baselineShift = formatBaselineShift(entry);
+  if (score > 0 && baselineShift) {
+    return `Observed pressure is already in the feed at roughly ${score}, with demand ${baselineShift}.`;
+  }
   if (score > 0) return `Observed pressure is already in the feed at roughly ${score}.`;
+  if (baselineShift) return `Demand is ${baselineShift}.`;
   if (entry.truthStatus === "current") return "This signal is current right now.";
   return "This signal is still worth watching, but it is less time-sensitive.";
+}
+
+function buildLeakPlay(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  if (routeTarget)
+    return `Repair ${routeTarget} before routing any more paid or sales traffic into it.`;
+  if (targetMarket)
+    return `Fix the conversion leak around ${targetMarket} before spending harder there.`;
+  return "Repair the leak before routing more paid or sales attention here.";
+}
+
+function buildLeakChannel(entry: LiveStreamSnapshotEntry): string {
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  if (routeTarget) {
+    return `${routeTarget} repair, redirect/canonical cleanup, and conversion-path QA`;
+  }
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `${entry.category} landing fix in ${countyState}, plus conversion-path cleanup`;
+  }
+  return "surface fix, redirect, and conversion-path cleanup";
+}
+
+function buildLeakAsset(entry: LiveStreamSnapshotEntry): string {
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  if (routeTarget) return `${routeTarget} repair ticket and post-fix monetization checklist`;
+  if (entry.category) return `${entry.category} conversion audit and repair ticket`;
+  return "repair ticket and post-fix monetization follow-up";
+}
+
+function buildAdPlay(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `Launch a ${entry.category} county ad push in ${countyState} while attention is active.`;
+  }
+  if (countyState) return `Launch a county ad push in ${countyState} while attention is active.`;
+  if (targetMarket) return `Open a county ad push around ${targetMarket}.`;
+  return "Open a county-level ad push while attention is present.";
+}
+
+function buildAdChannel(entry: LiveStreamSnapshotEntry): string {
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `${entry.category} county-page ads, local search ads, and paid social in ${countyState}`;
+  }
+  if (countyState) return `county landing ads, local search ads, and paid social in ${countyState}`;
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  if (routeTarget) return `search and retargeting traffic into ${routeTarget}`;
+  return "county landing ads, paid social, and local search coverage";
+}
+
+function buildAdAsset(entry: LiveStreamSnapshotEntry): string {
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `${entry.category} ad package for ${countyState} and a county market one-sheet`;
+  }
+  if (countyState) return `${countyState} county ad package and local market one-sheet`;
+  return "county ad package and local market one-sheet";
+}
+
+function buildAdvertiserPlay(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `Pitch ${entry.category} advertisers serving ${countyState} while demand is visible.`;
+  }
+  if (entry.category)
+    return `Pitch ${entry.category} advertisers around this active demand pocket.`;
+  if (targetMarket) return `Pitch advertisers around ${targetMarket}.`;
+  return "Pitch advertisers around this active demand pocket.";
+}
+
+function buildAdvertiserChannel(entry: LiveStreamSnapshotEntry): string {
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `${entry.category} sponsor outreach in ${countyState}, outbound sales, and local package follow-up`;
+  }
+  if (entry.category)
+    return `${entry.category} sponsor outreach, outbound sales, and category package pitch`;
+  return "sponsor outreach, outbound sales, and category package pitch";
+}
+
+function buildAdvertiserAsset(entry: LiveStreamSnapshotEntry): string {
+  const countyState = formatCountyState(entry);
+  if (entry.category && countyState) {
+    return `${entry.category} advertiser deck for ${countyState} and sponsor package`;
+  }
+  if (entry.category) return `${entry.category} advertiser deck and sponsor package`;
+  return "advertiser deck and sponsor package";
+}
+
+function buildMarketMove(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  const countyState = formatCountyState(entry);
+  if (routeTarget)
+    return `Prioritize ${routeTarget} for route fixes, redirects, and budget allocation.`;
+  if (countyState) return `Shift expansion and coverage priority toward ${countyState}.`;
+  if (targetMarket) {
+    return `Use ${targetMarket} as a market movement signal for expansion, redirects, or prioritization.`;
+  }
+  return "Use this route pressure to guide expansion, redirects, or prioritization.";
+}
+
+function buildMarketChannel(entry: LiveStreamSnapshotEntry): string {
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  if (routeTarget) return `${routeTarget} prioritization, redirect planning, and SEO budget shift`;
+  const countyState = formatCountyState(entry);
+  if (countyState)
+    return `county expansion planning, route prioritization, and budget shift into ${countyState}`;
+  return "market expansion planning, route prioritization, and budget shift";
+}
+
+function buildMarketAsset(entry: LiveStreamSnapshotEntry): string {
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  if (routeTarget) return `${routeTarget} route-priority worksheet and expansion brief`;
+  const countyState = formatCountyState(entry);
+  if (countyState) return `${countyState} market move brief and route-priority worksheet`;
+  return "market move brief and route-priority worksheet";
+}
+
+function buildSalesAngle(
+  entry: LiveStreamSnapshotEntry,
+  bucket: CommercialBucket,
+  targetMarket?: string
+): string {
+  const countyState = formatCountyState(entry);
+  const surface = inferSurfaceLabel(entry);
+  const baselineShift = formatBaselineShift(entry);
+
+  if (bucket === "monetization leaks") {
+    if (targetMarket && baselineShift) {
+      return `${targetMarket} is already drawing attention, but revenue is leaking before conversion and demand is ${baselineShift}.`;
+    }
+    if (targetMarket) {
+      return `${targetMarket} is already drawing attention, but revenue is leaking before conversion.`;
+    }
+    return "Attention is present, but monetization is leaking before conversion.";
+  }
+
+  if (bucket === "ad plays") {
+    if (entry.category && countyState && surface) {
+      return `${entry.category} attention is concentrating on the ${surface} in ${countyState}, which is usable for immediate paid reach.`;
+    }
+    if (entry.category && countyState) {
+      return `${entry.category} attention is concentrating in ${countyState}, which is usable for immediate paid reach.`;
+    }
+    if (targetMarket)
+      return `${targetMarket} is showing live demand you can package into paid reach.`;
+    return "This is a live county demand pocket you can package into paid reach.";
+  }
+
+  if (bucket === "advertiser pitches") {
+    if (entry.category && countyState) {
+      return `${entry.category} demand is visible in ${countyState}, which makes a direct advertiser or sponsor pitch credible right now.`;
+    }
+    if (entry.category) {
+      return `${entry.category} has active attention you can turn into a sponsor or advertiser story.`;
+    }
+    return "This demand pocket can support a sponsor or advertiser pitch.";
+  }
+
+  if (bucket === "market moves") {
+    if (countyState && baselineShift) {
+      return `${countyState} is where attention is moving right now, with demand ${baselineShift}.`;
+    }
+    if (targetMarket) return `${targetMarket} is where attention is moving right now.`;
+    return "This is where attention is moving right now.";
+  }
+
+  return "Supporting market context.";
 }
 
 function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEntry {
@@ -344,14 +541,12 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
       monetizationStage: "repair",
       recommendedPlay:
         entry.kind === "alert"
-          ? "Clear the blocker before spending into this traffic."
-          : "Repair the leak before routing more paid or sales attention here.",
-      salesAngle: targetMarket
-        ? `${targetMarket} is already drawing attention, but revenue is leaking before conversion.`
-        : "Attention is present, but monetization is leaking before conversion.",
+          ? buildLeakPlay(entry, targetMarket)
+          : buildLeakPlay(entry, targetMarket),
+      salesAngle: buildSalesAngle(entry, "monetization leaks", targetMarket),
       targetMarket,
-      channelSuggestion: "surface fix, redirect, and conversion-path cleanup",
-      assetSuggestion: "repair ticket and post-fix monetization follow-up",
+      channelSuggestion: buildLeakChannel(entry),
+      assetSuggestion: buildLeakAsset(entry),
       whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
@@ -366,15 +561,11 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
       ...entry,
       commercialBucket: "ad plays",
       monetizationStage: "spend",
-      recommendedPlay: targetMarket
-        ? `Open a county ad push around ${targetMarket}.`
-        : "Open a county-level ad push while attention is present.",
-      salesAngle: targetMarket
-        ? `${targetMarket} is showing live demand you can package into paid reach.`
-        : "This is a live county demand pocket you can package into paid reach.",
+      recommendedPlay: buildAdPlay(entry, targetMarket),
+      salesAngle: buildSalesAngle(entry, "ad plays", targetMarket),
       targetMarket,
-      channelSuggestion: "county landing ads, paid social, and local search coverage",
-      assetSuggestion: "county ad package and local market one-sheet",
+      channelSuggestion: buildAdChannel(entry),
+      assetSuggestion: buildAdAsset(entry),
       whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
@@ -390,15 +581,11 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
       ...entry,
       commercialBucket: "advertiser pitches",
       monetizationStage: "sell",
-      recommendedPlay: targetMarket
-        ? `Pitch advertisers around ${targetMarket}.`
-        : "Pitch advertisers around this active demand pocket.",
-      salesAngle: entry.category
-        ? `${entry.category} has active attention you can turn into a sponsor or advertiser story.`
-        : "This demand pocket can support a sponsor or advertiser pitch.",
+      recommendedPlay: buildAdvertiserPlay(entry, targetMarket),
+      salesAngle: buildSalesAngle(entry, "advertiser pitches", targetMarket),
       targetMarket,
-      channelSuggestion: "sponsor outreach, outbound sales, and category package pitch",
-      assetSuggestion: "advertiser deck and sponsor package",
+      channelSuggestion: buildAdvertiserChannel(entry),
+      assetSuggestion: buildAdvertiserAsset(entry),
       whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
@@ -414,15 +601,11 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
       ...entry,
       commercialBucket: "market moves",
       monetizationStage: "expand",
-      recommendedPlay: targetMarket
-        ? `Use ${targetMarket} as a market movement signal for expansion, redirects, or prioritization.`
-        : "Use this route pressure to guide expansion, redirects, or prioritization.",
-      salesAngle: targetMarket
-        ? `${targetMarket} is where attention is moving right now.`
-        : "This is where attention is moving right now.",
+      recommendedPlay: buildMarketMove(entry, targetMarket),
+      salesAngle: buildSalesAngle(entry, "market moves", targetMarket),
       targetMarket,
-      channelSuggestion: "market expansion planning, route prioritization, and budget shift",
-      assetSuggestion: "market move brief and route-priority worksheet",
+      channelSuggestion: buildMarketChannel(entry),
+      assetSuggestion: buildMarketAsset(entry),
       whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);

@@ -1135,6 +1135,8 @@ export default function AdminLiveStreamPage() {
           priority: LiveStreamItem["priority"];
           revenueScore: number;
           title: string;
+          targetMarket?: string;
+          salesAngle?: string;
           owner: string;
           urgency: string;
           status: "new" | "in progress" | "cleared";
@@ -1154,6 +1156,8 @@ export default function AdminLiveStreamPage() {
           priority: item.priority,
           revenueScore: item.revenueScore || 0,
           title: item.title,
+          targetMarket: item.targetMarket,
+          salesAngle: item.salesAngle,
           owner: resolveEntryOwner(item),
           urgency: resolveEntryUrgency(item),
           status: actionStatuses[item.id] || "new",
@@ -2506,6 +2510,28 @@ export default function AdminLiveStreamPage() {
                       </div>
                       <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
                       <div className="mt-1 text-xs text-white/55">{item.title}</div>
+                      {item.targetMarket || item.salesAngle ? (
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
+                          {item.targetMarket ? (
+                            <div className="rounded-md border border-fuchsia-300/15 bg-fuchsia-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-fuchsia-100/60">
+                                Target
+                              </div>
+                              <div className="mt-1 text-xs text-fuchsia-50">
+                                {item.targetMarket}
+                              </div>
+                            </div>
+                          ) : null}
+                          {item.salesAngle ? (
+                            <div className="rounded-md border border-violet-300/15 bg-violet-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-violet-100/60">
+                                Pitch
+                              </div>
+                              <div className="mt-1 text-xs text-violet-50">{item.salesAngle}</div>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {item.channelSuggestion || item.assetSuggestion || item.whyNow ? (
                         <div className="mt-3 grid gap-2 md:grid-cols-3">
                           {item.channelSuggestion ? (
