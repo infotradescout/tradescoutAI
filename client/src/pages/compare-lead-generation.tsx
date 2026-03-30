@@ -82,7 +82,7 @@ const tableRows: Array<{
   {
     feature: "Routing Logic",
     leadGen: "Often broad distribution across available pros",
-    tradeScout: "Scout routes to a smaller set of relevant, trust-qualified pros",
+    tradeScout: "Scout sends your request to a smaller set of relevant pros with stronger CVS",
     tradeScoutPositive: true,
   },
   {

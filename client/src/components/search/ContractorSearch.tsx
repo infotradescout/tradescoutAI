@@ -285,7 +285,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                   <FormItem>
                     <FormLabel className="text-white/70 flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4 text-ts-orange" />
-                      Min Trust (CVS)
+                      Minimum CVS
                       <ContextualTooltip
                         content="CVS runs from 0 to 100. It reflects verification and performance signals, not payment."
                         illustration="paintbrush"

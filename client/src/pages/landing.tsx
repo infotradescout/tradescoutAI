@@ -320,9 +320,8 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             className="mb-3 rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-2"
           >
             <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
-              Scout is the operating layer for local interaction. It helps you figure out what you
-              need, see the right next step, understand how CVS works, and keep contact clear
-              instead of chaotic.
+              Scout helps you figure out what you need, see the right next step, understand how CVS
+              works, and keep contact clear instead of chaotic.
             </p>
           </motion.div>
 
@@ -928,8 +927,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
               </span>
             </div>
             <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              The local operating system for community interaction. Trust-first local action powered
-              by Scout.
+              Find help, compare options, and keep local decisions moving with Scout.
             </p>
           </div>
 

@@ -15,7 +15,7 @@ const config: CompareCategoryConfig = {
   categorySummary:
     "Coordination tools can help people post jobs, schedule work, or find a fast responder, but they usually optimize around speed instead of trust and follow-through.",
   tradeScoutSummary:
-    "TradeScout coordinates action through Scout, CVS, and local context. That keeps the process inside one trusted system instead of treating it like a one-off gig.",
+    "TradeScout coordinates action through Scout, CVS, and local context. That keeps the process in one place instead of treating it like a one-off gig.",
   platforms: [
     {
       name: "Taskrabbit",
@@ -52,7 +52,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Primary Pattern",
       category: "Fast task coordination or booking",
-      tradeScout: "Coordinated action inside one trusted local system",
+      tradeScout: "Coordinated action in one place",
     },
     {
       feature: "Trust Model",
@@ -63,7 +63,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "Scope",
       category: "Task or booking specific",
-      tradeScout: "Coordination lives inside a broader local system",
+      tradeScout: "Coordination stays connected to the rest of the product",
       tradeScoutPositive: true,
     },
     {
@@ -106,7 +106,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Is TradeScout another Taskrabbit?",
       answer:
-        "No. It can coordinate local action, but it is not a narrow gig marketplace. It is built for trusted local coordination across categories.",
+        "No. It can coordinate local action, but it is not a narrow gig marketplace. It works across more than one kind of local job.",
     },
     {
       question: "Why compare TradeScout to Craigslist services?",
@@ -125,7 +125,7 @@ const config: CompareCategoryConfig = {
     },
   ],
   ctaTitle: "Replace Transaction-Only Coordination",
-  ctaDescription: "Coordinate local action inside a trusted system, not a disposable task board.",
+  ctaDescription: "Coordinate local action in one place, not a disposable task board.",
   moreLinks: [
     { href: "/compare", label: "Compare Hub →" },
     { href: "/compare/community", label: "Community Platforms →" },

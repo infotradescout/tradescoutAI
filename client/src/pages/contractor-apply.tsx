@@ -605,7 +605,9 @@ export default function ContractorApply() {
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">Build Your Reputation</h4>
-                  <p className="text-white/70 text-sm">Customer recommendations and CVS</p>
+                  <p className="text-white/70 text-sm">
+                    Build recommendations and strengthen your CVS
+                  </p>
                 </div>
               </div>
             </CardContent>

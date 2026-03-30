@@ -75,7 +75,7 @@ export default function PrivacyPolicy() {
               <ul className="list-disc pl-6 mb-6">
                 <li>
                   <strong>With Other Users:</strong> Your public profile, listings, and
-                  RECOMMENDATIONS are visible to other platform users
+                  recommendations are visible to other platform users
                 </li>
                 <li>
                   <strong>Service Providers:</strong> Third-party vendors who perform services on

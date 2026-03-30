@@ -15,7 +15,7 @@ const config: CompareCategoryConfig = {
   categorySummary:
     "Real-estate platforms are strong at listings, browsing, and market discovery, but they are not built to carry trust and follow-through beyond the listing itself.",
   tradeScoutSummary:
-    "TradeScout treats real estate as one part of a broader local system. Scout carries CVS, context, and next steps across discovery, verification, and decision-making.",
+    "TradeScout treats real estate as one part of a bigger local product. Scout carries CVS, context, and next steps across discovery, verification, and decision-making.",
   platforms: [
     {
       name: "Zillow",
@@ -59,7 +59,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "System Scope",
       category: "Real-estate specific",
-      tradeScout: "Real estate connected to a broader local system",
+      tradeScout: "Real estate connected to the rest of the product",
       tradeScoutPositive: true,
     },
     {
@@ -118,7 +118,7 @@ const config: CompareCategoryConfig = {
     {
       question: "Does TradeScout still support real-estate flows?",
       answer:
-        "Yes. It supports them as part of a broader local system instead of treating real estate as a silo.",
+        "Yes. It supports them as part of the broader product instead of treating real estate as a silo.",
     },
     {
       question: "How does monetization differ?",

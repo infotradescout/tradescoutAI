@@ -382,8 +382,8 @@ export default function CommunityBuilderDashboard() {
                 </p>
               ) : (
                 <p className="text-sm text-indigo-800">
-                  You&apos;re at the current top threshold. Keep contributing to strengthen county
-                  trust authority.
+                  You&apos;re already at the top threshold. Keep contributing to strengthen local
+                  trust.
                 </p>
               )}
             </CardContent>
@@ -418,7 +418,8 @@ export default function CommunityBuilderDashboard() {
                 Verification Active
               </CardTitle>
               <CardDescription className="text-emerald-800">
-                Your verification is active. Keep evidence quality high to preserve trust authority.
+                Your verification is active. Keep your evidence quality high to stay in strong
+                standing.
               </CardDescription>
             </CardHeader>
           </Card>

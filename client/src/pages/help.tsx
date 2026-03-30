@@ -35,12 +35,12 @@ export default function Help() {
             {
               question: "What is TradeScout?",
               answer:
-                "TradeScout is a local participation platform that connects people, services, and tools through verified community activity.",
+                "TradeScout is built around Connection Without Compromise and helps people find local help, compare options, and keep projects moving in one place.",
             },
             {
               question: "What is Scout on TradeScout?",
               answer:
-                "Scout is TradeScout's built-in helper that runs the site day-to-day. It helps people understand what they can do next, find or offer services, use tools step-by-step, and see what's happening locally.",
+                "Scout is TradeScout's built-in guide. It helps people figure out what to do next, find or offer services, and use the site without getting lost.",
             },
             {
               question: "Who is TradeScout for?",
@@ -62,7 +62,7 @@ export default function Help() {
           </h1>
           <p className="text-sm md:text-base text-white/70 max-w-2xl">
             TradeScout is built around Connection Without Compromise. Start here to understand how
-            jobs, messaging, money, community, and Scout work together.
+            jobs, messaging, community, and Scout work together.
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export default function Help() {
             <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <p>
                 TradeScout is built around Connection Without Compromise. Start here to understand
-                how jobs, messaging, and money work together.
+                how requests, messaging, and the rest of TradeScout fit together.
               </p>
               <Button
                 size="sm"

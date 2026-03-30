@@ -320,14 +320,21 @@ function getEvidenceValue(evidence: string[] | undefined, key: string): string |
   return value;
 }
 
+function stripCountySuffix(value?: string | null): string {
+  return String(value || "")
+    .replace(/\s+(County|Parish)$/i, "")
+    .trim();
+}
+
 function extractRouteTarget(text: string): string | null {
   const match = text.match(/(\/[A-Za-z0-9\-/_]+)/);
   return match?.[1] || null;
 }
 
 function buildTargetMarket(entry: LiveStreamSnapshotEntry): string | undefined {
+  const placeLabel = stripCountySuffix(entry.county) || entry.county;
   const countyLabel =
-    entry.county && entry.state ? `${entry.county}, ${entry.state}` : entry.county || entry.state;
+    placeLabel && entry.state ? `${placeLabel}, ${entry.state}` : placeLabel || entry.state;
   if (countyLabel && entry.category) return `${entry.category} in ${countyLabel}`;
   if (countyLabel) return countyLabel;
   if (entry.category) return entry.category;
@@ -345,8 +352,9 @@ function extractLargestNumber(text: string): number {
 }
 
 function formatCountyState(entry: LiveStreamSnapshotEntry): string | undefined {
-  if (entry.county && entry.state) return `${entry.county}, ${entry.state}`;
-  return entry.county || entry.state || undefined;
+  const placeLabel = stripCountySuffix(entry.county) || entry.county;
+  if (placeLabel && entry.state) return `${placeLabel}, ${entry.state}`;
+  return placeLabel || entry.state || undefined;
 }
 
 function inferSurfaceLabel(entry: LiveStreamSnapshotEntry): string | undefined {
@@ -723,6 +731,7 @@ async function enrichEntryWithMarketInventory(
 
   let inventorySummary: string | undefined;
   let marketGapSummary: string | undefined;
+  const marketLabel = `${stripCountySuffix(entry.county) || entry.county}, ${entry.state}`;
   if (normalizedCategory) {
     const scopedCountResult = await pool.query<{ business_count: number }>(
       `
@@ -741,17 +750,17 @@ async function enrichEntryWithMarketInventory(
     );
     const categoryLabel = entry.category || normalizedCategory;
     inventorySummary = publicCount
-      ? `${publicCount} public ${categoryLabel} businesses are already visible in ${entry.county}, ${entry.state}.`
-      : `No public ${categoryLabel} businesses are currently visible in ${entry.county}, ${entry.state}.`;
+      ? `${publicCount} public ${categoryLabel} businesses are already visible in ${marketLabel}.`
+      : `No public ${categoryLabel} businesses are currently visible in ${marketLabel}.`;
     if (publicCount === 0) {
-      marketGapSummary = `${entry.county}, ${entry.state} is showing demand without visible ${categoryLabel} inventory.`;
+      marketGapSummary = `${marketLabel} is showing demand without visible ${categoryLabel} inventory.`;
     } else if (publicCount <= 3) {
-      marketGapSummary = `${entry.county}, ${entry.state} has thin ${categoryLabel} inventory, so this is both a sell and recruit market.`;
+      marketGapSummary = `${marketLabel} has thin ${categoryLabel} inventory, so this is both a sell and recruit market.`;
     }
   } else if (viableBusinesses.length > 0) {
-    inventorySummary = `${viableBusinesses.length} public businesses are currently visible in ${entry.county}, ${entry.state}.`;
+    inventorySummary = `${viableBusinesses.length} public businesses are currently visible in ${marketLabel}.`;
     if (viableBusinesses.length <= 3) {
-      marketGapSummary = `${entry.county}, ${entry.state} has thin visible inventory relative to live demand.`;
+      marketGapSummary = `${marketLabel} has thin visible inventory relative to live demand.`;
     }
   }
 

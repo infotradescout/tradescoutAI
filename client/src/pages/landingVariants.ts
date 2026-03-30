@@ -62,7 +62,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     sectionLabel: "Who It's For",
     sectionTitle: "Built To Run Local Decisions Clearly",
     sectionDesc:
-      "TradeScout works across roles because Scout does more than show listings. It explains what to do next, why it matters, and how to move forward without losing trust or context.",
+      "TradeScout works across roles because Scout does more than show listings. It helps people understand what to do next and move forward without getting lost.",
     cards: [
       {
         title: "For People Hiring",

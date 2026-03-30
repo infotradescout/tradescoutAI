@@ -251,7 +251,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                       size="sm"
                       className="h-8 text-xs bg-ts-orange-dark hover:bg-ts-orange-dark text-white thumb-primary-action"
                     >
-                      Ask Scout about my next step
+                      Ask Scout what to do next
                     </Button>
                   </Link>
                 </div>

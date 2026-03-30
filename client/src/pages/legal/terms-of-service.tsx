@@ -96,7 +96,7 @@ export default function TermsOfService() {
                 <li>Listing illegal, stolen, or counterfeit items</li>
                 <li>Misrepresenting item condition, authenticity, or ownership</li>
                 <li>Circumventing platform fees or payment systems</li>
-                <li>Creating false or misleading RECOMMENDATIONS</li>
+                <li>Creating false or misleading recommendations</li>
                 <li>Harassment, discrimination, or abusive behavior</li>
                 <li>Spamming or unauthorized marketing</li>
                 <li>Attempting to defraud other users</li>
@@ -151,8 +151,8 @@ export default function TermsOfService() {
                 <li>Access is $0; no one can pay to unlock access, ranking, or visibility</li>
                 <li>Any payment request outside labeled checkout should be treated as fraud</li>
                 <li>
-                  If you use payment features (for example, paying a provider for an agreed booking),
-                  the checkout will be clearly labeled in-app
+                  If you use payment features (for example, paying a provider for an agreed
+                  booking), the checkout will be clearly labeled in-app
                 </li>
               </ul>
 

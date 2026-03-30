@@ -92,7 +92,7 @@ const notificationTypes = [
   {
     key: "review_received",
     label: "Recommendations",
-    description: "Customer recommendations and trust (CVS)",
+    description: "Customer recommendations and CVS updates",
   },
   { key: "system_update", label: "System Updates", description: "Platform announcements" },
   {

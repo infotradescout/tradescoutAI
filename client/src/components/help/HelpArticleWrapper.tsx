@@ -20,10 +20,14 @@ export function HelpArticleWrapper({ children }: HelpArticleWrapperProps) {
                 How this fits into TradeScout
               </p>
               <p className="text-white">
-                This feature exists to support <span className="font-semibold">Connection Without Compromise</span>.
+                This feature exists to support{" "}
+                <span className="font-semibold">Connection Without Compromise</span>.
               </p>
               <p className="text-white/70 mt-1">
-                TradeScout follows one rule: <span className="font-semibold">Discovery is limited. Engagement is exclusive.</span>
+                TradeScout follows one rule:{" "}
+                <span className="font-semibold">
+                  Discovery is limited. Engagement is exclusive.
+                </span>
               </p>
               <p className="text-white/70 mt-2 text-xs md:text-sm">
                 For the full system explanation, see

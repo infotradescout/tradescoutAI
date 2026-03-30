@@ -478,8 +478,9 @@ function humanizeSurfaceLabel(surface: string): string {
 
 function buildUsefulSignalSummary(item: LiveStreamItem): {
   headline: string;
-  fact: string;
-  support?: string;
+  marketSignal: string;
+  inventory?: string;
+  prospects?: string;
   trigger?: string;
   action: string;
 } {
@@ -511,21 +512,19 @@ function buildUsefulSignalSummary(item: LiveStreamItem): {
     firstSeen ? `${firstSeen} new URLs` : null,
     notFound ? `${notFound} missing/404` : null,
   ].filter(Boolean);
-  const fact =
-    item.marketGapSummary ||
-    item.inventorySummary ||
-    item.whyNow ||
-    item.salesAngle ||
-    parts.what ||
-    item.narrative;
-  const support =
-    item.prospectSummary ||
-    parts.why ||
-    (item.inventorySummary && item.inventorySummary !== fact ? item.inventorySummary : undefined);
+  const marketSignal =
+    item.marketGapSummary || item.whyNow || parts.what || item.salesAngle || item.narrative;
+  const inventory =
+    item.inventorySummary && item.inventorySummary !== item.marketGapSummary
+      ? item.inventorySummary
+      : undefined;
+  const prospects = item.prospectSummary || parts.why || undefined;
+  const headline = path || item.targetMarket || item.title;
   return {
-    headline: item.targetMarket || item.title,
-    fact,
-    support,
+    headline,
+    marketSignal,
+    inventory,
+    prospects,
     trigger: triggerParts.length ? triggerParts.join(" | ") : undefined,
     action:
       item.recommendedPlay ||
@@ -1661,19 +1660,49 @@ export default function AdminLiveStreamPage() {
                               </Badge>
                             </div>
                             <div className="mt-1 text-sm text-emerald-50">{summary.headline}</div>
-                            <div className="mt-1 text-xs text-emerald-50">{summary.fact}</div>
+                            <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                              Market signal
+                            </div>
+                            <div className="mt-1 text-xs text-emerald-50">
+                              {summary.marketSignal}
+                            </div>
                             {summary.trigger ? (
-                              <div className="mt-1 text-xs text-emerald-100/85">
-                                Triggered by: {summary.trigger}
+                              <div className="mt-2">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                  Trigger
+                                </div>
+                                <div className="mt-1 text-xs text-emerald-100/85">
+                                  {summary.trigger}
+                                </div>
                               </div>
                             ) : null}
-                            {summary.support ? (
-                              <div className="mt-1 text-xs text-emerald-100/75">
-                                {summary.support}
+                            {summary.inventory ? (
+                              <div className="mt-2">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                  Inventory
+                                </div>
+                                <div className="mt-1 text-xs text-emerald-100/75">
+                                  {summary.inventory}
+                                </div>
                               </div>
                             ) : null}
-                            <div className="mt-2 text-xs font-medium text-emerald-50">
-                              Next move: {summary.action}
+                            {summary.prospects ? (
+                              <div className="mt-2">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                  Local read
+                                </div>
+                                <div className="mt-1 text-xs text-emerald-100/75">
+                                  {summary.prospects}
+                                </div>
+                              </div>
+                            ) : null}
+                            <div className="mt-2">
+                              <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                Do next
+                              </div>
+                              <div className="mt-1 text-xs font-medium text-emerald-50">
+                                {summary.action}
+                              </div>
                             </div>
                           </div>
                         );

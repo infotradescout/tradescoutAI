@@ -78,25 +78,18 @@ export function OrientationCard({
                 <h2 className="text-lg md:text-2xl font-bold text-white">What is TradeScout?</h2>
               </div>
               <p className="text-sm md:text-base text-white/70 mb-2 md:mb-3">
-                TradeScout is a local participation platform that connects people, services, and
-                tools through verified community activity. Scout, the built-in community helper and
-                site guide, helps you find people, organize projects, and move money and trust
-                around your neighborhood without juggling ten different apps.
+                TradeScout helps you find local help, compare options, and keep projects moving in
+                one place. Scout is the built-in guide that helps you figure out what to do next
+                without bouncing between a bunch of different pages and apps.
               </p>
               <div className="mt-1 md:mt-2 text-xs md:text-sm text-white/70 space-y-1.5">
                 <p className="font-semibold text-white/70">Scout is especially useful if:</p>
                 <ul className="list-disc list-inside space-y-1">
+                  <li>You&apos;re here to get projects done or stay on top of maintenance.</li>
+                  <li>You&apos;re here to offer services or grow a trade business.</li>
                   <li>
-                    If you're here to get projects done or keep up with maintenance, Scout helps you
-                    plan, compare, and coordinate locally.
-                  </li>
-                  <li>
-                    If you're here to offer services or grow a trade business, Scout helps you show
-                    up better, respond faster, and stay top-of-mind with the right people.
-                  </li>
-                  <li>
-                    If you're organizing properties, groups, or communities, Scout helps you keep
-                    people, tasks, and tools in one place instead of scattered apps.
+                    You&apos;re organizing properties, groups, or community work and want things in
+                    one place.
                   </li>
                 </ul>
               </div>
@@ -115,7 +108,7 @@ export function OrientationCard({
                 className="w-full border-white/10 text-white/70 hover:bg-tsCard text-xs md:text-sm"
                 onClick={handleDummiesClick}
               >
-                "TradeScout for Dummies" in chat
+                Explain it simply in chat
               </Button>
               <div className="mt-1.5 border-t border-white/10 pt-1.5">
                 <p className="text-[11px] md:text-xs text-white/60 mb-1">
