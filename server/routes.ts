@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Legacy route module ingests dynamic JSON across many endpoints; incremental hardening tracked separately. */
 import scoutRoute from "./routes/scout";
+import scoutNormalizeRouter from "./routes/scout-normalize";
 import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
@@ -26895,6 +26896,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/admin/prompt-admin", promptAdminRouter);
 
   // Register AI Scout routes (with assistant alias for backward compatibility)
+  app.use("/", scoutNormalizeRouter);
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
 

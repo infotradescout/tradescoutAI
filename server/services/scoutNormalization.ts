@@ -220,11 +220,18 @@ function extractLocation(text: string): ScoutNormalizedLocation {
   }
 
   let state: string | null = null;
-  const stateMatch = text.match(
-    /\b([A-Z]{2}|Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i
+  const stateNameMatch = text.match(
+    /\b(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\b/i
   );
-  if (stateMatch?.[1]) {
-    state = STATE_NAME_TO_CODE.get(stateMatch[1].toLowerCase()) ?? null;
+  if (stateNameMatch?.[1]) {
+    state = STATE_NAME_TO_CODE.get(stateNameMatch[1].toLowerCase()) ?? null;
+  } else {
+    const stateCodeMatch = text.match(
+      /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/
+    );
+    if (stateCodeMatch?.[1]) {
+      state = STATE_NAME_TO_CODE.get(stateCodeMatch[1].toLowerCase()) ?? null;
+    }
   }
 
   if (!state && city) {
@@ -298,7 +305,9 @@ function extractEntities(text: string): {
 }
 
 function extractDimensions(text: string): ScoutNormalizedDimensions {
-  const sizeMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:x|by)\s*(\d+(?:\.\d+)?)\s*(ft|feet|foot|in|inch|inches|m|meter|meters)?/i);
+  const sizeMatch = text.match(
+    /(\d+(?:\.\d+)?)\s*(?:x|by)\s*(\d+(?:\.\d+)?)\s*(ft|feet|foot|in|inch|inches|m|meter|meters)?/i
+  );
   if (!sizeMatch) {
     return { length: null, width: null, unit: "" };
   }
@@ -359,10 +368,7 @@ function inferTone(text: string): string | null {
   return null;
 }
 
-function inferClassification(args: {
-  text: string;
-  entities: ScoutNormalizedEntities;
-}): {
+function inferClassification(args: { text: string; entities: ScoutNormalizedEntities }): {
   interactionType: ScoutNormalizedInteractionType;
   intent: ScoutNormalizedIntent;
   domain: ScoutNormalizedDomain;
@@ -394,7 +400,10 @@ function inferClassification(args: {
     };
   }
 
-  if ((entities.service_type || entities.project_type) && (HIRE_CUES.test(lower) || /need/.test(lower))) {
+  if (
+    (entities.service_type || entities.project_type) &&
+    (HIRE_CUES.test(lower) || /need/.test(lower))
+  ) {
     return {
       interactionType: "service_request",
       intent: "hire_provider",
