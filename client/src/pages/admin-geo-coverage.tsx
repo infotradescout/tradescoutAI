@@ -1,12 +1,12 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AlertCircle } from "lucide-react";
 import { ErrorState, SkeletonTable } from "@/components/ui/states";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
@@ -131,6 +131,7 @@ interface AdminUserSummary {
 }
 
 export default function AdminGeoCoverageConsole() {
+  const [location, navigate] = useLocation();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [stateFilter, setStateFilter] = useState<string | "all">("all");
   const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>("all");
@@ -149,6 +150,21 @@ export default function AdminGeoCoverageConsole() {
 
   const queryClient = useQueryClient() || globalQueryClient;
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const fips = params.get("fips");
+    const view = params.get("view");
+
+    if (view === "map") {
+      setViewMode("map");
+    }
+
+    if (fips) {
+      setSelectedCountyFips(fips);
+    }
+  }, [location]);
 
   const { data, isLoading, error } = useQuery<CountyCoverageSummaryResponse>({
     queryKey: ["/api/admin/geo/coverage"],
@@ -194,6 +210,30 @@ export default function AdminGeoCoverageConsole() {
       setSelectedCountyFips(filteredRows[0].countyFips);
     }
   }, [filteredRows, selectedCountyFips]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (viewMode === "map") {
+      params.set("view", "map");
+    } else {
+      params.delete("view");
+    }
+
+    if (selectedCountyFips) {
+      params.set("fips", selectedCountyFips);
+    } else {
+      params.delete("fips");
+    }
+
+    const next = params.toString();
+    const target = next ? `/admin/geo/counties?${next}` : "/admin/geo/counties";
+    if (location !== target) {
+      navigate(target, { replace: true });
+    }
+  }, [location, navigate, selectedCountyFips, viewMode]);
 
   const selectedCounty = useMemo(
     () => filteredRows.find((row) => row.countyFips === selectedCountyFips) || null,
@@ -349,7 +389,7 @@ export default function AdminGeoCoverageConsole() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold text-white">County Coverage Console</h1>
@@ -468,11 +508,11 @@ export default function AdminGeoCoverageConsole() {
               Filters apply to both list and map views.
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2 items-center text-[11px]">
-            <div className="flex items-center gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 text-[11px] w-full md:w-auto">
+            <div className="flex flex-col gap-1 min-w-0">
               <span className="text-white/60">State</span>
               <Select value={stateFilter} onValueChange={(v) => setStateFilter(v as any)}>
-                <SelectTrigger className="h-7 w-[110px] text-[11px]">
+                <SelectTrigger className="h-8 w-full sm:w-[110px] text-[11px]">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
@@ -486,13 +526,13 @@ export default function AdminGeoCoverageConsole() {
               </Select>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex flex-col gap-1 min-w-0">
               <span className="text-white/60">Coverage</span>
               <Select
                 value={coverageFilter}
                 onValueChange={(v) => setCoverageFilter(v as CoverageFilter)}
               >
-                <SelectTrigger className="h-7 w-[130px] text-[11px]">
+                <SelectTrigger className="h-8 w-full sm:w-[130px] text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -504,10 +544,10 @@ export default function AdminGeoCoverageConsole() {
               </Select>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex flex-col gap-1 min-w-0">
               <span className="text-white/60">Notes</span>
               <Select value={notesFilter} onValueChange={(v) => setNotesFilter(v as NotesFilter)}>
-                <SelectTrigger className="h-7 w-[120px] text-[11px]">
+                <SelectTrigger className="h-8 w-full sm:w-[120px] text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -519,13 +559,13 @@ export default function AdminGeoCoverageConsole() {
               </Select>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex flex-col gap-1 min-w-0">
               <span className="text-white/60">TM assigned</span>
               <Select
                 value={territoryFilter}
                 onValueChange={(v) => setTerritoryFilter(v as TerritoryFilter)}
               >
-                <SelectTrigger className="h-7 w-[120px] text-[11px]">
+                <SelectTrigger className="h-8 w-full sm:w-[120px] text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -548,130 +588,239 @@ export default function AdminGeoCoverageConsole() {
           )}
 
           {!isLoading && !error && viewMode === "list" && (
-            <ScrollArea className="h-[480px] border border-white/10 rounded-md bg-black/30">
-              <table className="w-full text-xs">
-                <thead className="bg-tsCard/95 text-white/60">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-medium">County</th>
-                    <th className="px-3 py-2 text-left font-medium">Coverage</th>
-                    <th className="px-3 py-2 text-left font-medium">Territory managers</th>
-                    <th className="px-3 py-2 text-left font-medium">Affiliates / partners</th>
-                    <th className="px-3 py-2 text-left font-medium">Notes</th>
-                    <th className="px-3 py-2 text-left font-medium">Last change</th>
-                    <th className="px-3 py-2 text-left font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((row) => (
-                    <tr
-                      key={row.countyFips}
-                      className="border-t border-white/10 hover:bg-tsCard/95"
-                    >
-                      <td className="px-3 py-2 align-top">
+            <>
+              <div className="md:hidden space-y-2">
+                {filteredRows.map((row) => (
+                  <div
+                    key={row.countyFips}
+                    className="rounded-md border border-white/10 bg-black/30 p-3 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <div className="font-medium text-white">
-                          {row.countyName}
-                          <span className="ml-1 text-[11px] text-white/60">({row.stateCode})</span>
+                          {row.countyName}, {row.stateCode}
                         </div>
                         <div className="text-[11px] text-white/60">FIPS {row.countyFips}</div>
-                      </td>
-                      <td className="px-3 py-2 align-top">
-                        <CoverageBadge status={row.coverageStatus} />
-                      </td>
-                      <td className="px-3 py-2 align-top">
-                        <div className="text-white">{row.territoryManagerCount}</div>
-                      </td>
-                      <td className="px-3 py-2 align-top">
-                        <div className="text-white">{row.affiliateCount}</div>
-                      </td>
-                      <td className="px-3 py-2 align-top space-y-1">
-                        {row.hasOpsNote && (
-                          <Badge
-                            variant="outline"
-                            className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]"
-                          >
-                            Ops
-                          </Badge>
-                        )}
-                        {row.hasRiskNote && (
-                          <Badge
-                            variant="outline"
-                            className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]"
-                          >
-                            Risk
-                          </Badge>
-                        )}
-                        {row.hasPartnerNote && (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]"
-                          >
-                            Partner
-                          </Badge>
-                        )}
-                        {!row.hasNotes && (
-                          <span className="text-[11px] text-white/60">No notes</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 align-top text-[11px] text-white/60">
-                        {row.lastEntityChangeAt
-                          ? new Date(row.lastEntityChangeAt).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-2 align-top">
-                        <div className="flex flex-col gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-2 text-[11px]"
-                            onClick={() => {
-                              setAssignCounty(row);
-                              setSelectedTmId("");
-                              setTmSearch("");
-                            }}
-                          >
-                            Assign TM
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-2 text-[11px]"
-                            onClick={() => {
-                              setAssignAffiliateCounty(row);
-                              setSelectedAffiliateUserId("");
-                              setAffiliateSearch("");
-                              setAffiliateEntityType("affiliate");
-                            }}
-                          >
-                            Assign affiliate / partner
-                          </Button>
-                          <Link href={`/admin/geo/counties?fips=${row.countyFips}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-[11px] text-white/70"
-                            >
-                              Open county detail
-                            </Button>
-                          </Link>
+                      </div>
+                      <CoverageBadge status={row.coverageStatus} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="rounded border border-white/10 bg-white/5 px-2 py-2">
+                        <div className="text-white/50">Territory managers</div>
+                        <div className="text-sm font-medium text-white">
+                          {row.territoryManagerCount}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredRows.length === 0 && (
+                      </div>
+                      <div className="rounded border border-white/10 bg-white/5 px-2 py-2">
+                        <div className="text-white/50">Affiliates / partners</div>
+                        <div className="text-sm font-medium text-white">{row.affiliateCount}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {row.hasOpsNote && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]"
+                        >
+                          Ops
+                        </Badge>
+                      )}
+                      {row.hasRiskNote && (
+                        <Badge
+                          variant="outline"
+                          className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]"
+                        >
+                          Risk
+                        </Badge>
+                      )}
+                      {row.hasPartnerNote && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]"
+                        >
+                          Partner
+                        </Badge>
+                      )}
+                      {!row.hasNotes && <span className="text-[11px] text-white/60">No notes</span>}
+                    </div>
+                    <div className="text-[11px] text-white/60">
+                      Last change:{" "}
+                      {row.lastEntityChangeAt
+                        ? new Date(row.lastEntityChangeAt).toLocaleDateString()
+                        : "—"}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-[11px]"
+                        onClick={() => {
+                          setAssignCounty(row);
+                          setSelectedTmId("");
+                          setTmSearch("");
+                        }}
+                      >
+                        Assign TM
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-[11px]"
+                        onClick={() => {
+                          setAssignAffiliateCounty(row);
+                          setSelectedAffiliateUserId("");
+                          setAffiliateSearch("");
+                          setAffiliateEntityType("affiliate");
+                        }}
+                      >
+                        Assign affiliate / partner
+                      </Button>
+                      <Link href={`/admin/geo/counties?view=map&fips=${row.countyFips}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-full px-2 text-[11px] text-white/70"
+                        >
+                          Open county detail
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+                {filteredRows.length === 0 && (
+                  <div className="rounded-md border border-white/10 bg-black/30 px-3 py-6 text-center text-[11px] text-white/60">
+                    No counties match the current filters.
+                  </div>
+                )}
+              </div>
+
+              <ScrollArea className="hidden md:block h-[480px] border border-white/10 rounded-md bg-black/30">
+                <table className="w-full text-xs">
+                  <thead className="bg-tsCard/95 text-white/60">
                     <tr>
-                      <td colSpan={7} className="px-3 py-6 text-center text-[11px] text-white/60">
-                        No counties match the current filters.
-                      </td>
+                      <th className="px-3 py-2 text-left font-medium">County</th>
+                      <th className="px-3 py-2 text-left font-medium">Coverage</th>
+                      <th className="px-3 py-2 text-left font-medium">Territory managers</th>
+                      <th className="px-3 py-2 text-left font-medium">Affiliates / partners</th>
+                      <th className="px-3 py-2 text-left font-medium">Notes</th>
+                      <th className="px-3 py-2 text-left font-medium">Last change</th>
+                      <th className="px-3 py-2 text-left font-medium">Actions</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </ScrollArea>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((row) => (
+                      <tr
+                        key={row.countyFips}
+                        className="border-t border-white/10 hover:bg-tsCard/95"
+                      >
+                        <td className="px-3 py-2 align-top">
+                          <div className="font-medium text-white">
+                            {row.countyName}
+                            <span className="ml-1 text-[11px] text-white/60">
+                              ({row.stateCode})
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-white/60">FIPS {row.countyFips}</div>
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <CoverageBadge status={row.coverageStatus} />
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="text-white">{row.territoryManagerCount}</div>
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="text-white">{row.affiliateCount}</div>
+                        </td>
+                        <td className="px-3 py-2 align-top space-y-1">
+                          {row.hasOpsNote && (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]"
+                            >
+                              Ops
+                            </Badge>
+                          )}
+                          {row.hasRiskNote && (
+                            <Badge
+                              variant="outline"
+                              className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]"
+                            >
+                              Risk
+                            </Badge>
+                          )}
+                          {row.hasPartnerNote && (
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]"
+                            >
+                              Partner
+                            </Badge>
+                          )}
+                          {!row.hasNotes && (
+                            <span className="text-[11px] text-white/60">No notes</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 align-top text-[11px] text-white/60">
+                          {row.lastEntityChangeAt
+                            ? new Date(row.lastEntityChangeAt).toLocaleDateString()
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-[11px]"
+                              onClick={() => {
+                                setAssignCounty(row);
+                                setSelectedTmId("");
+                                setTmSearch("");
+                              }}
+                            >
+                              Assign TM
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-[11px]"
+                              onClick={() => {
+                                setAssignAffiliateCounty(row);
+                                setSelectedAffiliateUserId("");
+                                setAffiliateSearch("");
+                                setAffiliateEntityType("affiliate");
+                              }}
+                            >
+                              Assign affiliate / partner
+                            </Button>
+                            <Link href={`/admin/geo/counties?view=map&fips=${row.countyFips}`}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-[11px] text-white/70"
+                              >
+                                Open county detail
+                              </Button>
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredRows.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-3 py-6 text-center text-[11px] text-white/60">
+                          No counties match the current filters.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </ScrollArea>
+            </>
           )}
 
           {!isLoading && !error && viewMode === "map" && (
-            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 py-2">
-              <div className="border border-white/10 rounded-md bg-black/30 h-[560px] overflow-auto">
+            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 py-2 min-w-0">
+              <div className="border border-white/10 rounded-md bg-black/30 md:h-[560px] max-h-[40vh] md:max-h-none overflow-auto">
                 <div className="px-3 py-2 border-b border-white/10 text-[11px] text-white/60">
                   County blocks
                 </div>
@@ -695,7 +844,7 @@ export default function AdminGeoCoverageConsole() {
                 })}
               </div>
 
-              <div className="border border-white/10 rounded-md bg-black/30 p-3 h-[560px] overflow-auto space-y-3">
+              <div className="border border-white/10 rounded-md bg-black/30 p-3 md:h-[560px] max-h-[70vh] md:max-h-none overflow-auto space-y-3 min-w-0">
                 {!selectedCounty ? (
                   <div className="text-xs text-white/60">Choose a county to open its folder.</div>
                 ) : countyFolderLoading ? (
@@ -704,8 +853,8 @@ export default function AdminGeoCoverageConsole() {
                   <div className="text-xs text-white/60">County folder data is unavailable.</div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="min-w-0">
                         <div className="text-sm font-semibold text-white">
                           {countyFolder.county.countyName}, {countyFolder.county.stateCode}
                         </div>
@@ -720,7 +869,7 @@ export default function AdminGeoCoverageConsole() {
                       </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
                       <MetricTile label="Notes" value={countyFolder.counts.notes} />
                       <MetricTile label="Entities" value={countyFolder.counts.entities} />
                       <MetricTile label="Meetings" value={countyFolder.counts.meetings} />
