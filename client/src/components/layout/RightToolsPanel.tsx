@@ -11,13 +11,15 @@ import {
   Building,
   Shirt,
   LogOut,
-  StickyNote,
   Shield,
   ChevronLeft,
   ChevronRight,
+  Compass,
+  Map,
+  Sparkles,
+  CircleHelp,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
-import { openFloatingNote } from "@/lib/floatingNotes";
 import { safeNavigate } from "@/lib/safeNavigate";
 
 type NavLinkProps = {
@@ -321,6 +323,83 @@ export function RightToolsPanel({
               }
               label="Saved items"
               description="Saved projects, listings, and ideas."
+              onNavigate={handleNavigate}
+            />
+          </div>
+        </section>
+
+        <section>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Explore TradeScout
+          </div>
+          <div className="space-y-2">
+            <NavLink
+              href="/scout"
+              icon={
+                <Compass className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Scout"
+              description="Start with Scout when you need the right next step."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/maps"
+              icon={
+                <Map className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Maps"
+              description="See businesses, coverage, and local activity on the map."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/trade-deals"
+              icon={
+                <Sparkles
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
+              label="TradeDeals"
+              description="Browse partner offers and active campaigns."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/homescout-listings"
+              icon={
+                <Building
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
+              label="HomeScout"
+              description="Open property listings and housing-specific workflows."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/commercial-directory"
+              icon={
+                <ClipboardList
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
+              label="Commercial"
+              description="Browse commercial-focused local business surfaces."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/help"
+              icon={
+                <CircleHelp
+                  className="h-3.5 w-3.5"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                />
+              }
+              label="Help"
+              description="Product guidance, how-it-works, and platform answers."
               onNavigate={handleNavigate}
             />
           </div>

@@ -166,6 +166,11 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
+      label: "Commercial",
+      href: "/commercial-directory",
+      icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    },
+    {
       label: "Community",
       href: ROUTES.COMMUNITY ?? "/community",
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
@@ -181,6 +186,11 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
+      label: "Share",
+      href: "/share",
+      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    },
+    {
       label: "HomeScout Listings",
       href: "/homescout-listings",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
@@ -189,11 +199,6 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       label: "Maps",
       href: "/maps",
       icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    },
-    {
-      label: "Commercial",
-      href: "/commercial-directory",
-      icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
     {
       label: "Leaderboard",
@@ -205,17 +210,13 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       href: "/foundation",
       icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
-    {
-      label: "Help",
-      href: ROUTES.HELP ?? "/help",
-      icon: <CircleHelp className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    },
-    {
-      label: "Share",
-      href: "/share",
-      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    },
   ];
+
+  baseNav.push({
+    label: "Help",
+    href: ROUTES.HELP ?? "/help",
+    icon: <CircleHelp className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+  });
 
   if (opts?.includeAdmin) {
     baseNav.unshift({
