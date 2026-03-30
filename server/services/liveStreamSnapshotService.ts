@@ -3,6 +3,14 @@ import { getActiveAlerts } from "../observability/alerts";
 import { getBotCrawlAggregateSignals, getCrawlerTelemetrySummary } from "./crawlerTelemetryService";
 import { getLisaFeed } from "./lisaRuntime";
 import { getPartnerIntelligenceBriefSnapshot } from "./partnerIntelligenceBriefSnapshotService";
+import { getPublicationRules } from "../publicationRules";
+import {
+  buildPublicBusinessSignals,
+  derivePublicationTier,
+  deriveTradeSlugFromProfileData,
+} from "../publicationBusiness";
+import { isPublicAndCrawlableBusiness } from "../../shared/publication";
+import { getTradeSeoMatch } from "../../shared/tradeSeo";
 import {
   computeSignalTruthState,
   resolveSignalDurability,
@@ -18,6 +26,10 @@ type CommercialBucket =
   | "monetization leaks"
   | "watchlist";
 type MonetizationStage = "spend" | "sell" | "expand" | "repair" | "watch";
+type MarketExampleBusiness = {
+  name: string;
+  slug: string | null;
+};
 
 export type LiveStreamSnapshotEntry = {
   id: string;
@@ -42,6 +54,8 @@ export type LiveStreamSnapshotEntry = {
   channelSuggestion?: string;
   assetSuggestion?: string;
   whyNow?: string;
+  inventorySummary?: string;
+  exampleBusinesses?: MarketExampleBusiness[];
   revenueScore?: number;
   stateCode: string | null;
   countyName: string | null;
@@ -524,6 +538,142 @@ function buildSalesAngle(
   return "Supporting market context.";
 }
 
+function normalizeCountyNameForMatch(value?: string | null): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+parish$/i, "")
+    .replace(/\s+county$/i, "")
+    .replace(/\s+/g, " ");
+}
+
+async function enrichEntryWithMarketInventory(
+  entry: LiveStreamSnapshotEntry
+): Promise<LiveStreamSnapshotEntry> {
+  if (!entry.county || !entry.state) return entry;
+
+  const publicationRules = await getPublicationRules();
+  const normalizedCounty = normalizeCountyNameForMatch(entry.county);
+  const normalizedCategory = entry.category
+    ? getTradeSeoMatch(entry.category)?.canonicalSlug || null
+    : null;
+
+  type CandidateRow = {
+    id: string;
+    slug: string | null;
+    name: string;
+    claim_status: string | null;
+    owner_user_id: string | null;
+    updated_at: string | Date | null;
+    public_discovery_enabled: boolean | null;
+    owner_verification_status: string | null;
+    owner_address_verified: boolean | null;
+    county_name: string | null;
+    state_code: string | null;
+    profile_data: Record<string, unknown> | null;
+  };
+
+  const candidateResult = await pool.query<CandidateRow>(
+    `
+      select
+        b.id,
+        b.slug,
+        b.name,
+        b.claim_status,
+        b.owner_user_id,
+        b.updated_at,
+        b.public_discovery_enabled,
+        u.verification_status as owner_verification_status,
+        u.address_verified as owner_address_verified,
+        c.name as county_name,
+        c.state_code,
+        b.profile_data
+      from businesses b
+      inner join business_counties bc on bc.business_id = b.id
+      inner join counties c on c.id = bc.county_id
+      left join users u on u.id = b.owner_user_id
+      where b.status = 'active'
+        and coalesce(b.public_discovery_enabled, false) = true
+        and upper(c.state_code) = $1
+        and lower(regexp_replace(c.name, '\\s+(County|Parish)$', '', 'i')) = $2
+      order by b.updated_at desc nulls last, b.name asc
+      limit 40
+    `,
+    [String(entry.state).toUpperCase(), normalizedCounty]
+  );
+
+  const viableBusinesses = candidateResult.rows.filter((row) => {
+    const updatedAt = row.updated_at ? new Date(row.updated_at) : null;
+    if (!(updatedAt instanceof Date) || Number.isNaN(updatedAt.getTime())) return false;
+    const profileData =
+      row.profile_data && typeof row.profile_data === "object" ? row.profile_data : {};
+    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+    if (normalizedCategory && tradeSlug !== normalizedCategory) return false;
+    const tier = derivePublicationTier({
+      ownerUserId: row.owner_user_id ? String(row.owner_user_id) : null,
+      claimStatus: row.claim_status ? String(row.claim_status) : null,
+      ownerVerificationStatus: row.owner_verification_status
+        ? String(row.owner_verification_status)
+        : null,
+      ownerAddressVerified:
+        typeof row.owner_address_verified === "boolean" ? row.owner_address_verified : null,
+    });
+
+    return isPublicAndCrawlableBusiness(
+      buildPublicBusinessSignals({
+        id: String(row.id),
+        name: String(row.name || ""),
+        slug: String(row.slug || ""),
+        updatedAt,
+        publicDiscoveryEnabled: Boolean(row.public_discovery_enabled),
+        stateCode: row.state_code ? String(row.state_code) : null,
+        countyName: row.county_name ? String(row.county_name) : null,
+        city: profileData && typeof profileData.city === "string" ? String(profileData.city) : null,
+        tradeSlug,
+        tier,
+      }),
+      publicationRules,
+      new Date()
+    ).ok;
+  });
+
+  let inventorySummary: string | undefined;
+  if (normalizedCategory) {
+    const scopedCountResult = await pool.query<{ business_count: number }>(
+      `
+        select tcp.business_count
+        from ts_seo_trade_county_pages tcp
+        inner join counties c on c.id = tcp.county_id
+        where tcp.trade_slug = $1
+          and upper(tcp.state_code) = $2
+          and lower(regexp_replace(c.name, '\\s+(County|Parish)$', '', 'i')) = $3
+        limit 1
+      `,
+      [normalizedCategory, String(entry.state).toUpperCase(), normalizedCounty]
+    );
+    const publicCount = Number(
+      scopedCountResult.rows[0]?.business_count || viableBusinesses.length || 0
+    );
+    const categoryLabel = entry.category || normalizedCategory;
+    inventorySummary = publicCount
+      ? `${publicCount} public ${categoryLabel} businesses are already visible in ${entry.county}, ${entry.state}.`
+      : `No public ${categoryLabel} businesses are currently visible in ${entry.county}, ${entry.state}.`;
+  } else if (viableBusinesses.length > 0) {
+    inventorySummary = `${viableBusinesses.length} public businesses are currently visible in ${entry.county}, ${entry.state}.`;
+  }
+
+  if (!inventorySummary && viableBusinesses.length === 0) return entry;
+
+  return {
+    ...entry,
+    inventorySummary,
+    exampleBusinesses: viableBusinesses.slice(0, 3).map((row) => ({
+      name: String(row.name || "Unknown business"),
+      slug: row.slug ? String(row.slug) : null,
+    })),
+  };
+}
+
 function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEntry {
   const signalClass = entry.signalClass || "";
   const targetMarket = buildTargetMarket(entry);
@@ -974,7 +1124,7 @@ export async function buildLiveStreamSnapshot(params?: {
       .slice(0, 10)
       .map((item) => toLiveStreamEntryFromLisaItem(item, lisaFeed.generatedAt)),
   ] as LiveStreamSnapshotEntry[];
-  const stream: LiveStreamSnapshotEntry[] = rawStream
+  const decoratedStream: LiveStreamSnapshotEntry[] = rawStream
     .filter((entry) => {
       if (filters.source && entry.source !== filters.source) return false;
       if (filters.stateCode && entry.stateCode && entry.stateCode !== filters.stateCode)
@@ -997,8 +1147,11 @@ export async function buildLiveStreamSnapshot(params?: {
       const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
       if (scoreDelta !== 0) return scoreDelta;
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    })
-    .slice(0, filters.limit);
+    });
+
+  const stream: LiveStreamSnapshotEntry[] = await Promise.all(
+    decoratedStream.slice(0, filters.limit).map((entry) => enrichEntryWithMarketInventory(entry))
+  );
 
   const sourceCounts = stream.reduce<Record<string, number>>((acc, entry) => {
     acc[entry.source] = (acc[entry.source] || 0) + 1;

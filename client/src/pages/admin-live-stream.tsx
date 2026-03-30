@@ -44,6 +44,11 @@ type LiveStreamItem = {
   channelSuggestion?: string;
   assetSuggestion?: string;
   whyNow?: string;
+  inventorySummary?: string;
+  exampleBusinesses?: Array<{
+    name: string;
+    slug: string | null;
+  }>;
   revenueScore?: number;
 };
 
@@ -1137,6 +1142,8 @@ export default function AdminLiveStreamPage() {
           title: string;
           targetMarket?: string;
           salesAngle?: string;
+          inventorySummary?: string;
+          exampleBusinesses?: Array<{ name: string; slug: string | null }>;
           owner: string;
           urgency: string;
           status: "new" | "in progress" | "cleared";
@@ -1158,6 +1165,8 @@ export default function AdminLiveStreamPage() {
           title: item.title,
           targetMarket: item.targetMarket,
           salesAngle: item.salesAngle,
+          inventorySummary: item.inventorySummary,
+          exampleBusinesses: item.exampleBusinesses,
           owner: resolveEntryOwner(item),
           urgency: resolveEntryUrgency(item),
           status: actionStatuses[item.id] || "new",
@@ -2528,6 +2537,32 @@ export default function AdminLiveStreamPage() {
                                 Pitch
                               </div>
                               <div className="mt-1 text-xs text-violet-50">{item.salesAngle}</div>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {item.inventorySummary || item.exampleBusinesses?.length ? (
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
+                          {item.inventorySummary ? (
+                            <div className="rounded-md border border-cyan-300/15 bg-cyan-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/60">
+                                Inventory
+                              </div>
+                              <div className="mt-1 text-xs text-cyan-50">
+                                {item.inventorySummary}
+                              </div>
+                            </div>
+                          ) : null}
+                          {item.exampleBusinesses?.length ? (
+                            <div className="rounded-md border border-lime-300/15 bg-lime-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-lime-100/60">
+                                Example Businesses
+                              </div>
+                              <div className="mt-1 text-xs text-lime-50">
+                                {item.exampleBusinesses
+                                  .map((business) => business.name)
+                                  .join(" | ")}
+                              </div>
                             </div>
                           ) : null}
                         </div>
