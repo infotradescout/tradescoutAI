@@ -39,6 +39,9 @@ export type LiveStreamSnapshotEntry = {
   salesAngle?: string;
   targetMarket?: string;
   monetizationStage?: MonetizationStage;
+  channelSuggestion?: string;
+  assetSuggestion?: string;
+  whyNow?: string;
   revenueScore?: number;
   stateCode: string | null;
   countyName: string | null;
@@ -317,6 +320,13 @@ function withRevenueScore(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEnt
   };
 }
 
+function buildWhyNow(entry: LiveStreamSnapshotEntry): string {
+  const score = extractLargestNumber(`${entry.title} ${entry.narrative}`);
+  if (score > 0) return `Observed pressure is already in the feed at roughly ${score}.`;
+  if (entry.truthStatus === "current") return "This signal is current right now.";
+  return "This signal is still worth watching, but it is less time-sensitive.";
+}
+
 function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEntry {
   const signalClass = entry.signalClass || "";
   const targetMarket = buildTargetMarket(entry);
@@ -340,6 +350,9 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         ? `${targetMarket} is already drawing attention, but revenue is leaking before conversion.`
         : "Attention is present, but monetization is leaking before conversion.",
       targetMarket,
+      channelSuggestion: "surface fix, redirect, and conversion-path cleanup",
+      assetSuggestion: "repair ticket and post-fix monetization follow-up",
+      whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
   }
@@ -360,6 +373,9 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         ? `${targetMarket} is showing live demand you can package into paid reach.`
         : "This is a live county demand pocket you can package into paid reach.",
       targetMarket,
+      channelSuggestion: "county landing ads, paid social, and local search coverage",
+      assetSuggestion: "county ad package and local market one-sheet",
+      whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
   }
@@ -381,6 +397,9 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         ? `${entry.category} has active attention you can turn into a sponsor or advertiser story.`
         : "This demand pocket can support a sponsor or advertiser pitch.",
       targetMarket,
+      channelSuggestion: "sponsor outreach, outbound sales, and category package pitch",
+      assetSuggestion: "advertiser deck and sponsor package",
+      whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
   }
@@ -402,6 +421,9 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         ? `${targetMarket} is where attention is moving right now.`
         : "This is where attention is moving right now.",
       targetMarket,
+      channelSuggestion: "market expansion planning, route prioritization, and budget shift",
+      assetSuggestion: "market move brief and route-priority worksheet",
+      whyNow: buildWhyNow(entry),
     };
     return withRevenueScore(decoratedEntry);
   }
@@ -414,6 +436,9 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
       "Keep this on watch until it sharpens into a spend, sell, expand, or repair move.",
     salesAngle: "Supporting market context.",
     targetMarket,
+    channelSuggestion: "watchlist only",
+    assetSuggestion: "monitoring note",
+    whyNow: buildWhyNow(entry),
   };
   return withRevenueScore(decoratedEntry);
 }

@@ -41,6 +41,9 @@ type LiveStreamItem = {
   salesAngle?: string;
   targetMarket?: string;
   monetizationStage?: "spend" | "sell" | "expand" | "repair" | "watch";
+  channelSuggestion?: string;
+  assetSuggestion?: string;
+  whyNow?: string;
   revenueScore?: number;
 };
 
@@ -1126,20 +1129,8 @@ export default function AdminLiveStreamPage() {
     const seen = new Set<string>();
 
     return prioritizedItems
-      .map((item) => ({
-        id: item.id,
-        priority: item.priority,
-        revenueScore: item.revenueScore || 0,
-        title: item.title,
-        owner: resolveEntryOwner(item),
-        urgency: resolveEntryUrgency(item),
-        status: actionStatuses[item.id] || "new",
-        task: resolveEntryActionTask(item),
-      }))
-      .filter(
-        (
-          item
-        ): item is {
+      .reduce<
+        Array<{
           id: string;
           priority: LiveStreamItem["priority"];
           revenueScore: number;
@@ -1148,14 +1139,31 @@ export default function AdminLiveStreamPage() {
           urgency: string;
           status: "new" | "in progress" | "cleared";
           task: string;
-        } => {
-          if (!item.task) return false;
-          const dedupeKey = item.task.toLowerCase();
-          if (seen.has(dedupeKey)) return false;
-          seen.add(dedupeKey);
-          return true;
-        }
-      )
+          channelSuggestion?: string;
+          assetSuggestion?: string;
+          whyNow?: string;
+        }>
+      >((acc, item) => {
+        const task = resolveEntryActionTask(item);
+        if (!task) return acc;
+        const dedupeKey = task.toLowerCase();
+        if (seen.has(dedupeKey)) return acc;
+        seen.add(dedupeKey);
+        acc.push({
+          id: item.id,
+          priority: item.priority,
+          revenueScore: item.revenueScore || 0,
+          title: item.title,
+          owner: resolveEntryOwner(item),
+          urgency: resolveEntryUrgency(item),
+          status: actionStatuses[item.id] || "new",
+          task,
+          channelSuggestion: item.channelSuggestion,
+          assetSuggestion: item.assetSuggestion,
+          whyNow: item.whyNow,
+        });
+        return acc;
+      }, [])
       .sort((a, b) => b.revenueScore - a.revenueScore)
       .slice(0, 6);
   }, [actionStatuses, groupedLiveFeed]);
@@ -2498,6 +2506,38 @@ export default function AdminLiveStreamPage() {
                       </div>
                       <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
                       <div className="mt-1 text-xs text-white/55">{item.title}</div>
+                      {item.channelSuggestion || item.assetSuggestion || item.whyNow ? (
+                        <div className="mt-3 grid gap-2 md:grid-cols-3">
+                          {item.channelSuggestion ? (
+                            <div className="rounded-md border border-sky-300/15 bg-sky-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-sky-100/60">
+                                Channel
+                              </div>
+                              <div className="mt-1 text-xs text-sky-50">
+                                {item.channelSuggestion}
+                              </div>
+                            </div>
+                          ) : null}
+                          {item.assetSuggestion ? (
+                            <div className="rounded-md border border-emerald-300/15 bg-emerald-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-100/60">
+                                Asset
+                              </div>
+                              <div className="mt-1 text-xs text-emerald-50">
+                                {item.assetSuggestion}
+                              </div>
+                            </div>
+                          ) : null}
+                          {item.whyNow ? (
+                            <div className="rounded-md border border-amber-300/15 bg-amber-500/10 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-amber-100/60">
+                                Why Now
+                              </div>
+                              <div className="mt-1 text-xs text-amber-50">{item.whyNow}</div>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(["new", "in progress", "cleared"] as const).map((status) => (
                           <Button
