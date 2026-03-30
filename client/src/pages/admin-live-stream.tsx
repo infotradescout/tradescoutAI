@@ -41,6 +41,7 @@ type LiveStreamItem = {
   salesAngle?: string;
   targetMarket?: string;
   monetizationStage?: "spend" | "sell" | "expand" | "repair" | "watch";
+  revenueScore?: number;
 };
 
 type LiveStreamResponse = {
@@ -460,6 +461,11 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {typeof item.revenueScore === "number" ? (
+          <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+            score {item.revenueScore}
+          </Badge>
+        ) : null}
         <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
         <Badge className={urgencyTone[urgency]}>{urgency}</Badge>
         <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
@@ -1101,6 +1107,15 @@ export default function AdminLiveStreamPage() {
 
     return groups;
   }, [filteredStream]);
+  const topRevenueSignals = useMemo(() => {
+    return [...filteredStream]
+      .sort((a, b) => {
+        const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
+        if (scoreDelta !== 0) return scoreDelta;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      })
+      .slice(0, 5);
+  }, [filteredStream]);
   const operatorQueue = useMemo(() => {
     const prioritizedItems = [
       ...groupedLiveFeed.monetizationLeaks,
@@ -1114,6 +1129,7 @@ export default function AdminLiveStreamPage() {
       .map((item) => ({
         id: item.id,
         priority: item.priority,
+        revenueScore: item.revenueScore || 0,
         title: item.title,
         owner: resolveEntryOwner(item),
         urgency: resolveEntryUrgency(item),
@@ -1126,6 +1142,7 @@ export default function AdminLiveStreamPage() {
         ): item is {
           id: string;
           priority: LiveStreamItem["priority"];
+          revenueScore: number;
           title: string;
           owner: string;
           urgency: string;
@@ -1139,6 +1156,7 @@ export default function AdminLiveStreamPage() {
           return true;
         }
       )
+      .sort((a, b) => b.revenueScore - a.revenueScore)
       .slice(0, 6);
   }, [actionStatuses, groupedLiveFeed]);
   const operatorOwnerBreakdown = useMemo(() => {
@@ -1397,7 +1415,7 @@ export default function AdminLiveStreamPage() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
                 <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
                   Sales Watchlist
@@ -1415,6 +1433,46 @@ export default function AdminLiveStreamPage() {
                           {item.label}
                         </div>
                         <div className="mt-1 text-sm text-indigo-50">{item.value}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
+                    Top Revenue Signals
+                  </div>
+                  <Badge variant="outline" className="border-emerald-200/20 text-emerald-50">
+                    ranked
+                  </Badge>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {topRevenueSignals.length === 0 ? (
+                    <div className="text-sm text-emerald-100/70">
+                      No ranked revenue signals surfaced yet.
+                    </div>
+                  ) : (
+                    topRevenueSignals.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[11px] uppercase tracking-[0.2em] text-emerald-100/60">
+                            #{index + 1} {item.commercialBucket || "watchlist"}
+                          </div>
+                          <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+                            {item.revenueScore || 0}
+                          </Badge>
+                        </div>
+                        <div className="mt-1 text-sm text-emerald-50">
+                          {item.targetMarket || item.title}
+                        </div>
+                        <div className="mt-1 text-xs text-emerald-100/70">
+                          {item.recommendedPlay || item.salesAngle || item.title}
+                        </div>
                       </div>
                     ))
                   )}
@@ -2421,6 +2479,9 @@ export default function AdminLiveStreamPage() {
                       className="rounded-md border border-white/10 bg-black/20 px-3 py-3"
                     >
                       <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+                          score {item.revenueScore}
+                        </Badge>
                         <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
                         <Badge className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}>
                           {item.urgency}

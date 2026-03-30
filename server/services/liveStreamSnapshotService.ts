@@ -11,6 +11,13 @@ import {
 import type { LisaFeedItem } from "../../shared/lisa";
 
 type LiveStreamPriority = "critical" | "high" | "medium" | "low";
+type CommercialBucket =
+  | "ad plays"
+  | "advertiser pitches"
+  | "market moves"
+  | "monetization leaks"
+  | "watchlist";
+type MonetizationStage = "spend" | "sell" | "expand" | "repair" | "watch";
 
 export type LiveStreamSnapshotEntry = {
   id: string;
@@ -27,16 +34,12 @@ export type LiveStreamSnapshotEntry = {
   category?: string;
   county?: string;
   state?: string;
-  commercialBucket?:
-    | "ad plays"
-    | "advertiser pitches"
-    | "market moves"
-    | "monetization leaks"
-    | "watchlist";
+  commercialBucket?: CommercialBucket;
   recommendedPlay?: string;
   salesAngle?: string;
   targetMarket?: string;
-  monetizationStage?: "spend" | "sell" | "expand" | "repair" | "watch";
+  monetizationStage?: MonetizationStage;
+  revenueScore?: number;
   stateCode: string | null;
   countyName: string | null;
 };
@@ -268,6 +271,52 @@ function buildTargetMarket(entry: LiveStreamSnapshotEntry): string | undefined {
   return routeTarget || undefined;
 }
 
+function extractLargestNumber(text: string): number {
+  const matches = Array.from(text.matchAll(/\b(\d+(?:\.\d+)?)\b/g));
+  if (!matches.length) return 0;
+  return matches.reduce((max, match) => {
+    const value = Number(match[1]);
+    return Number.isFinite(value) && value > max ? value : max;
+  }, 0);
+}
+
+function resolveRevenueScore(entry: LiveStreamSnapshotEntry): number {
+  const priorityWeight = { critical: 35, high: 24, medium: 15, low: 8 } as const;
+  const bucketWeight = {
+    "advertiser pitches": 20,
+    "ad plays": 18,
+    "market moves": 14,
+    "monetization leaks": 12,
+    watchlist: 5,
+  } as const;
+  const freshnessWeight = entry.truthStatus === "current" ? 8 : 2;
+  const targetWeight = entry.targetMarket ? 8 : 0;
+  const categoryWeight = entry.category ? 5 : 0;
+  const countyWeight = entry.county ? 5 : 0;
+  const baselineWeight = Math.min(12, Math.round(Math.abs(entry.baselineDeltaPct || 0) / 10));
+  const numericDemandWeight = Math.min(
+    18,
+    Math.round(extractLargestNumber(`${entry.title} ${entry.narrative}`) / 20)
+  );
+  return (
+    priorityWeight[entry.priority] +
+    bucketWeight[entry.commercialBucket || "watchlist"] +
+    freshnessWeight +
+    targetWeight +
+    categoryWeight +
+    countyWeight +
+    baselineWeight +
+    numericDemandWeight
+  );
+}
+
+function withRevenueScore(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEntry {
+  return {
+    ...entry,
+    revenueScore: resolveRevenueScore(entry),
+  };
+}
+
 function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEntry {
   const signalClass = entry.signalClass || "";
   const targetMarket = buildTargetMarket(entry);
@@ -279,7 +328,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
     signalClass === "attention_action_gap" ||
     signalClass === "trust_friction"
   ) {
-    return {
+    const decoratedEntry: LiveStreamSnapshotEntry = {
       ...entry,
       commercialBucket: "monetization leaks",
       monetizationStage: "repair",
@@ -292,6 +341,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         : "Attention is present, but monetization is leaking before conversion.",
       targetMarket,
     };
+    return withRevenueScore(decoratedEntry);
   }
 
   if (
@@ -299,7 +349,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
     signalClass === "county_opportunity_concentration" ||
     signalClass === "visibility_outpacing_coverage"
   ) {
-    return {
+    const decoratedEntry: LiveStreamSnapshotEntry = {
       ...entry,
       commercialBucket: "ad plays",
       monetizationStage: "spend",
@@ -311,6 +361,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         : "This is a live county demand pocket you can package into paid reach.",
       targetMarket,
     };
+    return withRevenueScore(decoratedEntry);
   }
 
   if (
@@ -319,7 +370,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
     signalClass === "category_momentum" ||
     entry.source === "cumulus"
   ) {
-    return {
+    const decoratedEntry: LiveStreamSnapshotEntry = {
       ...entry,
       commercialBucket: "advertiser pitches",
       monetizationStage: "sell",
@@ -331,6 +382,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         : "This demand pocket can support a sponsor or advertiser pitch.",
       targetMarket,
     };
+    return withRevenueScore(decoratedEntry);
   }
 
   if (
@@ -339,7 +391,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
     entry.kind === "crawler_top_bot" ||
     entry.source === "crawler"
   ) {
-    return {
+    const decoratedEntry: LiveStreamSnapshotEntry = {
       ...entry,
       commercialBucket: "market moves",
       monetizationStage: "expand",
@@ -351,9 +403,10 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
         : "This is where attention is moving right now.",
       targetMarket,
     };
+    return withRevenueScore(decoratedEntry);
   }
 
-  return {
+  const decoratedEntry: LiveStreamSnapshotEntry = {
     ...entry,
     commercialBucket: "watchlist",
     monetizationStage: "watch",
@@ -362,6 +415,7 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
     salesAngle: "Supporting market context.",
     targetMarket,
   };
+  return withRevenueScore(decoratedEntry);
 }
 
 function shouldRefreshWeakSnapshot(args: {
@@ -374,7 +428,7 @@ function shouldRefreshWeakSnapshot(args: {
 
   const ageMs = Date.now() - computedAt.getTime();
   const retryAgeMs = LIVE_STREAM_DEGRADED_RETRY_MINUTES * 60 * 1000;
-  const degradedSources = Array.isArray(summary?.degradedSources) ? summary!.degradedSources : [];
+  const degradedSources = Array.isArray(summary?.degradedSources) ? summary.degradedSources : [];
 
   if (degradedSources.length > 0 && ageMs >= retryAgeMs) return true;
   if (stream.length === 0 && ageMs >= retryAgeMs) return true;
@@ -731,7 +785,11 @@ export async function buildLiveStreamSnapshot(params?: {
         truthStatus,
       });
     })
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .sort((a, b) => {
+      const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
+      if (scoreDelta !== 0) return scoreDelta;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    })
     .slice(0, filters.limit);
 
   const sourceCounts = stream.reduce<Record<string, number>>((acc, entry) => {
