@@ -320,8 +320,8 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             className="mb-3 rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-2"
           >
             <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
-              Scout helps you figure out what you need, see the right next step, understand how CVS
-              works, and keep contact clear instead of chaotic.
+              Start with Scout when you want the clearest local path. It helps you figure out what
+              you need, what happens next, and when contact should open.
             </p>
           </motion.div>
 
@@ -377,6 +377,15 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
               </a>
             ) : null}
           </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+            className="mt-2 text-xs text-white/45"
+          >
+            No account required to start. Save progress later if you want to.
+          </motion.p>
         </div>
       </motion.div>
 
@@ -430,21 +439,21 @@ function HowItWorksSection() {
     {
       icon: MessageSquare,
       title: "Ask Scout",
-      desc: "Tell Scout what you need so the system starts from your real intent, not from a category guess.",
+      desc: "Say what you need in plain language so TradeScout starts from your real intent.",
     },
     {
       icon: Search,
-      title: "Scout Interprets",
-      desc: "Scout turns your request into a clear local path using CVS, trade fit, and location.",
+      title: "Scout figures out the path",
+      desc: "Scout uses location, trade fit, and trust context to narrow the right local route.",
     },
     {
       icon: CheckCircle,
-      title: "Scout Routes",
-      desc: "The system shows the right next step, whether that is a match, a Decision Card, or a short hold while details get sorted out.",
+      title: "You get the next move",
+      desc: "That might be a match, a Decision Card, or a short hold while details get sorted out.",
     },
     {
       icon: Handshake,
-      title: "Contact Opens After Acceptance",
+      title: "Contact opens at the right time",
       desc: "A pro accepts before contact opens, so you stay in control without losing privacy or context.",
     },
   ];
@@ -464,8 +473,8 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            TradeScout is not a lead funnel. Scout runs the full flow from asking for help to
-            talking with the right pro.
+            TradeScout is not a lead funnel. You start with Scout, and it helps you move toward the
+            right local next step.
           </p>
         </Reveal>
 

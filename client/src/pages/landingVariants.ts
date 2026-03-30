@@ -43,9 +43,9 @@ const DEFAULT_VARIANT: LandingVariant = {
   headlineNoBreakAfterIndices: [2],
   headlineLines: ["The Local", "Operating System", "for Community Interaction"],
   subhead:
-    "Scout coordinates discovery, trust, intent, decision, and contact so local work moves forward without lead spam, pay-to-play ranking, or platform confusion.",
-  primaryCta: { label: "Get Started", href: "/pre-scout-setup?mode=create" },
-  secondaryCta: { label: "See How It Works", scrollToId: "how-it-works" },
+    "Start with Scout to figure out what you need, see the right local path, and move forward without lead spam or pay-to-play ranking.",
+  primaryCta: { label: "Ask Scout", href: "/scout" },
+  secondaryCta: { label: "Create Account", href: "/pre-scout-setup?mode=create" },
   navLinks: [
     { label: "How It Works", href: "#how-it-works" },
     { label: "Trust Model", href: "#trust" },
@@ -76,12 +76,12 @@ const DEFAULT_VARIANT: LandingVariant = {
   },
   cta: {
     label: "Start With Scout",
-    titleLines: ["Ready to get the", "right local next step?"],
-    desc: "Start with Scout. Figure out what you need, see the best local path forward, and reach out without the usual chaos.",
-    primaryLabel: "Get Started",
-    primaryHref: "/pre-scout-setup?mode=create",
-    secondaryLabel: "Sign In",
-    secondaryHref: "/pre-scout-setup?mode=signin",
+    titleLines: ["Need help with something", "local? Start here."],
+    desc: "Ask Scout first. You can figure out the right path before you create an account or open contact.",
+    primaryLabel: "Ask Scout",
+    primaryHref: "/scout",
+    secondaryLabel: "Create Account",
+    secondaryHref: "/pre-scout-setup?mode=create",
   },
 };
 
