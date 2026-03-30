@@ -34,6 +34,26 @@ type ProspectClassSummary = {
   label: string;
   count: number;
 };
+type ScoutCountyDemandRow = {
+  county_name: string | null;
+  state_code: string | null;
+  intent: string | null;
+  interaction_count: number;
+  last_seen_at: string | Date | null;
+};
+type CountyMetricLeadRow = {
+  county_name: string | null;
+  state_code: string | null;
+  metric_value: number;
+  updated_at: string | Date | null;
+};
+type DirectoryInventoryLeadRow = {
+  trade_slug: string;
+  county_name: string | null;
+  state_code: string | null;
+  business_count: number;
+  updated_at: string | Date | null;
+};
 
 export type LiveStreamSnapshotEntry = {
   id: string;
@@ -336,6 +356,19 @@ function resolveRevenueScore(entry: LiveStreamSnapshotEntry): number {
     "monetization leaks": 12,
     watchlist: 5,
   } as const;
+  const sourceWeight = {
+    scout_interactions: 18,
+    tradedeals: 16,
+    directory: 15,
+    homescout: 14,
+    observations: 12,
+    lisa: 9,
+    cumulus: 9,
+    alerts: 8,
+    crawler: 4,
+    bot_crawl_signals: 5,
+    bot_visibility: 5,
+  } as const;
   const freshnessWeight = entry.truthStatus === "current" ? 8 : 2;
   const targetWeight = entry.targetMarket ? 8 : 0;
   const categoryWeight = entry.category ? 5 : 0;
@@ -348,6 +381,7 @@ function resolveRevenueScore(entry: LiveStreamSnapshotEntry): number {
   return (
     priorityWeight[entry.priority] +
     bucketWeight[entry.commercialBucket || "watchlist"] +
+    (sourceWeight[entry.source as keyof typeof sourceWeight] || 6) +
     freshnessWeight +
     targetWeight +
     categoryWeight +
@@ -775,6 +809,9 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
   }
 
   if (
+    entry.kind === "scout_county_demand" ||
+    entry.kind === "tradedeals_county_lead" ||
+    entry.kind === "directory_inventory_lead" ||
     entry.kind === "bot_demand_cluster" ||
     signalClass === "category_signal_concentration" ||
     signalClass === "category_momentum" ||
@@ -795,6 +832,8 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
   }
 
   if (
+    entry.kind === "homescout_county_supply" ||
+    entry.kind === "observations_county_lead" ||
     entry.kind === "crawler_route_demand" ||
     entry.kind === "crawler_volume" ||
     entry.kind === "crawler_top_bot" ||
@@ -904,6 +943,11 @@ export async function buildLiveStreamSnapshot(params?: {
     botDemandSignalsResult,
     cumulusBriefResult,
     activeAlertsResult,
+    scoutCountyDemandResult,
+    tradeDealsLeadResult,
+    homeScoutLeadResult,
+    observationsLeadResult,
+    directoryInventoryLeadResult,
   ] = await Promise.allSettled([
     getLisaFeed(),
     getCrawlerTelemetrySummary(),
@@ -915,6 +959,69 @@ export async function buildLiveStreamSnapshot(params?: {
       limit: 100,
     }),
     Promise.resolve(getActiveAlerts()),
+    pool.query<ScoutCountyDemandRow>(`
+      select
+        coalesce(c.name, si.county_fips) as county_name,
+        coalesce(c.state_code, substring(si.county_fips from 1 for 2)) as state_code,
+        si.intent,
+        count(*)::int as interaction_count,
+        max(si.created_at) as last_seen_at
+      from scout_interactions si
+      left join counties c on c.fips = si.county_fips
+      where si.created_at >= now() - interval '24 hours'
+        and si.county_fips is not null
+      group by c.name, c.state_code, si.county_fips, si.intent
+      order by interaction_count desc, county_name asc
+      limit 1
+    `),
+    pool.query<CountyMetricLeadRow>(`
+      select
+        c.name as county_name,
+        c.state_code,
+        cm.metric_value::numeric::float8 as metric_value,
+        cm.updated_at
+      from county_metrics cm
+      inner join counties c on c.fips = cm.county_fips
+      where cm.metric_key = 'tradedeals_active'
+      order by cm.metric_value::numeric desc, cm.updated_at desc
+      limit 1
+    `),
+    pool.query<CountyMetricLeadRow>(`
+      select
+        c.name as county_name,
+        c.state_code,
+        cm.metric_value::numeric::float8 as metric_value,
+        cm.updated_at
+      from county_metrics cm
+      inner join counties c on c.fips = cm.county_fips
+      where cm.metric_key = 'homescout_active_listings'
+      order by cm.metric_value::numeric desc, cm.updated_at desc
+      limit 1
+    `),
+    pool.query<CountyMetricLeadRow>(`
+      select
+        c.name as county_name,
+        c.state_code,
+        cm.metric_value::numeric::float8 as metric_value,
+        cm.updated_at
+      from county_metrics cm
+      inner join counties c on c.fips = cm.county_fips
+      where cm.metric_key = 'observations_30d'
+      order by cm.metric_value::numeric desc, cm.updated_at desc
+      limit 1
+    `),
+    pool.query<DirectoryInventoryLeadRow>(`
+      select
+        tcp.trade_slug,
+        c.name as county_name,
+        tcp.state_code,
+        tcp.business_count,
+        tcp.updated_at
+      from ts_seo_trade_county_pages tcp
+      inner join counties c on c.id = tcp.county_id
+      order by tcp.business_count desc, tcp.updated_at desc
+      limit 1
+    `),
   ]);
 
   const lisaFeed =
@@ -989,6 +1096,11 @@ export async function buildLiveStreamSnapshot(params?: {
     botDemandSignalsResult.status === "rejected" ? "bot-demand" : null,
     cumulusBriefResult.status === "rejected" ? "cumulus" : null,
     activeAlertsResult.status === "rejected" ? "alerts" : null,
+    scoutCountyDemandResult.status === "rejected" ? "scout-interactions" : null,
+    tradeDealsLeadResult.status === "rejected" ? "trade-deals" : null,
+    homeScoutLeadResult.status === "rejected" ? "homescout" : null,
+    observationsLeadResult.status === "rejected" ? "observations" : null,
+    directoryInventoryLeadResult.status === "rejected" ? "directory" : null,
   ].filter((value): value is string => Boolean(value));
   const degradedSourceReasons: Record<string, string> = {};
 
@@ -1018,10 +1130,39 @@ export async function buildLiveStreamSnapshot(params?: {
     degradedSourceReasons.alerts = summarizeRejectionReason(activeAlertsResult.reason);
     console.error("Live stream degraded: active alerts unavailable", activeAlertsResult.reason);
   }
+  if (scoutCountyDemandResult.status === "rejected") {
+    degradedSourceReasons["scout-interactions"] = summarizeRejectionReason(
+      scoutCountyDemandResult.reason
+    );
+  }
+  if (tradeDealsLeadResult.status === "rejected") {
+    degradedSourceReasons["trade-deals"] = summarizeRejectionReason(tradeDealsLeadResult.reason);
+  }
+  if (homeScoutLeadResult.status === "rejected") {
+    degradedSourceReasons.homescout = summarizeRejectionReason(homeScoutLeadResult.reason);
+  }
+  if (observationsLeadResult.status === "rejected") {
+    degradedSourceReasons.observations = summarizeRejectionReason(observationsLeadResult.reason);
+  }
+  if (directoryInventoryLeadResult.status === "rejected") {
+    degradedSourceReasons.directory = summarizeRejectionReason(directoryInventoryLeadResult.reason);
+  }
 
   const botCrawlFindings = (lisaFeed.feed || []).filter(
     (item) => item.sourceKind === "bot_crawl_signals"
   );
+  const scoutCountyDemand =
+    scoutCountyDemandResult.status === "fulfilled" ? scoutCountyDemandResult.value.rows[0] : null;
+  const tradeDealsLead =
+    tradeDealsLeadResult.status === "fulfilled" ? tradeDealsLeadResult.value.rows[0] : null;
+  const homeScoutLead =
+    homeScoutLeadResult.status === "fulfilled" ? homeScoutLeadResult.value.rows[0] : null;
+  const observationsLead =
+    observationsLeadResult.status === "fulfilled" ? observationsLeadResult.value.rows[0] : null;
+  const directoryInventoryLead =
+    directoryInventoryLeadResult.status === "fulfilled"
+      ? directoryInventoryLeadResult.value.rows[0]
+      : null;
   const topBotCrawlFinding = botCrawlFindings[0] || null;
   const topDemandSignal = botDemandSignals[0] || null;
   const topDemandRoutes = crawlerTelemetry.topRoutes?.slice(0, 5) || [];
@@ -1039,6 +1180,164 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: null,
       countyName: null,
     },
+    ...(scoutCountyDemand?.county_name
+      ? [
+          {
+            id: `scout-county-demand-${String(scoutCountyDemand.state_code || "na")}-${String(
+              scoutCountyDemand.county_name || "unknown"
+            )
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`,
+            timestamp: scoutCountyDemand.last_seen_at
+              ? new Date(scoutCountyDemand.last_seen_at).toISOString()
+              : new Date().toISOString(),
+            kind: "scout_county_demand",
+            priority:
+              Number(scoutCountyDemand.interaction_count || 0) >= 20
+                ? ("high" as LiveStreamPriority)
+                : ("medium" as LiveStreamPriority),
+            title: "Scout demand pocket",
+            narrative: `${scoutCountyDemand.county_name}, ${String(
+              scoutCountyDemand.state_code || ""
+            ).toUpperCase()} produced ${Number(
+              scoutCountyDemand.interaction_count || 0
+            )} first-party Scout interactions in the last 24 hours${
+              scoutCountyDemand.intent
+                ? `, led by ${String(scoutCountyDemand.intent).replace(/_/g, " ")} intent`
+                : ""
+            }. This is direct on-site user demand, not crawler traffic.`,
+            source: "scout_interactions",
+            county: String(scoutCountyDemand.county_name),
+            state: String(scoutCountyDemand.state_code || "").toUpperCase(),
+            stateCode: String(scoutCountyDemand.state_code || "").toUpperCase() || null,
+            countyName: String(scoutCountyDemand.county_name),
+          },
+        ]
+      : []),
+    ...(tradeDealsLead?.county_name
+      ? [
+          {
+            id: `tradedeals-county-${String(tradeDealsLead.state_code || "na")}-${String(
+              tradeDealsLead.county_name || "unknown"
+            )
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`,
+            timestamp: tradeDealsLead.updated_at
+              ? new Date(tradeDealsLead.updated_at).toISOString()
+              : new Date().toISOString(),
+            kind: "tradedeals_county_lead",
+            priority:
+              Number(tradeDealsLead.metric_value || 0) >= 10
+                ? ("high" as LiveStreamPriority)
+                : ("medium" as LiveStreamPriority),
+            title: "TradeDeals active county",
+            narrative: `${tradeDealsLead.county_name}, ${String(
+              tradeDealsLead.state_code || ""
+            ).toUpperCase()} currently has ${Math.round(
+              Number(tradeDealsLead.metric_value || 0)
+            )} active TradeDeals. This is active promotional inventory already operating on-site.`,
+            source: "tradedeals",
+            county: String(tradeDealsLead.county_name),
+            state: String(tradeDealsLead.state_code || "").toUpperCase(),
+            stateCode: String(tradeDealsLead.state_code || "").toUpperCase() || null,
+            countyName: String(tradeDealsLead.county_name),
+          },
+        ]
+      : []),
+    ...(homeScoutLead?.county_name
+      ? [
+          {
+            id: `homescout-county-${String(homeScoutLead.state_code || "na")}-${String(
+              homeScoutLead.county_name || "unknown"
+            )
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`,
+            timestamp: homeScoutLead.updated_at
+              ? new Date(homeScoutLead.updated_at).toISOString()
+              : new Date().toISOString(),
+            kind: "homescout_county_supply",
+            priority:
+              Number(homeScoutLead.metric_value || 0) >= 25
+                ? ("high" as LiveStreamPriority)
+                : ("medium" as LiveStreamPriority),
+            title: "HomeScout supply pocket",
+            narrative: `${homeScoutLead.county_name}, ${String(
+              homeScoutLead.state_code || ""
+            ).toUpperCase()} currently has ${Math.round(
+              Number(homeScoutLead.metric_value || 0)
+            )} active HomeScout listings. This is first-party marketplace supply already live on-site.`,
+            source: "homescout",
+            county: String(homeScoutLead.county_name),
+            state: String(homeScoutLead.state_code || "").toUpperCase(),
+            stateCode: String(homeScoutLead.state_code || "").toUpperCase() || null,
+            countyName: String(homeScoutLead.county_name),
+          },
+        ]
+      : []),
+    ...(observationsLead?.county_name
+      ? [
+          {
+            id: `observations-county-${String(observationsLead.state_code || "na")}-${String(
+              observationsLead.county_name || "unknown"
+            )
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`,
+            timestamp: observationsLead.updated_at
+              ? new Date(observationsLead.updated_at).toISOString()
+              : new Date().toISOString(),
+            kind: "observations_county_lead",
+            priority:
+              Number(observationsLead.metric_value || 0) >= 50
+                ? ("high" as LiveStreamPriority)
+                : ("medium" as LiveStreamPriority),
+            title: "Observation-rich county",
+            narrative: `${observationsLead.county_name}, ${String(
+              observationsLead.state_code || ""
+            ).toUpperCase()} has ${Math.round(
+              Number(observationsLead.metric_value || 0)
+            )} canonical observations on record. This is first-party county reality data, not just traffic telemetry.`,
+            source: "observations",
+            county: String(observationsLead.county_name),
+            state: String(observationsLead.state_code || "").toUpperCase(),
+            stateCode: String(observationsLead.state_code || "").toUpperCase() || null,
+            countyName: String(observationsLead.county_name),
+          },
+        ]
+      : []),
+    ...(directoryInventoryLead?.county_name
+      ? [
+          {
+            id: `directory-inventory-${directoryInventoryLead.trade_slug}-${String(
+              directoryInventoryLead.state_code || "na"
+            )}-${String(directoryInventoryLead.county_name || "unknown")
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`,
+            timestamp: directoryInventoryLead.updated_at
+              ? new Date(directoryInventoryLead.updated_at).toISOString()
+              : new Date().toISOString(),
+            kind: "directory_inventory_lead",
+            priority:
+              Number(directoryInventoryLead.business_count || 0) >= 8
+                ? ("high" as LiveStreamPriority)
+                : ("medium" as LiveStreamPriority),
+            title: "Public business inventory pocket",
+            narrative: `${directoryInventoryLead.county_name}, ${String(
+              directoryInventoryLead.state_code || ""
+            ).toUpperCase()} currently exposes ${Math.round(
+              Number(directoryInventoryLead.business_count || 0)
+            )} public ${String(directoryInventoryLead.trade_slug).replace(
+              /-/g,
+              " "
+            )} businesses on-platform. This is direct directory inventory you can sell around or recruit into.`,
+            source: "directory",
+            category: String(directoryInventoryLead.trade_slug).replace(/-/g, " "),
+            county: String(directoryInventoryLead.county_name),
+            state: String(directoryInventoryLead.state_code || "").toUpperCase(),
+            stateCode: String(directoryInventoryLead.state_code || "").toUpperCase() || null,
+            countyName: String(directoryInventoryLead.county_name),
+          },
+        ]
+      : []),
     ...(cumulusBrief.topCounties?.[0]
       ? [
           {
