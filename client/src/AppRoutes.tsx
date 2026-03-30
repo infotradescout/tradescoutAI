@@ -223,6 +223,9 @@ const Install = React.lazy(() => import("./pages/install"));
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const Landing = React.lazy(() => import("./pages/landing"));
+const NextLanding = React.lazy(() => import("./pages/NextLanding"));
+const NextBrowse = React.lazy(() => import("./pages/NextBrowse"));
+const NextHome = React.lazy(() => import("./pages/NextHome"));
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
 const OnboardingIntent = React.lazy(() => import("./pages/onboarding-intent"));
 const OnboardingProfile = React.lazy(() => import("./pages/onboarding-profile"));
@@ -610,6 +613,15 @@ export const AppRoutes = memo(function AppRoutes({
                 <LandingAccessGate>
                   <LazyPage Component={Landing} />
                 </LandingAccessGate>
+              </Route>
+              <Route path="/next">
+                <LazyPage Component={NextLanding} />
+              </Route>
+              <Route path="/next/browse">
+                <LazyPage Component={NextBrowse} />
+              </Route>
+              <Route path="/next/home">
+                <LazyPage Component={NextHome} />
               </Route>
               {/* Scout OS: primary AI controller surface */}
               <Route path="/scout" component={ScoutOS} />
