@@ -845,6 +845,47 @@ export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult 
   return { action, failure: candidate };
 }
 
+export async function createOneFixFromSource(input: {
+  sourceType: "bot_ui" | "scout" | "error_report";
+  sourceId: string;
+  summary?: string | null;
+  suggestedFix?: string | null;
+  impactScore?: number | null;
+}): Promise<MissionControlAction> {
+  const sourceId = String(input.sourceId || "").trim();
+  if (!sourceId) {
+    throw new Error("sourceId is required");
+  }
+
+  const payload: InsertMissionControlAction = {
+    sourceType: input.sourceType as (typeof missionControlSourceEnum.enumValues)[number],
+    sourceId: sourceId.slice(0, 128),
+    status: "open",
+    summary: input.summary?.slice(0, 4000) || null,
+    suggestedFix: input.suggestedFix?.slice(0, 4000) || null,
+    impactScore: Number.isFinite(input.impactScore as number)
+      ? Math.max(0, Math.round(input.impactScore as number))
+      : null,
+  };
+
+  const [action] = await db
+    .insert(missionControlActions)
+    .values(payload)
+    .onConflictDoUpdate({
+      target: [missionControlActions.sourceType, missionControlActions.sourceId],
+      set: {
+        status: "open",
+        summary: payload.summary,
+        suggestedFix: payload.suggestedFix,
+        impactScore: payload.impactScore,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  return action;
+}
+
 export async function updateOneFixStatus(
   id: string,
   status: "done" | "deferred",

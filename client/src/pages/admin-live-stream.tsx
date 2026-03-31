@@ -949,6 +949,9 @@ export default function AdminLiveStreamPage() {
   const [actionStatuses, setActionStatuses] = useState<
     Record<string, "new" | "in progress" | "cleared">
   >({});
+  const [promotingItemId, setPromotingItemId] = useState<string | null>(null);
+  const [promotionMessage, setPromotionMessage] = useState("");
+  const [promotionError, setPromotionError] = useState("");
   const [uiMode, setUiMode] = useState<"ops" | "feed" | "debug">("ops");
   const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
@@ -1707,6 +1710,37 @@ export default function AdminLiveStreamPage() {
 
   const handleNewestEventPage = () => {
     setEventPageIndex(0);
+  };
+
+  const handlePromoteBotArmyItem = async (item: BotArmySprintQueueItem) => {
+    setPromotingItemId(item.id);
+    setPromotionMessage("");
+    setPromotionError("");
+    try {
+      const response = await fetch("/api/admin/mission-control/one-fix/create", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceType: "bot_ui",
+          sourceId: `${item.route}::${item.failureType}`,
+          summary: `${item.failureType} on ${item.route}`,
+          suggestedFix: item.recommendedAction,
+          impactScore: item.score,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to promote sprint item");
+      }
+      setPromotionMessage(`Promoted ${item.route} to One-Fix.`);
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/admin/mission-control/bot-army/sprint-queue"],
+      });
+    } catch (error) {
+      setPromotionError(error instanceof Error ? error.message : "Failed to promote sprint item");
+    } finally {
+      setPromotingItemId(null);
+    }
   };
 
   const activeFilterSummary = useMemo(() => {
@@ -3346,10 +3380,32 @@ export default function AdminLiveStreamPage() {
                           <div className="mt-2 text-[11px] text-white/50">
                             Latest: {new Date(item.latestAt).toLocaleString()}
                           </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 border-white/15 text-xs"
+                              disabled={promotingItemId === item.id}
+                              onClick={() => void handlePromoteBotArmyItem(item)}
+                            >
+                              {promotingItemId === item.id ? "Promoting..." : "Promote to One-Fix"}
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
+                  {promotionMessage ? (
+                    <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                      {promotionMessage}
+                    </div>
+                  ) : null}
+                  {promotionError ? (
+                    <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                      {promotionError}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">

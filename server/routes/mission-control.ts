@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { isAuthenticated, requireRole } from "../auth";
 import {
+  createOneFixFromSource,
   getBotArmySprintQueue,
   getMissionControlCompromises,
   getMissionControlFailures,
@@ -105,6 +106,39 @@ router.get(
       return res.status(204).end();
     }
     res.json(result);
+  }
+);
+
+router.post(
+  "/one-fix/create",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (req: Request, res: Response) => {
+    const body = (req.body || {}) as {
+      sourceType?: "bot_ui" | "scout" | "error_report";
+      sourceId?: string;
+      summary?: string;
+      suggestedFix?: string;
+      impactScore?: number;
+    };
+
+    if (!body.sourceType || !body.sourceId) {
+      return res.status(400).json({ message: "sourceType and sourceId are required" });
+    }
+
+    try {
+      const action = await createOneFixFromSource({
+        sourceType: body.sourceType,
+        sourceId: body.sourceId,
+        summary: body.summary,
+        suggestedFix: body.suggestedFix,
+        impactScore: body.impactScore,
+      });
+      res.status(201).json(action);
+    } catch (err) {
+      console.error("[MissionControl] Failed to create one-fix action", err);
+      res.status(500).json({ message: "Failed to create one-fix action" });
+    }
   }
 );
 
