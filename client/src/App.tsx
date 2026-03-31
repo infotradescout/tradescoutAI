@@ -80,6 +80,7 @@ const AppLayout = memo(function AppLayout() {
   const isPortalSurface =
     pathOnly === "/homescout-listings" ||
     pathOnly.startsWith("/homescout/") ||
+    pathOnly === "/tradepartners" ||
     pathOnly.startsWith("/tradepartners/") ||
     pathOnly.startsWith("/collections/");
 

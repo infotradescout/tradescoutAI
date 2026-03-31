@@ -1392,6 +1392,9 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/foundation">
                 <Foundation />
               </Route>
+              <Route path="/tradepartners">
+                <RedirectTo to="/tradepartners/cumulus-media" />
+              </Route>
               <Route path="/tradepartners/cumulus-media">
                 <LazyPage Component={TradePartnerCumulusLanding} />
               </Route>
