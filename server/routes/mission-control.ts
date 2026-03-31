@@ -11,10 +11,12 @@ import {
   getTodayDecisions,
   recordBotUiFinding,
   recordDecision,
+  runBotArmyAutoPromotion,
   updateOneFixStatus,
 } from "../services/missionControl";
 import { recordScoutInteraction } from "../services/missionControl";
 import { getPreferredSourceMetrics } from "../services/preferredSource";
+import { getCrawlerSchedulerStatus } from "../services/crawlerScheduler";
 import type { InsertBotUiFinding } from "../../shared/schema";
 
 const router = Router();
@@ -106,6 +108,67 @@ router.get(
       return res.status(204).end();
     }
     res.json(result);
+  }
+);
+
+router.post(
+  "/bot-army/auto-promote/trigger",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (req: Request, res: Response) => {
+    const body = (req.body || {}) as {
+      lookbackHours?: number;
+      limit?: number;
+      minScore?: number;
+    };
+
+    try {
+      const result = await runBotArmyAutoPromotion({
+        lookbackHours: body.lookbackHours,
+        limit: body.limit,
+        minScore: body.minScore,
+      });
+      res.status(200).json(result);
+    } catch (err) {
+      console.error("[MissionControl] Failed to run bot-army auto-promotion", err);
+      res.status(500).json({ message: "Failed to run bot-army auto-promotion" });
+    }
+  }
+);
+
+router.get(
+  "/bot-army/auto-promote/status",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (_req: Request, res: Response) => {
+    const schedulerStatus = getCrawlerSchedulerStatus();
+    const enabled = process.env.BOT_ARMY_AUTO_PROMOTE_ENABLED === "true";
+    const lookbackHours = Math.min(
+      24,
+      Math.max(1, Number.parseInt(process.env.BOT_ARMY_AUTO_PROMOTE_LOOKBACK_HOURS || "6", 10))
+    );
+    const limit = Math.min(
+      25,
+      Math.max(1, Number.parseInt(process.env.BOT_ARMY_AUTO_PROMOTE_LIMIT || "5", 10))
+    );
+    const minScore = Math.min(
+      200,
+      Math.max(1, Number.parseInt(process.env.BOT_ARMY_AUTO_PROMOTE_MIN_SCORE || "70", 10))
+    );
+
+    res.json({
+      enabled,
+      schedulerActive: Boolean(schedulerStatus?.botArmyAutoPromote?.active),
+      schedule:
+        schedulerStatus?.botArmyAutoPromote?.schedule ||
+        process.env.BOT_ARMY_AUTO_PROMOTE_SCHEDULE ||
+        "*/10 * * * *",
+      settings: {
+        lookbackHours,
+        limit,
+        minScore,
+      },
+    });
   }
 );
 

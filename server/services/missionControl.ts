@@ -92,6 +92,17 @@ export interface BotArmySprintQueueItem {
   riskIfIgnored: string;
 }
 
+export interface BotArmyAutoPromotionResult {
+  generatedAt: string;
+  lookbackHours: number;
+  limit: number;
+  minScore: number;
+  candidatesEvaluated: number;
+  promotedCount: number;
+  skippedLowScoreCount: number;
+  skippedResolvedCount: number;
+}
+
 const INTENT_STRENGTH: Record<string, number> = {
   hire: 5,
   collaborate: 3,
@@ -851,6 +862,7 @@ export async function createOneFixFromSource(input: {
   summary?: string | null;
   suggestedFix?: string | null;
   impactScore?: number | null;
+  reopenResolved?: boolean;
 }): Promise<MissionControlAction> {
   const sourceId = String(input.sourceId || "").trim();
   if (!sourceId) {
@@ -868,6 +880,23 @@ export async function createOneFixFromSource(input: {
       : null,
   };
 
+  const reopenResolved = input.reopenResolved === true;
+
+  const [existing] = await db
+    .select()
+    .from(missionControlActions)
+    .where(
+      and(
+        eq(missionControlActions.sourceType, payload.sourceType),
+        eq(missionControlActions.sourceId, payload.sourceId)
+      )
+    )
+    .limit(1);
+
+  if (existing && !reopenResolved && existing.status !== "open") {
+    return existing;
+  }
+
   const [action] = await db
     .insert(missionControlActions)
     .values(payload)
@@ -884,6 +913,58 @@ export async function createOneFixFromSource(input: {
     .returning();
 
   return action;
+}
+
+export async function runBotArmyAutoPromotion(params?: {
+  lookbackHours?: number;
+  limit?: number;
+  minScore?: number;
+}): Promise<BotArmyAutoPromotionResult> {
+  const lookbackHours = Math.min(24, Math.max(1, Number(params?.lookbackHours || 6)));
+  const limit = Math.min(25, Math.max(1, Number(params?.limit || 5)));
+  const minScore = Math.min(200, Math.max(1, Number(params?.minScore || 70)));
+
+  const queue = await getBotArmySprintQueue({ lookbackHours, limit: Math.max(limit * 2, limit) });
+  const selected = queue.slice(0, limit);
+
+  let promotedCount = 0;
+  let skippedLowScoreCount = 0;
+  let skippedResolvedCount = 0;
+
+  for (const item of selected) {
+    if (item.score < minScore) {
+      skippedLowScoreCount += 1;
+      continue;
+    }
+
+    const sourceId = `${item.route}::${item.failureType}`;
+    const action = await createOneFixFromSource({
+      sourceType: "bot_ui",
+      sourceId,
+      summary: `${item.route} ${item.failureType} x${item.occurrences}`,
+      suggestedFix: item.recommendedAction,
+      impactScore: item.score,
+      reopenResolved: false,
+    });
+
+    if (action.status !== "open") {
+      skippedResolvedCount += 1;
+      continue;
+    }
+
+    promotedCount += 1;
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    lookbackHours,
+    limit,
+    minScore,
+    candidatesEvaluated: selected.length,
+    promotedCount,
+    skippedLowScoreCount,
+    skippedResolvedCount,
+  };
 }
 
 export async function updateOneFixStatus(

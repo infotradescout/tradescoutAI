@@ -16,6 +16,7 @@ import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics
 import { withAdvisoryLock } from "../utils/advisoryLocks";
 import { runSeoPublicationPruneJob } from "./seoPublicationPruneJob";
 import { runSeoDirectoryScopeSnapshotJob } from "./seoDirectoryScopeSnapshotJob";
+import { runBotArmyAutoPromotion } from "./missionControl";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -38,6 +39,7 @@ let seoPublicationPruneTask: any = null;
 let seoDirectoryScopeSnapshotTask: any = null;
 let partnerCountyObservationSnapshotsTask: any = null;
 let partnerIntelligenceBriefSnapshotsTask: any = null;
+let botArmyAutoPromoteTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -65,6 +67,54 @@ export function startCrawlerScheduler() {
   startSeoDirectoryScopeSnapshotScheduler();
   startPartnerCountyObservationSnapshotsScheduler();
   startPartnerIntelligenceBriefSnapshotsScheduler();
+  startBotArmyAutoPromoteScheduler();
+}
+
+function startBotArmyAutoPromoteScheduler() {
+  if (process.env.BOT_ARMY_AUTO_PROMOTE_ENABLED !== "true") {
+    return;
+  }
+
+  const schedule = process.env.BOT_ARMY_AUTO_PROMOTE_SCHEDULE || "*/10 * * * *";
+  const lookbackHours = Math.min(
+    24,
+    Math.max(1, Number.parseInt(process.env.BOT_ARMY_AUTO_PROMOTE_LOOKBACK_HOURS || "6", 10))
+  );
+  const limit = Math.min(
+    25,
+    Math.max(1, Number.parseInt(process.env.BOT_ARMY_AUTO_PROMOTE_LIMIT || "5", 10))
+  );
+  const minScore = Math.min(
+    200,
+    Math.max(1, Number.parseInt(process.env.BOT_ARMY_AUTO_PROMOTE_MIN_SCORE || "70", 10))
+  );
+  const jobName = "bot_army_auto_promote";
+
+  console.log(`\n🤖 Starting bot-army auto-promotion scheduler with schedule: "${schedule}"`);
+
+  botArmyAutoPromoteTask = cron.schedule(schedule, async () => {
+    console.log(`\n🤖 [${new Date().toISOString()}] Running bot-army auto-promotion job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runBotArmyAutoPromotion({ lookbackHours, limit, minScore })
+      );
+
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+
+      console.log("✅ Bot-army auto-promotion job completed", result);
+      emitJobEnd(jobName, (result as any).promotedCount || 0, false);
+    } catch (error) {
+      console.error("❌ Bot-army auto-promotion job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ Bot-army auto-promotion scheduler started\n");
 }
 
 function startCrawlerJobs() {
@@ -698,6 +748,13 @@ export function stopCrawlerScheduler() {
     partnerIntelligenceBriefSnapshotsTask = null;
     console.log("Partner intelligence brief snapshot scheduler stopped");
   }
+
+  if (botArmyAutoPromoteTask) {
+    botArmyAutoPromoteTask.stop();
+    botArmyAutoPromoteTask.destroy();
+    botArmyAutoPromoteTask = null;
+    console.log("🛑 Bot-army auto-promotion scheduler stopped");
+  }
 }
 
 /**
@@ -760,6 +817,10 @@ export function getCrawlerSchedulerStatus() {
     partnerIntelligenceBriefSnapshots: {
       active: partnerIntelligenceBriefSnapshotsTask !== null,
       schedule: process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "*/15 * * * *",
+    },
+    botArmyAutoPromote: {
+      active: botArmyAutoPromoteTask !== null,
+      schedule: process.env.BOT_ARMY_AUTO_PROMOTE_SCHEDULE || "*/10 * * * *",
     },
   };
 }

@@ -133,6 +133,28 @@ type BotArmySprintQueueResponse = {
   queue: BotArmySprintQueueItem[];
 };
 
+type BotArmyAutoPromotionResult = {
+  generatedAt: string;
+  lookbackHours: number;
+  limit: number;
+  minScore: number;
+  candidatesEvaluated: number;
+  promotedCount: number;
+  skippedLowScoreCount: number;
+  skippedResolvedCount: number;
+};
+
+type BotArmyAutoPromotionStatusResponse = {
+  enabled: boolean;
+  schedulerActive: boolean;
+  schedule: string;
+  settings: {
+    lookbackHours: number;
+    limit: number;
+    minScore: number;
+  };
+};
+
 type SnapshotStatusResponse = {
   generatedAt: string;
   schedulerEnabled: boolean;
@@ -952,6 +974,9 @@ export default function AdminLiveStreamPage() {
   const [promotingItemId, setPromotingItemId] = useState<string | null>(null);
   const [promotionMessage, setPromotionMessage] = useState("");
   const [promotionError, setPromotionError] = useState("");
+  const [autoPromoting, setAutoPromoting] = useState(false);
+  const [autoPromotionMessage, setAutoPromotionMessage] = useState("");
+  const [autoPromotionError, setAutoPromotionError] = useState("");
   const [uiMode, setUiMode] = useState<"ops" | "feed" | "debug">("ops");
   const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
@@ -1128,6 +1153,21 @@ export default function AdminLiveStreamPage() {
     },
     enabled: uiMode === "ops",
     refetchInterval: 15000,
+  });
+
+  const { data: botArmyAutoPromotionStatus } = useQuery<BotArmyAutoPromotionStatusResponse>({
+    queryKey: ["/api/admin/mission-control/bot-army/auto-promote/status"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/mission-control/bot-army/auto-promote/status", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch Bot Army auto-promotion status");
+      }
+      return response.json();
+    },
+    enabled: uiMode === "ops",
+    refetchInterval: 30000,
   });
 
   const liveStreamStatus = snapshotStatus?.statuses.find((entry) => entry.key === "live_stream");
@@ -1740,6 +1780,41 @@ export default function AdminLiveStreamPage() {
       setPromotionError(error instanceof Error ? error.message : "Failed to promote sprint item");
     } finally {
       setPromotingItemId(null);
+    }
+  };
+
+  const handleTriggerAutoPromotion = async () => {
+    setAutoPromoting(true);
+    setAutoPromotionError("");
+    setAutoPromotionMessage("");
+    try {
+      const response = await fetch("/api/admin/mission-control/bot-army/auto-promote/trigger", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(botArmyAutoPromotionStatus?.settings || {}),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to run Bot Army auto-promotion");
+      }
+      const result = (await response.json()) as BotArmyAutoPromotionResult;
+      setAutoPromotionMessage(
+        `Auto-promotion run complete. Promoted ${result.promotedCount}/${result.candidatesEvaluated} (min score ${result.minScore}).`
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["/api/admin/mission-control/bot-army/sprint-queue"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["/api/admin/mission-control/bot-army/auto-promote/status"],
+        }),
+      ]);
+    } catch (error) {
+      setAutoPromotionError(
+        error instanceof Error ? error.message : "Failed to run Bot Army auto-promotion"
+      );
+    } finally {
+      setAutoPromoting(false);
     }
   };
 
@@ -3344,6 +3419,43 @@ export default function AdminLiveStreamPage() {
                     </Badge>
                   </div>
 
+                  <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-xs text-white/75">
+                        Auto-Promote Scheduler{" "}
+                        {botArmyAutoPromotionStatus?.enabled ? "enabled" : "disabled"}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={
+                            botArmyAutoPromotionStatus?.schedulerActive
+                              ? "border-emerald-300/20 text-emerald-100"
+                              : "border-white/15 text-white/65"
+                          }
+                        >
+                          {botArmyAutoPromotionStatus?.schedulerActive ? "active" : "inactive"}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 border-white/15 text-xs"
+                          disabled={autoPromoting}
+                          onClick={() => void handleTriggerAutoPromotion()}
+                        >
+                          {autoPromoting ? "Running..." : "Run Auto-Promote Now"}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-[11px] text-white/55">
+                      Schedule: {botArmyAutoPromotionStatus?.schedule || "*/10 * * * *"} | lookback:{" "}
+                      {botArmyAutoPromotionStatus?.settings.lookbackHours ?? 6}h | limit:{" "}
+                      {botArmyAutoPromotionStatus?.settings.limit ?? 5} | min score:{" "}
+                      {botArmyAutoPromotionStatus?.settings.minScore ?? 70}
+                    </div>
+                  </div>
+
                   {topBotArmyActions.length === 0 ? (
                     <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
                       No Bot Army sprint findings in the last 6 hours.
@@ -3404,6 +3516,16 @@ export default function AdminLiveStreamPage() {
                   {promotionError ? (
                     <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
                       {promotionError}
+                    </div>
+                  ) : null}
+                  {autoPromotionMessage ? (
+                    <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                      {autoPromotionMessage}
+                    </div>
+                  ) : null}
+                  {autoPromotionError ? (
+                    <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                      {autoPromotionError}
                     </div>
                   ) : null}
                 </div>
