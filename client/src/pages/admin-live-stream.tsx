@@ -113,6 +113,26 @@ type LiveLaneEventResponse = {
   nextCursor: string | null;
 };
 
+type BotArmySprintQueueItem = {
+  id: string;
+  route: string;
+  failureType: string;
+  severity: number;
+  occurrences: number;
+  latestAt: string;
+  score: number;
+  observedFact: string;
+  recommendedAction: string;
+  riskIfIgnored: string;
+};
+
+type BotArmySprintQueueResponse = {
+  generatedAt: string;
+  lookbackHours: number;
+  limit: number;
+  queue: BotArmySprintQueueItem[];
+};
+
 type SnapshotStatusResponse = {
   generatedAt: string;
   schedulerEnabled: boolean;
@@ -1089,6 +1109,24 @@ export default function AdminLiveStreamPage() {
     refetchInterval: 30000,
   });
 
+  const { data: botArmySprintQueue } = useQuery<BotArmySprintQueueResponse>({
+    queryKey: ["/api/admin/mission-control/bot-army/sprint-queue", "lookback=6", "limit=25"],
+    queryFn: async () => {
+      const response = await fetch(
+        "/api/admin/mission-control/bot-army/sprint-queue?lookbackHours=6&limit=25",
+        {
+          credentials: "include",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch Bot Army sprint queue");
+      }
+      return response.json();
+    },
+    enabled: uiMode === "ops",
+    refetchInterval: 15000,
+  });
+
   const liveStreamStatus = snapshotStatus?.statuses.find((entry) => entry.key === "live_stream");
   const visibleEntryCount = filteredStream.length;
   const snapshotAgeMinutes = useMemo(() => {
@@ -1863,6 +1901,9 @@ export default function AdminLiveStreamPage() {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, Math.min(25, filteredStream.length));
   }, [filteredStream]);
+  const topBotArmyActions = useMemo(() => {
+    return (botArmySprintQueue?.queue || []).slice(0, 6);
+  }, [botArmySprintQueue?.queue]);
 
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
@@ -3255,6 +3296,62 @@ export default function AdminLiveStreamPage() {
 
             {uiMode === "ops" && (
               <>
+                <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-white">Bot Army Sprint Queue</div>
+                      <div className="mt-1 text-xs text-white/65">
+                        Same-day operator queue from live bot findings, scored for fastest trust and
+                        conversion impact.
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-rose-200/20 text-rose-50">
+                      {topBotArmyActions.length} queued
+                    </Badge>
+                  </div>
+
+                  {topBotArmyActions.length === 0 ? (
+                    <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                      No Bot Army sprint findings in the last 6 hours.
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {topBotArmyActions.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-md border border-white/10 bg-black/20 px-3 py-3"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="border-rose-300/20 bg-rose-500/10 text-rose-50">
+                              score {item.score}
+                            </Badge>
+                            <Badge variant="outline" className="border-white/10 text-white/70">
+                              {item.failureType}
+                            </Badge>
+                            <Badge variant="outline" className="border-white/10 text-white/70">
+                              severity {item.severity}
+                            </Badge>
+                            <Badge variant="outline" className="border-white/10 text-white/70">
+                              seen {item.occurrences}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 text-sm font-medium text-white">{item.route}</div>
+                          <div className="mt-1 text-xs text-white/65">{item.observedFact}</div>
+                          <div className="mt-2 rounded-md border border-cyan-300/15 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">
+                            Do now: {item.recommendedAction}
+                          </div>
+                          <div className="mt-2 rounded-md border border-amber-300/15 bg-amber-500/10 px-3 py-2 text-xs text-amber-50">
+                            Risk if ignored: {item.riskIfIgnored}
+                          </div>
+                          <div className="mt-2 text-[11px] text-white/50">
+                            Latest: {new Date(item.latestAt).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
