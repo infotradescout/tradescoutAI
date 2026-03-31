@@ -356,7 +356,7 @@ export default function PreScoutSetup() {
         });
       }
       void trackDemandEvent("signin_success", { mode: "signin" });
-      toast({ title: "Signed in", description: "Continue with local setup." });
+      toast({ title: "Signed in", description: "Now let's set your local area." });
       if (isAdminDestination) {
         navigate(postSetupNext);
       } else {
@@ -433,7 +433,7 @@ export default function PreScoutSetup() {
     if (!acceptTerms) {
       toast({
         title: "Terms required",
-        description: "Accept the Terms of Service to continue.",
+        description: "Accept the Terms of Service to create your account.",
         variant: "destructive",
       });
       return;
@@ -485,7 +485,7 @@ export default function PreScoutSetup() {
 
       await ensureSessionEstablished();
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
-      toast({ title: "Account created", description: "Continue with local setup." });
+      toast({ title: "Account created", description: "Now let's set your local area." });
       navigate(buildAuthReturnPath("create"));
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
@@ -589,8 +589,8 @@ export default function PreScoutSetup() {
       }
 
       toast({
-        title: "Setup saved",
-        description: "Opening your dashboard.",
+        title: "Area saved",
+        description: "Opening the next step.",
       });
 
       void trackDemandEvent("setup_complete", {
@@ -640,12 +640,14 @@ export default function PreScoutSetup() {
                 Step 1 of 2
               </div>
               <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
-                {authMode === "create" ? "Create account. Get local." : "Sign in. Get local."}
+                {authMode === "create"
+                  ? "Create your account, then set your area."
+                  : "Sign in, then set your area."}
               </h1>
               <p className="max-w-md text-sm text-white/60">
                 {authMode === "create"
-                  ? "Create your account, then continue local setup."
-                  : "Sign in to continue local setup."}
+                  ? "Start here so Scout can save your progress and keep your local context attached to your account."
+                  : "Sign in to pick up where you left off and confirm your local area."}
               </p>
             </div>
 
@@ -655,7 +657,7 @@ export default function PreScoutSetup() {
                   className="text-lg font-semibold text-white"
                   data-testid="auth-indicator"
                 >
-                  Access
+                  Account
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -785,7 +787,7 @@ export default function PreScoutSetup() {
                                   setAuthModeAndSyncUrl("create");
                                 }}
                               >
-                                Create an account
+                                Create account
                               </Button>
                               <a
                                 href="/maps"
@@ -1031,7 +1033,10 @@ export default function PreScoutSetup() {
             <CardHeader className="space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-0.5">
-                  <CardTitle className="text-xl text-white">Local setup</CardTitle>
+                  <CardTitle className="text-xl text-white">Set your local area</CardTitle>
+                  <p className="text-sm text-white/60">
+                    Pick the county you want Scout to use first.
+                  </p>
                 </div>
                 <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">
                   Step 2/2
@@ -1043,7 +1048,7 @@ export default function PreScoutSetup() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-2">
                   <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                    Mode
+                    Using TradeScout as
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -1073,7 +1078,7 @@ export default function PreScoutSetup() {
 
                 <div className="space-y-2">
                   <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                    City (for auto county)
+                    City
                   </Label>
                   <Input
                     value={city}
@@ -1087,6 +1092,9 @@ export default function PreScoutSetup() {
                     placeholder="Enter city"
                     className="h-10 border-white/10 bg-black/30 text-white placeholder:text-white/60 focus-visible:ring-ts-orange/70"
                   />
+                  <p className="text-[11px] text-white/50">
+                    Add your city if you want TradeScout to try finding the county for you.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -1138,11 +1146,11 @@ export default function PreScoutSetup() {
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] text-white/60">
                     {canContinue
-                      ? "Ready."
-                      : "Select state and county, or enter city to auto-detect county."}
+                      ? "Ready to keep going."
+                      : "Choose your state and county, or enter a city to help find it faster."}
                   </p>
                   <Button type="submit" disabled={!canContinue || submitting}>
-                    {submitting ? "Saving..." : "Continue"}
+                    {submitting ? "Saving..." : "Keep going"}
                   </Button>
                 </div>
               </form>
