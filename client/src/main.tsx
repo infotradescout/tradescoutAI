@@ -281,7 +281,8 @@ async function bootstrap() {
   // dynamic chunk loads can 404 and the app can crash. Detect that case and force a
   // safe recovery path so the user gets the latest assets.
   if (import.meta.env.PROD) {
-    const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1";
+    const RECOVERY_SOFT_FLAG = "ts_chunk_recovery_soft_v2";
+    const RECOVERY_HARD_FLAG = "ts_chunk_recovery_hard_v2";
 
     const coerceErrorMessage = (err: unknown): string => {
       if (typeof err === "string") return err;
@@ -310,17 +311,22 @@ async function bootstrap() {
     };
 
     const recoverFromChunkError = async (err: unknown) => {
+      let softAttempted = false;
+      let hardAttempted = false;
       try {
-        if (sessionStorage.getItem(RECOVERY_FLAG) === "1") {
-          showBootFallback(
-            "TradeScout could not load the latest version.",
-            "Tap Reload. If this keeps happening, open /reset or add ?__reset=1 to the URL."
-          );
-          return;
-        }
-        sessionStorage.setItem(RECOVERY_FLAG, "1");
+        softAttempted = sessionStorage.getItem(RECOVERY_SOFT_FLAG) === "1";
+        hardAttempted = sessionStorage.getItem(RECOVERY_HARD_FLAG) === "1";
       } catch {
         // ignore
+      }
+
+      // Last resort reached: we've already attempted soft+hard recovery this session.
+      if (softAttempted && hardAttempted) {
+        showBootFallback(
+          "TradeScout could not load the latest version.",
+          "Tap Reload. If this keeps happening, open /reset or add ?__reset=1 to the URL."
+        );
+        return;
       }
 
       console.warn("[Boot] chunk load failure detected", err);
@@ -331,14 +337,28 @@ async function bootstrap() {
       );
 
       try {
-        await resetClientCaches({ clearLocalStorage: false });
+        await resetClientCaches({ clearLocalStorage: !softAttempted });
       } catch {
         // ignore
       }
 
       try {
         const url = new URL(window.location.href);
-        url.searchParams.set("__fresh", String(Date.now()));
+        if (!softAttempted) {
+          try {
+            sessionStorage.setItem(RECOVERY_SOFT_FLAG, "1");
+          } catch {
+            // ignore
+          }
+          url.searchParams.set("__fresh", String(Date.now()));
+        } else {
+          try {
+            sessionStorage.setItem(RECOVERY_HARD_FLAG, "1");
+          } catch {
+            // ignore
+          }
+          url.searchParams.set("__reset", "1");
+        }
         window.location.replace(url.toString());
         return;
       } catch {
