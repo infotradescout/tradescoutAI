@@ -79,6 +79,19 @@ export interface OneFixResult {
   failure: MissionControlFailure;
 }
 
+export interface BotArmySprintQueueItem {
+  id: string;
+  route: string;
+  failureType: string;
+  severity: number;
+  occurrences: number;
+  latestAt: string;
+  score: number;
+  observedFact: string;
+  recommendedAction: string;
+  riskIfIgnored: string;
+}
+
 const INTENT_STRENGTH: Record<string, number> = {
   hire: 5,
   collaborate: 3,
@@ -100,6 +113,40 @@ const FIX_LEVER_EFFORT: Record<MissionControlFailure["fixLever"], number> = {
   permission: 4,
   data: 5,
 };
+
+const BOT_ARMY_FAILURE_WEIGHT: Record<string, number> = {
+  permission_block: 35,
+  broken: 30,
+  misleading: 22,
+  confusing: 18,
+  stub: 16,
+};
+
+function recommendedActionForBotFailure(failureType: string, route: string): string {
+  if (failureType === "permission_block") {
+    return `Verify contact/permission gate policy on ${route} and unblock only valid claims-based paths.`;
+  }
+  if (failureType === "broken") {
+    return `Fix route integrity on ${route} and retest bot/user journey immediately.`;
+  }
+  if (failureType === "misleading" || failureType === "confusing") {
+    return `Rewrite on-surface guidance on ${route} to make the next valid action explicit.`;
+  }
+  return `Replace placeholder behavior on ${route} with production-grade gated flow copy and action.`;
+}
+
+function riskIfIgnoredForBotFailure(failureType: string): string {
+  if (failureType === "permission_block") {
+    return "Valid users fail to progress through gated contact, reducing trust and conversion.";
+  }
+  if (failureType === "broken") {
+    return "Active traffic hits dead paths, wasting demand and suppressing same-day outcomes.";
+  }
+  if (failureType === "misleading" || failureType === "confusing") {
+    return "Users make wrong decisions or abandon, creating silent trust decay.";
+  }
+  return "Placeholder/stub behavior signals low system authority and harms trust.";
+}
 
 function deriveUserImpact(failure: MissionControlFailure): UserImpact {
   if (failure.occurrences > 1) return "confusing";
@@ -651,6 +698,81 @@ export async function getScoutHealthSummary(now = new Date()): Promise<string> {
 
   return parts.join(" ");
 }
+
+export async function getBotArmySprintQueue(params?: {
+  lookbackHours?: number;
+  limit?: number;
+}): Promise<BotArmySprintQueueItem[]> {
+  const lookbackHours = Math.min(24, Math.max(1, Number(params?.lookbackHours || 6)));
+  const limit = Math.min(100, Math.max(1, Number(params?.limit || 25)));
+  const now = Date.now();
+  const since = new Date(now - lookbackHours * 60 * 60 * 1000);
+
+  const rows = await db
+    .select({
+      id: botUiFindings.id,
+      route: botUiFindings.route,
+      failureType: botUiFindings.failureType,
+      severity: botUiFindings.severity,
+      actualOutcome: botUiFindings.actualOutcome,
+      createdAt: botUiFindings.createdAt,
+    })
+    .from(botUiFindings)
+    .where(gte(botUiFindings.createdAt, since))
+    .orderBy(desc(botUiFindings.createdAt));
+
+  const grouped = new Map<string, BotArmySprintQueueItem>();
+
+  for (const row of rows) {
+    const route = row.route || "unknown";
+    const failureType = String(row.failureType || "broken");
+    const key = `${route}::${failureType}`;
+    const createdAtIso = new Date(row.createdAt || new Date()).toISOString();
+    const severity = clampSeverity(row.severity ?? 1);
+    const existing = grouped.get(key);
+    const occurrences = (existing?.occurrences || 0) + 1;
+
+    const ageMs = Math.max(0, now - new Date(createdAtIso).getTime());
+    const recencyBonus =
+      ageMs <= 60 * 60 * 1000
+        ? 15
+        : ageMs <= 3 * 60 * 60 * 1000
+          ? 10
+          : ageMs <= 6 * 60 * 60 * 1000
+            ? 5
+            : 0;
+
+    const score =
+      (BOT_ARMY_FAILURE_WEIGHT[failureType] || 20) +
+      severity * 10 +
+      Math.min(20, occurrences * 4) +
+      recencyBonus;
+
+    const item: BotArmySprintQueueItem = {
+      id: existing?.id || `bot-army:${key}`,
+      route,
+      failureType,
+      severity,
+      occurrences,
+      latestAt:
+        existing?.latestAt && existing.latestAt > createdAtIso ? existing.latestAt : createdAtIso,
+      score,
+      observedFact: (row.actualOutcome || "Bot observed a failure during route execution").slice(
+        0,
+        500
+      ),
+      recommendedAction: recommendedActionForBotFailure(failureType, route),
+      riskIfIgnored: riskIfIgnoredForBotFailure(failureType),
+    };
+
+    grouped.set(key, item);
+  }
+
+  return Array.from(grouped.values())
+    .sort((a, b) => b.score - a.score || b.latestAt.localeCompare(a.latestAt))
+    .slice(0, limit);
+}
+
 export async function getOrCreateOneFix(now = new Date()): Promise<OneFixResult | null> {
   const today = new Date(now);
   today.setUTCHours(0, 0, 0, 0);

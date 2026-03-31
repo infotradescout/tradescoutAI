@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { isAuthenticated, requireRole } from "../auth";
 import {
+  getBotArmySprintQueue,
   getMissionControlCompromises,
   getMissionControlFailures,
   getMissionControlSummary,
@@ -37,6 +38,23 @@ function isMissionControlIngestAuthorized(req: Request): boolean {
 }
 
 // Summary is read-heavy and useful to ops. Keep it accessible to ops_admin.
+router.get(
+  "/bot-army/sprint-queue",
+  isAuthenticated,
+  requireRole(["ops_admin", "super_admin"]),
+  async (req: Request, res: Response) => {
+    const lookbackHours = Number.parseInt(String(req.query.lookbackHours || "6"), 10);
+    const limit = Number.parseInt(String(req.query.limit || "25"), 10);
+    const queue = await getBotArmySprintQueue({ lookbackHours, limit });
+    res.json({
+      generatedAt: new Date().toISOString(),
+      lookbackHours: Number.isFinite(lookbackHours) ? lookbackHours : 6,
+      limit: Number.isFinite(limit) ? limit : 25,
+      queue,
+    });
+  }
+);
+
 router.get(
   "/summary",
   isAuthenticated,
