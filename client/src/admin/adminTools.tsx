@@ -191,6 +191,9 @@ const AdminBusinessImport = React.lazy(() => import("@/pages/admin-business-impo
 const AdminBusinessDirectoryOps = React.lazy(() => import("@/pages/admin-business-directory-ops"));
 const AdminCreateAccount = React.lazy(() => import("@/pages/admin-create-account"));
 const AdminProvisionUser = React.lazy(() => import("@/pages/admin-provision-user"));
+const AdminDirectConnectRequests = React.lazy(
+  () => import("@/pages/admin-direct-connect-requests")
+);
 const AdminErrorReports = React.lazy(() => import("@/pages/admin-error-reports"));
 const AdminPricingAnalytics = React.lazy(() => import("@/pages/admin-pricing-analytics"));
 const AdminAddressVerifications = React.lazy(() => import("@/pages/admin-address-verifications"));
@@ -279,6 +282,14 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Users,
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminProvisionUser />,
+      }),
+      tool({
+        id: "direct-connect-requests",
+        label: "Direct Connect Requests",
+        path: "/admin/direct-connect-requests",
+        icon: Link2,
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
+        render: () => <AdminDirectConnectRequests />,
       }),
       tool({
         id: "verification",
