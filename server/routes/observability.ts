@@ -39,6 +39,7 @@ import { getCrawlerTelemetrySummary } from "../services/crawlerTelemetryService"
 import {
   getLiveStreamSnapshot,
   getLiveStreamSnapshotHistory,
+  getLiveLaneEvents,
   refreshLiveStreamSnapshot,
 } from "../services/liveStreamSnapshotService";
 import { getSnapshotStatusSummary } from "../services/snapshotStatusService";
@@ -158,6 +159,25 @@ observabilityRouter.get("/snapshot-status", async (_req, res) => {
 
 observabilityRouter.get("/live-stream", async (req, res) => {
   try {
+    const mode = String((req.query as any)?.mode || "snapshot")
+      .trim()
+      .toLowerCase();
+
+    if (mode === "events") {
+      res.json(
+        await getLiveLaneEvents({
+          lane: String((req.query as any)?.lane || ""),
+          source: String((req.query as any)?.source || ""),
+          stateCode: String((req.query as any)?.stateCode || ""),
+          county: String((req.query as any)?.county || ""),
+          since: String((req.query as any)?.since || ""),
+          cursor: String((req.query as any)?.cursor || ""),
+          limit: Number.parseInt(String((req.query as any)?.limit || "250"), 10),
+        })
+      );
+      return;
+    }
+
     res.json(
       await getLiveStreamSnapshot({
         source: String((req.query as any)?.source || ""),
@@ -169,6 +189,25 @@ observabilityRouter.get("/live-stream", async (req, res) => {
   } catch (error) {
     console.error("Live stream query failed:", error);
     sendInternalServerError(res, "Failed to fetch live stream", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/live-stream/events", async (req, res) => {
+  try {
+    res.json(
+      await getLiveLaneEvents({
+        lane: String((req.query as any)?.lane || ""),
+        source: String((req.query as any)?.source || ""),
+        stateCode: String((req.query as any)?.stateCode || ""),
+        county: String((req.query as any)?.county || ""),
+        since: String((req.query as any)?.since || ""),
+        cursor: String((req.query as any)?.cursor || ""),
+        limit: Number.parseInt(String((req.query as any)?.limit || "250"), 10),
+      })
+    );
+  } catch (error) {
+    console.error("Live stream events query failed:", error);
+    sendInternalServerError(res, "Failed to fetch live stream events", { error: String(error) });
   }
 });
 
@@ -210,6 +249,105 @@ observabilityRouter.post("/live-stream/refresh", async (req, res) => {
 
 observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
   try {
+    const toFileToken = (value: unknown, fallback: string) => {
+      const normalized = String(value || "").trim();
+      if (!normalized) return fallback;
+      const safe = normalized
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return safe || fallback;
+    };
+
+    const mode = String((req.query as any)?.mode || "snapshot")
+      .trim()
+      .toLowerCase();
+
+    if (mode === "events") {
+      const lane = String((req.query as any)?.lane || "");
+      const source = String((req.query as any)?.source || "");
+      const stateCode = String((req.query as any)?.stateCode || "");
+      const county = String((req.query as any)?.county || "");
+      const since = String((req.query as any)?.since || "");
+      const cursor = String((req.query as any)?.cursor || "");
+      const limit = Number.parseInt(String((req.query as any)?.limit || "250"), 10);
+
+      const stream = await getLiveLaneEvents({
+        lane,
+        source,
+        stateCode,
+        county,
+        since,
+        cursor,
+        limit,
+      });
+
+      const escapeCsv = (value: unknown) => {
+        const normalized = String(value ?? "");
+        if (/[",\n]/.test(normalized)) {
+          return `"${normalized.replace(/"/g, '""')}"`;
+        }
+        return normalized;
+      };
+
+      const header = [
+        "generated_at",
+        "lane_filter",
+        "source_filter",
+        "state_filter",
+        "county_filter",
+        "since",
+        "event_id",
+        "occurred_at",
+        "lane",
+        "source",
+        "event_type",
+        "state_code",
+        "county_name",
+        "county_fips",
+        "payload_json",
+      ];
+      const lines = [header.join(",")];
+      for (const event of stream.events || []) {
+        lines.push(
+          [
+            stream.generatedAt,
+            stream.filters.lane || "",
+            stream.filters.source || "",
+            stream.filters.stateCode || "",
+            stream.filters.county || "",
+            stream.filters.since || "",
+            event.id,
+            event.occurredAt,
+            event.lane,
+            event.source,
+            event.eventType,
+            event.stateCode || "",
+            event.countyName || "",
+            event.countyFips || "",
+            JSON.stringify(event.payload || {}),
+          ]
+            .map(escapeCsv)
+            .join(",")
+        );
+      }
+
+      const suffix = [
+        "live-lane-events",
+        toFileToken(lane, "all-lanes"),
+        toFileToken(source, "all-sources"),
+        toFileToken(stateCode, "all-states"),
+        toFileToken(county, "all-counties"),
+        cursor ? "paged" : "newest",
+        new Date().toISOString().slice(0, 10),
+      ].join("-");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${suffix}.csv"`);
+      res.status(200).send(`\uFEFF${lines.join("\n")}`);
+      return;
+    }
+
     const source = String((req.query as any)?.source || "");
     const stateCode = String((req.query as any)?.stateCode || "");
     const county = String((req.query as any)?.county || "");
@@ -271,9 +409,9 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
 
     const suffix = [
       "live-stream",
-      source || "all-sources",
-      stateCode || "all-states",
-      county || "all-counties",
+      toFileToken(source, "all-sources"),
+      toFileToken(stateCode, "all-states"),
+      toFileToken(county, "all-counties"),
       new Date().toISOString().slice(0, 10),
     ].join("-");
 

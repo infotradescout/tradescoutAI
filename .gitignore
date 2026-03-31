@@ -49,3 +49,6 @@ test-results.html
 html.meta.json.gz
 
 test-db-connection.js
+
+# Local recovery secrets
+render-recovery.env

@@ -42,15 +42,13 @@ export default function ProfileCompletionBanner() {
   const title = mode === "local_setup" ? "Finish local setup" : "Confirm your focus (1 minute)";
   const description =
     mode === "local_setup"
-      ? "Pick your primary county so Scout can route correctly."
-      : "Tell Scout what you're here to do so your dashboard and matches fit what you need.";
+      ? "This is essential. Set your primary county so Scout can route correctly."
+      : "This is essential. Confirm what you're here to do so matches and next steps fit your needs.";
   const ctaLabel = mode === "local_setup" ? "Continue setup" : "Confirm with Scout";
   const onClick = () => {
-    if (mode === "local_setup") {
-      setLocation("/pre-scout-setup");
-      return;
-    }
-    setLocation("/scout?onboarding=true");
+    const current = String(location || "/");
+    const next = encodeURIComponent(current.startsWith("/") ? current : "/");
+    setLocation(`/onboarding/profile?next=${next}&source=profile_completion_banner`);
   };
 
   return (

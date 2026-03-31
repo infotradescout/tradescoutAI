@@ -22,7 +22,7 @@ import "./tradepartner-cumulus.css";
 const LANDING_TEMPLATE_VERSION = "2026-03-12.2";
 const DEAL_AMOUNT = 2000;
 const RSVP_RETURN_PATH = "/tradepartners/cumulus-media?rsvp=1";
-const POST_RSVP_NEXT = "/scout?onboarding=true";
+const POST_RSVP_NEXT = "/onboarding/profile?next=%2Fscout";
 const CUMULUS_BASE_PATH = "/tradepartners/cumulus-media";
 const PARTNER_SLUG = "cumulus-media";
 

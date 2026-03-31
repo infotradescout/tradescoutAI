@@ -86,6 +86,33 @@ type LiveStreamHistoryResponse = {
   history: LiveStreamResponse[];
 };
 
+type LiveLaneEvent = {
+  id: string;
+  occurredAt: string;
+  lane: string;
+  source: string;
+  eventType: string;
+  stateCode: string | null;
+  countyName: string | null;
+  countyFips: string | null;
+  payload: Record<string, unknown>;
+};
+
+type LiveLaneEventResponse = {
+  generatedAt: string;
+  filters: {
+    lane: string | null;
+    source: string | null;
+    stateCode: string | null;
+    county: string | null;
+    since: string | null;
+    cursor: string | null;
+    limit: number;
+  };
+  events: LiveLaneEvent[];
+  nextCursor: string | null;
+};
+
 type SnapshotStatusResponse = {
   generatedAt: string;
   schedulerEnabled: boolean;
@@ -167,8 +194,10 @@ const durabilityTone: Record<"volatile" | "stable" | "persistent", string> = {
 const sourceTone: Record<string, string> = {
   lisa: "border-violet-300/20 bg-violet-500/10 text-violet-50",
   crawler: "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
+  crawler_request_events: "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
   alerts: "border-red-300/20 bg-red-500/10 text-red-50",
   bot_crawl_signals: "border-amber-300/20 bg-amber-500/10 text-amber-50",
+  bot_ui_findings: "border-amber-300/20 bg-amber-500/10 text-amber-50",
   cumulus: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50",
   scout_interactions: "border-blue-300/20 bg-blue-500/10 text-blue-50",
   tradedeals: "border-lime-300/20 bg-lime-500/10 text-lime-50",
@@ -217,6 +246,12 @@ const commercialBucketTone: Record<string, string> = {
   "market moves": "border-violet-500/20 bg-violet-500/10",
   "monetization leaks": "border-rose-500/20 bg-rose-500/10",
   watchlist: "border-white/10 bg-black/20",
+};
+
+const laneTone: Record<string, string> = {
+  action: "border-blue-300/20 bg-blue-500/10 text-blue-50",
+  crawl_visibility: "border-cyan-300/20 bg-cyan-500/10 text-cyan-50",
+  trust: "border-amber-300/20 bg-amber-500/10 text-amber-50",
 };
 
 function resolveDurabilityClass(source: string): "volatile" | "stable" | "persistent" {
@@ -583,7 +618,67 @@ function buildEntryContextTokens(item: LiveStreamItem): string[] {
   return tokens;
 }
 
+function formatEventPayloadValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "n/a";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.join(", ");
+  return JSON.stringify(value);
+}
+
+function summarizeLaneEvent(event: LiveLaneEvent): {
+  title: string;
+  narrative: string;
+  details: string[];
+} {
+  if (event.source === "scout_interactions") {
+    const intent = formatEventPayloadValue(event.payload.intent);
+    const outcome = formatEventPayloadValue(event.payload.outcome);
+    const failureReason = formatEventPayloadValue(event.payload.failureReason);
+    return {
+      title: `Scout interaction: ${intent}`,
+      narrative: `${event.countyName || event.countyFips || "Unknown county"}${event.stateCode ? `, ${event.stateCode}` : ""} produced a scout action event with outcome ${outcome}.`,
+      details: [
+        `Outcome: ${outcome}`,
+        `Failure: ${failureReason}`,
+        `Confidence: ${formatEventPayloadValue(event.payload.confidence)}`,
+        `User role: ${formatEventPayloadValue(event.payload.userRole)}`,
+      ],
+    };
+  }
+
+  if (event.source === "crawler_request_events") {
+    const path = formatEventPayloadValue(event.payload.path);
+    const statusCode = formatEventPayloadValue(event.payload.statusCode);
+    const botName = formatEventPayloadValue(event.payload.botName);
+    return {
+      title: `Crawler request: ${path}`,
+      narrative: `${botName} hit ${path} with status ${statusCode}.`,
+      details: [
+        `Status class: ${formatEventPayloadValue(event.payload.statusClass)}`,
+        `Surface: ${formatEventPayloadValue(event.payload.sourceSurface)}`,
+        `Request type: ${formatEventPayloadValue(event.payload.requestType)}`,
+      ],
+    };
+  }
+
+  const route = formatEventPayloadValue(event.payload.route);
+  const failureType = formatEventPayloadValue(event.payload.failureType);
+  const severity = formatEventPayloadValue(event.payload.severity);
+  return {
+    title: `UI finding: ${failureType}`,
+    narrative: `${route} surfaced a ${severity} trust event.`,
+    details: [
+      `Bot: ${formatEventPayloadValue(event.payload.botName)}`,
+      `Action attempted: ${formatEventPayloadValue(event.payload.actionAttempted)}`,
+      `Expected: ${formatEventPayloadValue(event.payload.expectedOutcome)}`,
+      `Actual: ${formatEventPayloadValue(event.payload.actualOutcome)}`,
+    ],
+  };
+}
+
 function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; compact?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
   const truthStatus = item.truthStatus === "current" ? "current" : "stale";
   const durabilityClass = resolveDurabilityClass(item.source);
   const actionHint = resolveEntryActionHint(item);
@@ -593,12 +688,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
   const signalFamily = resolveSignalFamily(item);
 
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-white/10 bg-black/20",
-        compact ? "p-3" : "p-4 space-y-3"
-      )}
-    >
+    <div className={cn("rounded-lg border border-white/10 bg-black/20", compact ? "p-3" : "p-3")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -627,7 +717,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         <div className="text-xs text-white/50">{new Date(item.timestamp).toLocaleString()}</div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {typeof item.revenueScore === "number" ? (
           <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
             score {item.revenueScore}
@@ -649,30 +739,159 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         ))}
       </div>
 
-      <div className={cn("text-white/80", compact ? "text-xs" : "text-sm")}>{item.narrative}</div>
+      <div className={cn("mt-2 text-white/80", compact ? "text-xs" : "text-sm")}>
+        {item.whyNow || item.narrative}
+      </div>
 
-      {actionHint ? (
-        <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-          Commercial use: {actionHint}
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs text-white/65">
+          {item.recommendedPlay
+            ? `Next action: ${item.recommendedPlay}`
+            : actionHint
+              ? `Revenue angle: ${actionHint}`
+              : "No immediate action tagged"}
         </div>
-      ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 border-white/15 text-[11px] text-white/75"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          {expanded ? "Collapse" : "Expand"}
+        </Button>
+      </div>
 
-      {item.recommendedPlay || item.targetMarket ? (
-        <div className="grid gap-2 md:grid-cols-2">
+      {expanded &&
+      (item.recommendedPlay ||
+        item.targetMarket ||
+        item.salesAngle ||
+        item.channelSuggestion ||
+        item.assetSuggestion ||
+        item.inventorySummary ||
+        item.marketGapSummary ||
+        item.prospectSummary) ? (
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
           {item.recommendedPlay ? (
             <div className="rounded-md border border-emerald-400/15 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-50">
-              <div className="uppercase tracking-[0.18em] text-emerald-100/60">
-                Recommended Play
-              </div>
+              <div className="uppercase tracking-[0.18em] text-emerald-100/60">Next action</div>
               <div className="mt-1">{item.recommendedPlay}</div>
             </div>
           ) : null}
           {item.targetMarket ? (
             <div className="rounded-md border border-sky-400/15 bg-sky-500/10 px-3 py-2 text-xs text-sky-50">
-              <div className="uppercase tracking-[0.18em] text-sky-100/60">Target Market</div>
+              <div className="uppercase tracking-[0.18em] text-sky-100/60">Target</div>
               <div className="mt-1">{item.targetMarket}</div>
             </div>
           ) : null}
+          {item.salesAngle ? (
+            <div className="rounded-md border border-violet-400/15 bg-violet-500/10 px-3 py-2 text-xs text-violet-50">
+              <div className="uppercase tracking-[0.18em] text-violet-100/60">Revenue angle</div>
+              <div className="mt-1">{item.salesAngle}</div>
+            </div>
+          ) : null}
+          {item.channelSuggestion ? (
+            <div className="rounded-md border border-cyan-400/15 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">
+              <div className="uppercase tracking-[0.18em] text-cyan-100/60">Channel</div>
+              <div className="mt-1">{item.channelSuggestion}</div>
+            </div>
+          ) : null}
+          {item.assetSuggestion ? (
+            <div className="rounded-md border border-lime-400/15 bg-lime-500/10 px-3 py-2 text-xs text-lime-50">
+              <div className="uppercase tracking-[0.18em] text-lime-100/60">Asset</div>
+              <div className="mt-1">{item.assetSuggestion}</div>
+            </div>
+          ) : null}
+          {item.inventorySummary ? (
+            <div className="rounded-md border border-amber-400/15 bg-amber-500/10 px-3 py-2 text-xs text-amber-50">
+              <div className="uppercase tracking-[0.18em] text-amber-100/60">Inventory</div>
+              <div className="mt-1">{item.inventorySummary}</div>
+            </div>
+          ) : null}
+          {item.marketGapSummary ? (
+            <div className="rounded-md border border-rose-400/15 bg-rose-500/10 px-3 py-2 text-xs text-rose-50">
+              <div className="uppercase tracking-[0.18em] text-rose-100/60">Conversion leaks</div>
+              <div className="mt-1">{item.marketGapSummary}</div>
+            </div>
+          ) : null}
+          {item.prospectSummary ? (
+            <div className="rounded-md border border-fuchsia-400/15 bg-fuchsia-500/10 px-3 py-2 text-xs text-fuchsia-50">
+              <div className="uppercase tracking-[0.18em] text-fuchsia-100/60">Buyer classes</div>
+              <div className="mt-1">{item.prospectSummary}</div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LaneEventCard({ event }: { event: LiveLaneEvent }) {
+  const [expanded, setExpanded] = useState(false);
+  const summary = summarizeLaneEvent(event);
+  const locationLabel = [event.countyName || event.countyFips, event.stateCode]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className={laneTone[event.lane] || "border-white/10 bg-white/5 text-white/75"}>
+              {event.lane.replaceAll("_", " ")}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "uppercase tracking-[0.18em]",
+                sourceTone[event.source] || "border-white/10 text-white/60"
+              )}
+            >
+              {event.source.replaceAll("_", " ")}
+            </Badge>
+            <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+              {event.eventType.replaceAll("_", " ")}
+            </span>
+          </div>
+          <div className="mt-2 text-sm font-semibold text-white">{summary.title}</div>
+          <div className="mt-1 text-xs text-white/75">{summary.narrative}</div>
+        </div>
+        <div className="text-right text-xs text-white/50">
+          <div>{new Date(event.occurredAt).toLocaleString()}</div>
+          {locationLabel ? <div className="mt-1">{locationLabel}</div> : null}
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {event.countyFips ? (
+            <Badge variant="outline" className="border-white/10 text-white/60">
+              FIPS {event.countyFips}
+            </Badge>
+          ) : null}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 border-white/15 text-[11px] text-white/75"
+          onClick={() => setExpanded((previous) => !previous)}
+        >
+          {expanded ? "Collapse" : "Expand"}
+        </Button>
+      </div>
+
+      {expanded ? (
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
+          {summary.details.map((detail) => (
+            <div
+              key={`${event.id}-${detail}`}
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/75"
+            >
+              {detail}
+            </div>
+          ))}
         </div>
       ) : null}
     </div>
@@ -690,6 +909,11 @@ export default function AdminLiveStreamPage() {
   const [county, setCounty] = useState("all");
   const [limit, setLimit] = useState("20");
   const [historyDays, setHistoryDays] = useState("7");
+  const [eventLane, setEventLane] = useState("all");
+  const [eventSource, setEventSource] = useState("all");
+  const [eventSinceHours, setEventSinceHours] = useState("24");
+  const [eventCursorTrail, setEventCursorTrail] = useState<Array<string | null>>([null]);
+  const [eventPageIndex, setEventPageIndex] = useState(0);
   const [derivedFocus, setDerivedFocus] = useState<"all" | "opportunity" | "friction" | "waste">(
     "all"
   );
@@ -705,6 +929,7 @@ export default function AdminLiveStreamPage() {
   const [actionStatuses, setActionStatuses] = useState<
     Record<string, "new" | "in progress" | "cleared">
   >({});
+  const [uiMode, setUiMode] = useState<"ops" | "feed" | "debug">("ops");
   const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
     return new URLSearchParams(rawQuery).get("presentationMode") === "1";
@@ -729,6 +954,32 @@ export default function AdminLiveStreamPage() {
     return params.toString();
   }, [queryString, historyDays]);
 
+  const eventQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    const activeEventCursor = eventCursorTrail[eventPageIndex] || null;
+    params.set("mode", "events");
+    params.set("limit", limit || "250");
+    if (eventLane !== "all") params.set("lane", eventLane);
+    if (eventSource !== "all") params.set("source", eventSource);
+    if (stateCode !== "all") params.set("stateCode", stateCode);
+    if (county !== "all") params.set("county", county);
+
+    const normalizedSinceHours = Math.max(1, Number.parseInt(eventSinceHours || "24", 10) || 24);
+    const sinceDate = new Date(Date.now() - normalizedSinceHours * 60 * 60 * 1000);
+    params.set("since", sinceDate.toISOString());
+    if (activeEventCursor) params.set("cursor", activeEventCursor);
+    return params.toString();
+  }, [
+    county,
+    eventCursorTrail,
+    eventLane,
+    eventPageIndex,
+    eventSinceHours,
+    eventSource,
+    limit,
+    stateCode,
+  ]);
+
   const { data, isLoading, error } = useQuery<LiveStreamResponse>({
     queryKey: ["/api/admin/observability/live-stream", queryString],
     queryFn: async () => {
@@ -740,6 +991,28 @@ export default function AdminLiveStreamPage() {
       }
       return response.json();
     },
+    refetchInterval: 10000,
+  });
+
+  const {
+    data: eventData,
+    isLoading: isEventLoading,
+    error: eventError,
+  } = useQuery<LiveLaneEventResponse>({
+    queryKey: ["/api/admin/observability/live-stream/events", eventQueryString],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/admin/observability/live-stream/events?${eventQueryString}`,
+        {
+          credentials: "include",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch live events");
+      }
+      return response.json();
+    },
+    enabled: uiMode === "feed",
     refetchInterval: 10000,
   });
 
@@ -771,6 +1044,22 @@ export default function AdminLiveStreamPage() {
       return truthMatch && durabilityMatch && familyMatch;
     });
   }, [data?.stream, truthFilter, durabilityFilter, sourceFamilyFilter]);
+
+  const liveEvents = eventData?.events || [];
+  const eventLaneBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const event of liveEvents) {
+      counts.set(event.lane, (counts.get(event.lane) || 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((left, right) => right[1] - left[1]);
+  }, [liveEvents]);
+  const eventSourceBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const event of liveEvents) {
+      counts.set(event.source, (counts.get(event.source) || 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((left, right) => right[1] - left[1]);
+  }, [liveEvents]);
 
   const { data: snapshotStatus } = useQuery<SnapshotStatusResponse>({
     queryKey: ["/api/admin/observability/snapshot-status"],
@@ -1102,6 +1391,11 @@ export default function AdminLiveStreamPage() {
     return () => window.clearTimeout(timeout);
   }, [copyStatus]);
 
+  useEffect(() => {
+    setEventCursorTrail([null]);
+    setEventPageIndex(0);
+  }, [eventLane, eventSource, eventSinceHours, stateCode, county, limit]);
+
   const handlePresentationModeToggle = () => {
     const params = new URLSearchParams(queryString);
     if (presentationMode) {
@@ -1117,6 +1411,14 @@ export default function AdminLiveStreamPage() {
     setRefreshMessage("");
     setRefreshError("");
     try {
+      if (uiMode === "feed") {
+        await queryClient.invalidateQueries({
+          queryKey: ["/api/admin/observability/live-stream/events"],
+        });
+        setRefreshMessage("Raw event feed refreshed.");
+        return;
+      }
+
       const response = await fetch(`/api/admin/observability/live-stream/refresh?${queryString}`, {
         method: "POST",
         credentials: "include",
@@ -1149,8 +1451,9 @@ export default function AdminLiveStreamPage() {
     setExporting(true);
     setExportError("");
     try {
+      const exportQuery = uiMode === "feed" ? eventQueryString : queryString;
       const response = await fetch(
-        buildApiUrl(`/api/admin/observability/live-stream/export.csv?${queryString}`),
+        buildApiUrl(`/api/admin/observability/live-stream/export.csv?${exportQuery}`),
         {
           method: "GET",
           credentials: "include",
@@ -1162,7 +1465,8 @@ export default function AdminLiveStreamPage() {
       }
       const blob = await response.blob();
       const headerFilename = getFilenameFromHeader(response.headers.get("content-disposition"));
-      const fallbackFilename = `live-stream-${new Date().toISOString().slice(0, 10)}.csv`;
+      const fallbackMode = uiMode === "feed" ? "live-lane-events" : "live-stream";
+      const fallbackFilename = `${fallbackMode}-${new Date().toISOString().slice(0, 10)}.csv`;
       const filename = headerFilename || fallbackFilename;
       const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -1310,7 +1614,76 @@ export default function AdminLiveStreamPage() {
     setLimit("25");
   };
 
+  const applyEventPreset = (preset: "all" | "action" | "crawl" | "trust") => {
+    if (preset === "all") {
+      setEventLane("all");
+      setEventSource("all");
+      setStateCode("all");
+      setCounty("all");
+      setLimit("250");
+      setEventSinceHours("24");
+      setEventCursorTrail([null]);
+      setEventPageIndex(0);
+      return;
+    }
+
+    if (preset === "action") {
+      setEventLane("action");
+      setEventSource("scout_interactions");
+      setLimit("150");
+      setEventSinceHours("24");
+      setEventCursorTrail([null]);
+      setEventPageIndex(0);
+      return;
+    }
+
+    if (preset === "crawl") {
+      setEventLane("crawl_visibility");
+      setEventSource("crawler_request_events");
+      setLimit("250");
+      setEventSinceHours("12");
+      setEventCursorTrail([null]);
+      setEventPageIndex(0);
+      return;
+    }
+
+    setEventLane("trust");
+    setEventSource("bot_ui_findings");
+    setLimit("100");
+    setEventSinceHours("48");
+    setEventCursorTrail([null]);
+    setEventPageIndex(0);
+  };
+
+  const handleLoadOlderEvents = () => {
+    if (!eventData?.nextCursor) return;
+    const nextTrail = [...eventCursorTrail.slice(0, eventPageIndex + 1), eventData.nextCursor];
+    setEventCursorTrail(nextTrail);
+    setEventPageIndex(nextTrail.length - 1);
+  };
+
+  const handleBackEventPage = () => {
+    if (eventPageIndex === 0) return;
+    setEventPageIndex((current) => Math.max(0, current - 1));
+  };
+
+  const handleNewestEventPage = () => {
+    setEventPageIndex(0);
+  };
+
   const activeFilterSummary = useMemo(() => {
+    if (uiMode === "feed") {
+      const parts = [
+        eventLane === "all" ? "all lanes" : `lane:${eventLane}`,
+        eventSource === "all" ? "all event sources" : `source:${eventSource}`,
+        stateCode === "all" ? "all states" : `state:${stateCode}`,
+        county === "all" ? "all counties" : `county:${county}`,
+        `since:${eventSinceHours || "24"}h`,
+        `limit:${limit || "250"}`,
+      ];
+      return parts.join(" | ");
+    }
+
     const parts = [
       source === "all" ? "all sources" : `source:${source}`,
       sourceFamilyFilter === "all" ? "all families" : `family:${sourceFamilyFilter}`,
@@ -1329,8 +1702,43 @@ export default function AdminLiveStreamPage() {
     durabilityFilter,
     stateCode,
     county,
+    eventLane,
+    eventSinceHours,
+    eventSource,
     limit,
+    uiMode,
     historyDays,
+  ]);
+  const exportContextChips = useMemo(() => {
+    if (uiMode === "feed") {
+      return [
+        "mode:events",
+        `lane:${eventLane === "all" ? "all" : eventLane}`,
+        `source:${eventSource === "all" ? "all" : eventSource}`,
+        `state:${stateCode === "all" ? "all" : stateCode}`,
+        `county:${county === "all" ? "all" : county}`,
+        `since:${eventSinceHours || "24"}h`,
+        `page:${eventPageIndex + 1}`,
+      ];
+    }
+
+    return [
+      "mode:snapshot",
+      `source:${source === "all" ? "all" : source}`,
+      `state:${stateCode === "all" ? "all" : stateCode}`,
+      `county:${county === "all" ? "all" : county}`,
+      `limit:${limit || "20"}`,
+    ];
+  }, [
+    county,
+    eventLane,
+    eventPageIndex,
+    eventSinceHours,
+    eventSource,
+    limit,
+    source,
+    stateCode,
+    uiMode,
   ]);
   const groupedLiveFeed = useMemo(() => {
     const groups = {
@@ -1450,6 +1858,11 @@ export default function AdminLiveStreamPage() {
       .map((status) => ({ status, count: counts.get(status) || 0 }))
       .filter((item) => item.count > 0);
   }, [operatorQueue]);
+  const chronologicalStream = useMemo(() => {
+    return [...filteredStream]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, Math.min(25, filteredStream.length));
+  }, [filteredStream]);
 
   return (
     <div className={`space-y-6 ${presentationMode ? "max-w-5xl mx-auto py-6" : ""}`}>
@@ -1479,6 +1892,29 @@ export default function AdminLiveStreamPage() {
                 invented.
               </CardDescription>
             </div>
+            <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/20 p-1">
+              {(
+                [
+                  { key: "ops", label: "Live Ops" },
+                  { key: "feed", label: "Feed Explorer" },
+                  { key: "debug", label: "Telemetry / Debug" },
+                ] as const
+              ).map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  onClick={() => setUiMode(mode.key)}
+                  className={cn(
+                    "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                    uiMode === mode.key
+                      ? "bg-ts-orange/30 text-white"
+                      : "text-white/60 hover:text-white"
+                  )}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
             <Button onClick={handlePresentationModeToggle} variant="outline">
               {presentationMode ? "Exit Presentation Mode" : "Open Presentation Mode"}
             </Button>
@@ -1488,6 +1924,16 @@ export default function AdminLiveStreamPage() {
             <Button onClick={handleRefresh} disabled={refreshing}>
               {refreshing ? "Refreshing..." : "Refresh Live Stream"}
             </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-white/45">
+              Export context
+            </div>
+            {exportContextChips.map((chip) => (
+              <Badge key={chip} variant="outline" className="border-white/10 text-white/70">
+                {chip}
+              </Badge>
+            ))}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1589,742 +2035,812 @@ export default function AdminLiveStreamPage() {
             </div>
           ) : null}
 
-          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
-                  Market Signal Board
+          {uiMode === "debug" ? (
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                    Market Signal Board
+                  </div>
+                  <div className="mt-2 text-sm text-white/80">
+                    The shortest read on what you can sell, where to spend, where to move next, and
+                    what leak is killing monetizable attention, using only source-backed entries.
+                  </div>
                 </div>
-                <div className="mt-2 text-sm text-white/80">
-                  The shortest read on what you can sell, where to spend, where to move next, and
-                  what leak is killing monetizable attention, using only source-backed entries.
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{liveStreamStateLabel}</Badge>
+                  <Badge variant="outline">{visibleEntryCount} visible entries</Badge>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{liveStreamStateLabel}</Badge>
-                <Badge variant="outline">{visibleEntryCount} visible entries</Badge>
-              </div>
-            </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_0.95fr]">
-              <div className="space-y-4">
-                <SignalBoardPanel
-                  title="Market Brief"
-                  subtitle="One pass across what moved, what triggered it, and where the current leak sits."
-                  badge={`${marketBriefs.length} key reads`}
-                  toneClass="border-cyan-500/20 bg-cyan-500/10"
-                >
-                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                    {marketBriefs.length === 0 ? (
-                      <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                        No useful market brief surfaced yet.
-                      </div>
-                    ) : (
-                      marketBriefs.map((item) => (
-                        <BriefTile
-                          key={`${item.label}-${item.value}`}
-                          label={item.label}
-                          value={item.value}
-                          detail={item.detail}
-                        />
-                      ))
-                    )}
-                  </div>
-                </SignalBoardPanel>
-
-                <SignalBoardPanel
-                  title="Ranked Signals"
-                  subtitle="Top source-backed opportunities ordered by commercial strength."
-                  badge={topRevenueSignals.length ? `${topRevenueSignals.length} ranked` : "none"}
-                  toneClass="border-emerald-500/20 bg-emerald-500/10"
-                >
-                  <div className="space-y-3">
-                    {topRevenueSignals.length === 0 ? (
-                      <div className="text-sm text-emerald-100/70">
-                        No ranked revenue signals surfaced yet.
-                      </div>
-                    ) : (
-                      topRevenueSignals.map((item, index) => {
-                        const summary = buildUsefulSignalSummary(item);
-                        return (
-                          <div
-                            key={item.id}
-                            className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-3"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div className="text-[11px] uppercase tracking-[0.2em] text-emerald-100/60">
-                                #{index + 1} {item.commercialBucket || "watchlist"}
-                              </div>
-                              <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
-                                {item.revenueScore || 0}
-                              </Badge>
-                            </div>
-                            <div className="mt-1 text-sm text-emerald-50">{summary.headline}</div>
-                            <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                              Market signal
-                            </div>
-                            <div className="mt-1 text-xs text-emerald-50">
-                              {summary.marketSignal}
-                            </div>
-                            {summary.trigger ? (
-                              <div className="mt-2">
-                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                  Trigger
-                                </div>
-                                <div className="mt-1 text-xs text-emerald-100/85">
-                                  {summary.trigger}
-                                </div>
-                              </div>
-                            ) : null}
-                            {summary.inventory ? (
-                              <div className="mt-2">
-                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                  Inventory
-                                </div>
-                                <div className="mt-1 text-xs text-emerald-100/75">
-                                  {summary.inventory}
-                                </div>
-                              </div>
-                            ) : null}
-                            {summary.prospects ? (
-                              <div className="mt-2">
-                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                  Local read
-                                </div>
-                                <div className="mt-1 text-xs text-emerald-100/75">
-                                  {summary.prospects}
-                                </div>
-                              </div>
-                            ) : null}
-                            <div className="mt-2">
-                              <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                Do next
-                              </div>
-                              <div className="mt-1 text-xs font-medium text-emerald-50">
-                                {summary.action}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </SignalBoardPanel>
-              </div>
-
-              <div className="space-y-4">
-                <SignalBoardPanel
-                  title="Do Now"
-                  subtitle="Operator actions worth taking before the signal cools off."
-                  badge={`${primaryActionItems.length} queued`}
-                  toneClass="border-amber-500/20 bg-amber-500/10"
-                >
-                  <div className="space-y-3">
-                    {primaryActionItems.length === 0 ? (
-                      <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                        No urgent operator action surfaced right now.
-                      </div>
-                    ) : (
-                      primaryActionItems.map((item) => (
-                        <div
-                          key={item.title}
-                          className={cn("rounded-md border px-3 py-3", item.tone)}
-                        >
-                          <div className="text-[11px] uppercase tracking-[0.2em] text-current/70">
-                            {item.title}
-                          </div>
-                          <div className="mt-1 text-sm text-current">{item.detail}</div>
+              <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.45fr_0.95fr]">
+                <div className="space-y-4">
+                  <SignalBoardPanel
+                    title="Market Brief"
+                    subtitle="One pass across what moved, what triggered it, and where the current leak sits."
+                    badge={`${marketBriefs.length} key reads`}
+                    toneClass="border-cyan-500/20 bg-cyan-500/10"
+                  >
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      {marketBriefs.length === 0 ? (
+                        <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                          No useful market brief surfaced yet.
                         </div>
-                      ))
-                    )}
-                  </div>
-                </SignalBoardPanel>
+                      ) : (
+                        marketBriefs.map((item) => (
+                          <BriefTile
+                            key={`${item.label}-${item.value}`}
+                            label={item.label}
+                            value={item.value}
+                            detail={item.detail}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </SignalBoardPanel>
 
-                <SignalBoardPanel
-                  title="Surface Health"
-                  subtitle="Useful traffic versus waste and unattributed crawl pressure."
-                  badge={`${signalSurfaceCount} useful`}
-                  toneClass="border-teal-500/20 bg-teal-500/10"
-                >
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-teal-100/60">
-                        Useful
-                      </div>
-                      <div className="mt-1 text-xl font-semibold text-teal-50">
-                        {signalSurfaceCount}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
-                        Infra
-                      </div>
-                      <div className="mt-1 text-xl font-semibold text-amber-50">
-                        {noiseSurfaceCount}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
-                        Unknown
-                      </div>
-                      <div className="mt-1 text-xl font-semibold text-rose-50">
-                        {unknownSurfaceCount}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    {topSurfaceBreakdown.length === 0 ? (
-                      <div className="text-sm text-teal-100/70">No crawler surface data yet.</div>
-                    ) : (
-                      topSurfaceBreakdown.slice(0, 4).map((surface) => (
-                        <div
-                          key={surface.sourceSurface}
-                          className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm"
-                        >
-                          <div className="text-teal-50">
-                            {humanizeSurfaceLabel(surface.sourceSurface)}
-                          </div>
-                          <Badge variant="outline" className="border-white/10 text-teal-50">
-                            {surface.requestCount}
-                          </Badge>
+                  <SignalBoardPanel
+                    title="Ranked Signals"
+                    subtitle="Top source-backed opportunities ordered by commercial strength."
+                    badge={topRevenueSignals.length ? `${topRevenueSignals.length} ranked` : "none"}
+                    toneClass="border-emerald-500/20 bg-emerald-500/10"
+                  >
+                    <div className="space-y-3">
+                      {topRevenueSignals.length === 0 ? (
+                        <div className="text-sm text-emerald-100/70">
+                          No ranked revenue signals surfaced yet.
                         </div>
-                      ))
-                    )}
-                  </div>
-                </SignalBoardPanel>
-
-                <SignalBoardPanel
-                  title="Priority Signals"
-                  subtitle="Filtered internal findings for opportunity, friction, and waste."
-                  badge={`${focusedDerivedOutputs.length} shown`}
-                  toneClass="border-violet-500/20 bg-violet-500/10"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
-                      {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => setDerivedFocus(mode)}
-                          className={cn(
-                            "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
-                            derivedFocus === mode
-                              ? "bg-violet-500/20 text-violet-50"
-                              : "text-violet-100/60 hover:text-violet-50"
-                          )}
-                        >
-                          {mode}
-                        </button>
-                      ))}
-                    </div>
-                    <select
-                      value={marketFilter}
-                      onChange={(e) => setMarketFilter(e.target.value)}
-                      className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
-                    >
-                      {availableMarkets.map((market) => (
-                        <option key={market} value={market}>
-                          {market === "all" ? "all markets" : market}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
-                    >
-                      {availableCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {category === "all" ? "all categories" : category}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={handleCopyDerived}
-                      className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
-                    >
-                      copy
-                    </button>
-                  </div>
-                  {copyStatus ? (
-                    <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
-                  ) : null}
-                  <div className="mt-3 space-y-2">
-                    {focusedDerivedOutputs.length === 0 ? (
-                      <div className="text-sm text-violet-100/70">
-                        No clear operator-grade priority has surfaced yet.
-                      </div>
-                    ) : (
-                      focusedDerivedOutputs.slice(0, 4).map((item) => {
-                        const parts = splitDecisionNarrative(item.narrative);
-                        const summary = buildUsefulSignalSummary(item);
-                        return (
-                          <div
-                            key={item.id}
-                            className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="text-sm text-violet-50">{item.title}</div>
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  variant="outline"
-                                  className={
-                                    truthTone[item.truthStatus === "current" ? "current" : "stale"]
-                                  }
-                                >
-                                  {item.truthStatus === "current" ? "current" : "stale"}
-                                </Badge>
-                                <Badge variant="outline" className={priorityTone[item.priority]}>
-                                  {item.priority}
+                      ) : (
+                        topRevenueSignals.map((item, index) => {
+                          const summary = buildUsefulSignalSummary(item);
+                          return (
+                            <div
+                              key={item.id}
+                              className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-3"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="text-[11px] uppercase tracking-[0.2em] text-emerald-100/60">
+                                  #{index + 1} {item.commercialBucket || "watchlist"}
+                                </div>
+                                <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+                                  {item.revenueScore || 0}
                                 </Badge>
                               </div>
+                              <div className="mt-1 text-sm text-emerald-50">{summary.headline}</div>
+                              <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                Market signal
+                              </div>
+                              <div className="mt-1 text-xs text-emerald-50">
+                                {summary.marketSignal}
+                              </div>
+                              {summary.trigger ? (
+                                <div className="mt-2">
+                                  <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                    Trigger
+                                  </div>
+                                  <div className="mt-1 text-xs text-emerald-100/85">
+                                    {summary.trigger}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {summary.inventory ? (
+                                <div className="mt-2">
+                                  <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                    Inventory
+                                  </div>
+                                  <div className="mt-1 text-xs text-emerald-100/75">
+                                    {summary.inventory}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {summary.prospects ? (
+                                <div className="mt-2">
+                                  <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                    Local read
+                                  </div>
+                                  <div className="mt-1 text-xs text-emerald-100/75">
+                                    {summary.prospects}
+                                  </div>
+                                </div>
+                              ) : null}
+                              <div className="mt-2">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                  Do next
+                                </div>
+                                <div className="mt-1 text-xs font-medium text-emerald-50">
+                                  {summary.action}
+                                </div>
+                              </div>
                             </div>
-                            <div className="mt-2 text-xs text-violet-100/75">
-                              {parts.what || item.narrative}
+                          );
+                        })
+                      )}
+                    </div>
+                  </SignalBoardPanel>
+                </div>
+
+                <div className="space-y-4">
+                  <SignalBoardPanel
+                    title="Do Now"
+                    subtitle="Operator actions worth taking before the signal cools off."
+                    badge={`${primaryActionItems.length} queued`}
+                    toneClass="border-amber-500/20 bg-amber-500/10"
+                  >
+                    <div className="space-y-3">
+                      {primaryActionItems.length === 0 ? (
+                        <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                          No urgent operator action surfaced right now.
+                        </div>
+                      ) : (
+                        primaryActionItems.map((item) => (
+                          <div
+                            key={item.title}
+                            className={cn("rounded-md border px-3 py-3", item.tone)}
+                          >
+                            <div className="text-[11px] uppercase tracking-[0.2em] text-current/70">
+                              {item.title}
                             </div>
-                            {summary.trigger ? (
-                              <div className="mt-2 text-xs text-violet-100/85">
-                                Triggered by: {summary.trigger}
-                              </div>
-                            ) : null}
-                            {parts.why ? (
-                              <div className="mt-2 text-xs text-violet-100/65">
-                                Why this matters: {parts.why}
-                              </div>
-                            ) : null}
-                            {parts.doNext ? (
-                              <div className="mt-2 text-xs font-medium text-violet-50">
-                                Next move: {parts.doNext}
-                              </div>
-                            ) : null}
+                            <div className="mt-1 text-sm text-current">{item.detail}</div>
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </SignalBoardPanel>
-              </div>
-            </div>
-          </div>
-
-          <details className="rounded-lg border border-white/10 bg-black/20 p-4">
-            <summary className="cursor-pointer list-none text-sm font-medium text-white/85">
-              Open deep-dive telemetry
-            </summary>
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="rounded-lg border border-border bg-background p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Last Refresh
-                  </div>
-                  <div className="mt-2 text-sm text-foreground">
-                    {data?.generatedAt
-                      ? new Date(data.generatedAt).toLocaleString()
-                      : isLoading
-                        ? "Loading..."
-                        : "Unavailable"}
-                  </div>
-                  <div className="mt-2">
-                    <Badge variant="outline">{liveStreamStateLabel}</Badge>
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Entries shown: {visibleEntryCount}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Stale after {liveStreamStatus?.staleAfterMinutes ?? 0} min
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Truth Now
-                  </div>
-                  <div className="mt-2 text-sm text-foreground">
-                    {data?.summary.truthNow || "Unavailable"}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Top Demand Page
-                  </div>
-                  <div className="mt-2 text-sm text-foreground">
-                    {topRouteDemand?.narrative || "No route-level demand signal yet"}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border bg-background p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Top Demand County
-                  </div>
-                  <div className="mt-2 text-sm text-foreground">
-                    {topCountyDemand?.narrative || "No county concentration signal yet"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
-                <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
-                  Bot Demand Cluster
-                </div>
-                <div className="mt-2 text-sm text-cyan-50">
-                  {topBotDemandCluster?.narrative ||
-                    data?.summary.topBotCrawlHeadline ||
-                    "No bot demand cluster yet"}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
-                      TradeScout Internal LISA Outputs
+                        ))
+                      )}
                     </div>
-                    <div className="mt-2 text-sm text-violet-50">
-                      {internalLisaOutputs.length > 0
-                        ? `TradeScout internal LISA is emitting ${internalLisaOutputs.length} normalized outputs into the live feed right now.`
-                        : "No normalized internal-LISA outputs have surfaced in the live feed yet."}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="border-violet-200/20 text-violet-50">
-                    {internalLisaOutputs.length} outputs
-                  </Badge>
-                </div>
+                  </SignalBoardPanel>
 
-                {topThreeDerivedOutputs.length > 0 ? (
-                  <div className="mt-4 rounded-md border border-sky-300/20 bg-sky-500/10 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-xs uppercase tracking-[0.24em] text-sky-100/70">
-                        Top 3 Right Now
+                  <SignalBoardPanel
+                    title="Surface Health"
+                    subtitle="Useful traffic versus waste and unattributed crawl pressure."
+                    badge={`${signalSurfaceCount} useful`}
+                    toneClass="border-teal-500/20 bg-teal-500/10"
+                  >
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-teal-100/60">
+                          Useful
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-teal-50">
+                          {signalSurfaceCount}
+                        </div>
                       </div>
-                      <Badge variant="outline" className="border-sky-200/20 text-sky-50">
-                        highest-significance signals
-                      </Badge>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                          Infra
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-amber-50">
+                          {noiseSurfaceCount}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                          Unknown
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-rose-50">
+                          {unknownSurfaceCount}
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
-                      {topThreeDerivedOutputs.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-md border border-sky-200/10 bg-black/20 px-3 py-2"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="text-sm text-sky-50">{item.title}</div>
-                            <Badge variant="outline" className={priorityTone[item.priority]}>
-                              {item.priority}
+                    <div className="mt-3 space-y-2">
+                      {topSurfaceBreakdown.length === 0 ? (
+                        <div className="text-sm text-teal-100/70">No crawler surface data yet.</div>
+                      ) : (
+                        topSurfaceBreakdown.slice(0, 4).map((surface) => (
+                          <div
+                            key={surface.sourceSurface}
+                            className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm"
+                          >
+                            <div className="text-teal-50">
+                              {humanizeSurfaceLabel(surface.sourceSurface)}
+                            </div>
+                            <Badge variant="outline" className="border-white/10 text-teal-50">
+                              {surface.requestCount}
                             </Badge>
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                            {item.signalClass ? (
-                              <Badge variant="outline" className="border-sky-200/20 text-sky-100">
-                                {item.signalClass}
-                              </Badge>
-                            ) : null}
-                            {typeof item.baselineDeltaPct === "number" ? (
-                              <Badge variant="outline" className="border-sky-200/20 text-sky-100">
-                                {item.baselineDeltaPct >= 0
-                                  ? `+${item.baselineDeltaPct}%`
-                                  : `${item.baselineDeltaPct}%`}{" "}
-                                vs baseline
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <div className="mt-2 text-xs text-sky-100/75">{item.narrative}</div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
-                  </div>
-                ) : null}
+                  </SignalBoardPanel>
 
-                {derivedIntelligenceOutputs.length > 0 ? (
-                  <div className="mt-4 rounded-md border border-fuchsia-300/20 bg-fuchsia-500/10 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-xs uppercase tracking-[0.24em] text-fuchsia-100/70">
-                        Derived Intelligence
+                  <SignalBoardPanel
+                    title="Priority Signals"
+                    subtitle="Filtered internal findings for opportunity, friction, and waste."
+                    badge={`${focusedDerivedOutputs.length} shown`}
+                    toneClass="border-violet-500/20 bg-violet-500/10"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
+                        {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setDerivedFocus(mode)}
+                            className={cn(
+                              "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                              derivedFocus === mode
+                                ? "bg-violet-500/20 text-violet-50"
+                                : "text-violet-100/60 hover:text-violet-50"
+                            )}
+                          >
+                            {mode}
+                          </button>
+                        ))}
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1 rounded-md border border-fuchsia-200/20 bg-black/20 p-1">
-                          {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
-                            <button
-                              key={mode}
-                              type="button"
-                              onClick={() => setDerivedFocus(mode)}
-                              className={cn(
-                                "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
-                                derivedFocus === mode
-                                  ? "bg-fuchsia-500/20 text-fuchsia-50"
-                                  : "text-fuchsia-100/60 hover:text-fuchsia-50"
-                              )}
-                            >
-                              {mode}
-                            </button>
-                          ))}
-                        </div>
-                        <select
-                          value={marketFilter}
-                          onChange={(e) => setMarketFilter(e.target.value)}
-                          className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
-                        >
-                          {availableMarkets.map((market) => (
-                            <option key={market} value={market}>
-                              {market === "all" ? "all markets" : market}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={categoryFilter}
-                          onChange={(e) => setCategoryFilter(e.target.value)}
-                          className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
-                        >
-                          {availableCategories.map((category) => (
-                            <option key={category} value={category}>
-                              {category === "all" ? "all categories" : category}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={handleCopyDerived}
-                          className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-fuchsia-50 hover:bg-fuchsia-500/10"
-                        >
-                          copy
-                        </button>
-                        <Badge variant="outline" className="border-fuchsia-200/20 text-fuchsia-50">
-                          {focusedDerivedOutputs.length} shown
-                        </Badge>
-                      </div>
+                      <select
+                        value={marketFilter}
+                        onChange={(e) => setMarketFilter(e.target.value)}
+                        className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                      >
+                        {availableMarkets.map((market) => (
+                          <option key={market} value={market}>
+                            {market === "all" ? "all markets" : market}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                      >
+                        {availableCategories.map((category) => (
+                          <option key={category} value={category}>
+                            {category === "all" ? "all categories" : category}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleCopyDerived}
+                        className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
+                      >
+                        copy
+                      </button>
                     </div>
                     {copyStatus ? (
-                      <div className="mt-2 text-[11px] text-fuchsia-100/80">{copyStatus}</div>
+                      <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
                     ) : null}
-                    <div className="mt-3 text-xs text-fuchsia-100/70">
-                      Focus this view on opportunity, friction, or waste when you want a cleaner
-                      strategic read instead of the full mixed picture.
-                    </div>
-                    <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
-                      <div className="rounded-md border border-emerald-300/20 bg-emerald-500/10 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-100/70">
-                            Opportunity
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-200/20 text-emerald-50"
-                          >
-                            {opportunityOutputs.length}
-                          </Badge>
+                    <div className="mt-3 space-y-2">
+                      {focusedDerivedOutputs.length === 0 ? (
+                        <div className="text-sm text-violet-100/70">
+                          No clear operator-grade priority has surfaced yet.
                         </div>
-                        <div className="mt-3 space-y-2">
-                          {opportunityOutputs.length === 0 ? (
-                            <div className="text-xs text-emerald-100/70">
-                              No opportunity signals surfaced yet.
-                            </div>
-                          ) : (
-                            opportunityOutputs.slice(0, 2).map((item) => (
-                              <div
-                                key={item.id}
-                                className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2"
-                              >
-                                <div className="text-sm text-emerald-50">{item.title}</div>
-                                {typeof item.baselineDeltaPct === "number" ? (
-                                  <div className="mt-1 text-[11px] text-emerald-100/80">
-                                    {item.baselineDeltaPct >= 0
-                                      ? `+${item.baselineDeltaPct}%`
-                                      : `${item.baselineDeltaPct}%`}{" "}
-                                    vs baseline
-                                  </div>
-                                ) : null}
-                                <div className="mt-1 text-xs text-emerald-100/75">
-                                  {item.narrative}
+                      ) : (
+                        focusedDerivedOutputs.slice(0, 4).map((item) => {
+                          const parts = splitDecisionNarrative(item.narrative);
+                          const summary = buildUsefulSignalSummary(item);
+                          return (
+                            <div
+                              key={item.id}
+                              className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="text-sm text-violet-50">{item.title}</div>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={
+                                      truthTone[
+                                        item.truthStatus === "current" ? "current" : "stale"
+                                      ]
+                                    }
+                                  >
+                                    {item.truthStatus === "current" ? "current" : "stale"}
+                                  </Badge>
+                                  <Badge variant="outline" className={priorityTone[item.priority]}>
+                                    {item.priority}
+                                  </Badge>
                                 </div>
                               </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="rounded-md border border-amber-300/20 bg-amber-500/10 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-[11px] uppercase tracking-[0.24em] text-amber-100/70">
-                            Friction
-                          </div>
-                          <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                            {frictionOutputs.length}
-                          </Badge>
-                        </div>
-                        <div className="mt-3 space-y-2">
-                          {frictionOutputs.length === 0 ? (
-                            <div className="text-xs text-amber-100/70">
-                              No friction signals surfaced yet.
-                            </div>
-                          ) : (
-                            frictionOutputs.slice(0, 2).map((item) => (
-                              <div
-                                key={item.id}
-                                className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
-                              >
-                                <div className="text-sm text-amber-50">{item.title}</div>
-                                {typeof item.baselineDeltaPct === "number" ? (
-                                  <div className="mt-1 text-[11px] text-amber-100/80">
-                                    {item.baselineDeltaPct >= 0
-                                      ? `+${item.baselineDeltaPct}%`
-                                      : `${item.baselineDeltaPct}%`}{" "}
-                                    vs baseline
-                                  </div>
-                                ) : null}
-                                <div className="mt-1 text-xs text-amber-100/75">
-                                  {item.narrative}
-                                </div>
+                              <div className="mt-2 text-xs text-violet-100/75">
+                                {parts.what || item.narrative}
                               </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="rounded-md border border-rose-300/20 bg-rose-500/10 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-[11px] uppercase tracking-[0.24em] text-rose-100/70">
-                            Waste
-                          </div>
-                          <Badge variant="outline" className="border-rose-200/20 text-rose-50">
-                            {wasteOutputs.length}
-                          </Badge>
-                        </div>
-                        <div className="mt-3 space-y-2">
-                          {wasteOutputs.length === 0 ? (
-                            <div className="text-xs text-rose-100/70">
-                              No waste signals surfaced yet.
-                            </div>
-                          ) : (
-                            wasteOutputs.slice(0, 2).map((item) => (
-                              <div
-                                key={item.id}
-                                className="rounded-md border border-rose-200/10 bg-black/20 px-3 py-2"
-                              >
-                                <div className="text-sm text-rose-50">{item.title}</div>
-                                {typeof item.baselineDeltaPct === "number" ? (
-                                  <div className="mt-1 text-[11px] text-rose-100/80">
-                                    {item.baselineDeltaPct >= 0
-                                      ? `+${item.baselineDeltaPct}%`
-                                      : `${item.baselineDeltaPct}%`}{" "}
-                                    vs baseline
-                                  </div>
-                                ) : null}
-                                <div className="mt-1 text-xs text-rose-100/75">
-                                  {item.narrative}
+                              {summary.trigger ? (
+                                <div className="mt-2 text-xs text-violet-100/85">
+                                  Triggered by: {summary.trigger}
                                 </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
+                              ) : null}
+                              {parts.why ? (
+                                <div className="mt-2 text-xs text-violet-100/65">
+                                  Why this matters: {parts.why}
+                                </div>
+                              ) : null}
+                              {parts.doNext ? (
+                                <div className="mt-2 text-xs font-medium text-violet-50">
+                                  Next move: {parts.doNext}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
-                  </div>
-                ) : null}
-
-                <div className="mt-4 space-y-2">
-                  {internalLisaOutputs.length === 0 ? (
-                    <div className="text-sm text-violet-100/70">
-                      Waiting for entity discovery, county/category discovery, repair pressure, or
-                      derived intelligence outputs.
-                    </div>
-                  ) : (
-                    internalLisaOutputs.slice(0, 4).map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-2"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-sm text-violet-50">{item.title}</div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={
-                                truthTone[item.truthStatus === "current" ? "current" : "stale"]
-                              }
-                            >
-                              {item.truthStatus === "current" ? "current" : "stale"}
-                            </Badge>
-                            <Badge variant="outline" className={priorityTone[item.priority]}>
-                              {item.priority}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                          {item.lane ? (
-                            <Badge
-                              variant="outline"
-                              className="border-violet-200/20 text-violet-100"
-                            >
-                              lane: {item.lane}
-                            </Badge>
-                          ) : null}
-                          {item.signalClass ? (
-                            <Badge
-                              variant="outline"
-                              className="border-violet-200/20 text-violet-100"
-                            >
-                              signal: {item.signalClass}
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
-                      </div>
-                    ))
-                  )}
+                  </SignalBoardPanel>
                 </div>
               </div>
+            </div>
+          ) : null}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
-                    Useful Signal vs Noise
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
-                        Signal
-                      </div>
-                      <div className="mt-1 text-xl font-semibold text-emerald-50">
-                        {signalSurfaceCount}
-                      </div>
+          {uiMode === "debug" ? (
+            <details className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <summary className="cursor-pointer list-none text-sm font-medium text-white/85">
+                Open deep-dive telemetry
+              </summary>
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="rounded-lg border border-border bg-background p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Last Refresh
                     </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
-                        Noise
-                      </div>
-                      <div className="mt-1 text-xl font-semibold text-amber-50">
-                        {noiseSurfaceCount}
-                      </div>
+                    <div className="mt-2 text-sm text-foreground">
+                      {data?.generatedAt
+                        ? new Date(data.generatedAt).toLocaleString()
+                        : isLoading
+                          ? "Loading..."
+                          : "Unavailable"}
                     </div>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
-                        Leakage
-                      </div>
-                      <div className="mt-1 text-xl font-semibold text-rose-50">
-                        {unknownSurfaceCount}
-                      </div>
+                    <div className="mt-2">
+                      <Badge variant="outline">{liveStreamStateLabel}</Badge>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Entries shown: {visibleEntryCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Stale after {liveStreamStatus?.staleAfterMinutes ?? 0} min
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-emerald-100/70">
-                    Signal is meaningful public discovery. Noise is infra/meta/assets. Leakage is
-                    fallback traffic still landing in other/unknown_public.
+                  <div className="rounded-lg border border-border bg-background p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Truth Now
+                    </div>
+                    <div className="mt-2 text-sm text-foreground">
+                      {data?.summary.truthNow || "Unavailable"}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Top Demand Page
+                    </div>
+                    <div className="mt-2 text-sm text-foreground">
+                      {topRouteDemand?.narrative || "No route-level demand signal yet"}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                      Top Demand County
+                    </div>
+                    <div className="mt-2 text-sm text-foreground">
+                      {topCountyDemand?.narrative || "No county concentration signal yet"}
+                    </div>
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-white/40">
-                    Top Signal Buckets
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+                  <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
+                    Bot Demand Cluster
                   </div>
-                  <div className="mt-3 space-y-2">
-                    {topSurfaceBreakdown.length === 0 ? (
-                      <div className="text-sm text-white/55">No crawler surface data yet.</div>
+                  <div className="mt-2 text-sm text-cyan-50">
+                    {topBotDemandCluster?.narrative ||
+                      data?.summary.topBotCrawlHeadline ||
+                      "No bot demand cluster yet"}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.24em] text-violet-100/70">
+                        TradeScout Internal LISA Outputs
+                      </div>
+                      <div className="mt-2 text-sm text-violet-50">
+                        {internalLisaOutputs.length > 0
+                          ? `TradeScout internal LISA is emitting ${internalLisaOutputs.length} normalized outputs into the live feed right now.`
+                          : "No normalized internal-LISA outputs have surfaced in the live feed yet."}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-violet-200/20 text-violet-50">
+                      {internalLisaOutputs.length} outputs
+                    </Badge>
+                  </div>
+
+                  {topThreeDerivedOutputs.length > 0 ? (
+                    <div className="mt-4 rounded-md border border-sky-300/20 bg-sky-500/10 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-xs uppercase tracking-[0.24em] text-sky-100/70">
+                          Top 3 Right Now
+                        </div>
+                        <Badge variant="outline" className="border-sky-200/20 text-sky-50">
+                          highest-significance signals
+                        </Badge>
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                        {topThreeDerivedOutputs.map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-md border border-sky-200/10 bg-black/20 px-3 py-2"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="text-sm text-sky-50">{item.title}</div>
+                              <Badge variant="outline" className={priorityTone[item.priority]}>
+                                {item.priority}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                              {item.signalClass ? (
+                                <Badge variant="outline" className="border-sky-200/20 text-sky-100">
+                                  {item.signalClass}
+                                </Badge>
+                              ) : null}
+                              {typeof item.baselineDeltaPct === "number" ? (
+                                <Badge variant="outline" className="border-sky-200/20 text-sky-100">
+                                  {item.baselineDeltaPct >= 0
+                                    ? `+${item.baselineDeltaPct}%`
+                                    : `${item.baselineDeltaPct}%`}{" "}
+                                  vs baseline
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <div className="mt-2 text-xs text-sky-100/75">{item.narrative}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {derivedIntelligenceOutputs.length > 0 ? (
+                    <div className="mt-4 rounded-md border border-fuchsia-300/20 bg-fuchsia-500/10 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-xs uppercase tracking-[0.24em] text-fuchsia-100/70">
+                          Derived Intelligence
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex items-center gap-1 rounded-md border border-fuchsia-200/20 bg-black/20 p-1">
+                            {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setDerivedFocus(mode)}
+                                className={cn(
+                                  "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                                  derivedFocus === mode
+                                    ? "bg-fuchsia-500/20 text-fuchsia-50"
+                                    : "text-fuchsia-100/60 hover:text-fuchsia-50"
+                                )}
+                              >
+                                {mode}
+                              </button>
+                            ))}
+                          </div>
+                          <select
+                            value={marketFilter}
+                            onChange={(e) => setMarketFilter(e.target.value)}
+                            className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
+                          >
+                            {availableMarkets.map((market) => (
+                              <option key={market} value={market}>
+                                {market === "all" ? "all markets" : market}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] text-fuchsia-50 outline-none"
+                          >
+                            {availableCategories.map((category) => (
+                              <option key={category} value={category}>
+                                {category === "all" ? "all categories" : category}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleCopyDerived}
+                            className="rounded-md border border-fuchsia-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-fuchsia-50 hover:bg-fuchsia-500/10"
+                          >
+                            copy
+                          </button>
+                          <Badge
+                            variant="outline"
+                            className="border-fuchsia-200/20 text-fuchsia-50"
+                          >
+                            {focusedDerivedOutputs.length} shown
+                          </Badge>
+                        </div>
+                      </div>
+                      {copyStatus ? (
+                        <div className="mt-2 text-[11px] text-fuchsia-100/80">{copyStatus}</div>
+                      ) : null}
+                      <div className="mt-3 text-xs text-fuchsia-100/70">
+                        Focus this view on opportunity, friction, or waste when you want a cleaner
+                        strategic read instead of the full mixed picture.
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                        <div className="rounded-md border border-emerald-300/20 bg-emerald-500/10 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-[11px] uppercase tracking-[0.24em] text-emerald-100/70">
+                              Opportunity
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-200/20 text-emerald-50"
+                            >
+                              {opportunityOutputs.length}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {opportunityOutputs.length === 0 ? (
+                              <div className="text-xs text-emerald-100/70">
+                                No opportunity signals surfaced yet.
+                              </div>
+                            ) : (
+                              opportunityOutputs.slice(0, 2).map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-2"
+                                >
+                                  <div className="text-sm text-emerald-50">{item.title}</div>
+                                  {typeof item.baselineDeltaPct === "number" ? (
+                                    <div className="mt-1 text-[11px] text-emerald-100/80">
+                                      {item.baselineDeltaPct >= 0
+                                        ? `+${item.baselineDeltaPct}%`
+                                        : `${item.baselineDeltaPct}%`}{" "}
+                                      vs baseline
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-1 text-xs text-emerald-100/75">
+                                    {item.narrative}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-md border border-amber-300/20 bg-amber-500/10 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-[11px] uppercase tracking-[0.24em] text-amber-100/70">
+                              Friction
+                            </div>
+                            <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                              {frictionOutputs.length}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {frictionOutputs.length === 0 ? (
+                              <div className="text-xs text-amber-100/70">
+                                No friction signals surfaced yet.
+                              </div>
+                            ) : (
+                              frictionOutputs.slice(0, 2).map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
+                                >
+                                  <div className="text-sm text-amber-50">{item.title}</div>
+                                  {typeof item.baselineDeltaPct === "number" ? (
+                                    <div className="mt-1 text-[11px] text-amber-100/80">
+                                      {item.baselineDeltaPct >= 0
+                                        ? `+${item.baselineDeltaPct}%`
+                                        : `${item.baselineDeltaPct}%`}{" "}
+                                      vs baseline
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-1 text-xs text-amber-100/75">
+                                    {item.narrative}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-md border border-rose-300/20 bg-rose-500/10 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-[11px] uppercase tracking-[0.24em] text-rose-100/70">
+                              Waste
+                            </div>
+                            <Badge variant="outline" className="border-rose-200/20 text-rose-50">
+                              {wasteOutputs.length}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {wasteOutputs.length === 0 ? (
+                              <div className="text-xs text-rose-100/70">
+                                No waste signals surfaced yet.
+                              </div>
+                            ) : (
+                              wasteOutputs.slice(0, 2).map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="rounded-md border border-rose-200/10 bg-black/20 px-3 py-2"
+                                >
+                                  <div className="text-sm text-rose-50">{item.title}</div>
+                                  {typeof item.baselineDeltaPct === "number" ? (
+                                    <div className="mt-1 text-[11px] text-rose-100/80">
+                                      {item.baselineDeltaPct >= 0
+                                        ? `+${item.baselineDeltaPct}%`
+                                        : `${item.baselineDeltaPct}%`}{" "}
+                                      vs baseline
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-1 text-xs text-rose-100/75">
+                                    {item.narrative}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 space-y-2">
+                    {internalLisaOutputs.length === 0 ? (
+                      <div className="text-sm text-violet-100/70">
+                        Waiting for entity discovery, county/category discovery, repair pressure, or
+                        derived intelligence outputs.
+                      </div>
                     ) : (
-                      topSurfaceBreakdown.map((surface) => (
+                      internalLisaOutputs.slice(0, 4).map((item) => (
                         <div
-                          key={surface.sourceSurface}
-                          className="flex items-center justify-between gap-3 text-sm"
+                          key={item.id}
+                          className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-2"
                         >
-                          <div className="text-white/75">{surface.sourceSurface}</div>
-                          <Badge variant="outline" className="border-white/10 text-white/70">
-                            {surface.requestCount}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-sm text-violet-50">{item.title}</div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  truthTone[item.truthStatus === "current" ? "current" : "stale"]
+                                }
+                              >
+                                {item.truthStatus === "current" ? "current" : "stale"}
+                              </Badge>
+                              <Badge variant="outline" className={priorityTone[item.priority]}>
+                                {item.priority}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                            {item.lane ? (
+                              <Badge
+                                variant="outline"
+                                className="border-violet-200/20 text-violet-100"
+                              >
+                                lane: {item.lane}
+                              </Badge>
+                            ) : null}
+                            {item.signalClass ? (
+                              <Badge
+                                variant="outline"
+                                className="border-violet-200/20 text-violet-100"
+                              >
+                                signal: {item.signalClass}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <div className="mt-2 text-xs text-violet-100/75">{item.narrative}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-emerald-100/70">
+                      Useful Signal vs Noise
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-100/60">
+                          Signal
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-emerald-50">
+                          {signalSurfaceCount}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                          Noise
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-amber-50">
+                          {noiseSurfaceCount}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                          Leakage
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-rose-50">
+                          {unknownSurfaceCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-emerald-100/70">
+                      Signal is meaningful public discovery. Noise is infra/meta/assets. Leakage is
+                      fallback traffic still landing in other/unknown_public.
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                      Top Signal Buckets
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {topSurfaceBreakdown.length === 0 ? (
+                        <div className="text-sm text-white/55">No crawler surface data yet.</div>
+                      ) : (
+                        topSurfaceBreakdown.map((surface) => (
+                          <div
+                            key={surface.sourceSurface}
+                            className="flex items-center justify-between gap-3 text-sm"
+                          >
+                            <div className="text-white/75">{surface.sourceSurface}</div>
+                            <Badge variant="outline" className="border-white/10 text-white/70">
+                              {surface.requestCount}
+                            </Badge>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4">
+                    <div className="text-xs uppercase tracking-[0.24em] text-rose-100/70">
+                      Attribution Leakage
+                    </div>
+                    <div className="mt-2 text-sm text-rose-50">
+                      {topUnknownSurface
+                        ? `${topUnknownSurface.sourceSurface} is still carrying ${topUnknownSurface.requestCount} requests in the current surface summary.`
+                        : "No fallback leakage surfaced in the current top routes."}
+                    </div>
+                    <div className="mt-3 text-xs text-rose-100/70">
+                      Keep shrinking other/unknown_public until fallback mostly means true unknowns
+                      instead of missed known route families.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
+                        County + Category Discovery
+                      </div>
+                      <div className="mt-2 text-sm text-indigo-50">
+                        {topCountyDiscoveryLead
+                          ? `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} is the current lead county surface with ${topCountyDiscoveryLead.requestCount} crawler requests.`
+                          : "No county discovery concentration surfaced yet."}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
+                      {topCountyDiscovery.length} surfaced counties
+                    </Badge>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {topCountyDiscovery.length === 0 ? (
+                      <div className="text-sm text-indigo-100/70">
+                        No county discovery routes available yet.
+                      </div>
+                    ) : (
+                      topCountyDiscovery.map((countyEntry) => (
+                        <div
+                          key={`${countyEntry.sourceSurface}:${countyEntry.countyName}:${countyEntry.stateCode || "na"}`}
+                          className="flex items-center justify-between gap-3 rounded-md border border-indigo-200/10 bg-black/20 px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm text-indigo-50">
+                              {countyEntry.countyName}
+                              {countyEntry.stateCode ? `, ${countyEntry.stateCode}` : ""}
+                            </div>
+                            <div className="text-xs text-indigo-100/60">
+                              {countyEntry.sourceSurface}
+                              {countyEntry.countyFips ? ` • FIPS ${countyEntry.countyFips}` : ""}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
+                            {countyEntry.requestCount}
                           </Badge>
                         </div>
                       ))
@@ -2332,388 +2848,332 @@ export default function AdminLiveStreamPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-rose-100/70">
-                    Attribution Leakage
-                  </div>
-                  <div className="mt-2 text-sm text-rose-50">
-                    {topUnknownSurface
-                      ? `${topUnknownSurface.sourceSurface} is still carrying ${topUnknownSurface.requestCount} requests in the current surface summary.`
-                      : "No fallback leakage surfaced in the current top routes."}
-                  </div>
-                  <div className="mt-3 text-xs text-rose-100/70">
-                    Keep shrinking other/unknown_public until fallback mostly means true unknowns
-                    instead of missed known route families.
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.24em] text-indigo-100/70">
-                      County + Category Discovery
-                    </div>
-                    <div className="mt-2 text-sm text-indigo-50">
-                      {topCountyDiscoveryLead
-                        ? `${topCountyDiscoveryLead.countyName}${topCountyDiscoveryLead.stateCode ? `, ${topCountyDiscoveryLead.stateCode}` : ""} is the current lead county surface with ${topCountyDiscoveryLead.requestCount} crawler requests.`
-                        : "No county discovery concentration surfaced yet."}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
-                    {topCountyDiscovery.length} surfaced counties
-                  </Badge>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {topCountyDiscovery.length === 0 ? (
-                    <div className="text-sm text-indigo-100/70">
-                      No county discovery routes available yet.
-                    </div>
-                  ) : (
-                    topCountyDiscovery.map((countyEntry) => (
-                      <div
-                        key={`${countyEntry.sourceSurface}:${countyEntry.countyName}:${countyEntry.stateCode || "na"}`}
-                        className="flex items-center justify-between gap-3 rounded-md border border-indigo-200/10 bg-black/20 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm text-indigo-50">
-                            {countyEntry.countyName}
-                            {countyEntry.stateCode ? `, ${countyEntry.stateCode}` : ""}
-                          </div>
-                          <div className="text-xs text-indigo-100/60">
-                            {countyEntry.sourceSurface}
-                            {countyEntry.countyFips ? ` • FIPS ${countyEntry.countyFips}` : ""}
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="border-indigo-200/20 text-indigo-50">
-                          {countyEntry.requestCount}
-                        </Badge>
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
+                        Repair Pressure
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.24em] text-amber-100/70">
-                      Repair Pressure
-                    </div>
-                    <div className="mt-2 text-sm text-amber-50">
-                      {crawlerErrorTotal > 0
-                        ? `${crawlerErrorTotal} crawler error responses were observed in the last 24 hours. Focus on high-demand broken routes first.`
-                        : "No crawler error pressure surfaced in the current 24-hour summary."}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                    {crawlerErrorTotal} errors / 24h
-                  </Badge>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {topRepairRoutes.length === 0 ? (
-                    <div className="text-sm text-amber-100/70">
-                      No top crawler routes available yet.
-                    </div>
-                  ) : (
-                    topRepairRoutes.map((route) => (
-                      <div
-                        key={route.path}
-                        className="flex items-center justify-between gap-3 rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm text-amber-50">{route.path}</div>
-                          <div className="text-xs text-amber-100/60">
-                            Prioritize repair or redirect if this route is broken or stale.
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="border-amber-200/20 text-amber-50">
-                          {route.requestCount}
-                        </Badge>
+                      <div className="mt-2 text-sm text-amber-50">
+                        {crawlerErrorTotal > 0
+                          ? `${crawlerErrorTotal} crawler error responses were observed in the last 24 hours. Focus on high-demand broken routes first.`
+                          : "No crawler error pressure surfaced in the current 24-hour summary."}
                       </div>
-                    ))
-                  )}
+                    </div>
+                    <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                      {crawlerErrorTotal} errors / 24h
+                    </Badge>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {topRepairRoutes.length === 0 ? (
+                      <div className="text-sm text-amber-100/70">
+                        No top crawler routes available yet.
+                      </div>
+                    ) : (
+                      topRepairRoutes.map((route) => (
+                        <div
+                          key={route.path}
+                          className="flex items-center justify-between gap-3 rounded-md border border-amber-200/10 bg-black/20 px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm text-amber-50">{route.path}</div>
+                            <div className="text-xs text-amber-100/60">
+                              Prioritize repair or redirect if this route is broken or stale.
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="border-amber-200/20 text-amber-50">
+                            {route.requestCount}
+                          </Badge>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </details>
+          ) : null}
+
+          {uiMode === "debug" ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="rounded-lg border border-border bg-background p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  Active Alerts
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {data?.summary.activeAlerts ?? 0}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  LISA Entries
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {data?.summary.sourceCounts?.lisa ?? 0}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  Cumulus Entries
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {data?.summary.sourceCounts?.cumulus ?? 0}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  Crawler Entries
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {data?.summary.sourceCounts?.crawler ?? 0}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  Bot Crawl Signals
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {data?.summary.botCrawlSignals ?? 0}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                  Alert Entries
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {data?.summary.sourceCounts?.alerts ?? 0}
                 </div>
               </div>
             </div>
-          </details>
+          ) : null}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Active Alerts
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-foreground">
-                {data?.summary.activeAlerts ?? 0}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                LISA Entries
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-foreground">
-                {data?.summary.sourceCounts?.lisa ?? 0}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Cumulus Entries
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-foreground">
-                {data?.summary.sourceCounts?.cumulus ?? 0}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Crawler Entries
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-foreground">
-                {data?.summary.sourceCounts?.crawler ?? 0}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Bot Crawl Signals
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-foreground">
-                {data?.summary.botCrawlSignals ?? 0}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Alert Entries
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-foreground">
-                {data?.summary.sourceCounts?.alerts ?? 0}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
-                  Feed Controls
+          {uiMode === "feed" ? (
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                    Feed Explorer Controls
+                  </div>
+                  <div className="mt-2 text-sm text-white/80">
+                    This view is raw lane evidence. Use lane, source, and time window to inspect
+                    what is actually arriving before any ranking layer touches it.
+                  </div>
                 </div>
-                <div className="mt-2 text-sm text-white/80">
-                  Start from a preset, then narrow with filters only if you need a sharper cut.
-                </div>
+                <Button variant="outline" size="sm" onClick={() => applyEventPreset("all")}>
+                  Reset Event Filters
+                </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("all")}>
-                Reset Filters
-              </Button>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("urgent")}>
-                Urgent
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("site_demand")}>
-                Site Demand
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("inventory")}>
-                Directory
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("deals")}>
-                Deals
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("real_estate")}>
-                Real Estate
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("crawler_ops")}>
-                Crawler Ops
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("lisa_only")}>
-                LISA Only
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => applyFeedPreset("county_watch")}>
-                County Watch
-              </Button>
-            </div>
-            <div className="mt-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/65">
-              Viewing: {activeFilterSummary}
-            </div>
-          </div>
-
-          <div
-            className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-8" : "md:grid-cols-8"} gap-4`}
-          >
-            <div className="space-y-1">
-              <Label>Family</Label>
-              <Select value={sourceFamilyFilter} onValueChange={setSourceFamilyFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All families</SelectItem>
-                  <SelectItem value="site demand">Site demand</SelectItem>
-                  <SelectItem value="directory">Directory</SelectItem>
-                  <SelectItem value="deals">Deals</SelectItem>
-                  <SelectItem value="real estate">Real estate</SelectItem>
-                  <SelectItem value="observations">Observations</SelectItem>
-                  <SelectItem value="partner">Partner</SelectItem>
-                  <SelectItem value="crawler">Crawler</SelectItem>
-                  <SelectItem value="alerts">Alerts</SelectItem>
-                  <SelectItem value="intelligence">Intelligence</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Source</Label>
-              <Select value={source} onValueChange={setSource}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All sources</SelectItem>
-                  <SelectItem value="scout_interactions">Scout Interactions</SelectItem>
-                  <SelectItem value="tradedeals">TradeDeals</SelectItem>
-                  <SelectItem value="homescout">HomeScout</SelectItem>
-                  <SelectItem value="directory">Directory</SelectItem>
-                  <SelectItem value="observations">Observations</SelectItem>
-                  <SelectItem value="lisa">LISA</SelectItem>
-                  <SelectItem value="bot_crawl_signals">Bot Crawl</SelectItem>
-                  <SelectItem value="cumulus">Cumulus</SelectItem>
-                  <SelectItem value="crawler">Crawler</SelectItem>
-                  <SelectItem value="alerts">Alerts</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Truth</Label>
-              <Select value={truthFilter} onValueChange={setTruthFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All truth states</SelectItem>
-                  <SelectItem value="current">Current</SelectItem>
-                  <SelectItem value="stale">Stale</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Durability</Label>
-              <Select value={durabilityFilter} onValueChange={setDurabilityFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All durability</SelectItem>
-                  <SelectItem value="volatile">Volatile</SelectItem>
-                  <SelectItem value="stable">Stable</SelectItem>
-                  <SelectItem value="persistent">Persistent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>State</Label>
-              <Input
-                value={stateCode}
-                onChange={(e) => setStateCode(e.target.value.trim().toUpperCase() || "all")}
-                placeholder="all or FL"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>County</Label>
-              <Input
-                value={county}
-                onChange={(e) => setCounty(e.target.value.trim().toLowerCase() || "all")}
-                placeholder="all or mobile"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Limit</Label>
-              <Input
-                value={limit}
-                onChange={(e) => setLimit(e.target.value.replace(/[^\d]/g, "") || "20")}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>History Days</Label>
-              <Input
-                value={historyDays}
-                onChange={(e) => setHistoryDays(e.target.value.replace(/[^\d]/g, "") || "7")}
-                placeholder="7"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/40">Truth Now</div>
-              <div className="mt-2 text-sm text-white/85">
-                {data?.summary.truthNow || (isLoading ? "Loading..." : "Unavailable")}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => applyEventPreset("all")}>
+                  All Events
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => applyEventPreset("action")}>
+                  Action Lane
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => applyEventPreset("crawl")}>
+                  Crawl Visibility
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => applyEventPreset("trust")}>
+                  Trust Findings
+                </Button>
               </div>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/40">Lead County</div>
-              <div className="mt-2 text-sm text-white/85">
-                {data?.summary.currentLeadCounty || "Unavailable"}
+              <div className="mt-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/65">
+                Viewing: {activeFilterSummary}
               </div>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/40">Lead State</div>
-              <div className="mt-2 text-sm text-white/85">
-                {data?.summary.currentLeadState || "Unavailable"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/40">
-                Crawler Requests 24h
-              </div>
-              <div className="mt-2 text-sm text-white/85">
-                {typeof data?.summary.crawlerRequests24h === "number"
-                  ? data.summary.crawlerRequests24h
-                  : "Unavailable"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/40">Active Alerts</div>
-              <div className="mt-2 text-sm text-white/85">
-                {typeof data?.summary.activeAlerts === "number"
-                  ? data.summary.activeAlerts
-                  : "Unavailable"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
-              <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
-                Bot Crawl Lead
-              </div>
-              <div className="mt-2 text-sm text-cyan-50">
-                {data?.summary.topBotCrawlHeadline || "No bot crawl lead yet"}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(data?.summary.sourceCounts || {}).length === 0 ? (
-              <div className="text-sm text-white/55">No source counts available yet.</div>
-            ) : (
-              Object.entries(data?.summary.sourceCounts || {}).map(([entrySource, count]) => (
-                <div
-                  key={entrySource}
-                  className="rounded-lg border border-white/10 bg-black/20 p-4"
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNewestEventPage}
+                  disabled={eventPageIndex === 0}
                 >
-                  <div className="text-xs uppercase tracking-[0.24em] text-white/40">
-                    {entrySource}
-                  </div>
-                  <div className="mt-2 text-sm text-white/85">{count} live entries</div>
+                  Newest
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackEventPage}
+                  disabled={eventPageIndex === 0}
+                >
+                  Back Page
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLoadOlderEvents}
+                  disabled={!eventData?.nextCursor}
+                >
+                  Load Older
+                </Button>
+                <div className="text-xs text-white/60">
+                  Page {eventPageIndex + 1}
+                  {eventData?.nextCursor ? " | older pages available" : " | end of stream"}
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            </div>
+          ) : null}
+
+          {uiMode === "feed" ? (
+            <div
+              className={`grid grid-cols-1 ${presentationMode ? "md:grid-cols-8" : "md:grid-cols-8"} gap-4`}
+            >
+              <div className="space-y-1">
+                <Label>Lane</Label>
+                <Select value={eventLane} onValueChange={setEventLane}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All lanes</SelectItem>
+                    <SelectItem value="action">Action</SelectItem>
+                    <SelectItem value="crawl_visibility">Crawl visibility</SelectItem>
+                    <SelectItem value="trust">Trust</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Source</Label>
+                <Select value={eventSource} onValueChange={setEventSource}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All event sources</SelectItem>
+                    <SelectItem value="scout_interactions">Scout Interactions</SelectItem>
+                    <SelectItem value="crawler_request_events">Crawler Request Events</SelectItem>
+                    <SelectItem value="bot_ui_findings">Bot UI Findings</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Since Hours</Label>
+                <Input
+                  value={eventSinceHours}
+                  onChange={(e) => setEventSinceHours(e.target.value.replace(/[^\d]/g, "") || "24")}
+                  placeholder="24"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>State</Label>
+                <Input
+                  value={stateCode}
+                  onChange={(e) => setStateCode(e.target.value.trim().toUpperCase() || "all")}
+                  placeholder="all or FL"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>County</Label>
+                <Input
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value.trim().toLowerCase() || "all")}
+                  placeholder="all or mobile"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Limit</Label>
+                <Input
+                  value={limit}
+                  onChange={(e) => setLimit(e.target.value.replace(/[^\d]/g, "") || "20")}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Cursor Window</Label>
+                <Input value={`page ${eventPageIndex + 1}`} readOnly />
+              </div>
+            </div>
+          ) : null}
+
+          {uiMode === "feed" ? (
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/40">Event Count</div>
+                <div className="mt-2 text-sm text-white/85">
+                  {isEventLoading ? "Loading..." : `${liveEvents.length} raw events`}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/40">Lane Leader</div>
+                <div className="mt-2 text-sm text-white/85">
+                  {eventLaneBreakdown[0]
+                    ? `${eventLaneBreakdown[0][0]} (${eventLaneBreakdown[0][1]})`
+                    : "Unavailable"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                  Source Leader
+                </div>
+                <div className="mt-2 text-sm text-white/85">
+                  {eventSourceBreakdown[0]
+                    ? `${eventSourceBreakdown[0][0]} (${eventSourceBreakdown[0][1]})`
+                    : "Unavailable"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/40">Time Window</div>
+                <div className="mt-2 text-sm text-white/85">
+                  Last {eventSinceHours || "24"} hours
+                </div>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                  Filtered State
+                </div>
+                <div className="mt-2 text-sm text-white/85">
+                  {stateCode === "all" ? "All states" : stateCode}
+                </div>
+              </div>
+              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-cyan-100/70">
+                  Next Cursor
+                </div>
+                <div className="mt-2 text-sm text-cyan-50">
+                  {eventData?.nextCursor
+                    ? new Date(eventData.nextCursor).toLocaleString()
+                    : "Reached oldest available page"}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {uiMode === "feed" ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {eventSourceBreakdown.length === 0 ? (
+                <div className="text-sm text-white/55">No event source counts available yet.</div>
+              ) : (
+                eventSourceBreakdown.map(([entrySource, count]) => (
+                  <div
+                    key={entrySource}
+                    className="rounded-lg border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="text-xs uppercase tracking-[0.24em] text-white/40">
+                      {entrySource}
+                    </div>
+                    <div className="mt-2 text-sm text-white/85">{count} live entries</div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
 
           <div className="text-xs text-white/50">
-            {data?.generatedAt
-              ? `Updated ${new Date(data.generatedAt).toLocaleString()}`
-              : isLoading
-                ? "Loading live stream..."
-                : "No live stream available"}
+            {uiMode === "feed"
+              ? eventData?.generatedAt
+                ? `Updated ${new Date(eventData.generatedAt).toLocaleString()}`
+                : isEventLoading
+                  ? "Loading raw events..."
+                  : "No raw event stream available"
+              : data?.generatedAt
+                ? `Updated ${new Date(data.generatedAt).toLocaleString()}`
+                : isLoading
+                  ? "Loading live stream..."
+                  : "No live stream available"}
           </div>
 
-          {error ? (
+          {(uiMode === "feed" ? eventError : error) ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Failed to load live stream.
+              {uiMode === "feed"
+                ? "Failed to load raw event stream."
+                : "Failed to load live stream."}
             </div>
           ) : null}
 
@@ -2739,286 +3199,288 @@ export default function AdminLiveStreamPage() {
 
       <Card className={`bg-card border-border ${presentationMode ? "print:hidden" : ""}`}>
         <CardHeader>
-          <CardTitle className="text-white">Live Feed</CardTitle>
+          <CardTitle className="text-white">
+            {uiMode === "feed" ? "Raw Feed Explorer" : "Live Feed"}
+          </CardTitle>
           <CardDescription className="text-white/70">
-            Server-produced entries only. The UI does not synthesize intelligence.
+            {uiMode === "feed"
+              ? "Raw lane events only. This panel shows source-level evidence before ranking or narrative synthesis."
+              : "Server-produced entries only. The UI does not synthesize intelligence."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="text-sm font-semibold text-white">Revenue Playbook</div>
-                  <div className="mt-1 text-xs text-white/65">
-                    Revenue and market moves pulled from trustworthy stream entries so you can
-                    launch ads, make market calls, and pitch advertisers without reading generic
-                    telemetry.
+            {uiMode === "feed" ? (
+              <>
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-white">Lane Event Stream</div>
+                      <div className="mt-1 text-xs text-white/65">
+                        Evidence-first view for action, crawl visibility, and trust events. Use this
+                        to verify what the system actually observed.
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-cyan-200/20 text-cyan-50">
+                      {liveEvents.length} events
+                    </Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {eventLaneBreakdown.map(([laneName, count]) => (
+                      <Badge
+                        key={laneName}
+                        className={laneTone[laneName] || "border-white/10 bg-white/5 text-white/75"}
+                      >
+                        {laneName}: {count}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-                <Badge variant="outline" className="border-sky-200/20 text-sky-50">
-                  {operatorQueue.length} actions
-                </Badge>
-              </div>
-              {operatorOwnerBreakdown.length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {operatorUrgencyBreakdown.map((item) => (
-                    <Badge
-                      key={item.urgency}
-                      className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}
-                    >
-                      {item.urgency}: {item.count}
-                    </Badge>
-                  ))}
-                  {operatorStatusBreakdown.map((item) => (
-                    <Badge
-                      key={item.status}
-                      className={actionStatusTone[item.status] || actionStatusTone.new}
-                    >
-                      {item.status}: {item.count}
-                    </Badge>
-                  ))}
-                  {operatorOwnerBreakdown.map((item) => (
-                    <Badge
-                      key={item.owner}
-                      className={ownerTone[item.owner] || ownerTone["sales watch"]}
-                    >
-                      {item.owner}: {item.count}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-              {operatorQueue.length === 0 ? (
-                <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                  No direct revenue actions surfaced from the current feed. Refresh the stream or
-                  widen filters.
-                </div>
-              ) : (
-                <div className="mt-3 space-y-3">
-                  {operatorQueue.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="rounded-md border border-white/10 bg-black/20 px-3 py-3"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
-                          score {item.revenueScore}
-                        </Badge>
-                        <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
-                        <Badge className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}>
-                          {item.urgency}
-                        </Badge>
-                        <Badge className={actionStatusTone[item.status] || actionStatusTone.new}>
-                          {item.status}
-                        </Badge>
-                        <Badge className={ownerTone[item.owner] || ownerTone["sales watch"]}>
-                          {item.owner}
-                        </Badge>
-                        <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
-                          Action {index + 1}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
-                      <div className="mt-1 text-xs text-white/55">{item.title}</div>
-                      {item.targetMarket || item.salesAngle ? (
-                        <div className="mt-3 grid gap-2 md:grid-cols-2">
-                          {item.targetMarket ? (
-                            <div className="rounded-md border border-fuchsia-300/15 bg-fuchsia-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-fuchsia-100/60">
-                                Target
-                              </div>
-                              <div className="mt-1 text-xs text-fuchsia-50">
-                                {item.targetMarket}
-                              </div>
-                            </div>
-                          ) : null}
-                          {item.salesAngle ? (
-                            <div className="rounded-md border border-violet-300/15 bg-violet-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-violet-100/60">
-                                Pitch
-                              </div>
-                              <div className="mt-1 text-xs text-violet-50">{item.salesAngle}</div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {item.inventorySummary ||
-                      item.exampleBusinesses?.length ||
-                      item.prospectSummary ||
-                      item.marketGapSummary ? (
-                        <div className="mt-3 grid gap-2 md:grid-cols-2">
-                          {item.inventorySummary ? (
-                            <div className="rounded-md border border-cyan-300/15 bg-cyan-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/60">
-                                Inventory
-                              </div>
-                              <div className="mt-1 text-xs text-cyan-50">
-                                {item.inventorySummary}
-                              </div>
-                            </div>
-                          ) : null}
-                          {item.prospectSummary ? (
-                            <div className="rounded-md border border-blue-300/15 bg-blue-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-blue-100/60">
-                                Buyer Classes
-                              </div>
-                              <div className="mt-1 text-xs text-blue-50">
-                                {item.prospectSummary}
-                              </div>
-                            </div>
-                          ) : null}
-                          {item.exampleBusinesses?.length ? (
-                            <div className="rounded-md border border-lime-300/15 bg-lime-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-lime-100/60">
-                                Example Businesses
-                              </div>
-                              <div className="mt-1 text-xs text-lime-50">
-                                {item.exampleBusinesses
-                                  .map((business) => business.name)
-                                  .join(" | ")}
-                              </div>
-                            </div>
-                          ) : null}
-                          {item.marketGapSummary ? (
-                            <div className="rounded-md border border-rose-300/15 bg-rose-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-rose-100/60">
-                                Market Gap
-                              </div>
-                              <div className="mt-1 text-xs text-rose-50">
-                                {item.marketGapSummary}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {item.channelSuggestion || item.assetSuggestion || item.whyNow ? (
-                        <div className="mt-3 grid gap-2 md:grid-cols-3">
-                          {item.channelSuggestion ? (
-                            <div className="rounded-md border border-sky-300/15 bg-sky-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-sky-100/60">
-                                Channel
-                              </div>
-                              <div className="mt-1 text-xs text-sky-50">
-                                {item.channelSuggestion}
-                              </div>
-                            </div>
-                          ) : null}
-                          {item.assetSuggestion ? (
-                            <div className="rounded-md border border-emerald-300/15 bg-emerald-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-100/60">
-                                Asset
-                              </div>
-                              <div className="mt-1 text-xs text-emerald-50">
-                                {item.assetSuggestion}
-                              </div>
-                            </div>
-                          ) : null}
-                          {item.whyNow ? (
-                            <div className="rounded-md border border-amber-300/15 bg-amber-500/10 px-3 py-2">
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-amber-100/60">
-                                Why Now
-                              </div>
-                              <div className="mt-1 text-xs text-amber-50">{item.whyNow}</div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {(["new", "in progress", "cleared"] as const).map((status) => (
-                          <Button
-                            key={status}
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-8 border-white/10 text-xs capitalize",
-                              item.status === status ? "bg-white/10 text-white" : "text-white/60"
-                            )}
-                            onClick={() => setOperatorActionStatus(item.id, status)}
-                          >
-                            {status}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {filteredStream.length === 0 ? (
-              <div className="text-sm text-white/65">
-                {isLoading ? "Loading stream..." : "No trustworthy live entries available."}
-              </div>
-            ) : (
+                {liveEvents.length === 0 ? (
+                  <div className="text-sm text-white/65">
+                    {isEventLoading
+                      ? "Loading raw events..."
+                      : "No raw lane events matched the current filters."}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {liveEvents.map((event) => (
+                      <LaneEventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : null}
+
+            {uiMode === "ops" && (
               <>
-                {[
-                  {
-                    key: "ad-plays",
-                    title: "Ad Plays",
-                    description:
-                      "Counties and surfaces where active demand supports paid spend now.",
-                    items: groupedLiveFeed.adPlays,
-                    tone: commercialBucketTone["ad plays"],
-                  },
-                  {
-                    key: "advertiser-pitches",
-                    title: "Advertiser Pitches",
-                    description:
-                      "Categories and counties that give you a clean story to sell sponsors and advertisers.",
-                    items: groupedLiveFeed.advertiserPitches,
-                    tone: commercialBucketTone["advertiser pitches"],
-                  },
-                  {
-                    key: "market-moves",
-                    title: "Market Moves",
-                    description:
-                      "Route pressure and surface movement that can justify expansion, redirects, or repositioning.",
-                    items: groupedLiveFeed.marketMoves,
-                    tone: commercialBucketTone["market moves"],
-                  },
-                  {
-                    key: "monetization-leaks",
-                    title: "Monetization Leaks",
-                    description:
-                      "Breaks, friction, and dead ends that waste attention before it turns into revenue.",
-                    items: groupedLiveFeed.monetizationLeaks,
-                    tone: commercialBucketTone["monetization leaks"],
-                  },
-                  {
-                    key: "watch",
-                    title: "Sales Watchlist",
-                    description:
-                      "Context and supporting signals that matter, but are not first commercial moves.",
-                    items: groupedLiveFeed.watch,
-                    tone: commercialBucketTone.watchlist,
-                  },
-                ]
-                  .filter((group) => group.items.length > 0)
-                  .map((group) => (
-                    <div key={group.key} className={cn("rounded-lg border p-4", group.tone)}>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <div className="text-sm font-semibold text-white">{group.title}</div>
-                          <div className="mt-1 text-xs text-white/65">{group.description}</div>
-                        </div>
-                        <Badge variant="outline" className="border-white/15 text-white/70">
-                          {group.items.length}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 space-y-3">
-                        {group.items.map((item) => (
-                          <StreamEntryCard key={item.id} item={item} />
-                        ))}
+                <div className="rounded-lg border border-sky-500/20 bg-sky-500/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-white">Revenue Playbook</div>
+                      <div className="mt-1 text-xs text-white/65">
+                        Revenue and market moves pulled from trustworthy stream entries so you can
+                        launch ads, make market calls, and pitch advertisers without reading generic
+                        telemetry.
                       </div>
                     </div>
-                  ))}
+                    <Badge variant="outline" className="border-sky-200/20 text-sky-50">
+                      {operatorQueue.length} actions
+                    </Badge>
+                  </div>
+
+                  {operatorOwnerBreakdown.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {operatorUrgencyBreakdown.map((item) => (
+                        <Badge
+                          key={item.urgency}
+                          className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}
+                        >
+                          {item.urgency}: {item.count}
+                        </Badge>
+                      ))}
+                      {operatorStatusBreakdown.map((item) => (
+                        <Badge
+                          key={item.status}
+                          className={actionStatusTone[item.status] || actionStatusTone.new}
+                        >
+                          {item.status}: {item.count}
+                        </Badge>
+                      ))}
+                      {operatorOwnerBreakdown.map((item) => (
+                        <Badge
+                          key={item.owner}
+                          className={ownerTone[item.owner] || ownerTone["sales watch"]}
+                        >
+                          {item.owner}: {item.count}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {operatorQueue.length === 0 ? (
+                    <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                      No direct revenue actions surfaced from the current feed. Refresh the stream
+                      or widen filters.
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {operatorQueue.map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="rounded-md border border-white/10 bg-black/20 px-3 py-3"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+                              score {item.revenueScore}
+                            </Badge>
+                            <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
+                            <Badge
+                              className={urgencyTone[item.urgency] || urgencyTone["watch soon"]}
+                            >
+                              {item.urgency}
+                            </Badge>
+                            <Badge
+                              className={actionStatusTone[item.status] || actionStatusTone.new}
+                            >
+                              {item.status}
+                            </Badge>
+                            <Badge className={ownerTone[item.owner] || ownerTone["sales watch"]}>
+                              {item.owner}
+                            </Badge>
+                            <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                              Action {index + 1}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
+                          <div className="mt-1 text-xs text-white/55">{item.title}</div>
+                          {item.targetMarket || item.salesAngle ? (
+                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                              {item.targetMarket ? (
+                                <div className="rounded-md border border-fuchsia-300/15 bg-fuchsia-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-fuchsia-100/60">
+                                    Target
+                                  </div>
+                                  <div className="mt-1 text-xs text-fuchsia-50">
+                                    {item.targetMarket}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {item.salesAngle ? (
+                                <div className="rounded-md border border-violet-300/15 bg-violet-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-violet-100/60">
+                                    Pitch
+                                  </div>
+                                  <div className="mt-1 text-xs text-violet-50">
+                                    {item.salesAngle}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {item.inventorySummary ||
+                          item.exampleBusinesses?.length ||
+                          item.prospectSummary ||
+                          item.marketGapSummary ? (
+                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                              {item.inventorySummary ? (
+                                <div className="rounded-md border border-cyan-300/15 bg-cyan-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/60">
+                                    Inventory
+                                  </div>
+                                  <div className="mt-1 text-xs text-cyan-50">
+                                    {item.inventorySummary}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {item.prospectSummary ? (
+                                <div className="rounded-md border border-blue-300/15 bg-blue-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-blue-100/60">
+                                    Buyer Classes
+                                  </div>
+                                  <div className="mt-1 text-xs text-blue-50">
+                                    {item.prospectSummary}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {item.exampleBusinesses?.length ? (
+                                <div className="rounded-md border border-lime-300/15 bg-lime-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-lime-100/60">
+                                    Example Businesses
+                                  </div>
+                                  <div className="mt-1 text-xs text-lime-50">
+                                    {item.exampleBusinesses
+                                      .map((business) => business.name)
+                                      .join(" | ")}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {item.marketGapSummary ? (
+                                <div className="rounded-md border border-rose-300/15 bg-rose-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-rose-100/60">
+                                    Market Gap
+                                  </div>
+                                  <div className="mt-1 text-xs text-rose-50">
+                                    {item.marketGapSummary}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {item.channelSuggestion || item.assetSuggestion || item.whyNow ? (
+                            <div className="mt-3 grid gap-2 md:grid-cols-3">
+                              {item.channelSuggestion ? (
+                                <div className="rounded-md border border-sky-300/15 bg-sky-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-sky-100/60">
+                                    Channel
+                                  </div>
+                                  <div className="mt-1 text-xs text-sky-50">
+                                    {item.channelSuggestion}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {item.assetSuggestion ? (
+                                <div className="rounded-md border border-emerald-300/15 bg-emerald-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-100/60">
+                                    Asset
+                                  </div>
+                                  <div className="mt-1 text-xs text-emerald-50">
+                                    {item.assetSuggestion}
+                                  </div>
+                                </div>
+                              ) : null}
+                              {item.whyNow ? (
+                                <div className="rounded-md border border-amber-300/15 bg-amber-500/10 px-3 py-2">
+                                  <div className="text-[10px] uppercase tracking-[0.18em] text-amber-100/60">
+                                    Why Now
+                                  </div>
+                                  <div className="mt-1 text-xs text-amber-50">{item.whyNow}</div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {(["new", "in progress", "cleared"] as const).map((status) => (
+                              <Button
+                                key={status}
+                                variant="outline"
+                                size="sm"
+                                className={cn(
+                                  "h-8 border-white/10 text-xs capitalize",
+                                  item.status === status
+                                    ? "bg-white/10 text-white"
+                                    : "text-white/60"
+                                )}
+                                onClick={() => setOperatorActionStatus(item.id, status)}
+                              >
+                                {status}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-white/60">
+                    Recent stream (chronological)
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    {chronologicalStream.map((item) => (
+                      <StreamEntryCard key={item.id} item={item} compact />
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {!presentationMode ? (
+      {!presentationMode && uiMode !== "feed" ? (
         <Card className="bg-tsCard/95 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Stream History</CardTitle>

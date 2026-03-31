@@ -139,7 +139,7 @@ export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
 
   // Conflicting: both hire and offer → Scout follow-up
   if (has("offer_services") && has("find_help")) {
-    return { path: "/scout?onboarding=true&step=pick_focus", reason: "both_hire_and_offer" };
+    return { path: "/onboarding/intent?next=%2Fscout", reason: "both_hire_and_offer" };
   }
 
   // Primary routes

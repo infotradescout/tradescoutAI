@@ -15,13 +15,13 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 function sanitizeNext(next: string) {
-  if (!next.startsWith("/")) return "/scout?onboarding=true";
+  if (!next.startsWith("/")) return "/scout";
   if (
     next.startsWith("/pre-scout-setup") ||
     next.startsWith("/login") ||
     next.startsWith("/register")
   ) {
-    return "/scout?onboarding=true";
+    return "/scout";
   }
   return next;
 }

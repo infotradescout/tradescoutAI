@@ -113,6 +113,33 @@ export type LiveStreamSnapshot = {
   stream: LiveStreamSnapshotEntry[];
 };
 
+export type LiveLaneEvent = {
+  id: string;
+  occurredAt: string;
+  lane: string;
+  source: string;
+  eventType: string;
+  stateCode: string | null;
+  countyName: string | null;
+  countyFips: string | null;
+  payload: Record<string, unknown>;
+};
+
+export type LiveLaneEventStream = {
+  generatedAt: string;
+  filters: {
+    lane: string | null;
+    source: string | null;
+    stateCode: string | null;
+    county: string | null;
+    since: string | null;
+    cursor: string | null;
+    limit: number;
+  };
+  events: LiveLaneEvent[];
+  nextCursor: string | null;
+};
+
 let ensurePromise: Promise<void> | null = null;
 let prunePromise: Promise<void> | null = null;
 let lastPruneAt = 0;
@@ -238,6 +265,38 @@ function normalizeFilters(params: {
         .trim()
         .toLowerCase() || "",
     limit: Math.max(5, Math.min(100, Number(params.limit || 20))),
+  };
+}
+
+function normalizeEventFilters(params: {
+  lane?: string;
+  source?: string;
+  stateCode?: string;
+  county?: string;
+  since?: string;
+  cursor?: string;
+  limit?: number;
+}) {
+  return {
+    lane:
+      String(params.lane || "")
+        .trim()
+        .toLowerCase() || "",
+    source:
+      String(params.source || "")
+        .trim()
+        .toLowerCase() || "",
+    stateCode:
+      String(params.stateCode || "")
+        .trim()
+        .toUpperCase() || "",
+    county:
+      String(params.county || "")
+        .trim()
+        .toLowerCase() || "",
+    since: String(params.since || "").trim() || "",
+    cursor: String(params.cursor || "").trim() || "",
+    limit: Math.max(1, Math.min(2000, Number(params.limit || 250))),
   };
 }
 
@@ -996,7 +1055,7 @@ export async function buildLiveStreamSnapshot(params?: {
           si.county_fips,
           coalesce(c.name, si.county_fips) as county_name,
           coalesce(c.state_code, substring(si.county_fips from 1 for 2)) as state_code,
-          nullif(trim(si.intent), '') as intent,
+          nullif(trim(si.intent::text), '') as intent,
           si.created_at
         from scout_interactions si
         left join counties c on c.fips = si.county_fips
@@ -1852,4 +1911,156 @@ export async function getLiveStreamSnapshotHistory(params?: {
           },
     stream: Array.isArray(row.stream_json) ? row.stream_json : [],
   }));
+}
+
+export async function getLiveLaneEvents(params?: {
+  lane?: string;
+  source?: string;
+  stateCode?: string;
+  county?: string;
+  since?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<LiveLaneEventStream> {
+  const filters = normalizeEventFilters(params || {});
+  const cursorTs = filters.cursor ? new Date(filters.cursor) : null;
+  const sinceTs = filters.since ? new Date(filters.since) : null;
+  const cursorIso = cursorTs && Number.isFinite(cursorTs.getTime()) ? cursorTs.toISOString() : "";
+  const sinceIso = sinceTs && Number.isFinite(sinceTs.getTime()) ? sinceTs.toISOString() : "";
+
+  const result = await pool.query<{
+    id: string;
+    occurred_at: string | Date;
+    lane: string;
+    source: string;
+    event_type: string;
+    state_code: string | null;
+    county_name: string | null;
+    county_fips: string | null;
+    payload_json: Record<string, unknown> | null;
+  }>(
+    `
+    with lane_events as (
+      select
+        si.id::text as id,
+        si.created_at as occurred_at,
+        'action'::text as lane,
+        'scout_interactions'::text as source,
+        coalesce(si.intent::text, 'unknown') as event_type,
+        upper(coalesce(c.state_code, substring(si.county_fips from 1 for 2))) as state_code,
+        c.name as county_name,
+        si.county_fips as county_fips,
+        jsonb_build_object(
+          'intent', si.intent::text,
+          'outcome', si.outcome::text,
+          'failureReason', si.failure_reason::text,
+          'confidence', si.scout_confidence,
+          'userRole', si.user_role::text
+        ) as payload_json
+      from scout_interactions si
+      left join counties c on c.fips = si.county_fips
+
+      union all
+
+      select
+        cre.id::text as id,
+        cre.observed_at as occurred_at,
+        'crawl_visibility'::text as lane,
+        'crawler_request_events'::text as source,
+        coalesce(nullif(trim(cre.request_type), ''), 'request') as event_type,
+        upper(cre.state_code) as state_code,
+        c2.name as county_name,
+        cre.county_fips as county_fips,
+        jsonb_build_object(
+          'botName', cre.bot_name,
+          'path', cre.path,
+          'statusCode', cre.status_code,
+          'statusClass', cre.status_class,
+          'sourceSurface', cre.source_surface,
+          'requestType', cre.request_type
+        ) as payload_json
+      from crawler_request_events cre
+      left join counties c2 on c2.fips = cre.county_fips
+
+      union all
+
+      select
+        buf.id::text as id,
+        buf.created_at as occurred_at,
+        'trust'::text as lane,
+        'bot_ui_findings'::text as source,
+        coalesce(nullif(trim(buf.failure_type::text), ''), 'ui_finding') as event_type,
+        null::text as state_code,
+        null::text as county_name,
+        null::text as county_fips,
+        jsonb_build_object(
+          'botName', buf.bot_name,
+          'route', buf.route,
+          'severity', buf.severity,
+          'failureType', buf.failure_type::text,
+          'actionAttempted', buf.action_attempted,
+          'expectedOutcome', buf.expected_outcome,
+          'actualOutcome', buf.actual_outcome
+        ) as payload_json
+      from bot_ui_findings buf
+    )
+    select
+      id,
+      occurred_at,
+      lane,
+      source,
+      event_type,
+      state_code,
+      county_name,
+      county_fips,
+      payload_json
+    from lane_events
+    where ($1::text = '' or lane = $1)
+      and ($2::text = '' or source = $2)
+      and ($3::text = '' or upper(coalesce(state_code, '')) = $3)
+      and ($4::text = '' or lower(coalesce(county_name, county_fips, '')) like '%' || $4 || '%')
+      and ($5::timestamptz is null or occurred_at >= $5::timestamptz)
+      and ($6::timestamptz is null or occurred_at < $6::timestamptz)
+    order by occurred_at desc, id desc
+    limit $7
+    `,
+    [
+      filters.lane,
+      filters.source,
+      filters.stateCode,
+      filters.county,
+      sinceIso || null,
+      cursorIso || null,
+      filters.limit,
+    ]
+  );
+
+  const events: LiveLaneEvent[] = (result.rows || []).map((row) => ({
+    id: String(row.id),
+    occurredAt: new Date(String(row.occurred_at)).toISOString(),
+    lane: String(row.lane || "unknown"),
+    source: String(row.source || "unknown"),
+    eventType: String(row.event_type || "unknown"),
+    stateCode: row.state_code ? String(row.state_code).toUpperCase() : null,
+    countyName: row.county_name ? String(row.county_name) : null,
+    countyFips: row.county_fips ? String(row.county_fips) : null,
+    payload: row.payload_json && typeof row.payload_json === "object" ? row.payload_json : {},
+  }));
+
+  const nextCursor = events.length === filters.limit ? events[events.length - 1].occurredAt : null;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    filters: {
+      lane: filters.lane || null,
+      source: filters.source || null,
+      stateCode: filters.stateCode || null,
+      county: filters.county || null,
+      since: sinceIso || null,
+      cursor: cursorIso || null,
+      limit: filters.limit,
+    },
+    events,
+    nextCursor,
+  };
 }

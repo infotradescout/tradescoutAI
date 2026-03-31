@@ -5424,11 +5424,33 @@ export async function registerRoutes(app: any) {
   // PHASE 3d-A: Write confirmed claims from Scout onboarding
   app.post("/api/claims/write", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const authUser: any = req.user as any;
+      const userId = authUser?.id || authUser?.claims?.sub;
       const { confirmedClaimTypes, countyFips, metadata } = req.body;
 
       if (!Array.isArray(confirmedClaimTypes) || confirmedClaimTypes.length === 0) {
         return res.status(400).json({ error: "confirmedClaimTypes must be a non-empty array" });
+      }
+
+      const requestedCountyFips = typeof countyFips === "string" ? countyFips.trim() : "";
+      const fallbackCountyFips =
+        typeof authUser?.countyFips === "string"
+          ? authUser.countyFips.trim()
+          : typeof authUser?.county_fips === "string"
+            ? authUser.county_fips.trim()
+            : "";
+      const normalizedCountyFips = isValidCountyFips(requestedCountyFips)
+        ? requestedCountyFips
+        : isValidCountyFips(fallbackCountyFips)
+          ? fallbackCountyFips
+          : null;
+
+      if (!normalizedCountyFips) {
+        return res.status(400).json({
+          error:
+            "countyFips is required to write claims. Complete local setup first so claims route to the correct county.",
+          code: "COUNTY_FIPS_REQUIRED",
+        });
       }
 
       // Write each claim individually
@@ -5437,7 +5459,7 @@ export async function registerRoutes(app: any) {
           const writeRequest: WriteClaimEventRequest = {
             userId,
             claimType: claimType as any,
-            countyFips: countyFips || null,
+            countyFips: normalizedCountyFips,
             countyName: "",
             source: ClaimSource.SCOUT_INFERRED,
             claimTimestamp: new Date(),

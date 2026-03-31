@@ -77,16 +77,44 @@ export default function OnboardingIntent() {
     saveIntent.mutate(intent);
   };
 
+  const handleSkipForNow = async () => {
+    if (!isAuthenticated) {
+      navigate("/pre-scout-setup?mode=create");
+      return;
+    }
+
+    try {
+      const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
+      await apiRequest("PUT", "/api/user/profile", {
+        preferences: {
+          ...existingPrefs,
+          onboardingDeferredAt: new Date().toISOString(),
+          onboardingDeferredFrom: "onboarding_intent",
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Setup paused",
+        description:
+          "You can continue now. Finish onboarding soon so Scout can route and rank next steps correctly.",
+      });
+    } catch {
+      // fail-soft: never trap users on skip
+    }
+
+    navigate(postIntentNext || routeForIntentFallback());
+  };
+
   return (
     <div className="flex justify-center px-3 py-6 text-white">
       <div className="w-full max-w-xl space-y-2.5">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate(INTENT_ROUTES.community)}
+            onClick={handleSkipForNow}
             className="px-0 text-white/60 hover:text-white hover:bg-transparent"
           >
-            Skip
+            Skip for now
           </Button>
           <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">Step 2/2</div>
         </div>
@@ -103,6 +131,10 @@ export default function OnboardingIntent() {
           </CardHeader>
 
           <CardContent>
+            <p className="mb-3 text-xs text-white/70">
+              This step is essential to Scout quality. You can skip for now, but your matches, next
+              steps, and routing will stay less accurate until you finish onboarding.
+            </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -152,10 +184,10 @@ export default function OnboardingIntent() {
             <div className="mt-3">
               <button
                 type="button"
-                onClick={() => handleChoose(null)}
+                onClick={handleSkipForNow}
                 className="text-xs text-white/60 underline-offset-2 hover:underline text-left"
               >
-                Open community
+                Skip for now and continue
               </button>
             </div>
           </CardContent>

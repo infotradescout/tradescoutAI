@@ -21,13 +21,13 @@ type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
 function sanitizePostSetupNext(next: string) {
-  if (!next.startsWith("/")) return "/scout?onboarding=true";
+  if (!next.startsWith("/")) return "/scout";
   if (
     next.startsWith("/login") ||
     next.startsWith("/create-account") ||
     next.startsWith("/pre-scout-setup")
   ) {
-    return "/scout?onboarding=true";
+    return "/scout";
   }
   return next;
 }

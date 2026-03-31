@@ -91,6 +91,7 @@ import { UnifiedScoutRouterClient, type UnifiedRoutingDecision } from "./unified
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { hasCompletedSetup } from "@/lib/setupState";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
@@ -108,6 +109,7 @@ const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded"
 
 const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
 const SCOUT_VIEW_MODE_KEY = "scout:view_mode:v1";
+const SCOUT_AUTO_START_SESSION_KEY = "scout:auto_profile_start:v1";
 const AUTO_ROUTE_DEFAULT_ENABLED = true;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
@@ -233,6 +235,52 @@ function tryRecordCountyExplanationFollowup(
   } catch {
     // Ignore storage/telemetry failures; never affect UX.
   }
+}
+
+function buildOnboardingIntentSeed(
+  user: any,
+  profileDraft?: ProfileDraft,
+  localityCounty?: string | null
+) {
+  const parts: string[] = [];
+
+  if (profileDraft?.presenceType === "represent_business") {
+    parts.push("I represent a business.");
+  } else if (profileDraft?.presenceType === "personal") {
+    parts.push("I am here for personal/local needs.");
+  }
+
+  const businessName =
+    profileDraft?.businessName ||
+    (typeof user?.businessName === "string" ? user.businessName : undefined);
+  if (businessName) {
+    parts.push(`Business name: ${businessName}.`);
+  }
+
+  const businessCategory =
+    profileDraft?.businessCategory ||
+    (typeof user?.businessCategory === "string" ? user.businessCategory : undefined);
+  if (businessCategory) {
+    parts.push(`Business category: ${businessCategory}.`);
+  }
+
+  const county =
+    profileDraft?.countyName ||
+    (typeof user?.countyName === "string" ? user.countyName : null) ||
+    (typeof user?.county === "string" ? user.county : null) ||
+    localityCounty ||
+    null;
+  if (county) {
+    parts.push(`Primary county: ${county}.`);
+  }
+
+  const role = typeof user?.role === "string" ? user.role : null;
+  if (role) {
+    parts.push(`Role context: ${role}.`);
+  }
+
+  parts.push("Please infer my best starting focus and practical next steps.");
+  return parts.join(" ");
 }
 
 /**
@@ -912,10 +960,17 @@ export default function ScoutOS() {
 
     try {
       const params = new URLSearchParams(location.split("?")[1] || "");
+      const onboardingFlag = params.get("onboarding");
       const wantsOnboarding = params.get("onboarding") === "true";
       const provisional = (user as any)?.preferences?.provisional;
       const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
       const hasCanonicalLocation = hasCountyContext(locationCtx);
+
+      if (onboardingFlag === "true" && !hasCompletedSetup(user as any)) {
+        const next = encodeURIComponent("/scout");
+        navigate(`/onboarding/profile?next=${next}&source=scout_query_onboarding`);
+        return;
+      }
 
       // Avoid redirect loops: once a user has a canonical location committed, they should not be
       // forced back into pre-scout setup just because a provisional draft was cleared.
@@ -947,7 +1002,9 @@ export default function ScoutOS() {
     }
 
     // Extract intent data
-    const userIntentText = provisional?.userIntent || "";
+    const userIntentText =
+      provisional?.userIntent ||
+      buildOnboardingIntentSeed(user as any, profileDraft, locality.county);
     const provisionalUserTypes = provisional?.userTypes || [];
     const countyName = profileDraft?.countyName || locality.county || null;
 
@@ -1120,6 +1177,10 @@ export default function ScoutOS() {
       .filter((s) => s && !isWeakSuggestionLabel(s));
     const merged: string[] = [];
 
+    if (isAuthenticated && !hasCompletedSetup(user as any)) {
+      merged.push("Finish my profile setup first");
+    }
+
     for (const raw of base) {
       const s = sanitizeSuggestionLabel(raw);
       if (!s || isWeakSuggestionLabel(s)) continue;
@@ -1175,24 +1236,37 @@ export default function ScoutOS() {
       setActiveMode(mode);
 
       const start = performance.now();
+      const isScriptedIntro = _opts?.isScriptedIntro === true;
 
       // User message is recorded into the thread; we immediately move into
       // a short RESOLVING_CONTEXT state so the UI can show progress without
       // exposing any internal reasoning text.
-      recordUserMessage(value);
-      // recordUserMessage already moves state into "resolving_context";
-      // avoid a redundant status dispatch here.
-      recordActivity({
-        type: "ask_scout",
-        ts: new Date().toISOString(),
-        path: location,
-        label: value.slice(0, 160),
-      });
+      if (isScriptedIntro) {
+        setStatus("resolving_context");
+        recordActivity({
+          type: "scout_bootstrap_start",
+          ts: new Date().toISOString(),
+          path: location,
+          label: "profile_context_seed",
+        });
+      } else {
+        recordUserMessage(value);
+        // recordUserMessage already moves state into "resolving_context";
+        // avoid a redundant status dispatch here.
+        recordActivity({
+          type: "ask_scout",
+          ts: new Date().toISOString(),
+          path: location,
+          label: value.slice(0, 160),
+        });
+      }
 
       // If a county explanation was recently shown, treat this as a
       // potential follow-up signal when it happens within the
       // five-minute window. This does not affect behavior.
-      tryRecordCountyExplanationFollowup("scout_message", location);
+      if (!isScriptedIntro) {
+        tryRecordCountyExplanationFollowup("scout_message", location);
+      }
 
       try {
         // ==================================================================
@@ -3472,6 +3546,42 @@ export default function ScoutOS() {
     }
   }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isAuthenticated) return;
+    if (!location.startsWith("/scout")) return;
+
+    const params = new URLSearchParams(location.split("?")[1] || "");
+    if (params.get("onboarding") === "true") return;
+
+    const hasUserMsgs = state.messages.some((m) => m.role === "user");
+    if (hasUserMsgs) return;
+    if (shouldPlayIntroDemo) return;
+
+    const userId = typeof (user as any)?.id === "string" ? (user as any).id : "authed-user";
+    const sessionKey = `${SCOUT_AUTO_START_SESSION_KEY}:${userId}`;
+
+    try {
+      if (window.sessionStorage.getItem(sessionKey) === "1") return;
+
+      const prefillMarker = window.localStorage.getItem("scout:prefill:scout-main");
+      if (prefillMarker === "__SCOUT_ONBOARDING__") return;
+      if (window.localStorage.getItem("scout:help-intent")) return;
+
+      window.sessionStorage.setItem(sessionKey, "1");
+    } catch {
+      // fail-soft
+    }
+
+    const setupComplete = hasCompletedSetup(user as any);
+    const kickoff = setupComplete
+      ? "I just landed on Scout. Use what you already know about my profile and location to suggest my best 3 starting actions."
+      : "I just landed on Scout. Use what you already know about my profile and location to suggest my best 3 starting actions, and make profile completion step 1 if anything critical is missing.";
+
+    setHasGuestInteracted(true);
+    void handleSend(kickoff, undefined, { isScriptedIntro: true });
+  }, [isAuthenticated, location, state.messages, shouldPlayIntroDemo, user, handleSend]);
+
   // Intro demo typing is handled by ScoutInput; we only supply
   // session-scoped enable flag and the demo text.
 
@@ -4009,7 +4119,13 @@ export default function ScoutOS() {
                         const provisional = (user as any)?.preferences?.provisional;
                         const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
                         const countyFips =
-                          profileDraft?.countyFips || (user as any)?.countyFips || null;
+                          profileDraft?.countyFips ||
+                          profileDraft?.serviceAreas?.find((s) => s.primary)?.countyFips ||
+                          profileDraft?.serviceAreas?.[0]?.countyFips ||
+                          (user as any)?.countyFips ||
+                          (user as any)?.county_fips ||
+                          (locationCtx as any)?.countyFips ||
+                          null;
                         onboarding.confirmClaims(
                           selectedClaims,
                           {
