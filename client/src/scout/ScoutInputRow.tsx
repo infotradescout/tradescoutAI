@@ -28,6 +28,12 @@ export function ScoutInputRow({
   autoDemoText,
   enableAutoDemo,
 }: ScoutInputRowProps) {
+  const [showLocationOptions, setShowLocationOptions] = React.useState(false);
+  const [showAllPrompts, setShowAllPrompts] = React.useState(false);
+
+  const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts : [];
+  const visiblePrompts = showAllPrompts ? promptList : promptList.slice(0, 1);
+
   return (
     <div className="space-y-2.5">
       <div className="flex flex-col gap-2 px-1">
@@ -45,30 +51,47 @@ export function ScoutInputRow({
               >
                 Your area: {heroLocationLabel}
               </span>
+
               <button
                 type="button"
-                onClick={onOpenLocationSettings}
-                className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors"
+                onClick={() => setShowLocationOptions((v) => !v)}
+                className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors sm:hidden"
                 style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+                aria-expanded={showLocationOptions}
               >
-                Change area
+                {showLocationOptions ? "Hide area options" : "Area options"}
               </button>
-              <button
-                type="button"
-                onClick={onUseDeviceLocation}
-                disabled={isUpdatingGeo}
-                className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
-                style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+
+              <div
+                className={`w-full flex-wrap items-center gap-1.5 sm:w-auto sm:flex ${
+                  showLocationOptions ? "flex" : "hidden"
+                }`}
               >
-                {isUpdatingGeo ? "Updating..." : "Use current location"}
-              </button>
+                <button
+                  type="button"
+                  onClick={onOpenLocationSettings}
+                  className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors"
+                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+                >
+                  Change area
+                </button>
+                <button
+                  type="button"
+                  onClick={onUseDeviceLocation}
+                  disabled={isUpdatingGeo}
+                  className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
+                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+                >
+                  {isUpdatingGeo ? "Updating..." : "Use current location"}
+                </button>
+              </div>
             </>
           )}
         </div>
       </div>
-      {Array.isArray(quickStartPrompts) && quickStartPrompts.length > 0 && (
+      {promptList.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-1">
-          {quickStartPrompts.map((prompt) => (
+          {visiblePrompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
@@ -85,6 +108,22 @@ export function ScoutInputRow({
               {prompt}
             </button>
           ))}
+
+          {promptList.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setShowAllPrompts((v) => !v)}
+              disabled={isBusy}
+              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default sm:hidden"
+              style={{
+                borderColor: "var(--border-subtle)",
+                backgroundColor: "transparent",
+                color: "var(--text-secondary)",
+              }}
+            >
+              {showAllPrompts ? "Show fewer prompts" : `More prompts (${promptList.length - 1})`}
+            </button>
+          )}
         </div>
       )}
       <ScoutInput

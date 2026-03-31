@@ -101,6 +101,10 @@ export async function ensureLisaFindingsTable(): Promise<void> {
           updated_at timestamptz NOT NULL DEFAULT now()
         );
       `);
+      await pool.query(`
+        ALTER TABLE IF EXISTS lisa_findings
+        ADD COLUMN IF NOT EXISTS payload_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+      `);
       await pool.query(
         `CREATE INDEX IF NOT EXISTS lisa_findings_key_idx ON lisa_findings (finding_key);`
       );

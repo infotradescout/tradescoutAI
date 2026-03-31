@@ -4100,6 +4100,28 @@ export default function ScoutOS() {
                   backdropFilter: "blur(8px)",
                 }}
               >
+                {isMobile && (
+                  <div
+                    className="mb-2 rounded-md border px-2.5 py-2"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor:
+                        "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+                    }}
+                  >
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wide"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Step 1 of 3
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+                      Tell Scout what you need. You will review a decision card before any contact
+                      action.
+                    </p>
+                  </div>
+                )}
+
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
@@ -4117,7 +4139,13 @@ export default function ScoutOS() {
                       label: "typing",
                     });
                   }}
-                  quickStartPrompts={!hasMessages ? [...SCOUT_QUICK_START_PROMPTS] : []}
+                  quickStartPrompts={
+                    !hasMessages
+                      ? isMobile
+                        ? SCOUT_QUICK_START_PROMPTS.slice(0, 2)
+                        : [...SCOUT_QUICK_START_PROMPTS]
+                      : []
+                  }
                   autoDemoText={introDemoText}
                   enableAutoDemo={shouldPlayIntroDemo}
                 />

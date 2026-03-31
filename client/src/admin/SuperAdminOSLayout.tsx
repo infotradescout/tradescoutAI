@@ -91,12 +91,20 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
   };
 
   return (
-    <div className={density === "compact" ? "bg-slate-950 py-3" : "bg-slate-950 py-6"}>
+    <div
+      className={
+        density === "compact" ? "min-h-full bg-slate-950 py-3" : "min-h-full bg-slate-950 py-6"
+      }
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at top left, rgba(249,115,22,0.08), transparent 28%), radial-gradient(circle at top right, rgba(34,211,238,0.08), transparent 32%)",
+      }}
+    >
       <div
         className={
           density === "compact"
-            ? "max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 flex flex-col md:flex-row gap-4"
-            : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row gap-6"
+            ? "mx-auto flex max-w-[1500px] flex-col gap-4 px-3 sm:px-4 lg:flex-row lg:px-6"
+            : "mx-auto flex max-w-[1500px] flex-col gap-6 px-4 sm:px-6 lg:flex-row lg:px-8"
         }
       >
         <div className={isNavOpen ? "block md:shrink-0" : "hidden"}>
@@ -119,8 +127,8 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
           <div
             className={
               density === "compact"
-                ? "flex-1 bg-slate-900/80 border border-slate-800 rounded-xl p-3 overflow-auto"
-                : "flex-1 bg-slate-900/80 border border-slate-800 rounded-xl p-4 overflow-auto"
+                ? "flex-1 overflow-auto rounded-[22px] border border-slate-800 bg-[linear-gradient(180deg,rgba(10,15,28,0.94),rgba(15,23,42,0.78))] p-3 shadow-[0_24px_70px_rgba(2,6,23,0.34)]"
+                : "flex-1 overflow-auto rounded-[26px] border border-slate-800 bg-[linear-gradient(180deg,rgba(10,15,28,0.94),rgba(15,23,42,0.78))] p-4 shadow-[0_24px_70px_rgba(2,6,23,0.34)]"
             }
           >
             {children}

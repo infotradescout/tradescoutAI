@@ -103,108 +103,164 @@ export function SuperAdminLeftNav({
     setCollapsed((prev) => (prev[activeSection] ? { ...prev, [activeSection]: false } : prev));
   }, [normalizedLocation, sections]);
 
+  const activeSection = sections.find((section) =>
+    section.items.some((item) => isItemActive(normalizedLocation, item))
+  );
+  const activeItem =
+    activeSection?.items.find((item) => isItemActive(normalizedLocation, item)) ?? null;
+  const visibleToolCount = sections.reduce((sum, section) => sum + section.items.length, 0);
+  const totalUnread = sections.reduce(
+    (sum, section) =>
+      sum + section.items.reduce((inner, item) => inner + getToolUnreadCount(item.id), 0),
+    0
+  );
+
   return (
-    <aside className={density === "compact" ? "w-60 shrink-0" : "w-64 shrink-0"}>
-      <div className={density === "compact" ? "mb-3" : "mb-4"}>
-        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Admin</div>
-        <div className="mt-2 flex items-center gap-2">
+    <aside className={density === "compact" ? "w-64 shrink-0" : "w-[18rem] shrink-0"}>
+      <div className="rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(15,23,42,0.86))] p-3 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
+        <div className="border-b border-slate-800 pb-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Admin navigation
+          </div>
+          <div className="mt-2 text-lg font-semibold text-slate-100">
+            {activeSection?.section || "Platform ops"}
+          </div>
+          <div className="mt-1 text-sm text-slate-400">
+            {activeItem?.label || "Choose a tool"} • {visibleToolCount} tools available
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
+              {sections.length} sections
+            </span>
+            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
+              {totalUnread} unread
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
           <button
             type="button"
             onClick={expandAll}
-            className="rounded-md border border-slate-700 px-2 py-1 text-[10px] font-medium text-slate-300 hover:bg-slate-900/60"
+            className="rounded-xl border border-slate-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-300 hover:bg-slate-900/60"
           >
             Expand all
           </button>
           <button
             type="button"
             onClick={collapseAll}
-            className="rounded-md border border-slate-700 px-2 py-1 text-[10px] font-medium text-slate-300 hover:bg-slate-900/60"
+            className="rounded-xl border border-slate-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-300 hover:bg-slate-900/60"
           >
             Collapse all
           </button>
         </div>
-      </div>
 
-      <nav
-        className={
-          density === "compact"
-            ? "space-y-3 max-h-[calc(var(--app-height)-110px)] overflow-y-auto pr-1"
-            : "space-y-4 max-h-[calc(var(--app-height)-120px)] overflow-y-auto pr-1"
-        }
-      >
-        {sections.map((section) => (
-          <div key={section.section} className="space-y-1">
-            {(() => {
-              const sectionUnread = section.items.reduce(
-                (sum, item) => sum + getToolUnreadCount(item.id),
-                0
-              );
-              return (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCollapsed((prev) => ({ ...prev, [section.section]: !prev[section.section] }))
-                  }
-                  className="w-full flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500 px-2 py-1 rounded-md hover:bg-slate-900/50"
-                  aria-expanded={!collapsed[section.section]}
-                >
-                  <span className="truncate flex items-center gap-2">
-                    <span>{section.section}</span>
-                    {sectionUnread > 0 && (
-                      <span
-                        className="inline-block w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_0_2px_rgba(251,146,60,0.2)]"
-                        title={`${sectionUnread} new items`}
-                      />
-                    )}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {collapsed[section.section] ? (
-                      <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-                    )}
-                  </span>
-                </button>
-              );
-            })()}
-            {!collapsed[section.section] &&
-              section.items.map((item) => {
-                const Icon = item.icon;
-                const active = isItemActive(normalizedLocation, item);
-                const unreadCount = getToolUnreadCount(item.id);
+        <nav
+          className={
+            density === "compact"
+              ? "mt-3 space-y-3 max-h-[calc(var(--app-height)-180px)] overflow-y-auto pr-1"
+              : "mt-3 space-y-4 max-h-[calc(var(--app-height)-190px)] overflow-y-auto pr-1"
+          }
+        >
+          {sections.map((section) => (
+            <div key={section.section} className="space-y-1.5">
+              {(() => {
+                const sectionUnread = section.items.reduce(
+                  (sum, item) => sum + getToolUnreadCount(item.id),
+                  0
+                );
+                const sectionActive = section.items.some((item) =>
+                  isItemActive(normalizedLocation, item)
+                );
                 return (
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => {
-                      setLocation(item.path);
-                      if (onNavigate) onNavigate();
-                    }}
-                    className={`w-full flex items-center gap-3 rounded-md transition-colors text-left border
-                      ${
-                        active
-                          ? "bg-orange-600/20 border-orange-500/60 text-orange-100"
-                          : "bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
-                      }
-                      ${density === "compact" ? "px-3 py-1.5 text-[13px]" : "px-3 py-2 text-sm"}
-                    `}
+                    onClick={() =>
+                      setCollapsed((prev) => ({
+                        ...prev,
+                        [section.section]: !prev[section.section],
+                      }))
+                    }
+                    className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
+                      sectionActive
+                        ? "border-slate-600 bg-slate-900/90"
+                        : "border-slate-800 bg-slate-950/60 hover:bg-slate-900/60"
+                    }`}
+                    aria-expanded={!collapsed[section.section]}
                   >
-                    {Icon && <Icon className="w-4 h-4" />}
-                    <span className="flex-1 truncate flex items-center gap-2">
-                      <span className="truncate">{item.label}</span>
-                      {unreadCount > 0 && (
-                        <span
-                          className="inline-block w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_0_2px_rgba(251,146,60,0.2)]"
-                          title={`${unreadCount} pending`}
-                        />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {section.section}
+                      </span>
+                      {collapsed[section.section] ? (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" />
                       )}
-                    </span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+                      <span>{section.items.length} tools</span>
+                      {sectionUnread > 0 && (
+                        <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-orange-200">
+                          {sectionUnread} new
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
-              })}
-          </div>
-        ))}
-      </nav>
+              })()}
+              {!collapsed[section.section] &&
+                section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isItemActive(normalizedLocation, item);
+                  const unreadCount = getToolUnreadCount(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setLocation(item.path);
+                        if (onNavigate) onNavigate();
+                      }}
+                      className={`w-full rounded-xl border text-left transition-colors ${
+                        active
+                          ? "border-orange-500/60 bg-orange-500/12 text-orange-50 shadow-[0_0_0_1px_rgba(249,115,22,0.08)]"
+                          : "border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-700 hover:bg-slate-900/70 hover:text-white"
+                      } ${density === "compact" ? "px-3 py-2" : "px-3 py-2.5"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {Icon && (
+                          <span
+                            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border ${
+                              active
+                                ? "border-orange-400/30 bg-orange-500/10 text-orange-200"
+                                : "border-slate-800 bg-slate-900/80 text-slate-400"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{item.label}</span>
+                          <span className="mt-0.5 block text-[11px] text-slate-500">
+                            {item.path === "/admin"
+                              ? "Mission Control home"
+                              : item.path.replace("/admin/", "").replaceAll("-", " ")}
+                          </span>
+                        </span>
+                        {unreadCount > 0 && (
+                          <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+          ))}
+        </nav>
+      </div>
     </aside>
   );
 }

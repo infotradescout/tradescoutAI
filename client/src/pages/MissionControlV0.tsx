@@ -1,9 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Activity,
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  Compass,
+  ExternalLink,
+  Radar,
+  ShieldAlert,
+  Wrench,
+} from "lucide-react";
 import { useLocation } from "wouter";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 
 interface MissionControlSummary {
   last24hRange: { start: string; end: string };
@@ -49,6 +61,16 @@ interface OneFixResult {
   failure: MissionControlFailure;
 }
 
+interface LiveStreamEntry {
+  id: string;
+  timestamp: string;
+  kind?: string;
+  title: string;
+  narrative: string;
+  source: string;
+  priority: "critical" | "high" | "medium" | "low";
+}
+
 interface LiveStreamPreview {
   generatedAt: string;
   summary: {
@@ -59,15 +81,7 @@ interface LiveStreamPreview {
     activeAlerts: number;
     sourceCounts: Record<string, number>;
   };
-  stream: Array<{
-    id: string;
-    timestamp: string;
-    kind?: string;
-    title: string;
-    narrative: string;
-    source: string;
-    priority: "critical" | "high" | "medium" | "low";
-  }>;
+  stream: LiveStreamEntry[];
 }
 
 interface SnapshotStatusResponse {
@@ -83,15 +97,72 @@ interface SnapshotStatusResponse {
   }>;
 }
 
+interface MissionControlDecision {
+  id: string;
+  recommendedFixSourceType: string;
+  recommendedFixSourceId: string;
+  action: "done" | "defer";
+  deferReason: string | null;
+  createdAt: string;
+}
+
+interface PreferredSourceMetrics {
+  promptsShown: number;
+  promptsAccepted: number;
+  acceptanceRate: number;
+}
+
+function formatCount(value: number | null | undefined) {
+  return new Intl.NumberFormat("en-US").format(value ?? 0);
+}
+
+function formatWhen(value?: string | null) {
+  if (!value) return "No timestamp";
+  return new Date(value).toLocaleString();
+}
+
+function relativeWhen(value?: string | null) {
+  if (!value) return "No recent activity";
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function priorityBadgeVariant(priority: LiveStreamEntry["priority"]) {
+  switch (priority) {
+    case "critical":
+      return "error";
+    case "high":
+      return "warning";
+    case "medium":
+      return "secondary";
+    default:
+      return "outline";
+  }
+}
+
+function failureBadgeVariant(failure: MissionControlFailure) {
+  if (failure.severity >= 4 || failure.impactScore >= 20) return "error";
+  if (failure.severity >= 3 || failure.impactScore >= 10) return "warning";
+  return "secondary";
+}
+
 export default function MissionControlV0() {
   const [, navigate] = useLocation();
   const [summary, setSummary] = useState<MissionControlSummary | null>(null);
   const [failures, setFailures] = useState<MissionControlFailure[]>([]);
   const [compromises, setCompromises] = useState<MissionControlCompromise[]>([]);
-  const [scoutHealth, setScoutHealth] = useState<string>("");
+  const [scoutHealth, setScoutHealth] = useState("");
   const [oneFix, setOneFix] = useState<OneFixResult | null>(null);
   const [liveStream, setLiveStream] = useState<LiveStreamPreview | null>(null);
   const [snapshotStatus, setSnapshotStatus] = useState<SnapshotStatusResponse | null>(null);
+  const [todayDecisions, setTodayDecisions] = useState<MissionControlDecision[]>([]);
+  const [preferredSourceMetrics, setPreferredSourceMetrics] =
+    useState<PreferredSourceMetrics | null>(null);
   const [deferReason, setDeferReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -105,14 +176,18 @@ export default function MissionControlV0() {
         oneFixRes,
         liveStreamRes,
         snapshotStatusRes,
+        todayDecisionsRes,
+        preferredSourceRes,
       ] = await Promise.all([
         fetch("/api/admin/mission-control/summary"),
         fetch("/api/admin/mission-control/failures"),
         fetch("/api/admin/mission-control/compromises"),
         fetch("/api/admin/mission-control/scout-health"),
         fetch("/api/admin/mission-control/one-fix"),
-        fetch("/api/admin/observability/live-stream?limit=3"),
+        fetch("/api/admin/observability/live-stream?limit=6"),
         fetch("/api/admin/observability/snapshot-status"),
+        fetch("/api/admin/mission-control/today-decisions"),
+        fetch("/api/admin/mission-control/preferred-source-metrics"),
       ]);
 
       if (summaryRes.ok) setSummary(await summaryRes.json());
@@ -127,14 +202,12 @@ export default function MissionControlV0() {
       } else if (oneFixRes.status === 204) {
         setOneFix(null);
       }
-      if (liveStreamRes.ok) {
-        setLiveStream(await liveStreamRes.json());
-      }
-      if (snapshotStatusRes.ok) {
-        setSnapshotStatus(await snapshotStatusRes.json());
-      }
-    } catch (err) {
-      console.error("[MissionControl] Failed to fetch data", err);
+      if (liveStreamRes.ok) setLiveStream(await liveStreamRes.json());
+      if (snapshotStatusRes.ok) setSnapshotStatus(await snapshotStatusRes.json());
+      if (todayDecisionsRes.ok) setTodayDecisions(await todayDecisionsRes.json());
+      if (preferredSourceRes.ok) setPreferredSourceMetrics(await preferredSourceRes.json());
+    } catch (error) {
+      console.error("[MissionControl] Failed to fetch data", error);
     }
   };
 
@@ -146,14 +219,14 @@ export default function MissionControlV0() {
     if (!oneFix) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/mission-control/one-fix/${oneFix.action.id}/done`, {
+      const response = await fetch(`/api/admin/mission-control/one-fix/${oneFix.action.id}/done`, {
         method: "POST",
       });
-      if (res.ok) {
+      if (response.ok) {
         await fetchData();
       }
-    } catch (err) {
-      console.error("[MissionControl] Failed to mark done", err);
+    } catch (error) {
+      console.error("[MissionControl] Failed to mark action done", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -163,17 +236,17 @@ export default function MissionControlV0() {
     if (!oneFix || !deferReason.trim()) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/mission-control/one-fix/${oneFix.action.id}/defer`, {
+      const response = await fetch(`/api/admin/mission-control/one-fix/${oneFix.action.id}/defer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: deferReason.trim() }),
       });
-      if (res.ok) {
+      if (response.ok) {
         setDeferReason("");
         await fetchData();
       }
-    } catch (err) {
-      console.error("[MissionControl] Failed to defer", err);
+    } catch (error) {
+      console.error("[MissionControl] Failed to defer action", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -182,254 +255,518 @@ export default function MissionControlV0() {
   const liveStreamSnapshot = snapshotStatus?.statuses?.find(
     (snapshot) => snapshot.key === "live_stream"
   );
-  const liveEvidenceCount = liveStream?.stream?.length ?? 0;
-  const topRouteDemand = (liveStream?.stream || []).find(
-    (entry) => entry.kind === "crawler_route_demand"
-  );
-  const topCountyDemand = (liveStream?.stream || []).find(
-    (entry) => entry.kind === "crawler_county_demand"
-  );
-  const topBotDemand = (liveStream?.stream || []).find(
-    (entry) => entry.kind === "bot_demand_cluster"
-  );
+  const staleSnapshots = snapshotStatus?.statuses?.filter((status) => status.isStale) ?? [];
+  const topFailures = failures.slice(0, 5);
+  const topCompromises = compromises.slice(0, 4);
+  const liveEntries = liveStream?.stream ?? [];
+  const hottestRoute = liveEntries.find((entry) => entry.kind === "crawler_route_demand");
+  const hottestCounty = liveEntries.find((entry) => entry.kind === "crawler_county_demand");
+  const leadCountyLabel =
+    liveStream?.summary.currentLeadCounty && liveStream?.summary.currentLeadState
+      ? `${liveStream.summary.currentLeadCounty}, ${liveStream.summary.currentLeadState}`
+      : liveStream?.summary.currentLeadCounty || "No county lead yet";
+
+  const connectionRate = useMemo(() => {
+    if (!summary?.totalConnectionAttempts) return 0;
+    return Math.round((summary.successfulConnections / summary.totalConnectionAttempts) * 100);
+  }, [summary]);
+
+  const focusHeadline = oneFix?.action.summary
+    ? oneFix.action.summary
+    : topFailures[0]?.what || "No urgent fix surfaced yet";
+  const focusDetail = oneFix
+    ? `${oneFix.failure.where} issue affecting ${oneFix.failure.who}`
+    : topFailures[0]
+      ? `${topFailures[0].why} on ${topFailures[0].where}`
+      : "Admin home is clear enough to move into a tool directly.";
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Mission Control</h1>
-        <p className="text-muted-foreground">
-          Admin launch surface for live system truth, observability, and partner intelligence.
-        </p>
+    <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-5 md:px-6">
+      <div className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.18),transparent_35%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_40%),linear-gradient(180deg,rgba(8,10,19,0.98),rgba(8,10,19,0.92))] p-5 md:p-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl space-y-3">
+            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/70">
+              Mission Control
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                Stop browsing the admin. Operate it.
+              </h1>
+              <p className="max-w-2xl text-sm leading-6 text-white/65 md:text-base">
+                This view is trimmed down to what needs a decision, where demand is building, and
+                which tool can actually fix something next.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:min-w-[380px]">
+            <Button onClick={() => navigate("/admin/live-stream")} className="justify-between">
+              Live Stream
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/cumulus-intelligence")}
+              className="justify-between"
+            >
+              Cumulus
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/observability")}
+              className="justify-between"
+            >
+              Observability
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/scout-resilience")}
+              className="justify-between"
+            >
+              Scout Resilience
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <Card className="p-6 border-border bg-card">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Live System Evidence</h2>
-            <p className="text-sm text-muted-foreground">
-              This is the quickest proof that the stream is producing data now.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => navigate("/admin/live-stream")}>Open Live Stream</Button>
-            <Button variant="outline" onClick={() => navigate("/admin/observability")}>
-              Open Observability
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/admin/cumulus-intelligence")}>
-              Open Cumulus Intelligence
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">Truth Now</div>
-            <div className="mt-2 text-sm text-white/85">
-              {liveStream?.summary.truthNow || "No live stream truth available yet."}
-            </div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">Entries</div>
-            <div className="mt-2 text-2xl font-semibold text-white">{liveEvidenceCount}</div>
-            <div className="text-xs text-white/50">Current server-produced stream entries</div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">Crawler 24h</div>
-            <div className="mt-2 text-2xl font-semibold text-white">
-              {liveStream?.summary.crawlerRequests24h ?? 0}
-            </div>
-            <div className="text-xs text-white/50">Observation volume feeding the stream</div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">Snapshot State</div>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge variant="outline">
-                {liveStreamSnapshot ? (liveStreamSnapshot.isStale ? "stale" : "fresh") : "missing"}
+      <div className="grid gap-4 xl:grid-cols-[1.55fr_1fr]">
+        <Card className="overflow-hidden border-amber-400/20 bg-[linear-gradient(180deg,rgba(33,20,5,0.96),rgba(17,12,10,0.96))]">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={oneFix ? "warning" : "secondary"}>
+                {oneFix ? "Act now" : "No forced fix"}
               </Badge>
-              <span className="text-sm text-white/80">
-                {liveStreamSnapshot?.latestComputedAt
-                  ? new Date(liveStreamSnapshot.latestComputedAt).toLocaleString()
-                  : "No snapshot timestamp"}
-              </span>
+              <Badge variant="outline" className="border-white/15 text-white/60">
+                {summary?.last24hRange?.end
+                  ? `Updated ${relativeWhen(summary.last24hRange.end)}`
+                  : "Live"}
+              </Badge>
             </div>
-            <div className="mt-1 text-xs text-white/50">Entries shown: {liveEvidenceCount}</div>
-          </div>
-        </div>
+            <CardTitle className="text-2xl">{focusHeadline}</CardTitle>
+            <CardDescription className="max-w-3xl text-white/65">{focusDetail}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                  Connection rate
+                </div>
+                <div className="mt-2 text-3xl font-semibold text-white">{connectionRate}%</div>
+                <div className="mt-1 text-sm text-white/60">
+                  {formatCount(summary?.successfulConnections)} successful out of{" "}
+                  {formatCount(summary?.totalConnectionAttempts)} attempts.
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                  Blocked paths
+                </div>
+                <div className="mt-2 text-3xl font-semibold text-white">
+                  {formatCount(summary?.blockedConnections)}
+                </div>
+                <div className="mt-1 text-sm text-white/60">
+                  Hard stops that kept Scout from finishing the job.
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                  Confusing experiences
+                </div>
+                <div className="mt-2 text-3xl font-semibold text-white">
+                  {formatCount(summary?.confusingExperiences)}
+                </div>
+                <div className="mt-1 text-sm text-white/60">
+                  Copy or UI friction before contact could happen.
+                </div>
+              </div>
+            </div>
 
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">Top Demand Page</div>
-            <div className="mt-2 text-sm text-white/85">
-              {topRouteDemand?.narrative || "No route demand signal yet."}
-            </div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-              Top Demand County
-            </div>
-            <div className="mt-2 text-sm text-white/85">
-              {topCountyDemand?.narrative || "No county demand signal yet."}
-            </div>
-          </div>
-          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-cyan-100/70">
-              Bot Demand Cluster
-            </div>
-            <div className="mt-2 text-sm text-cyan-50">
-              {topBotDemand?.narrative || "No bot demand cluster yet."}
-            </div>
-          </div>
-        </div>
+            {oneFix ? (
+              <div className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={failureBadgeVariant(oneFix.failure)}>
+                      Impact {oneFix.action.impactScore}
+                    </Badge>
+                    <Badge variant="outline" className="border-white/15 text-white/70">
+                      {oneFix.action.suggestedFix}
+                    </Badge>
+                    <Badge variant="outline" className="border-white/15 text-white/70">
+                      {oneFix.failure.occurrences} occurrence
+                      {oneFix.failure.occurrences === 1 ? "" : "s"}
+                    </Badge>
+                  </div>
 
-        {liveStream?.stream?.length ? (
-          <div className="mt-5 space-y-3">
-            {liveStream.stream.map((entry) => (
-              <div key={entry.id} className="rounded-lg border border-border bg-background p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{entry.source}</Badge>
-                  <Badge variant="outline">{entry.priority}</Badge>
-                  <span className="text-xs text-white/50">
-                    {new Date(entry.timestamp).toLocaleString()}
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-xs uppercase tracking-[0.22em] text-white/45">Who</div>
+                      <div className="mt-2 text-sm text-white/80">{oneFix.failure.who}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="text-xs uppercase tracking-[0.22em] text-white/45">Where</div>
+                      <div className="mt-2 text-sm text-white/80">
+                        {oneFix.failure.where} via {oneFix.failure.fixLever}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 md:col-span-2">
+                      <div className="text-xs uppercase tracking-[0.22em] text-white/45">
+                        Why it matters
+                      </div>
+                      <div className="mt-2 text-sm text-white/80">{oneFix.failure.why}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <div className="text-sm font-medium text-white">Close the loop</div>
+                  <div className="mt-2 text-sm text-white/60">
+                    Resolve this or defer it with context so today&apos;s queue stays honest.
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button onClick={markDone} disabled={isSubmitting}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Mark done
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate("/admin/scout-resilience")}
+                      className="border-white/15 text-white"
+                    >
+                      Open fix surface
+                    </Button>
+                  </div>
+                  <Textarea
+                    className="mt-4 min-h-[92px]"
+                    placeholder="If you defer, say what needs to happen first."
+                    value={deferReason}
+                    onChange={(event) => setDeferReason(event.target.value)}
+                  />
+                  <Button
+                    onClick={markDefer}
+                    disabled={isSubmitting || !deferReason.trim()}
+                    variant="outline"
+                    className="mt-3 border-white/15 text-white"
+                  >
+                    <Clock3 className="mr-2 h-4 w-4" />
+                    Defer with reason
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                No single forced fix is currently queued. Use the action queue and live demand
+                panels below to pick the next highest-leverage move.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="border-cyan-400/15 bg-[linear-gradient(180deg,rgba(6,27,35,0.98),rgba(10,16,24,0.98))]">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-cyan-300" />
+              <CardTitle>System pulse</CardTitle>
+            </div>
+            <CardDescription>Useful health signals, not a wall of telemetry.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/45">Lead county</div>
+                <div className="mt-2 text-lg font-semibold text-white">{leadCountyLabel}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/45">Crawler 24h</div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {formatCount(liveStream?.summary.crawlerRequests24h)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/45">
+                  Active alerts
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {formatCount(liveStream?.summary.activeAlerts)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/45">Snapshot</div>
+                <div className="mt-2 flex items-center gap-2 text-sm text-white">
+                  <Badge variant={liveStreamSnapshot?.isStale ? "warning" : "outline"}>
+                    {liveStreamSnapshot
+                      ? liveStreamSnapshot.isStale
+                        ? "stale"
+                        : "fresh"
+                      : "missing"}
+                  </Badge>
+                  <span className="text-white/65">
+                    {relativeWhen(liveStreamSnapshot?.latestComputedAt)}
                   </span>
                 </div>
-                <div className="mt-2 font-medium text-white">{entry.title}</div>
-                <div className="mt-1 text-sm text-white/70">{entry.narrative}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-            No live stream entries are visible from admin home yet. Open Live Stream directly and
-            refresh if needed.
-          </div>
-        )}
-      </Card>
-
-      {summary && (
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Today's Reality</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <div className="text-2xl font-bold">{summary.totalConnectionAttempts}</div>
-              <div className="text-sm text-muted-foreground">Connection Attempts</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600">
-                {summary.successfulConnections}
-              </div>
-              <div className="text-sm text-muted-foreground">Successful</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-red-600">{summary.blockedConnections}</div>
-              <div className="text-sm text-muted-foreground">Blocked</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-yellow-600">
-                {summary.confusingExperiences}
-              </div>
-              <div className="text-sm text-muted-foreground">Confusing</div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      <Card className="p-6 border-2 border-primary">
-        <h2 className="text-xl font-semibold mb-4">One Fix That Matters Today</h2>
-        {oneFix ? (
-          <div className="space-y-4">
-            <div>
-              <Badge variant="outline" className="mb-2">
-                Impact: {oneFix.action.impactScore}
-              </Badge>
-              <Badge variant="outline" className="ml-2">
-                Fix: {oneFix.action.suggestedFix}
-              </Badge>
-              <h3 className="text-lg font-semibold mt-2">{oneFix.action.summary}</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {oneFix.failure.who} | {oneFix.failure.where} | {oneFix.failure.why}
-              </p>
-              <p className="text-sm mt-2">
-                {oneFix.failure.occurrences} occurrence{oneFix.failure.occurrences > 1 ? "s" : ""} |
-                Severity {oneFix.failure.severity}/5
-              </p>
-            </div>
-
-            <div className="flex gap-4 items-end">
-              <Button onClick={markDone} disabled={isSubmitting} variant="default">
-                Mark Done
-              </Button>
-              <div className="flex-1">
-                <Textarea
-                  placeholder="Why defer? (required)"
-                  value={deferReason}
-                  onChange={(e) => setDeferReason(e.target.value)}
-                  rows={2}
-                />
-                <Button
-                  onClick={markDefer}
-                  disabled={isSubmitting || !deferReason.trim()}
-                  variant="outline"
-                  className="mt-2"
-                >
-                  Defer
-                </Button>
               </div>
             </div>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">No fixes needed right now. Check back tomorrow.</p>
-        )}
-      </Card>
 
-      {scoutHealth && (
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Scout Health</h2>
-          <p className="text-sm">{scoutHealth}</p>
-        </Card>
-      )}
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-white">
+                <ShieldAlert className="h-4 w-4 text-amber-300" />
+                Snapshot drift
+              </div>
+              <div className="mt-2 text-sm text-white/65">
+                {staleSnapshots.length > 0
+                  ? `${staleSnapshots.length} snapshot${staleSnapshots.length === 1 ? "" : "s"} are stale and likely making the admin lie by omission.`
+                  : "Snapshots are current enough that this page should reflect real stored state."}
+              </div>
+              <div className="mt-3 text-xs text-white/45">
+                {liveStreamSnapshot?.latestComputedAt
+                  ? `Last live snapshot: ${formatWhen(liveStreamSnapshot.latestComputedAt)}`
+                  : "No live snapshot timestamp returned."}
+              </div>
+            </div>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Connection Failures (Last 24h)</h2>
-        {failures.length > 0 ? (
-          <div className="space-y-2">
-            {failures.slice(0, 10).map((failure) => (
-              <div key={failure.id} className="border-l-4 border-red-500 pl-4 py-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="error">{failure.impactScore}</Badge>
-                  <span className="font-semibold">{failure.what}</span>
-                  <Badge variant="outline">{failure.fixLever}</Badge>
+            {preferredSourceMetrics ? (
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-white">
+                  <Compass className="h-4 w-4 text-emerald-300" />
+                  Preferred source adoption
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {failure.who} | {failure.where} | {failure.why} | {failure.occurrences}x
+                <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <div className="text-lg font-semibold text-white">
+                      {formatCount(preferredSourceMetrics.promptsShown)}
+                    </div>
+                    <div className="text-white/50">Shown</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-white">
+                      {formatCount(preferredSourceMetrics.promptsAccepted)}
+                    </div>
+                    <div className="text-white/50">Accepted</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-white">
+                      {preferredSourceMetrics.acceptanceRate}%
+                    </div>
+                    <div className="text-white/50">Rate</div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">No failures detected.</p>
-        )}
-      </Card>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Compromises Detected</h2>
-        {compromises.length > 0 ? (
-          <div className="space-y-2">
-            {compromises.map((compromise) => (
-              <div key={compromise.id} className="flex items-start gap-2 py-2">
-                <Badge variant="outline">{compromise.tag}</Badge>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{compromise.description}</p>
-                  {compromise.route && (
-                    <p className="text-xs text-muted-foreground">{compromise.route}</p>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Radar className="h-4 w-4 text-cyan-300" />
+              <CardTitle>Live demand</CardTitle>
+            </div>
+            <CardDescription>What the platform is being pulled toward right now.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/45">Truth now</div>
+                <div className="mt-2 text-sm leading-6 text-white/80">
+                  {liveStream?.summary.truthNow || "No live truth summary returned yet."}
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-[0.22em] text-white/45">
+                    Hottest route
+                  </div>
+                  <div className="mt-2 text-sm text-white/80">
+                    {hottestRoute?.narrative || "No route demand signal surfaced yet."}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="text-xs uppercase tracking-[0.22em] text-white/45">
+                    Hottest county
+                  </div>
+                  <div className="mt-2 text-sm text-white/80">
+                    {hottestCounty?.narrative || "No county demand signal surfaced yet."}
+                  </div>
+                </div>
+              </div>
+
+              <ScrollArea className="h-[280px] rounded-2xl border border-white/10 bg-black/20">
+                <div className="space-y-3 p-4">
+                  {liveEntries.length > 0 ? (
+                    liveEntries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={priorityBadgeVariant(entry.priority)}>
+                            {entry.priority}
+                          </Badge>
+                          <Badge variant="outline" className="border-white/15 text-white/65">
+                            {entry.source}
+                          </Badge>
+                          <span className="text-xs text-white/45">
+                            {relativeWhen(entry.timestamp)}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-sm font-medium text-white">{entry.title}</div>
+                        <div className="mt-1 text-sm text-white/65">{entry.narrative}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-white/60">No live entries yet.</div>
                   )}
                 </div>
+              </ScrollArea>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-amber-300" />
+              <CardTitle>Action queue</CardTitle>
+            </div>
+            <CardDescription>The next failures worth opening a tool for.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[430px] rounded-2xl border border-white/10 bg-black/20">
+              <div className="space-y-3 p-4">
+                {topFailures.length > 0 ? (
+                  topFailures.map((failure) => (
+                    <div
+                      key={failure.id}
+                      className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={failureBadgeVariant(failure)}>
+                          Impact {failure.impactScore}
+                        </Badge>
+                        <Badge variant="outline" className="border-white/15 text-white/65">
+                          {failure.fixLever}
+                        </Badge>
+                        <span className="text-xs text-white/45">
+                          {relativeWhen(failure.latestAt)}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-white">{failure.what}</div>
+                      <div className="mt-1 text-sm text-white/65">{failure.why}</div>
+                      <div className="mt-3 flex items-center justify-between text-xs text-white/45">
+                        <span>
+                          {failure.where} • {failure.occurrences} hit
+                          {failure.occurrences === 1 ? "" : "s"}
+                        </span>
+                        <span>{failure.who}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-white/60">
+                    No failures detected in the last 24 hours.
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">No compromises detected.</p>
-        )}
-      </Card>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                <CardTitle>Today&apos;s operator decisions</CardTitle>
+              </div>
+              <CardDescription>
+                Whether the queue is being cleared or kicked down the road.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[180px] rounded-2xl border border-white/10 bg-black/20">
+                <div className="space-y-3 p-4">
+                  {todayDecisions.length > 0 ? (
+                    todayDecisions.map((decision) => (
+                      <div
+                        key={decision.id}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={decision.action === "done" ? "success" : "warning"}>
+                            {decision.action}
+                          </Badge>
+                          <span className="text-xs text-white/45">
+                            {relativeWhen(decision.createdAt)}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-sm text-white/80">
+                          {decision.recommendedFixSourceType}:{decision.recommendedFixSourceId}
+                        </div>
+                        {decision.deferReason ? (
+                          <div className="mt-1 text-sm text-white/60">{decision.deferReason}</div>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-white/60">No decisions logged yet today.</div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-rose-300" />
+                <CardTitle>Compromises and notes</CardTitle>
+              </div>
+              <CardDescription>Fast read on trust leaks, stubs, and Scout health.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.22em] text-white/45">
+                  Scout health
+                </div>
+                <div className="mt-2 text-sm leading-6 text-white/75">
+                  {scoutHealth || "No Scout health summary returned."}
+                </div>
+              </div>
+
+              <ScrollArea className="h-[210px] rounded-2xl border border-white/10 bg-black/20">
+                <div className="space-y-3 p-4">
+                  {topCompromises.length > 0 ? (
+                    topCompromises.map((compromise) => (
+                      <div
+                        key={compromise.id}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="border-white/15 text-white/70">
+                            {compromise.tag}
+                          </Badge>
+                          <span className="text-xs text-white/45">
+                            {relativeWhen(compromise.observedAt)}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-sm text-white/80">{compromise.description}</div>
+                        {compromise.route ? (
+                          <div className="mt-1 text-xs text-white/45">{compromise.route}</div>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-white/60">No compromises detected.</div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -56,20 +56,30 @@ export async function getScoutInteractionBaseline(params: {
 }): Promise<ActionSignalBaseline> {
   const { currentValue } = params;
 
-  const result = await pool.query(
-    `
-      select avg((payload_json->>'interaction_count')::float)::float as baseline_avg_value
-      from lisa_findings
-      where generated_at >= now() - interval '7 days'
-        and generated_at < now()
-        and source_kind = 'scout_interactions'
-        and payload_json ? 'interaction_count'
-    `
-  );
+  let baselineAvgValue: number | null = null;
 
-  const baselineAvgValue = result.rows[0]?.baseline_avg_value
-    ? Number(result.rows[0].baseline_avg_value)
-    : null;
+  try {
+    const result = await pool.query(
+      `
+        select avg((payload_json->>'interaction_count')::float)::float as baseline_avg_value
+        from lisa_findings
+        where generated_at >= now() - interval '7 days'
+          and generated_at < now()
+          and source_kind = 'scout_interactions'
+          and payload_json ? 'interaction_count'
+      `
+    );
+
+    baselineAvgValue = result.rows[0]?.baseline_avg_value
+      ? Number(result.rows[0].baseline_avg_value)
+      : null;
+  } catch (error: any) {
+    // Older deployments may have lisa_findings without payload_json.
+    // Treat as no baseline instead of failing scheduled intelligence jobs.
+    if (String(error?.code) !== "42703") {
+      throw error;
+    }
+  }
 
   const deltaPct =
     baselineAvgValue && baselineAvgValue > 0

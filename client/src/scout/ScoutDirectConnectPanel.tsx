@@ -239,7 +239,7 @@ function ActiveCoordinationPanel({
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 px-2.5 text-[11px]"
+            className="hidden h-7 px-2.5 text-[11px] sm:inline-flex"
             style={{
               borderColor: "var(--border-subtle)",
               color: "var(--text-primary)",
@@ -253,7 +253,7 @@ function ActiveCoordinationPanel({
           <Button
             type="button"
             size="sm"
-            className="h-7 px-2.5 text-[11px] font-semibold"
+            className="h-8 w-full px-2.5 text-[11px] font-semibold sm:h-7 sm:w-auto"
             style={{
               backgroundColor: "var(--theme-accent-primary)",
               color: "var(--ts-text-on-accent, #0B0F14)",

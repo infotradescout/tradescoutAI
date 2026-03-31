@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import type { ScoutAction } from "./state";
 import { TrustSignalCard, type TrustSignalCardProps } from "./TrustSignalCard";
 
@@ -71,6 +71,8 @@ export function TrustAwareDecisionCard({
   onOpenTrustModel,
   className,
 }: TrustAwareDecisionCardProps) {
+  const [showTrustDetails, setShowTrustDetails] = useState(false);
+  const [showAllAlternatives, setShowAllAlternatives] = useState(false);
   const signal = trust.trustSignals;
 
   const trustProps: TrustSignalCardProps = {
@@ -100,6 +102,7 @@ export function TrustAwareDecisionCard({
 
   const displayedConfidence = Math.round(clamp(Number(confidence ?? 0.65) * 100, 0, 100));
   const finalAlt = (alternativeActions ?? []).slice(0, 3);
+  const visibleAlternatives = showAllAlternatives ? finalAlt : finalAlt.slice(0, 1);
 
   return (
     <article
@@ -113,10 +116,16 @@ export function TrustAwareDecisionCard({
       }}
     >
       <header className="mb-3">
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-            {title}
-          </h3>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span
+            className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
+            style={{
+              background: "color-mix(in oklab, var(--surface-intermediate) 93%, transparent)",
+              color: "var(--text-secondary)",
+            }}
+          >
+            Decision step
+          </span>
 
           <div className="flex flex-wrap gap-2">
             <span
@@ -141,13 +150,30 @@ export function TrustAwareDecisionCard({
           </div>
         </div>
 
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+        <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+          {title}
+        </h3>
+
+        <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
           {summary}
         </p>
       </header>
 
       <div className="mb-3">
-        <TrustSignalCard {...trustProps} />
+        <button
+          type="button"
+          className="rounded border px-2.5 py-1.5 text-xs"
+          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+          onClick={() => setShowTrustDetails((v) => !v)}
+        >
+          {showTrustDetails ? "Hide trust details" : "Show trust details"}
+        </button>
+
+        {showTrustDetails && (
+          <div className="mt-2">
+            <TrustSignalCard {...trustProps} />
+          </div>
+        )}
       </div>
 
       <div
@@ -164,7 +190,7 @@ export function TrustAwareDecisionCard({
           Primary action
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               {toLabel(primaryAction)}
@@ -178,7 +204,7 @@ export function TrustAwareDecisionCard({
             type="button"
             onClick={() => onAction?.(primaryAction)}
             disabled={!primaryAllowed}
-            className="rounded-md px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"
+            className="w-full rounded-md px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
             style={{
               color: "var(--ts-text-on-accent)",
               background: "var(--theme-accent-primary)",
@@ -197,14 +223,27 @@ export function TrustAwareDecisionCard({
 
       {finalAlt.length > 0 && (
         <div>
-          <div
-            className="mb-2 text-[11px] uppercase tracking-wide"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Alternative routes
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div
+              className="text-[11px] uppercase tracking-wide"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Alternative routes
+            </div>
+            {finalAlt.length > 1 && (
+              <button
+                type="button"
+                className="text-xs font-medium"
+                style={{ color: "var(--theme-accent-primary)" }}
+                onClick={() => setShowAllAlternatives((v) => !v)}
+              >
+                {showAllAlternatives ? "Show fewer" : `Show all (${finalAlt.length})`}
+              </button>
+            )}
           </div>
+
           <div className="grid gap-2 md:grid-cols-2">
-            {finalAlt.map((action) => {
+            {visibleAlternatives.map((action) => {
               const label = toLabel(action);
               return (
                 <button
@@ -229,7 +268,7 @@ export function TrustAwareDecisionCard({
         </div>
       )}
 
-      <footer className="mt-3 flex items-center justify-between gap-2">
+      <footer className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
           {trust.trustFilterApplied
             ? `Trust filter active: minimum CVS ${trust.minRequiredScore}`

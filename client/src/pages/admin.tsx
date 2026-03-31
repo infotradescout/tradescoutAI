@@ -69,13 +69,13 @@ function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAd
   const [location] = useLocation();
   const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
 
-  // Canonical Admin OS landing: super admins go to the live system feed, other admins go to users.
+  // Canonical Admin OS landing: super admins go to Mission Control, other admins go to users.
   if (pathname === "/admin") {
-    const AdminLiveStream = React.lazy(() => import("@/pages/admin-live-stream"));
+    const MissionControlV0 = React.lazy(() => import("@/pages/MissionControlV0"));
     const AdminUsers = React.lazy(() => import("@/pages/admin-users"));
     return (
       <Suspense fallback={<PageLoadingSpinner message="Loading admin tools..." />}>
-        {isSuperAdmin ? <AdminLiveStream /> : <AdminUsers />}
+        {isSuperAdmin ? <MissionControlV0 /> : <AdminUsers />}
       </Suspense>
     );
   }

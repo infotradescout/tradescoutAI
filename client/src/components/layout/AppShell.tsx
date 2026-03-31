@@ -291,10 +291,15 @@ export function AppShell({ children, footer }: AppShellProps) {
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
-  const showFeatureNav = !isAuthOrSetupSurface;
+  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const shouldPinRightTools =
-    !isMobile && !isAuthOrSetupSurface && !isScoutSurface && !isSettingsSurface && !isPortalSurface;
+    !isMobile &&
+    !isAdminSurface &&
+    !isAuthOrSetupSurface &&
+    !isScoutSurface &&
+    !isSettingsSurface &&
+    !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
