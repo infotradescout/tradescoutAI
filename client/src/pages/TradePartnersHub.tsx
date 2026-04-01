@@ -31,7 +31,10 @@ type CampaignListResponse = {
 
 function normalizeCtaUrl(url: string | undefined, partnerSlug: string): string {
   if (typeof url === "string" && url.trim().length > 0) {
-    return url.trim();
+    const trimmed = url.trim();
+    if (trimmed.startsWith("/")) {
+      return trimmed;
+    }
   }
 
   if (partnerSlug === "cumulus-media") {
@@ -240,7 +243,11 @@ export default function TradePartnersHub() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {campaigns.map((campaign) => {
-                const partnerHref = normalizeCtaUrl(campaign.ctaUrl, campaign.partnerSlug);
+                const fallbackCountyHref = campaign.counties[0]?.slug
+                  ? `/tradepartners/${encodeURIComponent(campaign.counties[0].slug)}`
+                  : "/tradepartners";
+                const partnerHref =
+                  normalizeCtaUrl(campaign.ctaUrl, campaign.partnerSlug) || fallbackCountyHref;
                 return (
                   <article
                     key={campaign.partnerSlug}
@@ -264,7 +271,7 @@ export default function TradePartnersHub() {
                     </div>
                     <div className="mt-4 flex items-center gap-3">
                       <Link
-                        href={campaign.ctaUrl || partnerHref}
+                        href={partnerHref === "/tradepartners" ? fallbackCountyHref : partnerHref}
                         className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
                       >
                         {campaign.ctaLabel || "View Partner"}
