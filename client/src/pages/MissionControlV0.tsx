@@ -273,12 +273,12 @@ export default function MissionControlV0() {
 
   const focusHeadline = oneFix?.action.summary
     ? oneFix.action.summary
-    : topFailures[0]?.what || "No urgent fix surfaced yet";
+    : topFailures[0]?.what || "No urgent issue right now";
   const focusDetail = oneFix
     ? `${oneFix.failure.where} issue affecting ${oneFix.failure.who}`
     : topFailures[0]
       ? `${topFailures[0].why} on ${topFailures[0].where}`
-      : "Admin home is clear enough to move into a tool directly.";
+      : "Everything looks stable. Open a tool directly if you want to inspect details.";
 
   return (
     <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 py-5 md:px-6">
@@ -286,15 +286,14 @@ export default function MissionControlV0() {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl space-y-3">
             <Badge variant="outline" className="border-white/15 bg-white/5 text-white/70">
-              Mission Control
+              Admin Home
             </Badge>
             <div className="space-y-2">
               <h1 className="font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                Stop browsing the admin. Operate it.
+                See what needs attention.
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-white/65 md:text-base">
-                This view is trimmed down to what needs a decision, where demand is building, and
-                which tool can actually fix something next.
+                This view highlights current issues, demand shifts, and the next best place to act.
               </p>
             </div>
           </div>
@@ -457,8 +456,8 @@ export default function MissionControlV0() {
               </div>
             ) : (
               <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-                No single forced fix is currently queued. Use the action queue and live demand
-                panels below to pick the next highest-leverage move.
+                No urgent issue is queued. Use the action list and demand panels below to choose
+                your next task.
               </div>
             )}
           </CardContent>
@@ -467,9 +466,9 @@ export default function MissionControlV0() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-cyan-300" />
-              <CardTitle>System pulse</CardTitle>
+              <CardTitle>System snapshot</CardTitle>
             </div>
-            <CardDescription>Useful health signals, not a wall of telemetry.</CardDescription>
+            <CardDescription>Key health signals in one quick view.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -562,7 +561,7 @@ export default function MissionControlV0() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Radar className="h-4 w-4 text-cyan-300" />
-              <CardTitle>Live demand</CardTitle>
+              <CardTitle>Current demand</CardTitle>
             </div>
             <CardDescription>What the platform is being pulled toward right now.</CardDescription>
           </CardHeader>
@@ -679,11 +678,9 @@ export default function MissionControlV0() {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                <CardTitle>Today&apos;s operator decisions</CardTitle>
+                <CardTitle>Today&apos;s decisions</CardTitle>
               </div>
-              <CardDescription>
-                Whether the queue is being cleared or kicked down the road.
-              </CardDescription>
+              <CardDescription>What was completed, and what was deferred.</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[180px] rounded-2xl border border-white/10 bg-black/20">

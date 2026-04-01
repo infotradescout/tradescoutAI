@@ -44,6 +44,315 @@ import {
 } from "../services/liveStreamSnapshotService";
 import { getSnapshotStatusSummary } from "../services/snapshotStatusService";
 
+type RecommendedActionEnum =
+  | "INCREASE_BUDGET"
+  | "DECREASE_BUDGET"
+  | "EXPAND_GEO"
+  | "NARROW_GEO"
+  | "PRIORITIZE_CALLS"
+  | "SHIFT_DAYPART"
+  | "ROTATE_CREATIVE"
+  | "HOLD";
+
+type IntentSignalType = "SPIKE" | "BURST" | "STEADY" | "DROP";
+
+type DigitalDnaIntentRecord = {
+  timestamp_utc: string;
+  category: string;
+  geo: {
+    state: string | null;
+    county: string | null;
+    city: string | null;
+  };
+  window_minutes: number;
+  events: {
+    views: number;
+    contact_attempts: number;
+    repeat_sessions: number;
+  };
+  velocity: number;
+  cluster_strength: number;
+  signal_type: IntentSignalType;
+  confidence: number;
+  freshness_seconds: number;
+  recommended_action: RecommendedActionEnum;
+  action_payload: {
+    google_ads: {
+      campaign: string;
+      budget_multiplier: number;
+      geo_modifier: Record<string, number>;
+      call_extension: boolean;
+    };
+    meta: {
+      adset: string;
+      budget_multiplier: number;
+      radius_miles: number;
+      optimize_for: "calls" | "leads" | "traffic";
+    };
+    radio: {
+      daypart_shift: "next_2_hours" | "peak_only" | "hold";
+      spots: number;
+      message: "call_now_urgency" | "compare_and_book" | "awareness_hold";
+    };
+  };
+};
+
+const digitalDnaCooldownByGeoCategory = new Map<string, number>();
+
+function readEvidenceMap(evidence: unknown): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!Array.isArray(evidence)) return map;
+  for (const raw of evidence) {
+    if (typeof raw !== "string") continue;
+    const separator = raw.indexOf("=");
+    if (separator <= 0) continue;
+    const key = raw.slice(0, separator).trim();
+    const value = raw.slice(separator + 1).trim();
+    if (!key) continue;
+    map[key] = value;
+  }
+  return map;
+}
+
+function toCount(value: unknown): number {
+  const parsed = Number.parseInt(String(value ?? "0"), 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, parsed);
+}
+
+function toRatio0to1(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value > 1) return Math.max(0, Math.min(1, value / 100));
+  return Math.max(0, Math.min(1, value));
+}
+
+function inferCategory(item: any): string | null {
+  if (typeof item?.category === "string" && item.category.trim()) {
+    return item.category.trim().toLowerCase();
+  }
+  const text = `${String(item?.title || "")} ${String(item?.narrative || "")}`.toLowerCase();
+  const known = [
+    "roofing",
+    "plumbing",
+    "hvac",
+    "electrical",
+    "home builder",
+    "custom home builder",
+  ];
+  return known.find((candidate) => text.includes(candidate)) || null;
+}
+
+function inferCity(item: any, evidence: Record<string, string>): string | null {
+  if (typeof evidence.city === "string" && evidence.city.trim()) return evidence.city.trim();
+  const match = `${String(item?.title || "")} ${String(item?.narrative || "")}`.match(
+    / in ([A-Za-z .'-]+),\s*[A-Z]{2}\b/
+  );
+  return match?.[1]?.trim() || null;
+}
+
+function resolveSignalType(velocityRatio: number): IntentSignalType {
+  if (velocityRatio >= 0.6) return "SPIKE";
+  if (velocityRatio >= 0.3) return "BURST";
+  if (velocityRatio <= -0.2) return "DROP";
+  return "STEADY";
+}
+
+function resolveRecommendedAction(args: {
+  signalType: IntentSignalType;
+  contactAttempts: number;
+  repeatSessions: number;
+  velocity: number;
+}): RecommendedActionEnum {
+  if (args.signalType === "DROP") {
+    return args.contactAttempts === 0 ? "DECREASE_BUDGET" : "ROTATE_CREATIVE";
+  }
+  if (args.contactAttempts >= 3) return "PRIORITIZE_CALLS";
+  if (args.repeatSessions >= 3 && args.velocity >= 0.3) return "EXPAND_GEO";
+  if (args.signalType === "SPIKE") return "INCREASE_BUDGET";
+  if (args.signalType === "BURST") return "SHIFT_DAYPART";
+  return "HOLD";
+}
+
+function buildActionPayload(args: {
+  category: string;
+  geoState: string | null;
+  geoCounty: string | null;
+  geoCity: string | null;
+  recommendedAction: RecommendedActionEnum;
+  clusterStrength: number;
+  velocity: number;
+  signalType: IntentSignalType;
+}): DigitalDnaIntentRecord["action_payload"] {
+  const stateToken = (args.geoState || "XX").toUpperCase();
+  const campaign = `${args.category.replace(/\s+/g, "_")}_${stateToken}`;
+  const geoKeyCounty = args.geoCounty || "county";
+  const geoKeyCity = args.geoCity || "city";
+  const baseMultiplier = 1 + Math.max(0, args.velocity) * 0.6 + args.clusterStrength * 0.3;
+  const budgetMultiplier = Number(baseMultiplier.toFixed(2));
+
+  return {
+    google_ads: {
+      campaign,
+      budget_multiplier:
+        args.recommendedAction === "DECREASE_BUDGET"
+          ? 0.8
+          : args.recommendedAction === "HOLD"
+            ? 1
+            : budgetMultiplier,
+      geo_modifier: {
+        [geoKeyCounty]: Number((1 + args.clusterStrength * 0.5).toFixed(2)),
+        [geoKeyCity]: Number((1 + Math.max(0, args.velocity) * 0.8).toFixed(2)),
+      },
+      call_extension: args.recommendedAction === "PRIORITIZE_CALLS" || args.signalType === "SPIKE",
+    },
+    meta: {
+      adset: campaign,
+      budget_multiplier:
+        args.recommendedAction === "DECREASE_BUDGET"
+          ? 0.85
+          : args.recommendedAction === "HOLD"
+            ? 1
+            : Number(
+                (1 + Math.max(0, args.velocity) * 0.5 + args.clusterStrength * 0.2).toFixed(2)
+              ),
+      radius_miles: args.recommendedAction === "NARROW_GEO" ? 7 : 10,
+      optimize_for: args.recommendedAction === "PRIORITIZE_CALLS" ? "calls" : "leads",
+    },
+    radio: {
+      daypart_shift:
+        args.recommendedAction === "SHIFT_DAYPART" || args.signalType === "SPIKE"
+          ? "next_2_hours"
+          : args.recommendedAction === "HOLD"
+            ? "hold"
+            : "peak_only",
+      spots: args.signalType === "SPIKE" ? 4 : args.signalType === "BURST" ? 2 : 1,
+      message:
+        args.recommendedAction === "PRIORITIZE_CALLS"
+          ? "call_now_urgency"
+          : args.signalType === "DROP"
+            ? "awareness_hold"
+            : "compare_and_book",
+    },
+  };
+}
+
+function mapSnapshotToDigitalDnaRecords(args: {
+  snapshot: Awaited<ReturnType<typeof getLiveStreamSnapshot>>;
+  windowMinutes: number;
+  minEvents: number;
+  minVelocityRatio: number;
+  minConfidence: number;
+  maxFreshnessSeconds: number;
+  cooldownMinutes: number;
+}): DigitalDnaIntentRecord[] {
+  const nowMs = Date.now();
+
+  return (args.snapshot.stream || [])
+    .map((item) => {
+      const evidence = readEvidenceMap((item as any).evidence);
+      const views = toCount(evidence.views || evidence.hits || evidence.category_views);
+      const contactAttempts = toCount(
+        evidence.contact_attempts || evidence.connection_attempts || evidence.contact_tries
+      );
+      const repeatSessions = toCount(
+        evidence.repeat_sessions || evidence.repeat_visits || evidence.short_window_repeats
+      );
+      const totalEvents = views + contactAttempts + repeatSessions;
+
+      const velocity = toRatio0to1(Number((item as any).baselineDeltaPct ?? 0));
+      const freshnessSeconds = Math.max(
+        0,
+        Math.floor(
+          (nowMs -
+            new Date(String((item as any).timestamp || args.snapshot.generatedAt)).getTime()) /
+            1000
+        )
+      );
+      const category = inferCategory(item);
+      const geoState = (item as any).stateCode || (item as any).state || null;
+      const geoCounty = (item as any).countyName || (item as any).county || null;
+      const geoCity = inferCity(item, evidence);
+
+      const hasBotOnlySource = ["crawler", "bot_crawl_signals", "crawler_request_events"].includes(
+        String((item as any).source || "")
+      );
+      if (hasBotOnlySource && contactAttempts === 0 && repeatSessions === 0) return null;
+
+      if (!category || !geoState || !geoCounty) return null;
+      if (totalEvents < args.minEvents) return null;
+      if (velocity < args.minVelocityRatio) return null;
+      if (freshnessSeconds > args.maxFreshnessSeconds) return null;
+
+      const clusterStrength = Math.max(
+        0,
+        Math.min(
+          1,
+          0.45 * Math.min(1, totalEvents / 20) +
+            0.35 * Math.min(1, velocity) +
+            0.2 * Math.min(1, (contactAttempts + repeatSessions) / 8)
+        )
+      );
+      const confidence = Math.max(
+        0,
+        Math.min(
+          1,
+          0.5 * clusterStrength +
+            0.3 * (String((item as any).truthStatus || "") === "current" ? 1 : 0.5) +
+            0.2
+        )
+      );
+
+      if (confidence < args.minConfidence) return null;
+
+      const signalType = resolveSignalType(velocity);
+      const recommendedAction = resolveRecommendedAction({
+        signalType,
+        contactAttempts,
+        repeatSessions,
+        velocity,
+      });
+
+      const cooldownKey = `${category}|${geoState}|${geoCounty}`.toLowerCase();
+      const lastSentAtMs = digitalDnaCooldownByGeoCategory.get(cooldownKey) || 0;
+      const cooldownWindowMs = args.cooldownMinutes * 60 * 1000;
+      if (nowMs - lastSentAtMs < cooldownWindowMs) return null;
+      digitalDnaCooldownByGeoCategory.set(cooldownKey, nowMs);
+
+      return {
+        timestamp_utc: new Date(nowMs).toISOString(),
+        category,
+        geo: {
+          state: geoState,
+          county: geoCounty,
+          city: geoCity,
+        },
+        window_minutes: args.windowMinutes,
+        events: {
+          views,
+          contact_attempts: contactAttempts,
+          repeat_sessions: repeatSessions,
+        },
+        velocity: Number(velocity.toFixed(2)),
+        cluster_strength: Number(clusterStrength.toFixed(2)),
+        signal_type: signalType,
+        confidence: Number(confidence.toFixed(2)),
+        freshness_seconds: freshnessSeconds,
+        recommended_action: recommendedAction,
+        action_payload: buildActionPayload({
+          category,
+          geoState,
+          geoCounty,
+          geoCity,
+          recommendedAction,
+          clusterStrength,
+          velocity,
+          signalType,
+        }),
+      };
+    })
+    .filter((record): record is DigitalDnaIntentRecord => Boolean(record));
+}
+
 export const observabilityRouter = Router();
 observabilityRouter.use(isAuthenticated, isAdmin);
 
@@ -209,6 +518,159 @@ observabilityRouter.get("/live-stream/events", async (req, res) => {
     console.error("Live stream events query failed:", error);
     sendInternalServerError(res, "Failed to fetch live stream events", { error: String(error) });
   }
+});
+
+observabilityRouter.get("/live-stream/intent-batch", async (req, res) => {
+  try {
+    const windowMinutes = Math.max(
+      5,
+      Math.min(120, Number.parseInt(String((req.query as any)?.window_minutes || "60"), 10))
+    );
+    const minEvents = Math.max(
+      1,
+      Math.min(100, Number.parseInt(String((req.query as any)?.min_events || "5"), 10))
+    );
+    const minVelocityRatio = Math.max(
+      0,
+      Math.min(1, Number.parseFloat(String((req.query as any)?.min_velocity_ratio || "0.3")))
+    );
+    const minConfidence = Math.max(
+      0,
+      Math.min(1, Number.parseFloat(String((req.query as any)?.min_confidence || "0.7")))
+    );
+    const maxFreshnessSeconds = Math.max(
+      30,
+      Math.min(
+        3600,
+        Number.parseInt(String((req.query as any)?.max_freshness_seconds || "600"), 10)
+      )
+    );
+    const cooldownMinutes = Math.max(
+      1,
+      Math.min(120, Number.parseInt(String((req.query as any)?.cooldown_minutes || "15"), 10))
+    );
+
+    const snapshot = await getLiveStreamSnapshot({
+      source: String((req.query as any)?.source || ""),
+      stateCode: String((req.query as any)?.stateCode || ""),
+      county: String((req.query as any)?.county || ""),
+      limit: Number.parseInt(String((req.query as any)?.limit || "50"), 10),
+    });
+
+    const records = mapSnapshotToDigitalDnaRecords({
+      snapshot,
+      windowMinutes,
+      minEvents,
+      minVelocityRatio,
+      minConfidence,
+      maxFreshnessSeconds,
+      cooldownMinutes,
+    });
+
+    res.json({
+      generated_at: new Date().toISOString(),
+      source: "live_stream_snapshot",
+      contract: "digital_dna_v1",
+      guardrails: {
+        min_events: minEvents,
+        min_velocity_ratio: minVelocityRatio,
+        min_confidence: minConfidence,
+        max_freshness_seconds: maxFreshnessSeconds,
+        cooldown_minutes: cooldownMinutes,
+      },
+      records,
+    });
+  } catch (error) {
+    console.error("Live stream intent batch query failed:", error);
+    sendInternalServerError(res, "Failed to fetch live stream intent batch", {
+      error: String(error),
+    });
+  }
+});
+
+observabilityRouter.get("/live-stream/intent-stream", async (req, res) => {
+  const intervalSeconds = Math.max(
+    5,
+    Math.min(60, Number.parseInt(String((req.query as any)?.interval_seconds || "15"), 10))
+  );
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  const streamOnce = async () => {
+    try {
+      const snapshot = await getLiveStreamSnapshot({
+        source: String((req.query as any)?.source || ""),
+        stateCode: String((req.query as any)?.stateCode || ""),
+        county: String((req.query as any)?.county || ""),
+        limit: Number.parseInt(String((req.query as any)?.limit || "50"), 10),
+      });
+
+      const records = mapSnapshotToDigitalDnaRecords({
+        snapshot,
+        windowMinutes: Math.max(
+          5,
+          Math.min(120, Number.parseInt(String((req.query as any)?.window_minutes || "60"), 10))
+        ),
+        minEvents: Math.max(
+          1,
+          Math.min(100, Number.parseInt(String((req.query as any)?.min_events || "5"), 10))
+        ),
+        minVelocityRatio: Math.max(
+          0,
+          Math.min(1, Number.parseFloat(String((req.query as any)?.min_velocity_ratio || "0.3")))
+        ),
+        minConfidence: Math.max(
+          0,
+          Math.min(1, Number.parseFloat(String((req.query as any)?.min_confidence || "0.7")))
+        ),
+        maxFreshnessSeconds: Math.max(
+          30,
+          Math.min(
+            3600,
+            Number.parseInt(String((req.query as any)?.max_freshness_seconds || "600"), 10)
+          )
+        ),
+        cooldownMinutes: Math.max(
+          1,
+          Math.min(120, Number.parseInt(String((req.query as any)?.cooldown_minutes || "15"), 10))
+        ),
+      });
+
+      res.write(`event: intent_batch\n`);
+      res.write(
+        `data: ${JSON.stringify({
+          generated_at: new Date().toISOString(),
+          contract: "digital_dna_v1",
+          records,
+        })}\n\n`
+      );
+    } catch (error) {
+      res.write(`event: error\n`);
+      res.write(
+        `data: ${JSON.stringify({ message: "intent_stream_failed", error: String(error) })}\n\n`
+      );
+    }
+  };
+
+  const heartbeat = setInterval(() => {
+    res.write(`event: heartbeat\n`);
+    res.write(`data: ${JSON.stringify({ now: new Date().toISOString() })}\n\n`);
+  }, 15000);
+
+  const ticker = setInterval(() => {
+    void streamOnce();
+  }, intervalSeconds * 1000);
+
+  void streamOnce();
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    clearInterval(ticker);
+    res.end();
+  });
 });
 
 observabilityRouter.get("/live-stream/history", async (req, res) => {

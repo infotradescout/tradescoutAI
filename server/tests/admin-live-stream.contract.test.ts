@@ -13,6 +13,12 @@ describe("admin live stream contracts", () => {
     expect(source).toContain('observabilityRouter.get("/live-stream/history"');
     expect(source).toContain('observabilityRouter.post("/live-stream/refresh"');
     expect(source).toContain('observabilityRouter.get("/live-stream/export.csv"');
+    expect(source).toContain('observabilityRouter.get("/live-stream/intent-batch"');
+    expect(source).toContain('observabilityRouter.get("/live-stream/intent-stream"');
+    expect(source).toContain('contract: "digital_dna_v1"');
+    expect(source).toContain("event: intent_batch");
+    expect(source).toContain("recommended_action");
+    expect(source).toContain("action_payload");
     expect(source).toContain("getLiveStreamSnapshot");
     expect(source).toContain("getLiveStreamSnapshotHistory");
     expect(source).toContain("refreshLiveStreamSnapshot");

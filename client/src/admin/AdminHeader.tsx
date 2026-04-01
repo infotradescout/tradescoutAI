@@ -21,16 +21,16 @@ export function AdminHeader({
   const path = currentItem?.path ?? "/admin";
   const summary =
     path === "/admin"
-      ? "Priority queue, live demand, and operator decisions."
+      ? "Current issues, demand signals, and recent decisions."
       : path.startsWith("/admin/live-stream")
-        ? "Evidence feed for what the platform is producing right now."
+        ? "Live evidence of what the platform is seeing right now."
         : path.startsWith("/admin/observability")
-          ? "Snapshot freshness, jobs, and system signals."
+          ? "Snapshot status, jobs, and system health signals."
           : path.startsWith("/admin/scout-resilience")
-            ? "Fix failures that block Scout from reaching action."
+            ? "Fix issues that block Scout from completing user actions."
             : path.startsWith("/admin/cumulus-intelligence")
               ? "Commercial pressure, county demand, and market reads."
-              : "Focused admin tool for platform operations.";
+              : "Focused admin tool for platform management.";
 
   return (
     <header className="rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.82))] px-4 py-4 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">

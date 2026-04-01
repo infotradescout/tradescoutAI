@@ -155,6 +155,35 @@ type BotArmyAutoPromotionStatusResponse = {
   };
 };
 
+type IntentBucket = "trigger" | "support" | "noise";
+
+type BuyerIntentCluster = {
+  item: LiveStreamItem;
+  bucket: IntentBucket;
+  category: string | null;
+  location: string | null;
+  windowMinutes: number;
+  triggerData: {
+    categoryViews: number;
+    searchQueries: number;
+    contactAttempts: number;
+    repeatVisits: number;
+    multiPageIntentSessions: number;
+  };
+  supportData: {
+    sessionDepth: number;
+    dwellSeconds: number;
+    returnFrequency: number;
+    scrollDepthPct: number;
+  };
+  behaviorSignal: string;
+  velocityPct: number;
+  signalStrength: "HIGH" | "MEDIUM" | "LOW";
+  adAction: string;
+  includeInLivestream: boolean;
+  exclusionReason?: string;
+};
+
 type SnapshotStatusResponse = {
   generatedAt: string;
   schedulerEnabled: boolean;
@@ -358,14 +387,225 @@ function extractRouteTarget(item: LiveStreamItem): string | null {
   return null;
 }
 
+function buildEvidenceMap(evidence: string[] | undefined): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const entry of evidence || []) {
+    const sep = entry.indexOf("=");
+    if (sep <= 0) continue;
+    const key = entry.slice(0, sep).trim();
+    const value = entry.slice(sep + 1).trim();
+    if (!key) continue;
+    map[key] = value;
+  }
+  return map;
+}
+
+function toCount(value: string | null | undefined): number {
+  if (!value) return 0;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+function inferCategoryLabel(item: LiveStreamItem): string | null {
+  if (item.category) return item.category;
+  const text = `${item.title} ${item.narrative}`.toLowerCase();
+  const known = [
+    "plumbing",
+    "hvac",
+    "electrical",
+    "roofing",
+    "home builder",
+    "custom home builder",
+  ];
+  const match = known.find((value) => text.includes(value));
+  return match || null;
+}
+
+function inferLocationLabel(item: LiveStreamItem): string | null {
+  if (item.county && item.state) return `${item.county}, ${item.state}`;
+  if (item.county) return item.county;
+  if (item.state) return item.state;
+
+  const match = `${item.title} ${item.narrative}`.match(/ in ([A-Za-z .'-]+,\s*[A-Z]{2})\b/);
+  return match?.[1]?.trim() || null;
+}
+
+function buildBuyerIntentCluster(item: LiveStreamItem, windowMinutes = 45): BuyerIntentCluster {
+  const evidence = buildEvidenceMap(item.evidence);
+  const hits = toCount(
+    evidence.hits ||
+      evidence.machine_attention_hits ||
+      evidence.request_count ||
+      evidence.county_surface_requests ||
+      evidence.crawler_requests_24h
+  );
+
+  const triggerData = {
+    categoryViews: toCount(
+      evidence.category_views || evidence.clustered_category_views || evidence.category_view_count
+    ),
+    searchQueries: toCount(
+      evidence.search_queries ||
+        evidence.query_count ||
+        evidence.search_count ||
+        evidence.intent_queries
+    ),
+    contactAttempts: toCount(
+      evidence.contact_attempts || evidence.contact_tries || evidence.connection_attempts
+    ),
+    repeatVisits: toCount(
+      evidence.repeat_visits || evidence.repeat_sessions || evidence.short_window_repeats
+    ),
+    multiPageIntentSessions: toCount(
+      evidence.multi_page_intent_sessions ||
+        evidence.intent_sessions ||
+        evidence.multi_page_sessions
+    ),
+  };
+
+  // Fallbacks: when source does not emit granular keys yet, derive minimum intent counts from known signals.
+  if (triggerData.categoryViews === 0 && hits > 0 && item.signalClass?.includes("category")) {
+    triggerData.categoryViews = hits;
+  }
+  if (
+    triggerData.multiPageIntentSessions === 0 &&
+    ["attention_action_gap", "trust_friction", "visibility_outpacing_coverage"].includes(
+      item.signalClass || ""
+    )
+  ) {
+    triggerData.multiPageIntentSessions = 1;
+  }
+
+  const supportData = {
+    sessionDepth: toCount(evidence.session_depth || evidence.avg_session_depth),
+    dwellSeconds: toCount(evidence.dwell_seconds || evidence.avg_dwell_seconds),
+    returnFrequency: toCount(evidence.return_frequency || evidence.return_frequency_7d),
+    scrollDepthPct: toCount(evidence.scroll_depth_pct || evidence.avg_scroll_depth_pct),
+  };
+
+  const category = inferCategoryLabel(item);
+  const location = inferLocationLabel(item);
+  const adAction = resolveEntryActionTask(item) || "";
+  const velocityPct = typeof item.baselineDeltaPct === "number" ? item.baselineDeltaPct : 0;
+
+  const triggerDimensions = Object.values(triggerData).filter((count) => count > 0).length;
+  const supportDimensions = Object.values(supportData).filter((count) => count > 0).length;
+  const hasActionData = triggerDimensions >= 2;
+
+  const includeInLivestream =
+    hasActionData && !!category && !!location && !!adAction && Math.abs(velocityPct) > 0;
+
+  const bucket: IntentBucket = hasActionData
+    ? "trigger"
+    : supportDimensions > 0
+      ? "support"
+      : "noise";
+
+  const behaviorSignals: string[] = [];
+  if (triggerData.multiPageIntentSessions > 0)
+    behaviorSignals.push("multi-page intent sessions detected");
+  if (triggerData.contactAttempts > 0) behaviorSignals.push("direct contact behavior detected");
+  if (triggerData.repeatVisits > 0) behaviorSignals.push("repeat short-window activity detected");
+  const behaviorSignal = behaviorSignals.join(" | ") || "single-signal activity only";
+
+  let signalStrength: "HIGH" | "MEDIUM" | "LOW" = "LOW";
+  if (
+    triggerDimensions >= 3 &&
+    (triggerData.contactAttempts > 0 || triggerData.multiPageIntentSessions > 0) &&
+    velocityPct >= 50
+  ) {
+    signalStrength = "HIGH";
+  } else if (triggerDimensions >= 2 && velocityPct >= 20) {
+    signalStrength = "MEDIUM";
+  }
+
+  let exclusionReason: string | undefined;
+  if (!includeInLivestream) {
+    if (bucket === "noise") exclusionReason = "isolated or low-intent activity";
+    else if (!category || !location) exclusionReason = "missing category or location";
+    else if (!adAction) exclusionReason = "no direct ad action available";
+    else if (Math.abs(velocityPct) === 0) exclusionReason = "no velocity change";
+    else exclusionReason = "insufficient related trigger actions";
+  }
+
+  return {
+    item,
+    bucket,
+    category,
+    location,
+    windowMinutes,
+    triggerData,
+    supportData,
+    behaviorSignal,
+    velocityPct,
+    signalStrength,
+    adAction,
+    includeInLivestream,
+    exclusionReason,
+  };
+}
+
+function isDiscoveryOnlyPath(path: string | null): boolean {
+  if (!path) return false;
+  return ["/category", "/categories", "/search", "/tag", "/topics"].some((prefix) =>
+    path.startsWith(prefix)
+  );
+}
+
+function getSurfaceIntentProfile(surface: string): {
+  intent: string;
+  adEligible: boolean;
+} {
+  switch (surface) {
+    case "public_business":
+    case "tradepartners":
+    case "direct_connect":
+    case "trade_deals":
+    case "homescout_listings":
+      return {
+        intent: "Commercial intent pages where buyers can take action now.",
+        adEligible: true,
+      };
+    case "county_page":
+    case "county_recent":
+    case "trade_county_page":
+    case "trade_region_page":
+    case "community":
+    case "exchange":
+    case "public_profile":
+      return {
+        intent: "Discovery context that helps route buyers, but is not direct ad inventory.",
+        adEligible: false,
+      };
+    case "infra":
+    case "crawl_meta":
+    case "static_asset":
+      return {
+        intent: "Infrastructure crawl traffic. Operational only.",
+        adEligible: false,
+      };
+    default:
+      return {
+        intent: "Needs classification before using it for ad or outreach decisions.",
+        adEligible: false,
+      };
+  }
+}
+
 function resolveEntryActionTask(item: LiveStreamItem): string | null {
   if (item.recommendedPlay) return item.recommendedPlay;
   const countyLabel =
     item.county && item.state ? `${item.county}, ${item.state}` : item.county || item.state || null;
   const routeTarget = extractRouteTarget(item);
+  const routeIsDiscoveryOnly = isDiscoveryOnlyPath(routeTarget);
   const categoryLabel = item.category || "this category";
 
   if (item.kind === "crawler_route_demand") {
+    if (routeIsDiscoveryOnly) {
+      return routeTarget
+        ? `Treat ${routeTarget} as discovery intent, not ad inventory. Track where that traffic exits and place monetization on the destination surface.`
+        : "Treat this route spike as discovery intent. Follow exit paths before deciding ad placement.";
+    }
     return routeTarget
       ? `Open an ad or sponsor play on ${routeTarget}, but repair or redirect it first so the traffic can be monetized.`
       : "Repair the highest-pressure route, then turn that attention into an ad or sponsor play.";
@@ -555,19 +795,18 @@ function humanizeSurfaceLabel(surface: string): string {
 
 function buildUsefulSignalSummary(item: LiveStreamItem): {
   headline: string;
+  crawlIntent: string;
+  intentDriver: string;
   marketSignal: string;
   inventory?: string;
   prospects?: string;
   trigger?: string;
   action: string;
+  noActionRisk: string;
 } {
   const parts = splitDecisionNarrative(item.narrative);
-  const evidence = Array.isArray(item.evidence) ? item.evidence : [];
-  const readEvidence = (key: string): string | null => {
-    const match = evidence.find((entry) => entry.startsWith(`${key}=`));
-    if (!match) return null;
-    return match.slice(key.length + 1);
-  };
+  const evidenceMap = buildEvidenceMap(Array.isArray(item.evidence) ? item.evidence : []);
+  const readEvidence = (key: string): string | null => evidenceMap[key] || null;
   const path = readEvidence("top_path") || readEvidence("path") || readEvidence("broken_path");
   const routeFamily = readEvidence("route_family");
   const botFamily = readEvidence("bot_family");
@@ -580,6 +819,25 @@ function buildUsefulSignalSummary(item: LiveStreamItem): {
   const recrawls = readEvidence("recrawls");
   const firstSeen = readEvidence("first_seen_urls");
   const notFound = readEvidence("status_404_count") || readEvidence("missing_count");
+  const routeIsDiscoveryOnly = isDiscoveryOnlyPath(path);
+  const defaultIntent =
+    item.kind === "crawler_county_demand"
+      ? "Bots are probing county-level demand concentration."
+      : item.kind === "crawler_route_demand"
+        ? routeIsDiscoveryOnly
+          ? "Bots are validating discovery intent on taxonomy/search routes, not ad-ready pages."
+          : "Bots are validating intent on a route that can be monetized if conversion is healthy."
+        : item.signalClass === "attention_finding_dead_ends"
+          ? "Bots found intent but users hit dead ends before action."
+          : "Bots are revisiting this surface because demand or friction changed.";
+  const intentDriverParts = [
+    botFamily ? `Bot family ${botFamily}` : null,
+    routeFamily ? `surface ${routeFamily.replace(/_/g, " ")}` : null,
+    hits ? `${hits} hits` : null,
+    recrawls ? `${recrawls} recrawls` : null,
+    firstSeen ? `${firstSeen} new URLs` : null,
+    notFound ? `${notFound} missing/404` : null,
+  ].filter(Boolean);
   const triggerParts = [
     path && path !== "none" ? `path ${path}` : null,
     routeFamily ? `surface ${routeFamily.replace(/_/g, " ")}` : null,
@@ -597,8 +855,20 @@ function buildUsefulSignalSummary(item: LiveStreamItem): {
       : undefined;
   const prospects = item.prospectSummary || parts.why || undefined;
   const headline = path || item.targetMarket || item.title;
+  const noActionRisk =
+    item.signalClass === "attention_finding_dead_ends" || item.signalClass === "repair_pressure"
+      ? "Traffic keeps landing on dead ends, so demand decays before any contact or revenue event."
+      : item.signalClass === "attention_action_gap" || item.signalClass === "trust_friction"
+        ? "Intent remains visible, but conversion keeps leaking and outreach quality drops."
+        : routeIsDiscoveryOnly
+          ? "You may overvalue discovery traffic and place ads on non-converting pages."
+          : "Demand continues without a decision, so momentum shifts to competitors.";
   return {
     headline,
+    crawlIntent: defaultIntent,
+    intentDriver: intentDriverParts.length
+      ? intentDriverParts.join(" | ")
+      : "No crawl driver details supplied.",
     marketSignal,
     inventory,
     prospects,
@@ -608,7 +878,8 @@ function buildUsefulSignalSummary(item: LiveStreamItem): {
       parts.doNext ||
       resolveEntryActionTask(item) ||
       resolveEntryActionHint(item) ||
-      "Monitor this signal and decide the next operator move.",
+      "Review this signal and set a concrete next step.",
+    noActionRisk,
   };
 }
 
@@ -977,7 +1248,7 @@ export default function AdminLiveStreamPage() {
   const [autoPromoting, setAutoPromoting] = useState(false);
   const [autoPromotionMessage, setAutoPromotionMessage] = useState("");
   const [autoPromotionError, setAutoPromotionError] = useState("");
-  const [uiMode, setUiMode] = useState<"ops" | "feed" | "debug">("ops");
+  const [uiMode] = useState<"ops" | "feed" | "debug">("ops");
   const presentationMode = useMemo(() => {
     const rawQuery = location.includes("?") ? location.split("?")[1] || "" : "";
     return new URLSearchParams(rawQuery).get("presentationMode") === "1";
@@ -1907,14 +2178,26 @@ export default function AdminLiveStreamPage() {
 
     return groups;
   }, [filteredStream]);
-  const topRevenueSignals = useMemo(() => {
-    return [...filteredStream]
-      .sort((a, b) => {
-        const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
-        if (scoreDelta !== 0) return scoreDelta;
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      })
-      .slice(0, 5);
+  const buyerIntentBuckets = useMemo(() => {
+    const clusters = filteredStream.map((item) => buildBuyerIntentCluster(item, 45));
+    return {
+      trigger: clusters.filter((cluster) => cluster.bucket === "trigger"),
+      support: clusters.filter((cluster) => cluster.bucket === "support"),
+      noise: clusters.filter((cluster) => cluster.bucket === "noise"),
+      actionable: clusters
+        .filter((cluster) => cluster.includeInLivestream)
+        .sort((a, b) => {
+          const strengthWeight = { HIGH: 3, MEDIUM: 2, LOW: 1 } as const;
+          const strengthDelta = strengthWeight[b.signalStrength] - strengthWeight[a.signalStrength];
+          if (strengthDelta !== 0) return strengthDelta;
+          const velocityDelta = Math.abs(b.velocityPct) - Math.abs(a.velocityPct);
+          if (velocityDelta !== 0) return velocityDelta;
+          const scoreDelta = (b.item.revenueScore || 0) - (a.item.revenueScore || 0);
+          if (scoreDelta !== 0) return scoreDelta;
+          return new Date(b.item.timestamp).getTime() - new Date(a.item.timestamp).getTime();
+        })
+        .slice(0, 5),
+    };
   }, [filteredStream]);
   const operatorQueue = useMemo(() => {
     const prioritizedItems = [
@@ -2030,7 +2313,7 @@ export default function AdminLiveStreamPage() {
               Cumulus Intelligence
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/admin/mission-control")}>
-              Mission Control
+              Admin Home
             </Button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2042,28 +2325,8 @@ export default function AdminLiveStreamPage() {
                 invented.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-1 rounded-md border border-white/10 bg-black/20 p-1">
-              {(
-                [
-                  { key: "ops", label: "Live Ops" },
-                  { key: "feed", label: "Feed Explorer" },
-                  { key: "debug", label: "Telemetry / Debug" },
-                ] as const
-              ).map((mode) => (
-                <button
-                  key={mode.key}
-                  type="button"
-                  onClick={() => setUiMode(mode.key)}
-                  className={cn(
-                    "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
-                    uiMode === mode.key
-                      ? "bg-ts-orange/30 text-white"
-                      : "text-white/60 hover:text-white"
-                  )}
-                >
-                  {mode.label}
-                </button>
-              ))}
+            <div className="rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-white/70">
+              Live Stream focus view
             </div>
             <Button onClick={handlePresentationModeToggle} variant="outline">
               {presentationMode ? "Exit Presentation Mode" : "Open Presentation Mode"}
@@ -2207,7 +2470,7 @@ export default function AdminLiveStreamPage() {
                 <div className="space-y-4">
                   <SignalBoardPanel
                     title="Market Brief"
-                    subtitle="One pass across what moved, what triggered it, and where the current leak sits."
+                    subtitle="What changed, why bots are there, and where action is stalled."
                     badge={`${marketBriefs.length} key reads`}
                     toneClass="border-cyan-500/20 bg-cyan-500/10"
                   >
@@ -2230,75 +2493,97 @@ export default function AdminLiveStreamPage() {
                   </SignalBoardPanel>
 
                   <SignalBoardPanel
-                    title="Ranked Signals"
-                    subtitle="Top source-backed opportunities ordered by commercial strength."
-                    badge={topRevenueSignals.length ? `${topRevenueSignals.length} ranked` : "none"}
+                    title="Actionable Buyer Clusters"
+                    subtitle="Trigger data only. Support and noise are excluded from decision cards."
+                    badge={
+                      buyerIntentBuckets.actionable.length
+                        ? `${buyerIntentBuckets.actionable.length} ready`
+                        : "none"
+                    }
                     toneClass="border-emerald-500/20 bg-emerald-500/10"
                   >
+                    <div className="mb-3 flex flex-wrap gap-2 text-xs text-emerald-100/75">
+                      <Badge variant="outline" className="border-emerald-300/20 text-emerald-100">
+                        Trigger: {buyerIntentBuckets.trigger.length}
+                      </Badge>
+                      <Badge variant="outline" className="border-amber-300/20 text-amber-100">
+                        Support only: {buyerIntentBuckets.support.length}
+                      </Badge>
+                      <Badge variant="outline" className="border-rose-300/20 text-rose-100">
+                        Noise ignored: {buyerIntentBuckets.noise.length}
+                      </Badge>
+                    </div>
                     <div className="space-y-3">
-                      {topRevenueSignals.length === 0 ? (
+                      {buyerIntentBuckets.actionable.length === 0 ? (
                         <div className="text-sm text-emerald-100/70">
-                          No ranked revenue signals surfaced yet.
+                          No actionable buyer clusters passed the trigger threshold.
                         </div>
                       ) : (
-                        topRevenueSignals.map((item, index) => {
-                          const summary = buildUsefulSignalSummary(item);
+                        buyerIntentBuckets.actionable.map((cluster, index) => {
+                          const velocityLabel =
+                            cluster.velocityPct > 0
+                              ? `+${cluster.velocityPct}%`
+                              : `${cluster.velocityPct}%`;
                           return (
                             <div
-                              key={item.id}
+                              key={cluster.item.id}
                               className="rounded-md border border-emerald-200/10 bg-black/20 px-3 py-3"
                             >
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="text-[11px] uppercase tracking-[0.2em] text-emerald-100/60">
-                                  #{index + 1} {item.commercialBucket || "watchlist"}
+                                  Cluster {index + 1}
                                 </div>
                                 <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
-                                  {item.revenueScore || 0}
+                                  {cluster.signalStrength}
                                 </Badge>
                               </div>
-                              <div className="mt-1 text-sm text-emerald-50">{summary.headline}</div>
+
                               <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                Market signal
+                                Category
                               </div>
-                              <div className="mt-1 text-xs text-emerald-50">
-                                {summary.marketSignal}
+                              <div className="mt-1 text-sm text-emerald-50">{cluster.category}</div>
+
+                              <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                Location
                               </div>
-                              {summary.trigger ? (
-                                <div className="mt-2">
-                                  <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                    Trigger
-                                  </div>
-                                  <div className="mt-1 text-xs text-emerald-100/85">
-                                    {summary.trigger}
-                                  </div>
+                              <div className="mt-1 text-sm text-emerald-50">{cluster.location}</div>
+
+                              <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                Buyer Activity (last {cluster.windowMinutes} min)
+                              </div>
+                              <div className="mt-1 grid gap-1 text-xs text-emerald-100/85">
+                                <div>{cluster.triggerData.categoryViews} category views</div>
+                                <div>{cluster.triggerData.searchQueries} search queries</div>
+                                <div>{cluster.triggerData.contactAttempts} contact attempts</div>
+                                <div>{cluster.triggerData.repeatVisits} repeat visits</div>
+                                <div>
+                                  {cluster.triggerData.multiPageIntentSessions} multi-page intent
+                                  sessions
                                 </div>
-                              ) : null}
-                              {summary.inventory ? (
-                                <div className="mt-2">
-                                  <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                    Inventory
-                                  </div>
-                                  <div className="mt-1 text-xs text-emerald-100/75">
-                                    {summary.inventory}
-                                  </div>
-                                </div>
-                              ) : null}
-                              {summary.prospects ? (
-                                <div className="mt-2">
-                                  <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                    Local read
-                                  </div>
-                                  <div className="mt-1 text-xs text-emerald-100/75">
-                                    {summary.prospects}
-                                  </div>
-                                </div>
-                              ) : null}
+                              </div>
+
+                              <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                Behavior Signal
+                              </div>
+                              <div className="mt-1 text-xs text-emerald-100/85">
+                                {cluster.behaviorSignal}
+                              </div>
+
                               <div className="mt-2">
                                 <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
-                                  Do next
+                                  Velocity
+                                </div>
+                                <div className="mt-1 text-xs text-emerald-50">
+                                  {velocityLabel} vs prior window
+                                </div>
+                              </div>
+
+                              <div className="mt-2">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/55">
+                                  Ad Action
                                 </div>
                                 <div className="mt-1 text-xs font-medium text-emerald-50">
-                                  {summary.action}
+                                  {cluster.adAction}
                                 </div>
                               </div>
                             </div>
@@ -2312,14 +2597,15 @@ export default function AdminLiveStreamPage() {
                 <div className="space-y-4">
                   <SignalBoardPanel
                     title="Do Now"
-                    subtitle="Operator actions worth taking before the signal cools off."
+                    subtitle="Actions that directly change outcome in the next cycle."
                     badge={`${primaryActionItems.length} queued`}
                     toneClass="border-amber-500/20 bg-amber-500/10"
                   >
                     <div className="space-y-3">
                       {primaryActionItems.length === 0 ? (
                         <div className="rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                          No urgent operator action surfaced right now.
+                          No immediate action is blocked. Keep monitoring intent shifts and
+                          conversion leaks.
                         </div>
                       ) : (
                         primaryActionItems.map((item) => (
@@ -2337,172 +2623,217 @@ export default function AdminLiveStreamPage() {
                     </div>
                   </SignalBoardPanel>
 
-                  <SignalBoardPanel
-                    title="Surface Health"
-                    subtitle="Useful traffic versus waste and unattributed crawl pressure."
-                    badge={`${signalSurfaceCount} useful`}
-                    toneClass="border-teal-500/20 bg-teal-500/10"
-                  >
-                    <div className="grid grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-teal-100/60">
-                          Useful
-                        </div>
-                        <div className="mt-1 text-xl font-semibold text-teal-50">
-                          {signalSurfaceCount}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
-                          Infra
-                        </div>
-                        <div className="mt-1 text-xl font-semibold text-amber-50">
-                          {noiseSurfaceCount}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
-                          Unknown
-                        </div>
-                        <div className="mt-1 text-xl font-semibold text-rose-50">
-                          {unknownSurfaceCount}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {topSurfaceBreakdown.length === 0 ? (
-                        <div className="text-sm text-teal-100/70">No crawler surface data yet.</div>
-                      ) : (
-                        topSurfaceBreakdown.slice(0, 4).map((surface) => (
-                          <div
-                            key={surface.sourceSurface}
-                            className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm"
-                          >
-                            <div className="text-teal-50">
-                              {humanizeSurfaceLabel(surface.sourceSurface)}
+                  <details className="rounded-lg border border-white/10 bg-black/20 p-4">
+                    <summary className="cursor-pointer list-none text-xs font-medium uppercase tracking-[0.16em] text-white/75">
+                      Advanced context (surface mix + priority diagnostics)
+                    </summary>
+                    <div className="mt-4 space-y-4">
+                      <SignalBoardPanel
+                        title="Surface Health"
+                        subtitle="What is ad-ready, what is discovery-only, and what is unknown."
+                        badge={`${signalSurfaceCount} useful`}
+                        toneClass="border-teal-500/20 bg-teal-500/10"
+                      >
+                        <div className="grid grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-teal-100/60">
+                              Useful
                             </div>
-                            <Badge variant="outline" className="border-white/10 text-teal-50">
-                              {surface.requestCount}
-                            </Badge>
+                            <div className="mt-1 text-xl font-semibold text-teal-50">
+                              {signalSurfaceCount}
+                            </div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </SignalBoardPanel>
-
-                  <SignalBoardPanel
-                    title="Priority Signals"
-                    subtitle="Filtered internal findings for opportunity, friction, and waste."
-                    badge={`${focusedDerivedOutputs.length} shown`}
-                    toneClass="border-violet-500/20 bg-violet-500/10"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
-                        {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => setDerivedFocus(mode)}
-                            className={cn(
-                              "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
-                              derivedFocus === mode
-                                ? "bg-violet-500/20 text-violet-50"
-                                : "text-violet-100/60 hover:text-violet-50"
-                            )}
-                          >
-                            {mode}
-                          </button>
-                        ))}
-                      </div>
-                      <select
-                        value={marketFilter}
-                        onChange={(e) => setMarketFilter(e.target.value)}
-                        className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
-                      >
-                        {availableMarkets.map((market) => (
-                          <option key={market} value={market}>
-                            {market === "all" ? "all markets" : market}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
-                      >
-                        {availableCategories.map((category) => (
-                          <option key={category} value={category}>
-                            {category === "all" ? "all categories" : category}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={handleCopyDerived}
-                        className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
-                      >
-                        copy
-                      </button>
-                    </div>
-                    {copyStatus ? (
-                      <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
-                    ) : null}
-                    <div className="mt-3 space-y-2">
-                      {focusedDerivedOutputs.length === 0 ? (
-                        <div className="text-sm text-violet-100/70">
-                          No clear operator-grade priority has surfaced yet.
-                        </div>
-                      ) : (
-                        focusedDerivedOutputs.slice(0, 4).map((item) => {
-                          const parts = splitDecisionNarrative(item.narrative);
-                          const summary = buildUsefulSignalSummary(item);
-                          return (
-                            <div
-                              key={item.id}
-                              className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="text-sm text-violet-50">{item.title}</div>
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant="outline"
-                                    className={
-                                      truthTone[
-                                        item.truthStatus === "current" ? "current" : "stale"
-                                      ]
-                                    }
-                                  >
-                                    {item.truthStatus === "current" ? "current" : "stale"}
-                                  </Badge>
-                                  <Badge variant="outline" className={priorityTone[item.priority]}>
-                                    {item.priority}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="mt-2 text-xs text-violet-100/75">
-                                {parts.what || item.narrative}
-                              </div>
-                              {summary.trigger ? (
-                                <div className="mt-2 text-xs text-violet-100/85">
-                                  Triggered by: {summary.trigger}
-                                </div>
-                              ) : null}
-                              {parts.why ? (
-                                <div className="mt-2 text-xs text-violet-100/65">
-                                  Why this matters: {parts.why}
-                                </div>
-                              ) : null}
-                              {parts.doNext ? (
-                                <div className="mt-2 text-xs font-medium text-violet-50">
-                                  Next move: {parts.doNext}
-                                </div>
-                              ) : null}
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-amber-100/60">
+                              Infra
                             </div>
-                          );
-                        })
-                      )}
+                            <div className="mt-1 text-xl font-semibold text-amber-50">
+                              {noiseSurfaceCount}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-rose-100/60">
+                              Unknown
+                            </div>
+                            <div className="mt-1 text-xl font-semibold text-rose-50">
+                              {unknownSurfaceCount}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {topSurfaceBreakdown.length === 0 ? (
+                            <div className="text-sm text-teal-100/70">
+                              No crawler surface data yet.
+                            </div>
+                          ) : (
+                            topSurfaceBreakdown.slice(0, 4).map((surface) => {
+                              const profile = getSurfaceIntentProfile(surface.sourceSurface);
+                              return (
+                                <div
+                                  key={surface.sourceSurface}
+                                  className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm"
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="text-teal-50">
+                                      {humanizeSurfaceLabel(surface.sourceSurface)}
+                                    </div>
+                                    <Badge
+                                      variant="outline"
+                                      className="border-white/10 text-teal-50"
+                                    >
+                                      {surface.requestCount}
+                                    </Badge>
+                                  </div>
+                                  <div className="mt-1 text-xs text-teal-100/70">
+                                    {profile.intent}
+                                  </div>
+                                  <div className="mt-2">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "border-white/10",
+                                        profile.adEligible
+                                          ? "text-emerald-100 bg-emerald-500/10"
+                                          : "text-amber-100 bg-amber-500/10"
+                                      )}
+                                    >
+                                      {profile.adEligible ? "Ad-ready" : "Discovery only"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </SignalBoardPanel>
+
+                      <SignalBoardPanel
+                        title="Priority Signals"
+                        subtitle="Internal findings with clear intent, recommended action, and consequences."
+                        badge={`${focusedDerivedOutputs.length} shown`}
+                        toneClass="border-violet-500/20 bg-violet-500/10"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex items-center gap-1 rounded-md border border-violet-200/20 bg-black/20 p-1">
+                            {(["all", "opportunity", "friction", "waste"] as const).map((mode) => (
+                              <button
+                                key={mode}
+                                type="button"
+                                onClick={() => setDerivedFocus(mode)}
+                                className={cn(
+                                  "rounded px-2 py-1 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                                  derivedFocus === mode
+                                    ? "bg-violet-500/20 text-violet-50"
+                                    : "text-violet-100/60 hover:text-violet-50"
+                                )}
+                              >
+                                {mode}
+                              </button>
+                            ))}
+                          </div>
+                          <select
+                            value={marketFilter}
+                            onChange={(e) => setMarketFilter(e.target.value)}
+                            className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                          >
+                            {availableMarkets.map((market) => (
+                              <option key={market} value={market}>
+                                {market === "all" ? "all markets" : market}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] text-violet-50 outline-none"
+                          >
+                            {availableCategories.map((category) => (
+                              <option key={category} value={category}>
+                                {category === "all" ? "all categories" : category}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleCopyDerived}
+                            className="rounded-md border border-violet-200/20 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-violet-50 hover:bg-violet-500/10"
+                          >
+                            copy
+                          </button>
+                        </div>
+                        {copyStatus ? (
+                          <div className="mt-2 text-[11px] text-violet-100/80">{copyStatus}</div>
+                        ) : null}
+                        <div className="mt-3 space-y-2">
+                          {focusedDerivedOutputs.length === 0 ? (
+                            <div className="text-sm text-violet-100/70">
+                              No high-confidence priority is surfaced yet.
+                            </div>
+                          ) : (
+                            focusedDerivedOutputs.slice(0, 4).map((item) => {
+                              const parts = splitDecisionNarrative(item.narrative);
+                              const summary = buildUsefulSignalSummary(item);
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="rounded-md border border-violet-200/10 bg-black/20 px-3 py-3"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="text-sm text-violet-50">{item.title}</div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className={
+                                          truthTone[
+                                            item.truthStatus === "current" ? "current" : "stale"
+                                          ]
+                                        }
+                                      >
+                                        {item.truthStatus === "current" ? "current" : "stale"}
+                                      </Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className={priorityTone[item.priority]}
+                                      >
+                                        {item.priority}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <div className="mt-2 text-xs text-violet-100/75">
+                                    {parts.what || item.narrative}
+                                  </div>
+                                  <div className="mt-2 text-xs text-violet-100/85">
+                                    Crawl intent: {summary.crawlIntent}
+                                  </div>
+                                  {summary.trigger ? (
+                                    <div className="mt-2 text-xs text-violet-100/85">
+                                      Triggered by: {summary.trigger}
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-2 text-xs text-violet-100/75">
+                                    Why bots came here: {summary.intentDriver}
+                                  </div>
+                                  {parts.why ? (
+                                    <div className="mt-2 text-xs text-violet-100/65">
+                                      Why this matters: {parts.why}
+                                    </div>
+                                  ) : null}
+                                  {parts.doNext ? (
+                                    <div className="mt-2 text-xs font-medium text-violet-50">
+                                      Next move: {parts.doNext}
+                                    </div>
+                                  ) : null}
+                                  <div className="mt-2 text-xs text-violet-100/70">
+                                    If no action is taken: {summary.noActionRisk}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </SignalBoardPanel>
                     </div>
-                  </SignalBoardPanel>
+                  </details>
                 </div>
               </div>
             </div>

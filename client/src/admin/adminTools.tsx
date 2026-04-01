@@ -259,7 +259,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
     items: [
       tool({
         id: "overview",
-        label: "Mission Control",
+        label: "Admin Home",
         path: "/admin",
         icon: Brain,
         visibleIf: {
@@ -649,7 +649,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
     items: [
       tool({
         id: "mission-control",
-        label: "Mission Control",
+        label: "Admin Home",
         path: "/admin/mission-control",
         icon: Brain,
         visibleIf: { roles: ["ops_admin", "super_admin"] },

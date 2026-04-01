@@ -62,8 +62,8 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/admin")) {
     return {
       title: "Admin controls",
-      summary: "Watch system activity, snapshots, and ops tools in one place.",
-      actionLabel: "Go to Mission Control",
+      summary: "See activity, snapshots, and admin tools in one place.",
+      actionLabel: "Go to Admin Home",
       actionHref: "/admin/live-stream",
     };
   }

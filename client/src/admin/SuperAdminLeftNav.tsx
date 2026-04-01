@@ -244,7 +244,7 @@ export function SuperAdminLeftNav({
                           <span className="block truncate text-sm font-medium">{item.label}</span>
                           <span className="mt-0.5 block text-[11px] text-slate-500">
                             {item.path === "/admin"
-                              ? "Mission Control home"
+                              ? "Admin home"
                               : item.path.replace("/admin/", "").replaceAll("-", " ")}
                           </span>
                         </span>
