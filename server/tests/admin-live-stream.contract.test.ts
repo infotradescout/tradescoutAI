@@ -19,6 +19,9 @@ describe("admin live stream contracts", () => {
     expect(source).toContain("event: intent_batch");
     expect(source).toContain("recommended_action");
     expect(source).toContain("action_payload");
+    expect(source).toContain('mode === "intent"');
+    expect(source).toContain('"live-intent-feed"');
+    expect(source).toContain('"action_payload_json"');
     expect(source).toContain("getLiveStreamSnapshot");
     expect(source).toContain("getLiveStreamSnapshotHistory");
     expect(source).toContain("refreshLiveStreamSnapshot");

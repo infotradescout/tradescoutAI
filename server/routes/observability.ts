@@ -810,6 +810,123 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       return;
     }
 
+    if (mode === "intent") {
+      const source = String((req.query as any)?.source || "");
+      const stateCode = String((req.query as any)?.stateCode || "");
+      const county = String((req.query as any)?.county || "");
+      const limit = Number.parseInt(String((req.query as any)?.limit || "50"), 10);
+      const windowMinutes = Math.max(
+        5,
+        Math.min(120, Number.parseInt(String((req.query as any)?.window_minutes || "60"), 10))
+      );
+      const minEvents = Math.max(
+        1,
+        Math.min(100, Number.parseInt(String((req.query as any)?.min_events || "5"), 10))
+      );
+      const minVelocityRatio = Math.max(
+        0,
+        Math.min(1, Number.parseFloat(String((req.query as any)?.min_velocity_ratio || "0.3")))
+      );
+      const minConfidence = Math.max(
+        0,
+        Math.min(1, Number.parseFloat(String((req.query as any)?.min_confidence || "0.7")))
+      );
+      const maxFreshnessSeconds = Math.max(
+        30,
+        Math.min(
+          3600,
+          Number.parseInt(String((req.query as any)?.max_freshness_seconds || "600"), 10)
+        )
+      );
+      const cooldownMinutes = Math.max(
+        1,
+        Math.min(120, Number.parseInt(String((req.query as any)?.cooldown_minutes || "15"), 10))
+      );
+
+      const snapshot = await getLiveStreamSnapshot({
+        source,
+        stateCode,
+        county,
+        limit,
+      });
+
+      const records = mapSnapshotToDigitalDnaRecords({
+        snapshot,
+        windowMinutes,
+        minEvents,
+        minVelocityRatio,
+        minConfidence,
+        maxFreshnessSeconds,
+        cooldownMinutes,
+      });
+
+      const escapeCsv = (value: unknown) => {
+        const normalized = String(value ?? "");
+        if (/[",\n]/.test(normalized)) {
+          return `"${normalized.replace(/"/g, '""')}"`;
+        }
+        return normalized;
+      };
+
+      const header = [
+        "timestamp_utc",
+        "category",
+        "geo_state",
+        "geo_county",
+        "geo_city",
+        "window_minutes",
+        "events_views",
+        "events_contact_attempts",
+        "events_repeat_sessions",
+        "velocity",
+        "cluster_strength",
+        "signal_type",
+        "confidence",
+        "freshness_seconds",
+        "recommended_action",
+        "action_payload_json",
+      ];
+
+      const lines = [header.join(",")];
+      for (const record of records) {
+        lines.push(
+          [
+            record.timestamp_utc,
+            record.category,
+            record.geo.state || "",
+            record.geo.county || "",
+            record.geo.city || "",
+            record.window_minutes,
+            record.events.views,
+            record.events.contact_attempts,
+            record.events.repeat_sessions,
+            record.velocity,
+            record.cluster_strength,
+            record.signal_type,
+            record.confidence,
+            record.freshness_seconds,
+            record.recommended_action,
+            JSON.stringify(record.action_payload),
+          ]
+            .map(escapeCsv)
+            .join(",")
+        );
+      }
+
+      const suffix = [
+        "live-intent-feed",
+        toFileToken(source, "all-sources"),
+        toFileToken(stateCode, "all-states"),
+        toFileToken(county, "all-counties"),
+        new Date().toISOString().slice(0, 10),
+      ].join("-");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${suffix}.csv"`);
+      res.status(200).send(`\uFEFF${lines.join("\n")}`);
+      return;
+    }
+
     const source = String((req.query as any)?.source || "");
     const stateCode = String((req.query as any)?.stateCode || "");
     const county = String((req.query as any)?.county || "");
