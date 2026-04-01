@@ -248,6 +248,44 @@ export async function getTradePartnerCampaignPublicHandler(req: Request, res: Re
   }
 }
 
+export async function listTradePartnerCampaignsPublicHandler(_req: Request, res: Response) {
+  try {
+    await ensureTradePartnerTables();
+    const result = await pool.query(
+      `
+      SELECT partner_slug
+      FROM tradepartner_campaigns
+      WHERE is_active = TRUE
+      ORDER BY partner_slug ASC
+      `
+    );
+
+    const activeSlugs = result.rows
+      .map((row: any) => cleanText(row?.partner_slug, 120).toLowerCase())
+      .filter((slug) => slug.length > 0 && isValidPartnerSlug(slug));
+
+    const campaigns = (
+      await Promise.all(activeSlugs.map((partnerSlug) => fetchCampaignBySlug(partnerSlug)))
+    ).filter((campaign): campaign is NonNullable<typeof campaign> => Boolean(campaign));
+
+    if (!campaigns.length) {
+      const fallback = buildFallbackCampaign("cumulus-media");
+      if (fallback) {
+        return res.json({ items: [fallback] });
+      }
+    }
+
+    return res.json({ items: campaigns });
+  } catch (error) {
+    console.error("LIST public tradepartner campaigns error:", error);
+    const fallback = buildFallbackCampaign("cumulus-media");
+    if (fallback) {
+      return res.json({ items: [fallback] });
+    }
+    return res.status(500).json({ error: "Server error", message: "Server error" });
+  }
+}
+
 export async function listTradePartnerCampaignsAdminHandler(_req: Request, res: Response) {
   try {
     await ensureTradePartnerTables();

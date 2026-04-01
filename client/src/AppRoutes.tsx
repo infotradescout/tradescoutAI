@@ -285,6 +285,7 @@ const ExchangeRentalEquipment = React.lazy(() => import("./pages/exchange-rental
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
+const TradePartnersHub = React.lazy(() => import("./pages/TradePartnersHub"));
 const TradePartnerCountyLanding = React.lazy(() => import("./pages/TradePartnerCountyLanding"));
 const TradePartnerCumulusLanding = React.lazy(() => import("./pages/TradePartnerCumulusLanding"));
 const PropertyListing = React.lazy(() => import("./pages/property-listing"));
@@ -1393,7 +1394,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <Foundation />
               </Route>
               <Route path="/tradepartners">
-                <RedirectTo to="/tradepartners/cumulus-media" />
+                <LazyPage Component={TradePartnersHub} />
               </Route>
               <Route path="/tradepartners/cumulus-media">
                 <LazyPage Component={TradePartnerCumulusLanding} />

@@ -27059,6 +27059,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   );
 
   const {
+    listTradePartnerCampaignsPublicHandler,
     getTradePartnerCampaignPublicHandler,
     listTradePartnerCampaignsAdminHandler,
     getTradePartnerCampaignAdminHandler,
@@ -27066,6 +27067,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   } = await import("./routes/tradepartner-campaigns");
 
   // TradePartner campaign system (public + super-admin controls)
+  app.get("/api/tradepartner-campaigns", listTradePartnerCampaignsPublicHandler as any);
   app.get("/api/tradepartner-campaigns/:partnerSlug", getTradePartnerCampaignPublicHandler as any);
   app.get(
     "/api/admin/tradepartner-campaigns",
