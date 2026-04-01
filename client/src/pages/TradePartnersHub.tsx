@@ -29,6 +29,18 @@ type CampaignListResponse = {
   items?: CampaignSummary[];
 };
 
+function normalizeCtaUrl(url: string | undefined, partnerSlug: string): string {
+  if (typeof url === "string" && url.trim().length > 0) {
+    return url.trim();
+  }
+
+  if (partnerSlug === "cumulus-media") {
+    return "/tradepartners/cumulus-media";
+  }
+
+  return "/tradepartners";
+}
+
 const FALLBACK_CAMPAIGN: CampaignSummary = {
   partnerSlug: "cumulus-media",
   partnerName: "Cumulus Media",
@@ -228,7 +240,7 @@ export default function TradePartnersHub() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {campaigns.map((campaign) => {
-                const partnerHref = `/tradepartners/${encodeURIComponent(campaign.partnerSlug)}`;
+                const partnerHref = normalizeCtaUrl(campaign.ctaUrl, campaign.partnerSlug);
                 return (
                   <article
                     key={campaign.partnerSlug}
