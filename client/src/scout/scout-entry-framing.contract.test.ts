@@ -12,10 +12,8 @@ describe("Scout entry framing contracts", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
     expect(source).toContain("TradeScout • Ask Scout");
-    expect(source).toContain("What do you need to get done");
-    expect(source).toContain(
-      "Tell Scout what you need in plain language and it will point you to the right next step."
-    );
+    expect(source).toContain("What do you need done");
+    expect(source).toContain("Start here for the clearest next step.");
   });
 
   it("input row and quick-start surfaces use plain language", () => {

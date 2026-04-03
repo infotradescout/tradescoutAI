@@ -66,6 +66,7 @@ export function CountyRequiredGate({
   }
 
   const areaLabel = ctx.label || "your area";
+  const isCommunitySurface = surface === "community";
 
   if (pendingCountyResolution) {
     return (
@@ -98,22 +99,46 @@ export function CountyRequiredGate({
     );
   }
 
+  if (isCommunitySurface) {
+    return (
+      <>
+        <div className="mx-auto mb-3 w-full max-w-2xl px-1">
+          <Card className="border-white/10 bg-black/25">
+            <CardContent className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Set your county for local matching
+                </p>
+                <p className="text-xs text-white/65">Current context: {areaLabel}</p>
+              </div>
+              <Button
+                type="button"
+                className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
+                asChild
+              >
+                <Link href="/settings">Set county</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        {children}
+      </>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-10 px-4">
       <Card className="bg-black/30 border-white/10">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg md:text-xl text-white">
-            Set your county to unlock local features
-          </CardTitle>
+          <CardTitle className="text-lg md:text-xl text-white">Set your county</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-white/70">
-            TradeScout uses your saved county to power community feed, marketplace, and other local
-            experiences. Choose your county so what you see lines up with where you actually live.
+            Choose your county so local results match where you live.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-white/60">
-              Current location context: <span className="font-medium text-white">{areaLabel}</span>
+              Current context: <span className="font-medium text-white">{areaLabel}</span>
             </p>
             <Button
               type="button"

@@ -386,7 +386,7 @@ export default function Community() {
         canonical="https://www.thetradescout.com/community"
         structuredData={structuredData}
       />
-      <CountyRequiredGate locationOverride={location}>
+      <CountyRequiredGate locationOverride={location} surface="community">
         <div className="pb-16 lg:pb-0">
           {/* Header */}
           <div className="mb-6">

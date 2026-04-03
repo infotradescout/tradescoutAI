@@ -1767,14 +1767,17 @@ export default function DirectConnectShell() {
             <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--text-primary)]">
               Direct Connect
             </h1>
-            <p className="text-sm text-[color:var(--text-secondary)]">
+            <p className="hidden md:block text-sm text-[color:var(--text-secondary)]">
               Post a request, get replies, and track updates in one place.
             </p>
           </div>
 
           {/* Status Pills */}
           <div
-            className={cn("flex flex-wrap gap-2", activeSection === "post" ? "hidden sm:flex" : "")}
+            className={cn(
+              "hidden md:flex md:flex-wrap md:gap-2",
+              activeSection === "post" ? "md:hidden lg:flex" : ""
+            )}
           >
             {activeFlowMode === "manage" ? (
               <>
@@ -1852,7 +1855,7 @@ export default function DirectConnectShell() {
           </div>
         )}
 
-        <div className={cn("grid gap-3 md:grid-cols-2", isPostComposer ? "hidden md:grid" : "")}>
+        <div className="hidden md:grid md:grid-cols-2 gap-3">
           {(
             Object.entries(FLOW_MODE_META) as Array<[FlowMode, (typeof FLOW_MODE_META)[FlowMode]]>
           ).map(([mode, meta]) => {
@@ -1896,12 +1899,11 @@ export default function DirectConnectShell() {
           >
             <div
               className={cn(
-                "flex flex-col gap-2 md:flex-row md:items-center md:justify-between",
-                isPostComposer ? "hidden md:flex" : ""
+                "hidden md:flex md:flex-row md:items-center md:justify-between md:gap-2"
               )}
             >
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                <p className="hidden md:block text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
                   {activeFlowMode === "start" ? "Start mode" : "Manage mode"}
                 </p>
                 <p className="mt-1 text-sm text-[color:var(--text-primary)]">
@@ -1950,8 +1952,7 @@ export default function DirectConnectShell() {
         <div className="min-w-0 space-y-4">
           <Card
             className={cn(
-              "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
-              isPostComposer ? "hidden md:block" : ""
+              "hidden md:block border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
             )}
           >
             <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-5">

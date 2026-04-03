@@ -4232,8 +4232,7 @@ export default function ScoutOS() {
                       Step 1 of 3
                     </p>
                     <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Tell Scout what you need. You will review a decision card before any contact
-                      action.
+                      Ask Scout first. You will review a decision card before contact.
                     </p>
                   </div>
                 )}

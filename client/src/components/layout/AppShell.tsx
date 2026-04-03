@@ -840,18 +840,22 @@ export function AppShell({ children, footer }: AppShellProps) {
               </div>
             </section>
           )}
-          {!isAuthOrSetupSurface && surfaceOrientation && isMobile && !isScoutSurface && (
-            <section className="px-3 pt-2">
-              <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
-                <p className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {surfaceOrientation.title}
-                </p>
-                <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                  {surfaceOrientation.summary}
-                </p>
-              </div>
-            </section>
-          )}
+          {!isAuthOrSetupSurface &&
+            surfaceOrientation &&
+            isMobile &&
+            !isScoutSurface &&
+            !isMobileSimplified && (
+              <section className="px-3 pt-2">
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {surfaceOrientation.title}
+                  </p>
+                  <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                    {surfaceOrientation.summary}
+                  </p>
+                </div>
+              </section>
+            )}
           {isMobile && isScoutSurface && showMobileScoutHero && renderMobileHero()}
           {children}
         </div>
