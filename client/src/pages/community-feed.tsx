@@ -59,7 +59,6 @@ import { useLocation } from "wouter";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
 import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
-import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -1687,7 +1686,6 @@ const CommunityFeed = memo(function CommunityFeed() {
               </DialogContent>
             </Dialog>
 
-            <ScoutContinueBanner className="mb-3" />
             <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
               <CardContent className="p-3 md:p-4">
                 <div className="flex items-start justify-between gap-3">

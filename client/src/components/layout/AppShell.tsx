@@ -37,7 +37,6 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
-import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 
 export type NavItem = {
   label: string;
@@ -922,9 +921,6 @@ export function AppShell({ children, footer }: AppShellProps) {
           />
         </div>
       )}
-
-      {/* Floating Scout dot: only for resuming unfinished Scout context. */}
-      {showFeatureNav && !isScoutSurface && <ScoutContinueBanner />}
 
       {/* Desktop-only legal footer sits below the bottom nav so the
           site still feels app-like while keeping legal links visible. */}

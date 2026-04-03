@@ -764,6 +764,18 @@ html {
     overflow: hidden;
   }
 
+  /* Avoid stacked overlay scrollbar pills on nested mobile scrollers. */
+  .app-shell,
+  .app-shell * {
+    scrollbar-width: none;
+  }
+
+  .app-shell::-webkit-scrollbar,
+  .app-shell *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
   /* Mobile bottom nav glass shell */
   .glass-bottom-nav {
     position: relative;

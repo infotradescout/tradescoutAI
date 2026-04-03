@@ -75,7 +75,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { share } from "@/utils/share";
-import { ScoutContinueBanner } from "@/components/scout/ScoutContinueBanner";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import {
   EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME as SHARED_EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME,
@@ -992,8 +991,6 @@ export default function Exchange() {
             </div>
           </div>
         </div>
-
-        <ScoutContinueBanner className="mb-4" />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-4 bg-tsCard border border-white/10 rounded-xl overflow-hidden text-[10px] sm:text-[11px]">
