@@ -172,7 +172,7 @@ export default function DirectConnectPros() {
     <div className="space-y-4">
       <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="pb-1">
-          <CardTitle className="text-sm">Find local pros</CardTitle>
+          <CardTitle className="text-sm">Local Directory</CardTitle>
           <p className="text-xs text-[color:var(--text-secondary)]">
             {countyCommitted
               ? `${(contractors as any[])?.length || 0} result(s)`
@@ -245,7 +245,7 @@ export default function DirectConnectPros() {
       {showEmptyState && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
-            No pros found for that search yet.
+            No local businesses found for that search yet.
           </CardContent>
         </Card>
       )}

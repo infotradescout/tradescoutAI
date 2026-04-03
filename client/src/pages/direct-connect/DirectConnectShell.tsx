@@ -1,4 +1,4 @@
-﻿import { ReactNode, useMemo, useRef, useState } from "react";
+﻿import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { WorkRequest } from "@shared/schema";
@@ -23,6 +23,7 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { trackShellEvent } from "@/lib/analytics";
 import {
   SEOHelmet,
   createBreadcrumbStructuredData,
@@ -54,7 +55,7 @@ const SECTION_LABELS: Record<Section, string> = {
   board: "Local Requests",
   employment: "Jobs",
   inbox: "Replies",
-  pros: "Find Pros",
+  pros: "Local Directory",
   engagements: "My Requests",
 };
 
@@ -72,7 +73,7 @@ const FLOW_MODE_META: Record<
 > = {
   start: {
     title: "Post a request",
-    description: "Describe what you need so matched local pros can review and reply.",
+    description: "Describe what you need so matched local businesses can review and reply.",
     target: "post",
     sections: ["post", "pros", "board", "employment"],
     icon: <ClipboardPlus className="h-5 w-5" />,
@@ -120,15 +121,15 @@ const SECTION_META: Record<
     actionTarget: "engagements",
   },
   pros: {
-    title: "Find pros",
-    description: "Look through local pros, then send a request when you're ready.",
+    title: "Local Directory",
+    description: "Look through local businesses, then send a request when you're ready.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   engagements: {
     title: "My requests",
     description:
-      "See what still needs your action, what is already out with pros, and what is in conversation.",
+      "See what still needs your action, what is already out with businesses, and what is in conversation.",
     actionLabel: "Go to replies",
     actionTarget: "inbox",
   },
@@ -338,6 +339,50 @@ function getRequestStageSummary(stage: RequestWorkflowStage): string {
   }
 }
 
+function RequestLifecycleRail({ stage }: { stage: RequestWorkflowStage }) {
+  const steps: Array<{ key: RequestWorkflowStage; label: string }> = [
+    { key: "ready_to_send", label: "Open" },
+    { key: "waiting_on_pros", label: "Routed" },
+    { key: "active_conversation", label: "In Conversation" },
+    { key: "completed", label: "Completed" },
+  ];
+  const currentIndex = steps.findIndex((step) => step.key === stage);
+  return (
+    <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+        Request lifecycle
+      </p>
+      <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+        {steps.map((step, index) => {
+          const complete = currentIndex > -1 && index <= currentIndex;
+          return (
+            <div key={step.key} className="space-y-1">
+              <div
+                className={cn(
+                  "h-1.5 rounded-full",
+                  complete
+                    ? "bg-[color:var(--theme-accent-primary)]"
+                    : "bg-[color:var(--border-subtle)]"
+                )}
+              />
+              <p
+                className={cn(
+                  "text-[10px]",
+                  complete
+                    ? "text-[color:var(--text-primary)]"
+                    : "text-[color:var(--text-secondary)]"
+                )}
+              >
+                {step.label}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilter): boolean {
   const stage = getRequestWorkflowStage(request);
   if (filter === "all") return stage !== "cancelled";
@@ -494,9 +539,9 @@ function DirectConnectRequestComposer({
     }
   > = {
     service_request: {
-      label: "Hire someone",
+      label: "Professional service",
       category: "service_request",
-      titlePlaceholder: "I need help with...",
+      titlePlaceholder: "Need professional help with...",
       descriptionPlaceholder:
         "What needs to be done, when you need it, and anything important to know.",
       budgetLabelMin: "Budget min (optional)",
@@ -505,7 +550,7 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "2500",
     },
     business_request: {
-      label: "Find a business",
+      label: "Business vendor",
       category: "business_request",
       titlePlaceholder: "Looking for a business to help with...",
       descriptionPlaceholder: "What you need, when you need it, and any business requirements.",
@@ -515,7 +560,7 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "5000",
     },
     customer_support: {
-      label: "Hire for someone else",
+      label: "Support request",
       category: "customer_support",
       titlePlaceholder: "Someone else needs help with...",
       descriptionPlaceholder: "Explain what they need, where it is, and how urgent it is.",
@@ -525,7 +570,7 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "1500",
     },
     employment: {
-      label: "Jobs",
+      label: "Hiring / employment",
       category: "employment",
       titlePlaceholder: "Hiring for role / contract...",
       descriptionPlaceholder: "Role, schedule, skills needed, and start date.",
@@ -535,7 +580,7 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "35",
     },
     buy_sell: {
-      label: "Buy or sell",
+      label: "Buy / sell",
       category: "buy_sell",
       titlePlaceholder: "Looking to buy or sell...",
       descriptionPlaceholder: "What item or material do you need, how much, and by when?",
@@ -545,7 +590,7 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "1500",
     },
     other: {
-      label: "Other",
+      label: "General request",
       category: "other",
       titlePlaceholder: "What do you need help with?",
       descriptionPlaceholder: "Add enough detail so the right people can understand the request.",
@@ -586,6 +631,12 @@ function DirectConnectRequestComposer({
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
     onSuccess: () => {
+      const attachmentCount = attachmentsRef.current.length;
+      trackShellEvent("direct_connect_request_created", {
+        category: activeRequestMeta.category,
+        hasBudget: Boolean(budgetMin.trim() || budgetMax.trim()),
+        attachmentCount,
+      });
       toast({
         title: "Request sent",
         description: "Your request is live.",
@@ -941,6 +992,14 @@ function DirectConnectInbox() {
   const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
   const [mobileActionAssignmentId, setMobileActionAssignmentId] = useState<string | null>(null);
+  const [archivedAssignmentIds, setArchivedAssignmentIds] = useState<string[]>([]);
+  const [availabilityByAssignment, setAvailabilityByAssignment] = useState<Record<string, string>>(
+    {}
+  );
+  const [priceBandByAssignment, setPriceBandByAssignment] = useState<Record<string, string>>({});
+  const [scopeNoteByAssignment, setScopeNoteByAssignment] = useState<Record<string, string>>({});
+  const [structuredReplyOpenId, setStructuredReplyOpenId] = useState<string | null>(null);
+  const firstQualifiedReplyTrackedRef = useRef(false);
   const [inboxFilter, setInboxFilter] = useState<"all" | "suggested" | "accepted" | "declined">(
     "all"
   );
@@ -960,14 +1019,21 @@ function DirectConnectInbox() {
       id: string;
       decision: "accept" | "decline";
       reason?: string;
+      availabilityWindow?: string;
+      priceBand?: "budget" | "standard" | "premium" | "custom_quote";
+      scopeNote?: string;
     }) => {
       return apiRequest("POST", `/api/direct-connect/assignments/${payload.id}/respond`, {
         decision: payload.decision,
         reason: payload.reason,
+        availabilityWindow: payload.availabilityWindow,
+        priceBand: payload.priceBand,
+        scopeNote: payload.scopeNote,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
     },
   });
 
@@ -1009,6 +1075,24 @@ function DirectConnectInbox() {
   const filteredItems = items.filter((i) =>
     inboxFilter === "all" ? true : normalizeInboxStatus(i.assignment.status) === inboxFilter
   );
+  const visibleItems = filteredItems.filter(
+    (item) => !archivedAssignmentIds.includes(String(item.assignment.id || ""))
+  );
+
+  useEffect(() => {
+    if (firstQualifiedReplyTrackedRef.current) return;
+    const firstQualified = (items || []).find((item) => {
+      const status = normalizeInboxStatus(item.assignment.status);
+      const id = String(item.assignment.id || "");
+      return status === "suggested" && !id.startsWith("request-");
+    });
+    if (!firstQualified) return;
+    trackShellEvent("direct_connect_first_qualified_reply", {
+      assignmentId: String(firstQualified.assignment.id || ""),
+      requestId: String(firstQualified.assignment.workRequestId || ""),
+    });
+    firstQualifiedReplyTrackedRef.current = true;
+  }, [items]);
 
   if (!items.length) {
     return (
@@ -1055,10 +1139,12 @@ function DirectConnectInbox() {
         </CardContent>
       </Card>
 
-      {filteredItems.map((item) => {
+      {visibleItems.map((item) => {
         const { assignment, request } = item;
         const assignmentStatusRaw = String(assignment.status || "suggested").toLowerCase();
         const canRespond = assignmentStatusRaw === "suggested" || assignmentStatusRaw === "invited";
+        const actionableAssignment =
+          canRespond && !String(assignment.id || "").startsWith("request-");
         const status = assignmentStatusRaw;
         const snapshot = assignment.scoreSnapshot || undefined;
         const createdAt = assignment.createdAt || request?.createdAt;
@@ -1066,6 +1152,14 @@ function DirectConnectInbox() {
         const primaryReasons = reasons.slice(0, 2);
         const isExpanded = expandedAssignmentId === assignment.id;
         const isMobileActionOpen = mobileActionAssignmentId === assignment.id;
+        const isStructuredReplyOpen = structuredReplyOpenId === assignment.id;
+        const availabilityWindow = availabilityByAssignment[assignment.id] || "";
+        const priceBand = priceBandByAssignment[assignment.id] || "";
+        const scopeNote = scopeNoteByAssignment[assignment.id] || "";
+        const canSubmitStructuredAccept =
+          availabilityWindow.trim().length >= 3 &&
+          scopeNote.trim().length >= 10 &&
+          ["budget", "standard", "premium", "custom_quote"].includes(priceBand);
 
         return (
           <Card
@@ -1139,6 +1233,157 @@ function DirectConnectInbox() {
                   attachmentCount={request.attachmentCount}
                 />
               ) : null}
+
+              {actionableAssignment && isStructuredReplyOpen && (
+                <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+                    Structured reply
+                  </p>
+                  <Input
+                    value={availabilityWindow}
+                    onChange={(event) =>
+                      setAvailabilityByAssignment((current) => ({
+                        ...current,
+                        [assignment.id]: event.target.value,
+                      }))
+                    }
+                    placeholder="Availability window (e.g., this week, weekdays after 3pm)"
+                    className="bg-[color:var(--surface-card)]"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: "budget", label: "Budget" },
+                      { value: "standard", label: "Standard" },
+                      { value: "premium", label: "Premium" },
+                      { value: "custom_quote", label: "Custom quote" },
+                    ].map((option) => {
+                      const active = priceBand === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() =>
+                            setPriceBandByAssignment((current) => ({
+                              ...current,
+                              [assignment.id]: option.value,
+                            }))
+                          }
+                          className={cn(
+                            "rounded-md border px-2 py-1.5 text-xs text-left transition-colors",
+                            active
+                              ? "border-ts-orange bg-ts-orange/20 text-white"
+                              : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Textarea
+                    value={scopeNote}
+                    onChange={(event) =>
+                      setScopeNoteByAssignment((current) => ({
+                        ...current,
+                        [assignment.id]: event.target.value,
+                      }))
+                    }
+                    rows={2}
+                    placeholder="Scope note (what you can handle and next recommended step)"
+                    className="bg-[color:var(--surface-card)]"
+                  />
+                </div>
+              )}
+
+              {primaryReasons.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {primaryReasons.map((reason) => (
+                    <span
+                      key={`${assignment.id}-${reason}`}
+                      className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
+                    >
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-1.5">
+                {actionableAssignment && (
+                  <Button
+                    size="sm"
+                    className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    disabled={
+                      respondMutation.isPending ||
+                      (isStructuredReplyOpen && !canSubmitStructuredAccept)
+                    }
+                    onClick={async () => {
+                      if (!isStructuredReplyOpen) {
+                        setStructuredReplyOpenId(assignment.id);
+                        return;
+                      }
+                      const result = await respondMutation.mutateAsync({
+                        id: assignment.id,
+                        decision: "accept",
+                        availabilityWindow,
+                        priceBand: priceBand as "budget" | "standard" | "premium" | "custom_quote",
+                        scopeNote,
+                      });
+                      trackShellEvent("direct_connect_reply_accepted", {
+                        assignmentId: assignment.id,
+                        requestId: assignment.workRequestId,
+                      });
+                      if (result?.conversationId) {
+                        trackShellEvent("direct_connect_moved_to_conversation", {
+                          assignmentId: assignment.id,
+                          requestId: assignment.workRequestId,
+                          conversationId: String(result.conversationId),
+                        });
+                      }
+                      setStructuredReplyOpenId(null);
+                    }}
+                  >
+                    Accept
+                  </Button>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  onClick={() => {
+                    const threadId = item.conversationThreadId;
+                    if (threadId) {
+                      window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
+                      return;
+                    }
+                    window.location.href = request?.id
+                      ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
+                      : "/messages?tab=requests";
+                  }}
+                >
+                  Ask follow-up
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                  disabled={respondMutation.isPending}
+                  onClick={async () => {
+                    if (actionableAssignment) {
+                      await respondMutation.mutateAsync({
+                        id: assignment.id,
+                        decision: "decline",
+                        reason: "Archived from inbox",
+                      });
+                    }
+                    setArchivedAssignmentIds((current) => [...current, assignment.id]);
+                  }}
+                >
+                  Archive
+                </Button>
+              </div>
             </CardContent>
           </Card>
         );
@@ -1440,6 +1685,7 @@ function MyDirectConnectRequests() {
                     ))}
                   </div>
                 )}
+                <RequestLifecycleRail stage={stage} />
               </div>
 
               <RequestAttachmentStrip requestId={r.id} attachmentCount={r.attachmentCount} />

@@ -157,12 +157,29 @@ const adminDirectConnectRequestSchema = directConnectRequestSchema
     path: ["targetUserId"],
   });
 
-const assignmentResponseSchema = z.object({
-  decision: z.enum(["accept", "decline"]),
-  // Optional, private decline reason for analytics and routing quality.
-  // Never exposed to requesters.
-  reason: z.string().min(1).max(200).optional(),
-});
+const assignmentResponseSchema = z
+  .object({
+    decision: z.enum(["accept", "decline"]),
+    // Optional, private decline reason for analytics and routing quality.
+    // Never exposed to requesters.
+    reason: z.string().min(1).max(200).optional(),
+    availabilityWindow: z.string().min(3).max(160).optional(),
+    priceBand: z.enum(["budget", "standard", "premium", "custom_quote"]).optional(),
+    scopeNote: z.string().min(10).max(400).optional(),
+  })
+  .refine(
+    (payload) => {
+      if (payload.decision !== "accept") return true;
+      return Boolean(
+        payload.availabilityWindow?.trim() && payload.priceBand && payload.scopeNote?.trim()
+      );
+    },
+    {
+      message:
+        "Accepted replies require availabilityWindow, priceBand, and scopeNote for structured comparison.",
+      path: ["availabilityWindow"],
+    }
+  );
 
 const normalizeTradeSlugInput = (value: string): string =>
   String(value || "")
@@ -2423,6 +2440,14 @@ export function registerDirectConnectRoutes(app: Express) {
         }
         const decision = parse.data.decision;
         const declineReason = parse.data.reason;
+        const responseSummary =
+          decision === "accept"
+            ? {
+                availabilityWindow: String(parse.data.availabilityWindow || "").trim(),
+                priceBand: String(parse.data.priceBand || ""),
+                scopeNote: String(parse.data.scopeNote || "").trim(),
+              }
+            : null;
 
         const result = await db.transaction(async (tx) => {
           const [assignment] = await tx
@@ -2537,7 +2562,11 @@ export function registerDirectConnectRoutes(app: Express) {
                 workRequestId: requestRow.id,
                 type: "provider_accepted",
                 actorUserId: String(userId),
-                metadata: { contractorId: contractor.id, conversationId },
+                metadata: {
+                  contractorId: contractor.id,
+                  conversationId,
+                  responseSummary,
+                },
               });
             } catch (e) {
               console.error(
@@ -2570,7 +2599,10 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           }
 
-          return { status: 200 as const, body: { assignment: updatedAssignment, conversationId } };
+          return {
+            status: 200 as const,
+            body: { assignment: updatedAssignment, conversationId, responseSummary },
+          };
         });
 
         if (result.status !== 200) {

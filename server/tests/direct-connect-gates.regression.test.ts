@@ -188,6 +188,42 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("buildRequestAttachmentUrl");
   });
 
+  it("requires structured fields when accepting a direct-connect reply", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain("availabilityWindow: z.string().min(3).max(160).optional()");
+    expect(routeFile).toContain(
+      'priceBand: z.enum(["budget", "standard", "premium", "custom_quote"]).optional()'
+    );
+    expect(routeFile).toContain("scopeNote: z.string().min(10).max(400).optional()");
+    expect(routeFile).toContain('if (payload.decision !== "accept") return true;');
+    expect(routeFile).toContain("responseSummary");
+  });
+
+  it("keeps first-class reply actions visible in inbox", () => {
+    const directConnectShellFile = readRepoFile(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+
+    expect(directConnectShellFile).toContain("Structured reply");
+    expect(directConnectShellFile).toContain("Ask follow-up");
+    expect(directConnectShellFile).toContain("Archive");
+    expect(directConnectShellFile).toContain("direct_connect_reply_accepted");
+    expect(directConnectShellFile).toContain("direct_connect_moved_to_conversation");
+  });
+
+  it("shows a request lifecycle rail and neutral local directory language", () => {
+    const directConnectShellFile = readRepoFile(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+    const directoryFile = readRepoFile("client/src/pages/direct-connect/DirectConnectPros.tsx");
+
+    expect(directConnectShellFile).toContain("Request lifecycle");
+    expect(directConnectShellFile).toContain('pros: "Local Directory"');
+    expect(directoryFile).toContain("Local Directory");
+    expect(directoryFile).toContain("No local businesses found for that search yet.");
+  });
+
   it("keeps the explicit super-admin platform-support auto-link path", () => {
     const helperFile = readRepoFile("server/utils/superAdminConnection.ts");
 

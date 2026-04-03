@@ -154,7 +154,7 @@ export default function OnboardingIntent() {
               >
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Find pros</span>
+                  <span className="font-medium text-white">Local Directory</span>
                 </div>
               </button>
 
