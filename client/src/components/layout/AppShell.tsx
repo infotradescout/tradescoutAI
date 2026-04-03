@@ -231,7 +231,7 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
 
 function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
   const desiredPrimaryLabels = ["Scout", "Direct Connect", "Community"];
-  const byLabel = new Map(items.map((item) => [item.label, item]));
+  const byLabel = new globalThis.Map(items.map((item) => [item.label, item]));
   const primary = desiredPrimaryLabels
     .map((label) => byLabel.get(label))
     .filter((item): item is NavItem => Boolean(item));
