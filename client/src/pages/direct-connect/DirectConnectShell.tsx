@@ -529,6 +529,7 @@ function DirectConnectRequestComposer({
     | "other",
     {
       label: string;
+      hint: string;
       category: string;
       titlePlaceholder: string;
       descriptionPlaceholder: string;
@@ -540,6 +541,7 @@ function DirectConnectRequestComposer({
   > = {
     service_request: {
       label: "Professional service",
+      hint: "Project work for your own need",
       category: "service_request",
       titlePlaceholder: "Need professional help with...",
       descriptionPlaceholder:
@@ -551,6 +553,7 @@ function DirectConnectRequestComposer({
     },
     business_request: {
       label: "Business vendor",
+      hint: "Find a local company partner",
       category: "business_request",
       titlePlaceholder: "Looking for a business to help with...",
       descriptionPlaceholder: "What you need, when you need it, and any business requirements.",
@@ -561,6 +564,7 @@ function DirectConnectRequestComposer({
     },
     customer_support: {
       label: "Support request",
+      hint: "Request on behalf of someone else",
       category: "customer_support",
       titlePlaceholder: "Someone else needs help with...",
       descriptionPlaceholder: "Explain what they need, where it is, and how urgent it is.",
@@ -571,6 +575,7 @@ function DirectConnectRequestComposer({
     },
     employment: {
       label: "Hiring / employment",
+      hint: "Role, shift, or staffing need",
       category: "employment",
       titlePlaceholder: "Hiring for role / contract...",
       descriptionPlaceholder: "Role, schedule, skills needed, and start date.",
@@ -581,6 +586,7 @@ function DirectConnectRequestComposer({
     },
     buy_sell: {
       label: "Buy / sell",
+      hint: "Materials, inventory, or equipment",
       category: "buy_sell",
       titlePlaceholder: "Looking to buy or sell...",
       descriptionPlaceholder: "What item or material do you need, how much, and by when?",
@@ -591,6 +597,7 @@ function DirectConnectRequestComposer({
     },
     other: {
       label: "General request",
+      hint: "Anything that does not fit above",
       category: "other",
       titlePlaceholder: "What do you need help with?",
       descriptionPlaceholder: "Add enough detail so the right people can understand the request.",
@@ -754,16 +761,28 @@ function DirectConnectRequestComposer({
                   type="button"
                   onClick={() => setRequestType(key)}
                   className={cn(
-                    "rounded-md border px-2 py-1.5 text-xs text-left transition-colors",
+                    "rounded-md border px-2 py-1.5 text-left transition-colors",
                     active
                       ? "border-ts-orange bg-ts-orange/20 text-white"
                       : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
                   )}
                 >
-                  {meta.label}
+                  <p className="text-[11px] font-medium leading-tight">{meta.label}</p>
+                  <p className="mt-1 text-[10px] leading-tight text-[color:var(--text-secondary)]/90">
+                    {meta.hint}
+                  </p>
                 </button>
               );
             })}
+          </div>
+          <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+              Selected category
+            </p>
+            <p className="mt-1 text-xs text-[color:var(--text-primary)]">
+              <span className="font-medium">{activeRequestMeta.label}</span>:{" "}
+              {activeRequestMeta.hint}
+            </p>
           </div>
         </div>
         <div className="space-y-1.5">
