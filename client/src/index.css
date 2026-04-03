@@ -12,6 +12,33 @@ body.ts-scroll-lock {
 body.ts-scroll-lock #root {
   overflow: hidden;
 }
+
+/* Mobile simplification mode: reversible via VITE_MOBILE_SIMPLIFICATION_V1. */
+body.ts-mobile-simplified {
+  --bottom-nav-height: 62px;
+}
+
+body.ts-mobile-simplified button,
+body.ts-mobile-simplified a,
+body.ts-mobile-simplified [role="button"] {
+  min-height: 44px;
+}
+
+body.ts-mobile-simplified input,
+body.ts-mobile-simplified select,
+body.ts-mobile-simplified textarea {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+body.ts-mobile-simplified .app-page {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+body.ts-mobile-simplified .app-page .grid {
+  gap: 0.6rem;
+}
 /* stylelint-disable */
 @tailwind base;
 @tailwind components;

@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import {
   MessageCircle,
@@ -229,6 +229,22 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
   return baseNav;
 };
 
+function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
+  const desiredPrimaryLabels = ["Scout", "Direct Connect", "Community"];
+  const byLabel = new Map(items.map((item) => [item.label, item]));
+  const primary = desiredPrimaryLabels
+    .map((label) => byLabel.get(label))
+    .filter((item): item is NavItem => Boolean(item));
+
+  const primaryHrefs = new Set(primary.map((item) => item.href));
+  const overflow = items.filter((item) => !primaryHrefs.has(item.href));
+
+  return {
+    ordered: [...primary, ...overflow],
+    primary,
+  };
+}
+
 export function AppShell({ children, footer }: AppShellProps) {
   const { user, isAuthenticated } = useAuth();
   const isLoggedIn = !!user;
@@ -290,7 +306,27 @@ export function AppShell({ children, footer }: AppShellProps) {
   });
   const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
+  const mobileSimplificationEnabled =
+    String(import.meta.env.VITE_MOBILE_SIMPLIFICATION_V1 ?? "true") === "true";
+  const isMobileSimplified =
+    mobileSimplificationEnabled && isMobile && !isAuthOrSetupSurface && !isAdminSurface;
+
   const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
+  const mobileNav = useMemo(() => {
+    if (!isMobileSimplified) {
+      return {
+        ordered: featureNav,
+        primary: featureNav.slice(0, 4),
+      };
+    }
+    return buildMobileSimplifiedNav(featureNav);
+  }, [featureNav, isMobileSimplified]);
+
+  const mobileOverflowNav = useMemo(() => {
+    const primaryHrefs = new Set(mobileNav.primary.map((item) => item.href));
+    return mobileNav.ordered.filter((item) => !primaryHrefs.has(item.href));
+  }, [mobileNav]);
+
   const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const shouldPinRightTools =
@@ -319,6 +355,16 @@ export function AppShell({ children, footer }: AppShellProps) {
       document.body.classList.remove("ts-mobile-density");
     };
   }, [isMobile]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isMobileSimplified) document.body.classList.add("ts-mobile-simplified");
+    else document.body.classList.remove("ts-mobile-simplified");
+
+    return () => {
+      document.body.classList.remove("ts-mobile-simplified");
+    };
+  }, [isMobileSimplified]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -511,7 +557,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {!isLoggedIn && !isAuthOrSetupSurface && (
+            {!isMobileSimplified && !isLoggedIn && !isAuthOrSetupSurface && (
               <>
                 <button
                   type="button"
@@ -539,7 +585,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
               </>
             )}
-            {showInstallAction && (
+            {!isMobileSimplified && showInstallAction && (
               <button
                 type="button"
                 onClick={handleInstallAction}
@@ -555,21 +601,24 @@ export function AppShell({ children, footer }: AppShellProps) {
               </button>
             )}
             {!isAuthOrSetupSurface && isAuthenticated && <NotificationCenter />}
-            {!isAuthOrSetupSurface && isAuthenticated && shouldShowAdminNav && (
-              <button
-                type="button"
-                onClick={() => navigate("/admin")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
-                style={{
-                  borderColor: "var(--border-primary)",
-                  backgroundColor: "var(--charcoal-900)",
-                }}
-                aria-label="Open admin controls"
-                title="Admin"
-              >
-                <Shield className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
-              </button>
-            )}
+            {!isMobileSimplified &&
+              !isAuthOrSetupSurface &&
+              isAuthenticated &&
+              shouldShowAdminNav && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin")}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--charcoal-900)",
+                  }}
+                  aria-label="Open admin controls"
+                  title="Admin"
+                >
+                  <Shield className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
+                </button>
+              )}
             {!isAuthOrSetupSurface && (
               <button
                 type="button"
@@ -839,7 +888,10 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
       {showFeatureNav && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-          <MobileAppBar items={featureNav} />
+          <MobileAppBar
+            items={isMobileSimplified ? mobileNav.ordered : featureNav}
+            primaryLimit={isMobileSimplified ? 3 : 4}
+          />
         </div>
       )}
 
@@ -858,7 +910,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* MOBILE TOOLS DRAWER = PROFILE / DASHBOARD / SETTINGS, etc. */}
-      {isMobile && isToolsOpen && !isAuthOrSetupSurface && (
+      {isMobile && isToolsOpen && !isAuthOrSetupSurface && !isMobileSimplified && (
         <div
           className="fixed inset-x-0 top-0 z-40 flex"
           style={{ bottom: "calc(62px + env(safe-area-inset-bottom))" }}
@@ -898,6 +950,175 @@ export function AppShell({ children, footer }: AppShellProps) {
                 contactRequestCount={contactRequestCount}
                 onNavigate={() => setIsToolsOpen(false)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMobile && isToolsOpen && !isAuthOrSetupSurface && isMobileSimplified && (
+        <div
+          className="fixed inset-x-0 top-0 z-50"
+          style={{ bottom: "calc(62px + env(safe-area-inset-bottom))" }}
+        >
+          <button
+            type="button"
+            aria-label="Close mobile tools"
+            className="h-full w-full bg-black/45"
+            onClick={() => setIsToolsOpen(false)}
+          />
+
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border-t p-4"
+            style={{
+              backgroundColor: "var(--surface-card)",
+              borderColor: "var(--border-primary)",
+            }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Quick actions
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsToolsOpen(false)}
+                className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-lg border px-3 text-xs"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {!isLoggedIn ? (
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsOpen(false);
+                    navigate("/pre-scout-setup?mode=create");
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-semibold"
+                  style={{
+                    borderColor: "var(--theme-accent-primary)",
+                    color: "var(--theme-accent-primary)",
+                  }}
+                >
+                  Create free account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsOpen(false);
+                    navigate("/pre-scout-setup?mode=signin");
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
+                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                >
+                  Sign in
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsOpen(false);
+                    navigate(contactRequestCount > 0 ? "/messages?tab=requests" : "/messages");
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
+                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                >
+                  Messages
+                  {contactRequestCount > 0
+                    ? ` (${contactRequestCount > 9 ? "9+" : contactRequestCount})`
+                    : ""}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsOpen(false);
+                    navigate("/profile");
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
+                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                >
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsOpen(false);
+                    navigate("/settings");
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
+                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                >
+                  Settings
+                </button>
+              </div>
+            )}
+
+            {mobileOverflowNav.length > 0 && (
+              <>
+                <h3
+                  className="mt-5 mb-2 text-xs font-semibold uppercase tracking-[0.18em]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  More destinations
+                </h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {mobileOverflowNav.map((item) => (
+                    <button
+                      key={`mobile-overflow-${item.href}`}
+                      type="button"
+                      onClick={() => {
+                        setIsToolsOpen(false);
+                        navigate(item.href);
+                      }}
+                      className="inline-flex h-11 w-full items-center justify-between rounded-lg border px-3 text-sm font-medium"
+                      style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        {item.icon ? (
+                          <span className="inline-flex h-4 w-4 items-center">{item.icon}</span>
+                        ) : null}
+                        <span>{item.label}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="mt-5 grid grid-cols-1 gap-2">
+              {showInstallAction && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsToolsOpen(false);
+                    await handleInstallAction();
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
+                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                >
+                  Install app
+                </button>
+              )}
+              {isAuthenticated && shouldShowAdminNav && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsToolsOpen(false);
+                    navigate("/admin");
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
+                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                >
+                  Admin controls
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -7,9 +7,10 @@ import type { NavItem } from "@/components/layout/AppShell";
 
 type MobileAppBarProps = {
   items: NavItem[];
+  primaryLimit?: number;
 };
 
-const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
+const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) => {
   const [location] = useLocation();
   const navRef = useRef<HTMLElement | null>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -20,13 +21,13 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
     pathOnly === item.href || pathOnly.startsWith(item.href + "/");
 
   const { primaryItems, overflowItems } = useMemo(() => {
-    const primaryLimit = 4;
-    if (items.length <= primaryLimit) {
+    const limit = Math.max(1, primaryLimit);
+    if (items.length <= limit) {
       return { primaryItems: items, overflowItems: [] as NavItem[] };
     }
 
-    const initialPrimary = items.slice(0, primaryLimit);
-    const initialOverflow = items.slice(primaryLimit);
+    const initialPrimary = items.slice(0, limit);
+    const initialOverflow = items.slice(limit);
 
     if (initialPrimary.some((item) => isItemActive(item))) {
       return { primaryItems: initialPrimary, overflowItems: initialOverflow };
@@ -38,14 +39,14 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items }) => {
     }
 
     const activeOverflowItem = initialOverflow[activeOverflowIndex];
-    const swappedPrimary = [...initialPrimary.slice(0, primaryLimit - 1), activeOverflowItem];
+    const swappedPrimary = [...initialPrimary.slice(0, limit - 1), activeOverflowItem];
     const swappedOverflow = [...initialOverflow];
-    const displaced = initialPrimary[primaryLimit - 1];
+    const displaced = initialPrimary[limit - 1];
     swappedOverflow.splice(activeOverflowIndex, 1);
     swappedOverflow.unshift(displaced);
 
     return { primaryItems: swappedPrimary, overflowItems: swappedOverflow };
-  }, [items, pathOnly]);
+  }, [items, pathOnly, primaryLimit]);
 
   useEffect(() => {
     // Keep the first item visible when admin entry is prepended.
