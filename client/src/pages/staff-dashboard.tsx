@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Settings,
 } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 export default function StaffDashboard() {
   const { user } = useAuth();
@@ -67,16 +68,16 @@ export default function StaffDashboard() {
   const RoleIcon = getRoleIcon(user?.role || "");
 
   return (
-    <div className=" text-white">
-      <div className="max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white flex items-center">
-            <RoleIcon className="h-8 w-8 text-teal-500 mr-3" />
+    <Page className="max-w-7xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <RoleIcon className="h-6 w-6 text-teal-500" />
             {getRoleDisplayName(user?.role || "")} Dashboard
-          </h1>
-          <p className="text-white/60 mt-2">Platform operations and team collaboration</p>
-        </div>
+          </span>
+        }
+        subtitle="Platform operations and team collaboration"
+      >
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -337,7 +338,7 @@ export default function StaffDashboard() {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

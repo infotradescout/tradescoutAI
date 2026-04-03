@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { useLocation } from "wouter";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const RequestQuote = memo(function RequestQuote() {
   const { user } = useAuth();
@@ -138,9 +139,7 @@ const RequestQuote = memo(function RequestQuote() {
 
   if (submitted) {
     return (
-      <div className="h-full bg-background pb-20 lg:pb-0">
-        <div className="container mx-auto px-4 py-6 lg:py-10">
-          <div className="max-w-3xl mx-auto">
+      <Page className="max-w-3xl">
             <Card className="bg-card border-border shadow-xl">
               <CardContent className="pt-12 pb-12 text-center">
                 <div className="flex justify-center mb-6">
@@ -180,32 +179,23 @@ const RequestQuote = memo(function RequestQuote() {
                 />
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="h-full bg-background pb-20 lg:pb-0">
-      <div className="container mx-auto px-4 py-6 lg:py-10">
-        <div className="max-w-3xl mx-auto">
-          {/* Header */}
-          <div className="mb-8 lg:mb-12">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="h-12 w-12 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-                <MessageSquare className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-3xl lg:text-5xl font-bold text-foreground mb-1">
-                  Request a Quote
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Share the project. We handle routing.
-                </p>
-              </div>
+    <Page className="max-w-3xl pb-20 lg:pb-0">
+      <Section
+        title={
+          <span className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center shadow-lg">
+              <MessageSquare className="h-5 w-5 text-primary-foreground" />
             </div>
-          </div>
+            Request a Quote
+          </span>
+        }
+        subtitle="Share the project. We handle routing."
+      >
 
           {/* Form */}
           <Card className="bg-card border-border shadow-xl">
@@ -466,9 +456,8 @@ const RequestQuote = memo(function RequestQuote() {
               </form>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

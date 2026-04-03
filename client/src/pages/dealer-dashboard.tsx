@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Car, Users, TrendingUp, DollarSign, Phone, MapPin, Calendar, Plus, Eye, Handshake, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 export default function DealerDashboard() {
   const { user } = useAuth();
@@ -36,20 +37,16 @@ export default function DealerDashboard() {
   };
 
   return (
-    <div className="h-full bg-background">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Car className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Dealer Dashboard</h1>
-              <p className="text-muted-foreground">Welcome back, {user?.firstName || 'Dealer'}!</p>
-            </div>
-          </div>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Car className="h-6 w-6 text-primary" />
+            Dealer Dashboard
+          </span>
+        }
+        subtitle={`Welcome back, ${user?.firstName || 'Dealer'}!`}
+      >
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -435,7 +432,7 @@ export default function DealerDashboard() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

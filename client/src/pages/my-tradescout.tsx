@@ -13,6 +13,7 @@ import {
   SavedContractorsWidget,
   CommunityBuilderImpactWidget,
 } from "@/components/dashboard/DashboardWidgets";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 // Local view model for My TradeScout. This is intentionally
 // conservative: it only derives state from existing user/session
@@ -168,8 +169,8 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center py-24 text-white/70">
-        <div className="max-w-md text-center space-y-3 px-4">
+      <Page className="max-w-md">
+        <div className="text-center space-y-3 py-16">
           <h1 className="text-xl font-semibold text-ts-orange">My TradeScout</h1>
           <p className="text-sm text-white/70">
             Sign in to see what TradeScout already knows about your projects and community.
@@ -178,7 +179,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
             <Button className="w-full mt-2">Sign in</Button>
           </Link>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -197,18 +198,11 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
   });
 
   return (
-    <div className=" pb-20 lg:pb-0">
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-lg sm:text-xl font-semibold text-ts-orange">My TradeScout</h1>
-            <p className="text-sm text-white/70 max-w-xl">
-              A simple, honest view of where you are right now and the next few things TradeScout
-              can help you do.
-            </p>
-          </div>
-        </div>
+    <Page className="max-w-6xl pb-20 lg:pb-0">
+      <Section
+        title="My TradeScout"
+        subtitle="A simple, honest view of where you are right now and the next few things TradeScout can help you do."
+      >
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
           {/* Left: context + threads + recommended actions */}
@@ -363,8 +357,8 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
             <CommunityBuilderImpactWidget />
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

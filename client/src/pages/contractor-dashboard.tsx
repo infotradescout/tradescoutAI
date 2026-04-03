@@ -3,25 +3,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Briefcase, Users } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 export default function ContractorDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   return (
-    <div className="text-foreground">
-      <div className="space-y-8">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-primary">Contractor dashboard</p>
-          <h1 className="text-3xl font-bold text-foreground">
-            Welcome{user?.firstName ? `, ${user.firstName}` : ""}
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Scout keeps your jobs, documents, and finances in one place. As you start responding to
-            Direct Connect requests, sending quotes, and working jobs, this dashboard will reflect
-            your real pipeline.
-          </p>
-        </header>
+    <Page>
+      <Section
+        title={`Welcome${user?.firstName ? `, ${user.firstName}` : ""}`}
+        subtitle="Scout keeps your jobs, documents, and finances in one place. As you start responding to Direct Connect requests, sending quotes, and working jobs, this dashboard will reflect your real pipeline."
+      >
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-card border-border">
@@ -84,7 +77,7 @@ export default function ContractorDashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

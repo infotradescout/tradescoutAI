@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { safeStorage } from "../utils/safeStorage";
 import { useLocation } from "wouter";
+import { Page } from "@/components/layout/PagePrimitives";
 
 type NoteRecord = {
   id: string;
@@ -155,10 +156,11 @@ export default function NotesPage() {
       : activeId;
 
   return (
-    <div
-      className="flex flex-col lg:flex-row gap-4 p-4"
-      style={{ color: "var(--theme-text-primary)" }}
-    >
+    <Page>
+      <div
+        className="flex flex-col lg:flex-row gap-4"
+        style={{ color: "var(--theme-text-primary)" }}
+      >
       <aside className="w-full lg:w-80 flex-shrink-0">
         <div
           className="rounded-xl p-3"
@@ -338,6 +340,7 @@ export default function NotesPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </Page>
   );
 }

@@ -21,6 +21,7 @@ import {
   Briefcase,
   Plus
 } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface Client {
   id: string;
@@ -103,15 +104,16 @@ export default function InsuranceAgentDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white flex items-center">
-          <Shield className="h-8 w-8 text-blue-500 mr-3" />
-          Insurance Agent Dashboard
-        </h1>
-        <p className="text-white/60 mt-2">Manage policies, track renewals, and grow your client base</p>
-      </div>
+    <Page className="max-w-7xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Shield className="h-6 w-6 text-blue-500" />
+            Insurance Agent Dashboard
+          </span>
+        }
+        subtitle="Manage policies, track renewals, and grow your client base"
+      >
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -260,6 +262,7 @@ export default function InsuranceAgentDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

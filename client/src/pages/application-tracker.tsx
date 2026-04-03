@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const ApplicationTracker = memo(function ApplicationTracker() {
   const [activeTab, setActiveTab] = useState("all");
@@ -143,18 +144,16 @@ const ApplicationTracker = memo(function ApplicationTracker() {
     activeTab === "all" ? applications : applications.filter((app) => app.status === activeTab);
 
   return (
-    <div className="gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <FileText className="h-8 w-8 text-ts-orange" />
-            <h1 className="text-2xl md:text-4xl font-bold text-white">Application Tracker</h1>
-          </div>
-          <p className="text-white/70 text-base md:text-lg">
-            Monitor and manage all platform applications and verifications
-          </p>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <FileText className="h-6 w-6 text-ts-orange" />
+            Application Tracker
+          </span>
+        }
+        subtitle="Monitor and manage all platform applications and verifications"
+      >
 
         {/* Status Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -377,8 +376,8 @@ const ApplicationTracker = memo(function ApplicationTracker() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

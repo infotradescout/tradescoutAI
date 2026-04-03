@@ -25,6 +25,7 @@ import { useParams } from "wouter";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { HOANextStepsCard } from "@/components/hoa/HOANextStepsCard";
+import { Section } from "@/components/layout/PagePrimitives";
 
 const HOA_SIMPLE_VIEW_KEY = "ts:hoa:simple_view:v1";
 
@@ -200,14 +201,15 @@ const HOADashboard = memo(function HOADashboard() {
         canonical="https://www.thetradescout.com/hoa-dashboard"
         noIndex
       />
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Home className="h-8 w-8 text-ts-orange" />
-          <h1 className="text-4xl font-bold text-white">HOA Management</h1>
-        </div>
-        <p className="text-white/70 text-lg">{`${dashboard?.hoaName ?? "Your HOA"} Dashboard`}</p>
-      </div>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Home className="h-6 w-6 text-ts-orange" />
+            HOA Management
+          </span>
+        }
+        subtitle={`${dashboard?.hoaName ?? "Your HOA"} Dashboard`}
+      >
 
       <div className="mb-6">
         <HOANextStepsCard
@@ -557,6 +559,7 @@ const HOADashboard = memo(function HOADashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+      </Section>
     </HOADashboardShell>
   );
 });

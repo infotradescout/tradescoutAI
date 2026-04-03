@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const ResourceCenter = memo(function ResourceCenter() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -168,23 +169,22 @@ const ResourceCenter = memo(function ResourceCenter() {
   };
 
   return (
-    <div className="h-full bg-background">
+    <>
       <SEOHelmet
         title="Resource Center | Trade Guides, Templates, and Playbooks"
         description="Explore TradeScout's resource center for guides, templates, videos, and practical playbooks to improve local project execution."
         canonical="https://www.thetradescout.com/resource-center"
       />
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">Resource Center</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            Educational materials, guides, and tools to advance your trade skills
-          </p>
-        </div>
+      <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" />
+            Resource Center
+          </span>
+        }
+        subtitle="Educational materials, guides, and tools to advance your trade skills"
+      >
 
         {/* Search and Filters */}
         <Card className="bg-card border-border mb-8">
@@ -461,8 +461,9 @@ const ResourceCenter = memo(function ResourceCenter() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
+    </>
   );
 });
 

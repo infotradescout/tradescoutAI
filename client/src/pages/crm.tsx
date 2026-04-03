@@ -3,20 +3,15 @@ import { Users, Target, Activity, TrendingUp, Calendar, Phone, Mail, DollarSign 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Page, Section } from '@/components/layout/PagePrimitives';
 
 const CRM = memo(function CRM() {
   return (
-    <div className="gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-white">
-            Customer Relationship Management
-          </h1>
-          <p className="text-white/70 text-lg">
-            Manage your contacts, deals, and business relationships
-          </p>
-        </div>
+    <Page>
+      <Section
+        title="Customer Relationship Management"
+        subtitle="Manage your contacts, deals, and business relationships"
+      >
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -171,9 +166,8 @@ const CRM = memo(function CRM() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
-
 export default CRM;

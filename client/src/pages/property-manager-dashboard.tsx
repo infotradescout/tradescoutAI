@@ -24,6 +24,7 @@ import {
   Key,
   Eye
 } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface Property {
   id: string;
@@ -165,15 +166,16 @@ export default function PropertyManagerDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white flex items-center">
-          <Building className="h-8 w-8 text-indigo-500 mr-3" />
-          Property Manager Dashboard
-        </h1>
-        <p className="text-white/60 mt-2">Manage properties, track maintenance, and optimize operations</p>
-      </div>
+    <Page className="max-w-7xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Building className="h-6 w-6 text-indigo-500" />
+            Property Manager Dashboard
+          </span>
+        }
+        subtitle="Manage properties, track maintenance, and optimize operations"
+      >
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -459,6 +461,7 @@ export default function PropertyManagerDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

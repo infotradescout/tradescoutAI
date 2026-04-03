@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface SimpleHomeDashboard {
   stats: {
@@ -94,15 +95,11 @@ const SimpleHome = memo(function SimpleHome() {
     isPropertyManager;
 
   return (
-    <div className="h-full bg-background pb-20 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Welcome Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-primary mb-2">
-            Welcome back, {user?.firstName || user?.email?.split("@")[0] || "there"}
-          </h1>
-          <p className="text-white/70 text-base">Your personalized dashboard</p>
-        </div>
+    <Page className="max-w-7xl pb-20 lg:pb-0">
+      <Section
+        title={`Welcome back, ${user?.firstName || user?.email?.split("@")[0] || "there"}`}
+        subtitle="Your personalized dashboard"
+      >
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
@@ -642,9 +639,8 @@ const SimpleHome = memo(function SimpleHome() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+       </Section>
+    </Page>
   );
 });
-
 export default SimpleHome;

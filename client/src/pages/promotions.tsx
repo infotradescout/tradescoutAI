@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Megaphone, Percent, Calendar, Target, Eye, DollarSign, Clock, TrendingUp } from 'lucide-react';
+import { Page, Section } from '@/components/layout/PagePrimitives';
 
 const Promotions = memo(function Promotions() {
   const [promoType, setPromoType] = useState('discount');
@@ -91,15 +92,11 @@ const Promotions = memo(function Promotions() {
   };
 
   return (
-	<div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Promotion Manager</h1>
-          <p className="text-xl text-white/70">
-            Create and manage promotional campaigns to attract more customers
-          </p>
-        </div>
+    <Page className="max-w-7xl">
+      <Section
+        title="Promotion Manager"
+        subtitle="Create and manage promotional campaigns to attract more customers"
+      >
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -422,9 +419,8 @@ const Promotions = memo(function Promotions() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
-
 export default Promotions;

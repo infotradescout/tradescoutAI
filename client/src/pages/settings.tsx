@@ -54,6 +54,7 @@ import { getRoleUiConfig, SELF_SERVICE_ROLE_KEYS } from "@/lib/roleUiConfig";
 import UserTypeSelect from "@/components/UserTypeSelect";
 import { ACCOUNT_CREATION_USER_TYPES } from "@shared/userTypes";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 type HandednessPreference = "right" | "left";
 
@@ -754,21 +755,18 @@ export default function Settings() {
   };
 
   return (
-    <div className="pb-6">
-      <div className="container mx-auto px-4 py-6 lg:py-10">
-        <div className="max-w-5xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8">
-          {/* Modern Header */}
-          <div className="mb-8 lg:mb-12">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                <User className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl lg:text-5xl font-bold text-white mb-1">Settings</h1>
-                <p className="text-lg text-white/60">Manage your account preferences and privacy</p>
-              </div>
+    <Page className="max-w-5xl">
+      <Section
+        title={
+          <span className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+              <User className="h-5 w-5 text-white" />
             </div>
-          </div>
+            Settings
+          </span>
+        }
+        subtitle="Manage your account preferences and privacy"
+      >
 
           <Tabs
             value={activeTab}
@@ -2134,8 +2132,7 @@ export default function Settings() {
             open={advancedNotificationPrefsOpen}
             onOpenChange={setAdvancedNotificationPrefsOpen}
           />
-        </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

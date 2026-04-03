@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const TrainingCenter = memo(function TrainingCenter() {
   const [activeTab, setActiveTab] = useState("courses");
@@ -183,23 +184,22 @@ const TrainingCenter = memo(function TrainingCenter() {
   };
 
   return (
-    <div className="h-full gradient-bg text-foreground">
+    <>
       <SEOHelmet
         title="Training Center | Courses and Certifications"
         description="Build trade skills in the TradeScout training center with structured courses, certifications, and practical professional learning tracks."
         canonical="https://www.thetradescout.com/training-center"
       />
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <GraduationCap className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">Training Center</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            Advance your skills with professional training courses and certifications
-          </p>
-        </div>
+      <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            Training Center
+          </span>
+        }
+        subtitle="Advance your skills with professional training courses and certifications"
+      >
 
         {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -621,8 +621,9 @@ const TrainingCenter = memo(function TrainingCenter() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
+    </>
   );
 });
 

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { Page, Section } from '@/components/layout/PagePrimitives';
 
 const FileManagement = memo(function FileManagement() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -159,26 +160,25 @@ const FileManagement = memo(function FileManagement() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Upload className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-4xl font-bold text-foreground">File Management</h1>
-              <p className="text-muted-foreground text-lg">Upload, organize, and manage your files</p>
-            </div>
-          </div>
-          <Button 
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Upload className="h-6 w-6 text-primary" />
+            File Management
+          </span>
+        }
+        subtitle="Upload, organize, and manage your files"
+        actions={
+          <Button
             className="bg-primary hover:bg-primary/90"
             onClick={handleFileUpload}
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload Files
           </Button>
-        </div>
-      </div>
+        }
+      >
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
@@ -439,8 +439,8 @@ const FileManagement = memo(function FileManagement() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </Section>
+    </Page>
   );
 });
-
 export default FileManagement;

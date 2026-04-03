@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const RECORD_TYPES = [
   { value: "service", label: "Service" },
@@ -226,13 +227,11 @@ export default function VehicleVault() {
   }, [vehicles, selectedVehicleId]);
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Vehicles</h1>
-        <p className="text-sm text-muted-foreground">
-          Private records for your vehicles: service history, repairs, and documents.
-        </p>
-      </div>
+    <Page className="max-w-6xl">
+      <Section
+        title="Vehicles"
+        subtitle="Private records for your vehicles: service history, repairs, and documents."
+      >
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
@@ -617,6 +616,7 @@ export default function VehicleVault() {
           </Card>
         </div>
       </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

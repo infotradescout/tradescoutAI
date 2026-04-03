@@ -27,6 +27,7 @@ import {
 import { LocalImpactCard } from "@/components/dashboard/LocalImpactCard";
 import { HoaLeadershipBadge } from "@/components/dashboard/HoaLeadershipBadge";
 import { uploadObject } from "@/lib/objectUpload";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface Post {
   id: string;
@@ -247,25 +248,19 @@ const Dashboard = memo(function Dashboard() {
   }
 
   return (
-    <div className="h-full bg-background pb-16 lg:pb-0">
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold text-primary">
-              Welcome back, {user?.firstName || "Friend"}!
-            </h1>
-            <p className="text-sm text-white/60 dark:text-white/60">
-              Here's what's happening in your community
-            </p>
-          </div>
+    <Page className="max-w-6xl pb-16 lg:pb-0">
+      <Section
+        title={`Welcome back, ${user?.firstName || "Friend"}!`}
+        subtitle="Here's what's happening in your community"
+        actions={
           <Link href="/dashboard-settings">
             <Button variant="outline" size="sm" data-testid="button-customize-dashboard">
               <SettingsIcon className="h-4 w-4 mr-2" />
               Customize
             </Button>
           </Link>
-        </div>
+        }
+      >
 
         {/* Local Impact (always visible) */}
         <LocalImpactCard className="mb-0" />
@@ -516,8 +511,8 @@ const Dashboard = memo(function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Users } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface ConnectionUser {
   id: string;
@@ -233,19 +234,16 @@ export default function ConnectionsPage() {
   });
 
   return (
-    <div className="bg-background py-8">
-      <div className="container mx-auto space-y-6">
-        <div className="flex items-center gap-3 connections-header">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2 connections-header">
             <Users className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Connections</h1>
-            <p className="text-sm text-muted-foreground">
-              People you&rsquo;ve approved contact with, plus your social follows.
-            </p>
-          </div>
-        </div>
+            Connections
+          </span>
+        }
+        subtitle="People you've approved contact with, plus your social follows."
+      >
 
         <Tabs
           value={activeTab}
@@ -384,7 +382,7 @@ export default function ConnectionsPage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

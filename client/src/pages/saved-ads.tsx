@@ -7,6 +7,7 @@ import { Bookmark, ExternalLink, X, Calendar, ThumbsUp, ThumbsDown, Ban } from "
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface SavedAdvertisement {
   id: string;
@@ -104,8 +105,8 @@ export default function SavedAds() {
 
   if (authLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="animate-pulse space-y-6">
+      <Page className="max-w-4xl">
+        <div className="animate-pulse space-y-4">
           <div className="h-8 bg-tsCard rounded w-48"></div>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -113,7 +114,7 @@ export default function SavedAds() {
             ))}
           </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -123,18 +124,18 @@ export default function SavedAds() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
+      <Page className="max-w-4xl">
+        <div className="text-center py-16">
           <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-white/70">Loading your saved ads...</p>
         </div>
-      </div>
+      </Page>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <Page className="max-w-4xl">
         <Card className="bg-red-900/20 border-red-500/50">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Saved Ads</h2>
@@ -143,134 +144,136 @@ export default function SavedAds() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
-          <Bookmark className="h-8 w-8 mr-3 text-ts-orange" />
-          Saved Ads
-        </h1>
-        <p className="text-white/70">Your collection of saved sponsor messages and TradeDeals</p>
-      </div>
-
-      {!savedAds || savedAds.length === 0 ? (
-        <Card className="bg-tsCard border-white/10">
-          <CardContent className="p-12 text-center">
-            <Bookmark className="h-16 w-16 text-white/60 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">No Saved Ads Yet</h2>
-            <p className="text-white/70 mb-6">
-              When you see an interesting ad, click "Save for Later" to add it here.
-            </p>
-            <Link href="/">
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                Browse TradeScout
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {savedAds.map((ad) => (
-            <Card key={ad.id} className="bg-tsCard border-white/10">
-              <CardContent className="p-6 relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-4 right-4 h-8 w-8 p-0 text-white/60 hover:text-red-400"
-                  onClick={() => handleRemove(ad.id)}
-                  disabled={removeMutation.isPending}
-                >
-                  <X className="h-4 w-4" />
+    <Page className="max-w-4xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Bookmark className="h-6 w-6 text-ts-orange" />
+            Saved Ads
+          </span>
+        }
+        subtitle="Your collection of saved sponsor messages and TradeDeals"
+      >
+        {!savedAds || savedAds.length === 0 ? (
+          <Card className="bg-tsCard border-white/10">
+            <CardContent className="p-12 text-center">
+              <Bookmark className="h-16 w-16 text-white/60 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-white mb-2">No Saved Ads Yet</h2>
+              <p className="text-white/70 mb-6">
+                When you see an interesting ad, click "Save for Later" to add it here.
+              </p>
+              <Link href="/">
+                <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+                  Browse TradeScout
                 </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {savedAds.map((ad) => (
+              <Card key={ad.id} className="bg-tsCard border-white/10">
+                <CardContent className="p-5 sm:p-6 relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-4 right-4 h-8 w-8 p-0 text-white/60 hover:text-red-400"
+                    onClick={() => handleRemove(ad.id)}
+                    disabled={removeMutation.isPending}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
 
-                <div className="pr-12">
-                  {ad.imageUrl && (
-                    <div className="mb-4">
-                      <img
-                        src={ad.imageUrl}
-                        alt={ad.title}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-xl font-semibold text-white">{ad.title}</h3>
-                    {ad.isAffiliate && (
-                      <Badge variant="outline" className="text-blue-400 border-blue-400">
-                        Sponsored
-                      </Badge>
+                  <div className="pr-10">
+                    {ad.imageUrl && (
+                      <div className="mb-4">
+                        <img
+                          src={ad.imageUrl}
+                          alt={ad.title}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      </div>
                     )}
-                  </div>
 
-                  <p className="text-white/70 mb-4">{ad.content}</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-white/60">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Saved {new Date(ad.createdAt).toLocaleDateString()}
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-xl font-semibold text-white">{ad.title}</h3>
+                      {ad.isAffiliate && (
+                        <Badge variant="outline" className="text-blue-400 border-blue-400">
+                          Sponsored
+                        </Badge>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      {ad.linkUrl && (
-                        <Button
-                          onClick={() => handleAdClick(ad)}
-                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
-                          size="sm"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Visit Link
-                        </Button>
-                      )}
+                    <p className="text-white/70 mb-4">{ad.content}</p>
 
-                      <div className="flex items-center gap-1 text-xs text-white/60">
-                        <span className="mr-1">Rate</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-green-500 hover:text-green-400"
-                          onClick={() => sendFeedback(ad.id, "helpful")}
-                          title="Helpful"
-                        >
-                          <ThumbsUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-yellow-500 hover:text-yellow-400"
-                          onClick={() => sendFeedback(ad.id, "not_relevant")}
-                          title="Not relevant"
-                        >
-                          <ThumbsDown className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-red-500 hover:text-red-400"
-                          onClick={() => sendFeedback(ad.id, "spam")}
-                          title="Spam or misleading"
-                        >
-                          <Ban className="h-3 w-3" />
-                        </Button>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center text-sm text-white/60">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Saved {new Date(ad.createdAt).toLocaleDateString()}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {ad.linkUrl && (
+                          <Button
+                            onClick={() => handleAdClick(ad)}
+                            className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                            size="sm"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Visit Link
+                          </Button>
+                        )}
+
+                        <div className="flex items-center gap-1 text-xs text-white/60">
+                          <span className="mr-1">Rate</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-green-500 hover:text-green-400"
+                            onClick={() => sendFeedback(ad.id, "helpful")}
+                            title="Helpful"
+                          >
+                            <ThumbsUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-yellow-500 hover:text-yellow-400"
+                            onClick={() => sendFeedback(ad.id, "not_relevant")}
+                            title="Not relevant"
+                          >
+                            <ThumbsDown className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-red-500 hover:text-red-400"
+                            onClick={() => sendFeedback(ad.id, "spam")}
+                            title="Spam or misleading"
+                          >
+                            <Ban className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
 
-          <div className="text-center pt-6">
-            <p className="text-white/60 text-sm">
-              {savedAds.length} saved ad{savedAds.length !== 1 ? "s" : ""} total
-            </p>
+            <div className="text-center pt-4">
+              <p className="text-white/60 text-sm">
+                {savedAds.length} saved ad{savedAds.length !== 1 ? "s" : ""} total
+              </p>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </Section>
+    </Page>
   );
 }

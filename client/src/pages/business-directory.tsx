@@ -16,6 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Search } from "lucide-react";
 import { Link } from "wouter";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 type DirectoryItem = {
   id: string;
@@ -99,20 +100,18 @@ export default function BusinessDirectoryPage() {
   const titleSuffix = data?.stateCode ? `${data.stateCode}-${data.countyFips}` : data?.countyFips;
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+    <Page className="max-w-5xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Business Directory{" "}
-            {titleSuffix ? <span className="text-muted-foreground">({titleSuffix})</span> : null}
-          </CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Seeded listings are labeled <span className="font-medium">Unclaimed</span>. Contact
-            stays Scout-gated.
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4">
+            Business Directory{titleSuffix ? ` (${titleSuffix})` : ""}
+          </span>
+        }
+        subtitle={<>Seeded listings are labeled <span className="font-medium text-white">Unclaimed</span>. Contact stays Scout-gated.</>}
+      >
+      <Card className="mb-6">
+        <CardContent className="grid gap-3 md:grid-cols-4 pt-6">
           <div className="md:col-span-1">
             <div className="text-xs text-muted-foreground mb-1">County FIPS</div>
             <Input
@@ -222,6 +221,7 @@ export default function BusinessDirectoryPage() {
           ))}
         </div>
       )}
-    </div>
+      </Section>
+    </Page>
   );
 }

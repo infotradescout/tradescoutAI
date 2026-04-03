@@ -2,6 +2,7 @@ import React from "react";
 import { useRoute, Link } from "wouter";
 import { getUserTypeMetadata } from "@shared/userTypes";
 import { Layout } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 export default function RoleHubPage() {
   const [match, params] = useRoute("/roles/:roleKey");
@@ -10,11 +11,13 @@ export default function RoleHubPage() {
 
   if (!match) {
     return (
-      <div className=" text-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-lg">Role not found.</p>
+      <Page>
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center space-y-4">
+            <p className="text-lg text-white">Role not found.</p>
+          </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -24,21 +27,19 @@ export default function RoleHubPage() {
   const features = meta?.features ?? [];
 
   return (
-    <div className=" text-white">
-      <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
-        <header className="flex items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-ts-orange/10 flex items-center justify-center border border-ts-orange/40">
+    <Page className="max-w-5xl">
+      <Section
+        title={
+          <span className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-xl bg-ts-orange/10 flex items-center justify-center border border-ts-orange/40">
               <Layout className="h-4 w-4 text-ts-orange" />
             </div>
-            <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-ts-orange">Role hub</div>
-              <h1 className="text-xl md:text-2xl font-semibold text-white">{label}</h1>
-            </div>
-          </div>
-        </header>
-
-        <div className="grid gap-6 md:grid-cols-3">
+            {label}
+          </span>
+        }
+        subtitle={<span className="text-xs uppercase tracking-[0.18em] text-ts-orange">Role hub</span>}
+      >
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2 space-y-4">
             <div className="rounded-2xl border border-white/10 bg-tsCard/95 p-4 md:p-5">
               <h2 className="text-sm font-medium text-white mb-2">Role profile</h2>
@@ -89,7 +90,7 @@ export default function RoleHubPage() {
               <div className="space-y-2 text-xs md:text-sm">
                 <Link
                   href="/"
-                  className="block w-full text-center px-3 py-2 rounded-xl bg-ts-orange text.black font-medium hover:bg-ts-orange/20 transition"
+                  className="block w-full text-center px-3 py-2 rounded-xl bg-ts-orange text-black font-medium hover:bg-ts-orange/20 transition"
                 >
                   Ask Scout about this role
                 </Link>
@@ -103,7 +104,7 @@ export default function RoleHubPage() {
             </div>
           </aside>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

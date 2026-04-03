@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { getPriorityColorClass, getCategoryColorClass } from "@/lib/colors";
 import { apiRequest } from "@/lib/queryClient";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 type ErrorReport = {
   id: string;
@@ -165,28 +166,24 @@ const SupportTickets = memo(function SupportTickets() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Headphones className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-4xl font-bold text-foreground">Support Tickets</h1>
-              <p className="text-muted-foreground text-lg">
-                Manage customer support requests and issues
-              </p>
-            </div>
-          </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Headphones className="h-6 w-6 text-primary" />
+            Support Tickets
+          </span>
+        }
+        subtitle="Manage customer support requests and issues"
+        actions={
           <Button className="bg-primary hover:bg-primary/90">
             <Plus className="h-4 w-4 mr-2" />
             New Ticket
           </Button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        }
+      >
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -238,9 +235,9 @@ const SupportTickets = memo(function SupportTickets() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tickets List */}
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -534,8 +531,9 @@ const SupportTickets = memo(function SupportTickets() {
             </Card>
           )}
         </div>
-      </div>
-    </div>
+        </div>
+      </Section>
+    </Page>
   );
 });
 

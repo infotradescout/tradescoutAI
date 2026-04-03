@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import MessagesPanel from "@/components/messages/MessagesPanel";
+import { Page } from "@/components/layout/PagePrimitives";
 
 export default function MessagesPage() {
   const { user, isLoading } = useAuth();
@@ -28,10 +29,10 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="">
-      <div className="h-[calc(var(--app-height)-7rem)] max-w-6xl mx-auto w-full">
+    <Page className="max-w-6xl">
+      <div className="h-[calc(var(--app-height)-7rem)] w-full">
         <MessagesPanel />
       </div>
-    </div>
+    </Page>
   );
 }

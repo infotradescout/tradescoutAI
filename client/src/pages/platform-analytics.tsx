@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { isAdminTier } from "@/lib/roleChecks";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const PlatformAnalytics = memo(function PlatformAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
@@ -481,33 +482,29 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
   );
 
   return (
-    <div className="h-full bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-4xl font-bold text-foreground">Platform Analytics</h1>
-                <p className="text-muted-foreground text-lg">
-                  Comprehensive insights into platform performance and growth
-                </p>
-              </div>
-            </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-32 bg-input border-input text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">7 Days</SelectItem>
-                <SelectItem value="30d">30 Days</SelectItem>
-                <SelectItem value="90d">90 Days</SelectItem>
-                <SelectItem value="1y">1 Year</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-primary" />
+            Platform Analytics
+          </span>
+        }
+        subtitle="Comprehensive insights into platform performance and growth"
+        actions={
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-32 bg-input border-input text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">7 Days</SelectItem>
+              <SelectItem value="30d">30 Days</SelectItem>
+              <SelectItem value="90d">90 Days</SelectItem>
+              <SelectItem value="1y">1 Year</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      >
 
         {/* Analytics Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -1191,9 +1188,8 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+       </Section>
+    </Page>
   );
 });
-
 export default PlatformAnalytics;

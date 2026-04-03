@@ -8,6 +8,7 @@ import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface CommunityPostAuthor {
   id: string;
@@ -126,8 +127,7 @@ export default function CommunityProfile() {
       : `/profile/${encodeURIComponent(userId)}`;
 
   return (
-    <div className="">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <Page className="max-w-4xl">
         {/* Header */}
         <Card
           className="border"
@@ -231,7 +231,6 @@ export default function CommunityProfile() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </Page>
   );
 }

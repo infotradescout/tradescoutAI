@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const ScheduleConsultation = memo(function ScheduleConsultation() {
   const [selectedDate, setSelectedDate] = useState("");
@@ -76,21 +77,17 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
   };
 
   return (
-    <div className=" text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Calendar className="h-8 w-8 text-ts-orange" />
-            <h1 className="text-4xl font-bold text-white">Schedule Consultation</h1>
-          </div>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto">
-            Book a personalized consultation with our team to discuss your business goals and how
-            TradeScout can help you succeed
-          </p>
-        </div>
-
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <Page className="max-w-4xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Calendar className="h-6 w-6 text-ts-orange" />
+            Schedule Consultation
+          </span>
+        }
+        subtitle="Book a personalized consultation with our team to discuss your business goals and how TradeScout can help you succeed"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Consultation Form */}
           <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
             <CardHeader>
@@ -367,8 +364,8 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

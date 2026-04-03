@@ -28,6 +28,7 @@ import {
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface ContractorRanking {
   id: string;
@@ -290,19 +291,24 @@ export default function Leaderboard() {
         description="See top TradeScout community contributors ranked by trust signals, recommendations, and county-level participation."
         canonical="https://www.thetradescout.com/leaderboard"
       />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Community Leaderboard</h1>
-          <p className="text-white/70">
-            Top contributors based on activity, recommendations, and community trust
-          </p>
-          {countyName && (
-            <div className="mt-2 inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-white/70 border border-white/10">
+      <Page className="max-w-4xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Trophy className="h-6 w-6 text-ts-orange" />
+            Community Leaderboard
+          </span>
+        }
+        subtitle="Top contributors based on activity, recommendations, and community trust"
+        actions={
+          countyName ? (
+            <div className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-white/70 border border-white/10">
               <span className="mr-1 h-1.5 w-1.5 rounded-full bg-ts-orange" />
               Scoped to {countyName}
             </div>
-          )}
-        </div>
+          ) : undefined
+        }
+      >
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList
@@ -406,7 +412,8 @@ export default function Leaderboard() {
             <p>• Rankings are updated regularly to reflect recent activity</p>
           </CardContent>
         </Card>
-      </div>
+      </Section>
+    </Page>
     </CountyRequiredGate>
   );
 }

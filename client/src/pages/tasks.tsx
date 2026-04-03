@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
 import { formatCountyLabel, getCountyStateCode } from "@/utils/countyFipsToName";
 import { StateCountySelector } from "@/components/state-county-selector";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 type TopContractor = {
   id: string;
@@ -452,9 +453,7 @@ export default function TasksHub({
       });
   }, [workRequests, searchQuery, selectedCategory]);
 
-  const shellClass = embedded
-    ? "space-y-3"
-    : "max-w-7xl mx-auto ts-surface px-4 py-6 md:px-10 md:py-8 pb-20";
+  const shellClass = embedded ? "space-y-3" : "";
   const contentSpacing = embedded ? "mt-0" : "mt-6";
   const postSteps = ["Basics", "Details", "Review"];
   const canAdvanceBasics = taskTitle.trim().length > 0 && taskDescription.trim().length > 0;
@@ -472,13 +471,8 @@ export default function TasksHub({
       ];
 
   return (
-    <div className="">
-      <div className={shellClass}>
-        {!embedded && (
-          <div className="mb-5">
-            <h1 className="text-3xl font-bold text-white">Direct Connect</h1>
-          </div>
-        )}
+    <Page className={embedded ? "" : "max-w-7xl pb-20"}>
+      <Section title={embedded ? undefined : "Direct Connect"}>
 
         <Tabs
           value={activeTab}
@@ -1406,7 +1400,7 @@ export default function TasksHub({
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

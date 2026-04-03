@@ -1,24 +1,23 @@
 import { memo } from 'react';
 import { Search } from 'lucide-react';
 import FindContractors from './find-contractors';
+import { Page, Section } from '@/components/layout/PagePrimitives';
 
 const AdvancedSearch = memo(function AdvancedSearch() {
   return (
-    <div className="gradient-bg text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center gap-3">
-          <Search className="h-8 w-8 text-ts-orange" />
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Contractor Search</h1>
-            <p className="text-white/70 text-sm md:text-base">
-              Use the same verified TradeScout contractor directory with richer filters for state, county, and trade.
-            </p>
-          </div>
-        </div>
-
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Search className="h-6 w-6 text-ts-orange" />
+            Contractor Search
+          </span>
+        }
+        subtitle="Use the same verified TradeScout contractor directory with richer filters for state, county, and trade."
+      >
         <FindContractors title="Advanced contractor search" />
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

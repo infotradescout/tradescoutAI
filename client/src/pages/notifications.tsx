@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 type IncomingRequest = {
   id: string;
@@ -155,18 +156,11 @@ export default function Notifications() {
   const incomingRequests = incomingRequestsQuery.data?.requests || [];
 
   return (
-    <div className="bg-background py-8">
-      <div className="container mx-auto px-4 max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-              Activity Center
-            </p>
-            <h1 className="text-3xl font-bold">Notifications</h1>
-            <p className="text-muted-foreground">
-              Track Direct Connect, Exchange, community, and system updates in one place.
-            </p>
-          </div>
+    <Page className="max-w-6xl">
+      <Section
+        title="Notifications"
+        subtitle="Track Direct Connect, Exchange, community, and system updates in one place."
+        actions={
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="text-xs">
               {notifications?.length || 0} total
@@ -182,13 +176,14 @@ export default function Notifications() {
               </Button>
             )}
           </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        }
+      >
+        <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+          {/* Filters sidebar */}
           <Card className="h-fit border-muted/40">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Filter className="h-4 w-4" />
                 Filters
               </CardTitle>
               <CardDescription>Focus on what matters right now.</CardDescription>
@@ -220,7 +215,8 @@ export default function Notifications() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
+          {/* Main content */}
+          <div className="space-y-4">
             <Card className="border-muted/40">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -287,7 +283,7 @@ export default function Notifications() {
 
             <Card className="border-muted/40">
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>Activity Feed</CardTitle>
                 <CardDescription>Your latest notifications and updates.</CardDescription>
               </CardHeader>
               <CardContent>
@@ -404,7 +400,7 @@ export default function Notifications() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Page, Section } from '@/components/layout/PagePrimitives';
 
 const ReferralDashboard = memo(function ReferralDashboard() {
   const [copyStatus, setCopyStatus] = useState<string>('');
@@ -147,18 +148,16 @@ const ReferralDashboard = memo(function ReferralDashboard() {
   };
 
   return (
-    <div className="h-full gradient-bg text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">Referral Dashboard</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            Earn 10-20% commission by referring new users to TradeScout
-          </p>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <TrendingUp className="h-6 w-6 text-primary" />
+            Referral Dashboard
+          </span>
+        }
+        subtitle="Earn 10-20% commission by referring new users to TradeScout"
+      >
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -563,8 +562,8 @@ const ReferralDashboard = memo(function ReferralDashboard() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
 

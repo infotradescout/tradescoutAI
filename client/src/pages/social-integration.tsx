@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const SocialIntegration = memo(function SocialIntegration() {
   const [copyStatus, setCopyStatus] = useState<string>("");
@@ -127,18 +128,16 @@ const SocialIntegration = memo(function SocialIntegration() {
   };
 
   return (
-    <div className="h-full gradient-bg text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Network className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">Social Media Integration</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            Connect your social accounts and manage your online presence
-          </p>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Network className="h-6 w-6 text-primary" />
+            Social Media Integration
+          </span>
+        }
+        subtitle="Connect your social accounts and manage your online presence"
+      >
 
         <Tabs defaultValue="accounts" className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-tsCard/50 backdrop-blur-sm">
@@ -560,9 +559,8 @@ const SocialIntegration = memo(function SocialIntegration() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+       </Section>
+    </Page>
   );
 });
-
 export default SocialIntegration;

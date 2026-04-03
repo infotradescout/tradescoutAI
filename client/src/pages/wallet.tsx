@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface WalletBalanceResponse {
   balance: string;
@@ -145,26 +146,24 @@ export default function WalletPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="h-full bg-background text-foreground pt-24 pb-16 px-4">
-        <div className="container mx-auto max-w-3xl">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-foreground">
-                TradeScout Wallet
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Sign in to view and use your TradeScout balance.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Your wallet is tied to your TradeScout account. Please log in to see your balance
-                and send funds.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <Page className="max-w-3xl">
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-foreground">
+              TradeScout Wallet
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Sign in to view and use your TradeScout balance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Your wallet is tied to your TradeScout account. Please log in to see your balance
+              and send funds.
+            </p>
+          </CardContent>
+        </Card>
+      </Page>
     );
   }
 
@@ -201,20 +200,16 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="h-full bg-background text-foreground pt-24 pb-16 px-4">
-      <div className="container mx-auto max-w-4xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <DollarSign className="w-6 h-6 text-green-600" />
-              TradeScout Wallet
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm md:text-base">
-              Use your on-platform earnings to pay for marketplace items or send funds to other
-              members.
-            </p>
-          </div>
-        </div>
+    <Page className="max-w-4xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            TradeScout Wallet
+          </span>
+        }
+        subtitle="Use your on-platform earnings to pay for marketplace items or send funds to other members."
+      >
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-card border-border">
@@ -527,7 +522,7 @@ export default function WalletPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

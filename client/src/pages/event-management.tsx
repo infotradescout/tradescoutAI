@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Page, Section } from '@/components/layout/PagePrimitives';
 
 const EventManagement = memo(function EventManagement() {
   const [activeTab, setActiveTab] = useState("upcoming");
@@ -191,27 +192,22 @@ const EventManagement = memo(function EventManagement() {
   );
 
   return (
-    <div className="h-full gradient-bg text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <Calendar className="h-8 w-8 text-primary" />
-                <h1 className="text-4xl font-bold text-foreground">Event Management</h1>
-              </div>
-              <p className="text-muted-foreground text-lg">
-                Discover and manage industry events, workshops, and networking opportunities
-              </p>
-            </div>
-            
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </div>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Calendar className="h-6 w-6 text-primary" />
+            Event Management
+          </span>
+        }
+        subtitle="Discover and manage industry events, workshops, and networking opportunities"
+        actions={
+          <Button className="bg-primary hover:bg-primary/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Event
+          </Button>
+        }
+      >
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -369,9 +365,8 @@ const EventManagement = memo(function EventManagement() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 });
-
 export default EventManagement;

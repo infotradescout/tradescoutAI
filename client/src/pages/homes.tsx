@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const RECORD_TYPES = [
   { value: "inspection", label: "Inspection" },
@@ -444,13 +445,11 @@ export default function HomesVault() {
   }, [homes, selectedHomeId]);
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Homes</h1>
-        <p className="text-sm text-muted-foreground">
-          Private records for your properties: inspections, upgrades, appliances, and documents.
-        </p>
-      </div>
+    <Page className="max-w-6xl">
+      <Section
+        title="Homes"
+        subtitle="Private records for your properties: inspections, upgrades, appliances, and documents."
+      >
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
@@ -1202,6 +1201,7 @@ export default function HomesVault() {
           </Card>
         </div>
       </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

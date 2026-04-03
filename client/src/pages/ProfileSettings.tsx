@@ -22,6 +22,7 @@ import { COLOR_PRESETS, getPresetNames, type ColorScheme } from "@shared/colorPr
 import { Palette, Home, LayoutTemplate, Calendar } from "lucide-react";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { Page } from "@/components/layout/PagePrimitives";
 
 interface UserPreferences {
   defaultHomePage?: string;
@@ -846,7 +847,7 @@ export default function ProfileSettings() {
     : "No business page yet. Add a business persona in account settings to create one.";
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 pb-6 pt-6">
+    <Page className="max-w-6xl">
       <Card className="border-white/10 bg-tsCard">
         <CardContent className="p-5 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -1873,6 +1874,6 @@ export default function ProfileSettings() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   );
 }

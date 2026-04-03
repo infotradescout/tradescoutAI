@@ -22,6 +22,7 @@ import {
   Plus,
   CreditCard,
 } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface LoanApplication {
   id: string;
@@ -133,17 +134,16 @@ export default function MortgageBrokerDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white flex items-center">
-          <Home className="h-8 w-8 text-green-500 mr-3" />
-          Mortgage Broker Dashboard
-        </h1>
-        <p className="text-white/60 mt-2">
-          Manage loan applications, track pipeline, and grow your business
-        </p>
-      </div>
+    <Page className="max-w-7xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Home className="h-6 w-6 text-green-500" />
+            Mortgage Broker Dashboard
+          </span>
+        }
+        subtitle="Manage loan applications, track pipeline, and grow your business"
+      >
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -404,6 +404,7 @@ export default function MortgageBrokerDashboard() {
           </Card>
         </div>
       </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

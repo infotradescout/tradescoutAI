@@ -11,6 +11,7 @@ import {
   FileText,
   CheckCircle,
 } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 export default function ContractorDashboardSimple() {
   const stats = {
@@ -48,15 +49,11 @@ export default function ContractorDashboardSimple() {
   ];
 
   return (
-    <div className=" text-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Contractor Dashboard</h1>
-          <p className="text-white/70 text-lg">
-            Manage your business, track performance, and grow revenue
-          </p>
-        </div>
+    <Page>
+      <Section
+        title="Contractor Dashboard"
+        subtitle="Manage your business, track performance, and grow revenue"
+      >
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -231,7 +228,7 @@ export default function ContractorDashboardSimple() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

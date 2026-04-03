@@ -10,6 +10,7 @@ import { AVAILABLE_WIDGETS } from "@/components/dashboard/DashboardWidgets";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 export default function DashboardSettings() {
   const { user } = useAuth();
@@ -113,22 +114,16 @@ export default function DashboardSettings() {
   };
 
   return (
-    <div className=" dark:bg-tsCard">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-ts-orange/10 dark:bg-ts-orange/10 rounded-lg">
-              <Settings className="h-6 w-6 text-ts-orange dark:text-ts-orange" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-ts-orange">Dashboard Settings</h1>
-              <p className="text-white/60 dark:text-white/60 text-sm">
-                Customize what you see on your homepage
-              </p>
-            </div>
-          </div>
-        </div>
+    <Page className="max-w-4xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-ts-orange" />
+            Dashboard Settings
+          </span>
+        }
+        subtitle="Customize what you see on your homepage"
+      >
 
         {/* Widgets Configuration */}
         <Card className="bg-tsBg dark:bg-white/5 border-0 shadow-sm">
@@ -232,7 +227,7 @@ export default function DashboardSettings() {
             </p>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

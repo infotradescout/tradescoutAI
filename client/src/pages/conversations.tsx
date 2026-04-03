@@ -31,6 +31,7 @@ import type {
   MarketplaceMessage,
   MarketplaceListing,
 } from "@shared/schema";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface ConversationWithDetails extends MarketplaceConversation {
   listing: MarketplaceListing;
@@ -152,14 +153,16 @@ export default function Conversations() {
   }
 
   return (
-    <div className="py-8" style={{ backgroundColor: "var(--surface-app-bg)" }}>
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-ts-orange mb-2">Your Conversations</h1>
-          <p className="text-white/60 dark:text-white/60">
-            Connect with other TradeScout members about marketplace items
-          </p>
-        </div>
+    <Page className="max-w-7xl">
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-ts-orange" />
+            Your Conversations
+          </span>
+        }
+        subtitle="Connect with other TradeScout members about marketplace items"
+      >
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(var(--app-height)-200px)]">
           {/* Conversations List */}
@@ -442,7 +445,7 @@ export default function Conversations() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

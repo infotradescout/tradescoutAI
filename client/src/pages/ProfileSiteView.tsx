@@ -7,6 +7,7 @@ import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { useAuth } from "@/hooks/useAuth";
 import { MessageCircle, ShieldCheck, Calendar, Clock3, DollarSign } from "lucide-react";
+import { Page } from "@/components/layout/PagePrimitives";
 
 type ProfileSections = {
   about?: boolean;
@@ -192,7 +193,7 @@ export default function ProfileSiteView() {
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
 
   return (
-    <div className=" py-8">
+    <Page className="max-w-5xl">
       <SEOHelmet
         title={seoTitle}
         description={seoDescription}
@@ -201,7 +202,6 @@ export default function ProfileSiteView() {
         ogImage={seoImage}
         structuredData={structuredData}
       />
-      <div className="container mx-auto px-4 max-w-5xl">
         <Card className="bg-tsCard border-white/10">
           <CardHeader className="space-y-2">
             <div className="flex items-start justify-between gap-4">
@@ -345,7 +345,6 @@ export default function ProfileSiteView() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </Page>
   );
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, ShieldCheck, Trash2 } from "lucide-react";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 type SavedContractor = {
   id: string;
@@ -32,39 +33,39 @@ const SavedContractorsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="gradient-bg flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 text-ts-orange animate-spin" />
-      </div>
+      <Page>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="w-8 h-8 text-ts-orange animate-spin" />
+        </div>
+      </Page>
     );
   }
 
   if (isError) {
     return (
-      <div className="gradient-bg flex items-center justify-center py-24">
-        <p className="text-white/70 text-sm">Failed to load saved contractors.</p>
-      </div>
+      <Page>
+        <div className="flex items-center justify-center py-24">
+          <p className="text-white/70 text-sm">Failed to load saved contractors.</p>
+        </div>
+      </Page>
     );
   }
 
   const saved = data ?? [];
 
   return (
-    <div className="gradient-bg pt-24 pb-16 px-4">
-      <div className="container mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">Saved Contractors</h1>
-            <p className="text-sm text-white/70">
-              Pros you&apos;ve bookmarked while browsing Exchange and local listings.
-            </p>
-          </div>
-          {saved.length > 0 && (
+    <Page className="max-w-5xl">
+      <Section
+        title="Saved Contractors"
+        subtitle="Pros you've bookmarked while browsing Exchange and local listings."
+        actions={
+          saved.length > 0 ? (
             <Badge variant="secondary" className="bg-white/5 border-white/15 text-xs">
               {saved.length} saved
             </Badge>
-          )}
-        </div>
-
+          ) : undefined
+        }
+      >
         {saved.length === 0 ? (
           <Card className="bg-tsCard/95 border-white/10">
             <CardHeader>
@@ -131,8 +132,8 @@ const SavedContractorsPage = () => {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 };
 

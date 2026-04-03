@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const ContentModeration = memo(function ContentModeration() {
   const [activeTab, setActiveTab] = useState("flagged");
@@ -229,18 +230,16 @@ const ContentModeration = memo(function ContentModeration() {
   };
 
   return (
-    <div className="text-foreground">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold text-foreground">Content Moderation</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
-            Monitor and moderate platform content to maintain community standards
-          </p>
-        </div>
+    <Page>
+      <Section
+        title={
+          <span className="flex items-center gap-2">
+            <Shield className="h-6 w-6 text-primary" />
+            Content Moderation
+          </span>
+        }
+        subtitle="Monitor and moderate platform content to maintain community standards"
+      >
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -569,9 +568,8 @@ const ContentModeration = memo(function ContentModeration() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+       </Section>
+    </Page>
   );
 });
-
 export default ContentModeration;

@@ -28,6 +28,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { formatDistance } from "date-fns";
+import { Page, Section } from "@/components/layout/PagePrimitives";
 
 interface PaymentRecord {
   id: string;
@@ -87,7 +88,7 @@ export default function PaymentHistory() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <Page className="max-w-6xl">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-white/10 rounded w-1/4"></div>
           <div className="space-y-3">
@@ -96,7 +97,7 @@ export default function PaymentHistory() {
             ))}
           </div>
         </div>
-      </div>
+      </Page>
     );
   }
 
@@ -110,13 +111,12 @@ export default function PaymentHistory() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-tsText">Payment History</h1>
-          <p className="text-white/70">Track all your payments and transactions</p>
-        </div>
-        <Select value={filterType} onValueChange={setFilterType}>
+    <Page className="max-w-6xl">
+      <Section
+        title="Payment History"
+        subtitle="Track all your payments and transactions"
+        actions={
+          <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-48 bg-tsCard border-white/10 text-tsText">
             <SelectValue placeholder="Filter payments" />
           </SelectTrigger>
@@ -126,7 +126,8 @@ export default function PaymentHistory() {
             <SelectItem value="marketplace">Marketplace Transactions</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        }
+      >
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-tsCard border-white/10">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -503,6 +504,7 @@ export default function PaymentHistory() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </Section>
+    </Page>
   );
 }
