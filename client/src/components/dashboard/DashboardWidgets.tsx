@@ -26,7 +26,7 @@ interface WidgetProps {
 
 export function ActivityStatsWidget({ className }: WidgetProps) {
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Activity className="h-4 w-4 text-ts-orange" />
@@ -35,19 +35,19 @@ export function ActivityStatsWidget({ className }: WidgetProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+          <div className="text-center p-3 bg-tsSurface border border-white/10 rounded-lg">
             <div className="text-2xl font-bold text-white/70 dark:text-white">12</div>
             <div className="text-xs text-white/60 dark:text-white/60">Posts</div>
           </div>
-          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+          <div className="text-center p-3 bg-tsSurface border border-white/10 rounded-lg">
             <div className="text-2xl font-bold text-white/70 dark:text-white">48</div>
             <div className="text-xs text-white/60 dark:text-white/60">Comments</div>
           </div>
-          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+          <div className="text-center p-3 bg-tsSurface border border-white/10 rounded-lg">
             <div className="text-2xl font-bold text-ts-orange">124</div>
             <div className="text-xs text-white/60 dark:text-white/60">Likes Received</div>
           </div>
-          <div className="text-center p-3 bg-white/5 dark:bg-white/10 rounded-lg">
+          <div className="text-center p-3 bg-tsSurface border border-white/10 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">5</div>
             <div className="text-xs text-white/60 dark:text-white/60">Connections</div>
           </div>
@@ -77,7 +77,7 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
   const projects = data?.myProjects ?? [];
 
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -104,7 +104,7 @@ export function RecentProjectsWidget({ className }: WidgetProps) {
           projects.map((project) => (
             <div
               key={project.id}
-              className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 dark:hover:bg-white/10 transition-colors"
+              className="flex items-start gap-3 rounded-lg border border-white/10 bg-tsSurface p-3 transition-colors hover:bg-tsSurface-strong"
             >
               <div className="flex-1">
                 <h4 className="font-medium text-sm text-white/70 dark:text-white">
@@ -153,7 +153,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
   const savedCount = data?.stats?.savedContractors ?? 0;
 
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -174,7 +174,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
           </div>
         ) : savedCount > 0 ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 dark:bg-white/10">
+            <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-tsSurface p-3">
               <Avatar className="h-10 w-10">
                 <AvatarFallback className="bg-ts-orange text-white text-xs">
                   <Star className="h-4 w-4" />
@@ -236,7 +236,7 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
   ];
 
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -259,15 +259,13 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
           messages.map((msg) => (
             <div
               key={msg.id}
-              className="p-3 rounded-lg hover:bg-white/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              className="cursor-pointer rounded-lg border border-white/10 bg-tsSurface p-3 transition-colors hover:bg-tsSurface-strong"
             >
               <div className="flex items-center justify-between mb-1">
                 <h4 className="font-medium text-sm text-white/70 dark:text-white">{msg.from}</h4>
                 <span className="text-xs text-white/60 dark:text-white/60">{msg.time}</span>
               </div>
-              <p className="text-xs text-white/60 dark:text-white/60 line-clamp-1">
-                {msg.message}
-              </p>
+              <p className="text-xs text-white/60 dark:text-white/60 line-clamp-1">{msg.message}</p>
             </div>
           ))
         )}
@@ -284,7 +282,7 @@ export function QuickActionsWidget({ className }: WidgetProps) {
   ];
 
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Quick Actions</CardTitle>
       </CardHeader>
@@ -292,7 +290,7 @@ export function QuickActionsWidget({ className }: WidgetProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {quickActions.map((action, index) => (
             <Link key={index} href={action.href}>
-              <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg bg-white/5 dark:bg-white/10 hover:bg-white/5 dark:hover:bg-white/10 transition-colors w-full">
+              <button className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-white/10 bg-tsSurface p-4 transition-colors hover:bg-tsSurface-strong">
                 <action.icon className={`h-5 w-5 ${action.color}`} />
                 <span className="text-xs font-medium text-white/70 dark:text-white">
                   {action.label}
@@ -314,7 +312,7 @@ export function NotificationsWidget({ className }: WidgetProps) {
   ];
 
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -332,16 +330,14 @@ export function NotificationsWidget({ className }: WidgetProps) {
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className="flex items-start gap-3 p-2 rounded-lg hover:bg-white/5 dark:hover:bg-white/10 transition-colors"
+            className="flex items-start gap-3 rounded-lg border border-white/10 bg-tsSurface p-2 transition-colors hover:bg-tsSurface-strong"
           >
             <div
               className={`h-2 w-2 rounded-full mt-2 ${notification.type === "message" ? "bg-blue-500" : "bg-ts-orange"}`}
             />
             <div className="flex-1">
               <p className="text-sm text-white/70 dark:text-white">{notification.message}</p>
-              <p className="text-xs text-white/60 dark:text-white/60 mt-0.5">
-                {notification.time}
-              </p>
+              <p className="text-xs text-white/60 dark:text-white/60 mt-0.5">{notification.time}</p>
             </div>
           </div>
         ))}
@@ -352,7 +348,7 @@ export function NotificationsWidget({ className }: WidgetProps) {
 
 export function CommunityFeedWidget({ className }: WidgetProps) {
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -382,7 +378,7 @@ export function CommunityFeedWidget({ className }: WidgetProps) {
 
 export function AffiliateStatsWidget({ className }: WidgetProps) {
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-green-500" />
@@ -446,7 +442,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
   const hasImpact = !!stats && stats.totalContributions > 0;
 
   return (
-    <Card className={`bg-white dark:bg-white/5 border-0 shadow-sm ${className}`}>
+    <Card className={`bg-tsCard border border-white/10 shadow-xl shadow-black/25 ${className}`}>
       <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Award className="h-4 w-4 text-emerald-500" />
@@ -509,7 +505,7 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
               local causes.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
-              <div className="text-center p-2 rounded-lg bg-white/5 dark:bg-white/10">
+              <div className="text-center rounded-lg border border-white/10 bg-tsSurface p-2">
                 <div className="text-xs text-white/60 dark:text-white/60 mb-1">
                   Verified contributions
                 </div>
@@ -517,13 +513,13 @@ export function CommunityBuilderImpactWidget({ className }: WidgetProps) {
                   {stats.completedCount}
                 </div>
               </div>
-              <div className="text-center p-2 rounded-lg bg-white/5 dark:bg-white/10">
+              <div className="text-center rounded-lg border border-white/10 bg-tsSurface p-2">
                 <div className="text-xs text-white/60 dark:text-white/60 mb-1">Funded value</div>
                 <div className="text-lg font-semibold text-emerald-600 dark:text-emerald-300">
                   ${stats.totalValue}
                 </div>
               </div>
-              <div className="text-center p-2 rounded-lg bg-white/5 dark:bg-white/10">
+              <div className="text-center rounded-lg border border-white/10 bg-tsSurface p-2">
                 <div className="text-xs text-white/60 dark:text-white/60 mb-1">Hours donated</div>
                 <div className="text-lg font-semibold text-white/70 dark:text-white">
                   {stats.totalHours}

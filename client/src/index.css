@@ -103,6 +103,33 @@ body.ts-mobile-simplified .app-page .page-wrapper,
 body.ts-mobile-simplified .app-page .scout-shell {
   background: transparent;
 }
+
+body.ts-mobile-simplified .app-page .ts-page {
+  gap: 0.75rem;
+}
+
+body.ts-mobile-simplified .app-page .ts-page-section {
+  border: 1px solid color-mix(in oklab, var(--border-primary) 78%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--surface-card) 52%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 10px 26px color-mix(in oklab, black 20%, transparent);
+  padding: 0.75rem;
+}
+
+body.ts-mobile-simplified .app-page .ts-page-section-header {
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--border-primary) 70%, transparent);
+}
+
+body.ts-mobile-simplified .app-page .ts-page-card {
+  border-color: color-mix(in oklab, var(--border-primary) 82%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 12px 28px color-mix(in oklab, black 22%, transparent) !important;
+}
 /* stylelint-disable */
 @tailwind base;
 @tailwind components;
@@ -2523,4 +2550,66 @@ body {
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
+
+/* Stage 2 mobile page polish: typography rhythm + action hierarchy on real pages. */
+body.ts-mobile-density.ts-mobile-simplified .app-page {
+  letter-spacing: 0.002em;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-3xl,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-2xl,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xl {
+  letter-spacing: -0.01em;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-3xl {
+  font-size: 1.44rem !important;
+  line-height: 1.75rem !important;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-2xl {
+  font-size: 1.22rem !important;
+  line-height: 1.5rem !important;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xl {
+  font-size: 1.05rem !important;
+  line-height: 1.34rem !important;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page p,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-sm,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xs {
+  color: color-mix(in oklab, var(--text-secondary) 92%, var(--text-primary) 8%);
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .grid.grid-cols-1,
+body.ts-mobile-density.ts-mobile-simplified .app-page .space-y-2,
+body.ts-mobile-density.ts-mobile-simplified .app-page .space-y-3 {
+  gap: 0.62rem;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .inline-flex.items-center.justify-between,
+body.ts-mobile-density.ts-mobile-simplified .app-page .flex.items-center.justify-between {
+  row-gap: 0.4rem;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page button:focus-visible,
+body.ts-mobile-density.ts-mobile-simplified .app-page a[role="button"]:focus-visible,
+body.ts-mobile-density.ts-mobile-simplified .app-page [role="tab"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 24%, transparent);
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page button[class*="bg-ts-orange"],
+body.ts-mobile-density.ts-mobile-simplified .app-page .ts-accent-btn {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 50%, transparent) !important;
+  box-shadow: 0 10px 24px color-mix(in oklab, var(--theme-accent-primary) 16%, transparent);
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--border-active) 80%, transparent) transparent;
+}
+
 /* Deployment trigger: Mon Feb 23 12:50:43 EST 2026 */
