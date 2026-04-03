@@ -31,61 +31,78 @@ type NavLinkProps = {
   onNavigate?: (href: string) => void;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge, onNavigate }) => (
-  <a
-    href={href}
-    onClick={(e) => {
-      // If JS routing isn't wired for some reason, let the browser navigate normally.
-      if (!onNavigate) return;
-      // Allow open-in-new-tab behavior.
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-      e.preventDefault();
-      onNavigate(href);
-    }}
-    className="flex flex-col gap-1 rounded-xl transition-colors cursor-pointer"
-    style={{
-      borderColor: "var(--border-primary)",
-      backgroundColor: "var(--surface-intermediate)",
-      width: "100%",
-      textAlign: "left",
-      textDecoration: "none",
-    }}
-    onMouseEnter={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
-    }}
-    onMouseLeave={(e) => {
-      (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
-    }}
-  >
-    <div className="px-3 py-2 flex items-center gap-2">
-      <span
-        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border"
-        style={{
-          backgroundColor: "var(--surface-intermediate)",
-          borderColor: "var(--border-primary)",
-          color: "var(--text-primary)",
-        }}
-      >
-        {icon}
-      </span>
-      <div className="flex-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          {label}
+const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge, onNavigate }) => {
+  const [location] = useLocation();
+  const pathOnly = location.split("?")[0].split("#")[0];
+  const hrefPath = href.split("?")[0].split("#")[0];
+  const isActive = pathOnly === hrefPath || pathOnly.startsWith(hrefPath + "/");
+
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        // If JS routing isn't wired for some reason, let the browser navigate normally.
+        if (!onNavigate) return;
+        // Allow open-in-new-tab behavior.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        onNavigate(href);
+      }}
+      className="flex w-full cursor-pointer flex-col gap-1 rounded-xl border px-0 text-left no-underline transition-colors duration-150"
+      style={{
+        borderColor: isActive
+          ? "color-mix(in oklab, var(--theme-accent-primary) 42%, transparent)"
+          : "color-mix(in oklab, var(--border-primary) 86%, transparent)",
+        backgroundColor: isActive
+          ? "color-mix(in oklab, var(--theme-accent-primary) 12%, var(--surface-intermediate))"
+          : "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+        boxShadow: isActive
+          ? "0 8px 18px color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)"
+          : "inset 0 1px 0 color-mix(in oklab, white 4%, transparent)",
+      }}
+    >
+      <div className="flex items-center gap-2 px-3 py-2">
+        <span
+          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border"
+          style={{
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 84%, transparent)",
+            borderColor: "color-mix(in oklab, var(--border-primary) 86%, transparent)",
+            color: isActive ? "var(--theme-accent-primary)" : "var(--text-primary)",
+          }}
+        >
+          {icon}
         </span>
-        {badge != null && String(badge).trim() !== "" ? (
-          <span className="inline-flex items-center rounded-full bg-red-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-            {badge}
+        <div className="flex flex-1 items-center justify-between gap-2">
+          <span
+            className="text-sm font-medium"
+            style={{ color: isActive ? "var(--theme-accent-primary)" : "var(--text-primary)" }}
+          >
+            {label}
           </span>
-        ) : null}
+          <span className="inline-flex items-center gap-2">
+            {badge != null && String(badge).trim() !== "" ? (
+              <span className="inline-flex items-center rounded-full bg-red-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                {badge}
+              </span>
+            ) : null}
+            <ChevronRight
+              className="h-3.5 w-3.5"
+              style={{ color: "color-mix(in oklab, var(--text-secondary) 88%, transparent)" }}
+            />
+          </span>
+        </div>
       </div>
-    </div>
-    {description && (
-      <p className="px-3 pb-2 text-[11px] leading-snug" style={{ color: "var(--text-secondary)" }}>
-        {description}
-      </p>
-    )}
-  </a>
-);
+      {description && (
+        <p
+          className="px-3 pb-2 text-[11px] leading-snug"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {description}
+        </p>
+      )}
+    </a>
+  );
+};
 
 type RightToolsPanelProps = {
   footer?: ReactNode;
@@ -202,7 +219,13 @@ export function RightToolsPanel({
       {/* Sections */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {/* Profile & account */}
-        <section>
+        <section
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-secondary)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 55%, transparent)",
+          }}
+        >
           <div
             className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
             style={{ color: "var(--text-secondary)" }}
@@ -253,7 +276,13 @@ export function RightToolsPanel({
         </section>
 
         {/* Shortcuts (user-specific) */}
-        <section>
+        <section
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-secondary)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 55%, transparent)",
+          }}
+        >
           <div
             className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
             style={{ color: "var(--text-secondary)" }}
@@ -328,7 +357,13 @@ export function RightToolsPanel({
           </div>
         </section>
 
-        <section>
+        <section
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-secondary)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 55%, transparent)",
+          }}
+        >
           <div
             className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
             style={{ color: "var(--text-secondary)" }}
@@ -407,7 +442,13 @@ export function RightToolsPanel({
 
         {/* Marketing tools (personal) */}
         {isAuthenticated && (
-          <section>
+          <section
+            className="rounded-2xl border p-3"
+            style={{
+              borderColor: "var(--border-secondary)",
+              backgroundColor: "color-mix(in oklab, var(--surface-card) 55%, transparent)",
+            }}
+          >
             <div
               className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
               style={{ color: "var(--text-secondary)" }}
@@ -429,7 +470,13 @@ export function RightToolsPanel({
         )}
 
         {/* Notes */}
-        <section>
+        <section
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-secondary)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 55%, transparent)",
+          }}
+        >
           <div
             className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
             style={{ color: "var(--text-secondary)" }}
@@ -443,7 +490,13 @@ export function RightToolsPanel({
         </section>
 
         {/* Legal & policies */}
-        <section>
+        <section
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-secondary)",
+            backgroundColor: "color-mix(in oklab, var(--surface-card) 55%, transparent)",
+          }}
+        >
           <div
             className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
             style={{ color: "var(--text-secondary)" }}

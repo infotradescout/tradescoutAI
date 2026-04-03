@@ -48,6 +48,8 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
     return { primaryItems: swappedPrimary, overflowItems: swappedOverflow };
   }, [items, pathOnly, primaryLimit]);
 
+  const hasActiveOverflow = overflowItems.some((item) => isItemActive(item));
+
   useEffect(() => {
     // Keep the first item visible when admin entry is prepended.
     if (items[0]?.href === "/admin" && navRef.current) {
@@ -57,16 +59,35 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
 
   if (!items.length) return null;
 
+  const navItemBaseClass =
+    "group flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-2 py-1.5 text-[0.68rem] leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent-primary)]";
+
+  const navItemSurfaceStyle = {
+    minHeight: "44px",
+    border: "1px solid color-mix(in oklab, var(--border-primary) 78%, transparent)",
+    backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 82%, transparent)",
+    color: "var(--theme-text-secondary)",
+    boxShadow: "inset 0 1px 0 color-mix(in oklab, white 4%, transparent)",
+  } as const;
+
+  const navItemActiveStyle = {
+    border: "1px solid color-mix(in oklab, var(--theme-accent-primary) 40%, transparent)",
+    backgroundColor:
+      "color-mix(in oklab, var(--theme-accent-primary) 14%, var(--surface-intermediate))",
+    color: "var(--theme-accent-primary)",
+    boxShadow: "0 6px 16px color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+  } as const;
+
   return (
     <nav
       ref={navRef}
-      className="relative w-full border-t pt-1 pb-[env(safe-area-inset-bottom)]"
+      className="relative w-full border-t pt-1.5 pb-[env(safe-area-inset-bottom)]"
       style={{
         backgroundColor: "var(--surface-frame)",
         borderColor: "var(--surface-frame-border)",
       }}
     >
-      <div className="h-[62px] w-full px-1.5">
+      <div className="h-[62px] w-full px-2">
         <div className="flex h-full items-stretch justify-between gap-1">
           {primaryItems.map((item) => {
             const active = isItemActive(item);
@@ -75,16 +96,14 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[0.68rem] leading-tight"
+                className={navItemBaseClass}
                 style={{
-                  color: active ? "var(--theme-accent-primary)" : "var(--theme-text-secondary)",
-                  backgroundColor: active
-                    ? "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)"
-                    : "transparent",
+                  ...navItemSurfaceStyle,
+                  ...(active ? navItemActiveStyle : {}),
                 }}
               >
                 {item.icon && (
-                  <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center">
+                  <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                     {item.icon}
                   </span>
                 )}
@@ -112,23 +131,40 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
               <SheetTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[0.68rem] leading-tight"
-                  style={{ color: "var(--theme-text-secondary)" }}
+                  className={navItemBaseClass}
+                  style={{
+                    ...navItemSurfaceStyle,
+                    ...(hasActiveOverflow ? navItemActiveStyle : {}),
+                  }}
                   aria-label="Open more navigation options"
                 >
-                  <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center">
+                  <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center transition-transform duration-200 group-hover:scale-105">
                     <Menu className="h-5 w-5" />
                   </span>
                   <span className="whitespace-nowrap">More</span>
                 </button>
               </SheetTrigger>
 
-              <SheetContent side="bottom" className="rounded-t-2xl border-t-0">
+              <SheetContent
+                side="bottom"
+                className="rounded-t-3xl border-t px-4 pb-4 pt-3"
+                style={{
+                  borderColor: "color-mix(in oklab, var(--border-primary) 80%, transparent)",
+                  backgroundColor: "var(--surface-card)",
+                  boxShadow: "0 -16px 40px color-mix(in oklab, black 30%, transparent)",
+                }}
+              >
                 <SheetHeader>
-                  <SheetTitle>More destinations</SheetTitle>
+                  <SheetTitle className="text-sm" style={{ color: "var(--text-primary)" }}>
+                    More destinations
+                  </SheetTitle>
                 </SheetHeader>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 pb-2">
+                <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Every destination stays available. Pick where you want to go.
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 pb-2">
                   {overflowItems.map((item) => {
                     const active = isItemActive(item);
                     return (
@@ -136,11 +172,14 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-12 w-full justify-start gap-2"
+                          className="h-12 w-full justify-start gap-2 rounded-xl border"
                           style={{
                             borderColor: active
-                              ? "var(--theme-accent-primary)"
-                              : "var(--border-primary)",
+                              ? "color-mix(in oklab, var(--theme-accent-primary) 42%, transparent)"
+                              : "color-mix(in oklab, var(--border-primary) 85%, transparent)",
+                            backgroundColor: active
+                              ? "color-mix(in oklab, var(--theme-accent-primary) 14%, var(--surface-intermediate))"
+                              : "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
                             color: active ? "var(--theme-accent-primary)" : "var(--text-primary)",
                           }}
                           onClick={() => setIsMoreOpen(false)}

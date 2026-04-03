@@ -327,6 +327,25 @@ export function AppShell({ children, footer }: AppShellProps) {
     return mobileNav.ordered.filter((item) => !primaryHrefs.has(item.href));
   }, [mobileNav]);
 
+  const mobileSurfaceCardStyle = {
+    border: "1px solid color-mix(in oklab, var(--border-primary) 82%, transparent)",
+    backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+    boxShadow: "inset 0 1px 0 color-mix(in oklab, white 4%, transparent)",
+  } as const;
+
+  const mobileActionButtonStyle = {
+    borderColor: "color-mix(in oklab, var(--border-primary) 85%, transparent)",
+    backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
+    color: "var(--text-primary)",
+  } as const;
+
+  const mobilePrimaryActionButtonStyle = {
+    borderColor: "color-mix(in oklab, var(--theme-accent-primary) 50%, transparent)",
+    backgroundColor:
+      "color-mix(in oklab, var(--theme-accent-primary) 16%, var(--surface-intermediate))",
+    color: "var(--theme-accent-primary)",
+  } as const;
+
   const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const shouldPinRightTools =
@@ -623,7 +642,12 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(true)}
-                className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border transition hover:opacity-90 focus:outline-none"
+                style={{
+                  borderColor: "color-mix(in oklab, var(--border-primary) 85%, transparent)",
+                  backgroundColor:
+                    "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
+                }}
                 aria-label="Open profile & tools panel"
               >
                 <Menu className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
@@ -922,10 +946,17 @@ export function AppShell({ children, footer }: AppShellProps) {
             onClick={() => setIsToolsOpen(false)}
           />
           <div
-            className="w-72 max-w-full flex flex-col"
-            style={{ backgroundColor: "var(--surface-intermediate)" }}
+            className="w-72 max-w-full flex flex-col border-l"
+            style={{
+              backgroundColor: "var(--surface-card)",
+              borderColor: "color-mix(in oklab, var(--border-primary) 82%, transparent)",
+              boxShadow: "-10px 0 28px color-mix(in oklab, black 20%, transparent)",
+            }}
           >
-            <div className="flex items-center justify-between px-4 py-3">
+            <div
+              className="flex items-center justify-between border-b px-4 py-3"
+              style={{ borderColor: "color-mix(in oklab, var(--border-primary) 70%, transparent)" }}
+            >
               <span
                 className="text-[0.7rem] uppercase tracking-[0.2em]"
                 style={{ color: "var(--text-secondary)" }}
@@ -935,11 +966,12 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(false)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border transition"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border transition"
                 style={{
-                  borderColor: "var(--border-primary)",
+                  borderColor: "color-mix(in oklab, var(--border-primary) 85%, transparent)",
                   color: "var(--text-secondary)",
-                  background: "var(--bg-secondary)",
+                  backgroundColor:
+                    "color-mix(in oklab, var(--surface-intermediate) 85%, var(--surface-card))",
                 }}
               >
                 ✕
@@ -968,10 +1000,11 @@ export function AppShell({ children, footer }: AppShellProps) {
           />
 
           <div
-            className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border-t p-4"
+            className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-3xl border-t p-4"
             style={{
               backgroundColor: "var(--surface-card)",
-              borderColor: "var(--border-primary)",
+              borderColor: "color-mix(in oklab, var(--border-primary) 80%, transparent)",
+              boxShadow: "0 -16px 40px color-mix(in oklab, black 24%, transparent)",
             }}
           >
             <div className="mb-3 flex items-center justify-between">
@@ -983,7 +1016,9 @@ export function AppShell({ children, footer }: AppShellProps) {
                 onClick={() => setIsToolsOpen(false)}
                 className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-lg border px-3 text-xs"
                 style={{
-                  borderColor: "var(--border-primary)",
+                  borderColor: "color-mix(in oklab, var(--border-primary) 85%, transparent)",
+                  backgroundColor:
+                    "color-mix(in oklab, var(--surface-intermediate) 84%, var(--surface-card))",
                   color: "var(--text-secondary)",
                 }}
               >
@@ -992,7 +1027,10 @@ export function AppShell({ children, footer }: AppShellProps) {
             </div>
 
             {!isLoggedIn ? (
-              <div className="grid grid-cols-1 gap-2">
+              <div
+                className="grid grid-cols-1 gap-2 rounded-2xl p-3"
+                style={mobileSurfaceCardStyle}
+              >
                 <button
                   type="button"
                   onClick={() => {
@@ -1000,10 +1038,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     navigate("/pre-scout-setup?mode=create");
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-semibold"
-                  style={{
-                    borderColor: "var(--theme-accent-primary)",
-                    color: "var(--theme-accent-primary)",
-                  }}
+                  style={mobilePrimaryActionButtonStyle}
                 >
                   Create free account
                 </button>
@@ -1014,26 +1049,40 @@ export function AppShell({ children, footer }: AppShellProps) {
                     navigate("/pre-scout-setup?mode=signin");
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                  style={mobileActionButtonStyle}
                 >
                   Sign in
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2">
+              <div
+                className="grid grid-cols-1 gap-2 rounded-2xl p-3"
+                style={mobileSurfaceCardStyle}
+              >
                 <button
                   type="button"
                   onClick={() => {
                     setIsToolsOpen(false);
                     navigate(contactRequestCount > 0 ? "/messages?tab=requests" : "/messages");
                   }}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                  className="inline-flex h-11 w-full items-center justify-between rounded-lg border px-3 text-sm font-medium"
+                  style={mobileActionButtonStyle}
                 >
-                  Messages
-                  {contactRequestCount > 0
-                    ? ` (${contactRequestCount > 9 ? "9+" : contactRequestCount})`
-                    : ""}
+                  <span>Messages</span>
+                  {contactRequestCount > 0 ? (
+                    <span
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        border:
+                          "1px solid color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
+                        backgroundColor:
+                          "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                        color: "var(--theme-text-primary)",
+                      }}
+                    >
+                      {contactRequestCount > 9 ? "9+" : contactRequestCount}
+                    </span>
+                  ) : null}
                 </button>
                 <button
                   type="button"
@@ -1042,7 +1091,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     navigate("/profile");
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                  style={mobileActionButtonStyle}
                 >
                   Profile
                 </button>
@@ -1053,7 +1102,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     navigate("/settings");
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                  style={mobileActionButtonStyle}
                 >
                   Settings
                 </button>
@@ -1068,7 +1117,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                 >
                   More destinations
                 </h3>
-                <div className="grid grid-cols-1 gap-2">
+                <div
+                  className="grid grid-cols-1 gap-2 rounded-2xl p-3"
+                  style={mobileSurfaceCardStyle}
+                >
                   {mobileOverflowNav.map((item) => (
                     <button
                       key={`mobile-overflow-${item.href}`}
@@ -1078,7 +1130,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                         navigate(item.href);
                       }}
                       className="inline-flex h-11 w-full items-center justify-between rounded-lg border px-3 text-sm font-medium"
-                      style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                      style={mobileActionButtonStyle}
                     >
                       <span className="inline-flex items-center gap-2">
                         {item.icon ? (
@@ -1092,7 +1144,10 @@ export function AppShell({ children, footer }: AppShellProps) {
               </>
             )}
 
-            <div className="mt-5 grid grid-cols-1 gap-2">
+            <div
+              className="mt-5 grid grid-cols-1 gap-2 rounded-2xl p-3"
+              style={mobileSurfaceCardStyle}
+            >
               {showInstallAction && (
                 <button
                   type="button"
@@ -1101,7 +1156,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     await handleInstallAction();
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                  style={mobileActionButtonStyle}
                 >
                   Install app
                 </button>
@@ -1114,7 +1169,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     navigate("/admin");
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                  style={mobileActionButtonStyle}
                 >
                   Admin controls
                 </button>
