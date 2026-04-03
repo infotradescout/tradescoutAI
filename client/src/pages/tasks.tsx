@@ -472,7 +472,7 @@ export default function TasksHub({
 
   return (
     <Page className={embedded ? "" : "max-w-7xl pb-20"}>
-      <Section title={embedded ? undefined : "Direct Connect"}>
+      <Section>
 
         <Tabs
           value={activeTab}

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { NavItem } from "@/components/layout/AppShell";
 
@@ -60,14 +59,14 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
   return (
     <nav
       ref={navRef}
-      className="relative w-full border-t pt-1 pb-[env(safe-area-inset-bottom)]"
+      className="relative w-full pb-[env(safe-area-inset-bottom)]"
       style={{
         backgroundColor: "var(--surface-frame)",
-        borderColor: "var(--surface-frame-border)",
+        borderTop: "1px solid color-mix(in oklab, var(--surface-frame-border) 80%, transparent)",
       }}
     >
-      <div className="h-[62px] w-full px-1.5">
-        <div className="flex h-full items-stretch justify-between gap-1">
+      <div className="h-[58px] w-full px-1">
+        <div className="flex h-full items-stretch justify-between">
           {primaryItems.map((item) => {
             const active = isItemActive(item);
 
@@ -75,29 +74,43 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[0.68rem] leading-tight"
+                className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.65rem] font-medium leading-none transition-colors"
                 style={{
                   color: active ? "var(--theme-accent-primary)" : "var(--theme-text-secondary)",
-                  backgroundColor: active
-                    ? "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)"
-                    : "transparent",
                 }}
               >
+                {/* Active indicator bar */}
+                {active && (
+                  <span
+                    className="absolute top-0 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full"
+                    style={{ backgroundColor: "var(--theme-accent-primary)" }}
+                  />
+                )}
+
+                {/* Icon */}
                 {item.icon && (
-                  <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center">
+                  <span
+                    className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md transition-colors"
+                    style={{
+                      backgroundColor: active
+                        ? "color-mix(in oklab, var(--theme-accent-primary) 14%, transparent)"
+                        : "transparent",
+                    }}
+                  >
                     {item.icon}
                   </span>
                 )}
-                <span className="whitespace-nowrap">{item.label}</span>
+
+                {/* Label */}
+                <span className="max-w-full truncate">{item.label}</span>
+
+                {/* Badge */}
                 {item.badge && (
                   <span
-                    className="mt-0.5 rounded-full px-1.5 py-0.5 text-[0.6rem]"
+                    className="absolute right-1.5 top-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[0.58rem] font-bold"
                     style={{
-                      backgroundColor:
-                        "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                      border:
-                        "1px solid color-mix(in oklab, var(--theme-accent-primary) 40%, transparent)",
-                      color: "var(--theme-text-primary)",
+                      backgroundColor: "var(--theme-accent-primary)",
+                      color: "#000",
                     }}
                   >
                     {item.badge}
@@ -107,49 +120,62 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
             );
           })}
 
+          {/* More sheet trigger */}
           {overflowItems.length > 0 && (
             <Sheet open={isMoreOpen} onOpenChange={setIsMoreOpen}>
               <SheetTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 flex-1 flex-col items-center justify-center rounded-md px-1.5 py-1 text-[0.68rem] leading-tight"
+                  className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.65rem] font-medium leading-none transition-colors"
                   style={{ color: "var(--theme-text-secondary)" }}
                   aria-label="Open more navigation options"
                 >
-                  <span className="mb-0.5 inline-flex h-5 w-5 items-center justify-center">
-                    <Menu className="h-5 w-5" />
+                  <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md">
+                    <Menu className="h-4.5 w-4.5" />
                   </span>
-                  <span className="whitespace-nowrap">More</span>
+                  <span>More</span>
                 </button>
               </SheetTrigger>
 
-              <SheetContent side="bottom" className="rounded-t-2xl border-t-0">
-                <SheetHeader>
-                  <SheetTitle>More destinations</SheetTitle>
+              <SheetContent
+                side="bottom"
+                className="rounded-t-2xl border-t-0"
+                style={{ backgroundColor: "var(--surface-frame)" }}
+              >
+                <SheetHeader className="pb-2">
+                  <SheetTitle
+                    className="text-sm font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    More destinations
+                  </SheetTitle>
                 </SheetHeader>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 pb-2">
+                <div className="grid grid-cols-2 gap-2 pb-4">
                   {overflowItems.map((item) => {
                     const active = isItemActive(item);
                     return (
-                      <Link key={`overflow-${item.href}`} href={item.href}>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-12 w-full justify-start gap-2"
-                          style={{
-                            borderColor: active
-                              ? "var(--theme-accent-primary)"
-                              : "var(--border-primary)",
-                            color: active ? "var(--theme-accent-primary)" : "var(--text-primary)",
-                          }}
-                          onClick={() => setIsMoreOpen(false)}
-                        >
-                          {item.icon && (
-                            <span className="inline-flex h-4 w-4 items-center">{item.icon}</span>
-                          )}
-                          <span className="truncate">{item.label}</span>
-                        </Button>
+                      <Link
+                        key={`overflow-${item.href}`}
+                        href={item.href}
+                        onClick={() => setIsMoreOpen(false)}
+                        className="flex h-12 w-full items-center gap-2.5 rounded-xl border px-3 text-sm font-medium transition-colors"
+                        style={{
+                          borderColor: active
+                            ? "color-mix(in oklab, var(--theme-accent-primary) 60%, transparent)"
+                            : "color-mix(in oklab, var(--border-primary) 80%, transparent)",
+                          backgroundColor: active
+                            ? "color-mix(in oklab, var(--theme-accent-primary) 10%, var(--surface-card))"
+                            : "color-mix(in oklab, var(--surface-card) 80%, transparent)",
+                          color: active ? "var(--theme-accent-primary)" : "var(--text-primary)",
+                        }}
+                      >
+                        {item.icon && (
+                          <span className="inline-flex h-5 w-5 shrink-0 items-center">
+                            {item.icon}
+                          </span>
+                        )}
+                        <span className="truncate">{item.label}</span>
                       </Link>
                     );
                   })}

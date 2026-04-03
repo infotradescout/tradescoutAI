@@ -293,13 +293,6 @@ export default function Leaderboard() {
       />
       <Page className="max-w-4xl">
       <Section
-        title={
-          <span className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-ts-orange" />
-            Community Leaderboard
-          </span>
-        }
-        subtitle="Top contributors based on activity, recommendations, and community trust"
         actions={
           countyName ? (
             <div className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-white/70 border border-white/10">
