@@ -271,16 +271,20 @@ const AppLayout = memo(function AppLayout() {
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
       {!isLlmRoute && !isLandingRoute && !isShareRoute && !FEATURE_EDUCATION_REPLACEMENT && (
-        <Suspense fallback={null}>
-          <SimpleSubtleHints />
-        </Suspense>
+        <div className="hidden md:block">
+          <Suspense fallback={null}>
+            <SimpleSubtleHints />
+          </Suspense>
+        </div>
       )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
       {!isLlmRoute && !isLandingRoute && !isShareRoute && (
-        <Suspense fallback={null}>
-          <ProfileCompletionBanner />
-        </Suspense>
+        <div className="hidden md:block">
+          <Suspense fallback={null}>
+            <ProfileCompletionBanner />
+          </Suspense>
+        </div>
       )}
 
       {/* Bug report tool - always available */}
