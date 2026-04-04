@@ -58,6 +58,9 @@ import { syncObjectiveFromScoutMessage } from "../scout/objectivesService";
 import { recordScoutInteraction } from "../services/missionControl";
 import { logCompletedAction } from "../services/preferredSource";
 import { ensureFollowUpQuestion } from "../scout/responseShape";
+import { finalizeScoutResponse } from "../scout/scoutResponseContract";
+import { normalizeScoutRequest } from "../scout/scoutRequestNormalizer";
+import { runScoutDecisionPipeline } from "../scout/scoutDecisionPipeline";
 import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 import {
   sanitizeScoutActionsForPolicy,
@@ -2817,6 +2820,16 @@ router.post("/override", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   recordQuery();
+  const baseJson = res.json.bind(res);
+  // Enforce canonical Scout response contract for this endpoint while leaving
+  // non-Scout payloads (error/admin shapes) untouched.
+  (res as any).json = (payload: unknown) =>
+    baseJson(
+      finalizeScoutResponse(payload, {
+        requestId: ((req as any)?.requestId as string | undefined) || null,
+      })
+    );
+
   const requestUser = (req as any)?.user || {};
   const userAgent = String(req.headers["user-agent"] || "");
   const isTestRun =
@@ -2841,6 +2854,20 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
     const message = rawBody.message;
+    const normalizedRequest = normalizeScoutRequest({
+      message: typeof rawBody.message === "string" ? rawBody.message : "",
+      userId: (requestUser as any)?.id,
+      isAuthenticated: Boolean((requestUser as any)?.id),
+      userRole:
+        typeof (requestUser as any)?.role === "string" ? (requestUser as any).role : undefined,
+      countyCode: typeof rawBody.countyCode === "string" ? rawBody.countyCode : undefined,
+      stateCode: typeof rawBody.stateCode === "string" ? rawBody.stateCode : undefined,
+      countyFips: typeof rawBody.countyHint === "string" ? rawBody.countyHint : undefined,
+      history: Array.isArray(rawBody.history) ? (rawBody.history as any[]) : [],
+      intent: typeof rawBody.intent === "string" ? rawBody.intent : undefined,
+      sessionId: typeof rawBody.sessionId === "string" ? rawBody.sessionId : undefined,
+    });
+    const scaffoldDecision = runScoutDecisionPipeline(normalizedRequest);
 
     const normalizedMessage = typeof message === "string" ? message : "";
     scoutTurnTelemetry.intent =
@@ -3847,6 +3874,7 @@ router.post("/", async (req: Request, res: Response) => {
       metadata: {
         intent: synthesized.intent,
         sourceUsed: sourceAudit.sourceUsed,
+        scaffoldDecision: scaffoldDecision.type,
         attemptedSource: sourceAudit.attemptedSource,
         fallbackUsed: Boolean(sourceAudit.fallbackUsed) || synthesized.provider === "fallback",
         degradationReason: synthesized.degradationReason ?? sourceAudit.degradationReason,

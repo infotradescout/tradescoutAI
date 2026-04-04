@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "../hooks/useIsMobile";
-import { useScoutState } from "./state";
+import { useScoutController } from "./useScoutController";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
@@ -116,6 +116,8 @@ const AUTO_ROUTE_DELAY_MS = 1600;
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
 const SCOUT_EVOLUTION_SURFACES_ENABLED =
   String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
+const SCOUT_SERVER_AUTHORITY_MODE =
+  String(import.meta.env.VITE_SCOUT_SERVER_AUTHORITY_MODE ?? "true") === "true";
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -513,7 +515,8 @@ export default function ScoutOS() {
     }
   })();
 
-  const { state, recordUserMessage, applyServerResponse, setError, setStatus } = useScoutState();
+  const { state, recordUserMessage, applyServerResponse, setError, setStatus } =
+    useScoutController();
 
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
@@ -1653,10 +1656,13 @@ export default function ScoutOS() {
         ];
 
         const wantsOnboarding =
-          onboardingKeywords.some((kw) => lowerMsg.includes(kw)) ||
-          lowerMsg.includes("__scout_onboarding__");
-        const wantsContractor = contractorKeywords.some((kw) => lowerMsg.includes(kw));
-        const wantsMarketplace = marketplaceKeywords.some((kw) => lowerMsg.includes(kw));
+          !SCOUT_SERVER_AUTHORITY_MODE &&
+          (onboardingKeywords.some((kw) => lowerMsg.includes(kw)) ||
+            lowerMsg.includes("__scout_onboarding__"));
+        const wantsContractor =
+          !SCOUT_SERVER_AUTHORITY_MODE && contractorKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsMarketplace =
+          !SCOUT_SERVER_AUTHORITY_MODE && marketplaceKeywords.some((kw) => lowerMsg.includes(kw));
         const hasContactIntentKeyword = contactKeywords.some((kw) => {
           if (kw.includes(" ")) return normalized.includes(kw);
           return new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(normalized);
@@ -1668,18 +1674,22 @@ export default function ScoutOS() {
           normalized
         );
         const wantsContact =
-          hasContactIntentKeyword || (hasContactChannelKeyword && hasSupportTarget);
-        const wantsProviderOffer = providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
-        const wantsProviderStanding = providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
-        const wantsProviderPromotion = providerPromotionKeywords.some((kw) =>
-          lowerMsg.includes(kw)
-        );
-        const wantsCommunityBuilderDonation = communityBuilderDonationKeywords.some((kw) =>
-          lowerMsg.includes(kw)
-        );
-        const wantsCommunityAnnouncement = communityAnnouncementKeywords.some((kw) =>
-          lowerMsg.includes(kw)
-        );
+          !SCOUT_SERVER_AUTHORITY_MODE &&
+          (hasContactIntentKeyword || (hasContactChannelKeyword && hasSupportTarget));
+        const wantsProviderOffer =
+          !SCOUT_SERVER_AUTHORITY_MODE && providerOfferKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsProviderStanding =
+          !SCOUT_SERVER_AUTHORITY_MODE &&
+          providerStandingKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsProviderPromotion =
+          !SCOUT_SERVER_AUTHORITY_MODE &&
+          providerPromotionKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsCommunityBuilderDonation =
+          !SCOUT_SERVER_AUTHORITY_MODE &&
+          communityBuilderDonationKeywords.some((kw) => lowerMsg.includes(kw));
+        const wantsCommunityAnnouncement =
+          !SCOUT_SERVER_AUTHORITY_MODE &&
+          communityAnnouncementKeywords.some((kw) => lowerMsg.includes(kw));
 
         // ------------------------------------------------------------------
         // SCOUT ONBOARDING INTENT (fast win)

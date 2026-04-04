@@ -66,9 +66,28 @@ const missingInRegistry = detected.filter(
 const invalidEntries = [];
 for (const entry of entries) {
   const tests = Array.isArray(entry.tests) ? entry.tests : [];
+  const precedence = Number(entry.precedence);
   if (!entry.id || !entry.surface || !entry.label) {
     invalidEntries.push(`Entry missing required fields: ${JSON.stringify(entry)}`);
     continue;
+  }
+  if (!entry.owner || typeof entry.owner !== "string") {
+    invalidEntries.push(`Entry ${entry.id} missing owner`);
+  }
+  if (entry.authoritySide !== "server" && entry.authoritySide !== "client") {
+    invalidEntries.push(`Entry ${entry.id} has invalid authoritySide: ${entry.authoritySide}`);
+  }
+  if (!Number.isFinite(precedence)) {
+    invalidEntries.push(`Entry ${entry.id} has invalid precedence: ${entry.precedence}`);
+  }
+  if (typeof entry.requiresAuth !== "boolean") {
+    invalidEntries.push(`Entry ${entry.id} requiresAuth must be boolean`);
+  }
+  if (!entry.messageContract || typeof entry.messageContract !== "string") {
+    invalidEntries.push(`Entry ${entry.id} missing messageContract`);
+  }
+  if (!entry.actionContract || typeof entry.actionContract !== "string") {
+    invalidEntries.push(`Entry ${entry.id} missing actionContract`);
   }
   if (tests.length === 0) {
     invalidEntries.push(`Entry ${entry.id} has no test mappings`);
