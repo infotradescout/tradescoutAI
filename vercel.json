@@ -5,6 +5,19 @@
   "installCommand": "npm install",
   "framework": null,
   "outputDirectory": "dist/public",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "thetradescout.com"
+        }
+      ],
+      "destination": "https://www.thetradescout.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
