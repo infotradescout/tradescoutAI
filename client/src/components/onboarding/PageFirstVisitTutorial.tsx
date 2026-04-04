@@ -12,7 +12,10 @@ type TutorialContent = {
   primaryAction: string;
 };
 
-export const TUTORIAL_VERSION = "v3";
+const sessionSeenFallback = new Set<string>();
+const sessionNeverFallback = new Set<string>();
+
+export const TUTORIAL_VERSION = "v4";
 export const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
 export const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
 
@@ -172,7 +175,14 @@ export default function PageFirstVisitTutorial() {
       setNeverShowAgain(false);
       setOpen(true);
     } catch {
-      setOpen(false);
+      const never = sessionNeverFallback.has(storageKeys.never);
+      const seenVersion = sessionSeenFallback.has(storageKeys.seen);
+      if (never || seenVersion) {
+        setOpen(false);
+        return;
+      }
+      setNeverShowAgain(false);
+      setOpen(true);
     }
   }, [path, storageKeys.never, storageKeys.seen]);
 
@@ -184,7 +194,10 @@ export default function PageFirstVisitTutorial() {
           window.localStorage.setItem(storageKeys.never, "1");
         }
       } catch {
-        // Fail-soft: do not block navigation if storage is unavailable.
+        sessionSeenFallback.add(storageKeys.seen);
+        if (neverShowAgain) {
+          sessionNeverFallback.add(storageKeys.never);
+        }
       }
     }
     setOpen(false);
