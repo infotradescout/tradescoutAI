@@ -573,7 +573,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 {canOpenMessages && (
                   <DropdownMenuItem onClick={handleOpenMessages}>
                     <MessagesSquare className="w-3.5 h-3.5 mr-2" />
-                    Open Messages with this neighbor
+                    Open Messages
                   </DropdownMenuItem>
                 )}
                 {canOpenMessages && <DropdownMenuSeparator />}
@@ -592,7 +592,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
                           <Hammer className="w-3.5 h-3.5 mr-2" />
-                          View Direct Connect
+                          Open Direct Connect
                         </DropdownMenuItem>
                       </>
                     )}
@@ -607,7 +607,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleHidePost}>
                       <EyeOff className="w-3.5 h-3.5 mr-2" />
-                      Hide from community feed
+                      Hide from feed
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -615,7 +615,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       className="text-red-400 focus:text-red-500"
                     >
                       <Trash2 className="w-3.5 h-3.5 mr-2" />
-                      Remove post
+                      Remove from feed
                     </DropdownMenuItem>
                   </>
                 )}

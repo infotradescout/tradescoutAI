@@ -10,7 +10,6 @@ import {
   Image,
   Video,
   Calendar,
-  Compass,
   Crown,
   Award,
   Flag,
@@ -1123,9 +1122,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                           </span>
                           {locationLabel && (
                             <>
-                              <span>-</span>
+                              <span>•</span>
                               <div className="flex items-center gap-1">
-                                <Compass className="h-3 w-3" />
+                                <MapPin className="h-3 w-3" />
                                 {locationLabel}
                               </div>
                             </>
@@ -1135,7 +1134,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </div>
 
                     <div className="flex items-center gap-2 text-xs md:text-sm">
-                      <div className="flex items-center gap-1">
+                      <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-subtle)] px-2 py-0.5">
                         {getPostTypeIcon(post.type || post.postType)}
                         <span className="text-xs text-[color:var(--text-secondary)]">
                           {getPostTypeLabel(post.type || post.postType)}
@@ -1254,7 +1253,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         data-testid={`button-like-${post.id}`}
                       >
                         <Heart className={`h-4 w-4 mr-1 ${post.liked ? "fill-current" : ""}`} />
-                        <span className="mr-1">Agree</span>
+                        <span className="mr-1">Like</span>
                         {post.likeCount || post.likes || 0}
                       </Button>
 
@@ -1287,7 +1286,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         }}
                       >
                         <MessageSquare className="h-4 w-4 mr-1" />
-                        <span className="mr-1">Discuss</span>
+                        <span className="mr-1">Comment</span>
                         {post.commentCount || post.comments || 0}
                       </Button>
 
@@ -1377,7 +1376,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         );
                       }}
                     >
-                      Add a comment...
+                      Write a comment...
                     </button>
                   </div>
 
