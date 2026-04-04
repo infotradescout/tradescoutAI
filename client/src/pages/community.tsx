@@ -389,14 +389,14 @@ export default function Community() {
       <CountyRequiredGate locationOverride={location} surface="community">
         <div className="pb-16 lg:pb-0">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-4">
             <h1 className="text-lg font-semibold text-ts-orange mb-1">Community</h1>
-            <p className="text-sm text-white/70">Local feed</p>
+            <p className="text-sm text-white/70">Local decisions, shared context</p>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mb-4">
-            <div className="flex gap-1.5 bg-tsCard rounded-xl p-1 shadow-sm border border-white/10 text-[11px] sm:text-xs">
+          <div className="mb-3">
+            <div className="flex gap-1.5 bg-tsCard rounded-xl p-1 border border-white/10 text-[11px] sm:text-xs">
               <button
                 onClick={() => setActiveTab("for-you")}
                 className={`flex-1 px-3 py-1.5 rounded-lg font-medium transition-all ${
@@ -406,7 +406,7 @@ export default function Community() {
                 }`}
                 data-testid="tab-for-you"
               >
-                For You
+                Recommended
               </button>
               <button
                 onClick={() => setActiveTab("projects")}
@@ -448,7 +448,7 @@ export default function Community() {
           <div className="space-y-4">
             <div className="space-y-4">
               {/* Post Composer */}
-              <Card className="bg-tsCard shadow-xl border-2 border-white/10 hover:border-ts-orange/30 transition-all">
+              <Card className="bg-tsCard border border-white/10 hover:border-ts-orange/30 transition-all">
                 <CardContent className="p-5">
                   {fromScoutDraft && newPostContent.trim().length > 0 && (
                     <div className="mb-3 rounded-md border border-dashed border-ts-orange/30 bg-tsBg px-3 py-2 text-xs text-white/70 flex gap-2 items-start">
@@ -491,7 +491,7 @@ export default function Community() {
               </Card>
 
               {/* Category Filters */}
-              <Card className="bg-tsCard shadow-lg border-2 border-white/10">
+              <Card className="bg-tsCard border border-white/10">
                 <CardContent className="p-4">
                   <div className="flex gap-1.5 overflow-x-auto pb-1">
                     {POST_CATEGORIES.map((category) => {

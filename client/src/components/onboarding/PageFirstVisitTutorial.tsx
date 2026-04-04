@@ -3,14 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type TutorialContent = {
   title: string;
@@ -19,7 +12,7 @@ type TutorialContent = {
   primaryAction: string;
 };
 
-export const TUTORIAL_VERSION = "v2";
+export const TUTORIAL_VERSION = "v3";
 export const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
 export const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
 
@@ -197,36 +190,45 @@ export default function PageFirstVisitTutorial() {
     setOpen(false);
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? handleClose() : setOpen(true))}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{tutorial.title}</DialogTitle>
-          <DialogDescription>{tutorial.description}</DialogDescription>
-        </DialogHeader>
+    <div className="fixed inset-x-0 bottom-3 z-[1000] px-3 sm:bottom-4 sm:px-4">
+      <div className="mx-auto max-w-xl">
+        <Card className="border border-white/10 bg-tsCard/95 shadow-[0_18px_52px_rgba(0,0,0,0.45)] backdrop-blur">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-white">{tutorial.title}</CardTitle>
+            <p className="text-sm text-white/70">{tutorial.description}</p>
+          </CardHeader>
 
-        <div className="space-y-2">
-          {tutorial.bullets.map((item) => (
-            <p key={item} className="text-sm text-white/80">
-              • {item}
-            </p>
-          ))}
-        </div>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              {tutorial.bullets.map((item) => (
+                <p key={item} className="text-sm text-white/80">
+                  • {item}
+                </p>
+              ))}
+            </div>
 
-        <label className="flex items-center gap-2 pt-1 text-sm text-white/80">
-          <Checkbox
-            checked={neverShowAgain}
-            onCheckedChange={(checked) => setNeverShowAgain(checked === true)}
-          />
-          Never show this page guide again
-        </label>
+            <label className="flex items-center gap-2 pt-0.5 text-sm text-white/80">
+              <Checkbox
+                checked={neverShowAgain}
+                onCheckedChange={(checked) => setNeverShowAgain(checked === true)}
+              />
+              Never show this page guide again
+            </label>
 
-        <DialogFooter>
-          <Button onClick={handleClose} className="bg-ts-orange text-white hover:bg-ts-orange-dark">
-            {tutorial.primaryAction}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <div className="flex justify-end">
+              <Button
+                onClick={handleClose}
+                className="bg-ts-orange text-white hover:bg-ts-orange-dark"
+              >
+                {tutorial.primaryAction}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

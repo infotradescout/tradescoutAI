@@ -1694,16 +1694,17 @@ const CommunityFeed = memo(function CommunityFeed() {
                       Community
                     </p>
                     <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
-                      Useful local conversation
+                      Local decisions, shared context
                     </h1>
                     <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
-                      Ask, recommend, and coordinate with people in your area.
+                      Ask, recommend, and coordinate in one local stream.
                     </p>
                     <p className="mt-1 text-[11px] md:text-xs text-white/60">
-                      {isAuthenticated && connectionActivityData
-                        ? `Connections active today: ${connectionActivityData.activeTodayCount}`
-                        : `Active today: ${communityStats.activeToday}`}{" "}
-                      | Posts today: {communityStats.postsToday}
+                      {`${
+                        isAuthenticated && connectionActivityData
+                          ? `Connections active today: ${connectionActivityData.activeTodayCount}`
+                          : `Active today: ${communityStats.activeToday}`
+                      } | Posts today: ${communityStats.postsToday}`}
                     </p>
                   </div>
                 </div>
@@ -1828,68 +1829,42 @@ const CommunityFeed = memo(function CommunityFeed() {
                   onValueChange={(value) => handleTabChange(value as FeedTab)}
                   className="w-full"
                 >
-                  <div className="mb-3 space-y-3 md:mb-4">
-                    <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">
-                            Scope
-                          </p>
-                          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                            {isGlobalView
-                              ? "Browse posts from across TradeScout. Global view stays read-only."
-                              : "Stay inside your local community for posting and interaction."}
-                          </p>
+                  <div className="mb-3 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-2.5 md:mb-4 md:p-3">
+                    <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-1">
+                          <button
+                            onClick={() => handleScopeToggle("local")}
+                            aria-pressed={!isGlobalView}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                              !isGlobalView
+                                ? "bg-ts-orange text-white"
+                                : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                            }`}
+                          >
+                            <MapPin className="inline h-4 w-4 mr-1" />
+                            Local
+                          </button>
+                          <button
+                            onClick={() => handleScopeToggle("global")}
+                            aria-pressed={isGlobalView}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                              isGlobalView
+                                ? "bg-ts-orange text-white"
+                                : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                            }`}
+                          >
+                            <Globe className="inline h-4 w-4 mr-1" />
+                            Everywhere
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {isGlobalView ? (
-                            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/65">
-                              Read-only
-                            </span>
-                          ) : null}
-                          <div className="flex items-center gap-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-1">
-                            <button
-                              onClick={() => handleScopeToggle("local")}
-                              aria-pressed={!isGlobalView}
-                              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                !isGlobalView
-                                  ? "bg-ts-orange text-white"
-                                  : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                              }`}
-                            >
-                              <MapPin className="inline h-4 w-4 mr-1" />
-                              Local
-                            </button>
-                            <button
-                              onClick={() => handleScopeToggle("global")}
-                              aria-pressed={isGlobalView}
-                              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                isGlobalView
-                                  ? "bg-ts-orange text-white"
-                                  : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                              }`}
-                            >
-                              <Globe className="inline h-4 w-4 mr-1" />
-                              Everywhere
-                            </button>
-                          </div>
-                        </div>
+                        {isGlobalView ? (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/65">
+                            Read-only
+                          </span>
+                        ) : null}
                       </div>
-                    </div>
 
-                    <div>
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">
-                            Feed
-                          </p>
-                          <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                            {isGlobalView
-                              ? "Choose the type of posts to browse across the network."
-                              : "Choose how you want your local feed organized."}
-                          </p>
-                        </div>
-                      </div>
                       <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
                         <TabsTrigger
                           value="forYou"
@@ -1907,7 +1882,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           value="vault"
                           className="rounded-md px-3 py-1.5 text-xs font-semibold"
                         >
-                          Saved Posts
+                          Saved
                         </TabsTrigger>
                       </TabsList>
                     </div>
@@ -1926,7 +1901,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               />
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 space-y-3">
+                          <div className="flex-1 space-y-2.5">
                             <Textarea
                               ref={composerRef}
                               placeholder={
@@ -1964,13 +1939,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               className="hidden"
                             />
 
-                            {/* Category selection - Maps human intent to system routing
-                          PHILOSOPHY: Users think in outcomes, not systems
-                          - "I need help" -> Scout + Direct Connect (invisible)
-                          - "What's for sale?" -> Marketplace integration (transparent)
-                          - "What's happening?" -> Community feed (default)
-                          Categories route information WITHOUT exposing internal system names
-                        */}
+                            {/* Category selection keeps outcome-first language while preserving routing behavior. */}
                             <div className="flex flex-wrap gap-1.5">
                               {[
                                 {
@@ -2118,7 +2087,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 disabled={!newPostContent.trim() || createPostMutation.isPending}
                                 data-testid="button-submit-post"
                               >
-                                {createPostMutation.isPending ? "Posting..." : "Post"}
+                                {createPostMutation.isPending ? "Posting..." : "Share update"}
                               </Button>
                             </div>
                           </div>
@@ -2162,11 +2131,11 @@ const CommunityFeed = memo(function CommunityFeed() {
                 ) : null}
                 {trendingTopics.length > 0 && (
                   <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-white">Trending Topics</CardTitle>
+                    <CardHeader className="pb-1.5">
+                      <CardTitle className="text-sm text-white">Topics</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-wrap gap-2">
-                      {trendingTopics.slice(0, 8).map((topic) => (
+                      {trendingTopics.slice(0, 6).map((topic) => (
                         <span
                           key={topic.tag}
                           className="inline-flex items-center rounded-full border border-ts-orange/30 bg-ts-orange/10 px-2.5 py-1 text-[11px] text-ts-orange"
