@@ -12,7 +12,7 @@ type TutorialContent = {
   primaryAction: string;
 };
 
-const sessionSeenFallback = new Set<string>();
+const sessionSeenFallback = new Map<string, string>();
 const sessionNeverFallback = new Set<string>();
 
 export const TUTORIAL_VERSION = "v4";
@@ -167,7 +167,7 @@ export default function PageFirstVisitTutorial() {
 
     try {
       const never = window.localStorage.getItem(storageKeys.never) === "1";
-      const seenVersion = window.localStorage.getItem(storageKeys.seen);
+      const seenVersion = window.sessionStorage.getItem(storageKeys.seen);
       if (never || seenVersion === TUTORIAL_VERSION) {
         setOpen(false);
         return;
@@ -176,8 +176,8 @@ export default function PageFirstVisitTutorial() {
       setOpen(true);
     } catch {
       const never = sessionNeverFallback.has(storageKeys.never);
-      const seenVersion = sessionSeenFallback.has(storageKeys.seen);
-      if (never || seenVersion) {
+      const seenVersion = sessionSeenFallback.get(storageKeys.seen);
+      if (never || seenVersion === TUTORIAL_VERSION) {
         setOpen(false);
         return;
       }
@@ -189,12 +189,12 @@ export default function PageFirstVisitTutorial() {
   const handleClose = () => {
     if (typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(storageKeys.seen, TUTORIAL_VERSION);
+        window.sessionStorage.setItem(storageKeys.seen, TUTORIAL_VERSION);
         if (neverShowAgain) {
           window.localStorage.setItem(storageKeys.never, "1");
         }
       } catch {
-        sessionSeenFallback.add(storageKeys.seen);
+        sessionSeenFallback.set(storageKeys.seen, TUTORIAL_VERSION);
         if (neverShowAgain) {
           sessionNeverFallback.add(storageKeys.never);
         }

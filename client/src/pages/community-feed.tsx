@@ -1168,14 +1168,14 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 )
                               }
                             >
-                              Start Direct Connect request
+                              Start Direct Connect
                             </DropdownMenuItem>
                           )}
                           {!isSystemPost && post.author?.id && (
                             <DropdownMenuItem
                               onClick={() => handleRequestCommunityMemberConnection(post)}
                             >
-                              Send connection request
+                              Send Connection Request
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem>
