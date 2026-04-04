@@ -25,8 +25,8 @@ interface AuthModalProps {
 export function AuthModal({
   isOpen,
   onClose,
-  title = "Join TradeScout Today",
-  description = "Get started with finding contractors or growing your business",
+  title = "Join TradeScout",
+  description = "Find local help or grow your business.",
   trigger = "unknown",
   showGuestOption = true,
   onGuestContinue,
@@ -146,7 +146,7 @@ export function AuthModal({
                 navigate("/pre-scout-setup?mode=create");
               }}
             >
-              Sign up with email
+              Create account with email
             </Button>
             <Button
               type="button"
@@ -175,7 +175,7 @@ export function AuthModal({
                   onClose();
                 }}
               >
-                Continue as guest
+                Continue as guest (limited access)
               </Button>
             </>
           )}

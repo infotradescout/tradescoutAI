@@ -79,7 +79,7 @@ const FLOW_MODE_META: Record<
     icon: <ClipboardPlus className="h-5 w-5" />,
   },
   manage: {
-    title: "Track requests",
+    title: "Manage requests",
     description: "See what is open, who replied, and what needs your next action.",
     target: "engagements",
     sections: ["engagements", "inbox"],
@@ -110,7 +110,7 @@ const SECTION_META: Record<
   },
   employment: {
     title: "Jobs",
-    description: "Post a job or a resume and talk through Scout.",
+    description: "Post a job or a resume and chat through Scout.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
@@ -130,7 +130,7 @@ const SECTION_META: Record<
     title: "My requests",
     description:
       "See what still needs your action, what is already out with businesses, and what is in conversation.",
-    actionLabel: "Go to replies",
+    actionLabel: "See replies",
     actionTarget: "inbox",
   },
 };
@@ -145,14 +145,18 @@ const SECTION_ICONS: Record<Section, ReactNode> = {
 };
 
 const SECTION_GROUPS: Array<{ title: string; sections: Section[]; icon?: ReactNode }> = [
-  { title: "Start", sections: ["post", "pros", "board"], icon: <Zap className="h-4 w-4" /> },
   {
-    title: "Work paths",
+    title: "Create and browse",
+    sections: ["post", "pros", "board"],
+    icon: <Zap className="h-4 w-4" />,
+  },
+  {
+    title: "Job and hiring",
     sections: ["employment"],
     icon: <TrendingUp className="h-4 w-4" />,
   },
   {
-    title: "Manage",
+    title: "Follow up",
     sections: ["engagements", "inbox"],
     icon: <TrendingUp className="h-4 w-4" />,
   },
@@ -578,6 +582,7 @@ function DirectConnectRequestComposer({
     {
       label: string;
       hint: string;
+      bestFor: string;
       category: string;
       titlePlaceholder: string;
       descriptionPlaceholder: string;
@@ -588,64 +593,69 @@ function DirectConnectRequestComposer({
     }
   > = {
     service_request: {
-      label: "Professional service",
-      hint: "Project work for your own need",
+      label: "One-time project",
+      hint: "Get a local pro to complete a specific job",
+      bestFor: "Repairs, installs, upgrades, urgent fixes",
       category: "service_request",
-      titlePlaceholder: "Need professional help with...",
-      descriptionPlaceholder:
-        "What needs to be done, when you need it, and anything important to know.",
+      titlePlaceholder: "Need help with...",
+      descriptionPlaceholder: "Describe what needs to be done, where it is, and your timeline.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "500",
       budgetPlaceholderMax: "2500",
     },
     business_request: {
-      label: "Business vendor",
-      hint: "Find a local company partner",
+      label: "Ongoing service",
+      hint: "Set up recurring service for your home or business",
+      bestFor: "Weekly or monthly service, maintenance plans, repeat work",
       category: "business_request",
-      titlePlaceholder: "Looking for a business to help with...",
-      descriptionPlaceholder: "What you need, when you need it, and any business requirements.",
+      titlePlaceholder: "Need ongoing service for...",
+      descriptionPlaceholder: "Explain ongoing scope, service expectations, and start timeline.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "300",
       budgetPlaceholderMax: "5000",
     },
     customer_support: {
-      label: "Support request",
-      hint: "Request on behalf of someone else",
+      label: "Property or tenant issue",
+      hint: "Coordinate service for a tenant, resident, or managed property",
+      bestFor: "HOA, landlord, property manager, resident requests",
       category: "customer_support",
-      titlePlaceholder: "Someone else needs help with...",
-      descriptionPlaceholder: "Explain what they need, where it is, and how urgent it is.",
+      titlePlaceholder: "Property issue at...",
+      descriptionPlaceholder: "Describe the issue, property context, who is affected, and urgency.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
       budgetPlaceholderMax: "1500",
     },
     employment: {
-      label: "Hiring / employment",
-      hint: "Role, shift, or staffing need",
+      label: "Hiring and staffing",
+      hint: "Fill a role, shift, or contract position",
+      bestFor: "Employees, shift coverage, contract labor",
       category: "employment",
-      titlePlaceholder: "Hiring for role / contract...",
-      descriptionPlaceholder: "Role, schedule, skills needed, and start date.",
+      titlePlaceholder: "Hiring for role or contract...",
+      descriptionPlaceholder: "Share role, schedule, required skills, and expected start date.",
       budgetLabelMin: "Pay min (optional)",
       budgetLabelMax: "Pay max (optional)",
       budgetPlaceholderMin: "18",
       budgetPlaceholderMax: "35",
     },
     buy_sell: {
-      label: "Buy / sell",
-      hint: "Materials, inventory, or equipment",
+      label: "Materials and equipment",
+      hint: "Buy, sell, or source inventory, tools, and equipment",
+      bestFor: "Material orders, equipment sourcing, inventory moves",
       category: "buy_sell",
       titlePlaceholder: "Looking to buy or sell...",
-      descriptionPlaceholder: "What item or material do you need, how much, and by when?",
+      descriptionPlaceholder: "List items, quantity, condition, and needed timeline.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
       budgetPlaceholderMax: "1500",
     },
     other: {
-      label: "General request",
-      hint: "Anything that does not fit above",
+      label: "Not sure yet",
+      hint: "Start here if your request does not fit the options above",
+      bestFor: "Unclear scope, mixed needs, early-stage request",
       category: "other",
       titlePlaceholder: "What do you need help with?",
       descriptionPlaceholder: "Add enough detail so the right people can understand the request.",
@@ -655,6 +665,15 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "1000",
     },
   };
+
+  const requestTypeOrder: Array<keyof typeof requestTypeMeta> = [
+    "service_request",
+    "business_request",
+    "customer_support",
+    "employment",
+    "buy_sell",
+    "other",
+  ];
 
   const activeRequestMeta = requestTypeMeta[requestType];
 
@@ -902,16 +921,10 @@ function DirectConnectRequestComposer({
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs text-[color:var(--text-secondary)]">Request type</label>
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-            {(
-              Object.entries(requestTypeMeta) as Array<
-                [
-                  keyof typeof requestTypeMeta,
-                  (typeof requestTypeMeta)[keyof typeof requestTypeMeta],
-                ]
-              >
-            ).map(([key, meta]) => {
+          <label className="text-xs text-[color:var(--text-secondary)]">What do you need?</label>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {requestTypeOrder.map((key) => {
+              const meta = requestTypeMeta[key];
               const active = requestType === key;
               return (
                 <button
@@ -919,15 +932,18 @@ function DirectConnectRequestComposer({
                   type="button"
                   onClick={() => setRequestType(key)}
                   className={cn(
-                    "rounded-md border px-2 py-1.5 text-left transition-colors",
+                    "rounded-xl border px-3 py-2 text-left transition-colors",
                     active
                       ? "border-ts-orange bg-ts-orange/20 text-white"
-                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:border-[color:var(--theme-accent-primary)]/40"
                   )}
                 >
-                  <p className="text-[11px] font-medium leading-tight">{meta.label}</p>
-                  <p className="mt-1 text-[10px] leading-tight text-[color:var(--text-secondary)]/90">
+                  <p className="text-xs font-semibold leading-tight">{meta.label}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-[color:var(--text-secondary)]/90">
                     {meta.hint}
+                  </p>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-secondary)]/80">
+                    Best for: {meta.bestFor}
                   </p>
                 </button>
               );
@@ -935,7 +951,7 @@ function DirectConnectRequestComposer({
           </div>
           <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 px-3 py-2">
             <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-              Selected category
+              Selected request type
             </p>
             <p className="mt-1 text-xs text-[color:var(--text-primary)]">
               <span className="font-medium">{activeRequestMeta.label}</span>:{" "}
@@ -1154,7 +1170,7 @@ function DirectConnectRequestComposer({
               <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
                 {isDirectoryLoading && (
                   <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
-                    Loading local directory...
+                    Finding local businesses...
                   </div>
                 )}
 
@@ -1244,7 +1260,7 @@ function DirectConnectRequestComposer({
                     disabled={createMutation.isPending}
                     className="border-[color:var(--border-subtle)] text-xs"
                   >
-                    {createMutation.isPending ? "Sending..." : "Skip and auto-route"}
+                    {createMutation.isPending ? "Sending..." : "Let Scout decide"}
                   </Button>
                   <Button
                     type="button"
@@ -1252,7 +1268,7 @@ function DirectConnectRequestComposer({
                     disabled={createMutation.isPending}
                     className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
-                    {createMutation.isPending ? "Sending..." : "Send selected / none"}
+                    {createMutation.isPending ? "Sending..." : "Send with my selection"}
                   </Button>
                 </div>
               </div>
@@ -2506,7 +2522,7 @@ function MyDirectConnectRequests() {
             <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
               {routeCandidatesLoading && (
                 <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
-                  Loading local directory...
+                  Finding local businesses...
                 </div>
               )}
 
@@ -2597,7 +2613,7 @@ function MyDirectConnectRequests() {
                   onClick={handleSkipAndAutoRoute}
                   disabled={routeMutation.isPending}
                 >
-                  {routeMutation.isPending ? "Sending..." : "Skip and auto-route"}
+                  {routeMutation.isPending ? "Sending..." : "Let Scout decide"}
                 </Button>
                 <Button
                   type="button"
@@ -2605,7 +2621,7 @@ function MyDirectConnectRequests() {
                   onClick={handleSendRouteSelection}
                   disabled={routeMutation.isPending}
                 >
-                  {routeMutation.isPending ? "Sending..." : "Send selected / none"}
+                  {routeMutation.isPending ? "Sending..." : "Send with my selection"}
                 </Button>
               </div>
             </div>
@@ -2836,7 +2852,7 @@ export default function DirectConnectShell() {
             >
               <div>
                 <p className="hidden md:block text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                  {activeFlowMode === "start" ? "Start mode" : "Manage mode"}
+                  {activeFlowMode === "start" ? "Create mode" : "Follow-up mode"}
                 </p>
                 <p className="mt-1 text-sm text-[color:var(--text-primary)]">
                   {activeModeMeta.description}
@@ -2845,8 +2861,8 @@ export default function DirectConnectShell() {
               <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-[color:var(--text-secondary)]">
                 <FolderKanban className="h-3.5 w-3.5" />
                 {activeFlowMode === "start"
-                  ? "Every posted request lands on Your Requests immediately."
-                  : "Manage mode keeps request state and response state together."}
+                  ? "Every request you send appears in My Requests right away."
+                  : "Follow-up mode keeps request updates and replies together."}
               </div>
             </div>
 
@@ -2861,7 +2877,7 @@ export default function DirectConnectShell() {
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-[10px]">
-                  {activeFlowMode === "manage" ? "Manage" : "Start"}
+                  {activeFlowMode === "manage" ? "Follow up" : "Create"}
                 </Badge>
               </div>
               <p className="px-1 text-xs text-[color:var(--text-secondary)]">

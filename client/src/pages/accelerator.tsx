@@ -11,26 +11,22 @@ export default function Accelerator() {
         <CardHeader>
           <CardTitle className="text-3xl text-white flex items-center gap-3">
             <ShieldCheck className="h-8 w-8 text-ts-orange" />
-            Connection Without Compromise
+            Fair connections, no pay-to-win
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5 text-white/70">
           <p>
-            TradeScout does not run paid acceleration tracks, paid priority routing, paid exposure,
-            or paid ranking controls.
+            TradeScout does not sell priority placement, paid ranking, or pay-to-win visibility.
           </p>
-          <p>
-            Access is open. Ranking is trust-and-relevance only. Trust systems are financially
-            blind.
-          </p>
+          <p>Everyone gets the same fair shot. Match order is based on trust and fit, not spend.</p>
           <div className="flex flex-wrap gap-3">
-            <Button onClick={() => navigate("/how-it-works")}>View Doctrine</Button>
+            <Button onClick={() => navigate("/how-it-works")}>See how it works</Button>
             <Button
               variant="outline"
               className="border-white/10"
               onClick={() => navigate("/direct-connect")}
             >
-              Open Direct Connect
+              Go to Direct Connect
             </Button>
           </div>
         </CardContent>

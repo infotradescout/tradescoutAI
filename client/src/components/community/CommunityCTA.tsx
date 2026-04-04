@@ -52,7 +52,7 @@ async function checkCTAAuthority(
       allowed: false,
       action: "DEFER",
       ctaMode: "ask_scout",
-      explanation: "Scout check unavailable. Use Ask Scout to keep contact intent-based.",
+      explanation: "We could not check this action right now. Ask Scout first.",
       label: "Ask Scout first",
     };
   }
@@ -166,8 +166,8 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   const handleMessageClick = () => {
     if (!isAuthenticated) {
       toast({
-        title: "Sign In Required",
-        description: "Please sign in to message neighbors.",
+        title: "Sign in required",
+        description: "Please sign in before sending a message.",
         variant: "destructive",
       });
       return;
@@ -257,10 +257,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
           riskFraming={currentAuthority.explanation ? [currentAuthority.explanation] : []}
           guidance={
             currentAuthority.action === "COMPLY"
-              ? "Human trust signals are healthy here. Scout allows contact."
+              ? "This looks like a safe match. You can move forward."
               : currentAuthority.action === "DEFER"
-                ? "Scout is holding this action until scope is clearer to reduce misalignment."
-                : "Scout is blocking this action for now. Missing details increase bad-outcome risk."
+                ? "Scout needs a little more context before moving forward."
+                : "Scout is blocking this for now because key details are still missing."
           }
           explanation={currentAuthority.explanation}
           onProceed={handleDecisionProceed}
@@ -282,7 +282,9 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             : "mt-2 grid grid-cols-1 sm:grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-white/10"
         }
       >
-        <div className="flex items-center justify-center py-2 text-neutral-600">Loading...</div>
+        <div className="flex items-center justify-center py-2 text-neutral-600">
+          Checking options...
+        </div>
       </div>
     );
   }

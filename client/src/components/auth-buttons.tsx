@@ -17,7 +17,7 @@ interface AuthButtonsProps {
 
 export function AuthButtons({
   title = "Join TradeScout",
-  description = "Connect with verified contractors or grow your business",
+  description = "Find trusted local help or grow your business",
   showSignUp = true,
   showGuestOption = true,
   onGuestContinue,
@@ -138,7 +138,7 @@ export function AuthButtons({
               className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white font-medium py-6 text-base"
             >
               <UserPlus className="w-5 h-5 mr-3" />
-              Create Account with Email
+              Create account with email
             </Button>
           )}
 
@@ -148,7 +148,7 @@ export function AuthButtons({
             className="w-full border-white/10 text-white/70 hover:bg-tsCard font-medium py-6 text-base"
           >
             <LogIn className="w-5 h-5 mr-3" />
-            Sign In with Email
+            Sign in with email
           </Button>
         </div>
 
@@ -167,7 +167,7 @@ export function AuthButtons({
               onClick={onGuestContinue}
               className="w-full text-white/60 hover:text-white hover:bg-tsCard py-4"
             >
-              Continue as Guest
+              Continue as guest
               <span className="text-xs ml-2">(Limited access)</span>
             </Button>
           </>
