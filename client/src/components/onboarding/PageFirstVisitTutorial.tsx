@@ -76,11 +76,42 @@ export function shouldSkipPath(path: string): boolean {
     path.startsWith("/register") ||
     path.startsWith("/create-account") ||
     path.startsWith("/pre-scout-setup") ||
-    path.startsWith("/onboarding/")
+    path.startsWith("/onboarding/") ||
+    path.startsWith("/privacy") ||
+    path.startsWith("/terms") ||
+    path.startsWith("/compliance")
   );
 }
 
 export function getPageTutorial(path: string): TutorialContent {
+  if (path === "/" || path.startsWith("/home") || path.startsWith("/my-tradescout")) {
+    return {
+      title: "Home quick guide",
+      description:
+        "This is your operating home base for local priorities, pending actions, and fast routing.",
+      bullets: [
+        "Scan the top cards first to see what needs attention now.",
+        "Use Scout when you need direction instead of searching menus.",
+        "Open Direct Connect when you are ready to request real local action.",
+      ],
+      primaryAction: "Open my priorities",
+    };
+  }
+
+  if (path.startsWith("/dashboard")) {
+    return {
+      title: "Dashboard quick guide",
+      description:
+        "Use this page to monitor current work, unblock stalled items, and keep decisions moving.",
+      bullets: [
+        "Review jobs and status cards before starting new tasks.",
+        "Open the item with the oldest pending action first.",
+        "Use Scout if a metric is unclear or you need the right next step.",
+      ],
+      primaryAction: "Review dashboard",
+    };
+  }
+
   if (path.startsWith("/direct-connect")) {
     return {
       title: "Direct Connect quick guide",
@@ -109,6 +140,20 @@ export function getPageTutorial(path: string): TutorialContent {
     };
   }
 
+  if (path.startsWith("/community") || path.startsWith("/groups")) {
+    return {
+      title: "Community quick guide",
+      description:
+        "Use this page to read local context first, then move from discovery into intentional action.",
+      bullets: [
+        "Prioritize posts tied to your county and current decisions.",
+        "Use comments to clarify context, not to replace action.",
+        "When ready, move to Direct Connect or ask Scout to route the next step.",
+      ],
+      primaryAction: "Use community",
+    };
+  }
+
   if (path.startsWith("/community-feed")) {
     return {
       title: "Community feed quick guide",
@@ -122,6 +167,34 @@ export function getPageTutorial(path: string): TutorialContent {
     };
   }
 
+  if (path.startsWith("/exchange") || path.startsWith("/marketplace")) {
+    return {
+      title: "Exchange quick guide",
+      description:
+        "Use Exchange to evaluate local offers and make decisions based on fit, trust, and relevance.",
+      bullets: [
+        "Filter listings to your local scope before comparing options.",
+        "Review trust signals and details before starting contact.",
+        "Use Scout if you need help choosing between similar options.",
+      ],
+      primaryAction: "Review exchange",
+    };
+  }
+
+  if (path.startsWith("/trade-deals")) {
+    return {
+      title: "Trade Deals quick guide",
+      description:
+        "Use this page to evaluate local deal opportunities and act only when the fit is clear.",
+      bullets: [
+        "Check county context and timing before committing.",
+        "Compare requirements against your current readiness.",
+        "Move to contact only after Scout confirms your strongest next step.",
+      ],
+      primaryAction: "Review deals",
+    };
+  }
+
   if (path.startsWith("/contractors") || path.startsWith("/find-contractors")) {
     return {
       title: "Local Directory quick guide",
@@ -132,6 +205,142 @@ export function getPageTutorial(path: string): TutorialContent {
         "When ready, move to Direct Connect to send your request.",
       ],
       primaryAction: "Browse businesses",
+    };
+  }
+
+  if (path.startsWith("/messages") || path.startsWith("/conversations")) {
+    return {
+      title: "Messages quick guide",
+      description:
+        "Use this page to keep conversations action-focused and tied to clear next decisions.",
+      bullets: [
+        "Open the newest thread with unresolved action first.",
+        "Confirm expectations, scope, and timing in writing.",
+        "If a thread stalls, route it through Scout for decision support.",
+      ],
+      primaryAction: "Open messages",
+    };
+  }
+
+  if (path.startsWith("/notifications")) {
+    return {
+      title: "Notifications quick guide",
+      description: "Use notifications to triage what needs action now versus what can wait.",
+      bullets: [
+        "Start with alerts that block decisions or local requests.",
+        "Open each item and complete one concrete action before moving on.",
+        "Clear low-priority alerts only after critical items are handled.",
+      ],
+      primaryAction: "Review alerts",
+    };
+  }
+
+  if (path.startsWith("/settings") || path.startsWith("/profile")) {
+    return {
+      title: "Account settings quick guide",
+      description: "Use this page to keep your profile, county context, and trust details current.",
+      bullets: [
+        "Confirm county and identity details before using action pages.",
+        "Complete verification items that are blocking key flows.",
+        "Save changes, then return to Scout or Direct Connect to continue.",
+      ],
+      primaryAction: "Update settings",
+    };
+  }
+
+  if (path.startsWith("/foundation")) {
+    return {
+      title: "Foundation quick guide",
+      description:
+        "Use this page to review county vault projects and choose where local impact is most needed.",
+      bullets: [
+        "Read project purpose and local context before committing support.",
+        "Prioritize projects with clear outcomes and accountability.",
+        "Use Scout to align your contribution with county priorities.",
+      ],
+      primaryAction: "Review projects",
+    };
+  }
+
+  if (path.startsWith("/help")) {
+    return {
+      title: "Help center quick guide",
+      description: "Use this page to resolve blockers quickly and return to your active workflow.",
+      bullets: [
+        "Open the article that matches your current page or action.",
+        "Apply one fix step at a time and confirm results.",
+        "If still blocked, ask Scout and include what you already tried.",
+      ],
+      primaryAction: "Use help",
+    };
+  }
+
+  if (path.startsWith("/maps")) {
+    return {
+      title: "Maps quick guide",
+      description:
+        "Use this page to view local geography and route decisions with county context in mind.",
+      bullets: [
+        "Start with your county view before expanding broader areas.",
+        "Use map details to validate service relevance and proximity.",
+        "Move to Direct Connect after confirming geographic fit.",
+      ],
+      primaryAction: "Use map view",
+    };
+  }
+
+  if (path.startsWith("/finances")) {
+    return {
+      title: "Finances quick guide",
+      description:
+        "Use this page to track money movement, confirm records, and protect local operating clarity.",
+      bullets: [
+        "Review recent transactions and unresolved entries first.",
+        "Keep invoices, records, and notes aligned before closing items.",
+        "Use reports to confirm trend direction before making changes.",
+      ],
+      primaryAction: "Review finances",
+    };
+  }
+
+  if (path.startsWith("/connections")) {
+    return {
+      title: "Connections quick guide",
+      description:
+        "Use this page to manage trusted local relationships and keep contact pathways intentional.",
+      bullets: [
+        "Review pending connection activity before sending new requests.",
+        "Prioritize contacts with clear local relevance.",
+        "Use Scout when deciding whether to deepen or pause a connection.",
+      ],
+      primaryAction: "Review connections",
+    };
+  }
+
+  if (path.startsWith("/homescout-listings") || path.startsWith("/hoa-dashboard")) {
+    return {
+      title: "Local operations quick guide",
+      description:
+        "Use this page to manage property and neighborhood operations with clear local accountability.",
+      bullets: [
+        "Start with outstanding items that affect residents or timelines.",
+        "Use status and notes to keep work transparent.",
+        "Escalate uncertain decisions to Scout for a clear next action.",
+      ],
+      primaryAction: "Review operations",
+    };
+  }
+
+  if (path.startsWith("/notes")) {
+    return {
+      title: "Notes quick guide",
+      description: "Use notes to preserve context that supports future local decisions.",
+      bullets: [
+        "Capture facts, outcomes, and next actions, not just observations.",
+        "Keep each note tied to a page, request, or project.",
+        "Reference notes when asking Scout for continuity and guidance.",
+      ],
+      primaryAction: "Open notes",
     };
   }
 

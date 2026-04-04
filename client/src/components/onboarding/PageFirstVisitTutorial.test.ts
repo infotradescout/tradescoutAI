@@ -54,6 +54,8 @@ describe("PageFirstVisitTutorial helpers", () => {
     expect(shouldSkipPath("/onboarding/profile")).toBe(true);
     expect(shouldSkipPath("/pre-scout-setup")).toBe(true);
     expect(shouldSkipPath("/login")).toBe(true);
+    expect(shouldSkipPath("/privacy")).toBe(true);
+    expect(shouldSkipPath("/terms")).toBe(true);
     expect(shouldSkipPath("/direct-connect")).toBe(false);
   });
 
@@ -78,6 +80,18 @@ describe("PageFirstVisitTutorial helpers", () => {
     const tutorial = getPageTutorial("/commercial-directory");
     expect(tutorial.title).toContain("Commercial Opportunities");
     expect(tutorial.description).toContain("county-scoped commercial projects");
+  });
+
+  it("returns tailored foundation tutorial copy", () => {
+    const tutorial = getPageTutorial("/foundation");
+    expect(tutorial.title).toContain("Foundation");
+    expect(tutorial.description).toContain("county vault projects");
+  });
+
+  it("returns tailored settings tutorial copy", () => {
+    const tutorial = getPageTutorial("/settings");
+    expect(tutorial.title).toContain("Account settings");
+    expect(tutorial.bullets.join(" ")).toContain("county and identity details");
   });
 
   it("stores seen state per session", () => {
