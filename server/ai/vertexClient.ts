@@ -1,5 +1,6 @@
 import { createRequire as createVertexRequire } from "node:module";
 import { getVertexGeminiModelName } from "./modelConfig";
+import type { GeminiGenerationOptions } from "./geminiFallback";
 
 const vertexRequire = createVertexRequire(import.meta.url);
 
@@ -61,7 +62,10 @@ function extractText(result: any): string {
   return "";
 }
 
-export async function generateAIResponse(prompt: string): Promise<string> {
+export async function generateAIResponse(
+  prompt: string,
+  options?: GeminiGenerationOptions
+): Promise<string> {
   try {
     const model = getVertexModel();
 
@@ -72,6 +76,13 @@ export async function generateAIResponse(prompt: string): Promise<string> {
           parts: [{ text: prompt }],
         },
       ],
+      ...(options?.thinking_level
+        ? {
+            generationConfig: {
+              thinking_level: options.thinking_level,
+            },
+          }
+        : {}),
     };
 
     const result = await model.generateContent(req as any);

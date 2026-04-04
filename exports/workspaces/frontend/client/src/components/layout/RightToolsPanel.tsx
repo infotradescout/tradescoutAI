@@ -14,10 +14,9 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Compass,
-  Map,
-  Sparkles,
-  CircleHelp,
+  BarChart3,
+  FileText,
+  Wallet,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { safeNavigate } from "@/lib/safeNavigate";
@@ -252,6 +251,100 @@ export function RightToolsPanel({
           </div>
         </section>
 
+        <section>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Finance Controls
+          </div>
+          <div className="space-y-2">
+            <NavLink
+              href="/finances/invoices"
+              icon={
+                <FileText className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Invoices"
+              description="Create, send, and track invoice status."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/finances/expenses"
+              icon={
+                <Wallet className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Expenses"
+              description="Track operating costs and receipts."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/finances/reports"
+              icon={
+                <BarChart3 className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Reports"
+              description="Review trends and financial performance."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/finances/records"
+              icon={
+                <ClipboardList className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Records"
+              description="Audit-ready timeline of financial activity."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/finances/settings"
+              icon={
+                <Settings className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Finance settings"
+              description="Controls for finance behavior and defaults."
+              onNavigate={handleNavigate}
+            />
+          </div>
+        </section>
+
+        <section>
+          <div
+            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Operations
+          </div>
+          <div className="space-y-2">
+            <NavLink
+              href="/project-tracker"
+              icon={
+                <ClipboardList className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Project tracker"
+              description="Track active jobs and milestones."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/crm"
+              icon={
+                <Users className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="CRM"
+              description="Manage contacts, deals, and follow-ups."
+              onNavigate={handleNavigate}
+            />
+            <NavLink
+              href="/analytics"
+              icon={
+                <BarChart3 className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Analytics"
+              description="Measure activity, outcomes, and trends."
+              onNavigate={handleNavigate}
+            />
+          </div>
+        </section>
+
         {/* Shortcuts (user-specific) */}
         <section>
           <div
@@ -328,83 +421,6 @@ export function RightToolsPanel({
           </div>
         </section>
 
-        <section>
-          <div
-            className="text-[0.7rem] uppercase tracking-[0.2em] mb-2"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Explore TradeScout
-          </div>
-          <div className="space-y-2">
-            <NavLink
-              href="/scout"
-              icon={
-                <Compass className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
-              }
-              label="Scout"
-              description="Start with Scout when you need the right next step."
-              onNavigate={handleNavigate}
-            />
-            <NavLink
-              href="/maps"
-              icon={
-                <Map className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
-              }
-              label="Maps"
-              description="See businesses, coverage, and local activity on the map."
-              onNavigate={handleNavigate}
-            />
-            <NavLink
-              href="/trade-deals"
-              icon={
-                <Sparkles
-                  className="h-3.5 w-3.5"
-                  style={{ color: "var(--theme-accent-primary)" }}
-                />
-              }
-              label="TradeDeals"
-              description="Browse partner offers and active campaigns."
-              onNavigate={handleNavigate}
-            />
-            <NavLink
-              href="/homescout-listings"
-              icon={
-                <Building
-                  className="h-3.5 w-3.5"
-                  style={{ color: "var(--theme-accent-primary)" }}
-                />
-              }
-              label="HomeScout"
-              description="Open property listings and housing-specific workflows."
-              onNavigate={handleNavigate}
-            />
-            <NavLink
-              href="/commercial-directory"
-              icon={
-                <ClipboardList
-                  className="h-3.5 w-3.5"
-                  style={{ color: "var(--theme-accent-primary)" }}
-                />
-              }
-              label="Commercial"
-              description="Browse commercial-focused local business surfaces."
-              onNavigate={handleNavigate}
-            />
-            <NavLink
-              href="/help"
-              icon={
-                <CircleHelp
-                  className="h-3.5 w-3.5"
-                  style={{ color: "var(--theme-accent-primary)" }}
-                />
-              }
-              label="Help"
-              description="Product guidance, how-it-works, and platform answers."
-              onNavigate={handleNavigate}
-            />
-          </div>
-        </section>
-
         {/* Marketing tools (personal) */}
         {isAuthenticated && (
           <section>
@@ -437,6 +453,15 @@ export function RightToolsPanel({
             Notes
           </div>
           <div className="space-y-2">
+            <NavLink
+              href="/notes"
+              icon={
+                <FileText className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+              }
+              label="Open notes workspace"
+              description="Full notes history and editing workspace."
+              onNavigate={handleNavigate}
+            />
             {/* Embedded notes workspace only; full Notes is reachable via main nav/Scout */}
             <EmbeddedNotesWorkspace />
           </div>

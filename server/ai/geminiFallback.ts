@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getGeminiModelCandidates } from "./modelConfig";
 
+export type GeminiGenerationOptions = {
+  thinking_level?: "low" | "medium" | "high";
+};
+
 type GeminiErrorKind = "model_unavailable" | "rate_limited" | "transient" | "fatal";
 
 const DEFAULT_RATE_LIMIT_RETRIES = 2;
@@ -161,7 +165,8 @@ export function getGeminiFallbackRuntimeState(): {
 
 export async function generateGeminiTextWithFallback(
   gemini: GoogleGenerativeAI,
-  prompt: string
+  prompt: string,
+  options?: GeminiGenerationOptions
 ): Promise<{ text: string; model: string }> {
   const candidates = getGeminiModelCandidates();
   const maxRateLimitRetries = readEnvNumber(
@@ -211,7 +216,16 @@ export async function generateGeminiTextWithFallback(
 
     while (true) {
       try {
-        const result = await model.generateContent(prompt);
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          ...(options?.thinking_level
+            ? {
+                generationConfig: {
+                  thinking_level: options.thinking_level,
+                },
+              }
+            : {}),
+        } as any);
         const text = result.response.text();
         if (text && text.trim().length > 0) {
           return { text, model: modelName };

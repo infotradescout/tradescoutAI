@@ -1,7 +1,10 @@
 // LLM Provider abstraction for multi-model and fallback (PHASE 3)
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { generateAIResponse as generateVertexAIResponse } from "../ai/vertexClient";
-import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
+import {
+  generateGeminiTextWithFallback,
+  type GeminiGenerationOptions,
+} from "../ai/geminiFallback";
 // import { OpenAI } from "openai"; // Uncomment if OpenAI is used
 
 export type LLMModel = "gemini" | "openai";
@@ -10,7 +13,7 @@ export interface LLMProvider {
   name: LLMModel;
   id?: string;
   isConfigured(): boolean;
-  generate(prompt: string, options?: any): Promise<string>;
+  generate(prompt: string, options?: GeminiGenerationOptions): Promise<string>;
 }
 
 export class GeminiProvider implements LLMProvider {
@@ -23,8 +26,8 @@ export class GeminiProvider implements LLMProvider {
   isConfigured() {
     return !!process.env.GEMINI_API_KEY;
   }
-  async generate(prompt: string) {
-    const { text } = await generateGeminiTextWithFallback(this.genAI, prompt);
+  async generate(prompt: string, options?: GeminiGenerationOptions) {
+    const { text } = await generateGeminiTextWithFallback(this.genAI, prompt, options);
     return text;
   }
 }
@@ -40,9 +43,9 @@ export class VertexGeminiProvider implements LLMProvider {
     return Boolean(project && location);
   }
 
-  async generate(prompt: string) {
+  async generate(prompt: string, options?: GeminiGenerationOptions) {
     // vertexClient enforces fail-safe messaging on error.
-    return generateVertexAIResponse(prompt);
+    return generateVertexAIResponse(prompt, options);
   }
 }
 
@@ -255,7 +258,8 @@ export function __resetLlmProviderFailoverStateForTests(): void {
 
 export async function generateWithFallback(
   prompt: string,
-  providers: LLMProvider[]
+  providers: LLMProvider[],
+  options?: GeminiGenerationOptions
 ): Promise<{ text: string; provider: string }> {
   const failureThreshold = readEnvNumber("SCOUT_LLM_PROVIDER_FAILURE_THRESHOLD", 3, 1, 10);
   const cooldownMs = readEnvNumber("SCOUT_LLM_PROVIDER_COOLDOWN_MS", 120_000, 1000, 3_600_000);
@@ -272,7 +276,7 @@ export async function generateWithFallback(
     }
 
     try {
-      const text = await provider.generate(prompt);
+      const text = await provider.generate(prompt, options);
       if (!isUsableProviderOutput(text)) {
         throw new Error("provider returned unusable placeholder output");
       }

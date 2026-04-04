@@ -344,6 +344,116 @@ export function getPageTutorial(path: string): TutorialContent {
     };
   }
 
+  if (path.startsWith("/admin") || path.startsWith("/admin-")) {
+    return {
+      title: "Admin OS quick guide",
+      description:
+        "Use Admin OS to monitor platform signals, make governance decisions, and execute controlled interventions.",
+      bullets: [
+        "Start with current alerts and unresolved operational blockers.",
+        "Use the left or bottom admin navigation to move between tools quickly.",
+        "Confirm trust and authority impact before applying changes.",
+      ],
+      primaryAction: "Open admin tools",
+    };
+  }
+
+  if (path.startsWith("/county") || path.startsWith("/city") || path.startsWith("/trade")) {
+    return {
+      title: "Local intelligence quick guide",
+      description:
+        "Use this page to read county and trade context before choosing contact or promotion actions.",
+      bullets: [
+        "Scan current metrics and recent activity first.",
+        "Treat this page as decision context, not a direct contact shortcut.",
+        "Move to Scout or Direct Connect when you are ready to act.",
+      ],
+      primaryAction: "Use local context",
+    };
+  }
+
+  if (path.startsWith("/datasets") || path.startsWith("/leaderboard")) {
+    return {
+      title: "Data view quick guide",
+      description:
+        "Use this page to inspect structured facts and trends before making operational decisions.",
+      bullets: [
+        "Filter to the county or trade scope that matches your current goal.",
+        "Use recent snapshots to validate trend direction.",
+        "Convert findings into a concrete next step through Scout.",
+      ],
+      primaryAction: "Review data",
+    };
+  }
+
+  if (path.startsWith("/tradepartners") || path.startsWith("/resource-center")) {
+    return {
+      title: "Partner resources quick guide",
+      description:
+        "Use this page to evaluate partner materials and decide what supports local outcomes.",
+      bullets: [
+        "Focus on resources tied to your county strategy.",
+        "Prioritize assets that improve trust and conversion clarity.",
+        "Save useful items and route implementation steps through Scout.",
+      ],
+      primaryAction: "Review resources",
+    };
+  }
+
+  if (
+    path.startsWith("/saved") ||
+    path.startsWith("/saved-ads") ||
+    path.startsWith("/saved-contractors")
+  ) {
+    return {
+      title: "Saved items quick guide",
+      description:
+        "Use this page to revisit shortlisted options and turn saved context into action.",
+      bullets: [
+        "Re-check fit and trust before moving forward.",
+        "Remove stale items so your list stays decision-ready.",
+        "Open Direct Connect when you are ready to request action.",
+      ],
+      primaryAction: "Review saved items",
+    };
+  }
+
+  if (
+    path.startsWith("/checkout") ||
+    path.startsWith("/payment-") ||
+    path.startsWith("/wallet")
+  ) {
+    return {
+      title: "Payments quick guide",
+      description:
+        "Use this page to complete payment steps and confirm transaction status before continuing.",
+      bullets: [
+        "Review amount and purpose before final submission.",
+        "Confirm success status and keep record details for follow-up.",
+        "Return to your workflow page once payment is complete.",
+      ],
+      primaryAction: "Review payment",
+    };
+  }
+
+  if (
+    path.startsWith("/membership-portal") ||
+    path.startsWith("/training-center") ||
+    path.startsWith("/application-tracker")
+  ) {
+    return {
+      title: "Program operations quick guide",
+      description:
+        "Use this page to manage progression steps and keep program decisions on track.",
+      bullets: [
+        "Check current status and pending requirements first.",
+        "Complete one blocking requirement at a time.",
+        "Use Scout when deciding the next best progression step.",
+      ],
+      primaryAction: "Review program status",
+    };
+  }
+
   if (path.startsWith("/commercial-directory")) {
     return {
       title: "Commercial Opportunities quick guide",

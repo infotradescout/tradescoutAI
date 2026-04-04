@@ -7,6 +7,7 @@ import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { useAuth } from "@/hooks/useAuth";
 import { MessageCircle, ShieldCheck, Calendar, Clock3, DollarSign } from "lucide-react";
+import { Page } from "@/components/layout/PagePrimitives";
 
 type ProfileSections = {
   about?: boolean;
@@ -190,9 +191,77 @@ export default function ProfileSiteView() {
   const directConnectHref = `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
+  const contentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  const aboutText = contentBlocks
+    .filter((block) => block && typeof block === "object")
+    .map((block: any) => {
+      if (block.type === "about" || block.type === "hero") {
+        const data = block?.data && typeof block.data === "object" ? block.data : {};
+        const raw =
+          typeof data.text === "string"
+            ? data.text
+            : typeof data.description === "string"
+              ? data.description
+              : typeof data.body === "string"
+                ? data.body
+                : "";
+        return raw.trim();
+      }
+      return "";
+    })
+    .find((value) => value.length > 0);
+  const serviceTags = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(business?.categories) ? business?.categories : []),
+        ...contentBlocks.flatMap((block: any) => {
+          if (block?.type !== "services") return [] as string[];
+          const data = block?.data && typeof block.data === "object" ? block.data : {};
+          if (Array.isArray(data.items)) {
+            return data.items
+              .map((item: unknown) => String(item || "").trim())
+              .filter((item: string) => item.length > 0);
+          }
+          if (typeof data.text === "string") {
+            return data.text
+              .split(/\n|,|\u2022|- /g)
+              .map((item: string) => item.trim())
+              .filter((item: string) => item.length > 0);
+          }
+          return [] as string[];
+        }),
+      ]
+        .map((item) => String(item || "").trim())
+        .filter((item) => item.length > 0)
+    )
+  );
+  const serviceAreas = Array.isArray(business?.serviceAreas) ? business.serviceAreas : [];
+  const customBlocks = contentBlocks
+    .filter((block) => block && typeof block === "object")
+    .filter((block: any) => !["about", "hero", "services", "cta"].includes(String(block?.type)))
+    .slice(0, 4)
+    .map((block: any) => {
+      const data = block?.data && typeof block.data === "object" ? block.data : {};
+      const title =
+        typeof data.title === "string"
+          ? data.title
+          : typeof block.type === "string"
+            ? block.type.charAt(0).toUpperCase() + block.type.slice(1)
+            : "Details";
+      const body =
+        typeof data.text === "string"
+          ? data.text
+          : typeof data.body === "string"
+            ? data.body
+            : typeof data.description === "string"
+              ? data.description
+              : "";
+      return { title, body: body.trim() };
+    })
+    .filter((item) => item.body.length > 0);
 
   return (
-    <div className=" py-8">
+    <Page className="max-w-6xl space-y-6">
       <SEOHelmet
         title={seoTitle}
         description={seoDescription}
@@ -201,110 +270,186 @@ export default function ProfileSiteView() {
         ogImage={seoImage}
         structuredData={structuredData}
       />
-      <div className="container mx-auto px-4 max-w-5xl">
-        <Card className="bg-tsCard border-white/10">
-          <CardHeader className="space-y-2">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <CardTitle className="text-white text-3xl">{displayName}</CardTitle>
-                {profile.headline && profileSections.about !== false ? (
-                  <p className="text-white/70">{profile.headline}</p>
-                ) : null}
-                {profileSections.about !== false ? (
-                  <p className="text-white/60 text-xs uppercase tracking-[0.18em]">
-                    {profile.roleContext}
-                  </p>
-                ) : null}
-              </div>
+      <Card className="bg-tsCard border-white/10 overflow-hidden">
+        <CardHeader className="space-y-4 bg-gradient-to-br from-tsCard via-[#1a1d23] to-[#101217]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-3">
               <Badge variant="secondary">Website Profile</Badge>
+              <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
+              {profileSections.about !== false ? (
+                <p className="text-white/70 text-sm uppercase tracking-[0.18em]">{profile.roleContext}</p>
+              ) : null}
+              {profile.headline && profileSections.about !== false ? (
+                <p className="text-white/80 max-w-2xl">{profile.headline}</p>
+              ) : null}
             </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {business ? (
-              <section className="space-y-2">
-                <h2 className="text-white font-semibold">Business</h2>
-                <div className="text-white/70 text-sm space-y-1">
-                  <div>
-                    <span className="text-white/60">Name:</span> {business.name}
-                  </div>
-                  <div>
-                    <span className="text-white/60">Categories:</span>{" "}
-                    {business.categories.length ? business.categories.join(", ") : "None"}
-                  </div>
-                  <div>
-                    <span className="text-white/60">Service areas:</span>{" "}
-                    {business.serviceAreas.length
-                      ? `${business.serviceAreas.length} area(s)`
-                      : "None"}
-                  </div>
+            {profileSections.stats !== false ? (
+              <div className="grid grid-cols-2 gap-2 min-w-[220px]">
+                <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/60">Services</p>
+                  <p className="text-white text-lg font-semibold">{serviceTags.length}</p>
                 </div>
-              </section>
+                <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/60">Areas</p>
+                  <p className="text-white text-lg font-semibold">{serviceAreas.length}</p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/60">Availability</p>
+                  <p className="text-white text-lg font-semibold">{bookingEnabled ? "Open" : "By request"}</p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/60">Contact</p>
+                  <p className="text-white text-lg font-semibold">Protected</p>
+                </div>
+              </div>
             ) : null}
+          </div>
+          {profileSections.rolesAndBadges !== false ? (
+            <div className="flex flex-wrap gap-2">
+              <Badge className="bg-ts-orange/20 text-ts-orange border border-ts-orange/30">Verified on TradeScout</Badge>
+              {business ? (
+                <Badge className="bg-white/10 text-white border border-white/20">Business profile linked</Badge>
+              ) : (
+                <Badge className="bg-white/10 text-white border border-white/20">Individual profile</Badge>
+              )}
+              <Badge className="bg-white/10 text-white border border-white/20">Direct Connect protected</Badge>
+            </div>
+          ) : null}
+        </CardHeader>
 
-            {bookingEnabled ? (
-              <section className="space-y-3 pt-2 border-t border-white/10">
-                <h2 className="text-white font-semibold flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-ts-orange" />
-                  Bookings
-                </h2>
-                <p className="text-sm text-white/70">
-                  Booking requests route through TradeScout Direct Connect for protected contact.
-                </p>
-                {calendarVisibility === "public" && slots.length > 0 ? (
-                  <div className="space-y-1 text-sm text-white/70">
-                    <div className="text-xs text-white/60 flex items-center gap-1 uppercase tracking-wider">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      Availability ({timezone})
-                    </div>
-                    {slots.slice(0, 14).map((slot) => (
-                      <div key={slot.id} className="flex justify-between gap-4">
-                        <span>{dayNames[slot.dayOfWeek] || "Day"}</span>
-                        <span>
-                          {slot.startTime} - {slot.endTime}
-                          {slot.label ? ` (${slot.label})` : ""}
-                        </span>
+        <CardContent className="p-4 md:p-6">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              {profileSections.about !== false && (aboutText || profile.headline) ? (
+                <section className="space-y-2">
+                  <h2 className="text-white font-semibold text-lg">About</h2>
+                  <p className="text-white/75 leading-relaxed">{aboutText || profile.headline}</p>
+                </section>
+              ) : null}
+
+              {profileSections.services !== false && serviceTags.length > 0 ? (
+                <section className="space-y-3">
+                  <h2 className="text-white font-semibold text-lg">Services</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {serviceTags.slice(0, 24).map((service) => (
+                      <Badge key={service} className="bg-white/10 text-white border border-white/15">
+                        {service}
+                      </Badge>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {profileSections.services !== false && serviceAreas.length > 0 ? (
+                <section className="space-y-3">
+                  <h2 className="text-white font-semibold text-lg">Service Areas</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {serviceAreas.slice(0, 20).map((area) => (
+                      <Badge key={area} variant="outline" className="border-white/20 text-white/80">
+                        {area}
+                      </Badge>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {customBlocks.length > 0 ? (
+                <section className="space-y-3">
+                  <h2 className="text-white font-semibold text-lg">Profile Highlights</h2>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {customBlocks.map((block, index) => (
+                      <div key={`${block.title}-${index}`} className="rounded-lg border border-white/10 bg-black/20 p-4 space-y-2">
+                        <h3 className="text-white font-medium">{block.title}</h3>
+                        <p className="text-white/70 text-sm leading-relaxed">{block.body}</p>
                       </div>
                     ))}
                   </div>
-                ) : null}
-                {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
-                  <div className="space-y-1 text-sm text-white/70">
-                    <div className="text-xs text-white/60 uppercase tracking-wider">
-                      Pricing table
-                    </div>
-                    {pricingRows.slice(0, 10).map((row) => (
-                      <div key={row.id} className="flex justify-between gap-4">
-                        <span>{row.name}</span>
-                        <span className="font-medium">{row.priceLabel}</span>
+                </section>
+              ) : null}
+
+              {bookingEnabled ? (
+                <section className="space-y-3 rounded-lg border border-white/10 p-4">
+                  <h2 className="text-white font-semibold flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-ts-orange" />
+                    Bookings
+                  </h2>
+                  <p className="text-sm text-white/70">
+                    Booking requests route through TradeScout Direct Connect for protected contact.
+                  </p>
+                  {calendarVisibility === "public" && slots.length > 0 ? (
+                    <div className="space-y-1 text-sm text-white/70">
+                      <div className="text-xs text-white/60 flex items-center gap-1 uppercase tracking-wider">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        Availability ({timezone})
                       </div>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap gap-3">
-                  <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
-                    <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                      Request Booking
-                    </Button>
-                  </Link>
-                  {paidBookings && bookingPriceUsd > 0 ? (
-                    <Link
-                      href={`/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${encodeURIComponent(`Booking deposit for ${displayName}`)}`}
-                    >
-                      <Button variant="outline" className="border-white/10 text-white/70">
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        Pay deposit (${bookingPriceUsd.toFixed(2)})
+                      {slots.slice(0, 14).map((slot) => (
+                        <div key={slot.id} className="flex justify-between gap-4">
+                          <span>{dayNames[slot.dayOfWeek] || "Day"}</span>
+                          <span>
+                            {slot.startTime} - {slot.endTime}
+                            {slot.label ? ` (${slot.label})` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
+                    <div className="space-y-1 text-sm text-white/70">
+                      <div className="text-xs text-white/60 uppercase tracking-wider">Pricing table</div>
+                      {pricingRows.slice(0, 10).map((row) => (
+                        <div key={row.id} className="flex justify-between gap-4">
+                          <span>{row.name}</span>
+                          <span className="font-medium">{row.priceLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-3">
+                    <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
+                      <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+                        Request Booking
                       </Button>
                     </Link>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
+                    {paidBookings && bookingPriceUsd > 0 ? (
+                      <Link
+                        href={`/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${encodeURIComponent(`Booking deposit for ${displayName}`)}`}
+                      >
+                        <Button variant="outline" className="border-white/10 text-white/70">
+                          <DollarSign className="h-4 w-4 mr-1" />
+                          Pay deposit (${bookingPriceUsd.toFixed(2)})
+                        </Button>
+                      </Link>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
+            </div>
 
-            {showContactCard && (
-              <section className="space-y-3 pt-2 border-t border-white/10">
-                <h2 className="text-white font-semibold">Contact</h2>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <aside className="space-y-4">
+              {business ? (
+                <section className="rounded-lg border border-white/10 p-4 space-y-3">
+                  <h2 className="text-white font-semibold">Business Snapshot</h2>
+                  <div className="text-sm text-white/70 space-y-1">
+                    <p>
+                      <span className="text-white/50">Name:</span> {business.name}
+                    </p>
+                    <p>
+                      <span className="text-white/50">Categories:</span>{" "}
+                      {business.categories.length ? business.categories.join(", ") : "None listed"}
+                    </p>
+                    <p>
+                      <span className="text-white/50">Coverage:</span>{" "}
+                      {business.serviceAreas.length
+                        ? `${business.serviceAreas.length} service area(s)`
+                        : "No areas listed"}
+                    </p>
+                  </div>
+                </section>
+              ) : null}
+
+              {showContactCard ? (
+                <section className="space-y-3 rounded-lg border border-white/10 p-4 bg-black/20">
+                  <h2 className="text-white font-semibold">Contact</h2>
                   <div className="space-y-2 text-sm text-white/70">
                     <div className="flex items-center gap-2 text-white/70">
                       <ShieldCheck className="h-4 w-4 text-ts-orange" />
@@ -323,29 +468,27 @@ export default function ProfileSiteView() {
                           : "Create a free TradeScout account to contact this profile through Direct Connect."}
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                  <div className="flex flex-col gap-3">
                     <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
-                      <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center gap-2">
+                      <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2">
                         <MessageCircle className="h-4 w-4" />
-                        <span>
-                          {isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}
-                        </span>
+                        <span>{isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}</span>
                       </Button>
                     </Link>
                     {!hasViewerSession ? (
                       <Link href={preScoutSignInHref}>
-                        <Button variant="outline" className="border-white/10 text-white/70">
+                        <Button variant="outline" className="w-full border-white/10 text-white/70">
                           Sign in
                         </Button>
                       </Link>
                     ) : null}
                   </div>
-                </div>
-              </section>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                </section>
+              ) : null}
+            </aside>
+          </div>
+        </CardContent>
+      </Card>
+    </Page>
   );
 }

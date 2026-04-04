@@ -4,7 +4,6 @@ import {
   User,
   Users,
   Settings,
-  Bell,
   MessageCircle,
   Bookmark,
   ClipboardList,
@@ -14,10 +13,9 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Compass,
-  Map,
-  Sparkles,
-  CircleHelp,
+  BarChart3,
+  FileText,
+  Wallet,
   ArrowUpRight,
 } from "lucide-react";
 import { useAuth, useLogout } from "@/hooks/useAuth";
@@ -267,18 +265,70 @@ export function RightToolsPanel({
             description="Theme, sections, booking, and visibility"
             onNavigate={handleNavigate}
           />
+        </PanelSection>
+
+        <Divider />
+
+        <PanelSection label="Finance Controls">
           <NavLink
-            href="/settings"
-            icon={<Settings className="h-3.5 w-3.5" />}
-            label="Account settings"
-            description="Notifications, app behavior, connected tools"
+            href="/finances/invoices"
+            icon={<FileText className="h-3.5 w-3.5" />}
+            label="Invoices"
+            description="Create, send, and track invoice status"
             onNavigate={handleNavigate}
           />
           <NavLink
-            href="/notifications"
-            icon={<Bell className="h-3.5 w-3.5" />}
-            label="Notifications"
-            description="Control alerts from Scout and jobs"
+            href="/finances/expenses"
+            icon={<Wallet className="h-3.5 w-3.5" />}
+            label="Expenses"
+            description="Track operating costs and receipts"
+            onNavigate={handleNavigate}
+          />
+          <NavLink
+            href="/finances/reports"
+            icon={<BarChart3 className="h-3.5 w-3.5" />}
+            label="Reports"
+            description="Review trends and financial performance"
+            onNavigate={handleNavigate}
+          />
+          <NavLink
+            href="/finances/records"
+            icon={<ClipboardList className="h-3.5 w-3.5" />}
+            label="Records"
+            description="Audit-ready timeline of financial activity"
+            onNavigate={handleNavigate}
+          />
+          <NavLink
+            href="/finances/settings"
+            icon={<Settings className="h-3.5 w-3.5" />}
+            label="Finance settings"
+            description="Controls for finance behavior and defaults"
+            onNavigate={handleNavigate}
+          />
+        </PanelSection>
+
+        <Divider />
+
+        <PanelSection label="Operations">
+          <NavLink
+            href="/project-tracker"
+            icon={<ClipboardList className="h-3.5 w-3.5" />}
+            label="Project tracker"
+            description="Track active jobs and milestones"
+            onNavigate={handleNavigate}
+          />
+          <NavLink
+            href="/crm"
+            icon={<Users className="h-3.5 w-3.5" />}
+            label="CRM"
+            description="Manage contacts, deals, and follow-ups"
+            onNavigate={handleNavigate}
+          />
+          <NavLink
+            href="/analytics"
+            icon={<BarChart3 className="h-3.5 w-3.5" />}
+            label="Analytics"
+            description="Measure activity, outcomes, and trends"
             onNavigate={handleNavigate}
           />
         </PanelSection>
@@ -331,54 +381,6 @@ export function RightToolsPanel({
           />
         </PanelSection>
 
-        <Divider />
-
-        {/* Explore */}
-        <PanelSection label="Explore TradeScout">
-          <NavLink
-            href="/scout"
-            icon={<Compass className="h-3.5 w-3.5" />}
-            label="Scout"
-            description="Start here when you need the right next step"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/maps"
-            icon={<Map className="h-3.5 w-3.5" />}
-            label="Maps"
-            description="Businesses, coverage, and local activity"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/trade-deals"
-            icon={<Sparkles className="h-3.5 w-3.5" />}
-            label="TradeDeals"
-            description="Partner offers and active campaigns"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/homescout-listings"
-            icon={<Building className="h-3.5 w-3.5" />}
-            label="HomeScout"
-            description="Property listings and housing workflows"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/commercial-directory"
-            icon={<ClipboardList className="h-3.5 w-3.5" />}
-            label="Commercial"
-            description="Commercial-focused local business surfaces"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/help"
-            icon={<CircleHelp className="h-3.5 w-3.5" />}
-            label="Help"
-            description="Guidance, how-it-works, and platform answers"
-            onNavigate={handleNavigate}
-          />
-        </PanelSection>
-
         {/* Marketing tools */}
         {isAuthenticated && (
           <>
@@ -399,6 +401,13 @@ export function RightToolsPanel({
 
         {/* Notes */}
         <PanelSection label="Notes">
+          <NavLink
+            href="/notes"
+            icon={<FileText className="h-3.5 w-3.5" />}
+            label="Open notes workspace"
+            description="Full notes history and editing workspace"
+            onNavigate={handleNavigate}
+          />
           <EmbeddedNotesWorkspace />
         </PanelSection>
 

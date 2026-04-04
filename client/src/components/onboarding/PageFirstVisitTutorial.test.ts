@@ -94,6 +94,18 @@ describe("PageFirstVisitTutorial helpers", () => {
     expect(tutorial.bullets.join(" ")).toContain("county and identity details");
   });
 
+  it("returns tailored admin tutorial copy", () => {
+    const tutorial = getPageTutorial("/admin/live-stream");
+    expect(tutorial.title).toContain("Admin OS");
+    expect(tutorial.bullets.join(" ")).toContain("authority impact");
+  });
+
+  it("returns tailored local intelligence tutorial copy", () => {
+    const tutorial = getPageTutorial("/county/fl/escambia");
+    expect(tutorial.title).toContain("Local intelligence");
+    expect(tutorial.bullets.join(" ")).toContain("decision context");
+  });
+
   it("stores seen state per session", () => {
     const keys = getTutorialStorageKeys("guest", "/commercial-directory");
     writeTutorialSeenVersion(keys.seen, TUTORIAL_VERSION);
