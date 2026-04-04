@@ -54,6 +54,8 @@ describe("PageFirstVisitTutorial helpers", () => {
     expect(shouldSkipPath("/onboarding/profile")).toBe(true);
     expect(shouldSkipPath("/pre-scout-setup")).toBe(true);
     expect(shouldSkipPath("/login")).toBe(true);
+    expect(shouldSkipPath("/u/super-admin")).toBe(true);
+    expect(shouldSkipPath("/p/super-admin")).toBe(true);
     expect(shouldSkipPath("/privacy")).toBe(true);
     expect(shouldSkipPath("/terms")).toBe(true);
     expect(shouldSkipPath("/direct-connect")).toBe(false);

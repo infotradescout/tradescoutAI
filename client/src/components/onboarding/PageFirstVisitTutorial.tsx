@@ -72,6 +72,8 @@ export function shouldSkipPath(path: string): boolean {
     path.startsWith("/landing") ||
     path.startsWith("/lp") ||
     path.startsWith("/r/") ||
+    path.startsWith("/u/") ||
+    path.startsWith("/p/") ||
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/create-account") ||
