@@ -127,13 +127,15 @@ export default function OnboardingIntent() {
                 <span className="text-xs uppercase tracking-[0.2em] text-white/60">TRADESCOUT</span>
               </div>
             </div>
-            <CardTitle className="text-lg font-semibold text-white">Pick your start</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">
+              Where do you want to start?
+            </CardTitle>
           </CardHeader>
 
           <CardContent>
             <p className="mb-3 text-xs text-white/70">
-              This step is essential to Scout quality. You can skip for now, but your matches, next
-              steps, and routing will stay less accurate until you finish onboarding.
+              This helps Scout show better next steps right away. You can skip for now, but matches
+              may be less accurate until setup is finished.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -145,6 +147,7 @@ export default function OnboardingIntent() {
                   <Users className="h-4 w-4 text-ts-orange" />
                   <span className="font-medium text-white">Community</span>
                 </div>
+                <p className="mt-1 text-xs text-white/65">See local posts and updates.</p>
               </button>
 
               <button
@@ -156,6 +159,7 @@ export default function OnboardingIntent() {
                   <Briefcase className="h-4 w-4 text-ts-orange" />
                   <span className="font-medium text-white">Local Directory</span>
                 </div>
+                <p className="mt-1 text-xs text-white/65">Find and compare local businesses.</p>
               </button>
 
               <button
@@ -165,8 +169,9 @@ export default function OnboardingIntent() {
               >
                 <div className="flex items-center gap-2">
                   <MessageCircle className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Business</span>
+                  <span className="font-medium text-white">Offer services</span>
                 </div>
+                <p className="mt-1 text-xs text-white/65">Set up your business presence.</p>
               </button>
 
               <button
@@ -178,6 +183,7 @@ export default function OnboardingIntent() {
                   <SlidersHorizontal className="h-4 w-4 text-ts-orange" />
                   <span className="font-medium text-white">Scout</span>
                 </div>
+                <p className="mt-1 text-xs text-white/65">Ask Scout what to do next.</p>
               </button>
             </div>
 
@@ -187,7 +193,7 @@ export default function OnboardingIntent() {
                 onClick={handleSkipForNow}
                 className="text-xs text-white/60 underline-offset-2 hover:underline text-left"
               >
-                Skip for now and continue
+                Skip for now
               </button>
             </div>
           </CardContent>

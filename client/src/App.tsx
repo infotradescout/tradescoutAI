@@ -49,6 +49,9 @@ const SimpleSubtleHints = React.lazy(() => import("./components/onboarding/Simpl
 const ProfileCompletionBanner = React.lazy(
   () => import("./components/onboarding/ProfileCompletionBanner")
 );
+const PageFirstVisitTutorial = React.lazy(
+  () => import("./components/onboarding/PageFirstVisitTutorial")
+);
 const SimpleBugReportTool = React.lazy(() => import("./components/SimpleBugReportTool"));
 
 function isDefaultHomePage(value: unknown): value is DefaultHomePage {
@@ -285,6 +288,13 @@ const AppLayout = memo(function AppLayout() {
             <ProfileCompletionBanner />
           </Suspense>
         </div>
+      )}
+
+      {/* Per-page first-visit tutorial popup (user-aware and easy-language). */}
+      {!isLandingRoute && !isShareRoute && (
+        <Suspense fallback={null}>
+          <PageFirstVisitTutorial />
+        </Suspense>
       )}
 
       {/* Bug report tool - always available */}

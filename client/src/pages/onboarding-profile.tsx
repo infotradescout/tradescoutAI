@@ -216,7 +216,10 @@ export default function OnboardingProfile() {
                 <span className="text-xs uppercase tracking-[0.2em] text-white/60">TRADESCOUT</span>
               </div>
             </div>
-            <CardTitle className="text-lg font-semibold text-white">Quick profile check</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">Quick setup check</CardTitle>
+            <p className="text-sm text-white/70">
+              We use this to keep local matching accurate from your first request.
+            </p>
           </CardHeader>
 
           <CardContent>
@@ -246,7 +249,7 @@ export default function OnboardingProfile() {
 
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                  City (for auto county)
+                  City (optional)
                 </Label>
                 <Input
                   value={city}
@@ -257,14 +260,14 @@ export default function OnboardingProfile() {
                       setCountyName(undefined);
                     }
                   }}
-                  placeholder="Enter city"
+                  placeholder="Type your city"
                   className="mt-1"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                  Primary county
+                  Main county
                 </Label>
                 <StateCountySelector
                   selectedState={stateCode}
@@ -293,12 +296,10 @@ export default function OnboardingProfile() {
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-white/60">
-                  {canContinue
-                    ? "Ready."
-                    : "Complete name and county (or enter city to auto-detect county)."}
+                  {canContinue ? "Looks good." : "Add your name and main county to continue."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
-                  {updateProfile.isPending ? "Saving..." : "Save and continue"}
+                  {updateProfile.isPending ? "Saving..." : "Continue"}
                 </Button>
               </div>
             </form>

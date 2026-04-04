@@ -904,60 +904,19 @@ function DirectConnectRequestComposer({
             </p>
           </div>
         )}
-        <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10 p-2 text-[color:var(--theme-accent-primary)]">
-              <ImagePlus className="h-4 w-4" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-[color:var(--text-primary)]">
-                Photos help people understand the job faster
-              </p>
-              <p className="text-xs text-[color:var(--text-secondary)]">
-                Add photos of the space, damage, or materials so people know what they're looking at
-                before they reply.
-              </p>
-            </div>
-          </div>
-        </div>
         <div className="space-y-1.5">
           <label className="text-xs text-[color:var(--text-secondary)]">What do you need?</label>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {requestTypeOrder.map((key) => {
-              const meta = requestTypeMeta[key];
-              const active = requestType === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setRequestType(key)}
-                  className={cn(
-                    "rounded-xl border px-3 py-2 text-left transition-colors",
-                    active
-                      ? "border-ts-orange bg-ts-orange/20 text-white"
-                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:border-[color:var(--theme-accent-primary)]/40"
-                  )}
-                >
-                  <p className="text-xs font-semibold leading-tight">{meta.label}</p>
-                  <p className="mt-1 text-[11px] leading-tight text-[color:var(--text-secondary)]/90">
-                    {meta.hint}
-                  </p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[color:var(--text-secondary)]/80">
-                    Best for: {meta.bestFor}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-          <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-              Selected request type
-            </p>
-            <p className="mt-1 text-xs text-[color:var(--text-primary)]">
-              <span className="font-medium">{activeRequestMeta.label}</span>:{" "}
-              {activeRequestMeta.hint}
-            </p>
-          </div>
+          <select
+            value={requestType}
+            onChange={(event) => setRequestType(event.target.value as keyof typeof requestTypeMeta)}
+            className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+          >
+            {requestTypeOrder.map((key) => (
+              <option key={key} value={key}>
+                {requestTypeMeta[key].label}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="space-y-1.5">
           <label className="text-xs text-[color:var(--text-secondary)]">Title</label>
@@ -2843,8 +2802,8 @@ export default function DirectConnectShell() {
           })}
         </div>
 
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="space-y-2 p-3 md:space-y-3 md:p-4">
+        <Card className="border-0 bg-transparent shadow-none md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-card)] md:shadow-sm">
+          <CardContent className="space-y-2 p-0 md:space-y-3 md:p-4">
             <div
               className={cn(
                 "hidden md:flex md:flex-row md:items-center md:justify-between md:gap-2"
@@ -2866,26 +2825,7 @@ export default function DirectConnectShell() {
               </div>
             </div>
 
-            <div className="space-y-2 md:hidden">
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-                    Current section
-                  </p>
-                  <p className="text-sm font-medium text-[color:var(--text-primary)]">
-                    {sectionMeta.title}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="text-[10px]">
-                  {activeFlowMode === "manage" ? "Follow up" : "Create"}
-                </Badge>
-              </div>
-              <p className="px-1 text-xs text-[color:var(--text-secondary)]">
-                {sectionMeta.description}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
+            <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap md:flex md:flex-wrap md:gap-2 md:overflow-visible md:whitespace-normal">
               {modeActionSections.map((section) => {
                 const active = section === activeSection;
                 const count = navCounts[section] ?? 0;
@@ -2895,18 +2835,18 @@ export default function DirectConnectShell() {
                     type="button"
                     onClick={() => navigateSection(section)}
                     className={cn(
-                      "inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors md:rounded-full",
+                      "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition-colors md:gap-2 md:rounded-full md:px-3 md:py-2 md:text-sm",
                       active
                         ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
                         : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
                     )}
                   >
-                    <span className="text-[color:var(--theme-accent-primary)]">
+                    <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5 md:[&>svg]:h-5 md:[&>svg]:w-5">
                       {SECTION_ICONS[section]}
                     </span>
                     <span>{SECTION_LABELS[section]}</span>
                     {count > 0 && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
                         {count}
                       </Badge>
                     )}
