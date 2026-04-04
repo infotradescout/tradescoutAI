@@ -198,6 +198,15 @@ html {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Global surface cleanup: suppress white utility border outlines. */
+[class*="border-white/"] {
+  border-color: transparent !important;
+}
+
+[class*="border-white/"][class*="border-b"] {
+  border-bottom-color: transparent !important;
+}
 @layer base {
   :root {
     /* Default: stable height token. On mobile, JS sets --vh, which drives --app-height. */

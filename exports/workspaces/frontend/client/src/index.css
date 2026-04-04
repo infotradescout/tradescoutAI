@@ -12,6 +12,124 @@ body.ts-scroll-lock {
 body.ts-scroll-lock #root {
   overflow: hidden;
 }
+
+/* Mobile simplification mode: reversible via VITE_MOBILE_SIMPLIFICATION_V1. */
+body.ts-mobile-simplified {
+  --bottom-nav-height: 62px;
+}
+
+body.ts-mobile-simplified button,
+body.ts-mobile-simplified a,
+body.ts-mobile-simplified [role="button"] {
+  min-height: 44px;
+}
+
+body.ts-mobile-simplified input,
+body.ts-mobile-simplified select,
+body.ts-mobile-simplified textarea {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+body.ts-mobile-simplified .app-page {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+body.ts-mobile-simplified .app-page .grid {
+  gap: 0.6rem;
+}
+
+/* Cross-page mobile polish: applies to actual route content surfaces, not only app shell nav. */
+body.ts-mobile-simplified .app-page .ts-card,
+body.ts-mobile-simplified .app-page .theme-card,
+body.ts-mobile-simplified .app-page .theme-card-hover,
+body.ts-mobile-simplified .app-page .ts-panel,
+body.ts-mobile-simplified .app-page .bg-tsCard,
+body.ts-mobile-simplified .app-page .bg-tsSurface,
+body.ts-mobile-simplified .app-page [class*="bg-tsCard"],
+body.ts-mobile-simplified .app-page [class*="bg-tsSurface"] {
+  border-radius: 1rem !important;
+  border-color: color-mix(in oklab, var(--border-primary) 82%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 12px 30px color-mix(in oklab, black 22%, transparent) !important;
+}
+
+body.ts-mobile-simplified .app-page .card-enhanced,
+body.ts-mobile-simplified .app-page .card-interactive,
+body.ts-mobile-simplified .app-page .theme-card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+body.ts-mobile-simplified .app-page .card-enhanced:active,
+body.ts-mobile-simplified .app-page .card-interactive:active,
+body.ts-mobile-simplified .app-page .theme-card-hover:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+body.ts-mobile-simplified .app-page button,
+body.ts-mobile-simplified .app-page .button,
+body.ts-mobile-simplified .app-page [role="button"] {
+  border-radius: 0.75rem;
+}
+
+body.ts-mobile-simplified .app-page button[class*="border"],
+body.ts-mobile-simplified .app-page .button[class*="border"],
+body.ts-mobile-simplified .app-page [role="button"][class*="border"] {
+  border-color: color-mix(in oklab, var(--border-primary) 85%, transparent) !important;
+  background-color: color-mix(in oklab, var(--surface-intermediate) 86%, transparent);
+}
+
+body.ts-mobile-simplified .app-page [data-state="active"],
+body.ts-mobile-simplified .app-page [aria-current="page"],
+body.ts-mobile-simplified .app-page [aria-selected="true"] {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 40%, transparent) !important;
+  box-shadow: 0 8px 20px color-mix(in oklab, var(--theme-accent-primary) 11%, transparent);
+}
+
+body.ts-mobile-simplified .app-page [role="tablist"] {
+  gap: 0.35rem;
+  border-radius: 0.85rem;
+  padding: 0.2rem;
+  background: color-mix(in oklab, var(--surface-intermediate) 80%, transparent);
+}
+
+body.ts-mobile-simplified .app-page [role="tab"] {
+  border-radius: 0.65rem;
+}
+
+body.ts-mobile-simplified .app-page .page-wrapper,
+body.ts-mobile-simplified .app-page .scout-shell {
+  background: transparent;
+}
+
+body.ts-mobile-simplified .app-page .ts-page {
+  gap: 0.75rem;
+}
+
+body.ts-mobile-simplified .app-page .ts-page-section {
+  border: 1px solid color-mix(in oklab, var(--border-primary) 78%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--surface-card) 52%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 10px 26px color-mix(in oklab, black 20%, transparent);
+  padding: 0.75rem;
+}
+
+body.ts-mobile-simplified .app-page .ts-page-section-header {
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--border-primary) 70%, transparent);
+}
+
+body.ts-mobile-simplified .app-page .ts-page-card {
+  border-color: color-mix(in oklab, var(--border-primary) 82%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
+    0 12px 28px color-mix(in oklab, black 22%, transparent) !important;
+}
 /* stylelint-disable */
 @tailwind base;
 @tailwind components;
@@ -80,6 +198,15 @@ html {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Global surface cleanup: suppress white utility border outlines. */
+[class*="border-white/"] {
+  border-color: transparent !important;
+}
+
+[class*="border-white/"][class*="border-b"] {
+  border-bottom-color: transparent !important;
+}
 @layer base {
   :root {
     /* Default: stable height token. On mobile, JS sets --vh, which drives --app-height. */
@@ -124,6 +251,30 @@ html {
     --border-active: var(--ts-border-strong, rgba(255, 255, 255, 0.12));
     --border-focus: var(--ts-border-strong, rgba(255, 255, 255, 0.18));
 
+    /* SURFACE DEPTH (always-on card/panel separation) */
+    /* Keep surfaces to 2-3 visual layers: base + border + shadow. */
+    /* Tune this in one place: 0.6=subtle, 1=balanced(default), 1.35=strong */
+    --surface-depth-scale: 1;
+    --surface-border-alpha: calc(0.05 + (0.05 * var(--surface-depth-scale)));
+    --surface-shadow-alpha: calc(0.34 + (0.2 * var(--surface-depth-scale)));
+    --surface-shadow-hover-alpha: calc(0.42 + (0.22 * var(--surface-depth-scale)));
+
+    --surface-card-border: color-mix(
+      in oklab,
+      var(--ts-border-strong, rgba(255, 255, 255, 0.12)) 82%,
+      rgba(255, 255, 255, var(--surface-border-alpha))
+    );
+    --surface-card-border-hover: color-mix(
+      in oklab,
+      var(--theme-accent-primary) 34%,
+      var(--ts-border-strong, rgba(255, 255, 255, 0.16))
+    );
+    --surface-card-shadow:
+      0 12px 28px color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-alpha)) 88%, transparent);
+    --surface-card-shadow-hover:
+      0 16px 34px
+        color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-hover-alpha)) 88%, transparent);
+
     /* TEXT HIERARCHY */
     --text-primary: var(--ts-text, rgba(255, 255, 255, 0.95));
     --text-secondary: var(--ts-text-muted, rgba(255, 255, 255, 0.7));
@@ -163,6 +314,14 @@ html {
     --heatmap-stroke-default: #020617;
 
     /* ===== END THEME LOCK ===== */
+  }
+
+  :root[data-surface-depth="subtle"] {
+    --surface-depth-scale: 0.6;
+  }
+
+  :root[data-surface-depth="strong"] {
+    --surface-depth-scale: 1.35;
   }
 
   @supports (height: 100dvh) {
@@ -290,6 +449,8 @@ html {
   z-index: 0;
   isolation: isolate;
   background-color: transparent !important;
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
 }
 .bg-tsCardMuted,
 .bg-tsSurface-strong {
@@ -297,6 +458,8 @@ html {
   z-index: 0;
   isolation: isolate;
   background-color: transparent !important;
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .bg-tsCard::before,
@@ -306,11 +469,9 @@ html {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
-    var(--surface-card) !important;
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  background: color-mix(in oklab, var(--surface-card) 96%, rgba(255, 255, 255, 0.02)) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   pointer-events: none;
 }
 
@@ -322,11 +483,18 @@ html {
   z-index: -1;
   border-radius: inherit;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)),
-    var(--surface-intermediate) !important;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+    color-mix(in oklab, var(--surface-intermediate) 96%, rgba(255, 255, 255, 0.016)) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   pointer-events: none;
+}
+
+.bg-tsCard:hover,
+.bg-tsSurface:hover,
+.bg-tsCardMuted:hover,
+.bg-tsSurface-strong:hover {
+  border-color: var(--surface-card-border-hover);
+  box-shadow: var(--surface-card-shadow-hover);
 }
 
 /* Unified page frame */
@@ -407,8 +575,8 @@ html {
     position: relative;
     z-index: 0;
     isolation: isolate;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 30px 80px -44px rgba(0, 0, 0, 0.78);
+    border: 1px solid var(--surface-card-border);
+    box-shadow: var(--surface-card-shadow);
   }
 
   .ts-card::before {
@@ -426,7 +594,8 @@ html {
   }
 
   .ts-card:hover {
-    border-color: rgba(249, 115, 22, 0.22);
+    border-color: var(--surface-card-border-hover);
+    box-shadow: var(--surface-card-shadow-hover);
   }
 }
 
@@ -602,6 +771,18 @@ html {
     padding-top: 0;
     padding-bottom: 0;
     overflow: hidden;
+  }
+
+  /* Avoid stacked overlay scrollbar pills on nested mobile scrollers. */
+  .app-shell,
+  .app-shell * {
+    scrollbar-width: none;
+  }
+
+  .app-shell::-webkit-scrollbar,
+  .app-shell *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
 
   /* Mobile bottom nav glass shell */
@@ -1146,9 +1327,11 @@ html {
   @layer components {
     /* GLOBAL BLUEPRINT CONTAINER STANDARDS */
     .ts-surface {
-      @apply border-0 rounded-3xl bg-navy-900/60 shadow-[0_0_40px_rgba(0,0,0,0.25)];
+      @apply border-0 rounded-3xl bg-navy-900/60;
       position: relative;
       overflow: hidden;
+      border: 1px solid var(--surface-card-border);
+      box-shadow: var(--surface-card-shadow);
     }
 
     .ts-surface::before {
@@ -1182,9 +1365,11 @@ html {
     }
 
     .ts-panel {
-      @apply border-0 shadow-md bg-navy-900/70;
+      @apply border-0 bg-navy-900/70;
       position: relative;
       overflow: hidden;
+      border: 1px solid var(--surface-card-border);
+      box-shadow: var(--surface-card-shadow);
     }
 
     .ts-panel::before {
@@ -1795,20 +1980,23 @@ body {
 
 /* Theme-aware cards */
 .theme-card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   color: var(--text-primary);
 }
 
 .theme-card-hover {
-  background: var(--surface-card);
-  border: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow);
   color: var(--text-primary);
   transition: all 0.2s ease;
 }
 
 .theme-card-hover:hover {
-  border-color: var(--theme-accent-primary);
+  border-color: var(--surface-card-border-hover);
+  box-shadow: var(--surface-card-shadow-hover);
   background: var(--surface-intermediate);
 }
 
@@ -2432,4 +2620,66 @@ body {
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
+
+/* Stage 2 mobile page polish: typography rhythm + action hierarchy on real pages. */
+body.ts-mobile-density.ts-mobile-simplified .app-page {
+  letter-spacing: 0.002em;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-3xl,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-2xl,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xl {
+  letter-spacing: -0.01em;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-3xl {
+  font-size: 1.44rem !important;
+  line-height: 1.75rem !important;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-2xl {
+  font-size: 1.22rem !important;
+  line-height: 1.5rem !important;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xl {
+  font-size: 1.05rem !important;
+  line-height: 1.34rem !important;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page p,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-sm,
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xs {
+  color: color-mix(in oklab, var(--text-secondary) 92%, var(--text-primary) 8%);
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .grid.grid-cols-1,
+body.ts-mobile-density.ts-mobile-simplified .app-page .space-y-2,
+body.ts-mobile-density.ts-mobile-simplified .app-page .space-y-3 {
+  gap: 0.62rem;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .inline-flex.items-center.justify-between,
+body.ts-mobile-density.ts-mobile-simplified .app-page .flex.items-center.justify-between {
+  row-gap: 0.4rem;
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page button:focus-visible,
+body.ts-mobile-density.ts-mobile-simplified .app-page a[role="button"]:focus-visible,
+body.ts-mobile-density.ts-mobile-simplified .app-page [role="tab"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 24%, transparent);
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page button[class*="bg-ts-orange"],
+body.ts-mobile-density.ts-mobile-simplified .app-page .ts-accent-btn {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 50%, transparent) !important;
+  box-shadow: 0 10px 24px color-mix(in oklab, var(--theme-accent-primary) 16%, transparent);
+}
+
+body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--border-active) 80%, transparent) transparent;
+}
+
 /* Deployment trigger: Mon Feb 23 12:50:43 EST 2026 */
