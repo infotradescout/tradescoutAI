@@ -407,9 +407,9 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
 // ---- Stats Bar ----
 function StatsBar() {
   const stats = [
-    { value: 1, suffix: "", label: "Scout Control Plane" },
-    { value: 0, suffix: "", label: "Lead Spam", display: "Zero" },
-    { value: 5, suffix: "", label: "Governed Stages", display: "Five" },
+    { value: 1, suffix: "", label: "Scout guide" },
+    { value: 0, suffix: "", label: "Lead spam", display: "Zero" },
+    { value: 5, suffix: "", label: "Clear steps", display: "Five" },
     { value: 0, suffix: "", label: "Pay-to-Play", display: "No" },
   ];
 
@@ -439,22 +439,22 @@ function HowItWorksSection() {
     {
       icon: MessageSquare,
       title: "Ask Scout",
-      desc: "Say what you need in plain language so TradeScout starts from your real intent.",
+      desc: "Say what you need in everyday words so TradeScout starts from your real goal.",
     },
     {
       icon: Search,
       title: "Scout figures out the path",
-      desc: "Scout uses location, trade fit, and trust context to narrow the right local route.",
+      desc: "Scout uses location, service fit, and trust signals to narrow the right local path.",
     },
     {
       icon: CheckCircle,
       title: "You get the next move",
-      desc: "That might be a match, a Decision Card, or a short hold while details get sorted out.",
+      desc: "That could be a match, a Decision Card, or a short hold while details are confirmed.",
     },
     {
       icon: Handshake,
       title: "Contact opens at the right time",
-      desc: "A pro accepts before contact opens, so you stay in control without losing privacy or context.",
+      desc: "A pro accepts before contact opens, so you stay in control without losing context.",
     },
   ];
 
@@ -473,8 +473,8 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            TradeScout is not a lead funnel. You start with Scout, and it helps you move toward the
-            right local next step.
+            TradeScout is not a lead blast. You start with Scout, and it helps you take the right
+            next local step.
           </p>
         </Reveal>
 

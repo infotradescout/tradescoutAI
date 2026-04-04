@@ -66,7 +66,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How does Direct Connect work?",
       answer:
-        "When you send a request, TradeScout shares it with a small number of local pros who look like a good fit. That keeps replies focused instead of turning into a lead blast.",
+        "When you send a request, TradeScout shares it with a small number of local pros who look like a good fit. That keeps replies focused instead of blasting everyone.",
     },
   ];
 
@@ -79,7 +79,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Search,
       title: "Scout finds good options",
-      desc: "Scout looks for a small set of local pros who fit the job.",
+      desc: "Scout looks for a small set of local pros who fit your job.",
     },
     {
       icon: CheckCircle,
@@ -89,7 +89,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Handshake,
       title: "You choose who to work with",
-      desc: "If someone accepts, you can keep the conversation going and decide who feels right.",
+      desc: "If someone accepts, you can keep talking and decide who feels right.",
     },
   ];
 
@@ -143,7 +143,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Zap,
       title: "Less menu hunting",
-      desc: "Scout helps guide the process so you can spend less time figuring out where to click next.",
+      desc: "Scout helps guide the process so you spend less time figuring out what to click next.",
     },
     {
       icon: Lock,
@@ -334,7 +334,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Ready to Get Started?
               </h2>
               <p className="text-white/70 text-sm mb-4">
-                Ask Scout a question or start looking for local help.
+                Ask Scout a question or start finding local help.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
