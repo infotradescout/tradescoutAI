@@ -19,18 +19,18 @@ type TutorialContent = {
   primaryAction: string;
 };
 
-const TUTORIAL_VERSION = "v1";
-const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
-const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
+export const TUTORIAL_VERSION = "v1";
+export const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
+export const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
 
-function normalizePath(path: string): string {
+export function normalizePath(path: string): string {
   const clean = String(path || "")
     .split("?")[0]
     .split("#")[0];
   return clean.replace(/\/+$/, "") || "/";
 }
 
-function shouldSkipPath(path: string): boolean {
+export function shouldSkipPath(path: string): boolean {
   return (
     path.startsWith("/landing") ||
     path.startsWith("/lp") ||
@@ -43,7 +43,7 @@ function shouldSkipPath(path: string): boolean {
   );
 }
 
-function getPageTutorial(path: string): TutorialContent {
+export function getPageTutorial(path: string): TutorialContent {
   if (path.startsWith("/direct-connect")) {
     return {
       title: "Direct Connect quick guide",
@@ -110,6 +110,14 @@ function getPageTutorial(path: string): TutorialContent {
   };
 }
 
+export function getTutorialStorageKeys(userScope: string, path: string) {
+  const normalizedPath = normalizePath(path);
+  return {
+    seen: `${TUTORIAL_SEEN_PREFIX}:${userScope}:${normalizedPath}`,
+    never: `${TUTORIAL_NEVER_PREFIX}:${userScope}:${normalizedPath}`,
+  };
+}
+
 export default function PageFirstVisitTutorial() {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -122,11 +130,7 @@ export default function PageFirstVisitTutorial() {
     return "guest";
   }, [isAuthenticated, user?.id]);
 
-  const storageKeys = useMemo(() => {
-    const seen = `${TUTORIAL_SEEN_PREFIX}:${userScope}:${path}`;
-    const never = `${TUTORIAL_NEVER_PREFIX}:${userScope}:${path}`;
-    return { seen, never };
-  }, [path, userScope]);
+  const storageKeys = useMemo(() => getTutorialStorageKeys(userScope, path), [path, userScope]);
 
   const tutorial = useMemo(() => getPageTutorial(path), [path]);
 
