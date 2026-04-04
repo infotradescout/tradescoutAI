@@ -19,6 +19,47 @@ export const TUTORIAL_VERSION = "v4";
 export const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
 export const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
 
+export function readTutorialNever(neverKey: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(neverKey) === "1";
+  } catch {
+    return sessionNeverFallback.has(neverKey);
+  }
+}
+
+export function readTutorialSeenVersion(seenKey: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(seenKey);
+  } catch {
+    return sessionSeenFallback.get(seenKey) ?? null;
+  }
+}
+
+export function writeTutorialSeenVersion(seenKey: string, version: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(seenKey, version);
+  } catch {
+    sessionSeenFallback.set(seenKey, version);
+  }
+}
+
+export function writeTutorialNever(neverKey: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(neverKey, "1");
+  } catch {
+    sessionNeverFallback.add(neverKey);
+  }
+}
+
+export function __resetTutorialFallbackForTests(): void {
+  sessionSeenFallback.clear();
+  sessionNeverFallback.clear();
+}
+
 export function normalizePath(path: string): string {
   const clean = String(path || "")
     .split("?")[0]
@@ -165,40 +206,20 @@ export default function PageFirstVisitTutorial() {
       return;
     }
 
-    try {
-      const never = window.localStorage.getItem(storageKeys.never) === "1";
-      const seenVersion = window.sessionStorage.getItem(storageKeys.seen);
-      if (never || seenVersion === TUTORIAL_VERSION) {
-        setOpen(false);
-        return;
-      }
-      setNeverShowAgain(false);
-      setOpen(true);
-    } catch {
-      const never = sessionNeverFallback.has(storageKeys.never);
-      const seenVersion = sessionSeenFallback.get(storageKeys.seen);
-      if (never || seenVersion === TUTORIAL_VERSION) {
-        setOpen(false);
-        return;
-      }
-      setNeverShowAgain(false);
-      setOpen(true);
+    const never = readTutorialNever(storageKeys.never);
+    const seenVersion = readTutorialSeenVersion(storageKeys.seen);
+    if (never || seenVersion === TUTORIAL_VERSION) {
+      setOpen(false);
+      return;
     }
+    setNeverShowAgain(false);
+    setOpen(true);
   }, [path, storageKeys.never, storageKeys.seen]);
 
   const handleClose = () => {
-    if (typeof window !== "undefined") {
-      try {
-        window.sessionStorage.setItem(storageKeys.seen, TUTORIAL_VERSION);
-        if (neverShowAgain) {
-          window.localStorage.setItem(storageKeys.never, "1");
-        }
-      } catch {
-        sessionSeenFallback.set(storageKeys.seen, TUTORIAL_VERSION);
-        if (neverShowAgain) {
-          sessionNeverFallback.add(storageKeys.never);
-        }
-      }
+    writeTutorialSeenVersion(storageKeys.seen, TUTORIAL_VERSION);
+    if (neverShowAgain) {
+      writeTutorialNever(storageKeys.never);
     }
     setOpen(false);
   };

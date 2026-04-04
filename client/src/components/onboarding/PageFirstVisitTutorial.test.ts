@@ -1,12 +1,50 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
+  __resetTutorialFallbackForTests,
   getPageTutorial,
   getTutorialStorageKeys,
   normalizePath,
+  readTutorialNever,
+  readTutorialSeenVersion,
   shouldSkipPath,
+  TUTORIAL_VERSION,
+  writeTutorialNever,
+  writeTutorialSeenVersion,
 } from "./PageFirstVisitTutorial";
 
+class MemoryStorage {
+  private data = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.data.has(key) ? this.data.get(key)! : null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.data.set(key, String(value));
+  }
+
+  removeItem(key: string): void {
+    this.data.delete(key);
+  }
+
+  clear(): void {
+    this.data.clear();
+  }
+}
+
 describe("PageFirstVisitTutorial helpers", () => {
+  beforeEach(() => {
+    const localStorageShim = new MemoryStorage();
+    const sessionStorageShim = new MemoryStorage();
+    (globalThis as any).localStorage = localStorageShim;
+    (globalThis as any).sessionStorage = sessionStorageShim;
+    (globalThis as any).window = {
+      localStorage: localStorageShim,
+      sessionStorage: sessionStorageShim,
+    };
+    __resetTutorialFallbackForTests();
+  });
+
   it("normalizes trailing slashes and strips query/hash", () => {
     expect(normalizePath("/direct-connect///?foo=1#bar")).toBe("/direct-connect");
     expect(normalizePath("/")).toBe("/");
@@ -40,5 +78,22 @@ describe("PageFirstVisitTutorial helpers", () => {
     const tutorial = getPageTutorial("/commercial-directory");
     expect(tutorial.title).toContain("Commercial Opportunities");
     expect(tutorial.description).toContain("county-scoped commercial projects");
+  });
+
+  it("stores seen state per session", () => {
+    const keys = getTutorialStorageKeys("guest", "/commercial-directory");
+    writeTutorialSeenVersion(keys.seen, TUTORIAL_VERSION);
+
+    expect(readTutorialSeenVersion(keys.seen)).toBe(TUTORIAL_VERSION);
+    expect(localStorage.getItem(keys.seen)).toBeNull();
+    expect(sessionStorage.getItem(keys.seen)).toBe(TUTORIAL_VERSION);
+  });
+
+  it("stores never-show state persistently", () => {
+    const keys = getTutorialStorageKeys("guest", "/commercial-directory");
+    writeTutorialNever(keys.never);
+
+    expect(readTutorialNever(keys.never)).toBe(true);
+    expect(localStorage.getItem(keys.never)).toBe("1");
   });
 });
