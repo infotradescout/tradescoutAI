@@ -74,7 +74,7 @@ export function AdminDirectConnectRequestCard() {
   );
 
   const createDirectConnectRequest = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (options: { autoRoute: boolean }) => {
       const contractorIds = targetContractorIds
         .split(",")
         .map((v) => v.trim())
@@ -94,11 +94,12 @@ export function AdminDirectConnectRequestCard() {
       if (requestBudgetMin.trim()) payload.budgetMin = Number(requestBudgetMin);
       if (requestBudgetMax.trim()) payload.budgetMax = Number(requestBudgetMax);
       if (contractorIds.length > 0) payload.targetContractorIds = contractorIds;
+      payload.autoRoute = options.autoRoute;
       if (forceSetupEmail) payload.forceSetupEmail = true;
 
       return apiRequest("POST", "/api/admin/direct-connect/requests", payload);
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, variables) => {
       setDirectConnectResult(data as DirectConnectAdminResult);
       const emailSummary = data?.setupEmailSent
         ? "Setup email sent"
@@ -107,7 +108,9 @@ export function AdminDirectConnectRequestCard() {
           : "Request created (email not sent)";
       toast({
         title: "Direct Connect request created",
-        description: `${emailSummary} for ${data?.createdForUser?.email || "target user"}.`,
+        description: `${emailSummary} for ${data?.createdForUser?.email || "target user"}. ${
+          variables?.autoRoute ? "Auto-route started." : "Manual routing preserved."
+        }`,
       });
       setTargetUserId("");
       setTargetUserEmail("");
@@ -274,6 +277,9 @@ export function AdminDirectConnectRequestCard() {
             placeholder="contractor-id-1, contractor-id-2"
             className="bg-black/30 border-[color:var(--border-subtle)] text-white"
           />
+          <p className="mt-1 text-[11px] text-white/50">
+            Leave empty to keep this request open for manual staff routing. Use skip to auto-route.
+          </p>
         </div>
         <label className="flex items-center gap-2 text-xs text-white/70">
           <Checkbox
@@ -283,19 +289,39 @@ export function AdminDirectConnectRequestCard() {
           Force setup email (send password/verification links when needed)
         </label>
 
-        <Button
-          type="button"
-          onClick={() => createDirectConnectRequest.mutate()}
-          disabled={
-            createDirectConnectRequest.isPending ||
-            !requestTitle.trim() ||
-            !requestDescription.trim() ||
-            (!targetUserEmail.trim() && !targetUserId.trim())
-          }
-          className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
-        >
-          {createDirectConnectRequest.isPending ? "Creating request..." : "Create request"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            onClick={() => createDirectConnectRequest.mutate({ autoRoute: false })}
+            disabled={
+              createDirectConnectRequest.isPending ||
+              !requestTitle.trim() ||
+              !requestDescription.trim() ||
+              (!targetUserEmail.trim() && !targetUserId.trim())
+            }
+            className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
+          >
+            {createDirectConnectRequest.isPending
+              ? "Creating request..."
+              : "Create request (manual routing)"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => createDirectConnectRequest.mutate({ autoRoute: true })}
+            disabled={
+              createDirectConnectRequest.isPending ||
+              !requestTitle.trim() ||
+              !requestDescription.trim() ||
+              (!targetUserEmail.trim() && !targetUserId.trim())
+            }
+            className="w-full sm:w-auto border-[color:var(--border-subtle)]"
+          >
+            {createDirectConnectRequest.isPending
+              ? "Creating request..."
+              : "Skip manual routing and auto-route"}
+          </Button>
+        </div>
 
         {directConnectResult ? (
           <div className="rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3 text-xs text-white/80 space-y-1 break-words">

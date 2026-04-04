@@ -224,6 +224,41 @@ describe("direct-connect gate regressions", () => {
     expect(directoryFile).toContain("No local businesses found for that search yet.");
   });
 
+  it("requires sender to choose direct targets or top-count dispatch before sending", () => {
+    const directConnectShellFile = readRepoFile(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+
+    expect(directConnectShellFile).toContain("Choose who gets this request");
+    expect(directConnectShellFile).toContain("Send to top local companies");
+    expect(directConnectShellFile).toContain("How many companies should receive this request?");
+    expect(directConnectShellFile).toContain("Ordered by location fit first, then CVS score.");
+    expect(directConnectShellFile).toContain("Skip and auto-route");
+    expect(directConnectShellFile).toContain("targetContractorIds");
+  });
+
+  it("keeps admin/staff request creation manual by default with explicit auto-route skip", () => {
+    const adminCardFile = readRepoFile(
+      "client/src/components/admin/AdminDirectConnectRequestCard.tsx"
+    );
+
+    expect(adminCardFile).toContain("Create request (manual routing)");
+    expect(adminCardFile).toContain("Skip manual routing and auto-route");
+    expect(adminCardFile).toContain("payload.autoRoute = options.autoRoute;");
+  });
+
+  it("enforces eligibility-aware direct routing and exposes board eligibility metadata", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+    const tasksFile = readRepoFile("client/src/pages/tasks.tsx");
+
+    expect(routeFile).toContain("filterEligibleContractorsByTradeRequirements");
+    expect(routeFile).toContain("excludedTargets");
+    expect(routeFile).toContain("canSelectForResponse");
+    expect(routeFile).toContain("viewerEligibility");
+    expect(tasksFile).toContain("Eligible to respond");
+    expect(tasksFile).toContain("Verification needed:");
+  });
+
   it("keeps the explicit super-admin platform-support auto-link path", () => {
     const helperFile = readRepoFile("server/utils/superAdminConnection.ts");
 

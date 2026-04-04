@@ -473,7 +473,6 @@ export default function TasksHub({
   return (
     <Page className={embedded ? "" : "max-w-7xl pb-20"}>
       <Section>
-
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as "browse" | "post")}
@@ -696,6 +695,24 @@ export default function TasksHub({
                                 : "recently"}
                           </span>
                         </div>
+                        {(request as any)?.viewerEligibility?.hasExplicitRequirements && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {(request as any)?.canSelectForResponse ? (
+                              <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-1 text-[10px] text-emerald-200">
+                                Eligible to respond
+                              </span>
+                            ) : (
+                              <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-1 text-[10px] text-amber-100">
+                                Verification needed:{" "}
+                                {String(
+                                  (
+                                    (request as any)?.viewerEligibility?.missingRequirements || []
+                                  ).join(", ")
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <span className="text-[10px] text-ts-orange/90">
                             Tap to open landing page
@@ -1276,6 +1293,19 @@ export default function TasksHub({
             {selectedBoardRequest && (
               <div className="space-y-3 text-sm text-white/80">
                 <p className="text-white/70">{selectedBoardRequest.description}</p>
+                {(selectedBoardRequest as any)?.viewerEligibility?.hasExplicitRequirements &&
+                  !(selectedBoardRequest as any)?.canSelectForResponse && (
+                    <div className="rounded-xl border border-amber-400/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-100">
+                      This request is visible, but your account is not currently verified for it.
+                      Missing:
+                      {String(
+                        (
+                          ((selectedBoardRequest as any)?.viewerEligibility?.missingRequirements ||
+                            []) as string[]
+                        ).join(", ") || "requirements"
+                      )}
+                    </div>
+                  )}
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="rounded-full border border-white/10 bg-black/25 px-2 py-1 capitalize">
                     {String(selectedBoardRequest.status || "open").replace("_", " ")}

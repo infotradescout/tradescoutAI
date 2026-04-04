@@ -428,6 +428,49 @@ type DraftAttachment = {
   previewUrl: string;
 };
 
+type DirectoryCandidate = {
+  id: string;
+  companyName?: string | null;
+  serviceAreas?: string[] | null;
+  trustScore?: number | string | null;
+  cvsScore?: number | string | null;
+  distanceMiles?: number | string | null;
+  countyFips?: string | null;
+  city?: string | null;
+  state?: string | null;
+  responseTimeSla?: number | string | null;
+};
+
+type DispatchMode = "top_count" | "direct_pick";
+
+function parseNumberOrNull(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const next = Number(value);
+    if (Number.isFinite(next)) return next;
+  }
+  return null;
+}
+
+function getCandidateCvsScore(candidate: DirectoryCandidate): number {
+  const cvs = parseNumberOrNull(candidate.cvsScore);
+  if (cvs !== null) return cvs;
+  const trust = parseNumberOrNull(candidate.trustScore);
+  if (trust !== null) return trust;
+  return 0;
+}
+
+function getCandidateLocationScore(candidate: DirectoryCandidate, countyFips?: string): number {
+  const distance = parseNumberOrNull(candidate.distanceMiles);
+  if (distance !== null) {
+    return Math.max(0, 100 - distance * 10);
+  }
+  if (countyFips && String(candidate.countyFips || "") === countyFips) {
+    return 80;
+  }
+  return 60;
+}
+
 function buildRequestAttachmentUrl(requestId: string, index: number): string {
   return `/api/direct-connect/requests/${encodeURIComponent(requestId)}/attachments/${index}`;
 }
@@ -508,6 +551,11 @@ function DirectConnectRequestComposer({
   const [budgetMax, setBudgetMax] = useState("");
   const [showOptional, setShowOptional] = useState(false);
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+  const [showDispatchSheet, setShowDispatchSheet] = useState(false);
+  const [dispatchMode, setDispatchMode] = useState<DispatchMode>("top_count");
+  const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
 
   const replaceAttachments = (next: DraftAttachment[]) => {
     attachmentsRef.current = next;
@@ -610,8 +658,63 @@ function DirectConnectRequestComposer({
 
   const activeRequestMeta = requestTypeMeta[requestType];
 
+  const { data: localDirectoryCandidates = [], isLoading: isDirectoryLoading } = useQuery<
+    DirectoryCandidate[]
+  >({
+    queryKey: [
+      "/api/contractors/search",
+      "direct-connect-send-selector",
+      defaultCountyFips,
+      directorySearch,
+      title,
+      requestType,
+      showDispatchSheet,
+    ],
+    enabled: showDispatchSheet,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("limit", "24");
+      if (defaultCountyFips) params.set("county", defaultCountyFips);
+      const fallbackQuery = title.trim().length >= 2 ? title.trim() : "";
+      const query = directorySearch.trim().length > 0 ? directorySearch.trim() : fallbackQuery;
+      if (query) params.set("query", query);
+      const payload = await apiRequest("GET", `/api/contractors/search?${params.toString()}`);
+      return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
+    },
+  });
+
+  const rankedCandidates = useMemo(() => {
+    return [...localDirectoryCandidates].sort((a, b) => {
+      const locationDiff =
+        getCandidateLocationScore(b, defaultCountyFips) -
+        getCandidateLocationScore(a, defaultCountyFips);
+      if (locationDiff !== 0) return locationDiff;
+      return getCandidateCvsScore(b) - getCandidateCvsScore(a);
+    });
+  }, [defaultCountyFips, localDirectoryCandidates]);
+
+  const topCountIds = useMemo(
+    () => rankedCandidates.slice(0, dispatchCount).map((candidate) => candidate.id),
+    [dispatchCount, rankedCandidates]
+  );
+  const topCountSelectionKey = topCountIds.join("|");
+
+  useEffect(() => {
+    if (!showDispatchSheet) return;
+    if (dispatchMode === "top_count") {
+      setSelectedContractorIds(topCountIds);
+      return;
+    }
+    setSelectedContractorIds([]);
+  }, [showDispatchSheet, dispatchMode, topCountSelectionKey]);
+
   const createMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (dispatch?: {
+      targetContractorIds?: string[];
+      autoRoute?: boolean;
+      dispatchMode?: DispatchMode;
+      dispatchCount?: number;
+    }) => {
       const uploadedAttachmentKeys: string[] = [];
       for (const attachment of attachmentsRef.current) {
         const { objectKey } = await uploadPrivateObject(attachment.file);
@@ -634,15 +737,27 @@ function DirectConnectRequestComposer({
       const max = Number(budgetMax);
       if (Number.isFinite(min) && min > 0) payload.budgetMin = min;
       if (Number.isFinite(max) && max > 0) payload.budgetMax = max;
+      if (dispatch?.targetContractorIds?.length) {
+        payload.targetContractorIds = Array.from(new Set(dispatch.targetContractorIds));
+        payload.autoRoute = false;
+      } else if (typeof dispatch?.autoRoute === "boolean") {
+        payload.autoRoute = dispatch.autoRoute;
+      }
 
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       const attachmentCount = attachmentsRef.current.length;
+      const selectedCount = Array.isArray(variables?.targetContractorIds)
+        ? variables.targetContractorIds.length
+        : 0;
       trackShellEvent("direct_connect_request_created", {
         category: activeRequestMeta.category,
         hasBudget: Boolean(budgetMin.trim() || budgetMax.trim()),
         attachmentCount,
+        dispatchMode: variables?.dispatchMode || "auto_route",
+        dispatchCount: variables?.dispatchCount || null,
+        directTargets: selectedCount,
       });
       toast({
         title: "Request sent",
@@ -653,6 +768,11 @@ function DirectConnectRequestComposer({
       setBudgetMin("");
       setBudgetMax("");
       setShowOptional(false);
+      setShowDispatchSheet(false);
+      setDispatchMode("top_count");
+      setDispatchCount(2);
+      setDirectorySearch("");
+      setSelectedContractorIds([]);
       clearAttachments();
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
@@ -685,6 +805,7 @@ function DirectConnectRequestComposer({
   });
 
   const canSubmit = title.trim().length >= 3 && description.trim().length >= 10;
+  const selectedContractorCount = selectedContractorIds.length;
 
   const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const remaining = Math.max(0, 6 - attachmentsRef.current.length);
@@ -708,6 +829,43 @@ function DirectConnectRequestComposer({
       URL.revokeObjectURL(current.previewUrl);
     }
     replaceAttachments(attachmentsRef.current.filter((_, currentIndex) => currentIndex !== index));
+  };
+
+  const toggleCandidateSelection = (candidateId: string) => {
+    setSelectedContractorIds((current) => {
+      if (current.includes(candidateId)) {
+        return current.filter((id) => id !== candidateId);
+      }
+      const maxTargets = dispatchMode === "top_count" ? dispatchCount : 3;
+      if (current.length >= maxTargets) {
+        return [...current.slice(1), candidateId];
+      }
+      return [...current, candidateId];
+    });
+  };
+
+  const handleOpenDispatchSheet = () => {
+    if (!canSubmit || createMutation.isPending) return;
+    setShowDispatchSheet(true);
+  };
+
+  const handleSendWithSelection = () => {
+    const targetContractorIds = Array.from(new Set(selectedContractorIds));
+    createMutation.mutate({
+      targetContractorIds,
+      autoRoute: false,
+      dispatchMode,
+      dispatchCount: dispatchMode === "top_count" ? dispatchCount : targetContractorIds.length,
+    });
+  };
+
+  const handleSkipAndAutoRoute = () => {
+    createMutation.mutate({
+      targetContractorIds: [],
+      autoRoute: true,
+      dispatchMode,
+      dispatchCount: 0,
+    });
   };
 
   return (
@@ -890,13 +1048,217 @@ function DirectConnectRequestComposer({
         </div>
         <div className="flex justify-end">
           <Button
-            onClick={() => createMutation.mutate()}
+            onClick={handleOpenDispatchSheet}
             disabled={createMutation.isPending || !canSubmit}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
             {createMutation.isPending ? "Sending..." : "Send request"}
           </Button>
         </div>
+
+        <Sheet open={showDispatchSheet} onOpenChange={setShowDispatchSheet}>
+          <SheetContent
+            side="right"
+            className="w-full overflow-y-auto border-l-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-4 sm:max-w-xl"
+          >
+            <SheetHeader>
+              <SheetTitle>Choose who gets this request</SheetTitle>
+            </SheetHeader>
+
+            <div className="mt-4 space-y-4">
+              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+                <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                  Dispatch mode
+                </p>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setDispatchMode("top_count")}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                      dispatchMode === "top_count"
+                        ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                    )}
+                  >
+                    <p className="font-medium">Send to top local companies</p>
+                    <p className="mt-1 text-[11px]">
+                      Pick 1-3. TradeScout preselects the top matches by location + CVS.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDispatchMode("direct_pick")}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                      dispatchMode === "direct_pick"
+                        ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                    )}
+                  >
+                    <p className="font-medium">Send directly to a company</p>
+                    <p className="mt-1 text-[11px]">
+                      Start with none selected, then choose the company you already have in mind.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {dispatchMode === "top_count" && (
+                <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+                  <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                    How many companies should receive this request?
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    {[1, 2, 3].map((count) => (
+                      <Button
+                        key={count}
+                        type="button"
+                        size="sm"
+                        variant={dispatchCount === count ? "default" : "outline"}
+                        onClick={() => setDispatchCount(count as 1 | 2 | 3)}
+                        className={cn(
+                          dispatchCount === count
+                            ? "bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                            : "border-[color:var(--border-subtle)]"
+                        )}
+                      >
+                        {count}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                  Local Directory shortlist
+                </p>
+                <Input
+                  value={directorySearch}
+                  onChange={(event) => setDirectorySearch(event.target.value)}
+                  placeholder="Search local companies"
+                  className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                />
+                <p className="text-[11px] text-[color:var(--text-secondary)]">
+                  Ordered by location fit first, then CVS score.
+                </p>
+              </div>
+
+              {!defaultCountyFips && (
+                <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                  County context is missing, so local ranking may be broader than usual.
+                </div>
+              )}
+
+              <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+                {isDirectoryLoading && (
+                  <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                    Loading local directory...
+                  </div>
+                )}
+
+                {!isDirectoryLoading && rankedCandidates.length === 0 && (
+                  <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                    No local companies found right now. You can still send this request with none
+                    selected.
+                  </div>
+                )}
+
+                {!isDirectoryLoading &&
+                  rankedCandidates.map((candidate, index) => {
+                    const isSelected = selectedContractorIds.includes(candidate.id);
+                    const distance = parseNumberOrNull(candidate.distanceMiles);
+                    const cvsScore = getCandidateCvsScore(candidate);
+                    const locationScore = getCandidateLocationScore(candidate, defaultCountyFips);
+
+                    return (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        onClick={() => toggleCandidateSelection(candidate.id)}
+                        className={cn(
+                          "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                          isSelected
+                            ? "border-ts-orange bg-ts-orange/15"
+                            : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-[color:var(--text-primary)]">
+                              {index + 1}. {candidate.companyName || "Local company"}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--text-secondary)]">
+                              {distance !== null
+                                ? `${distance.toFixed(1)} mi away`
+                                : candidate.serviceAreas?.length
+                                  ? candidate.serviceAreas.slice(0, 2).join(", ")
+                                  : "Local service area"}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--text-secondary)]">
+                              CVS {Math.round(cvsScore)} • Location score{" "}
+                              {Math.round(locationScore)}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={isSelected ? "default" : "outline"}
+                            className={cn(
+                              "shrink-0 text-[10px]",
+                              isSelected
+                                ? "bg-ts-orange text-text-black"
+                                : "border-[color:var(--border-subtle)]"
+                            )}
+                          >
+                            {isSelected ? "Selected" : "Select"}
+                          </Badge>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+
+              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 px-3 py-2">
+                <p className="text-xs text-[color:var(--text-secondary)]">
+                  {selectedContractorCount > 0
+                    ? `${selectedContractorCount} compan${selectedContractorCount === 1 ? "y" : "ies"} selected.`
+                    : "No companies selected. Send as-is to post without direct targets, or skip to use auto-routing."}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedContractorIds([])}
+                  className="text-xs text-[color:var(--text-secondary)]"
+                >
+                  Clear selection
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSkipAndAutoRoute}
+                    disabled={createMutation.isPending}
+                    className="border-[color:var(--border-subtle)] text-xs"
+                  >
+                    {createMutation.isPending ? "Sending..." : "Skip and auto-route"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSendWithSelection}
+                    disabled={createMutation.isPending}
+                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                  >
+                    {createMutation.isPending ? "Sending..." : "Send selected / none"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </CardContent>
     </Card>
   );
@@ -1418,6 +1780,12 @@ function MyDirectConnectRequests() {
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [mobileActionRequestId, setMobileActionRequestId] = useState<string | null>(null);
   const [requestFilter, setRequestFilter] = useState<RequestFilter>("all");
+  const [showRouteSheet, setShowRouteSheet] = useState(false);
+  const [routeDispatchMode, setRouteDispatchMode] = useState<DispatchMode>("top_count");
+  const [routeDispatchCount, setRouteDispatchCount] = useState<1 | 2 | 3>(2);
+  const [routeDirectorySearch, setRouteDirectorySearch] = useState("");
+  const [selectedRouteRequestId, setSelectedRouteRequestId] = useState<string | null>(null);
+  const [selectedRouteContractorIds, setSelectedRouteContractorIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   const { data: requestsData, isLoading } = useQuery<DirectConnectRequest[]>({
@@ -1443,14 +1811,90 @@ function MyDirectConnectRequests() {
       });
   }, [requestsData, requestFilter]);
 
-  const routeMutation = useMutation({
-    mutationFn: async (requestId: string) => {
-      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/route`);
+  const activeRouteRequest = useMemo(
+    () => filteredRequests.find((request) => request.id === selectedRouteRequestId) || null,
+    [filteredRequests, selectedRouteRequestId]
+  );
+
+  const { data: routeCandidates = [], isLoading: routeCandidatesLoading } = useQuery<
+    DirectoryCandidate[]
+  >({
+    queryKey: [
+      "/api/contractors/search",
+      "direct-connect-reroute-selector",
+      activeRouteRequest?.id || null,
+      activeRouteRequest?.countyFips || null,
+      activeRouteRequest?.tradeId || null,
+      routeDirectorySearch,
+      showRouteSheet,
+    ],
+    enabled: showRouteSheet && Boolean(activeRouteRequest?.id),
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("limit", "24");
+      if (activeRouteRequest?.countyFips)
+        params.set("county", String(activeRouteRequest.countyFips));
+      if (activeRouteRequest?.tradeId) params.set("trade", String(activeRouteRequest.tradeId));
+      const query = routeDirectorySearch.trim();
+      if (query) params.set("query", query);
+      const payload = await apiRequest("GET", `/api/contractors/search?${params.toString()}`);
+      return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
     },
-    onSuccess: () => {
+  });
+
+  const rankedRouteCandidates = useMemo(() => {
+    return [...routeCandidates].sort((a, b) => {
+      const locationDiff =
+        getCandidateLocationScore(b, activeRouteRequest?.countyFips || undefined) -
+        getCandidateLocationScore(a, activeRouteRequest?.countyFips || undefined);
+      if (locationDiff !== 0) return locationDiff;
+      return getCandidateCvsScore(b) - getCandidateCvsScore(a);
+    });
+  }, [activeRouteRequest?.countyFips, routeCandidates]);
+
+  const topRouteIds = useMemo(
+    () => rankedRouteCandidates.slice(0, routeDispatchCount).map((candidate) => candidate.id),
+    [rankedRouteCandidates, routeDispatchCount]
+  );
+  const topRouteKey = topRouteIds.join("|");
+
+  useEffect(() => {
+    if (!showRouteSheet) return;
+    if (routeDispatchMode === "top_count") {
+      setSelectedRouteContractorIds(topRouteIds);
+      return;
+    }
+    setSelectedRouteContractorIds([]);
+  }, [showRouteSheet, routeDispatchMode, topRouteKey]);
+
+  const routeMutation = useMutation({
+    mutationFn: async (payload: {
+      requestId: string;
+      targetContractorIds?: string[];
+      autoRoute?: boolean;
+    }) => {
+      return apiRequest("POST", `/api/direct-connect/requests/${payload.requestId}/route`, {
+        targetContractorIds: payload.targetContractorIds,
+        autoRoute: payload.autoRoute,
+      });
+    },
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Request sent out" });
+      const excludedCount = Array.isArray(result?.excludedTargets)
+        ? result.excludedTargets.length
+        : 0;
+      toast({
+        title: "Routing updated",
+        description:
+          excludedCount > 0
+            ? `${excludedCount} business${excludedCount === 1 ? "" : "es"} were excluded for verification requirements.`
+            : "Request routing saved.",
+      });
+      setShowRouteSheet(false);
+      setSelectedRouteRequestId(null);
+      setRouteDirectorySearch("");
+      setSelectedRouteContractorIds([]);
     },
   });
 
@@ -1492,6 +1936,46 @@ function MyDirectConnectRequests() {
       return apiRequest("GET", `/api/direct-connect/requests/${requestId}/share`);
     },
   });
+
+  const openRouteSheetForRequest = (requestId: string) => {
+    setSelectedRouteRequestId(requestId);
+    setRouteDispatchMode("top_count");
+    setRouteDispatchCount(2);
+    setRouteDirectorySearch("");
+    setSelectedRouteContractorIds([]);
+    setShowRouteSheet(true);
+  };
+
+  const toggleRouteCandidate = (candidateId: string) => {
+    setSelectedRouteContractorIds((current) => {
+      if (current.includes(candidateId)) {
+        return current.filter((id) => id !== candidateId);
+      }
+      const max = routeDispatchMode === "top_count" ? routeDispatchCount : 3;
+      if (current.length >= max) {
+        return [...current.slice(1), candidateId];
+      }
+      return [...current, candidateId];
+    });
+  };
+
+  const handleSendRouteSelection = () => {
+    if (!activeRouteRequest?.id) return;
+    routeMutation.mutate({
+      requestId: activeRouteRequest.id,
+      targetContractorIds: Array.from(new Set(selectedRouteContractorIds)),
+      autoRoute: false,
+    });
+  };
+
+  const handleSkipAndAutoRoute = () => {
+    if (!activeRouteRequest?.id) return;
+    routeMutation.mutate({
+      requestId: activeRouteRequest.id,
+      targetContractorIds: [],
+      autoRoute: true,
+    });
+  };
 
   if (!isAuthenticated || !user) {
     return (
@@ -1783,6 +2267,16 @@ function MyDirectConnectRequests() {
                           Widen search
                         </Button>
                       )}
+                      {canSend && (
+                        <Button
+                          size="sm"
+                          className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                          disabled={routeMutation.isPending}
+                          onClick={() => openRouteSheetForRequest(r.id)}
+                        >
+                          Route to more pros
+                        </Button>
+                      )}
                       {canCancel && (
                         <Button
                           size="sm"
@@ -1817,7 +2311,7 @@ function MyDirectConnectRequests() {
                     size="sm"
                     className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
                     disabled={routeMutation.isPending}
-                    onClick={() => routeMutation.mutate(r.id)}
+                    onClick={() => openRouteSheetForRequest(r.id)}
                   >
                     Route to more pros
                   </Button>
@@ -1867,7 +2361,7 @@ function MyDirectConnectRequests() {
                       size="sm"
                       className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
                       disabled={routeMutation.isPending}
-                      onClick={() => routeMutation.mutate(r.id)}
+                      onClick={() => openRouteSheetForRequest(r.id)}
                     >
                       Route to more pros
                     </Button>
@@ -1915,6 +2409,209 @@ function MyDirectConnectRequests() {
           </Card>
         );
       })}
+
+      <Sheet
+        open={showRouteSheet}
+        onOpenChange={(open) => {
+          setShowRouteSheet(open);
+          if (!open) {
+            setSelectedRouteRequestId(null);
+            setRouteDirectorySearch("");
+            setSelectedRouteContractorIds([]);
+          }
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto border-l-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-4 sm:max-w-xl"
+        >
+          <SheetHeader>
+            <SheetTitle>Route this request</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+              <p className="text-xs font-medium text-[color:var(--text-primary)]">Routing mode</p>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setRouteDispatchMode("top_count")}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                    routeDispatchMode === "top_count"
+                      ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  <p className="font-medium">Top local businesses</p>
+                  <p className="mt-1 text-[11px]">Preselect top matches by location + CVS.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRouteDispatchMode("direct_pick")}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                    routeDispatchMode === "direct_pick"
+                      ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  <p className="font-medium">Direct pick</p>
+                  <p className="mt-1 text-[11px]">Choose exactly who should get this request.</p>
+                </button>
+              </div>
+            </div>
+
+            {routeDispatchMode === "top_count" && (
+              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+                <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                  How many businesses should this route to?
+                </p>
+                <div className="mt-2 flex gap-2">
+                  {[1, 2, 3].map((count) => (
+                    <Button
+                      key={count}
+                      type="button"
+                      size="sm"
+                      variant={routeDispatchCount === count ? "default" : "outline"}
+                      onClick={() => setRouteDispatchCount(count as 1 | 2 | 3)}
+                      className={cn(
+                        routeDispatchCount === count
+                          ? "bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                          : "border-[color:var(--border-subtle)]"
+                      )}
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                Local Directory shortlist
+              </p>
+              <Input
+                value={routeDirectorySearch}
+                onChange={(event) => setRouteDirectorySearch(event.target.value)}
+                placeholder="Search local businesses"
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                Ordered by location fit first, then CVS score.
+              </p>
+            </div>
+
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+              {routeCandidatesLoading && (
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  Loading local directory...
+                </div>
+              )}
+
+              {!routeCandidatesLoading && rankedRouteCandidates.length === 0 && (
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  No businesses found right now. You can still send with none selected or skip to
+                  auto-route.
+                </div>
+              )}
+
+              {!routeCandidatesLoading &&
+                rankedRouteCandidates.map((candidate, index) => {
+                  const selected = selectedRouteContractorIds.includes(candidate.id);
+                  const distance = parseNumberOrNull(candidate.distanceMiles);
+                  const cvs = getCandidateCvsScore(candidate);
+                  const location = getCandidateLocationScore(
+                    candidate,
+                    activeRouteRequest?.countyFips || undefined
+                  );
+                  return (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      onClick={() => toggleRouteCandidate(candidate.id)}
+                      className={cn(
+                        "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                        selected
+                          ? "border-ts-orange bg-ts-orange/15"
+                          : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-[color:var(--text-primary)]">
+                            {index + 1}. {candidate.companyName || "Local business"}
+                          </p>
+                          <p className="text-[11px] text-[color:var(--text-secondary)]">
+                            {distance !== null
+                              ? `${distance.toFixed(1)} mi away`
+                              : candidate.serviceAreas?.length
+                                ? candidate.serviceAreas.slice(0, 2).join(", ")
+                                : "Local service area"}
+                          </p>
+                          <p className="text-[11px] text-[color:var(--text-secondary)]">
+                            CVS {Math.round(cvs)} • Location score {Math.round(location)}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={selected ? "default" : "outline"}
+                          className={cn(
+                            "shrink-0 text-[10px]",
+                            selected
+                              ? "bg-ts-orange text-text-black"
+                              : "border-[color:var(--border-subtle)]"
+                          )}
+                        >
+                          {selected ? "Selected" : "Select"}
+                        </Badge>
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 px-3 py-2">
+              <p className="text-xs text-[color:var(--text-secondary)]">
+                {selectedRouteContractorIds.length > 0
+                  ? `${selectedRouteContractorIds.length} business${selectedRouteContractorIds.length === 1 ? "" : "es"} selected.`
+                  : "No businesses selected. Send as manual hold, or skip for auto-route."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs text-[color:var(--text-secondary)]"
+                onClick={() => setSelectedRouteContractorIds([])}
+              >
+                Clear selection
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[color:var(--border-subtle)] text-xs"
+                  onClick={handleSkipAndAutoRoute}
+                  disabled={routeMutation.isPending}
+                >
+                  {routeMutation.isPending ? "Sending..." : "Skip and auto-route"}
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                  onClick={handleSendRouteSelection}
+                  disabled={routeMutation.isPending}
+                >
+                  {routeMutation.isPending ? "Sending..." : "Send selected / none"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -1984,7 +2681,10 @@ export default function DirectConnectShell() {
   const sectionMeta = SECTION_META[activeSection];
   const activeModeMeta = FLOW_MODE_META[activeFlowMode];
   const activeModeSections = activeModeMeta.sections;
-  const isPostComposer = activeSection === "post";
+  const modeActionSections = useMemo(() => {
+    const withoutActive = activeModeSections.filter((section) => section !== activeSection);
+    return withoutActive.length > 0 ? withoutActive : activeModeSections;
+  }, [activeModeSections, activeSection]);
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -2089,37 +2789,6 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        {isPostComposer && (
-          <div className="md:hidden rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-1.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                onClick={() => navigateSection("post")}
-                className={cn(
-                  "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
-                  activeFlowMode === "start"
-                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
-                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                )}
-              >
-                New Request
-              </button>
-              <button
-                type="button"
-                onClick={() => navigateSection("engagements")}
-                className={cn(
-                  "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
-                  activeFlowMode === "manage"
-                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
-                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                )}
-              >
-                My Requests
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="hidden md:grid md:grid-cols-2 gap-3">
           {(
             Object.entries(FLOW_MODE_META) as Array<[FlowMode, (typeof FLOW_MODE_META)[FlowMode]]>
@@ -2159,9 +2828,7 @@ export default function DirectConnectShell() {
         </div>
 
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent
-            className={cn("space-y-2 p-3 md:space-y-3 md:p-4", isPostComposer ? "pt-2" : "")}
-          >
+          <CardContent className="space-y-2 p-3 md:space-y-3 md:p-4">
             <div
               className={cn(
                 "hidden md:flex md:flex-row md:items-center md:justify-between md:gap-2"
@@ -2182,8 +2849,28 @@ export default function DirectConnectShell() {
                   : "Manage mode keeps request state and response state together."}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {activeModeSections.map((section) => {
+
+            <div className="space-y-2 md:hidden">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+                    Current section
+                  </p>
+                  <p className="text-sm font-medium text-[color:var(--text-primary)]">
+                    {sectionMeta.title}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-[10px]">
+                  {activeFlowMode === "manage" ? "Manage" : "Start"}
+                </Badge>
+              </div>
+              <p className="px-1 text-xs text-[color:var(--text-secondary)]">
+                {sectionMeta.description}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
+              {modeActionSections.map((section) => {
                 const active = section === activeSection;
                 const count = navCounts[section] ?? 0;
                 return (
@@ -2192,7 +2879,7 @@ export default function DirectConnectShell() {
                     type="button"
                     onClick={() => navigateSection(section)}
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-colors",
+                      "inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors md:rounded-full",
                       active
                         ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
                         : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
