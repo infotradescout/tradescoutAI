@@ -68,6 +68,7 @@ import {
   sanitizeScoutSuggestionsForPolicy,
 } from "../services/scoutPolicy";
 import { UnifiedScoutRouter, type UnifiedScoutUserContext } from "../services/unifiedScoutRouter";
+import { registerScoutAdminRoutes } from "../scout/scoutAdminRoutes";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -5553,132 +5554,11 @@ router.get("/auto-prompt", async (_req: Request, res: Response) => {
   });
 });
 
-function normalizeScoutAdminRole(rawRole: unknown): string {
-  const role = typeof rawRole === "string" ? rawRole.trim().toLowerCase() : "";
-  if (!role) return "";
-  return role === "owner" || role === "head_admin" ? "super_admin" : role;
-}
-
-/**
- * Admin-only: Cache statistics endpoint
- * GET /api/scout/admin/cache-stats
- * Requires admin role
- */
-router.get("/admin/cache-stats", (req: Request, res: Response) => {
-  const userRole = normalizeScoutAdminRole((req as any).user?.role);
-
-  if (!userRole || userRole !== "super_admin") {
-    return res.status(403).json({
-      error: "Super admin access required",
-      message: "Only super admins can access cache statistics",
-    });
-  }
-
-  res.json({
-    success: true,
-    data: {
-      cacheFiles: 7,
-      totalSize: "~2.5 MB",
-      files: [
-        "system_prompt.md",
-        "marketplace_cache.json",
-        "contractors_cache.json",
-        "groups_cache.json",
-        "hoa_cache.json",
-        "roofing_houston.md",
-        "hvac_guide.md",
-      ],
-      lastUpdate: new Date().toISOString(),
-      status: "healthy",
-    },
-    message: "Cache statistics retrieved successfully",
-  });
-});
-
-/**
- * Admin-only: System status endpoint
- * GET /api/scout/admin/system-status
- * Requires admin role
- */
-router.get("/admin/system-status", (req: Request, res: Response) => {
-  const userRole = normalizeScoutAdminRole((req as any).user?.role);
-
-  if (!userRole || userRole !== "super_admin") {
-    return res.status(403).json({
-      error: "Super admin access required",
-      message: "Only super admins can access system status",
-    });
-  }
-
-  res.json({
-    success: true,
-    data: {
-      server: "running",
-      crawler: "active",
-      cache: "healthy",
-      database: process.env.DATABASE_URL ? "connected" : "not_configured",
-      gemini: !!process.env.GEMINI_API_KEY ? "configured" : "missing",
-      geminiFallback: getGeminiFallbackRuntimeState(),
-      llmFailover: getLlmProviderFailoverRuntimeState(),
-      uptime: process.uptime(),
-      memoryUsage: process.memoryUsage(),
-      nodeVersion: process.version,
-      timestamp: new Date().toISOString(),
-    },
-    message: "System status retrieved successfully",
-  });
-});
-
-/**
- * Admin-only: Clear cache endpoint
- * POST /api/scout/admin/cache-clear
- * Requires admin role
- */
-router.post("/admin/cache-clear", (req: Request, res: Response) => {
-  const userRole = normalizeScoutAdminRole((req as any).user?.role);
-
-  if (!userRole || userRole !== "super_admin") {
-    return res.status(403).json({
-      error: "Super admin access required",
-      message: "Only super admins can clear cache",
-    });
-  }
-
-  try {
-    // In a real implementation, this would clear the actual cache
-    // For now, we'll just simulate it
-    res.json({
-      success: true,
-      message: "Cache cleared successfully",
-      clearedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to clear cache",
-      requestId: (req as any).requestId || null,
-    });
-  }
-});
-
-// Admin analytics routes remain for auditability
-router.get("/admin/analytics", (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const rawRole = typeof user?.role === "string" ? user.role.trim().toLowerCase() : "";
-  const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
-  if (!user || role !== "super_admin") {
-    return res.status(403).json({ error: "Super admin access required" });
-  }
-  res.json({ analytics: getAnalytics() });
-});
-
-router.get("/admin/audit-log", (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const rawRole = typeof user?.role === "string" ? user.role.trim().toLowerCase() : "";
-  const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
-  if (!user || role !== "super_admin") {
-    return res.status(403).json({ error: "Super admin access required" });
-  }
-  res.json({ auditLog: getAuditLog(100) });
+registerScoutAdminRoutes(router, {
+  getGeminiFallbackRuntimeState,
+  getLlmProviderFailoverRuntimeState,
+  getAnalytics,
+  getAuditLog,
 });
 
 export default router;
