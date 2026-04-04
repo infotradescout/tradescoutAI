@@ -156,6 +156,18 @@ function isUsableProviderOutput(text: string): boolean {
   return !UNUSABLE_PROVIDER_OUTPUT_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
+function extractFallbackIntent(prompt: string): string {
+  const cleaned = String(prompt || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) {
+    return "your local request";
+  }
+
+  const shortened = cleaned.length > 120 ? `${cleaned.slice(0, 117)}...` : cleaned;
+  return `"${shortened}"`;
+}
+
 function normalizeProviderOrderToken(token: string): "vertex" | "gemini" | null {
   const normalized = token.trim().toLowerCase();
   if (normalized === "vertex" || normalized === "vertex-gemini") return "vertex";
@@ -273,8 +285,9 @@ export async function generateWithFallback(
     }
   }
   // Deterministic non-LLM safety net to avoid blank/dead-end responses in production.
+  const intent = extractFallbackIntent(prompt);
   return {
-    text: "TradeScout can still route the strongest next step across Community, Direct Connect, Exchange, and local operating tools.",
+    text: `TradeScout can still help route ${intent} across Community, Direct Connect, Exchange, and local operating tools while language systems recover.`,
     provider: "fallback",
   };
 }
