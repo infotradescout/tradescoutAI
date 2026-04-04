@@ -19,7 +19,7 @@ type TutorialContent = {
   primaryAction: string;
 };
 
-export const TUTORIAL_VERSION = "v1";
+export const TUTORIAL_VERSION = "v2";
 export const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
 export const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
 
@@ -95,6 +95,34 @@ export function getPageTutorial(path: string): TutorialContent {
         "When ready, move to Direct Connect to send your request.",
       ],
       primaryAction: "Browse businesses",
+    };
+  }
+
+  if (path.startsWith("/commercial-directory")) {
+    return {
+      title: "Commercial Opportunities quick guide",
+      description:
+        "This page shows county-scoped commercial projects and your readiness to submit bids.",
+      bullets: [
+        "Review project details first, then decide what to pursue.",
+        "Upload approved license and insurance documents to unlock submission.",
+        "Track readiness here so you know exactly what is blocking action.",
+      ],
+      primaryAction: "Review opportunities",
+    };
+  }
+
+  if (path.startsWith("/commercial-project")) {
+    return {
+      title: "Commercial project quick guide",
+      description:
+        "Use this page to review scope, requirements, and timelines before making a decision.",
+      bullets: [
+        "Check scope and documents before committing to a bid.",
+        "Use your county context and verification status as your go/no-go gate.",
+        "Move to bid submission only when requirements are satisfied.",
+      ],
+      primaryAction: "Review project",
     };
   }
 

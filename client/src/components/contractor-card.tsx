@@ -94,14 +94,14 @@ export default function ContractorCard({
         {/* Company Name */}
         {requestOnly ? (
           <h3
-            className={`font-semibold mb-2 ts-accent-text-muted ${compact ? "text-base" : "text-lg"}`}
+            className={`font-semibold mb-2 text-[color:var(--text-primary)] ${compact ? "text-base" : "text-lg"}`}
           >
             {contractor.companyName}
           </h3>
         ) : (
           <Link href={`/contractors/${contractor.slug}`}>
             <h3
-              className={`font-semibold mb-2 transition-colors cursor-pointer ts-accent-text-muted ${
+              className={`font-semibold mb-2 transition-colors cursor-pointer text-[color:var(--text-primary)] hover:text-[color:var(--theme-accent-primary)] ${
                 compact ? "text-base" : "text-lg"
               }`}
             >

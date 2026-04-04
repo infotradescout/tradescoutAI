@@ -35,4 +35,10 @@ describe("PageFirstVisitTutorial helpers", () => {
     expect(tutorial.title).toContain("Direct Connect");
     expect(tutorial.bullets.join(" ")).toContain("let Scout decide");
   });
+
+  it("returns tailored commercial-directory tutorial copy", () => {
+    const tutorial = getPageTutorial("/commercial-directory");
+    expect(tutorial.title).toContain("Commercial Opportunities");
+    expect(tutorial.description).toContain("county-scoped commercial projects");
+  });
 });
