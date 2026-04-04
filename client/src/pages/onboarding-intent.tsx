@@ -137,6 +137,7 @@ export default function OnboardingIntent() {
               This helps Scout show better next steps right away. You can skip for now, but matches
               may be less accurate until setup is finished.
             </p>
+            <p className="mb-3 text-xs text-white/55">You can change this later in settings.</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -193,7 +194,7 @@ export default function OnboardingIntent() {
                 onClick={handleSkipForNow}
                 className="text-xs text-white/60 underline-offset-2 hover:underline text-left"
               >
-                Skip for now
+                Skip and choose later
               </button>
             </div>
           </CardContent>
