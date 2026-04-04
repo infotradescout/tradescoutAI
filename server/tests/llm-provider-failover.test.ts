@@ -100,4 +100,55 @@ describe("generateWithFallback provider reliability", () => {
     const providers = buildScoutLlmProviders();
     expect(providers.map((p) => p.id)).toEqual(["gemini-api", "vertex-gemini"]);
   });
+
+  it("contextual fallback includes the user prompt when all providers fail", async () => {
+    const providers: LLMProvider[] = [
+      createProvider("vertex-gemini", {
+        generate: async () => {
+          throw new Error("vertex unavailable");
+        },
+      }),
+      createProvider("gemini-api", {
+        generate: async () => {
+          throw new Error("gemini unavailable");
+        },
+      }),
+    ];
+
+    const result = await generateWithFallback("find me a roofer in Travis County", providers);
+    expect(result.provider).toBe("fallback");
+    expect(result.text).toContain("find me a roofer in Travis County");
+    expect(result.text).toContain("TradeScout can still help route");
+    expect(result.text).toContain("while language systems recover");
+  });
+
+  it("contextual fallback truncates long prompts to 120 characters", async () => {
+    const longPrompt = "a".repeat(200);
+    const providers: LLMProvider[] = [
+      createProvider("vertex-gemini", {
+        generate: async () => {
+          throw new Error("vertex unavailable");
+        },
+      }),
+    ];
+
+    const result = await generateWithFallback(longPrompt, providers);
+    expect(result.provider).toBe("fallback");
+    // extractFallbackIntent slices to 117 chars then appends '...' = 120 chars inside quotes
+    expect(result.text).toContain(`"${"a".repeat(117)}..."`);
+  });
+
+  it("contextual fallback uses generic phrase when prompt is empty", async () => {
+    const providers: LLMProvider[] = [
+      createProvider("vertex-gemini", {
+        generate: async () => {
+          throw new Error("vertex unavailable");
+        },
+      }),
+    ];
+
+    const result = await generateWithFallback("", providers);
+    expect(result.provider).toBe("fallback");
+    expect(result.text).toContain("your local request");
+  });
 });
