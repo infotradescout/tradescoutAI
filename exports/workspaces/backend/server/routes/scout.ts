@@ -90,6 +90,7 @@ import {
   buildExchangeListingDraft,
 } from "../scout/scoutMarketplaceBehaviorOwner";
 import { applyProviderBehaviorOwnership } from "../scout/scoutProviderBehaviorOwner";
+import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwner";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -3485,61 +3486,17 @@ router.post("/", async (req: Request, res: Response) => {
 
       aiResponse.actions = actions;
 
-      const isCommunityVaultTopic =
-        lower.includes("community vault") ||
-        (lower.includes("vault") && lower.includes("community")) ||
-        lower.includes("platform support") ||
-        (lower.includes("support") && lower.includes("platform")) ||
-        lower.includes("cause") ||
-        lower.includes("causes");
-
-      // Community vault requires user can create vault AND be logged in
-      if (isCommunityVaultTopic && capabilities.canCreateCommunityVault()) {
-        const profileId = activeProfileId ?? extractProfileIdFromText(message) ?? undefined;
-
-        if (profileId) {
-          const amountFromText = extractDollarAmount(message);
-          const donationAmount = amountFromText ?? 25;
-          const supportAmount = amountFromText ?? 10;
-
-          actions.push(
-            {
-              type: "NAVIGATE",
-              label: "Open Community Vault",
-              to: `/profile/${profileId}/community`,
-            },
-            {
-              type: "START_COMMUNITY_VAULT_DONATION",
-              label: `Donate ${formatUsd(donationAmount)} to vault`,
-              payload: { profileId, amount: donationAmount },
-            },
-            {
-              type: "START_PLATFORM_SUPPORT",
-              label: `Support platform ${formatUsd(supportAmount)} (one-time split)`,
-              payload: {
-                amount: supportAmount,
-                mode: "one_time",
-                originatingProfileId: profileId,
-              },
-            },
-            {
-              type: "START_PLATFORM_SUPPORT",
-              label: `Support platform ${formatUsd(supportAmount)} (monthly split)`,
-              payload: {
-                amount: supportAmount,
-                mode: "subscription",
-                originatingProfileId: profileId,
-              },
-            }
-          );
-        } else if (userId) {
-          actions.push({
-            type: "NAVIGATE",
-            label: "Open my dashboard",
-            to: "/dashboard",
-          });
-        }
-      }
+      actions = applySupportBehaviorOwnership({
+        actions,
+        lowerMessage: lower,
+        userId,
+        canCreateCommunityVault: capabilities.canCreateCommunityVault(),
+        activeProfileId,
+        extractProfileIdFromText,
+        message,
+        extractDollarAmount,
+        formatUsd,
+      }) as ScoutClientAction[];
 
       // Connections / friends navigation: surface the dedicated connections view
       if (userId) {
