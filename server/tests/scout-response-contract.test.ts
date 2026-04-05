@@ -54,6 +54,7 @@ describe("scout response contract guards", () => {
     const homeProjectRouting = read("server/scout/scoutHomeProjectRouting.ts");
     const communityBehaviorOwner = read("server/scout/scoutCommunityBehaviorOwner.ts");
     const marketplaceBehaviorOwner = read("server/scout/scoutMarketplaceBehaviorOwner.ts");
+    const providerBehaviorOwner = read("server/scout/scoutProviderBehaviorOwner.ts");
 
     expect(decision).toContain("auth_required");
     expect(decision).toContain("explicit_navigation");
@@ -81,5 +82,8 @@ describe("scout response contract guards", () => {
     expect(marketplaceBehaviorOwner).toContain(
       "export function applyMarketplaceListingNavigationOwnership"
     );
+    expect(route).toContain('from "../scout/scoutProviderBehaviorOwner"');
+    expect(route).not.toContain("const shouldPairHireDIY =");
+    expect(providerBehaviorOwner).toContain("export function applyProviderBehaviorOwnership");
   });
 });

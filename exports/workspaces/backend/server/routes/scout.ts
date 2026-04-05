@@ -89,6 +89,7 @@ import {
   applyMarketplaceListingNavigationOwnership,
   buildExchangeListingDraft,
 } from "../scout/scoutMarketplaceBehaviorOwner";
+import { applyProviderBehaviorOwnership } from "../scout/scoutProviderBehaviorOwner";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -3453,34 +3454,11 @@ router.post("/", async (req: Request, res: Response) => {
         );
       }
 
-      // Hire vs DIY paired options for how-to or provider intents
-      const shouldPairHireDIY =
-        (synthesized as any)?.intent?.category === "how_to" ||
-        (synthesized as any)?.intent?.category === "provider_search";
-
-      if (shouldPairHireDIY) {
-        const hireAction: ScoutClientAction = {
-          type: "NAVIGATE",
-          path: "/direct-connect",
-          to: "/direct-connect",
-          label: "Create a Direct Connect request",
-          subtitle: "Fastest way to coordinate locally",
-          why: "Community coordination improves outcomes and saves time",
-          primary: true as any,
-        };
-
-        const diyAction: ScoutClientAction = {
-          type: "NAVIGATE",
-          path: `/learn/${(synthesized as any)?.intent?.slug ?? "how-to"}`,
-          to: `/learn/${(synthesized as any)?.intent?.slug ?? "how-to"}`,
-          label: "Try fixing it yourself",
-          subtitle: "DIY steps and safety tips",
-          why: "If you prefer to handle it on your own",
-          primary: false as any,
-        };
-
-        actions = [hireAction, diyAction, ...actions];
-      }
+      actions = applyProviderBehaviorOwnership({
+        actions,
+        intentCategory: (synthesized as any)?.intent?.category,
+        intentSlug: (synthesized as any)?.intent?.slug,
+      }) as ScoutClientAction[];
 
       // Confidence-shaped action guardrail + community bias
       actions = shapeActionsByConfidence(actions, {
