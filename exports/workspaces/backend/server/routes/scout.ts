@@ -85,6 +85,10 @@ import {
 import { buildDecisionPipelineBehaviorResponse } from "../scout/scoutBehaviorHandlers";
 import { maybeHandleHomeProjectRouting } from "../scout/scoutHomeProjectRouting";
 import { applyCommunityBehaviorOwnership } from "../scout/scoutCommunityBehaviorOwner";
+import {
+  applyMarketplaceListingNavigationOwnership,
+  buildExchangeListingDraft,
+} from "../scout/scoutMarketplaceBehaviorOwner";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -479,81 +483,6 @@ interface ResolvedContext {
   allowedActions: AllowedAction[];
   confidence: "low" | "medium" | "high";
   requiresLLM: boolean;
-}
-
-function buildExchangeListingDraft(
-  originalMessage: string,
-  userRecord?: any,
-  countyCode?: string,
-  stateCode?: string
-): { title: string; description: string; price?: number; locationLabel?: string } {
-  const amount = extractDollarAmount(originalMessage) ?? undefined;
-
-  let itemPhrase = "item";
-  const myMatch = originalMessage.match(/my\s+([^.,\n]{3,60})/i);
-  if (myMatch?.[1]) {
-    itemPhrase = myMatch[1].trim();
-  } else {
-    const forSaleMatch = originalMessage.match(/for\s+sale[:\-]?\s*([^.,\n]{3,60})/i);
-    if (forSaleMatch?.[1]) {
-      itemPhrase = forSaleMatch[1].trim();
-    }
-  }
-
-  itemPhrase = itemPhrase.replace(/\s+/g, " ");
-  if (!itemPhrase || itemPhrase.length < 3) {
-    itemPhrase = "equipment";
-  }
-
-  const city =
-    typeof userRecord?.city === "string" && userRecord.city.trim().length > 0
-      ? userRecord.city.trim()
-      : undefined;
-  const county =
-    typeof userRecord?.county === "string" && userRecord.county.trim().length > 0
-      ? userRecord.county.trim()
-      : countyCode;
-  const state =
-    typeof userRecord?.state === "string" && userRecord.state.trim().length > 0
-      ? userRecord.state.trim()
-      : stateCode;
-
-  const locParts: string[] = [];
-  if (city) locParts.push(city);
-  if (county && !locParts.includes(county)) locParts.push(county);
-  if (state) locParts.push(state);
-
-  const locationLabel = locParts.length > 0 ? locParts.join(", ") : undefined;
-
-  const baseTitle = itemPhrase.replace(/^[a-z]/, (c) => c.toUpperCase());
-  const titlePieces: string[] = [baseTitle];
-  if (amount && amount > 0) {
-    titlePieces.push(`- ${formatUsd(amount)}`);
-  }
-  if (locationLabel) {
-    titlePieces.push(`(${locationLabel})`);
-  }
-
-  const title = titlePieces.join(" ");
-
-  const priceLine =
-    amount && amount > 0
-      ? `Asking around ${formatUsd(amount)} (open to reasonable offers).`
-      : "Set a fair asking price here (you can adjust based on interest).";
-
-  const locationLine = locationLabel
-    ? `Located in ${locationLabel}.`
-    : "Include your city or county so buyers know where they'll be meeting you.";
-
-  const description = [
-    `Selling my ${itemPhrase}.`,
-    locationLine,
-    "Add clear details about age, brand, size/specs, and exactly what’s included so serious buyers know what they’re getting.",
-    "Be upfront about wear, issues, or repairs — honest listings attract better buyers.",
-    priceLine,
-  ].join(" ");
-
-  return { title, description, price: amount, locationLabel };
 }
 
 function sanitizeSuspiciousContent(text: string): { flagged: boolean; message: string } {
@@ -3229,7 +3158,14 @@ router.post("/", async (req: Request, res: Response) => {
         "Tailor Option C for my HOA or specific group",
       ];
     } else if (wantsExchangeListingDraft) {
-      const listingDraft = buildExchangeListingDraft(message, userRecord, countyCode, stateCode);
+      const listingDraft = buildExchangeListingDraft({
+        originalMessage: message,
+        userRecord,
+        countyCode,
+        stateCode,
+        extractDollarAmount,
+        formatUsd,
+      });
 
       const lines: string[] = [];
       lines.push(
@@ -3491,50 +3427,25 @@ router.post("/", async (req: Request, res: Response) => {
       aiResponse.message = trimResponseToScreenFit(communityBehavior.message);
       actions = communityBehavior.actions;
 
-      // Dedicated navigation for Exchange listings: open the Exchange
-      // surface on the Sell tab with this listing prefilled.
-      // Check capability: can user post marketplace items?
-      if (userId && wantsExchangeListingDraft && capabilities.canPostMarketplaceItem()) {
-        try {
-          const listingDraft = buildExchangeListingDraft(
-            message,
-            userRecord,
-            countyCode,
-            stateCode
-          );
-
-          const params: string[] = ["tab=sell"];
-          if (listingDraft.title) {
-            params.push(`title=${encodeURIComponent(listingDraft.title)}`);
-          }
-          if (listingDraft.description) {
-            params.push(`description=${encodeURIComponent(listingDraft.description)}`);
-          }
-          if (listingDraft.price && listingDraft.price > 0) {
-            params.push(`price=${encodeURIComponent(String(listingDraft.price))}`);
-          }
-          if (listingDraft.locationLabel) {
-            params.push(`loc=${encodeURIComponent(listingDraft.locationLabel)}`);
-          }
-
-          const qs = params.length ? `?${params.join("&")}` : "";
-          const to = `/exchange${qs}`;
-
-          const alreadyHasExchangeNav = actions.some(
-            (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/exchange")
-          );
-
-          if (!alreadyHasExchangeNav) {
-            actions.push({
-              type: "NAVIGATE",
-              label: "Open this listing in Exchange",
-              to,
-            });
-          }
-        } catch (listingNavError) {
-          console.error("[Scout] Exchange listing navigation failed", listingNavError);
-        }
-      }
+      actions = applyMarketplaceListingNavigationOwnership({
+        userId,
+        wantsExchangeListingDraft,
+        canPostMarketplaceItem: capabilities.canPostMarketplaceItem(),
+        message,
+        userRecord,
+        countyCode,
+        stateCode,
+        actions,
+        buildDraft: (draftMessage, draftUserRecord, draftCountyCode, draftStateCode) =>
+          buildExchangeListingDraft({
+            originalMessage: draftMessage,
+            userRecord: draftUserRecord,
+            countyCode: draftCountyCode,
+            stateCode: draftStateCode,
+            extractDollarAmount,
+            formatUsd,
+          }),
+      });
 
       if (contractorCount > 0) {
         aiResponse.message = trimResponseToScreenFit(

@@ -53,6 +53,7 @@ describe("scout response contract guards", () => {
     const route = read("server/routes/scout.ts");
     const homeProjectRouting = read("server/scout/scoutHomeProjectRouting.ts");
     const communityBehaviorOwner = read("server/scout/scoutCommunityBehaviorOwner.ts");
+    const marketplaceBehaviorOwner = read("server/scout/scoutMarketplaceBehaviorOwner.ts");
 
     expect(decision).toContain("auth_required");
     expect(decision).toContain("explicit_navigation");
@@ -73,5 +74,12 @@ describe("scout response contract guards", () => {
     expect(route).not.toContain("community suggestion logic failed");
     expect(route).not.toContain("welcome draft navigation failed");
     expect(communityBehaviorOwner).toContain("export function applyCommunityBehaviorOwnership");
+    expect(route).toContain('from "../scout/scoutMarketplaceBehaviorOwner"');
+    expect(route).not.toContain("function buildExchangeListingDraft(");
+    expect(route).not.toContain("Exchange listing navigation failed");
+    expect(marketplaceBehaviorOwner).toContain("export function buildExchangeListingDraft");
+    expect(marketplaceBehaviorOwner).toContain(
+      "export function applyMarketplaceListingNavigationOwnership"
+    );
   });
 });
