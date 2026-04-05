@@ -8,14 +8,31 @@ const read = (relativePath: string) => {
 };
 
 describe("scout authority routing contracts", () => {
-  it("keeps server-authoritative gating enabled for local domain intent branches", () => {
+  it("removes legacy local business intent branches from ScoutOS", () => {
     const source = read("client/src/scout/ScoutOS.tsx");
 
-    expect(source).toContain("SCOUT_SERVER_AUTHORITY_MODE");
-    expect(source).toContain("!SCOUT_SERVER_AUTHORITY_MODE && providerOfferKeywords");
-    expect(source).toContain("!SCOUT_SERVER_AUTHORITY_MODE && providerStandingKeywords");
-    expect(source).toContain("!SCOUT_SERVER_AUTHORITY_MODE && providerPromotionKeywords");
-    expect(source).toContain("!SCOUT_SERVER_AUTHORITY_MODE && marketplaceKeywords");
-    expect(source).toContain("!SCOUT_SERVER_AUTHORITY_MODE && contractorKeywords");
+    expect(source).not.toContain("providerOfferKeywords");
+    expect(source).not.toContain("providerStandingKeywords");
+    expect(source).not.toContain("providerPromotionKeywords");
+    expect(source).not.toContain("communityBuilderDonationKeywords");
+    expect(source).not.toContain("communityAnnouncementKeywords");
+    expect(source).not.toContain("marketplaceKeywords");
+    expect(source).not.toContain("contractorKeywords");
+    expect(source).not.toContain("contactKeywords");
+    expect(source).not.toContain("!SCOUT_SERVER_AUTHORITY_MODE");
+  });
+
+  it("keeps /api/scout as the business-intent execution path", () => {
+    const source = read("client/src/scout/ScoutOS.tsx");
+
+    expect(source).toContain("sendToScout(");
+    expect(source).toContain("/api/scout");
+  });
+
+  it("retains explicit local UI shortcuts only", () => {
+    const source = read("client/src/scout/ScoutOS.tsx");
+
+    expect(source).toContain("resolveExplicitNavigationIntent");
+    expect(source).toContain("resolveQuickActionIntent");
   });
 });

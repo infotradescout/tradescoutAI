@@ -47,4 +47,17 @@ describe("scout response contract guards", () => {
     expect(route).toContain("normalizeScoutRequest");
     expect(route).toContain("runScoutDecisionPipeline");
   });
+
+  it("uses decision pipeline for authoritative pre-synthesis routing", () => {
+    const decision = read("server/scout/scoutDecisionPipeline.ts");
+    const route = read("server/routes/scout.ts");
+
+    expect(decision).toContain("auth_required");
+    expect(decision).toContain("explicit_navigation");
+    expect(decision).toContain("home_project_routing");
+    expect(decision).toContain("server_behavior_handler");
+    expect(route).toContain("decision_pipeline_behavior_handler");
+    expect(route).toContain("decision_pipeline_explicit_navigation");
+    expect(route).toContain("decision_pipeline_home_project_router");
+  });
 });

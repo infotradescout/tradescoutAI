@@ -2560,13 +2560,13 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    if (typeof message !== "string" || !message.trim()) {
+    if (scaffoldDecision.type === "blocked" && scaffoldDecision.reason === "missing_message") {
       if (scoutInteractionLog) {
         scoutInteractionLog.outcome = "blocked";
         scoutInteractionLog.failureReason = "missing_data";
       }
       scoutTurnTelemetry.provider = "none";
-      scoutTurnTelemetry.sourceUsed = "input_validation";
+      scoutTurnTelemetry.sourceUsed = "decision_pipeline";
       scoutTurnTelemetry.failureClass = "input_error";
       return res.status(400).json({
         error: "Invalid Scout request",
@@ -3027,6 +3027,227 @@ router.post("/", async (req: Request, res: Response) => {
         promptVersion,
         timestamp: new Date().toISOString(),
       });
+    }
+
+    // Decision pipeline-driven auth preflight for business actions.
+    if (scaffoldDecision.type === "blocked" && scaffoldDecision.reason === "auth_required") {
+      const redirect =
+        typeof scaffoldDecision.metadata?.redirect === "string"
+          ? scaffoldDecision.metadata.redirect
+          : "/pre-scout-setup?mode=create";
+
+      const gated: ScoutResponse = {
+        message: trimResponseToScreenFit(
+          "To continue with this request, you'll need a TradeScout account. Create an account and Scout will resume from this step."
+        ),
+        suggestedActions: ["Create account now", "Learn how TradeScout works", "Continue as guest"],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label: "Create account",
+            to: redirect,
+            path: redirect,
+            primary: true as any,
+          },
+        ],
+        sponsored: null,
+        metadata: {
+          intent: "auth_required",
+          scaffoldDecision: scaffoldDecision.type,
+          scaffoldReason: scaffoldDecision.reason,
+          redirect,
+        },
+      };
+
+      await syncObjectiveBestEffort({ intent: "auth_required" });
+      scoutTurnTelemetry.provider = "governor";
+      scoutTurnTelemetry.sourceUsed = "decision_pipeline_auth";
+      scoutTurnTelemetry.failureClass = "auth_required";
+      return res.json({
+        ...gated,
+        knowledge: {
+          layer: 0,
+          sources: ["Decision pipeline auth preflight"],
+          confidence: "high",
+        },
+        llmProvider: "governor",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (
+      scaffoldDecision.type === "deterministic_route" &&
+      scaffoldDecision.behaviorKey === "explicit_navigation"
+    ) {
+      const routePath =
+        typeof scaffoldDecision.metadata?.route === "string"
+          ? scaffoldDecision.metadata.route
+          : "/direct-connect";
+      const routeLabel =
+        typeof scaffoldDecision.metadata?.label === "string"
+          ? scaffoldDecision.metadata.label
+          : "Open";
+
+      const aiResponse: ScoutResponse = {
+        message: trimResponseToScreenFit("Understood. I can take you there now."),
+        suggestedActions: [routeLabel],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label: routeLabel,
+            to: routePath,
+            path: routePath,
+            primary: true as any,
+          },
+        ],
+        sponsored: null,
+        metadata: {
+          scaffoldDecision: scaffoldDecision.type,
+          behaviorKey: scaffoldDecision.behaviorKey,
+          sourceUsed: "decision_pipeline_explicit_navigation",
+        },
+      };
+
+      await syncObjectiveBestEffort({ intent });
+      scoutTurnTelemetry.provider = "deterministic";
+      scoutTurnTelemetry.sourceUsed = "decision_pipeline_explicit_navigation";
+      scoutTurnTelemetry.fallbackUsed = false;
+      return res.json({
+        ...aiResponse,
+        knowledge: {
+          layer: 0,
+          sources: ["Decision pipeline explicit navigation"],
+          confidence: "high",
+        },
+        llmProvider: "deterministic",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (
+      scaffoldDecision.type === "deterministic_route" &&
+      scaffoldDecision.behaviorKey === "home_project_routing"
+    ) {
+      const homeProjectRoute = maybeHandleHomeProjectRouting({
+        message,
+        countyCode,
+        stateCode,
+      });
+
+      if (homeProjectRoute) {
+        const aiResponse: ScoutResponse = {
+          message: prependLocalIntro(homeProjectRoute.message, {
+            countyCode,
+            stateCode,
+            historyLength: history.length,
+            communityPostCount: 0,
+            contractorCount: 0,
+          }),
+          suggestedActions: homeProjectRoute.suggestedActions,
+          actions: shapeActionsByConfidence(homeProjectRoute.actions as any, {
+            confidence: normalizeConfidenceLabel(governorDecision.confidence),
+            hasLocality: Boolean(countyCode || stateCode),
+            communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+          }),
+          sponsored: null,
+          metadata: {
+            intent: homeProjectRoute.intent,
+            sourceUsed: "decision_pipeline_home_project_router",
+            scaffoldDecision: scaffoldDecision.type,
+            behaviorKey: scaffoldDecision.behaviorKey,
+            fallbackUsed: false,
+            decision: homeProjectRoute.metadata.decision,
+          },
+        };
+
+        await syncObjectiveBestEffort({ intent: homeProjectRoute.intent });
+        scoutTurnTelemetry.provider = "deterministic";
+        scoutTurnTelemetry.sourceUsed = "decision_pipeline_home_project_router";
+        scoutTurnTelemetry.intent = homeProjectRoute.intent;
+        scoutTurnTelemetry.fallbackUsed = false;
+        return res.json({
+          ...aiResponse,
+          knowledge: {
+            layer: 0,
+            sources: ["Decision pipeline home project routing"],
+            confidence: "high",
+          },
+          llmProvider: "deterministic",
+          promptVersion,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (scaffoldDecision.type === "server_behavior_handler") {
+      const behaviorPathMap: Record<string, { path: string; label: string; message: string }> = {
+        provider_routing: {
+          path: "/offer-services",
+          label: "Open provider setup",
+          message: "I can route this through provider setup now.",
+        },
+        community_routing: {
+          path: "/community?compose=1",
+          label: "Open community composer",
+          message: "I can route this through community tools now.",
+        },
+        marketplace_routing: {
+          path: "/exchange",
+          label: "Open Exchange",
+          message: "I can route this through Exchange now.",
+        },
+        contractor_search_routing: {
+          path: "/direct-connect",
+          label: "Open Direct Connect",
+          message: "I can route this through local contractor discovery now.",
+        },
+        support_routing: {
+          path: "/support-tickets",
+          label: "Open Support Tickets",
+          message: "I can route this through support now.",
+        },
+      };
+
+      const handler = behaviorPathMap[scaffoldDecision.behaviorKey || ""];
+      if (handler) {
+        const aiResponse: ScoutResponse = {
+          message: trimResponseToScreenFit(handler.message),
+          suggestedActions: [handler.label],
+          actions: [
+            {
+              type: "NAVIGATE",
+              label: handler.label,
+              to: handler.path,
+              path: handler.path,
+              primary: true as any,
+            },
+          ],
+          sponsored: null,
+          metadata: {
+            scaffoldDecision: scaffoldDecision.type,
+            behaviorKey: scaffoldDecision.behaviorKey,
+            sourceUsed: "decision_pipeline_behavior_handler",
+          },
+        };
+
+        await syncObjectiveBestEffort({ intent });
+        scoutTurnTelemetry.provider = "deterministic";
+        scoutTurnTelemetry.sourceUsed = "decision_pipeline_behavior_handler";
+        scoutTurnTelemetry.fallbackUsed = false;
+        return res.json({
+          ...aiResponse,
+          knowledge: {
+            layer: 0,
+            sources: ["Decision pipeline behavior handler"],
+            confidence: "high",
+          },
+          llmProvider: "deterministic",
+          promptVersion,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
 
     // BUILD CAPABILITY SIGNALS: Multi-source inference from profile, behavior, context, and message
