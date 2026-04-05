@@ -51,6 +51,8 @@ describe("scout response contract guards", () => {
   it("uses decision pipeline for authoritative pre-synthesis routing", () => {
     const decision = read("server/scout/scoutDecisionPipeline.ts");
     const route = read("server/routes/scout.ts");
+    const homeProjectRouting = read("server/scout/scoutHomeProjectRouting.ts");
+    const communityBehaviorOwner = read("server/scout/scoutCommunityBehaviorOwner.ts");
 
     expect(decision).toContain("auth_required");
     expect(decision).toContain("explicit_navigation");
@@ -62,5 +64,14 @@ describe("scout response contract guards", () => {
     expect(route).not.toContain('sources: ["Auth preflight"]');
     expect(route).not.toContain("deterministic_home_project_router");
     expect(route).not.toContain('synthesized.intent === "auth_required"');
+    expect(route).toContain('from "../scout/scoutHomeProjectRouting"');
+    expect(route).not.toContain("function detectTradeTopic(");
+    expect(route).not.toContain("function maybeHandleHomeProjectRouting(");
+    expect(homeProjectRouting).toContain("export function maybeHandleHomeProjectRouting");
+    expect(route).toContain('from "../scout/scoutCommunityBehaviorOwner"');
+    expect(route).not.toContain("const mentionsCommunityQuestion =");
+    expect(route).not.toContain("community suggestion logic failed");
+    expect(route).not.toContain("welcome draft navigation failed");
+    expect(communityBehaviorOwner).toContain("export function applyCommunityBehaviorOwnership");
   });
 });

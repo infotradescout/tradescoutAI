@@ -83,6 +83,8 @@ import {
   type SourceConfidenceBand,
 } from "../scout/scoutDeterministicHelpers";
 import { buildDecisionPipelineBehaviorResponse } from "../scout/scoutBehaviorHandlers";
+import { maybeHandleHomeProjectRouting } from "../scout/scoutHomeProjectRouting";
+import { applyCommunityBehaviorOwnership } from "../scout/scoutCommunityBehaviorOwner";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -1227,234 +1229,6 @@ function prependLocalIntro(
 
   return `${header}\n\n${message}`;
   */
-}
-
-function detectTradeTopic(message: string): string | null {
-  const lower = message.toLowerCase();
-
-  if (
-    /(leak|clog|backup|sewer|drain|cleanout|p-trap|ptrap|trap arm|vent stack|sump pump|water heater|tankless|supply line|shutoff valve)/.test(
-      lower
-    )
-  ) {
-    return "plumbing";
-  }
-
-  if (
-    /(panel upgrade|service panel|breaker panel|subpanel|gfci|g.f.c.i|afci|arc-fault|receptacle|outlet|dedicated circuit|240v|240 v|220v|220 v|load calculation|lighting circuit)/.test(
-      lower
-    )
-  ) {
-    return "electrical";
-  }
-
-  if (
-    /(furnace|air handler|condenser|heat pump|mini split|hvac|ac not working|no cooling|no heat|refrigerant|freon)/.test(
-      lower
-    )
-  ) {
-    return "hvac";
-  }
-
-  if (
-    /(shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(
-      lower
-    )
-  ) {
-    return "roofing";
-  }
-
-  if (
-    /(foundation crack|settling|heaving|pier and beam|slab foundation|mudjacking|helical pier|concrete leveling|spalling)/.test(
-      lower
-    )
-  ) {
-    return "foundation";
-  }
-
-  if (
-    /(deck|decking|porch|patio|stairs|railing|guardrail|joist hanger|ledger board|composite deck|treated lumber)/.test(
-      lower
-    )
-  ) {
-    return "decking";
-  }
-
-  if (/(fence|fencing|gate post|privacy fence|chain link|wood fence|vinyl fence)/.test(lower)) {
-    return "fencing";
-  }
-
-  if (/(siding|hardie|fiber cement|lap siding|board and batten|soffit|fascia)/.test(lower)) {
-    return "siding";
-  }
-
-  if (
-    /(concrete patio|driveway pour|slab pour|rebar grid|control joints|expansion joint|stamped concrete)/.test(
-      lower
-    )
-  ) {
-    return "concrete";
-  }
-
-  if (
-    /(framing|load-bearing wall|header beam|lintel|rim joist|floor joist|wall stud|sister joist)/.test(
-      lower
-    )
-  ) {
-    return "framing";
-  }
-
-  return null;
-}
-
-function maybeHandleHomeProjectRouting(args: {
-  message: string;
-  countyCode?: string;
-  stateCode?: string;
-}): {
-  intent: string;
-  message: string;
-  suggestedActions: string[];
-  actions: ScoutClientAction[];
-  metadata: {
-    intent: string;
-    decision: string;
-  };
-} | null {
-  const lower = args.message.toLowerCase();
-  const tradeTopic = detectTradeTopic(args.message);
-  const homeownerProjectVerb =
-    /\b(i want|i need|help me|looking to|need to|plan to|trying to|quote|estimate|build|repair|replace|install|remodel|renovate)\b/.test(
-      lower
-    );
-  const proBusinessContext =
-    /\b(my client|for a customer|customer wants|my crew|my bid|my estimate|price this job|subcontract|subcontractor|my business|get more work|for my company)\b/.test(
-      lower
-    );
-
-  if (!tradeTopic || !homeownerProjectVerb || proBusinessContext) {
-    return null;
-  }
-
-  const normalizedCounty = typeof args.countyCode === "string" ? args.countyCode.trim() : "";
-  const normalizedState =
-    typeof args.stateCode === "string" ? args.stateCode.trim().toUpperCase() : "";
-  let countyLabel = normalizedCounty;
-  if (!countyLabel && normalizedState) {
-    countyLabel = normalizedState;
-  } else if (countyLabel && normalizedState) {
-    const endsWithState = new RegExp(`\\b${normalizedState}\\b$`, "i").test(countyLabel);
-    if (!endsWithState) {
-      countyLabel = `${countyLabel}, ${normalizedState}`;
-    }
-  }
-  const localityFragment = countyLabel ? ` in ${countyLabel}` : "";
-  const planningAction: ScoutClientAction = {
-    type: "NAVIGATE",
-    label: "Start or plan this project",
-    to: "/project-tracker",
-    path: "/project-tracker",
-    subtitle: "Open project planning",
-    why: "Best first step when you need to scope work, budget, and timeline before hiring",
-    primary: true,
-  };
-
-  if (tradeTopic === "decking") {
-    return {
-      intent: "home_project_decking",
-      message: `Got it. For a deck project${localityFragment}, start with:
-- Scope (size, layout, materials)
-- Budget range
-- Timing and permit checks
-
-Once that is set, I can open deck builders, rental equipment, and local project signals. Want me to run that now?`,
-      suggestedActions: [
-        "Start or plan this project",
-        "Find deck builders near me",
-        "Browse rental equipment for this project",
-        "Check local deck project signals",
-      ],
-      actions: [
-        planningAction,
-        {
-          type: "NAVIGATE",
-          label: "Find deck builders",
-          to: "/direct-connect/pros",
-          path: "/direct-connect/pros",
-          subtitle: "Open local pros",
-          why: "Use this once the scope is clear and you want real builders",
-        },
-        {
-          type: "NAVIGATE",
-          label: "Browse rental equipment",
-          to: "/exchange/rental-equipment",
-          path: "/exchange/rental-equipment",
-          subtitle: "Compare tools and machinery",
-          why: "Useful if you are pricing DIY, hybrid, or contractor-supported work",
-        },
-        {
-          type: "NAVIGATE",
-          label: "Check local deck project signals",
-          to: "/community",
-          path: "/community",
-          subtitle: "See local project chatter",
-          why: "Check what neighbors and local operators are seeing before you hire",
-        },
-      ],
-      metadata: {
-        intent: "home_project_decking",
-        decision:
-          "Handled through deterministic homeowner-project routing for deck/decking intent.",
-      },
-    };
-  }
-
-  return {
-    intent: `home_project_${tradeTopic}`,
-    message: `Got it. For this ${tradeTopic} project${localityFragment}, start with:
-- Scope and requirements
-- Budget range
-- Timeline
-
-After that, I can route you into trusted local pros, Exchange options, and local project signals. Want me to run that now?`,
-    suggestedActions: [
-      "Start or plan this project",
-      `Find ${tradeTopic} pros near me`,
-      "Browse relevant Exchange options",
-      "Check local project signals before I hire",
-    ],
-    actions: [
-      planningAction,
-      {
-        type: "NAVIGATE",
-        label: "Find trusted local pros",
-        to: "/direct-connect/pros",
-        path: "/direct-connect/pros",
-        subtitle: "Open local pros",
-        why: `Use this once you want real providers for the ${tradeTopic} work`,
-      },
-      {
-        type: "NAVIGATE",
-        label: "Open Exchange",
-        to: "/exchange",
-        path: "/exchange",
-        subtitle: "Compare items, rentals, and listings",
-        why: "Useful for materials, rentals, and adjacent project needs",
-      },
-      {
-        type: "NAVIGATE",
-        label: "Open community signals",
-        to: "/community",
-        path: "/community",
-        subtitle: "See local project chatter",
-        why: "Check local signals before you hire or buy",
-      },
-    ],
-    metadata: {
-      intent: `home_project_${tradeTopic}`,
-      decision: `Handled through deterministic homeowner-project routing for ${tradeTopic} intent.`,
-    },
-  };
 }
 
 function detectCommunityTopic(message: string): string | null {
@@ -3698,113 +3472,24 @@ router.post("/", async (req: Request, res: Response) => {
         aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${dcPrompt}`);
       }
 
-      const mentionsCommunityQuestion =
-        /who\s*(?:'s| is)\s*a?\s*good\s+contractor/.test(lower) ||
-        lower.startsWith("has anyone dealt with") ||
-        lower.includes("has anyone dealt with") ||
-        lower.startsWith("what's going on with") ||
-        lower.startsWith("whats going on with") ||
-        lower.includes("what's going on with") ||
-        lower.includes("whats going on with") ||
-        lower.includes("is this normal in my area") ||
-        (lower.includes("neighbors") &&
-          (lower.includes("recommend") || lower.includes("used") || lower.includes("worked with")));
-
-      // Community posting is open to everyone with posting capability
-      if (userId && capabilities.canPostInCommunity()) {
-        try {
-          const prefill = buildCommunityPrefill(message, countyCode, stateCode);
-          const safePrefill = encodeURIComponent(prefill);
-
-          const alreadyHasCommunityNav = actions.some(
-            (a) =>
-              a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/community")
-          );
-
-          if (mentionsCommunityQuestion) {
-            let communityLine = "";
-            if (communityPostCount > 0) {
-              communityLine =
-                "I am seeing a few recent posts from neighbors in your county about this.";
-            } else if (communityPostCount === 0) {
-              communityLine = "I do not see anyone discussing this yet in your area.";
-            }
-
-            const bridgeLines = [
-              "I can give you practical guidance now and pair it with local input from your area.",
-              communityLine,
-              "Want to read them directly or add your own question in your county feed?",
-            ]
-              .filter(Boolean)
-              .join("\n\n");
-
-            aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${bridgeLines}`);
-
-            if (!alreadyHasCommunityNav) {
-              actions.push(
-                {
-                  type: "NAVIGATE",
-                  label: "View community discussion",
-                  to: "/community?tab=for-you",
-                },
-                {
-                  type: "NAVIGATE",
-                  label: "Ask neighbors in your county feed",
-                  to: `/community?compose=1&prefill=${safePrefill}`,
-                }
-              );
-            }
-          } else if (lowConfidenceForLocal && !alreadyHasCommunityNav) {
-            const bridgeLines = [
-              "Local requirements can shift by inspector and permit office, so the best move is to verify the final requirement directly.",
-              "I can still move this forward now by drafting the exact permit question and opening local deck pros in parallel.",
-            ].join("\n\n");
-
-            aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${bridgeLines}`);
-
-            actions.push({
-              type: "NAVIGATE",
-              label: "Open local deck pros",
-              to: "/direct-connect/pros",
-            });
-            actions.push({
-              type: "NAVIGATE",
-              label: "Ask the community in my county feed",
-              to: `/community?compose=1&prefill=${safePrefill}`,
-            });
-          }
-        } catch (communityError) {
-          console.error("[Scout] community suggestion logic failed", communityError);
-        }
-      }
-
-      // Dedicated navigation for welcome/intro posts: open the
-      // community composer with this draft prefilled so the user
-      // can share it in a couple of taps.
-      if (userId && wantsWelcomeDraft) {
-        try {
-          const draft = buildWelcomeIntroDraft(message, userRecord, countyCode, stateCode);
-          const safeDraft = encodeURIComponent(draft);
-
-          const alreadyHasWelcomeNav = actions.some(
-            (a) =>
-              a.type === "NAVIGATE" &&
-              typeof a.to === "string" &&
-              a.to.startsWith("/community") &&
-              a.to.includes("compose=1")
-          );
-
-          if (!alreadyHasWelcomeNav) {
-            actions.push({
-              type: "NAVIGATE",
-              label: "Post this welcome in my community feed",
-              to: `/community?compose=1&prefill=${safeDraft}`,
-            });
-          }
-        } catch (welcomeError) {
-          console.error("[Scout] welcome draft navigation failed", welcomeError);
-        }
-      }
+      // Delegate rich community question/welcome ownership to a dedicated owner module.
+      const communityBehavior = applyCommunityBehaviorOwnership({
+        userId,
+        message,
+        responseMessage: aiResponse.message,
+        actions,
+        canPostInCommunity: capabilities.canPostInCommunity(),
+        communityPostCount,
+        lowConfidenceForLocal,
+        communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+        wantsWelcomeDraft,
+        welcomeDraft:
+          userId && wantsWelcomeDraft
+            ? buildWelcomeIntroDraft(message, userRecord, countyCode, stateCode)
+            : undefined,
+      });
+      aiResponse.message = trimResponseToScreenFit(communityBehavior.message);
+      actions = communityBehavior.actions;
 
       // Dedicated navigation for Exchange listings: open the Exchange
       // surface on the Sell tab with this listing prefilled.
