@@ -20,6 +20,11 @@ const BLOCKED_RESPONSE_PATTERNS: RegExp[] = [
   /cannot\s+directly\s+search\s+the\s+internet/i,
   /what should i help you with next\??/i,
   /which option should i run first\??/i,
+  /\bscout\.com\b/i,
+  /\b247sports\b/i,
+  /\bathletic\s+recruiting\b/i,
+  /\bformerly\s+known\s+as\s+scout\.com\b/i,
+  /\bassuming\s+this\s+context\b/i,
 ];
 
 const INTERNAL_LINE_RULES: Array<{ flag: string; pattern: RegExp }> = [

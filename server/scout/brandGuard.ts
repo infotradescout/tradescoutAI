@@ -19,6 +19,20 @@ const BRAND_HIJACK_PATTERNS: RegExp[] = [
   /\bflight\s+simulator\s+for\s+financial\s+markets\b/i,
   /\bTrade\s*Scout\s+by\s+CME\s*Group\b/i,
   /\bTrade\s*Scout\s+by\s+.*\b/i,
+  /\bscout\.com\b/i,
+  /\b247sports\b/i,
+  /\bcollege\s+athletic\s+recruiting\b/i,
+  /\bathletic\s+recruiting\b/i,
+  /\bformerly\s+known\s+as\s+scout\.com\b/i,
+  /\bassuming\s+this\s+context\b/i,
+];
+
+const EXTERNAL_SCOUT_REFERENCE_PATTERNS: RegExp[] = [
+  /\bscout\.com\b/i,
+  /\b247sports\b/i,
+  /\bcollege\s+athletic\s+recruiting\b/i,
+  /\bathletic\s+recruiting\b/i,
+  /\bsports\s+recruiting\b/i,
 ];
 
 const FORBIDDEN_SELF_REFERENCE_PATTERNS: RegExp[] = [
@@ -56,4 +70,33 @@ export function violatesSelfReferenceRules(text: string): boolean {
 
 export function shouldOverrideResponse(text: string): boolean {
   return isBrandHijackResponse(text) || violatesSelfReferenceRules(text);
+}
+
+export function hasExplicitExternalScoutReference(userText: string): boolean {
+  const t = (userText || "").trim();
+  if (!t) return false;
+  return EXTERNAL_SCOUT_REFERENCE_PATTERNS.some((re) => re.test(t));
+}
+
+export const TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE =
+  "I'm Scout inside TradeScout. Tell me the local outcome you want to move, and I'll route the strongest next step.";
+
+export function enforceTradeScoutIdentityBoundary(
+  userText: string,
+  candidateText: string,
+  fallbackMessage = TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE
+): { text: string; overridden: boolean } {
+  const response = (candidateText || "").trim();
+  if (!response) return { text: fallbackMessage, overridden: true };
+
+  // If user explicitly asked about an external product, do not overwrite.
+  if (hasExplicitExternalScoutReference(userText)) {
+    return { text: response, overridden: false };
+  }
+
+  if (shouldOverrideResponse(response) || BRAND_HIJACK_PATTERNS.some((re) => re.test(response))) {
+    return { text: fallbackMessage, overridden: true };
+  }
+
+  return { text: response, overridden: false };
 }

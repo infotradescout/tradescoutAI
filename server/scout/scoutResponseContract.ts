@@ -1,8 +1,10 @@
 import type { ScoutActionContract, ScoutResponseContract } from "../../shared/types/scout";
+import { enforceTradeScoutIdentityBoundary } from "./brandGuard";
 
 type FinalizeOptions = {
   requestId?: string | null;
   fallbackMessage?: string;
+  requestMessage?: string | null;
 };
 
 const DEFAULT_FALLBACK_MESSAGE =
@@ -72,6 +74,10 @@ export function finalizeScoutResponse(payload: unknown, options: FinalizeOptions
   const message = typeof source.message === "string" ? source.message.trim() : "";
   const fallbackMessage = options.fallbackMessage || DEFAULT_FALLBACK_MESSAGE;
   const safeMessage = message.length > 0 ? message : fallbackMessage;
+  const identityBoundary = enforceTradeScoutIdentityBoundary(
+    String(options.requestMessage || ""),
+    safeMessage
+  );
 
   const actions = sanitizeActions(source.actions);
   const suggestedActions = sanitizeSuggestedActions(source.suggestedActions);
@@ -85,13 +91,18 @@ export function finalizeScoutResponse(payload: unknown, options: FinalizeOptions
     metadata.contractViolation = "missing_message";
   }
 
+  if (identityBoundary.overridden) {
+    metadata.contractFallback = true;
+    metadata.contractViolation = "identity_boundary_override";
+  }
+
   if (options.requestId && !metadata.requestId) {
     metadata.requestId = options.requestId;
   }
 
   const normalized: ScoutResponseContract = {
     ...(source as ScoutResponseContract),
-    message: safeMessage,
+    message: identityBoundary.text,
     ...(suggestedActions ? { suggestedActions } : {}),
     ...(actions ? { actions } : {}),
     metadata,

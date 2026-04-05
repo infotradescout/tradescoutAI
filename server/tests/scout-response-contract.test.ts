@@ -15,6 +15,19 @@ describe("scout response contract guards", () => {
     expect(source).toContain("missing_message");
     expect(source).toContain("DEFAULT_FALLBACK_MESSAGE");
     expect(source).toContain("sanitizeActions");
+    expect(source).toContain("enforceTradeScoutIdentityBoundary");
+    expect(source).toContain("identity_boundary_override");
+  });
+
+  it("locks Scout identity to TradeScout and blocks external reinterpretation leakage", () => {
+    const brandGuard = read("server/scout/brandGuard.ts");
+
+    expect(brandGuard).toContain("TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE");
+    expect(brandGuard).toContain("enforceTradeScoutIdentityBoundary");
+    expect(brandGuard).toContain("scout\\.com");
+    expect(brandGuard).toContain("247sports");
+    expect(brandGuard).toContain("athletic\\s+recruiting");
+    expect(brandGuard).toContain("assuming\\s+this\\s+context");
   });
 
   it("routes /api/scout responses through the response contract", () => {
@@ -89,5 +102,11 @@ describe("scout response contract guards", () => {
     expect(route).toContain('from "../scout/scoutSupportBehaviorOwner"');
     expect(route).not.toContain("const isCommunityVaultTopic =");
     expect(supportBehaviorOwner).toContain("export function applySupportBehaviorOwnership");
+    expect(route).toContain(
+      "if (isIntroQuestion(message) && !hasExplicitExternalScoutReference(message))"
+    );
+    expect(route).toContain("/^\\s*scout\\s*[?.!]*\\s*$/i");
+    expect(route).toContain("/help\\s+me\\s+with\\s+scout/i");
+    expect(route).toContain("/what\\s+do\\s+you\\s+need\\s+done/i");
   });
 });

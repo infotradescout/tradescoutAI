@@ -30,7 +30,12 @@ import {
   loadComprehensiveKnowledge,
   getKnowledgeBaseStatus,
 } from "../services/knowledgeService";
-import { shouldOverrideResponse, isOnboardingOrIdentityQuery } from "../scout/brandGuard";
+import {
+  enforceTradeScoutIdentityBoundary,
+  hasExplicitExternalScoutReference,
+  isOnboardingOrIdentityQuery,
+  TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE,
+} from "../scout/brandGuard";
 import { maybeHandleDeterministicIntent } from "../services/scoutDeterministicIntent";
 import type { DeterministicContext } from "../services/scoutDeterministicIntent";
 import { loadSystemPrompt } from "../services/promptService";
@@ -546,11 +551,14 @@ async function getCachedComprehensiveKnowledge(): Promise<string> {
 function isIntroQuestion(message: string): boolean {
   const lower = message.toLowerCase();
   const introPatterns = [
+    /^\s*scout\s*[?.!]*\s*$/i,
     /what\s+can\s+you\s+do(\s+for\s+me)?/i,
     /what\s+can\s+scout\s+do(\s+for\s+me)?/i,
     /what\s+can\s+tradescout\s+do/i,
     /how\s+can\s+you\s+help(\s+me)?/i,
     /how\s+can\s+scout\s+help(\s+me)?/i,
+    /help\s+me\s+with\s+scout/i,
+    /what\s+do\s+you\s+need\s+done/i,
     /help\s+me\s+understand\s+what\s+(you|scout|tradescout)\s+can\s+do/i,
     /what\s+is\s+tradescout/i,
     /how\s+does\s+tradescout\s+work/i,
@@ -589,6 +597,12 @@ async function generateSmartSynthesis(
 
     // Create a synthesis-focused prompt focused on TRANSFORMATION, ROLES, and OS MENTAL MODEL
     const synthPrompt = `You are Scout, the built-in helper that runs TradeScout. Your job is to give people a mind-opening orientation to TradeScout as their COMMUNITY OPERATING SYSTEM b7 not just "an app".
+
+  IDENTITY LOCK (NON-NEGOTIABLE):
+  - In /api/scout, the word "Scout" means TradeScout's built-in guide.
+  - Never reinterpret Scout as an external brand unless the user explicitly asks about that external brand.
+  - Never mention Scout.com, 247Sports, athletic recruiting, or "formerly known as Scout.com".
+  - Never say "assuming this context".
 
   User asked: "${message}"
 
@@ -818,8 +832,14 @@ LOCALITY & ASSUMPTIONS (CRITICAL):
 - If locality has a real county or state (not "unknown"), you MUST treat that as the user's area by default.
 - Do NOT ask the user where they are unless BOTH county and state are unknown or the user explicitly says they are asking about a different area.
 - When you talk about activity, pros, pricing, or community, assume the conversation is about the CURRENT STATE locality unless the user clearly overrides it.
+- Locality is only for TradeScout routing and relevance. It must NEVER be used to infer product identity or reinterpret what "Scout" means.
 
 User asked: "${userMessage}"
+
+IDENTITY LOCK (NON-NEGOTIABLE):
+- In /api/scout, "Scout" means TradeScout's built-in guide unless user explicitly names another product.
+- Do not reinterpret Scout as Scout.com, 247Sports, or an athletic recruiting platform.
+- Never write "assuming this context".
 
 Knowledge from TradeScout (Layer ${knowledge.layer}):
 ${knowledge.answer}
@@ -2139,6 +2159,10 @@ router.post("/", async (req: Request, res: Response) => {
     baseJson(
       finalizeScoutResponse(payload, {
         requestId: ((req as any)?.requestId as string | undefined) || null,
+        requestMessage:
+          typeof (req.body as { message?: unknown } | undefined)?.message === "string"
+            ? ((req.body as { message?: string }).message as string)
+            : null,
       })
     );
 
@@ -2488,7 +2512,7 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     // SPECIAL HANDLING: Detect intro/overview questions and use comprehensive synthesis
-    if (isIntroQuestion(message)) {
+    if (isIntroQuestion(message) && !hasExplicitExternalScoutReference(message)) {
       try {
         const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
         await syncObjectiveBestEffort({ intent });
@@ -3114,7 +3138,8 @@ router.post("/", async (req: Request, res: Response) => {
     // TradeScout identity rules (e.g., mentions CME futures, "as an AI",
     // or open-web sourcing), override it with a safe, internal explanation
     // that reflects our own onboarding knowledge.
-    if (shouldOverrideResponse(synthesized.message)) {
+    const identityBoundary = enforceTradeScoutIdentityBoundary(message, synthesized.message);
+    if (identityBoundary.overridden) {
       if (isOnboardingOrIdentityQuery(message)) {
         try {
           const synthesisResponse = await generateSmartSynthesis(
@@ -3126,14 +3151,10 @@ router.post("/", async (req: Request, res: Response) => {
           synthesized.provider = synthesisResponse.provider;
         } catch (error) {
           console.error("[Scout] Brand-guard override synthesis failed", error);
-          synthesized.message = trimResponseToScreenFit(
-            "TradeScout is your local participation operating system. It brings together people, services, money, and community tools so you can get real-world projects and community work done. Scout is the built-in helper that routes you to the right tools and pages inside TradeScout."
-          );
+          synthesized.message = trimResponseToScreenFit(TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE);
         }
       } else {
-        synthesized.message = trimResponseToScreenFit(
-          "Let me rephrase that based only on what TradeScout itself knows. TradeScout is your local participation operating system, and Scout is the helper that orchestrates tools and pages inside TradeScout — not a trading or futures product."
-        );
+        synthesized.message = trimResponseToScreenFit(TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE);
       }
     }
 
