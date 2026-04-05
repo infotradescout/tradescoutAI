@@ -18,6 +18,8 @@ type ApplyCommunityBehaviorInput = {
   communityPostCount: number;
   lowConfidenceForLocal: boolean;
   communityPrefill: string;
+  countyCode?: string;
+  confidenceBand: "high" | "medium" | "low";
   wantsWelcomeDraft: boolean;
   welcomeDraft?: string;
 };
@@ -42,95 +44,138 @@ function detectCommunityQuestionIntent(lower: string): boolean {
   );
 }
 
+function detectCommunityCategory(lower: string): "question" | "recommendation" | "alert" {
+  if (/(warning|scam|urgent|alert|watch out|unsafe|fraud)/.test(lower)) return "alert";
+  if (/(recommend|referral|who should i hire|any good|trusted)/.test(lower)) {
+    return "recommendation";
+  }
+  return "question";
+}
+
+function buildCommunityDraftTitle(
+  message: string,
+  category: "question" | "recommendation" | "alert"
+): string {
+  const trimmed = message.replace(/\s+/g, " ").trim();
+  const stripped = trimmed.replace(/[?.!]+$/, "");
+  const base = stripped.length > 80 ? `${stripped.slice(0, 77)}...` : stripped;
+  if (base.length > 0) {
+    return base.charAt(0).toUpperCase() + base.slice(1);
+  }
+
+  if (category === "alert") return "Neighborhood alert";
+  if (category === "recommendation") return "Looking for trusted local recommendations";
+  return "Question for my county community";
+}
+
+function buildCommunityDraftBody(input: ApplyCommunityBehaviorInput): string {
+  if (input.wantsWelcomeDraft && input.welcomeDraft) {
+    return input.welcomeDraft.trim();
+  }
+
+  const preferred = input.communityPrefill?.trim();
+  if (preferred) return preferred;
+
+  const fallback = input.message.replace(/\s+/g, " ").trim();
+  return fallback || "Sharing this with my county community for practical guidance.";
+}
+
 export function applyCommunityBehaviorOwnership(
   input: ApplyCommunityBehaviorInput
 ): ApplyCommunityBehaviorResult {
   const lower = input.message.toLowerCase();
-  let nextMessage = input.responseMessage;
+  const nextMessage = input.responseMessage;
   const nextActions = Array.isArray(input.actions) ? input.actions.slice() : [];
 
-  if (input.userId && input.canPostInCommunity) {
-    const safePrefill = encodeURIComponent(input.communityPrefill);
-    const alreadyHasCommunityNav = nextActions.some(
-      (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/community")
-    );
-
-    if (detectCommunityQuestionIntent(lower)) {
-      let communityLine = "";
-      if (input.communityPostCount > 0) {
-        communityLine = "I am seeing a few recent posts from neighbors in your county about this.";
-      } else if (input.communityPostCount === 0) {
-        communityLine = "I do not see anyone discussing this yet in your area.";
-      }
-
-      const bridgeLines = [
-        "I can give you practical guidance now and pair it with local input from your area.",
-        communityLine,
-        "Want to read them directly or add your own question in your county feed?",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
-      nextMessage = `${nextMessage}\n\n${bridgeLines}`;
-
-      if (!alreadyHasCommunityNav) {
-        nextActions.push(
-          {
-            type: "NAVIGATE",
-            label: "View community discussion",
-            to: "/community?tab=for-you",
-          },
-          {
-            type: "NAVIGATE",
-            label: "Ask neighbors in your county feed",
-            to: `/community?compose=1&prefill=${safePrefill}`,
-          }
-        );
-      }
-    } else if (input.lowConfidenceForLocal && !alreadyHasCommunityNav) {
-      const bridgeLines = [
-        "Local requirements can shift by inspector and permit office, so the best move is to verify the final requirement directly.",
-        "I can still move this forward now by drafting the exact permit question and opening local deck pros in parallel.",
-      ].join("\n\n");
-
-      nextMessage = `${nextMessage}\n\n${bridgeLines}`;
-
-      nextActions.push(
-        {
-          type: "NAVIGATE",
-          label: "Open local deck pros",
-          to: "/direct-connect/pros",
-        },
-        {
-          type: "NAVIGATE",
-          label: "Ask the community in my county feed",
-          to: `/community?compose=1&prefill=${safePrefill}`,
-        }
-      );
-    }
+  if (!input.userId || !input.canPostInCommunity) {
+    return {
+      message: nextMessage,
+      actions: nextActions,
+    };
   }
 
-  if (input.userId && input.wantsWelcomeDraft && input.welcomeDraft) {
-    const safeDraft = encodeURIComponent(input.welcomeDraft);
-    const alreadyHasWelcomeNav = nextActions.some(
-      (a) =>
-        a.type === "NAVIGATE" &&
-        typeof a.to === "string" &&
-        a.to.startsWith("/community") &&
-        a.to.includes("compose=1")
-    );
+  const intentDetected =
+    detectCommunityQuestionIntent(lower) ||
+    input.wantsWelcomeDraft ||
+    /community|neighbors?|county feed|local group|hoa|board/.test(lower);
 
-    if (!alreadyHasWelcomeNav) {
-      nextActions.push({
-        type: "NAVIGATE",
-        label: "Post this welcome in my community feed",
-        to: `/community?compose=1&prefill=${safeDraft}`,
-      });
-    }
+  if (!intentDetected) {
+    return {
+      message: nextMessage,
+      actions: nextActions,
+    };
+  }
+
+  if (input.confidenceBand === "low") {
+    return {
+      message: nextMessage,
+      actions: [
+        {
+          type: "ASK_SCOUT",
+          label: "Clarify post intent first",
+          prompt:
+            "Do you want this as a question, recommendation request, or local alert? I will prefill the full county post immediately.",
+          subtitle: "Need one quick intent clarification",
+          why: "Low confidence community intent",
+          primary: true,
+          payload: {
+            source: "community_outcome_engine",
+            confidenceBand: "low",
+          },
+        },
+        ...nextActions,
+      ],
+    };
+  }
+
+  const category = detectCommunityCategory(lower);
+  const draftTitle = buildCommunityDraftTitle(input.message, category);
+  const draftBody = buildCommunityDraftBody(input);
+  const confirmRequiredFields =
+    input.confidenceBand === "medium" ? ["category", "visibility", "countyCode"] : [];
+
+  const primaryAction: CommunityBehaviorAction = {
+    type: "PREFILL_INPUT",
+    label: "Start county community post",
+    to: "/community?compose=1",
+    path: "/community?compose=1",
+    subtitle:
+      input.confidenceBand === "medium"
+        ? "Draft ready; confirm category and visibility"
+        : "Draft ready to post",
+    why: "One tap to publish a structured local post",
+    primary: true,
+    payload: {
+      target: "community_post",
+      route: "/community?compose=1",
+      prefill: {
+        title: draftTitle,
+        body: draftBody,
+        countyCode: input.countyCode ?? null,
+        category,
+        visibility: "county_safe_default",
+      },
+      source: "community_outcome_engine",
+      confidenceBand: input.confidenceBand,
+      ...(confirmRequiredFields.length > 0 ? { confirmRequiredFields } : {}),
+    },
+  };
+
+  const secondaryActions: CommunityBehaviorAction[] = [];
+  if (input.communityPostCount > 0) {
+    secondaryActions.push({
+      type: "NAVIGATE",
+      label: "Review county community discussion",
+      to: "/community?tab=for-you",
+      path: "/community?tab=for-you",
+      subtitle: "Check existing context before posting",
+      why: "Optional quality check",
+      primary: false,
+    });
   }
 
   return {
     message: nextMessage,
-    actions: nextActions,
+    actions: [primaryAction, ...secondaryActions.slice(0, 2), ...nextActions],
   };
 }

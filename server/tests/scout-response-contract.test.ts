@@ -96,6 +96,18 @@ describe("scout response contract guards", () => {
     expect(route).not.toContain("community suggestion logic failed");
     expect(route).not.toContain("welcome draft navigation failed");
     expect(communityBehaviorOwner).toContain("export function applyCommunityBehaviorOwnership");
+    expect(communityBehaviorOwner).toContain('type: "PREFILL_INPUT"');
+    expect(communityBehaviorOwner).toContain('target: "community_post"');
+    expect(communityBehaviorOwner).toContain("title");
+    expect(communityBehaviorOwner).toContain("body");
+    expect(communityBehaviorOwner).toContain("countyCode");
+    expect(communityBehaviorOwner).toContain("category");
+    expect(communityBehaviorOwner).toContain("visibility");
+    expect(communityBehaviorOwner).toContain("confidenceBand");
+    expect(communityBehaviorOwner).toContain("confirmRequiredFields");
+    expect(route).toContain(
+      "confidenceBand: normalizeConfidenceLabel(governorDecision.confidence)"
+    );
     expect(route).toContain('from "../scout/scoutMarketplaceBehaviorOwner"');
     expect(route).not.toContain("function buildExchangeListingDraft(");
     expect(route).not.toContain("Exchange listing navigation failed");
@@ -124,9 +136,15 @@ describe("scout response contract guards", () => {
     expect(providerBehaviorOwner).toContain("location");
     expect(providerBehaviorOwner).toContain("scope");
     expect(providerBehaviorOwner).toContain("urgency");
+    expect(providerBehaviorOwner).toContain("confidenceBand");
+    expect(providerBehaviorOwner).toContain("confirmRequiredFields");
+    expect(providerBehaviorOwner).toContain('type: "ASK_SCOUT"');
     expect(route).toContain("message,");
     expect(route).toContain("countyCode,");
     expect(route).toContain("stateCode,");
+    expect(route).toContain(
+      "confidenceBand: normalizeConfidenceLabel(governorDecision.confidence)"
+    );
     expect(route).toContain('from "../scout/scoutSupportBehaviorOwner"');
     expect(route).not.toContain("const isCommunityVaultTopic =");
     expect(supportBehaviorOwner).toContain("export function applySupportBehaviorOwnership");
@@ -136,5 +154,8 @@ describe("scout response contract guards", () => {
     expect(route).toContain("/^\\s*scout\\s*[?.!]*\\s*$/i");
     expect(route).toContain("/help\\s+me\\s+with\\s+scout/i");
     expect(route).toContain("/what\\s+do\\s+you\\s+need\\s+done/i");
+    expect(route).toContain("scout_outcome_action_generated");
+    expect(route).toContain("scout_outcome_action_clicked");
+    expect(route).toContain("scout_outcome_action_submitted");
   });
 });

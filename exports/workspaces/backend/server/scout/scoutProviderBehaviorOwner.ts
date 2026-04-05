@@ -2,6 +2,7 @@ type ProviderBehaviorAction = {
   type: string;
   path?: string;
   to?: string;
+  prompt?: string;
   label: string;
   subtitle?: string;
   why?: string;
@@ -16,6 +17,7 @@ type ApplyProviderBehaviorInput = {
   message: string;
   countyCode?: string;
   stateCode?: string;
+  confidenceBand: "high" | "medium" | "low";
 };
 
 type PrefilledDirectConnectRequest = {
@@ -83,7 +85,28 @@ export function applyProviderBehaviorOwnership(
     return nextActions;
   }
 
+  if (input.confidenceBand === "low") {
+    return [
+      {
+        type: "ASK_SCOUT",
+        label: "Clarify project details first",
+        prompt:
+          "Tell me the trade type, urgency, and scope details. I will prefill a Direct Connect request in one step.",
+        subtitle: "Need one quick clarification",
+        why: "Low confidence provider intent",
+        primary: true,
+        payload: {
+          source: "provider_outcome_engine",
+          confidenceBand: "low",
+        },
+      },
+      ...nextActions,
+    ];
+  }
+
   const prefilledRequest = buildPrefilledRequest(input);
+  const confirmRequiredFields =
+    input.confidenceBand === "medium" ? ["jobType", "urgency", "location"] : [];
 
   const hireAction: ProviderBehaviorAction = {
     type: "PREFILL_INPUT",
@@ -102,6 +125,8 @@ export function applyProviderBehaviorOwnership(
         intentCategory: input.intentCategory,
         intentSlug: input.intentSlug,
       },
+      confidenceBand: input.confidenceBand,
+      ...(confirmRequiredFields.length > 0 ? { confirmRequiredFields } : {}),
     },
   };
 

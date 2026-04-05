@@ -1499,6 +1499,50 @@ export type ScoutClientAction = {
 
 export type ScoutAction = ScoutClientAction;
 
+type OutcomeActionTelemetry = {
+  ownerModule: string;
+  target: string;
+  confidenceBand: "high" | "medium" | "low" | "unknown";
+  payloadCompleteness: number;
+};
+
+function resolveOutcomeActionTelemetry(action: any): OutcomeActionTelemetry | null {
+  const payload = action?.payload && typeof action.payload === "object" ? action.payload : null;
+  if (!payload) return null;
+
+  const source = typeof payload.source === "string" ? payload.source : "";
+  const target = typeof payload.target === "string" ? payload.target : "";
+  if (!source || !target) return null;
+
+  const prefill = payload.prefill && typeof payload.prefill === "object" ? payload.prefill : {};
+  const confidenceBand =
+    payload.confidenceBand === "high" ||
+    payload.confidenceBand === "medium" ||
+    payload.confidenceBand === "low"
+      ? payload.confidenceBand
+      : "unknown";
+
+  const requiredByTarget: Record<string, string[]> = {
+    direct_connect_request: ["jobType", "location", "scope", "urgency"],
+    exchange_listing: ["title", "category", "location", "price", "description"],
+    community_post: ["title", "body", "countyCode", "category", "visibility"],
+  };
+
+  const required = requiredByTarget[target] || [];
+  const present = required.filter((k) => {
+    const v = (prefill as any)?.[k];
+    return !(v === undefined || v === "");
+  }).length;
+  const payloadCompleteness = required.length > 0 ? present / required.length : 1;
+
+  return {
+    ownerModule: source,
+    target,
+    confidenceBand,
+    payloadCompleteness,
+  };
+}
+
 function inferJobIdFromActivity(recentActivity: ScoutRequest["recentActivity"]): string | null {
   if (!recentActivity || !recentActivity.length) return null;
 
@@ -3441,6 +3485,8 @@ router.post("/", async (req: Request, res: Response) => {
         communityPostCount,
         lowConfidenceForLocal,
         communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+        countyCode,
+        confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
         wantsWelcomeDraft,
         welcomeDraft:
           userId && wantsWelcomeDraft
@@ -3484,6 +3530,7 @@ router.post("/", async (req: Request, res: Response) => {
         message,
         countyCode,
         stateCode,
+        confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
       }) as ScoutClientAction[];
 
       // Confidence-shaped action guardrail + community bias
@@ -4254,6 +4301,31 @@ router.post("/", async (req: Request, res: Response) => {
         _guardContext: guardContext, // Internal: used by client/server for recovery
       })) || [];
 
+    try {
+      const generatedEvents = guardedActions
+        .filter((action: any) => Boolean(action?.primary))
+        .map((action: any) => {
+          const telemetry = resolveOutcomeActionTelemetry(action);
+          if (!telemetry) return null;
+          return storage.logEvent("scout_outcome_action_generated", {
+            userId: userId || null,
+            requestId: (req as any).requestId || null,
+            ownerModule: telemetry.ownerModule,
+            target: telemetry.target,
+            confidenceBand: telemetry.confidenceBand,
+            payloadCompleteness: telemetry.payloadCompleteness,
+            actionType: String(action?.type || "unknown"),
+          });
+        })
+        .filter(Boolean);
+
+      if (generatedEvents.length > 0) {
+        await Promise.all(generatedEvents as Array<Promise<unknown>>);
+      }
+    } catch (telemetryErr) {
+      console.error("[Scout] failed to log outcome generation telemetry", telemetryErr);
+    }
+
     const safeMetadata = aiResponse.metadata
       ? {
           intent: aiResponse.metadata.intent,
@@ -4626,6 +4698,8 @@ router.post("/execute-action", async (req: Request, res: Response) => {
     const { action, guardContext: clientGuardContext } = req.body;
     const userId = (req as any).user?.id;
 
+    const actionTelemetry = resolveOutcomeActionTelemetry(action);
+
     if (!action || !action.type) {
       return res.status(400).json({
         success: false,
@@ -4670,6 +4744,22 @@ router.post("/execute-action", async (req: Request, res: Response) => {
       requestId: (req as any).requestId,
     };
 
+    if (actionTelemetry) {
+      try {
+        await storage.logEvent("scout_outcome_action_clicked", {
+          userId: userId || null,
+          requestId: (req as any).requestId || null,
+          ownerModule: actionTelemetry.ownerModule,
+          target: actionTelemetry.target,
+          confidenceBand: actionTelemetry.confidenceBand,
+          payloadCompleteness: actionTelemetry.payloadCompleteness,
+          actionType: String(action?.type || "unknown"),
+        });
+      } catch (telemetryErr) {
+        console.error("[Scout] failed to log outcome click telemetry", telemetryErr);
+      }
+    }
+
     // Execute action through guard
     const result = await runScoutAction(action, guardContext, async (act) => {
       // Placeholder executor—real implementations would dispatch to
@@ -4679,6 +4769,21 @@ router.post("/execute-action", async (req: Request, res: Response) => {
     });
 
     if (result.ok) {
+      if (actionTelemetry) {
+        try {
+          await storage.logEvent("scout_outcome_action_submitted", {
+            userId: userId || null,
+            requestId: (req as any).requestId || null,
+            ownerModule: actionTelemetry.ownerModule,
+            target: actionTelemetry.target,
+            confidenceBand: actionTelemetry.confidenceBand,
+            payloadCompleteness: actionTelemetry.payloadCompleteness,
+            actionType: String(action?.type || "unknown"),
+          });
+        } catch (telemetryErr) {
+          console.error("[Scout] failed to log outcome submission telemetry", telemetryErr);
+        }
+      }
       return res.json({
         success: true,
         message: result.message || "Action authorized",
