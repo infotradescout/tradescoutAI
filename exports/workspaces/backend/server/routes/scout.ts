@@ -3454,6 +3454,7 @@ router.post("/", async (req: Request, res: Response) => {
         userId,
         wantsExchangeListingDraft,
         canPostMarketplaceItem: capabilities.canPostMarketplaceItem(),
+        confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
         message,
         userRecord,
         countyCode,

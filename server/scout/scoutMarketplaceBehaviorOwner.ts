@@ -2,6 +2,12 @@ type MarketplaceAction = {
   type: string;
   label: string;
   to?: string;
+  path?: string;
+  prompt?: string;
+  subtitle?: string;
+  why?: string;
+  primary?: boolean;
+  payload?: Record<string, unknown>;
 };
 
 type BuildExchangeListingDraftInput = {
@@ -15,8 +21,9 @@ type BuildExchangeListingDraftInput = {
 
 export type ExchangeListingDraft = {
   title: string;
+  category: string;
   description: string;
-  price?: number;
+  price: number | null;
   locationLabel?: string;
 };
 
@@ -24,6 +31,7 @@ type ApplyMarketplaceListingNavigationInput = {
   userId?: string;
   wantsExchangeListingDraft: boolean;
   canPostMarketplaceItem: boolean;
+  confidenceBand: "high" | "medium" | "low";
   message: string;
   userRecord?: any;
   countyCode?: string;
@@ -36,16 +44,29 @@ type ApplyMarketplaceListingNavigationInput = {
     stateCode?: string
   ) => {
     title: string;
+    category: string;
     description: string;
-    price?: number;
+    price: number | null;
     locationLabel?: string;
   };
 };
 
+function detectListingCategory(message: string): string {
+  const lower = message.toLowerCase();
+  if (/(truck|car|van|motorcycle|vehicle|trailer)/.test(lower)) return "vehicles";
+  if (/(tool|drill|saw|generator|compressor|equipment)/.test(lower)) return "tools_equipment";
+  if (/(sofa|table|chair|dresser|bed|furniture)/.test(lower)) return "furniture";
+  if (/(phone|laptop|tablet|tv|camera|console|electronics)/.test(lower)) return "electronics";
+  if (/(paint|lumber|tile|drywall|shingle|pipe|wire|material)/.test(lower)) {
+    return "building_materials";
+  }
+  return "general";
+}
+
 export function buildExchangeListingDraft(
   input: BuildExchangeListingDraftInput
 ): ExchangeListingDraft {
-  const amount = input.extractDollarAmount(input.originalMessage) ?? undefined;
+  const amount = input.extractDollarAmount(input.originalMessage);
 
   let itemPhrase = "item";
   const myMatch = input.originalMessage.match(/my\s+([^.,\n]{3,60})/i);
@@ -93,6 +114,7 @@ export function buildExchangeListingDraft(
   }
 
   const title = titlePieces.join(" ");
+  const category = detectListingCategory(input.originalMessage);
 
   const priceLine =
     amount && amount > 0
@@ -111,7 +133,7 @@ export function buildExchangeListingDraft(
     priceLine,
   ].join(" ");
 
-  return { title, description, price: amount, locationLabel };
+  return { title, category, description, price: amount ?? null, locationLabel };
 }
 
 export function applyMarketplaceListingNavigationOwnership(
@@ -123,6 +145,21 @@ export function applyMarketplaceListingNavigationOwnership(
     return nextActions;
   }
 
+  if (input.confidenceBand === "low") {
+    return [
+      {
+        type: "ASK_SCOUT",
+        label: "Clarify item details first",
+        prompt:
+          "Tell me the exact item, condition, and target price, and I will prefill your Exchange listing in one step.",
+        subtitle: "Need one quick clarification before creating the draft",
+        why: "Low confidence listing intent",
+        primary: true,
+      },
+      ...nextActions,
+    ];
+  }
+
   const listingDraft = input.buildDraft(
     input.message,
     input.userRecord,
@@ -130,34 +167,44 @@ export function applyMarketplaceListingNavigationOwnership(
     input.stateCode
   );
 
-  const params: string[] = ["tab=sell"];
-  if (listingDraft.title) {
-    params.push(`title=${encodeURIComponent(listingDraft.title)}`);
-  }
-  if (listingDraft.description) {
-    params.push(`description=${encodeURIComponent(listingDraft.description)}`);
-  }
-  if (listingDraft.price && listingDraft.price > 0) {
-    params.push(`price=${encodeURIComponent(String(listingDraft.price))}`);
-  }
-  if (listingDraft.locationLabel) {
-    params.push(`loc=${encodeURIComponent(listingDraft.locationLabel)}`);
-  }
+  const reviewFields = input.confidenceBand === "medium" ? ["category", "price", "location"] : [];
 
-  const qs = params.length ? `?${params.join("&")}` : "";
-  const to = `/exchange${qs}`;
+  const primaryAction: MarketplaceAction = {
+    type: "PREFILL_INPUT",
+    label: "Start Exchange listing draft",
+    to: "/exchange?tab=sell",
+    path: "/exchange?tab=sell",
+    subtitle:
+      input.confidenceBand === "medium"
+        ? "Partially prefilled; review highlighted fields"
+        : "Prefilled title, category, location, price, and description",
+    why: "One tap to open a ready listing draft",
+    primary: true,
+    payload: {
+      target: "exchange_listing",
+      route: "/exchange?tab=sell",
+      prefill: {
+        title: listingDraft.title,
+        category: listingDraft.category,
+        location: listingDraft.locationLabel ?? null,
+        price: listingDraft.price,
+        description: listingDraft.description,
+      },
+      source: "marketplace_outcome_engine",
+      confidenceBand: input.confidenceBand,
+      ...(reviewFields.length > 0 ? { confirmRequiredFields: reviewFields } : {}),
+    },
+  };
 
-  const alreadyHasExchangeNav = nextActions.some(
-    (a) => a.type === "NAVIGATE" && typeof a.to === "string" && a.to.startsWith("/exchange")
-  );
+  const secondaryAction: MarketplaceAction = {
+    type: "NAVIGATE",
+    label: "Review Exchange listings",
+    to: "/exchange",
+    path: "/exchange",
+    subtitle: "Compare nearby listings before publishing",
+    why: "Optional quality check",
+    primary: false,
+  };
 
-  if (!alreadyHasExchangeNav) {
-    nextActions.push({
-      type: "NAVIGATE",
-      label: "Open this listing in Exchange",
-      to,
-    });
-  }
-
-  return nextActions;
+  return [primaryAction, secondaryAction, ...nextActions];
 }

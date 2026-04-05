@@ -103,6 +103,18 @@ describe("scout response contract guards", () => {
     expect(marketplaceBehaviorOwner).toContain(
       "export function applyMarketplaceListingNavigationOwnership"
     );
+    expect(marketplaceBehaviorOwner).toContain('type: "PREFILL_INPUT"');
+    expect(marketplaceBehaviorOwner).toContain('target: "exchange_listing"');
+    expect(marketplaceBehaviorOwner).toContain("title");
+    expect(marketplaceBehaviorOwner).toContain("category");
+    expect(marketplaceBehaviorOwner).toContain("location");
+    expect(marketplaceBehaviorOwner).toContain("price");
+    expect(marketplaceBehaviorOwner).toContain("description");
+    expect(marketplaceBehaviorOwner).toContain("confidenceBand");
+    expect(marketplaceBehaviorOwner).toContain("confirmRequiredFields");
+    expect(route).toContain(
+      "confidenceBand: normalizeConfidenceLabel(governorDecision.confidence)"
+    );
     expect(route).toContain('from "../scout/scoutProviderBehaviorOwner"');
     expect(route).not.toContain("const shouldPairHireDIY =");
     expect(providerBehaviorOwner).toContain("export function applyProviderBehaviorOwnership");
