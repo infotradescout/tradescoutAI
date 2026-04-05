@@ -106,6 +106,15 @@ describe("scout response contract guards", () => {
     expect(route).toContain('from "../scout/scoutProviderBehaviorOwner"');
     expect(route).not.toContain("const shouldPairHireDIY =");
     expect(providerBehaviorOwner).toContain("export function applyProviderBehaviorOwnership");
+    expect(providerBehaviorOwner).toContain('type: "PREFILL_INPUT"');
+    expect(providerBehaviorOwner).toContain('target: "direct_connect_request"');
+    expect(providerBehaviorOwner).toContain("jobType");
+    expect(providerBehaviorOwner).toContain("location");
+    expect(providerBehaviorOwner).toContain("scope");
+    expect(providerBehaviorOwner).toContain("urgency");
+    expect(route).toContain("message,");
+    expect(route).toContain("countyCode,");
+    expect(route).toContain("stateCode,");
     expect(route).toContain('from "../scout/scoutSupportBehaviorOwner"');
     expect(route).not.toContain("const isCommunityVaultTopic =");
     expect(supportBehaviorOwner).toContain("export function applySupportBehaviorOwnership");

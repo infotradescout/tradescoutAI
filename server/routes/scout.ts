@@ -3480,6 +3480,9 @@ router.post("/", async (req: Request, res: Response) => {
         actions,
         intentCategory: (synthesized as any)?.intent?.category,
         intentSlug: (synthesized as any)?.intent?.slug,
+        message,
+        countyCode,
+        stateCode,
       }) as ScoutClientAction[];
 
       // Confidence-shaped action guardrail + community bias
