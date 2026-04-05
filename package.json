@@ -12,6 +12,7 @@
     "audit:ui:enforce": "node ./scripts/ui-surface-audit.mjs && node ./scripts/ui-surface-enforce.mjs",
     "audit:scout-behaviors": "node scripts/audit-scout-behaviors.mjs",
     "report:scout-intent-coverage": "node scripts/generate-scout-intent-coverage.mjs",
+    "report:scout-outcome-funnel": "node scripts/report-scout-outcome-funnel.mjs",
     "report:scout-quality": "npx tsx scripts/report-scout-quality.ts",
     "report:test-skip-delta": "node scripts/report-test-skip-delta.mjs",
     "enforce:scout-behaviors": "node scripts/enforce-scout-behavior-registry.mjs",

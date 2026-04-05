@@ -1531,7 +1531,9 @@ function resolveOutcomeActionTelemetry(action: any): OutcomeActionTelemetry | nu
   const required = requiredByTarget[target] || [];
   const present = required.filter((k) => {
     const v = (prefill as any)?.[k];
-    return !(v === undefined || v === "");
+    if (v === undefined || v === null) return false;
+    if (typeof v === "string" && v.trim().length === 0) return false;
+    return true;
   }).length;
   const payloadCompleteness = required.length > 0 ? present / required.length : 1;
 

@@ -146,6 +146,12 @@ export function applyMarketplaceListingNavigationOwnership(
   }
 
   if (input.confidenceBand === "low") {
+    const listingDraft = input.buildDraft(
+      input.message,
+      input.userRecord,
+      input.countyCode,
+      input.stateCode
+    );
     return [
       {
         type: "ASK_SCOUT",
@@ -155,6 +161,20 @@ export function applyMarketplaceListingNavigationOwnership(
         subtitle: "Need one quick clarification before creating the draft",
         why: "Low confidence listing intent",
         primary: true,
+        payload: {
+          target: "exchange_listing",
+          route: "/exchange?tab=sell",
+          prefill: {
+            title: listingDraft.title,
+            category: listingDraft.category,
+            location: listingDraft.locationLabel ?? null,
+            price: listingDraft.price,
+            description: listingDraft.description,
+          },
+          source: "marketplace_outcome_engine",
+          confidenceBand: "low",
+          confirmRequiredFields: ["title", "category", "location", "price", "description"],
+        },
       },
       ...nextActions,
     ];

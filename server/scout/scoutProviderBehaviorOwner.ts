@@ -86,6 +86,7 @@ export function applyProviderBehaviorOwnership(
   }
 
   if (input.confidenceBand === "low") {
+    const prefilledRequest = buildPrefilledRequest(input);
     return [
       {
         type: "ASK_SCOUT",
@@ -96,6 +97,10 @@ export function applyProviderBehaviorOwnership(
         why: "Low confidence provider intent",
         primary: true,
         payload: {
+          target: "direct_connect_request",
+          route: "/direct-connect",
+          prefill: prefilledRequest,
+          confirmRequiredFields: ["jobType", "urgency", "location", "scope"],
           source: "provider_outcome_engine",
           confidenceBand: "low",
         },

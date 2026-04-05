@@ -107,6 +107,9 @@ export function applyCommunityBehaviorOwnership(
   }
 
   if (input.confidenceBand === "low") {
+    const lowConfidenceCategory = detectCommunityCategory(lower);
+    const lowConfidenceTitle = buildCommunityDraftTitle(input.message, lowConfidenceCategory);
+    const lowConfidenceBody = buildCommunityDraftBody(input);
     return {
       message: nextMessage,
       actions: [
@@ -119,6 +122,16 @@ export function applyCommunityBehaviorOwnership(
           why: "Low confidence community intent",
           primary: true,
           payload: {
+            target: "community_post",
+            route: "/community?compose=1",
+            prefill: {
+              title: lowConfidenceTitle,
+              body: lowConfidenceBody,
+              countyCode: input.countyCode ?? null,
+              category: lowConfidenceCategory,
+              visibility: "county_safe_default",
+            },
+            confirmRequiredFields: ["category", "visibility", "countyCode"],
             source: "community_outcome_engine",
             confidenceBand: "low",
           },
