@@ -14,9 +14,10 @@ import {
   Eye,
   Vault,
   Info,
+  ChevronRight,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Card types that can appear in the snapshot
 export type SnapshotCardType =
   | "trade_deal"
   | "community_post"
@@ -30,15 +31,15 @@ export type SnapshotCard = {
   title: string;
   description: string;
   label?: string;
-  icon?: string; // Icon identifier
-  gradient?: string; // Tailwind gradient classes
+  icon?: string;
+  gradient?: string;
   imageUrl?: string | null;
   href?: string;
   ownerUserId?: string;
   canDirectConnect?: boolean;
   canMessage?: boolean;
-  filterValue?: string; // For feed filter cards
-  authorityLabel?: string; // Scout authority interpretive label
+  filterValue?: string;
+  authorityLabel?: string;
   stats?: {
     membersCount?: number;
     activeToday?: number;
@@ -46,28 +47,9 @@ export type SnapshotCard = {
   };
 };
 
-export type SnapshotDeal = {
-  id: number | string;
-  title: string;
-  shortDescription: string;
-  label?: string;
-  imageUrl?: string | null;
-  href?: string;
-  ownerUserId?: string;
-  canDirectConnect?: boolean;
-  canMessage?: boolean;
-};
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
-
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${txt || res.statusText}`);
-  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<T>;
 }
 
@@ -94,299 +76,115 @@ export const CommunitySnapshotRail: React.FC<{
   onFilterChange,
 }) => {
   const [, navigate] = useLocation();
-  const { data: authoritySurfaces } = useCommunityAuthoritySurfaces();
-  const showAuthorityLabels = authoritySurfaces?.phase2bAuthorityLabelsEnabled === true;
   const [cards, setCards] = useState<SnapshotCard[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const apiUrl = useMemo(() => {
     const sp = new URLSearchParams();
     sp.set("county", countyFips);
-    sp.set("limit", String(clamp(limit, 1, 30)));
+    sp.set("limit", String(limit));
     sp.set("featured", "true");
     return `/api/daily-deals?${sp.toString()}`;
   }, [countyFips, limit]);
 
   useEffect(() => {
-    let cancelled = false;
     setLoading(true);
-    setError(null);
-
     fetchJson<any[]>(apiUrl)
       .then((rows) => {
-        if (cancelled) return;
-
         const dealCards: SnapshotCard[] = (rows || []).map((r) => ({
-          id: String(
-            r.id ??
-              r.promotionId ??
-              r.dealId ??
-              crypto?.randomUUID?.() ??
-              Math.random().toString(36)
-          ),
-          type: "trade_deal" as const,
-          title: String(r.title ?? ""),
-          description: String(r.shortDescription ?? r.description ?? ""),
-          label: r.label ?? "Featured Local TradeDeal",
-          imageUrl: r.imageUrl ?? r.image ?? null,
-          href: r.href ?? (r.id ? `/trade-deals/${r.id}` : "/trade-deals"),
-          ownerUserId: r.ownerUserId ?? r.providerUserId ?? null,
-          canDirectConnect: Boolean(r.canDirectConnect ?? r.supportsDirectConnect ?? false),
-          canMessage: Boolean((r.ownerUserId ?? r.providerUserId) && !r.disableMessaging),
-          // Simple authority label based on engagement patterns
-          authorityLabel: r.verified
-            ? "Verified provider in your area"
-            : r.isNew
-              ? "New listing - gather context before contact"
-              : undefined,
+          id: String(r.id || Math.random()),
+          type: "trade_deal",
+          title: r.title || "",
+          description: r.shortDescription || r.description || "",
+          label: r.label || "Featured Deal",
+          imageUrl: r.imageUrl || null,
+          href: r.href || `/trade-deals/${r.id}`,
+          gradient: "from-orange-500/20 to-transparent",
         }));
 
-        // Compose cards: deals + stats + invitations (filters removed)
-        const composedCards: SnapshotCard[] = [];
+        const composedCards: SnapshotCard[] = [...dealCards];
 
-        // Add TradeDeal cards first
-        composedCards.push(...dealCards);
-
-        // If no deals, add fallback cards that reflect the real current state.
-        if (dealCards.length === 0) {
-          composedCards.push(
-            {
-              id: "deals-coming-soon-1",
-              type: "starter_invitation",
-              title: "No active TradeDeals yet",
-              description: "This county has no active verified TradeDeals right now",
-              label: "No Active Deals",
-              icon: "sparkles",
-              gradient: "from-orange-950 via-slate-900 to-slate-950",
-              href: "/trade-deals",
-            },
-            {
-              id: "deals-coming-soon-2",
-              type: "starter_invitation",
-              title: "Invite local suppliers",
-              description: "Use Scout to nominate verified suppliers you want to see here",
-              label: "Take Action",
-              icon: "zap",
-              gradient: "from-slate-900 via-slate-900 to-slate-950",
-              href: "/trade-deals",
-            }
-          );
-        }
-
-        // If we have community stats and few/no deals, add a stats card
-        if (communityStats && dealCards.length < 2) {
-          const isNewCommunity = communityStats.totalMembers < 10;
-          const recs7d = communityStats.recommendations7d ?? 0;
-          const help7d = communityStats.helpRequests7d ?? 0;
-          const activeToday = communityStats.activeToday ?? 0;
+        if (composedCards.length === 0) {
           composedCards.push({
-            id: "local-stats",
-            type: "local_stats",
-            title: isNewCommunity
-              ? "You're early in this community"
-              : `${communityStats.totalMembers} neighbors here`,
-            description: isNewCommunity
-              ? "Be among the first to shape your local network"
-              : `${activeToday} active today • ${recs7d} recs • ${help7d} help requests (7d)`,
-            label: "Community Pulse",
-            icon: "users",
-            gradient: "from-indigo-950 via-slate-900 to-slate-950",
-            stats: communityStats,
-          });
-        }
-
-        // Add starter/invitation cards if empty or very sparse
-        if (composedCards.length === 0 || (composedCards.length === 2 && dealCards.length === 0)) {
-          // Only filter cards exist, or filter cards + deal placeholders
-          composedCards.push(
-            {
-              id: "starter-conversation",
-              type: "starter_invitation",
-              title: "Start the first conversation",
-              description: "Ask a question, share a project, or introduce yourself",
-              label: "Be First",
-              icon: "message",
-              gradient: "from-emerald-950 via-slate-900 to-slate-950",
-            },
-            {
-              id: "starter-community",
-              type: "starter_invitation",
-              title: "New county - early access",
-              description: "You're among the first neighbors here. Help shape this community",
-              label: "Pioneer",
-              icon: "sparkles",
-              gradient: "from-purple-950 via-slate-900 to-slate-950",
-            }
-          );
-        } else if (
-          composedCards.length > 0 &&
-          dealCards.length === 0 &&
-          composedCards.filter((c) => c.type === "local_stats").length === 1
-        ) {
-          // Only stats card exists (no deals), add one community invitation
-          composedCards.push({
-            id: "starter-first-post",
+            id: "starter-1",
             type: "starter_invitation",
-            title: "Share what's happening",
-            description: "Post a project update, ask for recommendations, or start a discussion",
+            title: "Start a Conversation",
+            description: "Be the first to post in your community.",
             label: "Get Started",
             icon: "message",
-            gradient: "from-emerald-950 via-slate-900 to-slate-950",
+            gradient: "from-blue-500/20 to-transparent",
           });
         }
 
         setCards(composedCards);
       })
-      .catch((e: any) => {
-        if (cancelled) return;
-        setError(e?.message ?? "Failed to load Snapshot");
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiUrl, communityStats]);
-
-  const onCardClick = (card: SnapshotCard) => {
-    if (card.type === "feed_filter" && onFilterChange && card.filterValue) {
-      onFilterChange(card.filterValue);
-    } else if (card.href) {
-      navigate(card.href);
-    }
-  };
+      .finally(() => setLoading(false));
+  }, [apiUrl]);
 
   const getCardIcon = (iconName?: string) => {
     switch (iconName) {
       case "users":
-        return <Users2 className="h-3.5 w-3.5" />;
-      case "zap":
-        return <Zap className="h-3.5 w-3.5" />;
+        return <Users2 className="w-4 h-4" />;
       case "message":
-        return <MessageSquare className="h-3.5 w-3.5" />;
+        return <MessageSquare className="w-4 h-4" />;
       case "sparkles":
-        return <Sparkles className="h-3.5 w-3.5" />;
-      case "trending":
-        return <TrendingUp className="h-3.5 w-3.5" />;
-      case "star":
-        return <Star className="h-3.5 w-3.5" />;
-      case "clock":
-        return <Clock className="h-3.5 w-3.5" />;
-      case "mappin":
-        return <MapPin className="h-3.5 w-3.5" />;
-      case "eye":
-        return <Eye className="h-3.5 w-3.5" />;
-      case "vault":
-        return <Vault className="h-3.5 w-3.5" />;
+        return <Sparkles className="w-4 h-4" />;
       default:
-        return <Tag className="h-3.5 w-3.5" />;
+        return <Tag className="w-4 h-4" />;
     }
   };
 
-  const renderCard = (card: SnapshotCard) => {
-    const isInvitation = card.type === "starter_invitation";
-    const isStats = card.type === "local_stats";
-    const isTradeDeal = card.type === "trade_deal";
-    const isFilter = card.type === "feed_filter";
-    const isActive = isFilter && card.filterValue === activeFilter;
-
-    return (
-      <div
-        key={card.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => onCardClick(card)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onCardClick(card);
-          }
-        }}
-        className={`
-          snap-start shrink-0 
-          w-[104px] sm:w-[120px]
-          h-[156px] sm:h-[168px]
-          rounded-2xl border 
-          ${isActive ? "border-ts-orange/30 ring-2 ring-ts-orange/70" : "border-white/10"}
-          ${card.gradient ? `bg-gradient-to-br ${card.gradient}` : "bg-black/30"}
-          hover:bg-tsCard/95 hover:border-white/10
-          transition-all shadow-lg
-          flex flex-col justify-between p-2 text-left 
-          ${card.href || isFilter ? "cursor-pointer" : "cursor-default"}
-          relative overflow-hidden
-        `}
-      >
-        {/* Background decoration for visual interest */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-
-        {/* Card header */}
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-tsCard/95 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/70">
-            {card.icon && <span className="text-ts-orange">{getCardIcon(card.icon)}</span>}
-            <span className="truncate">{card.label ?? "Snapshot"}</span>
-          </div>
-        </div>
-
-        {/* Card content */}
-        <div className="relative z-10 flex-1 flex flex-col justify-end gap-1.5">
-          <div className="text-[11px] sm:text-[12px] font-bold text-white leading-snug line-clamp-2">
-            {card.title}
-          </div>
-          <div className="text-[9px] sm:text-[10px] text-white/70 leading-tight line-clamp-2">
-            {card.description}
-          </div>
-        </div>
-
-        {/* Minimal footer */}
-        {isTradeDeal && card.canDirectConnect && (
-          <div className="relative z-10 mt-2">
-            <div className="text-[10px] text-ts-orange font-medium">Quick Connect</div>
-          </div>
-        )}
-        {showAuthorityLabels && card.authorityLabel && (
-          <div className="relative z-10 mt-1 rounded-md border border-white/10 bg-black/30 px-1.5 py-1 text-[9px] text-white/70 leading-tight line-clamp-2">
-            <span className="inline-flex items-center gap-1">
-              <Info className="h-3 w-3 shrink-0 text-white/60" />
-              <span>{card.authorityLabel}</span>
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <div className={["w-full px-2 pt-2 pb-3", className || ""].join(" ")}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-base font-bold text-white">Community Snapshot</div>
-        <button
-          type="button"
-          onClick={() => navigate("/trade-deals")}
-          className="text-xs text-white/60 hover:text-white transition-colors"
-        >
-          View all deals
+    <div className={cn("space-y-4", className)}>
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-sm font-bold text-white/80 uppercase tracking-wider">
+          Local Highlights
+        </h3>
+        <button className="text-xs font-bold text-ts-orange flex items-center gap-1 hover:underline">
+          View All <ChevronRight className="w-3 h-3" />
         </button>
       </div>
 
-      <div className="relative">
-        {loading && (
-          <div className="text-sm text-white/60 py-8 text-center">Loading snapshot...</div>
-        )}
+      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-1 px-1 snap-x">
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-40 h-56 bg-white/5 rounded-2xl animate-pulse shrink-0 border border-white/5"
+              />
+            ))
+          : cards.map((card) => (
+              <div
+                key={card.id}
+                onClick={() => card.href && navigate(card.href)}
+                className={cn(
+                  "snap-start shrink-0 w-40 h-56 rounded-2xl border border-white/5 bg-[#141414] p-4 flex flex-col justify-between transition-all hover:border-white/20 cursor-pointer group relative overflow-hidden",
+                  card.gradient && `bg-gradient-to-br ${card.gradient}`
+                )}
+              >
+                <div className="space-y-2 relative z-10">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/60 group-hover:text-ts-orange transition-colors">
+                    {getCardIcon(card.icon)}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-ts-orange/80">
+                      {card.label}
+                    </p>
+                    <h4 className="text-sm font-bold text-white leading-tight line-clamp-2">
+                      {card.title}
+                    </h4>
+                  </div>
+                </div>
 
-        {!loading && error && <div className="text-sm text-red-400 py-8 text-center">{error}</div>}
+                <p className="text-[11px] text-white/40 line-clamp-3 relative z-10">
+                  {card.description}
+                </p>
 
-        {!loading && !error && (
-          <div className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {cards.map((card) => renderCard(card))}
-          </div>
-        )}
+                {/* Decorative background element */}
+                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-ts-orange/5 rounded-full blur-2xl group-hover:bg-ts-orange/10 transition-all" />
+              </div>
+            ))}
       </div>
-
-      <div className="mt-3 border-b border-white/10" />
     </div>
   );
 };

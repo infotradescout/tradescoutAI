@@ -1,10 +1,12 @@
 import React from "react";
 import { useLocation, Link } from "wouter";
-import { Users2, Landmark, Target, MessageCircle } from "lucide-react";
+import { Users2, Landmark, Target, MessageCircle, Bell, Search, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { hasCountyContext, useLocationContext } from "@/hooks/useLocationContext";
 import { trackShellEvent, getDeviceType } from "@/lib/analytics";
 import { getUserLocationLabel } from "@/lib/copyHelpers";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export type CommunitySnapshotProps = {
   membersCount?: number;
@@ -100,87 +102,109 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
   }, [location, locationCtx, notificationsCount]);
 
   const activeHighlight = rotatingItems[highlightIndex] ?? rotatingItems[0];
+
   return (
-    <div className="flex flex-col w-full">
-      <div className="border-b border-white/10 bg-tsBg px-3 md:px-4 py-2 md:py-1 space-y-1 md:space-y-0.5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span
-              data-testid="community-shell-header-location"
-              className="text-xs font-semibold uppercase tracking-wide text-white/70 truncate"
-            >
-              {countyLabel}
-            </span>
-            <span className="text-white/40">•</span>
-            <span
-              data-testid="community-shell-header-section"
-              className="text-xs font-semibold uppercase tracking-wide text-white truncate"
-            >
-              {sectionLabel}
-            </span>
+    <div className="flex flex-col w-full min-h-screen bg-[#0A0A0A] text-white">
+      {/* Main Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          {/* Left: Logo & Location */}
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-ts-orange rounded-lg flex items-center justify-center font-bold text-black">
+                TS
+              </div>
+              <span className="hidden md:block font-bold text-lg tracking-tight">TradeScout</span>
+            </Link>
+
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
+              <Landmark className="w-3.5 h-3.5 text-ts-orange" />
+              <span className="text-xs font-medium text-white/80">{countyLabel}</span>
+            </div>
           </div>
-          <nav className="hidden md:flex items-center gap-3 text-[11px] text-white/60">
-            <Link href="/community-feed" className="hover:text-ts-orange transition-colors">
-              Community
-            </Link>
-            <span className="text-white/60">-</span>
-            <Link href="/groups" className="hover:text-ts-orange transition-colors">
-              Groups
-            </Link>
-            <span className="text-white/60">-</span>
-            <Link href="/marketplace" className="hover:text-ts-orange transition-colors">
-              Marketplace
-            </Link>
-            <span className="text-white/60">-</span>
-            <Link href="/direct-connect" className="hover:text-ts-orange transition-colors">
-              Direct Connect
-            </Link>
+
+          {/* Center: Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            {[
+              { label: "Community", href: "/community-feed" },
+              { label: "Groups", href: "/groups" },
+              { label: "Marketplace", href: "/marketplace" },
+              { label: "Direct Connect", href: "/direct-connect" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  location === item.href
+                    ? "bg-white/10 text-white"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
-        </div>
 
-        {showSnapshot && (
-          <div className="mt-0.5 text-[11px] text-white/60">
-            <div className="hidden md:flex items-center gap-3 min-w-0 rounded-full bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-3 py-1 border border-white/10">
-              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <Users2 className="h-3.5 w-3.5 text-white" />
-                <span className="truncate text-white">{membersLabel}</span>
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 md:gap-4">
+            <Button variant="ghost" size="icon" className="text-white/60 hover:text-white">
+              <Search className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="relative text-white/60 hover:text-white">
+              <Bell className="w-5 h-5" />
+              {notificationsCount > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-ts-orange rounded-full" />
+              )}
+            </Button>
+            <div className="h-8 w-[1px] bg-white/10 mx-1 hidden md:block" />
+            <Avatar className="h-8 w-8 border border-white/10">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback className="bg-ts-orange text-black text-xs font-bold">
+                {user?.name?.charAt(0) || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <Button variant="ghost" size="icon" className="md:hidden text-white/60">
+              <Menu className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Sub-header: Snapshot & Context */}
+      {showSnapshot && (
+        <div className="w-full bg-[#0F0F0F] border-b border-white/5 py-2">
+          <div className="container mx-auto px-4 flex items-center justify-between gap-4 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-4 whitespace-nowrap">
+              <div className="flex items-center gap-2 text-xs text-white/60">
+                <Users2 className="w-3.5 h-3.5" />
+                <span>{membersLabel}</span>
               </div>
-              <span className="text-white/60">-</span>
-              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <Landmark className="h-3.5 w-3.5 text-ts-orange" />
-                <span className="truncate text-white">County snapshot</span>
-              </div>
+              <div className="h-3 w-[1px] bg-white/10" />
               {activeHighlight && (
-                <>
-                  <span className="text-white/60">-</span>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {activeHighlight.icon}
-                    <span className="truncate text-white/70">{activeHighlight.label}</span>
-                  </div>
-                </>
+                <Link
+                  href={activeHighlight.href || "#"}
+                  className="flex items-center gap-2 text-xs text-ts-orange hover:underline transition-all"
+                >
+                  {activeHighlight.icon}
+                  <span>{activeHighlight.label}</span>
+                </Link>
               )}
             </div>
 
-            <div className="md:hidden mt-1 rounded-xl border border-white/10 bg-tsCard/95 px-3 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.16)]">
-              <div className="flex items-center gap-2 min-w-0">
-                <Users2 className="h-3.5 w-3.5 text-white shrink-0" />
-                <span className="truncate text-white">{membersLabel}</span>
-                <span className="text-white/60 shrink-0">-</span>
-                <Landmark className="h-3.5 w-3.5 text-ts-orange shrink-0" />
-                <span className="truncate text-white/70">County snapshot</span>
-              </div>
-              {activeHighlight && (
-                <div className="mt-1 flex items-center gap-1.5 min-w-0">
-                  {activeHighlight.icon}
-                  <span className="truncate text-white/70">{activeHighlight.label}</span>
-                </div>
-              )}
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                Current Section
+              </span>
+              <span className="text-xs font-semibold text-ts-orange px-2 py-0.5 bg-ts-orange/10 rounded border border-ts-orange/20">
+                {sectionLabel}
+              </span>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="w-full max-w-full overflow-x-hidden bg-tsBg">{children}</div>
+      {/* Main Content */}
+      <main className="flex-1 w-full max-w-full overflow-x-hidden">{children}</main>
     </div>
   );
 };
