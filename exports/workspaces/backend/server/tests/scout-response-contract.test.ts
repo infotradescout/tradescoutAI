@@ -21,13 +21,20 @@ describe("scout response contract guards", () => {
 
   it("locks Scout identity to TradeScout and blocks external reinterpretation leakage", () => {
     const brandGuard = read("server/scout/brandGuard.ts");
+    const route = read("server/routes/scout.ts");
 
     expect(brandGuard).toContain("TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE");
     expect(brandGuard).toContain("enforceTradeScoutIdentityBoundary");
+    expect(brandGuard).toContain(
+      "I'm Scout. Tell me what you need done, and I'll route the next step."
+    );
+    expect(brandGuard).not.toContain("I'm Scout inside TradeScout");
     expect(brandGuard).toContain("scout\\.com");
     expect(brandGuard).toContain("247sports");
     expect(brandGuard).toContain("athletic\\s+recruiting");
     expect(brandGuard).toContain("assuming\\s+this\\s+context");
+    expect(route).toContain("synthesized.message = TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE;");
+    expect(route).not.toContain("trimResponseToScreenFit(TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE)");
   });
 
   it("routes /api/scout responses through the response contract", () => {

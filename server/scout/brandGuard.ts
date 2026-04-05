@@ -79,7 +79,7 @@ export function hasExplicitExternalScoutReference(userText: string): boolean {
 }
 
 export const TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE =
-  "I'm Scout inside TradeScout. Tell me the local outcome you want to move, and I'll route the strongest next step.";
+  "I'm Scout. Tell me what you need done, and I'll route the next step.";
 
 export function enforceTradeScoutIdentityBoundary(
   userText: string,

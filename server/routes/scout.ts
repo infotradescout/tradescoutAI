@@ -3151,10 +3151,10 @@ router.post("/", async (req: Request, res: Response) => {
           synthesized.provider = synthesisResponse.provider;
         } catch (error) {
           console.error("[Scout] Brand-guard override synthesis failed", error);
-          synthesized.message = trimResponseToScreenFit(TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE);
+          synthesized.message = TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE;
         }
       } else {
-        synthesized.message = trimResponseToScreenFit(TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE);
+        synthesized.message = TRADE_SCOUT_IDENTITY_FALLBACK_MESSAGE;
       }
     }
 
