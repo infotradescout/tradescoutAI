@@ -41,6 +41,6 @@ describe("scout gemini fallback wiring contract", () => {
     expect(source).toContain('label: "Start or plan this project"');
     expect(source).toContain('to: "/project-tracker"');
     expect(source).toContain('intent: "home_project_decking"');
-    expect(source).toContain('sourceUsed: "deterministic_home_project_router"');
+    expect(source).toContain('sourceUsed: "decision_pipeline_home_project_router"');
   });
 });

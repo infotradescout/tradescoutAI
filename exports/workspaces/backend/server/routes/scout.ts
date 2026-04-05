@@ -82,6 +82,7 @@ import {
   shapeDealsForScout,
   type SourceConfidenceBand,
 } from "../scout/scoutDeterministicHelpers";
+import { buildDecisionPipelineBehaviorResponse } from "../scout/scoutBehaviorHandlers";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -2845,58 +2846,6 @@ router.post("/", async (req: Request, res: Response) => {
     const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
 
     // ==========================================================================
-    // AUTH PREFLIGHT (GUEST WRITE ACTIONS)
-    // ==========================================================================
-    // Enforce platform law: read-only global/community visibility is allowed, but write actions
-    // (posting/publishing) must be account-gated.
-    const isGuest = !userId;
-    const intentString = typeof intent === "string" ? intent : "";
-    const wantsCommunityWrite =
-      /^community_/i.test(intentString) ||
-      (/(post|publish|announce|share)/i.test(message) && /community/i.test(message));
-
-    if (isGuest && wantsCommunityWrite) {
-      const redirect = "/pre-scout-setup?mode=create";
-      const gated: ScoutResponse = {
-        message: trimResponseToScreenFit(
-          "To post or publish in Community, you'll need a TradeScout account.\n\nNext: create an account to continue."
-        ),
-        suggestedActions: ["Create account now", "Learn how TradeScout works", "Continue as guest"],
-        actions: [
-          {
-            type: "NAVIGATE",
-            label: "Create account",
-            to: redirect,
-            path: redirect,
-            primary: true as any,
-            why: "Posting is account-gated to protect users and prevent abuse.",
-          },
-        ],
-        sponsored: null,
-        metadata: {
-          intent: "auth_required",
-          redirect,
-        },
-      };
-
-      await syncObjectiveBestEffort({ intent: "auth_required" });
-      scoutTurnTelemetry.provider = "governor";
-      scoutTurnTelemetry.sourceUsed = "auth_preflight";
-      scoutTurnTelemetry.failureClass = "auth_required";
-      return res.json({
-        ...gated,
-        knowledge: {
-          layer: 0,
-          sources: ["Auth preflight"],
-          confidence: "high",
-        },
-        llmProvider: "governor",
-        promptVersion,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // ==========================================================================
     // GOVERNOR MODE: Situation-driven intelligence
     // ==========================================================================
     // Scout assesses the situation and decides whether to comply, defer,
@@ -3182,53 +3131,22 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     if (scaffoldDecision.type === "server_behavior_handler") {
-      const behaviorPathMap: Record<string, { path: string; label: string; message: string }> = {
-        provider_routing: {
-          path: "/offer-services",
-          label: "Open provider setup",
-          message: "I can route this through provider setup now.",
-        },
-        community_routing: {
-          path: "/community?compose=1",
-          label: "Open community composer",
-          message: "I can route this through community tools now.",
-        },
-        marketplace_routing: {
-          path: "/exchange",
-          label: "Open Exchange",
-          message: "I can route this through Exchange now.",
-        },
-        contractor_search_routing: {
-          path: "/direct-connect",
-          label: "Open Direct Connect",
-          message: "I can route this through local contractor discovery now.",
-        },
-        support_routing: {
-          path: "/support-tickets",
-          label: "Open Support Tickets",
-          message: "I can route this through support now.",
-        },
-      };
-
-      const handler = behaviorPathMap[scaffoldDecision.behaviorKey || ""];
+      const handler = buildDecisionPipelineBehaviorResponse({
+        behaviorKey: scaffoldDecision.behaviorKey || "",
+        message,
+        countyCode,
+        stateCode,
+      });
       if (handler) {
         const aiResponse: ScoutResponse = {
           message: trimResponseToScreenFit(handler.message),
-          suggestedActions: [handler.label],
-          actions: [
-            {
-              type: "NAVIGATE",
-              label: handler.label,
-              to: handler.path,
-              path: handler.path,
-              primary: true as any,
-            },
-          ],
+          suggestedActions: handler.suggestedActions,
+          actions: handler.actions as any,
           sponsored: null,
           metadata: {
             scaffoldDecision: scaffoldDecision.type,
             behaviorKey: scaffoldDecision.behaviorKey,
-            sourceUsed: "decision_pipeline_behavior_handler",
+            ...(handler.metadata || {}),
           },
         };
 
@@ -3462,57 +3380,6 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    const homeProjectRoute = maybeHandleHomeProjectRouting({
-      message,
-      countyCode,
-      stateCode,
-    });
-
-    if (homeProjectRoute) {
-      const aiResponse: ScoutResponse = {
-        message: prependLocalIntro(homeProjectRoute.message, {
-          countyCode,
-          stateCode,
-          historyLength: history.length,
-          communityPostCount,
-          contractorCount,
-        }),
-        suggestedActions: homeProjectRoute.suggestedActions,
-        actions: shapeActionsByConfidence(homeProjectRoute.actions as any, {
-          confidence: normalizeConfidenceLabel(governorDecision.confidence),
-          hasLocality: Boolean(countyCode || stateCode),
-          communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
-        }),
-        sponsored: null,
-        metadata: {
-          intent: homeProjectRoute.intent,
-          sourceUsed: "deterministic_home_project_router",
-          fallbackUsed: false,
-          confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
-          currentJobId: currentJobId || undefined,
-          resolvedContext,
-          decision: homeProjectRoute.metadata.decision,
-        },
-      };
-
-      await syncObjectiveBestEffort({ intent: homeProjectRoute.intent });
-      scoutTurnTelemetry.provider = "deterministic";
-      scoutTurnTelemetry.sourceUsed = "deterministic_home_project_router";
-      scoutTurnTelemetry.intent = homeProjectRoute.intent;
-      scoutTurnTelemetry.fallbackUsed = false;
-      return res.json({
-        ...aiResponse,
-        knowledge: {
-          layer: knowledge.layer,
-          sources: knowledge.sources,
-          confidence: knowledge.confidence,
-        },
-        llmProvider: "deterministic",
-        promptVersion,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
     const systemPromptWithLocalGuides = localGuideContext
       ? `${systemPrompt}${localGuideContext}`
       : systemPrompt;
@@ -3615,56 +3482,6 @@ router.post("/", async (req: Request, res: Response) => {
         "Help me improve this listing description to attract serious buyers",
         "Suggest a fair price range based on what I'm selling",
       ];
-    }
-
-    // Handle auth-required intent
-    if (synthesized.intent === "auth_required" && !userId) {
-      // Scout has determined user needs to create account
-      const aiResponse: ScoutResponse = {
-        message: prependLocalIntro(synthesized.message, {
-          countyCode,
-          stateCode,
-          historyLength: history.length,
-          communityPostCount,
-          contractorCount,
-        }),
-        suggestedActions: [
-          "Create account now",
-          "Learn more about TradeScout",
-          "Continue as guest",
-        ],
-        actions: [],
-        sponsored: null,
-        metadata: {
-          intent: synthesized.intent,
-          redirect: "/pre-scout-setup?mode=create",
-          sourceUsed: sourceAudit.sourceUsed,
-          attemptedSource: sourceAudit.attemptedSource,
-          fallbackUsed: Boolean(sourceAudit.fallbackUsed) || synthesized.provider === "fallback",
-          degradationReason: synthesized.degradationReason ?? sourceAudit.degradationReason,
-          confidenceBand: sourceAudit.confidenceBand,
-          resolvedContext,
-        },
-      };
-
-      await syncObjectiveBestEffort({ intent: synthesized.intent });
-      scoutTurnTelemetry.provider = synthesized.provider || "fallback";
-      scoutTurnTelemetry.sourceUsed = sourceAudit.sourceUsed;
-      scoutTurnTelemetry.fallbackUsed = Boolean(sourceAudit.fallbackUsed);
-      scoutTurnTelemetry.degradationReason =
-        synthesized.degradationReason ?? sourceAudit.degradationReason;
-      scoutTurnTelemetry.failureClass = "auth_required";
-      return res.json({
-        ...aiResponse,
-        knowledge: {
-          layer: knowledge.layer,
-          sources: knowledge.sources,
-          confidence: knowledge.confidence,
-        },
-        llmProvider: synthesized.provider || "fallback",
-        promptVersion,
-        timestamp: new Date().toISOString(),
-      });
     }
 
     // The synthesized answer is our response with suggestedActions.

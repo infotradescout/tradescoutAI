@@ -59,5 +59,8 @@ describe("scout response contract guards", () => {
     expect(route).toContain("decision_pipeline_behavior_handler");
     expect(route).toContain("decision_pipeline_explicit_navigation");
     expect(route).toContain("decision_pipeline_home_project_router");
+    expect(route).not.toContain('sources: ["Auth preflight"]');
+    expect(route).not.toContain("deterministic_home_project_router");
+    expect(route).not.toContain('synthesized.intent === "auth_required"');
   });
 });
