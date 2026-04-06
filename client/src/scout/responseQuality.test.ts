@@ -15,14 +15,14 @@ describe("enforceResponseQualityContract", () => {
     expect(result).toContain("Open Direct Connect now");
   });
 
-  it("adds explicit next step when actions exist but text is not actionable", () => {
+  it("does not inject generic narration when actions exist but text is not actionable", () => {
     const result = enforceResponseQualityContract({
       userMessage: "Need a roofer",
       content: "I found strong options in your area.",
       hasActionOptions: true,
     });
 
-    expect(result).toContain("Your next step is ready.");
+    expect(result).toBe("I found strong options in your area.");
     expect(result.toLowerCase()).not.toContain("want me to run that now");
   });
 
@@ -69,6 +69,20 @@ describe("enforceResponseQualityContract", () => {
 
     const repeatedCount = (result.match(/Next step is ready\./g) || []).length;
     expect(repeatedCount).toBe(1);
+  });
+
+  it("collapses semantic duplicates, not only exact duplicates", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "roof leak",
+      content: "Next step is ready now! Next step is ready, now.",
+      hasActionOptions: true,
+    });
+
+    const compact = result.toLowerCase();
+    const semanticRepeats =
+      (compact.match(/next step is ready now/g) || []).length +
+      (compact.match(/next step is ready, now/g) || []).length;
+    expect(semanticRepeats).toBe(1);
   });
 
   it("does not force generic action copy on recovery/system messages", () => {

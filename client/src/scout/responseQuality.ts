@@ -71,6 +71,18 @@ function hasBlockedCopy(input: string): boolean {
   return BLOCKED_COPY_PATTERNS.some((pattern) => pattern.test(input));
 }
 
+function normalizeSemanticSentence(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isDuplicateMeaning(a: string, b: string): boolean {
+  return normalizeSemanticSentence(a) === normalizeSemanticSentence(b);
+}
+
 function collapseRepeatedSentenceFragments(input: string): string {
   const sentences = input
     .split(/(?<=[.!?])\s+/)
@@ -80,13 +92,10 @@ function collapseRepeatedSentenceFragments(input: string): string {
   if (sentences.length <= 1) return input;
 
   const deduped: string[] = [];
-  let previousNormalized = "";
 
   for (const sentence of sentences) {
-    const normalized = sentence.toLowerCase();
-    if (normalized === previousNormalized) continue;
+    if (deduped.some((existing) => isDuplicateMeaning(existing, sentence))) continue;
     deduped.push(sentence);
-    previousNormalized = normalized;
   }
 
   return deduped.join(" ");
@@ -95,9 +104,11 @@ function collapseRepeatedSentenceFragments(input: string): string {
 function appendFollowUpQuestion(input: string, hasActionOptions: boolean): string {
   const trimmed = collapseWhitespace(input);
   if (!trimmed)
-    return hasActionOptions ? "Your next step is ready." : "I can keep moving this forward.";
+    return hasActionOptions
+      ? "Start a request below."
+      : "I can still move this forward with a direct next step.";
   if (trimmed.includes("?")) return trimmed;
-  return hasActionOptions ? trimmed : `${trimmed} I can keep moving this forward.`;
+  return hasActionOptions ? trimmed : `${trimmed} I can still move this forward.`;
 }
 
 function forceConciseAnswer(userMessage: string, content: string): string {
@@ -138,7 +149,7 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   }
 
   if (hasActionOptions && !hasActionableLanguage(output)) {
-    output = `${output} Your next step is ready.`;
+    return collapseWhitespace(output);
   }
 
   output = appendFollowUpQuestion(output, hasActionOptions);
