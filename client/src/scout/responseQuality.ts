@@ -71,14 +71,33 @@ function hasBlockedCopy(input: string): boolean {
   return BLOCKED_COPY_PATTERNS.some((pattern) => pattern.test(input));
 }
 
+function collapseRepeatedSentenceFragments(input: string): string {
+  const sentences = input
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 0);
+
+  if (sentences.length <= 1) return input;
+
+  const deduped: string[] = [];
+  let previousNormalized = "";
+
+  for (const sentence of sentences) {
+    const normalized = sentence.toLowerCase();
+    if (normalized === previousNormalized) continue;
+    deduped.push(sentence);
+    previousNormalized = normalized;
+  }
+
+  return deduped.join(" ");
+}
+
 function appendFollowUpQuestion(input: string, hasActionOptions: boolean): string {
   const trimmed = collapseWhitespace(input);
   if (!trimmed)
-    return hasActionOptions ? "I can run the next step now. Want me to?" : "Want me to keep going?";
+    return hasActionOptions ? "Your next step is ready." : "I can keep moving this forward.";
   if (trimmed.includes("?")) return trimmed;
-  return hasActionOptions
-    ? `${trimmed} Want me to run that now?`
-    : `${trimmed} Want me to keep going?`;
+  return hasActionOptions ? trimmed : `${trimmed} I can keep moving this forward.`;
 }
 
 function forceConciseAnswer(userMessage: string, content: string): string {
@@ -103,6 +122,7 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
 
   let output = collapseWhitespace(content || "");
   output = stripFiller(output);
+  output = collapseRepeatedSentenceFragments(output);
   output = forceConciseAnswer(userMessage, output);
 
   if (!output) {
@@ -118,7 +138,7 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   }
 
   if (hasActionOptions && !hasActionableLanguage(output)) {
-    output = `${output} I can run the next step now.`;
+    output = `${output} Your next step is ready.`;
   }
 
   output = appendFollowUpQuestion(output, hasActionOptions);

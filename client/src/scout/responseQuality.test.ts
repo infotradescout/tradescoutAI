@@ -22,7 +22,8 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: true,
     });
 
-    expect(result).toContain("I can run the next step now.");
+    expect(result).toContain("Your next step is ready.");
+    expect(result.toLowerCase()).not.toContain("want me to run that now");
   });
 
   it("forces non-dead-end fallback when banned dead-end language appears", () => {
@@ -57,6 +58,17 @@ describe("enforceResponseQualityContract", () => {
     const questionCount = (result.match(/\?/g) || []).length;
     expect(questionCount).toBe(1);
     expect(result).toContain("Want me to open Direct Connect now?");
+  });
+
+  it("collapses repeated next-step sentence spam", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "roofing repair",
+      content: "Next step is ready. Next step is ready. Next step is ready.",
+      hasActionOptions: true,
+    });
+
+    const repeatedCount = (result.match(/Next step is ready\./g) || []).length;
+    expect(repeatedCount).toBe(1);
   });
 
   it("does not force generic action copy on recovery/system messages", () => {

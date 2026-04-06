@@ -4335,6 +4335,9 @@ router.post("/", async (req: Request, res: Response) => {
         _guardContext: guardContext, // Internal: used by client/server for recovery
       })) || [];
 
+    const primaryGuardedAction = guardedActions.find((action: any) => Boolean(action?.primary));
+    const hasPrimaryPrefillAction = primaryGuardedAction?.type === "PREFILL_INPUT";
+
     try {
       const generatedEvents = guardedActions
         .filter((action: any) => Boolean(action?.primary))
@@ -4383,6 +4386,49 @@ router.post("/", async (req: Request, res: Response) => {
     if (scoutTurnTelemetry.provider === "fallback" && scoutTurnTelemetry.failureClass === "none") {
       scoutTurnTelemetry.failureClass = "provider_fallback";
     }
+
+    if (hasPrimaryPrefillAction) {
+      const strictMessage = trimResponseToScreenFit(
+        String(aiResponse.message || finalMessage || "").trim()
+      );
+      const lockedMessage =
+        strictMessage.length > 0
+          ? strictMessage
+          : "I prepared your next step with the details ready to review.";
+
+      console.log("FINAL RESPONSE", {
+        hasAction: guardedActions.length > 0,
+        primaryType: primaryGuardedAction?.type || null,
+      });
+
+      return res.json({
+        message: lockedMessage,
+        suggestedActions: aiResponse.suggestedActions ?? [],
+        actions: guardedActions,
+        actionResults: [],
+        overrideOption: aiResponse.overrideOption,
+        frame: aiResponse.frame,
+        workingContext: aiResponse.workingContext,
+        sponsored: aiResponse.sponsored ?? null,
+        publicEntities: aiResponse.publicEntities ?? [],
+        ctaHints: aiResponse.ctaHints ?? [],
+        metadata: safeMetadata,
+        guardContext: {
+          canRetry: true,
+          recoveryAvailable: true,
+        },
+        knowledge: {
+          layer: knowledge.layer,
+          sources: responseKnowledgeSources,
+          confidence: knowledge.confidence,
+        },
+        llmProvider: synthesized.provider || "fallback",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+        onboarding: onboardingMeta.onboardingQuestion ? onboardingMeta : undefined,
+      });
+    }
+
     res.json({
       message: finalMessage,
       suggestedActions: aiResponse.suggestedActions ?? [],

@@ -47,6 +47,29 @@ function assertPrimaryActionContract(input: {
 }
 
 describe("scout primary action contract", () => {
+  it("maps roofing repair to direct_connect_request prefill without overwrite phrases", () => {
+    const actions = applyProviderBehaviorOwnership({
+      actions: [],
+      intentCategory: "provider_search",
+      intentSlug: "roofing",
+      message: "roofing repair",
+      countyCode: "Orange",
+      stateCode: "FL",
+      confidenceBand: "high",
+    });
+
+    const primary = actions.find((a) => a.primary);
+    expect(primary).toBeDefined();
+    expect(primary?.type).toBe("PREFILL_INPUT");
+    expect(primary?.payload?.target).toBe("direct_connect_request");
+
+    const renderedText =
+      `${primary?.label || ""} ${primary?.subtitle || ""} ${primary?.prompt || ""}`.toLowerCase();
+    expect(renderedText).not.toContain("next step is ready");
+    expect(renderedText).not.toContain("want me to");
+    expect(renderedText).not.toContain("should i");
+  });
+
   it("maps ac repair to direct_connect_request prefill without permission language", () => {
     const actions = applyProviderBehaviorOwnership({
       actions: [],

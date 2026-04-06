@@ -56,4 +56,38 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain("scout-evidence-strip");
     expect(html).not.toContain("Evidence:");
   });
+
+  it("renders action surfaces even when controller extras are disabled", () => {
+    const assistantMessage: ScoutMessage = {
+      id: "a_actions",
+      role: "assistant",
+      content: "I prepared your next step.",
+      timestamp: new Date().toISOString(),
+      clusters: [
+        {
+          id: "server-actions",
+          title: "Actions",
+          kind: "generic",
+          actions: [
+            {
+              type: "PREFILL_INPUT",
+              label: "Review and send",
+              payload: {
+                target: "direct_connect_request",
+                prefill: {
+                  scope: "roof repair",
+                },
+              },
+              primary: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    const html = renderThread([assistantMessage], false);
+
+    expect(html).toContain("Next steps");
+    expect(html).toContain("Review and send");
+  });
 });

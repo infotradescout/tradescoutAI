@@ -178,7 +178,7 @@ function MessageExtras({
     msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage)
   );
 
-  const [controllerOpen, setControllerOpen] = React.useState(false);
+  const [controllerOpen, setControllerOpen] = React.useState(() => !showControllerExtras);
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
 
@@ -206,10 +206,8 @@ function MessageExtras({
     return clusters.slice(0, 2);
   }, [controllerShowAll, msg.clusters]);
 
-  const showControllerSections = showControllerExtras;
   const hasAnything =
-    (showControllerSections && (hasActionChips || hasClusters || hasOverride || hasSuggestions)) ||
-    hasOnboardingPrompt;
+    hasActionChips || hasClusters || hasOverride || hasSuggestions || hasOnboardingPrompt;
 
   if (!hasAnything) return null;
 
@@ -217,7 +215,7 @@ function MessageExtras({
     <div className="mt-2 space-y-2">
       {/* Keep the chat bubble clean: render actions/suggestions as separate blocks. */}
 
-      {showControllerSections && (hasActionChips || hasClusters || hasOverride) && (
+      {(hasActionChips || hasClusters || (showControllerExtras && hasOverride)) && (
         <div
           className="rounded-lg border p-2"
           style={{
@@ -327,7 +325,7 @@ function MessageExtras({
                 </div>
               )}
 
-              {msg.overrideOption && (
+              {showControllerExtras && msg.overrideOption && (
                 <div
                   className="rounded-lg border border-dashed p-3"
                   style={{
@@ -358,7 +356,7 @@ function MessageExtras({
         </div>
       )}
 
-      {showControllerSections && msg.suggestedActions && msg.suggestedActions.length > 0 && (
+      {msg.suggestedActions && msg.suggestedActions.length > 0 && (
         <div
           className="rounded-lg border p-2"
           style={{
@@ -825,8 +823,8 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               msg={msg}
               isUser={isUser}
               showControllerExtras={showControllerExtras}
-              onAction={showControllerExtras ? onAction : undefined}
-              onQuickAction={showControllerExtras ? onQuickAction : undefined}
+              onAction={onAction}
+              onQuickAction={onQuickAction}
               onOverride={onOverride}
               overridePendingScope={overridePendingScope}
               onSendMessage={onSendMessage}
