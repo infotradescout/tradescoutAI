@@ -12,8 +12,8 @@ export function buildFallbackSynthesis(request: NormalizedScoutRequest): ScoutSy
   const hasQuestion = request.message.includes("?");
   return {
     message: hasQuestion
-      ? "I can help with that. Want me to route your next best step now?"
-      : "I can help move this forward. Want me to route your next best step now?",
+      ? "I can help with that. Your next best step is ready."
+      : "I can help move this forward. Your next best step is ready.",
     provider: "fallback",
     intent: request.intent,
     suggestedActions: ["Route my next step"],

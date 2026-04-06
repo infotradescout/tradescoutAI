@@ -10,7 +10,7 @@ describe("ScoutToneAwareBuilder", () => {
 
     expect(wrapped.toLowerCase()).toContain("quick reset");
     expect(wrapped.toLowerCase()).toContain("harris county");
-    expect(wrapped).toContain("?");
+    expect(wrapped.toLowerCase()).toContain("routing one concrete next step now");
   });
 
   it("builds message with community tone metadata", () => {
@@ -57,7 +57,7 @@ describe("ScoutToneAwareBuilder", () => {
       message: "Signal confidence is low",
     });
 
-    expect(result.message.includes("?")).toBe(true);
+    expect(result.message.toLowerCase()).toContain("next step is ready now");
   });
 
   it("keeps blocked_action from forced question append", () => {
@@ -89,7 +89,7 @@ describe("ScoutToneAwareBuilder", () => {
 
   it("scores strong tone messages higher than robotic ones", () => {
     const strong = ScoutToneAwareBuilder.evaluateToneConsistency(
-      "Keep this visible and accountable, not anonymous with people in your area. Want me to route next step now?"
+      "Keep this visible and accountable, not anonymous with people in your area. Next step is ready now."
     );
     const weak = ScoutToneAwareBuilder.evaluateToneConsistency(
       "As an AI system failure occurred and unable to process your request."

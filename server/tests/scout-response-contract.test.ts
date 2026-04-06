@@ -105,9 +105,7 @@ describe("scout response contract guards", () => {
     expect(communityBehaviorOwner).toContain("visibility");
     expect(communityBehaviorOwner).toContain("confidenceBand");
     expect(communityBehaviorOwner).toContain("confirmRequiredFields");
-    expect(route).toContain(
-      "confidenceBand: normalizeConfidenceLabel(governorDecision.confidence)"
-    );
+    expect(route).toContain("confidenceBand: routingConfidenceBand");
     expect(route).toContain('from "../scout/scoutMarketplaceBehaviorOwner"');
     expect(route).not.toContain("function buildExchangeListingDraft(");
     expect(route).not.toContain("Exchange listing navigation failed");
@@ -124,9 +122,7 @@ describe("scout response contract guards", () => {
     expect(marketplaceBehaviorOwner).toContain("description");
     expect(marketplaceBehaviorOwner).toContain("confidenceBand");
     expect(marketplaceBehaviorOwner).toContain("confirmRequiredFields");
-    expect(route).toContain(
-      "confidenceBand: normalizeConfidenceLabel(governorDecision.confidence)"
-    );
+    expect(route).toContain("confidenceBand: routingConfidenceBand");
     expect(route).toContain('from "../scout/scoutProviderBehaviorOwner"');
     expect(route).not.toContain("const shouldPairHireDIY =");
     expect(providerBehaviorOwner).toContain("export function applyProviderBehaviorOwnership");
@@ -142,15 +138,17 @@ describe("scout response contract guards", () => {
     expect(route).toContain("message,");
     expect(route).toContain("countyCode,");
     expect(route).toContain("stateCode,");
-    expect(route).toContain(
-      "confidenceBand: normalizeConfidenceLabel(governorDecision.confidence)"
-    );
+    expect(route).toContain("confidenceBand: routingConfidenceBand");
     expect(route).toContain('from "../scout/scoutSupportBehaviorOwner"');
     expect(route).not.toContain("const isCommunityVaultTopic =");
     expect(supportBehaviorOwner).toContain("export function applySupportBehaviorOwnership");
-    expect(route).toContain(
-      "if (isIntroQuestion(message) && !hasExplicitExternalScoutReference(message))"
-    );
+    expect(route).toContain("!isClearProviderServiceIntent(message)");
+    expect(route).toContain("function isClearProviderServiceIntent(message: string): boolean");
+    expect(route).toContain("ac\\s+repair");
+    expect(route).toContain("const providerIntentCategory = forceProviderPath");
+    expect(route).toContain('"provider_search"');
+    expect(route).toContain("const routingConfidenceBand = forceProviderPath");
+    expect(route).toContain('? "high"');
     expect(route).toContain("/^\\s*scout\\s*[?.!]*\\s*$/i");
     expect(route).toContain("/help\\s+me\\s+with\\s+scout/i");
     expect(route).toContain("/what\\s+do\\s+you\\s+need\\s+done/i");

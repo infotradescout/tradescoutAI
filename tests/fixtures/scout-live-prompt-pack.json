@@ -1,0 +1,81 @@
+{
+  "name": "scout-live-prompt-pack",
+  "version": "2026-04-05",
+  "prompts": [
+    {
+      "id": "P01",
+      "ownerTarget": "direct_connect_request",
+      "text": "I need someone to fix my roof leak"
+    },
+    {
+      "id": "P02",
+      "ownerTarget": "direct_connect_request",
+      "text": "AC not cooling, need help today"
+    },
+    {
+      "id": "P03",
+      "ownerTarget": "direct_connect_request",
+      "text": "how do I fix a broken fence"
+    },
+    {
+      "id": "P04",
+      "ownerTarget": "direct_connect_request",
+      "text": "kitchen sink backing up and water is coming up"
+    },
+    {
+      "id": "P05",
+      "ownerTarget": "direct_connect_request",
+      "text": "electric panel smells burnt, who can check this now"
+    },
+    {
+      "id": "P06",
+      "ownerTarget": "exchange_listing",
+      "text": "sell my used lawn mower"
+    },
+    {
+      "id": "P07",
+      "ownerTarget": "exchange_listing",
+      "text": "looking to buy a trailer"
+    },
+    {
+      "id": "P08",
+      "ownerTarget": "exchange_listing",
+      "text": "got tools for sale"
+    },
+    {
+      "id": "P09",
+      "ownerTarget": "exchange_listing",
+      "text": "need to sell a pressure washer this week"
+    },
+    {
+      "id": "P10",
+      "ownerTarget": "exchange_listing",
+      "text": "where can I find a used dump trailer near me"
+    },
+    {
+      "id": "P11",
+      "ownerTarget": "community_post",
+      "text": "anyone know a good plumber in my area"
+    },
+    {
+      "id": "P12",
+      "ownerTarget": "community_post",
+      "text": "power is out on my street"
+    },
+    {
+      "id": "P13",
+      "ownerTarget": "community_post",
+      "text": "best place to get crawfish nearby"
+    },
+    {
+      "id": "P14",
+      "ownerTarget": "community_post",
+      "text": "who has used a reliable roofer around here lately"
+    },
+    {
+      "id": "P15",
+      "ownerTarget": "community_post",
+      "text": "neighborhood water pressure is low, anyone else seeing this"
+    }
+  ]
+}

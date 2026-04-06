@@ -115,7 +115,7 @@ export class ScoutToneAwareBuilder {
     return normalizeWhitespace(
       `Quick reset: ${base.replace(/[.!]+$/g, "")}. ` +
         `Let's keep this ${COMMUNITY_TONE.transparency} with ${COMMUNITY_TONE.accountability} signals ${locality}. ` +
-        `Want me to route you to one concrete next step now?`
+        `Routing one concrete next step now.`
     );
   }
 
@@ -259,7 +259,7 @@ export class ScoutToneAwareBuilder {
   private static ensureHumanFeel(message: string, scenario: ToneScenario): string {
     let next = normalizeWhitespace(message);
     if (!hasQuestion(next) && scenario !== "blocked_action") {
-      next = `${next} Want me to route the next step now?`;
+      next = `${next} Next step is ready now.`;
     }
 
     if (next.length > 360) {

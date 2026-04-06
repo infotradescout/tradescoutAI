@@ -7,8 +7,7 @@ type FinalizeOptions = {
   requestMessage?: string | null;
 };
 
-const DEFAULT_FALLBACK_MESSAGE =
-  "I can still help you move forward. Want me to route your next best step now?";
+const DEFAULT_FALLBACK_MESSAGE = "I can still help you move forward. Your next best step is ready.";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";

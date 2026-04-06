@@ -1463,6 +1463,26 @@ function isTaskOrProblemIntent(message: string): boolean {
   );
 }
 
+function isClearProviderServiceIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+
+  const explicitPhrases =
+    /(ac\s+repair|roof\s+leak|broken\s+pipe|not\s+cooling|need\s+help\s+today)/i;
+  if (explicitPhrases.test(lower)) return true;
+
+  const hasTradeSurface =
+    /(ac\b|hvac|air\s*condition|furnace|roof|roofer|shingle|gutter|plumb|pipe|drain|toilet|faucet|electri|panel|breaker|outlet|water\s*heater|drywall|floor|tile|carpet|garage\s*door|septic|mold)/i.test(
+      lower
+    );
+
+  const hasServiceNeed =
+    /(repair|fix|install|replace|broken|not\s+working|stopped\s+working|need\s+someone|need\s+help|urgent|asap|today|leak)/i.test(
+      lower
+    );
+
+  return hasTradeSurface && hasServiceNeed;
+}
+
 function isDealHelpfulForTask(message: string): boolean {
   return /(materials|supplies|lumber|roofing|plumbing|electrical|hvac|concrete|windows|insulation)/i.test(
     message
@@ -2558,7 +2578,11 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     // SPECIAL HANDLING: Detect intro/overview questions and use comprehensive synthesis
-    if (isIntroQuestion(message) && !hasExplicitExternalScoutReference(message)) {
+    if (
+      isIntroQuestion(message) &&
+      !hasExplicitExternalScoutReference(message) &&
+      !isClearProviderServiceIntent(message)
+    ) {
       try {
         const synthesisResponse = await generateSmartSynthesis(message, geminiClient, llmProviders);
         await syncObjectiveBestEffort({ intent });
@@ -3477,6 +3501,14 @@ router.post("/", async (req: Request, res: Response) => {
         aiResponse.message = trimResponseToScreenFit(`${aiResponse.message}\n\n${dcPrompt}`);
       }
 
+      const forceProviderPath = isClearProviderServiceIntent(message);
+      const routingConfidenceBand = forceProviderPath
+        ? "high"
+        : normalizeConfidenceLabel(governorDecision.confidence);
+      const providerIntentCategory = forceProviderPath
+        ? "provider_search"
+        : (synthesized as any)?.intent?.category;
+
       // Delegate rich community question/welcome ownership to a dedicated owner module.
       const communityBehavior = applyCommunityBehaviorOwnership({
         userId,
@@ -3488,7 +3520,7 @@ router.post("/", async (req: Request, res: Response) => {
         lowConfidenceForLocal,
         communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
         countyCode,
-        confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
+        confidenceBand: routingConfidenceBand,
         wantsWelcomeDraft,
         welcomeDraft:
           userId && wantsWelcomeDraft
@@ -3502,7 +3534,7 @@ router.post("/", async (req: Request, res: Response) => {
         userId,
         wantsExchangeListingDraft,
         canPostMarketplaceItem: capabilities.canPostMarketplaceItem(),
-        confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
+        confidenceBand: routingConfidenceBand,
         message,
         userRecord,
         countyCode,
@@ -3527,17 +3559,17 @@ router.post("/", async (req: Request, res: Response) => {
 
       actions = applyProviderBehaviorOwnership({
         actions,
-        intentCategory: (synthesized as any)?.intent?.category,
+        intentCategory: providerIntentCategory,
         intentSlug: (synthesized as any)?.intent?.slug,
         message,
         countyCode,
         stateCode,
-        confidenceBand: normalizeConfidenceLabel(governorDecision.confidence),
+        confidenceBand: routingConfidenceBand,
       }) as ScoutClientAction[];
 
       // Confidence-shaped action guardrail + community bias
       actions = shapeActionsByConfidence(actions, {
-        confidence: normalizeConfidenceLabel(governorDecision.confidence),
+        confidence: routingConfidenceBand,
         hasLocality: Boolean(countyCode || stateCode),
         communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
       });
@@ -3552,7 +3584,7 @@ router.post("/", async (req: Request, res: Response) => {
       // Ensure actions always exist; if trimming removed all, re-seed
       if (!actions || actions.length === 0) {
         actions = shapeActionsByConfidence([], {
-          confidence: normalizeConfidenceLabel(governorDecision.confidence),
+          confidence: routingConfidenceBand,
           hasLocality: Boolean(countyCode || stateCode),
           communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
         });
