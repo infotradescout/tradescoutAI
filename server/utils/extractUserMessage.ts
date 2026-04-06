@@ -52,7 +52,7 @@ const LEAKAGE_PATTERNS = [
   /^thought process:/im,
 ];
 
-const FALLBACK_MESSAGE = "Let's keep this simple and local. The next step is ready right now.";
+const FALLBACK_MESSAGE = "Let's keep this simple and local.";
 
 /**
  * Extract user-facing message from raw model output.

@@ -94,6 +94,76 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
   }
 }
 
+function buildStructuredPrefillRoute(action: ScoutAction): string | null {
+  const payload = action.payload ?? {};
+  const routeCandidate =
+    (typeof action.to === "string" && action.to.trim()) ||
+    (typeof action.path === "string" && action.path.trim()) ||
+    (typeof payload.route === "string" && (payload.route as string).trim()) ||
+    "";
+
+  if (!routeCandidate) return null;
+
+  const target = typeof payload.target === "string" ? payload.target : "";
+  const prefill =
+    payload.prefill && typeof payload.prefill === "object" && !Array.isArray(payload.prefill)
+      ? (payload.prefill as Record<string, unknown>)
+      : null;
+
+  if (!prefill) return routeCandidate;
+
+  const params = new URLSearchParams();
+
+  if (target === "direct_connect_request") {
+    const scope = typeof prefill.scope === "string" ? prefill.scope.trim() : "";
+    const jobType = typeof prefill.jobType === "string" ? prefill.jobType.trim() : "";
+    const urgency = typeof prefill.urgency === "string" ? prefill.urgency.trim() : "";
+
+    if (scope) {
+      params.set("title", jobType ? `${jobType} request` : "Service request");
+      params.set("description", scope);
+    }
+    if (urgency) params.set("urgency", urgency);
+
+    const base = routeCandidate.includes("/post") ? routeCandidate : "/direct-connect/post";
+    const query = params.toString();
+    return query ? `${base}?${query}` : base;
+  }
+
+  if (target === "exchange_listing") {
+    const title = typeof prefill.title === "string" ? prefill.title.trim() : "";
+    const description = typeof prefill.description === "string" ? prefill.description.trim() : "";
+    const location = typeof prefill.location === "string" ? prefill.location.trim() : "";
+    const price =
+      typeof prefill.price === "number"
+        ? prefill.price
+        : typeof prefill.price === "string"
+          ? Number(prefill.price)
+          : NaN;
+
+    params.set("tab", "sell");
+    if (title) params.set("title", title);
+    if (description) params.set("description", description);
+    if (location) params.set("loc", location);
+    if (Number.isFinite(price) && price > 0) params.set("price", String(price));
+
+    const query = params.toString();
+    return query ? `/exchange?${query}` : "/exchange?tab=sell";
+  }
+
+  if (target === "community_post") {
+    const title = typeof prefill.title === "string" ? prefill.title.trim() : "";
+    const body = typeof prefill.body === "string" ? prefill.body.trim() : "";
+    const text = [title, body].filter(Boolean).join("\n\n");
+    params.set("compose", "1");
+    if (text) params.set("prefill", text);
+    const query = params.toString();
+    return query ? `/community?${query}` : "/community?compose=1";
+  }
+
+  return routeCandidate;
+}
+
 async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutActionHelpers) {
   switch (action.type) {
     case "NAVIGATE": {
@@ -151,6 +221,13 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     case "PREFILL_INPUT":
       if (typeof action.payload?.text === "string") {
         helpers.prefillInput(action.payload.text as string);
+      }
+
+      {
+        const destination = buildStructuredPrefillRoute(action);
+        if (destination) {
+          helpers.navigate(destination);
+        }
       }
       return;
 

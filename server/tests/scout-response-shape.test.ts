@@ -4,7 +4,7 @@ import { ensureFollowUpQuestion } from "../scout/responseShape";
 describe("ensureFollowUpQuestion", () => {
   it("adds follow-up question when none exists", () => {
     const result = ensureFollowUpQuestion("I found the best path for your request.");
-    expect(result).toBe("I found the best path for your request. Next step is ready.");
+    expect(result).toBe("I found the best path for your request.");
   });
 
   it("preserves existing questions without duplication", () => {

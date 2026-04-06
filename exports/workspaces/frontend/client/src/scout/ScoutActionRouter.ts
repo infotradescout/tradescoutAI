@@ -21,6 +21,43 @@ type GuardedActionResponse = {
   nextAction?: ScoutAction;
 };
 
+function buildPrefillInputRoute(action: ScoutAction): string | null {
+  const prefill = action.payload?.prefill as Record<string, unknown> | undefined;
+  if (!prefill || typeof prefill !== "object") return null;
+
+  const kind = typeof prefill.kind === "string" ? prefill.kind : "";
+  const title = typeof prefill.title === "string" ? prefill.title.trim() : "";
+  const description = typeof prefill.description === "string" ? prefill.description.trim() : "";
+
+  if (kind === "direct_connect_request") {
+    const params = new URLSearchParams();
+    if (title) params.set("title", title);
+    if (description) params.set("description", description);
+    return params.toString() ? `/direct-connect/post?${params.toString()}` : "/direct-connect/post";
+  }
+
+  if (kind === "exchange_listing") {
+    const tab = typeof prefill.tab === "string" ? prefill.tab.trim() : "sell";
+    const params = new URLSearchParams();
+    params.set("tab", tab || "sell");
+    if (title) params.set("title", title);
+    if (description) params.set("description", description);
+    return `/exchange?${params.toString()}`;
+  }
+
+  if (kind === "community_post") {
+    const params = new URLSearchParams();
+    params.set("compose", "1");
+    if (title || description) {
+      const text = [title, description].filter(Boolean).join("\n\n");
+      if (text) params.set("prefill", text);
+    }
+    return `/community?${params.toString()}`;
+  }
+
+  return null;
+}
+
 function isSensitiveScoutAction(action: ScoutAction): boolean {
   switch (action.type) {
     case "SEND_ADMIN_BROADCAST":
@@ -151,6 +188,13 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     case "PREFILL_INPUT":
       if (typeof action.payload?.text === "string") {
         helpers.prefillInput(action.payload.text as string);
+        return;
+      }
+      {
+        const route = buildPrefillInputRoute(action);
+        if (route) {
+          helpers.navigate(route);
+        }
       }
       return;
 

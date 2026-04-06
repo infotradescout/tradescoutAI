@@ -522,11 +522,15 @@ function DirectConnectRequestComposer({
   prefillTargetUserId,
   prefillTargetName,
   prefillSource,
+  prefillTitle,
+  prefillDescription,
 }: {
   defaultCountyFips?: string;
   prefillTargetUserId?: string;
   prefillTargetName?: string;
   prefillSource?: string;
+  prefillTitle?: string;
+  prefillDescription?: string;
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -543,13 +547,15 @@ function DirectConnectRequestComposer({
     | "buy_sell"
     | "other"
   >("service_request");
-  const [title, setTitle] = useState(() =>
-    initialTargetName ? `Request for ${initialTargetName}` : ""
+  const [title, setTitle] = useState(
+    () => prefillTitle?.trim() || (initialTargetName ? `Request for ${initialTargetName}` : "")
   );
-  const [description, setDescription] = useState(() =>
-    initialTargetName
-      ? `This request started from Community and is intended for ${initialTargetName}.`
-      : ""
+  const [description, setDescription] = useState(
+    () =>
+      prefillDescription?.trim() ||
+      (initialTargetName
+        ? `This request started from Community and is intended for ${initialTargetName}.`
+        : "")
   );
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
@@ -2604,11 +2610,15 @@ export default function DirectConnectShell() {
     const targetUserId = params.get("target") || undefined;
     const targetName = params.get("targetName") || undefined;
     const source = params.get("source") || undefined;
+    const title = params.get("title") || undefined;
+    const description = params.get("description") || undefined;
     return {
       countyFips,
       targetUserId,
       targetName,
       source,
+      title,
+      description,
     };
   }, [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
@@ -2670,6 +2680,8 @@ export default function DirectConnectShell() {
           prefillTargetUserId={requestPrefill?.targetUserId}
           prefillTargetName={requestPrefill?.targetName}
           prefillSource={requestPrefill?.source}
+          prefillTitle={requestPrefill?.title}
+          prefillDescription={requestPrefill?.description}
         />
       );
       break;

@@ -5,5 +5,5 @@ export function ensureFollowUpQuestion(message: string): string {
   const trimmed = (message || "").trim();
   if (!trimmed) return "I found the next step and prepared it for you.";
   if (trimmed.includes("?")) return trimmed;
-  return `${trimmed} Next step is ready.`;
+  return trimmed;
 }

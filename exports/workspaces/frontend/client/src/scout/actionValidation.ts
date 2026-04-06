@@ -104,9 +104,18 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
     return { ...action, to: target, path: target };
   }
 
-  // PREFILL_INPUT requires text payload
+  // PREFILL_INPUT accepts either plain text or structured prefill payload
   if (action.type === "PREFILL_INPUT") {
-    if (!action.payload || typeof action.payload.text !== "string" || !action.payload.text.trim()) {
+    const hasText =
+      typeof action.payload?.text === "string" &&
+      Boolean((action.payload.text as string).trim().length > 0);
+    const hasStructuredPrefill =
+      action.payload &&
+      typeof action.payload.prefill === "object" &&
+      action.payload.prefill !== null &&
+      !Array.isArray(action.payload.prefill);
+
+    if (!hasText && !hasStructuredPrefill) {
       console.warn("[Scout] PREFILL_INPUT missing valid text", action);
       return null;
     }

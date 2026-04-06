@@ -86,6 +86,19 @@ describe("Scout Tool Evals", () => {
         { type: "NAVIGATE", label: "Go to Direct Connect", to: "/direct-connect" },
         { type: "OPEN_APP_DRAWER", label: "Open menu" },
         { type: "PREFILL_INPUT", label: "Edit", payload: { text: "Hello" } },
+        {
+          type: "PREFILL_INPUT",
+          label: "Start Direct Connect request",
+          payload: {
+            target: "direct_connect_request",
+            route: "/direct-connect",
+            prefill: {
+              jobType: "roofing",
+              scope: "Need roof leak repair",
+              urgency: "high",
+            },
+          },
+        },
         { type: "ASK_SCOUT", label: "Ask", payload: { prompt: "Help me" } },
         { type: "OPEN_FLOATING_NOTE", label: "Note", payload: { noteId: "quick" } },
         { type: "NOOP", label: "Cancel" },

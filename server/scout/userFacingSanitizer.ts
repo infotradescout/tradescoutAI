@@ -9,7 +9,7 @@ export interface ScoutUserFacingSanitizeResult {
   removedLines: number;
 }
 
-const DEFAULT_FALLBACK = "Let's keep this practical and local. The next step is ready right now.";
+const DEFAULT_FALLBACK = "Let's keep this practical and local.";
 
 const BLOCKED_RESPONSE_PATTERNS: RegExp[] = [
   /i couldn'?t find reliable information about this in tradescout'?s local data or on the web/i,
