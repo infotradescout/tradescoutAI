@@ -1,6 +1,6 @@
 # Scout Outcome Funnel Report
 
-Generated: 2026-04-05T19:36:34.983Z
+Generated: 2026-04-06T00:39:03.855Z
 Window: last 30 day(s)
 
 ## Data Status
