@@ -92,6 +92,48 @@ describe("scout primary action contract", () => {
     expect(renderedText).not.toContain("should i");
   });
 
+  it("uses clarification mode for broad provider requests before exposing direct connect", () => {
+    const actions = applyProviderBehaviorOwnership({
+      actions: [],
+      intentCategory: "provider_search",
+      intentSlug: "deck",
+      message: "I want to build a deck",
+      countyCode: "Orange",
+      stateCode: "FL",
+      confidenceBand: "high",
+    });
+
+    const primary = actions.find((a) => a.primary);
+    expect(primary).toBeDefined();
+    expect(primary?.type).toBe("ASK_SCOUT");
+
+    const payload = (primary?.payload ?? {}) as Record<string, unknown>;
+    expect(payload.clarificationMode).toBe(true);
+    expect(Array.isArray(payload.intakeRequiredFields)).toBe(true);
+
+    expect(String(primary?.prompt || "").toLowerCase()).toContain("narrow this down");
+    expect(String(primary?.prompt || "").toLowerCase()).toContain("rough size");
+
+    expect(actions.some((a) => a.type === "PREFILL_INPUT")).toBe(false);
+  });
+
+  it("allows fallback browse actions only after intake refusal", () => {
+    const actions = applyProviderBehaviorOwnership({
+      actions: [],
+      intentCategory: "provider_search",
+      intentSlug: "deck",
+      message: "Just show me deck builds nearby",
+      countyCode: "Orange",
+      stateCode: "FL",
+      confidenceBand: "high",
+    });
+
+    const labels = actions.map((a) => String(a.label || ""));
+    expect(labels).toContain("Explore local examples");
+    expect(labels).toContain("Browse deck builds nearby");
+    expect(actions.some((a) => a.type === "PREFILL_INPUT")).toBe(false);
+  });
+
   it("enforces provider primary action contract across confidence bands", () => {
     const required = ["jobType", "location", "scope", "urgency"];
 
