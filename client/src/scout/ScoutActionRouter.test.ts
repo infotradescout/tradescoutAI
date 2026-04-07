@@ -1,0 +1,128 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { executeScoutActions, type ScoutActionHelpers } from "./ScoutActionRouter";
+import type { ScoutAction } from "./state";
+
+function makeHelpers() {
+  const navigate = vi.fn();
+  const prefillInput = vi.fn();
+  const openAppDrawer = vi.fn();
+  const openToolsDrawer = vi.fn();
+
+  const helpers: ScoutActionHelpers = {
+    navigate,
+    prefillInput,
+    openAppDrawer,
+    openToolsDrawer,
+  };
+
+  return { helpers, navigate, prefillInput };
+}
+
+function mockGuardAllowsActions() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true }),
+    }) as any
+  );
+}
+
+describe("ScoutActionRouter structured prefill routing", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("routes direct connect structured prefill to composer URL", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate, prefillInput } = makeHelpers();
+
+    const action: ScoutAction = {
+      type: "PREFILL_INPUT",
+      payload: {
+        target: "direct_connect_request",
+        route: "/direct-connect",
+        prefill: {
+          jobType: "roofing",
+          scope: "Need roof leak repair",
+          urgency: "high",
+        },
+      },
+    };
+
+    await executeScoutActions([action], helpers);
+
+    expect(prefillInput).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+
+    const routedTo = String(navigate.mock.calls[0][0]);
+    expect(routedTo.startsWith("/direct-connect/post?")).toBe(true);
+
+    const params = new URLSearchParams(routedTo.split("?")[1] || "");
+    expect(params.get("title")).toBe("roofing request");
+    expect(params.get("description")).toBe("Need roof leak repair");
+    expect(params.get("urgency")).toBe("high");
+  });
+
+  it("routes exchange structured prefill to sell tab URL", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate } = makeHelpers();
+
+    const action: ScoutAction = {
+      type: "PREFILL_INPUT",
+      payload: {
+        target: "exchange_listing",
+        route: "/exchange",
+        prefill: {
+          title: "Used miter saw",
+          description: "Works great, lightly used",
+          location: "Orange County, FL",
+          price: 180,
+        },
+      },
+    };
+
+    await executeScoutActions([action], helpers);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const routedTo = String(navigate.mock.calls[0][0]);
+    expect(routedTo.startsWith("/exchange?")).toBe(true);
+
+    const params = new URLSearchParams(routedTo.split("?")[1] || "");
+    expect(params.get("tab")).toBe("sell");
+    expect(params.get("title")).toBe("Used miter saw");
+    expect(params.get("description")).toBe("Works great, lightly used");
+    expect(params.get("loc")).toBe("Orange County, FL");
+    expect(params.get("price")).toBe("180");
+  });
+
+  it("routes community structured prefill to compose URL", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate } = makeHelpers();
+
+    const action: ScoutAction = {
+      type: "PREFILL_INPUT",
+      payload: {
+        target: "community_post",
+        route: "/community",
+        prefill: {
+          title: "Need roofer recommendation",
+          body: "Who has had a good experience in Orange County?",
+        },
+      },
+    };
+
+    await executeScoutActions([action], helpers);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const routedTo = String(navigate.mock.calls[0][0]);
+    expect(routedTo.startsWith("/community?")).toBe(true);
+
+    const params = new URLSearchParams(routedTo.split("?")[1] || "");
+    expect(params.get("compose")).toBe("1");
+    expect(params.get("prefill")).toContain("Need roofer recommendation");
+    expect(params.get("prefill")).toContain("Who has had a good experience in Orange County?");
+  });
+});

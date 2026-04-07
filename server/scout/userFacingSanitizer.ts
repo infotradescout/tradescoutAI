@@ -119,7 +119,7 @@ export function sanitizeScoutUserFacingText(
   input: string,
   opts: ScoutUserFacingSanitizerOptions = {}
 ): ScoutUserFacingSanitizeResult {
-  const fallback = String(opts.fallback || DEFAULT_FALLBACK).trim() || DEFAULT_FALLBACK;
+  const fallback = opts.fallback === undefined ? DEFAULT_FALLBACK : String(opts.fallback).trim();
   const maxChars = typeof opts.maxChars === "number" ? Math.max(40, opts.maxChars) : 700;
   const raw = String(input || "");
   const flags: string[] = [];
