@@ -3183,19 +3183,31 @@ router.post("/", async (req: Request, res: Response) => {
       ? `${systemPrompt}${localGuideContext}`
       : systemPrompt;
 
-    const synthesized = await synthesizeResponse(
-      message,
-      knowledge,
-      geminiClient,
-      llmProviders,
-      systemPromptWithLocalGuides,
-      conversationHistory,
-      userContext,
-      history,
-      recentActivityPrompt,
-      requestState,
-      resolvedContext
-    );
+    const isProviderHighConfidenceIntent =
+      isClearProviderServiceIntent(message) &&
+      (normalizeConfidenceLabel(governorDecision.confidence) === "high" ||
+        inferSourceConfidenceBand(governorDecision.confidence) === "high");
+
+    const synthesized = isProviderHighConfidenceIntent
+      ? {
+          message: "Start a request below.",
+          suggestedActions: [] as string[],
+          intent: "provider_request",
+          provider: "deterministic",
+        }
+      : await synthesizeResponse(
+          message,
+          knowledge,
+          geminiClient,
+          llmProviders,
+          systemPromptWithLocalGuides,
+          conversationHistory,
+          userContext,
+          history,
+          recentActivityPrompt,
+          requestState,
+          resolvedContext
+        );
 
     if (scoutInteractionLog) {
       scoutInteractionLog.intent = normalizeScoutIntent(
@@ -4337,6 +4349,9 @@ router.post("/", async (req: Request, res: Response) => {
 
     const primaryGuardedAction = guardedActions.find((action: any) => Boolean(action?.primary));
     const hasPrimaryPrefillAction = primaryGuardedAction?.type === "PREFILL_INPUT";
+    const hasPrimaryClarificationAction =
+      primaryGuardedAction?.type === "ASK_SCOUT" &&
+      primaryGuardedAction?.payload?.clarificationMode === true;
 
     try {
       const generatedEvents = guardedActions
@@ -4387,14 +4402,24 @@ router.post("/", async (req: Request, res: Response) => {
       scoutTurnTelemetry.failureClass = "provider_fallback";
     }
 
-    if (hasPrimaryPrefillAction) {
-      const strictMessage = trimResponseToScreenFit(
-        String(aiResponse.message || finalMessage || "").trim()
-      );
-      const lockedMessage =
-        strictMessage.length > 0
-          ? strictMessage
-          : "I prepared your next step with the details ready to review.";
+    if (hasPrimaryPrefillAction || hasPrimaryClarificationAction) {
+      const isProviderHighConfidenceReturn =
+        isClearProviderServiceIntent(String(message || "")) &&
+        (safeMetadata?.confidenceBand === "high" ||
+          inferSourceConfidenceBand(governorDecision.confidence) === "high");
+
+      const clarificationPrompt =
+        hasPrimaryClarificationAction && typeof primaryGuardedAction?.prompt === "string"
+          ? String(primaryGuardedAction.prompt).trim()
+          : "";
+
+      const lockedMessage = hasPrimaryClarificationAction
+        ? clarificationPrompt || "Got it - let's narrow this down so I can guide you right."
+        : isProviderHighConfidenceReturn
+          ? "Start a request below."
+          : String(aiResponse.message || finalMessage || "")
+              .replace(/\s+/g, " ")
+              .trim() || "I prepared your next step with the details ready to review.";
 
       console.log("FINAL RESPONSE", {
         hasAction: guardedActions.length > 0,
