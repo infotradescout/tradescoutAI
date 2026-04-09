@@ -36,6 +36,9 @@ jobs:
       - name: Authority gate guard (intent-gated contact only)
         run: npm run audit:authority-gates
 
+      - name: Law drift guard
+        run: npm run guard:law-drift
+
       - name: Observability baseline guard
         run: npm run audit:observability-baselines
 
