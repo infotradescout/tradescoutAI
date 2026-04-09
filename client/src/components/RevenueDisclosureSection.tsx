@@ -44,8 +44,8 @@ export function RevenueDisclosureSection({
             <li className="flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-ts-orange mt-0.5 flex-shrink-0" />
               <span>
-                <strong className="text-white">Other platforms</strong> in our portfolio (for
-                example MealScout) that help fund continued product development.
+                <strong className="text-white">Operational services</strong> and approved
+                infrastructure partnerships that support ongoing TradeScout development.
               </span>
             </li>
           </ul>

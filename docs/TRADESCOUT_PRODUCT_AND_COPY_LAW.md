@@ -1,6 +1,6 @@
 # TradeScout Product And Copy Law
 
-Last Updated: 2026-03-30
+Last Updated: 2026-04-09
 Owner: Product / Founder direction
 Status: Locked unless explicitly changed by owner
 
@@ -36,11 +36,20 @@ If a proposed copy or UX change conflicts with this file, the change should be r
 - No pay-to-play.
 - No lead selling.
 - Read-only global community view is allowed; global action is not.
-- Scout is the only bridge from discovery to action.
-- Admin/UI never computes intelligence; jobs precompute and store snapshots.
+- Scout is the primary guided bridge from discovery to action. Any non-Scout action path must still preserve platform law.
+- Target contract: Admin/UI should read precomputed intelligence; transitional read-time derived intelligence is allowed only with documented exception ownership and removal date.
 - Trust/CVS governs exposure.
 - AI + SEO ingestion precedes feature expansion.
 - Never remove features; fix and harden.
+
+## 2a. Enforceability Rule
+- Law statements must be treated as valid only when they are:
+  - runtime-enforced, or
+  - explicitly marked as a policy target with a tracked exception.
+- Audit source of truth for current status:
+  - `docs/audits/LAW_REALITY_MATRIX.md`
+- Drift prevention source of truth:
+  - `docs/audits/DRIFT_GUARDS.md`
 
 ## 3. Core Product Promise
 TradeScout helps people find trusted local help and move to action without pay-to-play ranking, lead spam, or uncontrolled access.
@@ -101,11 +110,13 @@ Examples of bad public copy:
 - city
 - neighborhood
 - market
+- county (operational or route-specific contexts only)
 
 ### Terms that must stay precise
 - Use `recommendations`, not `reviews`, unless a surface truly means reviews.
 - Use `contact opens after acceptance`, not softened variants like `contact opens after there is a real fit`.
 - Use `CVS` when referencing the actual trust system.
+- Do not include cross-product brand references in production TradeScout copy unless explicitly approved and documented.
 
 ## 7. Geography Rules
 - Counties remain canonical for storage, routing, and operations.
