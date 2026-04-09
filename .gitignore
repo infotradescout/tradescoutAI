@@ -29,8 +29,11 @@ scout-dev*.log
 *.tmp
 *.bak
 *.swp
+*.lnk
 logs/
 agent-runtime/logs/
+tmp_www_home.html
+validation-results-*.json
 
 # Local eslint reports
 artifacts/eslint-report.json

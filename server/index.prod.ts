@@ -470,14 +470,25 @@ app.use(botReadOnlyGuard);
       throw err;
     }
 
-    try {
-      console.log("[Startup] Running runtime SQL migrations...");
-      await runRuntimeMigrations();
-      console.log("[Startup] Runtime migrations complete.");
-    } catch (err) {
-      // Fail-soft: do not crash the whole app if migrations cannot run.
-      // Missing tables will surface as feature degradation, but the UI should still load.
-      console.error("[Startup] Runtime migrations failed (non-fatal):", err);
+    const runtimeMigrationMode = String(process.env.RUNTIME_MIGRATIONS_MODE || "off")
+      .trim()
+      .toLowerCase();
+    const shouldRunBootMigrations = runtimeMigrationMode === "boot";
+
+    if (shouldRunBootMigrations) {
+      try {
+        console.log("[Startup] Running runtime SQL migrations...");
+        await runRuntimeMigrations();
+        console.log("[Startup] Runtime migrations complete.");
+      } catch (err) {
+        // Fail-soft: do not crash the whole app if migrations cannot run.
+        // Missing tables will surface as feature degradation, but the UI should still load.
+        console.error("[Startup] Runtime migrations failed (non-fatal):", err);
+      }
+    } else {
+      console.log(
+        `[Startup] Runtime SQL migrations skipped (RUNTIME_MIGRATIONS_MODE=${runtimeMigrationMode || "off"}).`
+      );
     }
 
     const ensureMasterAdmin = async () => {

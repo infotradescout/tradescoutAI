@@ -5,10 +5,10 @@ This file explains the main "happy path" flows and exactly which routes/files im
   - Local email/password: handled by Passport Local (see `server/auth.ts`).
     - Login verification: `passport.use(new LocalStrategy(...))` in `server/auth.ts`.
     - Session stored in Postgres (`sessions` table) via `connect-pg-simple` (see `server/auth.ts::getSession`).
-  - OAuth / Replit / social: there are multiple strategies: `replitAuth.ts` (Replit OIDC), Facebook strategy registration in `server/auth.ts`, and Google strategy references in `server/routes.ts`.
+  - OAuth / social: active strategies are in `server/auth.ts` (local + Facebook) and Google strategy wiring in `server/routes.ts`.
 - Typical flow (explicit steps a user does):
   1. User submits signup form in the client.
-  2. Client calls a server API endpoint (examples: `POST /api/contractor-signup` implemented in `server/routes/contractor-signup.ts`, or social OAuth endpoints handled by passport middleware in `server/auth.ts` / `server/replitAuth.ts`).
+  2. Client calls a server API endpoint (examples: `POST /api/contractor-signup` implemented in `server/routes/contractor-signup.ts`, or social OAuth endpoints handled by passport middleware in `server/auth.ts`).
   3. Server creates a user record via `storage.createUser` (storage helpers live in `server/storage.ts`).
   4. If using local auth, passport creates a session cookie `tradescout.sid` backed by the `sessions` table; `serializeUser` stores `user.id` in the session.
 

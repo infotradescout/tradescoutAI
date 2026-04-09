@@ -31,7 +31,7 @@ Required environment variables (observed in code)
   - `CORS_ALLOWED_ORIGINS` - optional CORS override.
   - `SCHEDULER_ENABLED` - set `true` to enable background scheduler (`server/index.ts`).
   - `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD`, `MASTER_ADMIN_FIRST_NAME`, `MASTER_ADMIN_LAST_NAME` - bootstrap master admin on startup (`server/index.ts`).
-  - `REPLIT_DOMAINS`, `ISSUER_URL`, `REPL_ID` - Replit OIDC auth (see `server/replitAuth.ts`) if using Replit auth.
+  - Replit OIDC auth variables were removed with the legacy `server/replitAuth.ts` module. Use `server/auth.ts` providers (local/Facebook/Google) instead.
 
 Where config is loaded and validated
 - Many scripts and the server import `dotenv/config` at process start (see `server/index.ts` top). `drizzle.config.ts` reads `process.env.DATABASE_URL` and fails if missing. `server/index.ts` checks `DATABASE_URL` and `SESSION_SECRET` at startup (warns in dev, exits in production if missing).

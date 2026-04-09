@@ -2,6 +2,7 @@ services:
   - type: web
     name: tradescout-pro
     runtime: node
+    preDeployCommand: npm run db:migrate
     buildCommand: npm run build
     startCommand: npm start
     envVars:
@@ -9,6 +10,8 @@ services:
         value: "20"
       - key: NODE_ENV
         value: production
+      - key: RUNTIME_MIGRATIONS_MODE
+        value: "off"
       - key: HUSKY
         value: "0"
       - key: PORT

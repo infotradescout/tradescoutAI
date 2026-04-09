@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import type { Request } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { db } from "./db";
-import { trustedDevices } from "@shared/schema";
+import { trustedDevices, users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
 export interface DeviceFingerprint {
@@ -76,6 +76,44 @@ export class DeviceAuthService {
       .where(eq(trustedDevices.id, device.id));
 
     return true;
+  }
+
+  // Validate session token and return associated user when available.
+  static async validateSessionToken(sessionToken: string): Promise<any | null> {
+    const [record] = await db
+      .select({
+        device: trustedDevices,
+        user: users,
+      })
+      .from(trustedDevices)
+      .innerJoin(users, eq(trustedDevices.userId, users.id))
+      .where(eq(trustedDevices.sessionToken, sessionToken))
+      .limit(1);
+
+    if (!record) return null;
+
+    const status = String(record.device.status ?? "")
+      .trim()
+      .toLowerCase();
+    const isActive = record.device.isActive !== false;
+    if (!isActive || (status && status !== "approved")) {
+      return null;
+    }
+
+    if (record.device.expiresAt && new Date() > record.device.expiresAt) {
+      await db
+        .update(trustedDevices)
+        .set({ isActive: false, status: "revoked", updatedAt: new Date() })
+        .where(eq(trustedDevices.id, record.device.id));
+      return null;
+    }
+
+    await db
+      .update(trustedDevices)
+      .set({ lastUsed: new Date(), lastUsedAt: new Date(), updatedAt: new Date() })
+      .where(eq(trustedDevices.id, record.device.id));
+
+    return record.user;
   }
 
   // Register a new device for approval (requires admin approval for super_admin users)
@@ -193,3 +231,24 @@ export class DeviceAuthService {
       .orderBy(trustedDevices.createdAt);
   }
 }
+
+export const checkTrustedDevice = async (req: Request, _res: Response, next: NextFunction) => {
+  const sessionToken = req.cookies?.trusted_session || req.headers["x-trusted-session"];
+  if (!sessionToken || typeof sessionToken !== "string") return next();
+
+  try {
+    const user = await DeviceAuthService.validateSessionToken(sessionToken);
+    const rawRole = typeof user?.role === "string" ? user.role.trim().toLowerCase() : "";
+    const normalizedRole =
+      rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
+
+    if (user && normalizedRole === "super_admin") {
+      (req as any).user = user;
+      (req as any).trustedSession = true;
+    }
+  } catch (error) {
+    console.error("Trusted device validation error:", error);
+  }
+
+  next();
+};

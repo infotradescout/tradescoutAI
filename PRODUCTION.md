@@ -2,6 +2,12 @@
 
 This guide provides instructions for deploying TradeScout AI to a production environment.
 
+## Canonical Target
+- Canonical production host is **Render Web Service** (`render.yaml`).
+- `render.yaml` runs `npm run db:migrate` in `preDeployCommand` and starts app with `RUNTIME_MIGRATIONS_MODE=off`.
+- Vercel/Docker/K8s artifacts remain in-repo for experimentation, not as the default production path.
+- See `docs/DEPLOYMENT_TARGET.md` for the current deployment decision record.
+
 ## Prerequisites
 - A Postgres database (e.g., Neon, RDS, or self-hosted)
 - A Node.js 20+ environment or Docker

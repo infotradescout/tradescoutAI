@@ -149,8 +149,6 @@ import {
   builderLeaderboard,
   builderReferrals,
   builderNotifications,
-  // Trusted devices
-  trustedDevices,
   type TrustedDevice,
   type User,
   type InsertUser,
@@ -395,6 +393,7 @@ import {
   type InsertCountyNote,
 } from "@shared/schema";
 import { db, pool as neonPool } from "./db";
+import { UserSecurityRepository } from "./repositories/userSecurityRepository";
 import {
   eq,
   and,
@@ -1513,6 +1512,8 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private readonly userSecurityRepository = new UserSecurityRepository();
+
   private normalizeLegacyAdminUser(user: User | undefined): User | undefined {
     if (!user) return user;
 
@@ -2760,17 +2761,11 @@ export class DatabaseStorage implements IStorage {
 
   // Account security and management operations
   async getUserTrustedDevices(userId: string): Promise<TrustedDevice[]> {
-    return await db
-      .select()
-      .from(trustedDevices)
-      .where(eq(trustedDevices.userId, userId))
-      .orderBy(desc(trustedDevices.lastUsed));
+    return this.userSecurityRepository.getUserTrustedDevices(userId);
   }
 
   async removeTrustedDevice(userId: string, deviceId: string): Promise<void> {
-    await db
-      .delete(trustedDevices)
-      .where(and(eq(trustedDevices.userId, userId), eq(trustedDevices.id, deviceId)));
+    await this.userSecurityRepository.removeTrustedDevice(userId, deviceId);
   }
 
   async getUserLoginHistory(_userId: string, _limit: number, _offset: number): Promise<any> {

@@ -519,9 +519,15 @@ app.use(botReadOnlyGuard);
     // Keep SEO discovery routes resilient even if migrations were skipped.
     await ensureBusinessPublicDiscoveryEnabledColumn();
 
-    // In development, keep this opt-in to avoid surprising local DB changes.
-    // Production uses index.prod.ts which runs migrations by default.
-    if (process.env.AUTO_MIGRATE_ON_BOOT === "true") {
+    // Runtime SQL migrations are opt-in during boot.
+    // Use `RUNTIME_MIGRATIONS_MODE=boot` (preferred) or legacy `AUTO_MIGRATE_ON_BOOT=true`.
+    const runtimeMigrationMode = String(process.env.RUNTIME_MIGRATIONS_MODE || "")
+      .trim()
+      .toLowerCase();
+    const shouldRunBootMigrations =
+      runtimeMigrationMode === "boot" || process.env.AUTO_MIGRATE_ON_BOOT === "true";
+
+    if (shouldRunBootMigrations) {
       try {
         await runRuntimeMigrations({
           log: (msg) => log(msg, "RuntimeMigrations"),
@@ -529,6 +535,8 @@ app.use(botReadOnlyGuard);
       } catch (err) {
         console.error("[RuntimeMigrations] Failed (non-fatal):", err);
       }
+    } else {
+      log("[RuntimeMigrations] Skipping boot runtime migrations (opt-in disabled).");
     }
 
     try {
