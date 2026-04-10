@@ -16,5 +16,4 @@ Purpose: track temporary deviations from TradeScout law with explicit ownership 
 
 | Exception ID | Law ID | Current Behavior | Owner | Created | Removal Date | Issue/PR | Status |
 |---|---|---|---|---|---|---|---|
-| EXC-2026-04-09-001 | LAW_ID_PRECOMPUTE_ONLY | Some market signal endpoints still compute derived indices at read time. | unassigned | 2026-04-09 | 2026-06-01 | TDB | open |
-
+| EXC-2026-04-09-001 | LAW_ID_PRECOMPUTE_ONLY | Market signal endpoints had read-time index computation. Replaced with scheduled snapshot reads (`market_signals_snapshots`) and scheduler wiring. | Platform Engineering (Data Plane) | 2026-04-09 | 2026-04-10 | PR `governance follow-up (2026-04-10)` | closed |

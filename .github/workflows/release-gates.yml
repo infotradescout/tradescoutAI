@@ -9,6 +9,8 @@ jobs:
   release-gates:
     runs-on: ubuntu-latest
     env:
+      NODE_ENV: production
+      REQUIRE_PROD_BYPASS_OFF: "true"
       TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
       E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
@@ -38,6 +40,9 @@ jobs:
 
       - name: Law drift guard
         run: npm run guard:law-drift
+
+      - name: Production bypass guard
+        run: npm run guard:prod-bypass
 
       - name: Observability baseline guard
         run: npm run audit:observability-baselines

@@ -42,6 +42,7 @@ Add checks to CI:
    - Reject `MealScout` / `Trader's Corner` in production app surfaces (`client/src`, `server/public*`, marketing docs) unless in exceptions file.
 2. Trust bypass check:
    - Alert if `DIRECT_CONNECT_DEMO_MODE`, `TRADE_SCOUT_DEMO_MODE`, or `DIRECT_CONNECT_ALLOW_UNVERIFIED` are true in production envs.
+   - Enforced by: `npm run guard:prod-bypass` in release gates.
 3. Contact gate vocabulary check:
    - Reject new authority gate values outside allowlist (`decision_card`, `scout_recommendation`) without migration + contract update.
 
@@ -96,4 +97,3 @@ Before release:
 2. Enable integration test env in CI to remove law-test skipping.
 3. Add static brand-scope and bypass checks.
 4. Publish and enforce exception ledger workflow.
-

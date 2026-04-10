@@ -18,6 +18,7 @@ import { runSeoPublicationPruneJob } from "./seoPublicationPruneJob";
 import { runSeoDirectoryScopeSnapshotJob } from "./seoDirectoryScopeSnapshotJob";
 import { runBotArmyAutoPromotion } from "./missionControl";
 import { runIntentAutomationTick } from "../routes/observability";
+import { runMarketSignalsSnapshotJob } from "./marketSignalsSnapshotJob";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -42,6 +43,7 @@ let partnerCountyObservationSnapshotsTask: any = null;
 let partnerIntelligenceBriefSnapshotsTask: any = null;
 let botArmyAutoPromoteTask: any = null;
 let intentAutomationTask: any = null;
+let marketSignalsSnapshotTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -67,10 +69,68 @@ export function startCrawlerScheduler() {
   startTrustSnapshotsScheduler();
   startSeoPublicationPruneScheduler();
   startSeoDirectoryScopeSnapshotScheduler();
+  startMarketSignalsSnapshotScheduler();
   startPartnerCountyObservationSnapshotsScheduler();
   startPartnerIntelligenceBriefSnapshotsScheduler();
   startBotArmyAutoPromoteScheduler();
   startIntentAutomationScheduler();
+}
+
+function startMarketSignalsSnapshotScheduler() {
+  if (process.env.DISABLE_MARKET_SIGNALS_SNAPSHOTS === "true") {
+    console.log(
+      "Market signals snapshot job disabled via DISABLE_MARKET_SIGNALS_SNAPSHOTS env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.MARKET_SIGNALS_SNAPSHOTS_SCHEDULE || "10 * * * *"; // hourly
+  const jobName = "market_signals_snapshots";
+
+  console.log(`\n📈 Starting market signals snapshot scheduler with schedule: "${schedule}"`);
+
+  const runTick = async (trigger: "scheduler" | "scheduler_boot") => {
+    if (trigger === "scheduler") {
+      console.log(`\n📈 [${new Date().toISOString()}] Running market signals snapshot job...`);
+    } else {
+      console.log(
+        `\n📈 [${new Date().toISOString()}] Running market signals snapshot boot refresh...`
+      );
+    }
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runMarketSignalsSnapshotJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      const rowCount = Array.isArray(result)
+        ? result.reduce(
+            (sum, row) =>
+              sum +
+              Number((row as any)?.countyDemandRows || 0) +
+              Number((row as any)?.activationRows || 0),
+            0
+          )
+        : 0;
+      console.log("✅ Market signals snapshot job completed", result);
+      emitJobEnd(jobName, rowCount, false);
+    } catch (error) {
+      console.error("❌ Market signals snapshot job failed:", error);
+      emitJobError(jobName, error);
+    }
+  };
+
+  marketSignalsSnapshotTask = cron.schedule(schedule, async () => {
+    await runTick("scheduler");
+  });
+
+  void runTick("scheduler_boot");
+
+  console.log("✅ Market signals snapshot scheduler started\n");
 }
 
 function startIntentAutomationScheduler() {
@@ -809,6 +869,13 @@ export function stopCrawlerScheduler() {
     intentAutomationTask = null;
     console.log("🛑 Intent automation scheduler stopped");
   }
+
+  if (marketSignalsSnapshotTask) {
+    marketSignalsSnapshotTask.stop();
+    marketSignalsSnapshotTask.destroy();
+    marketSignalsSnapshotTask = null;
+    console.log("🛑 Market signals snapshot scheduler stopped");
+  }
 }
 
 /**
@@ -863,6 +930,10 @@ export function getCrawlerSchedulerStatus() {
     seoDirectoryScopeSnapshot: {
       active: seoDirectoryScopeSnapshotTask !== null,
       schedule: process.env.SEO_DIRECTORY_SCOPE_SNAPSHOT_SCHEDULE || "30 */6 * * *",
+    },
+    marketSignalsSnapshots: {
+      active: marketSignalsSnapshotTask !== null,
+      schedule: process.env.MARKET_SIGNALS_SNAPSHOTS_SCHEDULE || "10 * * * *",
     },
     partnerCountyObservationSnapshots: {
       active: partnerCountyObservationSnapshotsTask !== null,

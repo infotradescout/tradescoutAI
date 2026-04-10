@@ -89,6 +89,7 @@ import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
+import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import {
@@ -1154,110 +1155,25 @@ export async function registerRoutes(app: any) {
         }
 
         const window = parseMarketSignalsWindow(req.query?.window);
-        const interval = marketSignalsInterval(window);
-
-        const interactionResult = await pool.query(
-          `
-          select
-            count(*)::int as interaction_count,
-            round(avg(scout_confidence))::int as avg_confidence,
-            count(*) filter (where outcome = 'success')::int as success_count,
-            count(*) filter (where outcome = 'partial_success')::int as partial_success_count
-          from scout_interactions
-          where county_fips = $1
-            and created_at >= (now() - ($2::interval))
-        `,
-          [countyFips, interval]
-        );
-
-        const interactionRow = interactionResult.rows[0] || {};
-        const interactionCount = Number(interactionRow.interaction_count || 0);
-        if (interactionCount < 25) {
-          return res.json({ status: "suppressed", reason: "minimum_threshold_not_met" });
+        const snapshot = await getMarketSignalsSnapshot({
+          kind: "county_demand",
+          window,
+          scopeType: "county",
+          scopeId: countyFips,
+        });
+        if (!snapshot) {
+          return res.status(503).json({
+            message: "County demand snapshot unavailable. Retry after scheduled refresh.",
+            reasonCode: "SNAPSHOT_UNAVAILABLE",
+          });
         }
 
-        const topCategoriesResult = await pool.query(
-          `
-          select
-            intent,
-            count(*)::int as volume
-          from scout_interactions
-          where county_fips = $1
-            and created_at >= (now() - ($2::interval))
-          group by intent
-          order by volume desc, intent asc
-          limit 5
-        `,
-          [countyFips, interval]
-        );
-
-        const metricsResult = await pool.query(
-          `
-          select metric_key, metric_value
-          from county_metrics
-          where county_fips = $1
-            and metric_key in ('homescout_active_listings','homescout_price_drops_7d','tradedeals_active')
-        `,
-          [countyFips]
-        );
-
-        const metrics = new Map<string, number>();
-        for (const row of metricsResult.rows || []) {
-          metrics.set(String(row.metric_key || ""), Number(row.metric_value || 0));
-        }
-
-        const trustWeightedDemandIndex = Math.max(
-          0,
-          Math.min(
-            100,
-            Math.round(
-              interactionCount * 0.55 +
-                Number(interactionRow.avg_confidence || 0) * 0.35 +
-                Number(interactionRow.success_count || 0) * 1.2 +
-                Number(interactionRow.partial_success_count || 0) * 0.5
-            )
-          )
-        );
-
-        const inventoryPressureIndex = Math.max(
-          0,
-          Math.min(
-            100,
-            Math.round(
-              Number(metrics.get("homescout_active_listings") || 0) * 0.6 +
-                Number(metrics.get("homescout_price_drops_7d") || 0) * 2.4
-            )
-          )
-        );
-
-        const conversionReadinessIndex = Math.max(
-          0,
-          Math.min(
-            100,
-            Math.round(
-              Number(interactionRow.success_count || 0) * 2 +
-                Number(metrics.get("tradedeals_active") || 0) * 3 +
-                Number(interactionRow.avg_confidence || 0) * 0.4
-            )
-          )
-        );
-
+        const payload = snapshot.payload || {};
         return res.json({
-          status: "ok",
+          ...(payload as any),
           countyFips,
           window,
-          generatedAt: new Date().toISOString(),
-          signals: {
-            demandIndex: Math.max(0, Math.min(100, Math.round(interactionCount * 1.5))),
-            trustWeightedDemandIndex,
-            inventoryPressureIndex,
-            conversionReadinessIndex,
-          },
-          topCategories: (topCategoriesResult.rows || []).map((row: any) => ({
-            category: String(row.intent || "unknown"),
-            direction: "up",
-            changePct: Number(row.volume || 0),
-          })),
+          generatedAt: snapshot.generatedAt || new Date().toISOString(),
         });
       } catch (error: any) {
         console.error("Failed to load county demand signal", error);
@@ -1389,7 +1305,6 @@ export async function registerRoutes(app: any) {
         const surface =
           typeof req.query?.surface === "string" ? String(req.query.surface).trim() : undefined;
         const window = parseMarketSignalsWindow(req.query?.window);
-        const interval = marketSignalsInterval(window);
 
         if (countyFips && !isValidCountyFips(countyFips)) {
           return res.status(400).json({ message: "Invalid countyFips" });
@@ -1398,75 +1313,41 @@ export async function registerRoutes(app: any) {
           return res.status(400).json({ message: "Invalid stateCode" });
         }
 
-        const interactionResult = await pool.query(
-          `
-          select count(*)::int as interaction_count
-          from scout_interactions
-          where ($1::text = '' or county_fips = $1)
-            and created_at >= (now() - ($2::interval))
-        `,
-          [countyFips, interval]
-        );
-
-        const objectiveResult = await pool.query(
-          `
-          select count(*)::int as active_objective_count
-          from objectives
-          where status = 'active'
-            and ($1::text = '' or (context_json ->> 'countyFips') = $1)
-            and ($3::text is null or intent_class = $3)
-            and created_at >= (now() - ($2::interval))
-        `,
-          [countyFips, interval, category ?? null]
-        );
-
-        const metricsResult =
-          countyFips.length > 0
-            ? await pool.query(
-                `
-                select metric_key, metric_value
-                from county_metrics
-                where county_fips = $1
-                  and metric_key in ('tradedeals_active','homescout_active_listings','observations_30d')
-              `,
-                [countyFips]
-              )
-            : { rows: [] };
-
-        const metrics = new Map<string, number>();
-        for (const row of metricsResult.rows || []) {
-          metrics.set(
-            String((row as any).metric_key || ""),
-            Number((row as any).metric_value || 0)
-          );
+        let scopeType: "county" | "state" | "global" = "global";
+        let scopeId = "global";
+        if (countyFips) {
+          scopeType = "county";
+          scopeId = countyFips;
+        } else if (stateCode) {
+          scopeType = "state";
+          scopeId = stateCode;
         }
 
-        const interactionCount = Number(interactionResult.rows?.[0]?.interaction_count || 0);
-        const activeObjectiveCount = Number(objectiveResult.rows?.[0]?.active_objective_count || 0);
+        const snapshot = await getMarketSignalsSnapshot({
+          kind: "activation_readiness",
+          window,
+          scopeType,
+          scopeId,
+        });
+        if (!snapshot) {
+          return res.status(503).json({
+            message: "Activation readiness snapshot unavailable. Retry after scheduled refresh.",
+            reasonCode: "SNAPSHOT_UNAVAILABLE",
+          });
+        }
 
-        const marketActivationScore = Math.max(
-          0,
-          Math.min(
-            100,
-            Math.round(
-              interactionCount * 1.2 +
-                activeObjectiveCount * 1.8 +
-                Number(metrics.get("observations_30d") || 0) * 0.15
-            )
-          )
-        );
+        const payload = (snapshot.payload || {}) as any;
+        const categoryKey = category ? String(category).trim().toLowerCase() : "";
+        const categoryScore = categoryKey ? payload?.categoryScores?.[categoryKey] : null;
 
-        const sponsorReadinessScore = Math.max(
-          0,
-          Math.min(
-            100,
-            Math.round(
-              marketActivationScore * 0.55 +
-                Number(metrics.get("tradedeals_active") || 0) * 6 +
-                Number(metrics.get("homescout_active_listings") || 0) * 0.4
-            )
-          )
-        );
+        const marketActivationScore =
+          typeof categoryScore?.marketActivationScore === "number"
+            ? categoryScore.marketActivationScore
+            : Number(payload.marketActivationScore || 0);
+        const sponsorReadinessScore =
+          typeof categoryScore?.sponsorReadinessScore === "number"
+            ? categoryScore.sponsorReadinessScore
+            : Number(payload.sponsorReadinessScore || 0);
 
         return res.json({
           status: "ok",
@@ -1475,17 +1356,11 @@ export async function registerRoutes(app: any) {
           category,
           surface,
           window,
-          generatedAt: new Date().toISOString(),
+          generatedAt: snapshot.generatedAt || new Date().toISOString(),
           marketActivationScore,
           sponsorReadinessScore,
-          meetsMinimumAudienceThreshold: interactionCount >= 25,
-          recommendedSurface:
-            surface ||
-            (Number(metrics.get("homescout_active_listings") || 0) > 0
-              ? "homescout_listings"
-              : Number(metrics.get("tradedeals_active") || 0) > 0
-                ? "trade_deals"
-                : "scout"),
+          meetsMinimumAudienceThreshold: Boolean(payload.meetsMinimumAudienceThreshold),
+          recommendedSurface: surface || payload.recommendedSurface || "scout",
         });
       } catch (error: any) {
         console.error("Failed to load activation readiness signal", error);
