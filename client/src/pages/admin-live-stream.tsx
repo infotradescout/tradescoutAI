@@ -2302,8 +2302,8 @@ export default function AdminLiveStreamPage() {
       <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/observability")}>
-              Observability
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/live-stream")}>
+              Telemetry Center
             </Button>
             <Button
               variant="outline"

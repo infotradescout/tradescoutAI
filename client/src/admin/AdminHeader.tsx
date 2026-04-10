@@ -22,15 +22,13 @@ export function AdminHeader({
   const summary =
     path === "/admin"
       ? "Current issues, demand signals, and recent decisions."
-      : path.startsWith("/admin/live-stream")
-        ? "Live evidence of what the platform is seeing right now."
-        : path.startsWith("/admin/observability")
-          ? "Snapshot status, jobs, and system health signals."
-          : path.startsWith("/admin/scout-resilience")
-            ? "Fix issues that block Scout from completing user actions."
-            : path.startsWith("/admin/cumulus-intelligence")
-              ? "Commercial pressure, county demand, and market reads."
-              : "Focused admin tool for platform management.";
+      : path.startsWith("/admin/live-stream") || path.startsWith("/admin/observability")
+        ? "Unified telemetry center for live evidence, snapshot health, and crawler/system signals."
+        : path.startsWith("/admin/scout-resilience")
+          ? "Fix issues that block Scout from completing user actions."
+          : path.startsWith("/admin/cumulus-intelligence")
+            ? "Commercial pressure, county demand, and market reads."
+            : "Focused admin tool for platform management.";
 
   return (
     <header className="rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.82))] px-4 py-4 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
@@ -90,7 +88,7 @@ export function AdminHeader({
             href="/admin/live-stream"
             className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-100 hover:bg-cyan-500/15"
           >
-            Live Stream
+            Telemetry Center
             <ArrowUpRight className="ml-1 h-4 w-4" />
           </a>
         </div>

@@ -212,7 +212,6 @@ const AdminControl = React.lazy(() => import("@/pages/admin-control"));
 const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"));
 const ContentModeration = React.lazy(() => import("@/pages/content-moderation"));
 const StaffShareLinksPage = React.lazy(() => import("@/pages/staff-share-links"));
-const AdminObservability = React.lazy(() => import("@/pages/admin-observability"));
 const AdminLiveStream = React.lazy(() => import("@/pages/admin-live-stream"));
 const AdminToolDiscovery = React.lazy(() => import("@/pages/admin-tool-discovery"));
 const AdminScoutResilience = React.lazy(() => import("@/pages/admin-scout-resilience"));
@@ -692,7 +691,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       }),
       tool({
         id: "live-stream",
-        label: "Live Stream",
+        label: "Telemetry Center",
         path: "/admin/live-stream",
         icon: Radio,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
@@ -700,11 +699,12 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       }),
       tool({
         id: "observability",
-        label: "Observability",
+        label: "Observability (Legacy)",
         path: "/admin/observability",
         icon: Brain,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <AdminObservability />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "scout-resilience",

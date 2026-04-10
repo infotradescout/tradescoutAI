@@ -21,7 +21,6 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
       (item) =>
         item.path === "/admin" ||
         item.path.startsWith("/admin/live-stream") ||
-        item.path.startsWith("/admin/observability") ||
         item.path.startsWith("/admin/scout-resilience")
     );
 

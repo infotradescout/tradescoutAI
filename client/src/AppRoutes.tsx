@@ -1032,7 +1032,7 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Admin Observability Dashboard (Phase 2) */}
               <Route path="/admin-observability">
                 <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/observability" />
+                  <RedirectTo to="/admin/live-stream" />
                 </ProtectedRoute>
               </Route>
 
