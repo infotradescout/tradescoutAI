@@ -421,6 +421,26 @@ function extractNotFoundCount(entry: LiveStreamSnapshotEntry): number {
 function dedupeStreamEntries(entries: LiveStreamSnapshotEntry[]): LiveStreamSnapshotEntry[] {
   const byId = new Map<string, LiveStreamSnapshotEntry>();
 
+  const makeSemanticKey = (entry: LiveStreamSnapshotEntry) => {
+    const keyParts = [
+      entry.source,
+      entry.kind,
+      String(entry.title || "")
+        .trim()
+        .toLowerCase(),
+      String(entry.countyName || "")
+        .trim()
+        .toLowerCase(),
+      String(entry.stateCode || "")
+        .trim()
+        .toUpperCase(),
+      String(entry.category || "")
+        .trim()
+        .toLowerCase(),
+    ];
+    return keyParts.join("|");
+  };
+
   for (const entry of entries) {
     const existing = byId.get(entry.id);
     if (!existing) {
@@ -439,7 +459,27 @@ function dedupeStreamEntries(entries: LiveStreamSnapshotEntry[]): LiveStreamSnap
     }
   }
 
-  return Array.from(byId.values());
+  const bySemanticKey = new Map<string, LiveStreamSnapshotEntry>();
+  for (const entry of byId.values()) {
+    const semanticKey = makeSemanticKey(entry);
+    const existing = bySemanticKey.get(semanticKey);
+    if (!existing) {
+      bySemanticKey.set(semanticKey, entry);
+      continue;
+    }
+
+    const existingTs = new Date(existing.timestamp).getTime();
+    const nextTs = new Date(entry.timestamp).getTime();
+    if (nextTs > existingTs) {
+      bySemanticKey.set(semanticKey, entry);
+      continue;
+    }
+    if (nextTs === existingTs && (entry.revenueScore || 0) > (existing.revenueScore || 0)) {
+      bySemanticKey.set(semanticKey, entry);
+    }
+  }
+
+  return Array.from(bySemanticKey.values());
 }
 
 function buildTargetMarket(entry: LiveStreamSnapshotEntry): string | undefined {
@@ -460,6 +500,41 @@ function extractLargestNumber(text: string): number {
     const value = Number(match[1]);
     return Number.isFinite(value) && value > max ? value : max;
   }, 0);
+}
+
+function parseEvidenceNumber(entry: LiveStreamSnapshotEntry, key: string): number | null {
+  const value = getEvidenceValue(entry.evidence, key);
+  if (!value) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function resolveDemandMagnitude(entry: LiveStreamSnapshotEntry): number {
+  const evidenceCandidates = [
+    parseEvidenceNumber(entry, "hits"),
+    parseEvidenceNumber(entry, "request_count"),
+    parseEvidenceNumber(entry, "crawler_requests_24h"),
+    parseEvidenceNumber(entry, "machine_attention_hits"),
+    parseEvidenceNumber(entry, "county_surface_requests"),
+    parseEvidenceNumber(entry, "metric_value"),
+    parseEvidenceNumber(entry, "business_count"),
+    parseEvidenceNumber(entry, "interaction_count"),
+  ].filter((value): value is number => typeof value === "number" && value > 0);
+
+  if (evidenceCandidates.length) {
+    return Math.max(...evidenceCandidates);
+  }
+
+  const routeHitsMatch = `${entry.title} ${entry.narrative}`.match(
+    /drew\s+(\d+)\s+crawler\s+hits/i
+  );
+  if (routeHitsMatch) {
+    const parsed = Number.parseInt(routeHitsMatch[1], 10);
+    if (Number.isFinite(parsed)) return Math.max(0, parsed);
+  }
+
+  return extractLargestNumber(`${entry.title} ${entry.narrative}`);
 }
 
 function formatCountyState(entry: LiveStreamSnapshotEntry): string | undefined {
@@ -513,10 +588,7 @@ function resolveRevenueScore(entry: LiveStreamSnapshotEntry): number {
   const categoryWeight = entry.category ? 5 : 0;
   const countyWeight = entry.county ? 5 : 0;
   const baselineWeight = Math.min(12, Math.round(Math.abs(entry.baselineDeltaPct || 0) / 10));
-  const numericDemandWeight = Math.min(
-    18,
-    Math.round(extractLargestNumber(`${entry.title} ${entry.narrative}`) / 20)
-  );
+  const numericDemandWeight = Math.min(18, Math.round(resolveDemandMagnitude(entry) / 20));
   return (
     priorityWeight[entry.priority] +
     bucketWeight[entry.commercialBucket || "watchlist"] +
@@ -538,7 +610,7 @@ function withRevenueScore(entry: LiveStreamSnapshotEntry): LiveStreamSnapshotEnt
 }
 
 function buildWhyNow(entry: LiveStreamSnapshotEntry): string {
-  const score = extractLargestNumber(`${entry.title} ${entry.narrative}`);
+  const score = resolveDemandMagnitude(entry);
   const baselineShift = formatBaselineShift(entry);
   if (score > 0 && baselineShift) {
     return `Observed pressure is already in the feed at roughly ${score}, with demand ${baselineShift}.`;
