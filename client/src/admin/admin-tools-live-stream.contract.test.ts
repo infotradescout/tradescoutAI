@@ -35,8 +35,6 @@ describe("admin tools live stream wiring", () => {
       'path: "/admin/tool-discovery"',
       'id: "inspection-intelligence"',
       'path: "/admin/inspection-intelligence"',
-      'id: "ai-camera-lab"',
-      'path: "/admin/ai-camera-lab"',
       'id: "system-prompt"',
       'path: "/admin/system-prompt"',
       'id: "llm-admin"',
@@ -49,6 +47,14 @@ describe("admin tools live stream wiring", () => {
       expect(source).toContain(marker);
     }
     expect(source).toContain('render: () => <RedirectTool to="/admin/live-stream" />');
+  });
+
+  it("keeps AI Camera Lab active as a dedicated admin tab", () => {
+    const source = read("client/src/admin/adminTools.tsx");
+    expect(source).toContain('id: "ai-camera-lab"');
+    expect(source).toContain('label: "AI Camera Lab"');
+    expect(source).toContain('path: "/admin/ai-camera-lab"');
+    expect(source).toContain('render: () => <RedirectTool to="/zero-base-fee/camera" />');
   });
 
   it("renders the unified admin live stream page from the server route", () => {

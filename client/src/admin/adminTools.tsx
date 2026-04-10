@@ -718,12 +718,11 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       }),
       tool({
         id: "ai-camera-lab",
-        label: "AI Camera Lab (Legacy)",
+        label: "AI Camera Lab",
         path: "/admin/ai-camera-lab",
         icon: Camera,
         visibleIf: { roles: ["ops_admin", "super_admin", "moderator"] },
-        navHidden: true,
-        render: () => <RedirectTool to="/admin/live-stream" />,
+        render: () => <RedirectTool to="/zero-base-fee/camera" />,
       }),
       tool({
         id: "system-prompt",
