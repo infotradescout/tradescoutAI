@@ -1803,7 +1803,15 @@ export default function AdminLiveStreamPage() {
     setExporting(true);
     setExportError("");
     try {
-      const exportQuery = uiMode === "feed" ? eventQueryString : queryString;
+      const exportQuery =
+        uiMode === "feed"
+          ? eventQueryString
+          : (() => {
+              const params = new URLSearchParams(queryString);
+              params.set("mode", "snapshot_full");
+              params.set("limit", "5000");
+              return params.toString();
+            })();
       const response = await fetch(
         buildApiUrl(`/api/admin/observability/live-stream/export.csv?${exportQuery}`),
         {

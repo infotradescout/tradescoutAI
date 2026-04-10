@@ -40,6 +40,7 @@ import {
   getCrawlerIntentHistory,
 } from "../services/crawlerTelemetryService";
 import {
+  buildLiveStreamSnapshot,
   getLiveStreamSnapshot,
   getLiveStreamSnapshotHistory,
   getLiveLaneEvents,
@@ -1891,6 +1892,122 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
 
       const suffix = [
         "live-intent-feed",
+        toFileToken(source, "all-sources"),
+        toFileToken(stateCode, "all-states"),
+        toFileToken(county, "all-counties"),
+        new Date().toISOString().slice(0, 10),
+      ].join("-");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${suffix}.csv"`);
+      res.status(200).send(`\uFEFF${lines.join("\n")}`);
+      return;
+    }
+
+    if (mode === "snapshot_full") {
+      const source = String((req.query as any)?.source || "");
+      const stateCode = String((req.query as any)?.stateCode || "");
+      const county = String((req.query as any)?.county || "");
+      const limit = Number.parseInt(String((req.query as any)?.limit || "5000"), 10);
+
+      const snapshot = await buildLiveStreamSnapshot({
+        source,
+        stateCode,
+        county,
+        limit,
+        fullSignalCoverage: true,
+      });
+
+      const header = [
+        "generated_at",
+        "source_filter",
+        "state_filter",
+        "county_filter",
+        "degraded_sources",
+        "degraded_source_reasons_json",
+        "entry_rank",
+        "entry_id",
+        "entry_timestamp",
+        "kind",
+        "priority",
+        "truth_status",
+        "source",
+        "lane",
+        "signal_class",
+        "state_code",
+        "county_name",
+        "category",
+        "revenue_score",
+        "commercial_bucket",
+        "monetization_stage",
+        "title",
+        "narrative",
+        "recommended_play",
+        "sales_angle",
+        "target_market",
+        "channel_suggestion",
+        "asset_suggestion",
+        "why_now",
+        "evidence_json",
+      ];
+
+      const escapeCsv = (value: unknown) => {
+        const normalized = String(value ?? "");
+        if (/[",\n]/.test(normalized)) {
+          return `"${normalized.replace(/"/g, '""')}"`;
+        }
+        return normalized;
+      };
+
+      const degradedSources = Array.isArray(snapshot.summary?.degradedSources)
+        ? snapshot.summary.degradedSources.join("|")
+        : "";
+      const degradedReasonsJson = snapshot.summary?.degradedSourceReasons
+        ? JSON.stringify(snapshot.summary.degradedSourceReasons)
+        : "";
+
+      const lines = [header.join(",")];
+      for (const [index, item] of (snapshot.stream || []).entries()) {
+        lines.push(
+          [
+            snapshot.generatedAt,
+            snapshot.filters.source || "",
+            snapshot.filters.stateCode || "",
+            snapshot.filters.county || "",
+            degradedSources,
+            degradedReasonsJson,
+            index + 1,
+            item.id,
+            item.timestamp,
+            item.kind,
+            item.priority,
+            item.truthStatus || "",
+            item.source,
+            item.lane || "",
+            item.signalClass || "",
+            item.stateCode || "",
+            item.countyName || "",
+            item.category || "",
+            typeof item.revenueScore === "number" ? item.revenueScore : "",
+            item.commercialBucket || "",
+            item.monetizationStage || "",
+            item.title,
+            item.narrative,
+            item.recommendedPlay || "",
+            item.salesAngle || "",
+            item.targetMarket || "",
+            item.channelSuggestion || "",
+            item.assetSuggestion || "",
+            item.whyNow || "",
+            JSON.stringify(item.evidence || []),
+          ]
+            .map(escapeCsv)
+            .join(",")
+        );
+      }
+
+      const suffix = [
+        "live-stream-full",
         toFileToken(source, "all-sources"),
         toFileToken(stateCode, "all-states"),
         toFileToken(county, "all-counties"),

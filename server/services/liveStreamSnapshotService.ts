@@ -245,12 +245,18 @@ async function pruneLiveStreamSnapshotHistoryIfNeeded(): Promise<void> {
   await prunePromise;
 }
 
-function normalizeFilters(params: {
-  source?: string;
-  stateCode?: string;
-  county?: string;
-  limit?: number;
-}) {
+function normalizeFilters(
+  params: {
+    source?: string;
+    stateCode?: string;
+    county?: string;
+    limit?: number;
+  },
+  options?: { minLimit?: number; maxLimit?: number }
+) {
+  const minLimit = Math.max(1, Number(options?.minLimit || 5));
+  const maxLimit = Math.max(minLimit, Number(options?.maxLimit || 100));
+
   return {
     source:
       String(params.source || "")
@@ -264,7 +270,7 @@ function normalizeFilters(params: {
       String(params.county || "")
         .trim()
         .toLowerCase() || "",
-    limit: Math.max(5, Math.min(100, Number(params.limit || 20))),
+    limit: Math.max(minLimit, Math.min(maxLimit, Number(params.limit || 20))),
   };
 }
 
@@ -1023,8 +1029,18 @@ export async function buildLiveStreamSnapshot(params?: {
   stateCode?: string;
   county?: string;
   limit?: number;
+  fullSignalCoverage?: boolean;
 }): Promise<LiveStreamSnapshot> {
-  const filters = normalizeFilters(params || {});
+  const fullSignalCoverage = params?.fullSignalCoverage === true;
+  const filters = normalizeFilters(params || {}, {
+    maxLimit: fullSignalCoverage ? 5000 : 100,
+  });
+  const leadLimit = fullSignalCoverage ? 25 : 3;
+  const crawlerHotspotLimit = fullSignalCoverage ? 20 : 3;
+  const lisaFindingLimit = fullSignalCoverage ? 250 : 10;
+  const cumulusCountyLimit = fullSignalCoverage ? 10 : 1;
+  const cumulusStateLimit = fullSignalCoverage ? 10 : 1;
+  const alertLimit = fullSignalCoverage ? 20 : 3;
 
   const [
     lisaFeedResult,
@@ -1341,9 +1357,10 @@ export async function buildLiveStreamSnapshot(params?: {
   );
 
   const topBotCrawlFinding = botCrawlFindings[0] || null;
-  const topDemandSignal = botDemandSignals[0] || null;
-  const topDemandRoutes = crawlerTelemetry?.topRoutes?.slice(0, 5) || [];
-  const topDemandCounties = crawlerTelemetry?.topCounties?.slice(0, 5) || [];
+  const topDemandSignals = botDemandSignals.slice(0, fullSignalCoverage ? 20 : 1);
+  const topDemandRoutes = crawlerTelemetry?.topRoutes?.slice(0, fullSignalCoverage ? 30 : 5) || [];
+  const topDemandCounties =
+    crawlerTelemetry?.topCounties?.slice(0, fullSignalCoverage ? 30 : 5) || [];
 
   const rawStream = [
     ...(lisaFeed?.summary.truthNow?.trim()
@@ -1361,7 +1378,7 @@ export async function buildLiveStreamSnapshot(params?: {
           },
         ]
       : []),
-    ...scoutCountyDemandRows.slice(0, 3).map((scoutCountyDemand, idx) => ({
+    ...scoutCountyDemandRows.slice(0, leadLimit).map((scoutCountyDemand, idx) => ({
       id: `scout-county-demand-${idx}-${String(scoutCountyDemand.state_code || "na")}-${String(
         scoutCountyDemand.county_name || scoutCountyDemand.county_fips || "unknown"
       )
@@ -1391,7 +1408,7 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: String(scoutCountyDemand.state_code || "").toUpperCase() || null,
       countyName: String(scoutCountyDemand.county_name),
     })),
-    ...tradeDealsLeadRows.slice(0, 3).map((tradeDealsLead, idx) => ({
+    ...tradeDealsLeadRows.slice(0, leadLimit).map((tradeDealsLead, idx) => ({
       id: `tradedeals-county-${idx}-${String(tradeDealsLead.state_code || "na")}-${String(
         tradeDealsLead.county_name || "unknown"
       )
@@ -1417,7 +1434,7 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: String(tradeDealsLead.state_code || "").toUpperCase() || null,
       countyName: String(tradeDealsLead.county_name),
     })),
-    ...homeScoutLeadRows.slice(0, 3).map((homeScoutLead, idx) => ({
+    ...homeScoutLeadRows.slice(0, leadLimit).map((homeScoutLead, idx) => ({
       id: `homescout-county-${idx}-${String(homeScoutLead.state_code || "na")}-${String(
         homeScoutLead.county_name || "unknown"
       )
@@ -1443,7 +1460,7 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: String(homeScoutLead.state_code || "").toUpperCase() || null,
       countyName: String(homeScoutLead.county_name),
     })),
-    ...observationsLeadRows.slice(0, 3).map((observationsLead, idx) => ({
+    ...observationsLeadRows.slice(0, leadLimit).map((observationsLead, idx) => ({
       id: `observations-county-${idx}-${String(observationsLead.state_code || "na")}-${String(
         observationsLead.county_name || "unknown"
       )
@@ -1469,7 +1486,7 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: String(observationsLead.state_code || "").toUpperCase() || null,
       countyName: String(observationsLead.county_name),
     })),
-    ...directoryInventoryLeadRows.slice(0, 3).map((directoryInventoryLead, idx) => ({
+    ...directoryInventoryLeadRows.slice(0, leadLimit).map((directoryInventoryLead, idx) => ({
       id: `directory-inventory-${idx}-${directoryInventoryLead.trade_slug}-${String(
         directoryInventoryLead.state_code || "na"
       )}-${String(directoryInventoryLead.county_name || "unknown")
@@ -1502,36 +1519,28 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: String(directoryInventoryLead.state_code || "").toUpperCase() || null,
       countyName: String(directoryInventoryLead.county_name),
     })),
-    ...(cumulusBrief?.topCounties?.[0]
-      ? [
-          {
-            id: `cumulus-county-${cumulusBrief.generatedAt}-${cumulusBrief.topCounties[0].countyFips}`,
-            timestamp: cumulusBrief.generatedAt,
-            kind: "county_lead",
-            priority: "high" as LiveStreamPriority,
-            title: "County lead requiring attention",
-            narrative: `${cumulusBrief.topCounties[0].countyName}, ${cumulusBrief.topCounties[0].stateCode} is leading with ${cumulusBrief.topCounties[0].requestCount} requests on ${cumulusBrief.topCounties[0].dominantSurface.replace(/_/g, " ")}. Treat this county as the first market to inspect, package, or repair.`,
-            source: "cumulus",
-            stateCode: cumulusBrief.topCounties[0].stateCode,
-            countyName: cumulusBrief.topCounties[0].countyName,
-          },
-        ]
-      : []),
-    ...(cumulusBrief?.topStates?.[0]
-      ? [
-          {
-            id: `cumulus-state-${cumulusBrief.generatedAt}-${cumulusBrief.topStates[0].stateCode}`,
-            timestamp: cumulusBrief.generatedAt,
-            kind: "state_lead",
-            priority: "medium" as LiveStreamPriority,
-            title: "Leading State Cluster",
-            narrative: `${cumulusBrief.topStates[0].stateCode} leads with ${cumulusBrief.topStates[0].requestCount} requests across ${cumulusBrief.topStates[0].countyCount} counties.`,
-            source: "cumulus",
-            stateCode: cumulusBrief.topStates[0].stateCode,
-            countyName: null,
-          },
-        ]
-      : []),
+    ...(cumulusBrief?.topCounties || []).slice(0, cumulusCountyLimit).map((countyLead, idx) => ({
+      id: `cumulus-county-${cumulusBrief?.generatedAt || "na"}-${countyLead.countyFips}-${idx}`,
+      timestamp: cumulusBrief?.generatedAt || new Date().toISOString(),
+      kind: "county_lead",
+      priority: idx === 0 ? ("high" as LiveStreamPriority) : ("medium" as LiveStreamPriority),
+      title: idx === 0 ? "County lead requiring attention" : `County lead ${idx + 1}`,
+      narrative: `${countyLead.countyName}, ${countyLead.stateCode} is showing ${countyLead.requestCount} requests on ${countyLead.dominantSurface.replace(/_/g, " ")}.`,
+      source: "cumulus",
+      stateCode: countyLead.stateCode,
+      countyName: countyLead.countyName,
+    })),
+    ...(cumulusBrief?.topStates || []).slice(0, cumulusStateLimit).map((stateLead, idx) => ({
+      id: `cumulus-state-${cumulusBrief?.generatedAt || "na"}-${stateLead.stateCode}-${idx}`,
+      timestamp: cumulusBrief?.generatedAt || new Date().toISOString(),
+      kind: "state_lead",
+      priority: idx === 0 ? ("medium" as LiveStreamPriority) : ("low" as LiveStreamPriority),
+      title: idx === 0 ? "Leading State Cluster" : `State cluster ${idx + 1}`,
+      narrative: `${stateLead.stateCode} has ${stateLead.requestCount} requests across ${stateLead.countyCount} counties.`,
+      source: "cumulus",
+      stateCode: stateLead.stateCode,
+      countyName: null,
+    })),
     ...(crawlerTelemetry
       ? [
           {
@@ -1562,7 +1571,7 @@ export async function buildLiveStreamSnapshot(params?: {
           },
         ]
       : []),
-    ...topDemandRoutes.slice(0, 3).map((route, idx) => ({
+    ...topDemandRoutes.slice(0, crawlerHotspotLimit).map((route, idx) => ({
       id: `crawler-route-demand-${crawlerTelemetry?.generatedAt || "na"}-${idx}-${route.path}`,
       timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
       kind: "crawler_route_demand",
@@ -1573,7 +1582,7 @@ export async function buildLiveStreamSnapshot(params?: {
       stateCode: null,
       countyName: null,
     })),
-    ...topDemandCounties.slice(0, 3).map((county, idx) => ({
+    ...topDemandCounties.slice(0, crawlerHotspotLimit).map((county, idx) => ({
       id: `crawler-county-demand-${crawlerTelemetry?.generatedAt || "na"}-${idx}-${county.countyFips || county.countyName}`,
       timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
       kind: "crawler_county_demand",
@@ -1586,36 +1595,32 @@ export async function buildLiveStreamSnapshot(params?: {
       county: county.countyName || undefined,
       state: county.stateCode || undefined,
     })),
-    ...(topDemandSignal
-      ? [
-          {
-            id: `bot-demand-cluster-${topDemandSignal.date}-${topDemandSignal.routeFamily}`,
-            timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
-            kind: "bot_demand_cluster",
-            priority:
-              topDemandSignal.status404Count >= 5 || topDemandSignal.hits >= 20
-                ? ("critical" as LiveStreamPriority)
-                : ("high" as LiveStreamPriority),
-            title: "Bot demand cluster (route + trade)",
-            narrative: `${topDemandSignal.routeFamily.replace(/_/g, " ")}${
-              topDemandSignal.trade ? ` | trade: ${topDemandSignal.trade}` : ""
-            }${
-              topDemandSignal.county
-                ? ` | county: ${topDemandSignal.county}${topDemandSignal.state ? `, ${topDemandSignal.state}` : ""}`
-                : ""
-            } | bot: ${topDemandSignal.botFamily} | hits: ${topDemandSignal.hits} | recrawls: ${topDemandSignal.recrawlUrls} | 404s: ${topDemandSignal.status404Count}${
-              topDemandSignal.topPath ? ` | hottest URL: ${topDemandSignal.topPath}` : ""
-            }`,
-            source: "bot_crawl_signals",
-            category: topDemandSignal.trade || undefined,
-            county: topDemandSignal.county || undefined,
-            state: topDemandSignal.state || undefined,
-            stateCode: topDemandSignal.state || null,
-            countyName: topDemandSignal.county || null,
-          },
-        ]
-      : []),
-    ...(activeAlerts || []).slice(0, 3).map((alert) => ({
+    ...topDemandSignals.map((topDemandSignal, idx) => ({
+      id: `bot-demand-cluster-${topDemandSignal.date}-${topDemandSignal.routeFamily}-${idx}`,
+      timestamp: crawlerTelemetry?.generatedAt || new Date().toISOString(),
+      kind: "bot_demand_cluster",
+      priority:
+        topDemandSignal.status404Count >= 5 || topDemandSignal.hits >= 20
+          ? ("critical" as LiveStreamPriority)
+          : ("high" as LiveStreamPriority),
+      title: idx === 0 ? "Bot demand cluster (route + trade)" : `Bot demand cluster ${idx + 1}`,
+      narrative: `${topDemandSignal.routeFamily.replace(/_/g, " ")}${
+        topDemandSignal.trade ? ` | trade: ${topDemandSignal.trade}` : ""
+      }${
+        topDemandSignal.county
+          ? ` | county: ${topDemandSignal.county}${topDemandSignal.state ? `, ${topDemandSignal.state}` : ""}`
+          : ""
+      } | bot: ${topDemandSignal.botFamily} | hits: ${topDemandSignal.hits} | recrawls: ${topDemandSignal.recrawlUrls} | 404s: ${topDemandSignal.status404Count}${
+        topDemandSignal.topPath ? ` | hottest URL: ${topDemandSignal.topPath}` : ""
+      }`,
+      source: "bot_crawl_signals",
+      category: topDemandSignal.trade || undefined,
+      county: topDemandSignal.county || undefined,
+      state: topDemandSignal.state || undefined,
+      stateCode: topDemandSignal.state || null,
+      countyName: topDemandSignal.county || null,
+    })),
+    ...(activeAlerts || []).slice(0, alertLimit).map((alert) => ({
       id: `alert-${alert.id}`,
       timestamp: new Date(alert.lastEvaluatedAt || alert.startedAt).toISOString(),
       kind: "alert",
@@ -1641,7 +1646,7 @@ export async function buildLiveStreamSnapshot(params?: {
             getEvidenceValue(item.evidence, "signal_class") || ""
           )
       )
-      .slice(0, 10)
+      .slice(0, lisaFindingLimit)
       .map((item) =>
         toLiveStreamEntryFromLisaItem(item, lisaFeed?.generatedAt || new Date().toISOString())
       ),
