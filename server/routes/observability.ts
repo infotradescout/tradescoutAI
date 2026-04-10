@@ -1925,6 +1925,9 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
         "county_filter",
         "degraded_sources",
         "degraded_source_reasons_json",
+        "usability_accepted",
+        "usability_rejected",
+        "usability_rejection_reasons_json",
         "entry_rank",
         "entry_id",
         "entry_timestamp",
@@ -1965,6 +1968,11 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       const degradedReasonsJson = snapshot.summary?.degradedSourceReasons
         ? JSON.stringify(snapshot.summary.degradedSourceReasons)
         : "";
+      const usabilityAccepted = Number(snapshot.summary?.usabilityAccepted || 0);
+      const usabilityRejected = Number(snapshot.summary?.usabilityRejected || 0);
+      const usabilityReasonsJson = snapshot.summary?.usabilityRejectionReasons
+        ? JSON.stringify(snapshot.summary.usabilityRejectionReasons)
+        : "";
 
       const lines = [header.join(",")];
       for (const [index, item] of (snapshot.stream || []).entries()) {
@@ -1976,6 +1984,9 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             snapshot.filters.county || "",
             degradedSources,
             degradedReasonsJson,
+            usabilityAccepted,
+            usabilityRejected,
+            usabilityReasonsJson,
             index + 1,
             item.id,
             item.timestamp,
@@ -2088,6 +2099,9 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
         "lane_index",
         "lane_count",
         "lanes_json",
+        "usability_accepted",
+        "usability_rejected",
+        "usability_rejection_reasons_json",
         "state_code",
         "county_name",
         "entity_id",
@@ -2112,6 +2126,11 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
 
       const lines = [header.join(",")];
       const laneCounts = new Map<string, number>();
+      const usabilityAccepted = Number(snapshot.summary?.usabilityAccepted || 0);
+      const usabilityRejected = Number(snapshot.summary?.usabilityRejected || 0);
+      const usabilityReasonsJson = snapshot.summary?.usabilityRejectionReasons
+        ? JSON.stringify(snapshot.summary.usabilityRejectionReasons)
+        : "";
 
       const normalizeLaneToken = (value: unknown): string =>
         String(value || "")
@@ -2234,6 +2253,9 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             laneIndex,
             lanes.length,
             JSON.stringify(lanes),
+            usabilityAccepted,
+            usabilityRejected,
+            usabilityReasonsJson,
             event.stateCode || "",
             event.countyName || "",
             event.id,
@@ -2271,6 +2293,9 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             laneIndex,
             lanes.length,
             JSON.stringify(lanes),
+            usabilityAccepted,
+            usabilityRejected,
+            usabilityReasonsJson,
             item.stateCode || "",
             item.countyName || "",
             item.id,

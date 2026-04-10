@@ -78,6 +78,12 @@ type LiveStreamResponse = {
     sourceCounts: Record<string, number>;
     degradedSources?: string[];
     degradedSourceReasons?: Record<string, string>;
+    usabilityAccepted?: number;
+    usabilityRejected?: number;
+    usabilityAcceptedBySource?: Record<string, number>;
+    usabilityRejectedBySource?: Record<string, number>;
+    usabilityRejectionReasons?: Record<string, number>;
+    usabilityRejectionReasonsBySource?: Record<string, Record<string, number>>;
   };
   stream: LiveStreamItem[];
 };
@@ -931,6 +937,92 @@ function buildEntryContextTokens(item: LiveStreamItem): string[] {
   return tokens;
 }
 
+function formatEvidenceMetric(item: LiveStreamItem, key: string): string | null {
+  const value = buildEvidenceMap(item.evidence)[key];
+  return value ? String(value) : null;
+}
+
+function buildObservedFact(item: LiveStreamItem): string {
+  const evidence = buildEvidenceMap(item.evidence);
+  const route =
+    evidence.top_path || evidence.path || evidence.broken_path || extractRouteTarget(item) || null;
+  const hits =
+    evidence.hits ||
+    evidence.request_count ||
+    evidence.crawler_requests_24h ||
+    evidence.machine_attention_hits ||
+    evidence.county_surface_requests ||
+    null;
+  const bot = evidence.bot_family || evidence.bot || null;
+  const surface = evidence.route_family || evidence.source_surface || null;
+  const count404 = evidence.status_404_count || evidence.missing_count || null;
+  const location = inferLocationLabel(item);
+  const category = inferCategoryLabel(item);
+
+  if (item.kind === "crawler_volume") {
+    return item.narrative || "Crawler volume was recorded in the last 24 hours.";
+  }
+  if (item.kind === "crawler_top_bot") {
+    return item.narrative || "A crawler bot showed elevated activity in the last 24 hours.";
+  }
+  if (item.kind === "crawler_route_demand") {
+    if (route && hits) return `${route} recorded ${hits} crawler hits in the last 24 hours.`;
+    if (route) return `${route} recorded elevated crawler demand in the last 24 hours.`;
+  }
+  if (item.kind === "crawler_county_demand") {
+    if (location && hits && surface) {
+      return `${location} recorded ${hits} requests on ${surface.replace(/_/g, " ")} in the last 24 hours.`;
+    }
+    if (location && hits) return `${location} recorded ${hits} requests in the last 24 hours.`;
+  }
+  if (item.kind === "bot_demand_cluster") {
+    const parts = [
+      hits ? `${hits} hits` : null,
+      bot ? `from ${bot}` : null,
+      category ? `for ${category}` : null,
+      location ? `in ${location}` : null,
+      route ? `focused on ${route}` : null,
+    ].filter(Boolean);
+    if (parts.length) return `Bot demand cluster observed ${parts.join(" ")}.`;
+  }
+  if (item.kind === "alert") {
+    return item.narrative || item.title;
+  }
+  if (route && hits) return `${route} recorded ${hits} observed events.`;
+  if (location && hits) return `${location} recorded ${hits} observed events.`;
+  if (category && location) return `${category} activity was detected in ${location}.`;
+  return item.narrative || item.whyNow || item.title;
+}
+
+function buildEvidenceHighlights(item: LiveStreamItem): string[] {
+  const evidence = buildEvidenceMap(item.evidence);
+  const highlights = [
+    evidence.bot_family ? `bot ${evidence.bot_family}` : null,
+    evidence.route_family ? `surface ${evidence.route_family.replace(/_/g, " ")}` : null,
+    evidence.hits ? `${evidence.hits} hits` : null,
+    evidence.request_count ? `${evidence.request_count} requests` : null,
+    evidence.recrawls ? `${evidence.recrawls} recrawls` : null,
+    evidence.status_404_count ? `${evidence.status_404_count} 404s` : null,
+    inferLocationLabel(item),
+    inferCategoryLabel(item),
+    item.lane ? `lane ${item.lane}` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(highlights)).slice(0, 5);
+}
+
+function hasConcreteOperatorTask(item: LiveStreamItem): boolean {
+  const candidate = String(item.recommendedPlay || resolveEntryActionTask(item) || "").trim();
+  if (!candidate) return false;
+  return ![
+    /^use this route pressure/i,
+    /^keep this on watch/i,
+    /^review this signal/i,
+    /^open a county-level ad push/i,
+    /^pitch advertisers around this active demand pocket/i,
+  ].some((pattern) => pattern.test(candidate));
+}
+
 function formatEventPayloadValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "n/a";
   if (typeof value === "string") return value;
@@ -999,6 +1091,11 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
   const owner = resolveEntryOwner(item);
   const urgency = resolveEntryUrgency(item);
   const signalFamily = resolveSignalFamily(item);
+  const observedFact = buildObservedFact(item);
+  const evidenceHighlights = buildEvidenceHighlights(item);
+  const concreteOperatorTask = hasConcreteOperatorTask(item)
+    ? item.recommendedPlay || resolveEntryActionTask(item)
+    : null;
 
   return (
     <div className={cn("rounded-lg border border-white/10 bg-black/20", compact ? "p-3" : "p-3")}>
@@ -1052,17 +1149,35 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         ))}
       </div>
 
-      <div className={cn("mt-2 text-white/80", compact ? "text-xs" : "text-sm")}>
-        {item.whyNow || item.narrative}
+      <div className={cn("mt-2 text-white/85", compact ? "text-xs" : "text-sm")}>
+        {observedFact}
+      </div>
+
+      {evidenceHighlights.length ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {evidenceHighlights.map((highlight) => (
+            <Badge
+              key={`${item.id}:evidence:${highlight}`}
+              variant="outline"
+              className="border-white/10 text-white/60"
+            >
+              {highlight}
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-2 text-xs text-white/60">
+        Evidence basis: {item.whyNow || item.narrative}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-xs text-white/65">
-          {item.recommendedPlay
-            ? `Next action: ${item.recommendedPlay}`
+          {concreteOperatorTask
+            ? `Operator step: ${concreteOperatorTask}`
             : actionHint
-              ? `Revenue angle: ${actionHint}`
-              : "No immediate action tagged"}
+              ? `Operational implication: ${actionHint}`
+              : "Monitoring only: no concrete operator step emitted"}
         </div>
         <Button
           type="button"
@@ -1076,7 +1191,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
       </div>
 
       {expanded &&
-      (item.recommendedPlay ||
+      (concreteOperatorTask ||
         item.targetMarket ||
         item.salesAngle ||
         item.channelSuggestion ||
@@ -1085,21 +1200,23 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         item.marketGapSummary ||
         item.prospectSummary) ? (
         <div className="mt-2 grid gap-2 md:grid-cols-2">
-          {item.recommendedPlay ? (
+          {concreteOperatorTask ? (
             <div className="rounded-md border border-emerald-400/15 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-50">
-              <div className="uppercase tracking-[0.18em] text-emerald-100/60">Next action</div>
-              <div className="mt-1">{item.recommendedPlay}</div>
+              <div className="uppercase tracking-[0.18em] text-emerald-100/60">Operator step</div>
+              <div className="mt-1">{concreteOperatorTask}</div>
             </div>
           ) : null}
           {item.targetMarket ? (
             <div className="rounded-md border border-sky-400/15 bg-sky-500/10 px-3 py-2 text-xs text-sky-50">
-              <div className="uppercase tracking-[0.18em] text-sky-100/60">Target</div>
+              <div className="uppercase tracking-[0.18em] text-sky-100/60">Observed target</div>
               <div className="mt-1">{item.targetMarket}</div>
             </div>
           ) : null}
           {item.salesAngle ? (
             <div className="rounded-md border border-violet-400/15 bg-violet-500/10 px-3 py-2 text-xs text-violet-50">
-              <div className="uppercase tracking-[0.18em] text-violet-100/60">Revenue angle</div>
+              <div className="uppercase tracking-[0.18em] text-violet-100/60">
+                Operational implication
+              </div>
               <div className="mt-1">{item.salesAngle}</div>
             </div>
           ) : null}
@@ -1123,7 +1240,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
           ) : null}
           {item.marketGapSummary ? (
             <div className="rounded-md border border-rose-400/15 bg-rose-500/10 px-3 py-2 text-xs text-rose-50">
-              <div className="uppercase tracking-[0.18em] text-rose-100/60">Conversion leaks</div>
+              <div className="uppercase tracking-[0.18em] text-rose-100/60">Observed gap</div>
               <div className="mt-1">{item.marketGapSummary}</div>
             </div>
           ) : null}
@@ -1453,6 +1570,16 @@ export default function AdminLiveStreamPage() {
     return Object.entries(data?.summary.degradedSourceReasons || {});
   }, [data?.summary.degradedSourceReasons]);
   const degradedSources = data?.summary.degradedSources || [];
+  const usabilityAccepted = data?.summary.usabilityAccepted ?? visibleEntryCount;
+  const usabilityRejected = data?.summary.usabilityRejected ?? 0;
+  const usabilityTotal = usabilityAccepted + usabilityRejected;
+  const usabilityRate =
+    usabilityTotal > 0 ? Math.round((usabilityAccepted / usabilityTotal) * 100) : 0;
+  const topUsabilityRejections = useMemo(() => {
+    return Object.entries(data?.summary.usabilityRejectionReasons || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+  }, [data?.summary.usabilityRejectionReasons]);
   const topRouteDemand = (data?.stream || []).find((item) => item.kind === "crawler_route_demand");
   const topCountyDemand = (data?.stream || []).find(
     (item) => item.kind === "crawler_county_demand"
@@ -2434,6 +2561,39 @@ export default function AdminLiveStreamPage() {
                     ? "Signal density is thin. Treat this as partial awareness until more source-backed entries arrive."
                     : "Enough source-backed signal is present to prioritize work from the queue and buckets."}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/45">
+                Collection Quality
+              </div>
+              <div className="mt-2 text-sm text-white/85">
+                {usabilityAccepted} accepted / {usabilityRejected} rejected
+                {usabilityTotal > 0 ? ` (${usabilityRate}% usable)` : ""}
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full ${usabilityRate >= 80 ? "bg-emerald-500/80" : usabilityRate >= 50 ? "bg-amber-500/80" : "bg-rose-500/80"}`}
+                  style={{ width: `${Math.max(0, Math.min(100, usabilityRate))}%` }}
+                />
+              </div>
+              <div className="mt-2 text-xs text-white/60">
+                {usabilityRejected > 0
+                  ? "Rejected records failed the ingest usability contract and were withheld before action-card generation."
+                  : "All accepted records satisfied the ingest usability contract before commercialization."}
+              </div>
+              {topUsabilityRejections.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {topUsabilityRejections.map(([reason, count]) => (
+                    <Badge
+                      key={reason}
+                      className="border-amber-500/30 bg-amber-500/15 text-amber-100"
+                    >
+                      {reason}: {count}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 

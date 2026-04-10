@@ -28,6 +28,9 @@ describe("admin live stream contracts", () => {
     expect(source).toContain('"lane_index"');
     expect(source).toContain('"lane_count"');
     expect(source).toContain('"lanes_json"');
+    expect(source).toContain('"usability_accepted"');
+    expect(source).toContain('"usability_rejected"');
+    expect(source).toContain('"usability_rejection_reasons_json"');
     expect(source).toContain('"action_payload_json"');
     expect(source).toContain('source: "canonical_event_windows"');
     expect(source).toContain("buildEventNativeRecords(");
