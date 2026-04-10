@@ -392,8 +392,54 @@ function stripCountySuffix(value?: string | null): string {
 }
 
 function extractRouteTarget(text: string): string | null {
-  const match = text.match(/(\/[A-Za-z0-9\-/_]+)/);
+  const match = text.match(/(\/[A-Za-z0-9._\-/%]+)/);
   return match?.[1] || null;
+}
+
+function isNonCommercialRouteTarget(routeTarget: string | null): boolean {
+  if (!routeTarget) return false;
+  const normalized = routeTarget.toLowerCase();
+  return (
+    normalized === "/" ||
+    normalized.startsWith("/assets/") ||
+    normalized.startsWith("/api/") ||
+    normalized === "/sw.js" ||
+    normalized === "/robots.txt" ||
+    normalized === "/sitemap.xml" ||
+    normalized === "/sitemap-index.xml"
+  );
+}
+
+function extractNotFoundCount(entry: LiveStreamSnapshotEntry): number {
+  const text = `${entry.title} ${entry.narrative}`;
+  const match = text.match(/404s?:\s*(\d+)/i);
+  if (!match) return 0;
+  const count = Number.parseInt(match[1], 10);
+  return Number.isFinite(count) ? Math.max(0, count) : 0;
+}
+
+function dedupeStreamEntries(entries: LiveStreamSnapshotEntry[]): LiveStreamSnapshotEntry[] {
+  const byId = new Map<string, LiveStreamSnapshotEntry>();
+
+  for (const entry of entries) {
+    const existing = byId.get(entry.id);
+    if (!existing) {
+      byId.set(entry.id, entry);
+      continue;
+    }
+
+    const existingTs = new Date(existing.timestamp).getTime();
+    const nextTs = new Date(entry.timestamp).getTime();
+    if (nextTs > existingTs) {
+      byId.set(entry.id, entry);
+      continue;
+    }
+    if (nextTs === existingTs && (entry.revenueScore || 0) > (existing.revenueScore || 0)) {
+      byId.set(entry.id, entry);
+    }
+  }
+
+  return Array.from(byId.values());
 }
 
 function buildTargetMarket(entry: LiveStreamSnapshotEntry): string | undefined {
@@ -906,11 +952,48 @@ function decorateCommercialSignal(entry: LiveStreamSnapshotEntry): LiveStreamSna
     entry.kind === "scout_county_demand" ||
     entry.kind === "tradedeals_county_lead" ||
     entry.kind === "directory_inventory_lead" ||
-    entry.kind === "bot_demand_cluster" ||
     signalClass === "category_signal_concentration" ||
     signalClass === "category_momentum" ||
     entry.source === "cumulus"
   ) {
+    const decoratedEntry: LiveStreamSnapshotEntry = {
+      ...entry,
+      commercialBucket: "advertiser pitches",
+      monetizationStage: "sell",
+      recommendedPlay: buildAdvertiserPlay(entry, targetMarket),
+      salesAngle: buildSalesAngle(entry, "advertiser pitches", targetMarket),
+      targetMarket,
+      channelSuggestion: buildAdvertiserChannel(entry),
+      assetSuggestion: buildAdvertiserAsset(entry),
+      whyNow: buildWhyNow(entry),
+    };
+    return withRevenueScore(decoratedEntry);
+  }
+
+  if (entry.kind === "bot_demand_cluster") {
+    const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+    const has404Pressure = extractNotFoundCount(entry) > 0;
+
+    if (isNonCommercialRouteTarget(routeTarget)) {
+      const bucket: CommercialBucket = has404Pressure ? "monetization leaks" : "market moves";
+      const stage: MonetizationStage = has404Pressure ? "repair" : "expand";
+
+      const decoratedEntry: LiveStreamSnapshotEntry = {
+        ...entry,
+        commercialBucket: bucket,
+        monetizationStage: stage,
+        recommendedPlay: has404Pressure
+          ? buildLeakPlay(entry, targetMarket)
+          : buildMarketMove(entry, targetMarket),
+        salesAngle: buildSalesAngle(entry, bucket, targetMarket),
+        targetMarket,
+        channelSuggestion: has404Pressure ? buildLeakChannel(entry) : buildMarketChannel(entry),
+        assetSuggestion: has404Pressure ? buildLeakAsset(entry) : buildMarketAsset(entry),
+        whyNow: buildWhyNow(entry),
+      };
+      return withRevenueScore(decoratedEntry);
+    }
+
     const decoratedEntry: LiveStreamSnapshotEntry = {
       ...entry,
       commercialBucket: "advertiser pitches",
@@ -1114,9 +1197,9 @@ export async function buildLiveStreamSnapshot(params?: {
        and ti.rn = 1
       where ct.interaction_count > 0
       order by ct.interaction_count desc, ct.last_seen_at desc, ct.county_name asc
-      limit 3
+      limit $3
     `,
-      [filters.stateCode || null, filters.county || null]
+      [filters.stateCode || null, filters.county || null, leadLimit]
     ),
     pool.query<CountyMetricLeadRow>(
       `
@@ -1132,9 +1215,9 @@ export async function buildLiveStreamSnapshot(params?: {
         and ($1::text is null or upper(c.state_code) = $1)
         and ($2::text is null or lower(c.name) like '%' || $2 || '%')
       order by cm.metric_value::numeric desc, cm.updated_at desc
-      limit 3
+      limit $3
     `,
-      [filters.stateCode || null, filters.county || null]
+      [filters.stateCode || null, filters.county || null, leadLimit]
     ),
     pool.query<CountyMetricLeadRow>(
       `
@@ -1150,9 +1233,9 @@ export async function buildLiveStreamSnapshot(params?: {
         and ($1::text is null or upper(c.state_code) = $1)
         and ($2::text is null or lower(c.name) like '%' || $2 || '%')
       order by cm.metric_value::numeric desc, cm.updated_at desc
-      limit 3
+      limit $3
     `,
-      [filters.stateCode || null, filters.county || null]
+      [filters.stateCode || null, filters.county || null, leadLimit]
     ),
     pool.query<CountyMetricLeadRow>(
       `
@@ -1168,9 +1251,9 @@ export async function buildLiveStreamSnapshot(params?: {
         and ($1::text is null or upper(c.state_code) = $1)
         and ($2::text is null or lower(c.name) like '%' || $2 || '%')
       order by cm.metric_value::numeric desc, cm.updated_at desc
-      limit 3
+      limit $3
     `,
-      [filters.stateCode || null, filters.county || null]
+      [filters.stateCode || null, filters.county || null, leadLimit]
     ),
     pool.query<DirectoryInventoryLeadRow>(
       `
@@ -1186,9 +1269,9 @@ export async function buildLiveStreamSnapshot(params?: {
         and ($1::text is null or upper(tcp.state_code) = $1)
         and ($2::text is null or lower(c.name) like '%' || $2 || '%')
       order by tcp.business_count desc, tcp.updated_at desc
-      limit 3
+      limit $3
     `,
-      [filters.stateCode || null, filters.county || null]
+      [filters.stateCode || null, filters.county || null, leadLimit]
     ),
   ]);
 
@@ -1651,30 +1734,31 @@ export async function buildLiveStreamSnapshot(params?: {
         toLiveStreamEntryFromLisaItem(item, lisaFeed?.generatedAt || new Date().toISOString())
       ),
   ] as LiveStreamSnapshotEntry[];
-  const decoratedStream: LiveStreamSnapshotEntry[] = rawStream
-    .filter((entry) => {
-      if (filters.source && entry.source !== filters.source) return false;
-      if (filters.stateCode && entry.stateCode && entry.stateCode !== filters.stateCode)
-        return false;
-      if (filters.county && entry.countyName) {
-        if (!String(entry.countyName).trim().toLowerCase().includes(filters.county)) return false;
-      } else if (filters.county && !entry.countyName) {
-        return false;
-      }
-      return true;
-    })
-    .map((entry) => {
-      const truthStatus = resolveEntryTruthStatus(entry);
-      return decorateCommercialSignal({
-        ...entry,
-        truthStatus,
-      });
-    })
-    .sort((a, b) => {
-      const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
-      if (scoreDelta !== 0) return scoreDelta;
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
+  const decoratedStream: LiveStreamSnapshotEntry[] = dedupeStreamEntries(
+    rawStream
+      .filter((entry) => {
+        if (filters.source && entry.source !== filters.source) return false;
+        if (filters.stateCode && entry.stateCode && entry.stateCode !== filters.stateCode)
+          return false;
+        if (filters.county && entry.countyName) {
+          if (!String(entry.countyName).trim().toLowerCase().includes(filters.county)) return false;
+        } else if (filters.county && !entry.countyName) {
+          return false;
+        }
+        return true;
+      })
+      .map((entry) => {
+        const truthStatus = resolveEntryTruthStatus(entry);
+        return decorateCommercialSignal({
+          ...entry,
+          truthStatus,
+        });
+      })
+  ).sort((a, b) => {
+    const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
+    if (scoreDelta !== 0) return scoreDelta;
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
 
   const stream: LiveStreamSnapshotEntry[] = await Promise.all(
     decoratedStream.slice(0, filters.limit).map((entry) => enrichEntryWithMarketInventory(entry))
