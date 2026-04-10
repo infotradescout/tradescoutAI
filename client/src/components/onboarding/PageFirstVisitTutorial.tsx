@@ -15,7 +15,7 @@ type TutorialContent = {
 const sessionSeenFallback = new Map<string, string>();
 const sessionNeverFallback = new Set<string>();
 
-export const TUTORIAL_VERSION = "v4";
+export const TUTORIAL_VERSION = "v5";
 export const TUTORIAL_SEEN_PREFIX = "ts:page_tutorial_seen";
 export const TUTORIAL_NEVER_PREFIX = "ts:page_tutorial_never";
 
@@ -83,6 +83,28 @@ export function shouldSkipPath(path: string): boolean {
     path.startsWith("/terms") ||
     path.startsWith("/compliance")
   );
+}
+
+function humanizePathSegment(segment: string): string {
+  return String(segment || "page")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function buildContextualFallbackTutorial(path: string): TutorialContent {
+  const firstSegment = path.split("/").filter(Boolean)[0] || "page";
+  const pageLabel = humanizePathSegment(firstSegment);
+
+  return {
+    title: `${pageLabel} quick guide`,
+    description: `Use this ${pageLabel.toLowerCase()} page to gather context first, then choose one clear next action through Scout or Direct Connect.`,
+    bullets: [
+      "Start at the top summary section and identify the one outcome you need right now.",
+      "Use filters, tabs, or cards to narrow to your local county and current decision.",
+      "Finish one concrete action before switching pages to keep momentum.",
+    ],
+    primaryAction: "Continue",
+  };
 }
 
 export function getPageTutorial(path: string): TutorialContent {
@@ -194,6 +216,67 @@ export function getPageTutorial(path: string): TutorialContent {
         "Move to contact only after Scout confirms your strongest next step.",
       ],
       primaryAction: "Review deals",
+    };
+  }
+
+  if (path.startsWith("/compare")) {
+    return {
+      title: "Comparison quick guide",
+      description:
+        "Use this page to compare options side by side so your next decision is evidence-based, not guesswork.",
+      bullets: [
+        "Start by matching options to your county and immediate objective.",
+        "Use trust and outcome signals before considering convenience or volume.",
+        "Choose one path, then move directly into Scout or Direct Connect.",
+      ],
+      primaryAction: "Compare options",
+    };
+  }
+
+  if (path.startsWith("/realtor") || path.startsWith("/car-sales")) {
+    return {
+      title: "Pipeline quick guide",
+      description:
+        "Use this page to manage leads, follow-up timing, and conversion actions without losing sequence.",
+      bullets: [
+        "Open the oldest unresolved follow-up first.",
+        "Confirm contact context and the exact next commitment in writing.",
+        "Escalate uncertain decisions to Scout before sending the next outreach.",
+      ],
+      primaryAction: "Review pipeline",
+    };
+  }
+
+  if (path.startsWith("/hoa") || path.startsWith("/homescout")) {
+    return {
+      title: "Property ops quick guide",
+      description:
+        "Use this page to coordinate local property operations with clear visibility for residents and teams.",
+      bullets: [
+        "Prioritize items with resident impact or deadline risk.",
+        "Keep status updates specific so handoffs stay reliable.",
+        "Route ambiguous ownership issues through Scout before escalation.",
+      ],
+      primaryAction: "Run operations",
+    };
+  }
+
+  if (
+    path.startsWith("/about") ||
+    path.startsWith("/how-it-works") ||
+    path.startsWith("/trust-model") ||
+    path.startsWith("/transparency")
+  ) {
+    return {
+      title: "Platform clarity quick guide",
+      description:
+        "Use this page to understand TradeScout operating rules so your next action aligns with trust and authority.",
+      bullets: [
+        "Read the core operating principle first, then map it to your current decision.",
+        "Use linked examples to validate how the rule applies in real workflows.",
+        "Return to Scout with a specific question if a rule blocks progress.",
+      ],
+      primaryAction: "Review rules",
     };
   }
 
@@ -420,11 +503,7 @@ export function getPageTutorial(path: string): TutorialContent {
     };
   }
 
-  if (
-    path.startsWith("/checkout") ||
-    path.startsWith("/payment-") ||
-    path.startsWith("/wallet")
-  ) {
+  if (path.startsWith("/checkout") || path.startsWith("/payment-") || path.startsWith("/wallet")) {
     return {
       title: "Payments quick guide",
       description:
@@ -445,8 +524,7 @@ export function getPageTutorial(path: string): TutorialContent {
   ) {
     return {
       title: "Program operations quick guide",
-      description:
-        "Use this page to manage progression steps and keep program decisions on track.",
+      description: "Use this page to manage progression steps and keep program decisions on track.",
       bullets: [
         "Check current status and pending requirements first.",
         "Complete one blocking requirement at a time.",
@@ -484,16 +562,7 @@ export function getPageTutorial(path: string): TutorialContent {
     };
   }
 
-  return {
-    title: "Quick page guide",
-    description: "You are on a core TradeScout page. Here is the fastest way to use it.",
-    bullets: [
-      "Look at the page title and section labels first.",
-      "Use the main button on this page to take the next step.",
-      "If anything feels unclear, ask Scout for guidance.",
-    ],
-    primaryAction: "Continue",
-  };
+  return buildContextualFallbackTutorial(path);
 }
 
 export function getTutorialStorageKeys(userScope: string, path: string) {

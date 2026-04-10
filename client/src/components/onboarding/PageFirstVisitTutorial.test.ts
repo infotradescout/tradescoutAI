@@ -108,6 +108,19 @@ describe("PageFirstVisitTutorial helpers", () => {
     expect(tutorial.bullets.join(" ")).toContain("decision context");
   });
 
+  it("returns tailored comparison tutorial copy", () => {
+    const tutorial = getPageTutorial("/compare-homeadvisor");
+    expect(tutorial.title).toContain("Comparison");
+    expect(tutorial.description).toContain("side by side");
+  });
+
+  it("returns contextual fallback copy for unmatched pages", () => {
+    const tutorial = getPageTutorial("/vehicle-marketplace");
+    expect(tutorial.title).toContain("Vehicle Marketplace");
+    expect(tutorial.description).toContain("gather context first");
+    expect(tutorial.bullets.join(" ")).toContain("local county");
+  });
+
   it("stores seen state per session", () => {
     const keys = getTutorialStorageKeys("guest", "/commercial-directory");
     writeTutorialSeenVersion(keys.seen, TUTORIAL_VERSION);
