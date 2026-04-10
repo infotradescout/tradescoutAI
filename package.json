@@ -85,6 +85,7 @@
     "backfill:decision-cards": "node scripts/backfill-decision-cards.mjs",
     "backfill:trust-snapshots": "node scripts/backfill-trust-snapshots.mjs",
     "guard:forbidden": "node scripts/forbidden-patterns.mjs",
+    "guard:architecture-hygiene": "node scripts/guard-architecture-hygiene.mjs",
     "guard:law-drift": "node scripts/guard-law-drift.mjs",
     "guard:prod-bypass": "node scripts/guard-prod-bypass.mjs",
     "verifier:write-backlog": "node tools/verifier-write-backlog.mjs",

@@ -27,6 +27,9 @@ jobs:
       - name: Law drift guard
         run: npm run guard:law-drift
 
+      - name: Architecture hygiene guard
+        run: npm run guard:architecture-hygiene
+
       - name: HTTP semantics guard (4xx vs 5xx)
         run: npm run audit:http-semantics
 

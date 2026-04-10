@@ -520,12 +520,11 @@ app.use(botReadOnlyGuard);
     await ensureBusinessPublicDiscoveryEnabledColumn();
 
     // Runtime SQL migrations are opt-in during boot.
-    // Use `RUNTIME_MIGRATIONS_MODE=boot` (preferred) or legacy `AUTO_MIGRATE_ON_BOOT=true`.
+    // Deploy-time migrations are the canonical path; boot-time is explicit fallback only.
     const runtimeMigrationMode = String(process.env.RUNTIME_MIGRATIONS_MODE || "")
       .trim()
       .toLowerCase();
-    const shouldRunBootMigrations =
-      runtimeMigrationMode === "boot" || process.env.AUTO_MIGRATE_ON_BOOT === "true";
+    const shouldRunBootMigrations = runtimeMigrationMode === "boot";
 
     if (shouldRunBootMigrations) {
       try {
