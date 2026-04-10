@@ -393,7 +393,8 @@ function stripCountySuffix(value?: string | null): string {
 
 function extractRouteTarget(text: string): string | null {
   const match = text.match(/(\/[A-Za-z0-9._\-/%]+)/);
-  return match?.[1] || null;
+  if (!match?.[1]) return null;
+  return match[1].replace(/[.,;:!?]+$/, "");
 }
 
 function isNonCommercialRouteTarget(routeTarget: string | null): boolean {
@@ -526,15 +527,13 @@ function resolveDemandMagnitude(entry: LiveStreamSnapshotEntry): number {
     return Math.max(...evidenceCandidates);
   }
 
-  const routeHitsMatch = `${entry.title} ${entry.narrative}`.match(
-    /drew\s+(\d+)\s+crawler\s+hits/i
-  );
+  const routeHitsMatch = `${entry.narrative}`.match(/drew\s+(\d+)\s+crawler\s+hits/i);
   if (routeHitsMatch) {
     const parsed = Number.parseInt(routeHitsMatch[1], 10);
     if (Number.isFinite(parsed)) return Math.max(0, parsed);
   }
 
-  return extractLargestNumber(`${entry.title} ${entry.narrative}`);
+  return extractLargestNumber(`${entry.narrative}`);
 }
 
 function formatCountyState(entry: LiveStreamSnapshotEntry): string | undefined {
