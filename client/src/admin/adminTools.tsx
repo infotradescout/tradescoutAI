@@ -213,21 +213,12 @@ const PlatformAnalytics = React.lazy(() => import("@/pages/platform-analytics"))
 const ContentModeration = React.lazy(() => import("@/pages/content-moderation"));
 const StaffShareLinksPage = React.lazy(() => import("@/pages/staff-share-links"));
 const AdminLiveStream = React.lazy(() => import("@/pages/admin-live-stream"));
-const AdminToolDiscovery = React.lazy(() => import("@/pages/admin-tool-discovery"));
-const AdminScoutResilience = React.lazy(() => import("@/pages/admin-scout-resilience"));
 const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-coverage"));
 const AdminProfessionalVerification = React.lazy(
   () => import("@/pages/admin-professional-verification")
 );
 const AdminVaultContributions = React.lazy(() => import("@/pages/admin-vault-contributions"));
-const PromptAdminPage = React.lazy(() =>
-  import("@/pages/PromptAdminPage").then((m) => ({ default: m.PromptAdminPage }))
-);
-const AdminKnowledgeUploadPage = React.lazy(() => import("@/pages/admin-knowledge-upload"));
 const AdminPanelContent = React.lazy(() => import("@/pages/admin-panel"));
-const AdminInspectionIntelligencePage = React.lazy(
-  () => import("@/pages/admin-inspection-intelligence")
-);
 
 // Component-based tools
 const UserHeatmap = React.lazy(() =>
@@ -235,16 +226,6 @@ const UserHeatmap = React.lazy(() =>
 );
 const FinanceLedgerPanel = React.lazy(() =>
   import("@/components/admin/FinanceLedgerPanel").then((m) => ({ default: m.FinanceLedgerPanel }))
-);
-const UIMonitoringDashboard = React.lazy(() =>
-  import("@/components/admin/UIMonitoringDashboard").then((m) => ({
-    default: m.UIMonitoringDashboard,
-  }))
-);
-const AICodeFixingDashboard = React.lazy(() =>
-  import("@/components/admin/AICodeFixingDashboard").then((m) => ({
-    default: m.AICodeFixingDashboard,
-  }))
 );
 const RoleImpersonation = React.lazy(() =>
   import("@/components/admin/RoleImpersonation").then((m) => ({ default: m.RoleImpersonation }))
@@ -658,19 +639,21 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       }),
       tool({
         id: "ai-monitoring",
-        label: "AI Monitoring",
+        label: "AI Monitoring (Legacy)",
         path: "/admin/ai-monitoring",
         icon: Brain,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <UIMonitoringDashboard />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "ai-fixes",
-        label: "AI Fixes",
+        label: "AI Fixes (Legacy)",
         path: "/admin/ai-fixes",
         icon: Wrench,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <AICodeFixingDashboard />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "pricing",
@@ -708,60 +691,66 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       }),
       tool({
         id: "scout-resilience",
-        label: "Scout Resilience",
+        label: "Scout Resilience (Legacy)",
         path: "/admin/scout-resilience",
         icon: Bot,
         visibleIf: { roles: ["super_admin"] },
-        render: () => <AdminScoutResilience />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "tool-discovery",
-        label: "Tool Discovery",
+        label: "Tool Discovery (Legacy)",
         path: "/admin/tool-discovery",
         icon: Wrench,
         visibleIf: { roles: ["super_admin"] },
-        render: () => <AdminToolDiscovery />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "inspection-intelligence",
-        label: "Inspection Intelligence",
+        label: "Inspection Intelligence (Legacy)",
         path: "/admin/inspection-intelligence",
         icon: Brain,
         visibleIf: { roles: ["ops_admin", "super_admin", "moderator"] },
-        render: () => <AdminInspectionIntelligencePage />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "ai-camera-lab",
-        label: "AI Camera Lab",
+        label: "AI Camera Lab (Legacy)",
         path: "/admin/ai-camera-lab",
         icon: Camera,
         visibleIf: { roles: ["ops_admin", "super_admin", "moderator"] },
-        render: () => <RedirectTool to="/zero-base-fee/camera" />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "system-prompt",
-        label: "System Prompt",
+        label: "System Prompt (Legacy)",
         path: "/admin/system-prompt",
         icon: Bot,
         visibleIf: { roles: ["super_admin"] },
         navHidden: true,
-        render: () => <RedirectTool to="/admin/llm" />,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "llm-admin",
-        label: "LLM Admin",
+        label: "LLM Admin (Legacy)",
         path: "/admin/llm",
         icon: Bot,
         visibleIf: { roles: ["super_admin"] },
-        render: () => <PromptAdminPage />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
       tool({
         id: "knowledge",
-        label: "Knowledge Upload",
+        label: "Knowledge Upload (Legacy)",
         path: "/admin/knowledge",
         icon: FileUp,
         visibleIf: { roles: ["ops_admin", "super_admin"] },
-        render: () => <AdminKnowledgeUploadPage />,
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/live-stream" />,
       }),
     ],
   },

@@ -22,6 +22,35 @@ describe("admin tools live stream wiring", () => {
     expect(source).toContain('render: () => <RedirectTool to="/admin/live-stream" />');
   });
 
+  it("keeps AI and telemetry-adjacent legacy tabs redirected into telemetry center", () => {
+    const source = read("client/src/admin/adminTools.tsx");
+    const legacyRedirects = [
+      'id: "ai-monitoring"',
+      'path: "/admin/ai-monitoring"',
+      'id: "ai-fixes"',
+      'path: "/admin/ai-fixes"',
+      'id: "scout-resilience"',
+      'path: "/admin/scout-resilience"',
+      'id: "tool-discovery"',
+      'path: "/admin/tool-discovery"',
+      'id: "inspection-intelligence"',
+      'path: "/admin/inspection-intelligence"',
+      'id: "ai-camera-lab"',
+      'path: "/admin/ai-camera-lab"',
+      'id: "system-prompt"',
+      'path: "/admin/system-prompt"',
+      'id: "llm-admin"',
+      'path: "/admin/llm"',
+      'id: "knowledge"',
+      'path: "/admin/knowledge"',
+    ];
+
+    for (const marker of legacyRedirects) {
+      expect(source).toContain(marker);
+    }
+    expect(source).toContain('render: () => <RedirectTool to="/admin/live-stream" />');
+  });
+
   it("renders the unified admin live stream page from the server route", () => {
     const source = read("client/src/pages/admin-live-stream.tsx");
     expect(source).toContain("/api/admin/observability/live-stream");
