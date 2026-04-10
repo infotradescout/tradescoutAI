@@ -2086,6 +2086,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
         "kind",
         "lane",
         "lane_index",
+        "lane_count",
+        "lanes_json",
         "state_code",
         "county_name",
         "entity_id",
@@ -2110,6 +2112,35 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
 
       const lines = [header.join(",")];
       const laneCounts = new Map<string, number>();
+
+      const normalizeLaneToken = (value: unknown): string =>
+        String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_:\-]/g, "")
+          .slice(0, 120);
+
+      const uniqueLaneSet = (values: string[]): string[] => {
+        const seen = new Set<string>();
+        const lanes: string[] = [];
+        for (const raw of values) {
+          const token = normalizeLaneToken(raw);
+          if (!token || seen.has(token)) continue;
+          seen.add(token);
+          lanes.push(token);
+        }
+        return lanes;
+      };
+
+      const laneTimeTag = (timestamp: string): string[] => {
+        const ts = new Date(timestamp);
+        if (!Number.isFinite(ts.getTime())) return [];
+        return [
+          `time:hour_${String(ts.getUTCHours()).padStart(2, "0")}`,
+          `time:date_${ts.toISOString().slice(0, 10)}`,
+        ];
+      };
 
       const resolveSignalLane = (item: {
         lane?: string | null;
@@ -2138,6 +2169,45 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
         return "action";
       };
 
+      const resolveEventLanes = (event: LiveLaneEvent): string[] => {
+        const source = String(event.source || "");
+        const kind = String(event.eventType || "");
+        const state = String(event.stateCode || "");
+        const countyName = String(event.countyName || "");
+        return uniqueLaneSet([
+          event.lane || "unknown",
+          ...laneTimeTag(String(event.occurredAt || "")),
+          state ? `location:state_${state}` : "",
+          countyName ? `location:county_${countyName}` : "",
+          source ? `source:${source}` : "",
+          kind ? `kind:${kind}` : "",
+          event.id ? `entity:${event.id}` : "",
+        ]);
+      };
+
+      const resolveSignalLanes = (item: {
+        lane?: string | null;
+        kind?: string | null;
+        source?: string | null;
+        stateCode?: string | null;
+        countyName?: string | null;
+        category?: string | null;
+        id?: string | null;
+        timestamp?: string | null;
+      }): string[] => {
+        const primaryLane = resolveSignalLane(item);
+        return uniqueLaneSet([
+          primaryLane,
+          ...laneTimeTag(String(item.timestamp || "")),
+          item.stateCode ? `location:state_${item.stateCode}` : "",
+          item.countyName ? `location:county_${item.countyName}` : "",
+          item.source ? `source:${item.source}` : "",
+          item.kind ? `kind:${item.kind}` : "",
+          item.category ? `category:${item.category}` : "",
+          item.id ? `entity:${item.id}` : "",
+        ]);
+      };
+
       const nextLaneIndex = (lane: string): number => {
         const prior = laneCounts.get(lane) || 0;
         const next = prior + 1;
@@ -2146,7 +2216,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       };
 
       for (const event of eventRows) {
-        const lane = String(event.lane || "unknown");
+        const lanes = resolveEventLanes(event);
+        const lane = lanes[0] || "unknown";
         const laneIndex = nextLaneIndex(lane);
         lines.push(
           [
@@ -2161,6 +2232,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             event.eventType,
             lane,
             laneIndex,
+            lanes.length,
+            JSON.stringify(lanes),
             event.stateCode || "",
             event.countyName || "",
             event.id,
@@ -2180,7 +2253,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       }
 
       for (const item of signalRows) {
-        const lane = resolveSignalLane(item);
+        const lanes = resolveSignalLanes(item);
+        const lane = lanes[0] || "action";
         const laneIndex = nextLaneIndex(lane);
         lines.push(
           [
@@ -2195,6 +2269,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             item.kind,
             lane,
             laneIndex,
+            lanes.length,
+            JSON.stringify(lanes),
             item.stateCode || "",
             item.countyName || "",
             item.id,
