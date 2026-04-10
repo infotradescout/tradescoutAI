@@ -109,8 +109,19 @@ export type LiveStreamSnapshot = {
     sourceCounts: Record<string, number>;
     degradedSources: string[];
     degradedSourceReasons?: Record<string, string>;
+    usabilityAccepted?: number;
+    usabilityRejected?: number;
+    usabilityAcceptedBySource?: Record<string, number>;
+    usabilityRejectedBySource?: Record<string, number>;
+    usabilityRejectionReasons?: Record<string, number>;
+    usabilityRejectionReasonsBySource?: Record<string, Record<string, number>>;
   };
   stream: LiveStreamSnapshotEntry[];
+};
+
+type UsabilityDecision = {
+  accepted: boolean;
+  reasonCodes: string[];
 };
 
 export type LiveLaneEvent = {
@@ -443,6 +454,35 @@ function normalizeCategoryLabel(category?: string | null): string | undefined {
     return undefined;
   }
   return value;
+}
+
+function evaluateUsabilityContract(entry: LiveStreamSnapshotEntry): UsabilityDecision {
+  const reasonCodes: string[] = [];
+  const source = String(entry.source || "").trim();
+  if (!source) reasonCodes.push("missing_provenance_source");
+
+  const ts = new Date(String(entry.timestamp || ""));
+  if (!Number.isFinite(ts.getTime())) reasonCodes.push("invalid_timestamp");
+
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  const category = normalizeCategoryLabel(entry.category);
+  const whereAnchor = Boolean(entry.countyName || entry.stateCode || entry.county || entry.state);
+  const whatAnchor = Boolean(category || routeTarget || String(entry.kind || "").trim());
+  const demandMagnitude = resolveDemandMagnitude(entry);
+  const hasWhyEvidence =
+    demandMagnitude > 0 ||
+    (typeof entry.baselineDeltaPct === "number" && Number.isFinite(entry.baselineDeltaPct)) ||
+    (Array.isArray(entry.evidence) && entry.evidence.length > 0) ||
+    entry.truthStatus === "current";
+
+  if (!whereAnchor) reasonCodes.push("missing_where");
+  if (!whatAnchor) reasonCodes.push("missing_what");
+  if (!hasWhyEvidence) reasonCodes.push("missing_why");
+
+  return {
+    accepted: reasonCodes.length === 0,
+    reasonCodes,
+  };
 }
 
 function extractNarrativeTag(entry: LiveStreamSnapshotEntry, key: string): string | undefined {
@@ -1885,26 +1925,45 @@ export async function buildLiveStreamSnapshot(params?: {
         toLiveStreamEntryFromLisaItem(item, lisaFeed?.generatedAt || new Date().toISOString())
       ),
   ] as LiveStreamSnapshotEntry[];
+  const filteredRawStream = rawStream.filter((entry) => {
+    if (filters.source && entry.source !== filters.source) return false;
+    if (filters.stateCode && entry.stateCode && entry.stateCode !== filters.stateCode) return false;
+    if (filters.county && entry.countyName) {
+      if (!String(entry.countyName).trim().toLowerCase().includes(filters.county)) return false;
+    } else if (filters.county && !entry.countyName) {
+      return false;
+    }
+    return true;
+  });
+
+  const acceptanceBySource: Record<string, number> = {};
+  const rejectionBySource: Record<string, number> = {};
+  const rejectionReasons: Record<string, number> = {};
+  const rejectionReasonsBySource: Record<string, Record<string, number>> = {};
+  const contractAccepted: LiveStreamSnapshotEntry[] = [];
+
+  for (const entry of filteredRawStream) {
+    const sourceKey = String(entry.source || "unknown");
+    const truthStatus = resolveEntryTruthStatus(entry);
+    const normalized = { ...entry, truthStatus };
+    const decision = evaluateUsabilityContract(normalized);
+    if (decision.accepted) {
+      acceptanceBySource[sourceKey] = (acceptanceBySource[sourceKey] || 0) + 1;
+      contractAccepted.push(normalized);
+      continue;
+    }
+
+    rejectionBySource[sourceKey] = (rejectionBySource[sourceKey] || 0) + 1;
+    if (!rejectionReasonsBySource[sourceKey]) rejectionReasonsBySource[sourceKey] = {};
+    for (const code of decision.reasonCodes) {
+      rejectionReasons[code] = (rejectionReasons[code] || 0) + 1;
+      rejectionReasonsBySource[sourceKey][code] =
+        (rejectionReasonsBySource[sourceKey][code] || 0) + 1;
+    }
+  }
+
   const decoratedStream: LiveStreamSnapshotEntry[] = dedupeStreamEntries(
-    rawStream
-      .filter((entry) => {
-        if (filters.source && entry.source !== filters.source) return false;
-        if (filters.stateCode && entry.stateCode && entry.stateCode !== filters.stateCode)
-          return false;
-        if (filters.county && entry.countyName) {
-          if (!String(entry.countyName).trim().toLowerCase().includes(filters.county)) return false;
-        } else if (filters.county && !entry.countyName) {
-          return false;
-        }
-        return true;
-      })
-      .map((entry) => {
-        const truthStatus = resolveEntryTruthStatus(entry);
-        return decorateCommercialSignal({
-          ...entry,
-          truthStatus,
-        });
-      })
+    contractAccepted.map((entry) => decorateCommercialSignal(entry))
   ).sort((a, b) => {
     const scoreDelta = (b.revenueScore || 0) - (a.revenueScore || 0);
     if (scoreDelta !== 0) return scoreDelta;
@@ -1941,6 +2000,12 @@ export async function buildLiveStreamSnapshot(params?: {
       degradedSourceReasons: Object.keys(degradedSourceReasons).length
         ? degradedSourceReasons
         : undefined,
+      usabilityAccepted: contractAccepted.length,
+      usabilityRejected: Math.max(0, filteredRawStream.length - contractAccepted.length),
+      usabilityAcceptedBySource: acceptanceBySource,
+      usabilityRejectedBySource: rejectionBySource,
+      usabilityRejectionReasons: rejectionReasons,
+      usabilityRejectionReasonsBySource: rejectionReasonsBySource,
     },
     stream,
   };
@@ -2084,6 +2149,12 @@ export async function getLiveStreamSnapshot(params?: {
       topBotCrawlHeadline: null,
       sourceCounts: {},
       degradedSources: [],
+      usabilityAccepted: 0,
+      usabilityRejected: 0,
+      usabilityAcceptedBySource: {},
+      usabilityRejectedBySource: {},
+      usabilityRejectionReasons: {},
+      usabilityRejectionReasonsBySource: {},
     },
     stream,
   };
@@ -2148,6 +2219,12 @@ export async function getLiveStreamSnapshotHistory(params?: {
             activeAlerts: 0,
             sourceCounts: {},
             degradedSources: [],
+            usabilityAccepted: 0,
+            usabilityRejected: 0,
+            usabilityAcceptedBySource: {},
+            usabilityRejectedBySource: {},
+            usabilityRejectionReasons: {},
+            usabilityRejectionReasonsBySource: {},
           },
     stream: Array.isArray(row.stream_json) ? row.stream_json : [],
   }));
