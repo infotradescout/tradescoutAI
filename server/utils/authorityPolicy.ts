@@ -115,6 +115,14 @@ export function isDirectConnectUnverifiedBypassEnabled(): boolean {
   return getAuthorityConfig().directConnectUnverifiedBypassEnabled;
 }
 
+export function isDirectConnectBypassProductionLockEnabled(): boolean {
+  const nodeEnv = typeof process.env.NODE_ENV === "string" ? process.env.NODE_ENV : "";
+  return (
+    nodeEnv.trim().toLowerCase() === "production" ||
+    isTruthyToggle(process.env.REQUIRE_PROD_BYPASS_OFF)
+  );
+}
+
 export function hasManualDirectConnectBypassRequest(req: Request): boolean {
   const body =
     req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>) : {};

@@ -45,6 +45,27 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).toContain('code: "VERIFICATION_REQUIRED"');
   });
 
+  it("locks environment bypass in production and restricts manual bypass to admin paths", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain(
+      "const productionMode = isDirectConnectBypassProductionLockEnabled();"
+    );
+    expect(routeFile).toContain('const isAdminPath = req.path.startsWith("/api/admin/");');
+    expect(routeFile).toContain('deniedReason: "manual_requires_admin_route"');
+    expect(routeFile).toContain('deniedReason: "manual_disabled_in_production"');
+    expect(routeFile).toContain('deniedReason: "environment_disabled_in_production"');
+  });
+
+  it("audits both bypass applied and bypass denied outcomes", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain('"direct_connect_verification_bypass_applied"');
+    expect(routeFile).toContain('"direct_connect_verification_bypass_denied"');
+    expect(routeFile).toContain("bypassDeniedReason");
+    expect(routeFile).toContain("productionMode");
+  });
+
   it("keeps verification gate before request insertion path", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
 
@@ -162,10 +183,10 @@ describe("direct-connect gate regressions", () => {
     );
 
     expect(directConnectShellFile).toContain("Post a request");
-    expect(directConnectShellFile).toContain("Track requests");
+    expect(directConnectShellFile).toContain("Manage requests");
     expect(directConnectShellFile).toContain("My Requests");
     expect(directConnectShellFile).toContain(
-      "Manage mode keeps request state and response state together."
+      "Follow-up mode keeps request updates and replies together."
     );
     expect(directConnectShellFile).toContain("Route to more pros");
     expect(directConnectShellFile).toContain("Check replies");
@@ -233,7 +254,7 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Send to top local companies");
     expect(directConnectShellFile).toContain("How many companies should receive this request?");
     expect(directConnectShellFile).toContain("Ordered by location fit first, then CVS score.");
-    expect(directConnectShellFile).toContain("Skip and auto-route");
+    expect(directConnectShellFile).toContain("Let Scout decide");
     expect(directConnectShellFile).toContain("targetContractorIds");
   });
 

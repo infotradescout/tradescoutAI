@@ -79,6 +79,92 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(inserted).toHaveLength(0);
   });
 
+  it("denies manual bypass requests from non-privileged actors and records audit denial", async () => {
+    await clearAdminAuditLog();
+
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: false,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const res = await agent.post("/api/direct-connect/requests").send({
+      title: `Manual deny ${Date.now()}`,
+      description: "Need help with a fence repair.",
+      category: "service_request",
+      allowUnverifiedDirectConnect: true,
+    });
+
+    expect(res.status).toBe(428);
+    expect(res.body?.code).toBe("VERIFICATION_REQUIRED");
+
+    const auditLog = await getAdminAuditLog(20);
+    const denialAudit = auditLog.find(
+      (entry: any) =>
+        entry?.action === "direct_connect_verification_bypass_denied" &&
+        entry?.operation === "create" &&
+        String(entry?.actorUserId || "") === String(user.id)
+    );
+    expect(denialAudit).toBeTruthy();
+    expect(String((denialAudit as any)?.bypassSource || "")).toBe("manual");
+    expect(String((denialAudit as any)?.bypassDeniedReason || "")).toBe(
+      "manual_requires_privileged_actor"
+    );
+  });
+
+  it("denies environment bypass in production mode and records audit denial", async () => {
+    const previousBypass = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
+    const previousProdBypassLock = process.env.REQUIRE_PROD_BYPASS_OFF;
+    process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";
+    process.env.REQUIRE_PROD_BYPASS_OFF = "true";
+    await clearAdminAuditLog();
+
+    try {
+      const { agent, user } = await createAuthedAgent({
+        role: "homeowner",
+        addressVerified: false,
+        emailVerified: true,
+        onboardingCompleted: true,
+      });
+
+      const res = await agent.post("/api/direct-connect/requests").send({
+        title: `Prod bypass deny ${Date.now()}`,
+        description: "Need help replacing deck boards.",
+        category: "service_request",
+      });
+
+      expect(res.status).toBe(428);
+      expect(res.body?.code).toBe("VERIFICATION_REQUIRED");
+
+      const auditLog = await getAdminAuditLog(20);
+      const denialAudit = auditLog.find(
+        (entry: any) =>
+          entry?.action === "direct_connect_verification_bypass_denied" &&
+          entry?.operation === "create" &&
+          String(entry?.actorUserId || "") === String(user.id)
+      );
+      expect(denialAudit).toBeTruthy();
+      expect(String((denialAudit as any)?.bypassSource || "")).toBe("environment");
+      expect(String((denialAudit as any)?.bypassDeniedReason || "")).toBe(
+        "environment_disabled_in_production"
+      );
+      expect(Boolean((denialAudit as any)?.productionMode)).toBe(true);
+    } finally {
+      if (typeof previousBypass === "undefined") {
+        delete process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
+      } else {
+        process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = previousBypass;
+      }
+
+      if (typeof previousProdBypassLock === "undefined") {
+        delete process.env.REQUIRE_PROD_BYPASS_OFF;
+      } else {
+        process.env.REQUIRE_PROD_BYPASS_OFF = previousProdBypassLock;
+      }
+    }
+  });
+
   it("allows unverified homeowner request creation when direct-connect demo bypass is enabled", async () => {
     const previous = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
     process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";

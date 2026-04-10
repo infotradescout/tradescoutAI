@@ -31,6 +31,7 @@ import {
 import type { PrivilegedBypassReason } from "../utils/authorityPolicy";
 import {
   hasManualDirectConnectBypassRequest,
+  isDirectConnectBypassProductionLockEnabled,
   isDirectConnectUnverifiedBypassEnabled,
   resolvePrivilegedVerificationBypass,
 } from "../utils/authorityPolicy";
@@ -47,6 +48,10 @@ interface DirectConnectVerificationBypassContext {
   reason: PrivilegedBypassReason;
   matchedRoles: string[];
   matchedEmail: string | null;
+  deniedReason: string | null;
+  productionMode: boolean;
+  manualRequested: boolean;
+  environmentRequested: boolean;
 }
 
 function resolveDirectConnectVerificationBypass(
@@ -55,6 +60,51 @@ function resolveDirectConnectVerificationBypass(
 ): DirectConnectVerificationBypassContext {
   const privileged = resolvePrivilegedVerificationBypass(viewer);
   const manualRequested = hasManualDirectConnectBypassRequest(req);
+  const environmentRequested = isDirectConnectUnverifiedBypassEnabled();
+  const productionMode = isDirectConnectBypassProductionLockEnabled();
+  const isAdminPath = req.path.startsWith("/api/admin/");
+
+  if (manualRequested && !privileged.active) {
+    return {
+      active: false,
+      source: "manual",
+      reason: "none",
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+      deniedReason: "manual_requires_privileged_actor",
+      productionMode,
+      manualRequested,
+      environmentRequested,
+    };
+  }
+
+  if (manualRequested && !isAdminPath) {
+    return {
+      active: false,
+      source: "manual",
+      reason: "none",
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+      deniedReason: "manual_requires_admin_route",
+      productionMode,
+      manualRequested,
+      environmentRequested,
+    };
+  }
+
+  if (manualRequested && productionMode) {
+    return {
+      active: false,
+      source: "manual",
+      reason: "none",
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+      deniedReason: "manual_disabled_in_production",
+      productionMode,
+      manualRequested,
+      environmentRequested,
+    };
+  }
 
   if (manualRequested && privileged.active) {
     return {
@@ -63,6 +113,10 @@ function resolveDirectConnectVerificationBypass(
       reason: "manual_direct_connect_override",
       matchedRoles: privileged.matchedRoles,
       matchedEmail: privileged.matchedEmail,
+      deniedReason: null,
+      productionMode,
+      manualRequested,
+      environmentRequested,
     };
   }
 
@@ -73,16 +127,38 @@ function resolveDirectConnectVerificationBypass(
       reason: privileged.reason,
       matchedRoles: privileged.matchedRoles,
       matchedEmail: privileged.matchedEmail,
+      deniedReason: null,
+      productionMode,
+      manualRequested,
+      environmentRequested,
     };
   }
 
-  if (isDirectConnectUnverifiedBypassEnabled()) {
+  if (environmentRequested && productionMode) {
+    return {
+      active: false,
+      source: "environment",
+      reason: "none",
+      matchedRoles: privileged.matchedRoles,
+      matchedEmail: privileged.matchedEmail,
+      deniedReason: "environment_disabled_in_production",
+      productionMode,
+      manualRequested,
+      environmentRequested,
+    };
+  }
+
+  if (environmentRequested) {
     return {
       active: true,
       source: "environment",
       reason: "direct_connect_demo_mode",
       matchedRoles: privileged.matchedRoles,
       matchedEmail: privileged.matchedEmail,
+      deniedReason: null,
+      productionMode,
+      manualRequested,
+      environmentRequested,
     };
   }
 
@@ -92,6 +168,10 @@ function resolveDirectConnectVerificationBypass(
     reason: "none",
     matchedRoles: privileged.matchedRoles,
     matchedEmail: privileged.matchedEmail,
+    deniedReason: null,
+    productionMode,
+    manualRequested,
+    environmentRequested,
   };
 }
 
@@ -103,18 +183,26 @@ async function auditDirectConnectBypassUsage(params: {
   requestId?: string;
 }) {
   const { req, actorUserId, context, operation, requestId } = params;
-  if (!context.active) return;
+  const shouldAudit = context.active || Boolean(context.deniedReason);
+  if (!shouldAudit) return;
 
   try {
     await logAdminAction({
-      action: "direct_connect_verification_bypass_applied",
+      action: context.active
+        ? "direct_connect_verification_bypass_applied"
+        : "direct_connect_verification_bypass_denied",
       operation,
       actorUserId,
       requestId: requestId ?? null,
+      bypassActive: context.active,
       bypassSource: context.source,
       bypassReason: context.reason,
+      bypassDeniedReason: context.deniedReason,
       matchedRoles: context.matchedRoles,
       matchedEmail: context.matchedEmail,
+      productionMode: context.productionMode,
+      manualRequested: context.manualRequested,
+      environmentRequested: context.environmentRequested,
       requestPath: req.path,
       requestMethod: req.method,
       requestIdHeader: req.headers["x-request-id"] ?? null,
@@ -1833,6 +1921,14 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
         const canBypassVerification = bypassContext.active;
+        if (!canBypassVerification && bypassContext.deniedReason) {
+          await auditDirectConnectBypassUsage({
+            req,
+            actorUserId: String(userId),
+            context: bypassContext,
+            operation: "create",
+          });
+        }
         if (
           !canBypassVerification &&
           requesterRole === "homeowner" &&

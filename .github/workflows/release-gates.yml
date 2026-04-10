@@ -47,6 +47,9 @@ jobs:
       - name: Observability baseline guard
         run: npm run audit:observability-baselines
 
+      - name: Direct Connect gate regressions
+        run: npm run test:direct-connect:gates
+
       - name: Trust leak guard (no stub copy in live UI)
         run: npm run audit:trust-leaks
 
@@ -66,6 +69,9 @@ jobs:
 
       - name: Push schema to test DB
         run: npm run db:push:test
+
+      - name: Direct Connect gate integration
+        run: npm run test:direct-connect:gates:db
 
       - name: Run integration tests (default)
         run: npm run test:integration

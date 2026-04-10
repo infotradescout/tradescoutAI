@@ -50,6 +50,8 @@
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
     "seed:businesses": "node scripts/seed_businesses_places_new.mjs",
     "test:run:db": "npm run db:push:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
+    "test:direct-connect:gates": "npm run test:run -- server/tests/direct-connect-gates.regression.test.ts",
+    "test:direct-connect:gates:db": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run -- server/tests/direct-connect-gates.integration.test.ts",
     "test:run:db:strict": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
     "test:run:no-skips": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true VITEST_SERIAL=true npm run test:run -- --reporter=json --outputFile=test-results/vitest-results.no-skips.json && npm run report:test-skip-delta -- --report test-results/vitest-results.no-skips.json --out artifacts/test-skip-delta.no-skips.json --markdown artifacts/test-skip-delta.no-skips.md --baseline .github/test-baselines/nightly-db-skip-baseline.json --fail-on-increase",
     "verify:db": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run verify",

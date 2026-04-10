@@ -36,6 +36,9 @@ jobs:
       - name: Observability baseline guard
         run: npm run audit:observability-baselines
 
+      - name: Direct Connect gate regressions
+        run: npm run test:direct-connect:gates
+
       - name: Build
         run: npm run build
 
