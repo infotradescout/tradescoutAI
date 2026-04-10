@@ -19,6 +19,7 @@ import { registerRoutes } from "./routes";
 import { emitHttpStatus } from "./observability/metrics";
 import { assertStartupInvariants } from "./startupInvariants";
 import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
+import { landingContractHeaders } from "./middleware/landingContractHeaders";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
@@ -213,6 +214,8 @@ export async function createApp() {
       next();
     });
   }
+
+  app.use(landingContractHeaders);
 
   // Register API routes (await to ensure routes are mounted before returning app)
   const server = await registerRoutes(app);

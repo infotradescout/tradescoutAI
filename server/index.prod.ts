@@ -20,6 +20,7 @@ import { runSchemaPreflight } from "./schemaPreflight";
 import { runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
+import { landingContractHeaders } from "./middleware/landingContractHeaders";
 import { emitHttpStatus } from "./observability/metrics";
 import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
 import path from "path";
@@ -454,6 +455,7 @@ app.use((req, res, next) => {
 
 // Bot actors are read-only by policy. Default mode is report-only for safe rollout.
 app.use(botReadOnlyGuard);
+app.use(landingContractHeaders);
 
 (async () => {
   try {

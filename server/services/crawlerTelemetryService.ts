@@ -60,6 +60,13 @@ type BotObservationRouteContext = {
   entitySlug: string | null;
 };
 
+type LandingIntentContract = {
+  intentStage: "discovery" | "evaluation" | "action" | "support";
+  audienceHint: string;
+  knowledgeHint: string;
+  actionHint: string;
+};
+
 type BotObservationRow = {
   date: string | Date;
   route_family: string | null;
@@ -143,6 +150,10 @@ function cleanText(value: unknown, maxLength: number): string | null {
   const raw = String(value || "").trim();
   if (!raw) return null;
   return raw.length > maxLength ? raw.slice(0, maxLength) : raw;
+}
+
+function cleanLandingHint(value: unknown): string | null {
+  return cleanText(value, 255);
 }
 
 function cleanQueryString(value?: string | null): string | null {
@@ -458,6 +469,87 @@ function inferBotObservationRouteContext(
   };
 }
 
+function inferLandingIntentContract(
+  routeContext: BotObservationRouteContext
+): LandingIntentContract {
+  const routeFamily = String(routeContext.routeFamily || "")
+    .trim()
+    .toLowerCase();
+
+  if (routeFamily === "public_profile" || routeFamily === "public_business") {
+    return {
+      intentStage: "evaluation",
+      audienceHint: "homeowners_pros",
+      knowledgeHint: "Verify identity, trust signals, and locality before contact.",
+      actionHint: "Open Scout to route to Decision Card before direct contact.",
+    };
+  }
+
+  if (
+    routeFamily === "county_page" ||
+    routeFamily === "trade_county_page" ||
+    routeFamily === "trade_region_page"
+  ) {
+    return {
+      intentStage: "discovery",
+      audienceHint: "local_discovery",
+      knowledgeHint:
+        "County pages explain local provider landscape and trust-first exposure rules.",
+      actionHint: "Start with Scout to narrow by county and intent.",
+    };
+  }
+
+  if (routeFamily === "direct_connect") {
+    return {
+      intentStage: "action",
+      audienceHint: "project_ready",
+      knowledgeHint: "Direct Connect is intent-gated and routes through Decision Card.",
+      actionHint: "Submit intent in Direct Connect to begin guided matching.",
+    };
+  }
+
+  if (routeFamily === "exchange" || routeFamily === "homescout_listings") {
+    return {
+      intentStage: "evaluation",
+      audienceHint: "marketplace_users",
+      knowledgeHint: "Listings are surfaced by relevance and trust constraints, not pay-to-play.",
+      actionHint: "Use Scout to compare options and unlock next actions.",
+    };
+  }
+
+  if (routeFamily === "community") {
+    return {
+      intentStage: "discovery",
+      audienceHint: "community_members",
+      knowledgeHint: "Community visibility is read-only globally; action remains gated.",
+      actionHint: "Use Scout to convert discovery into an intent-backed decision path.",
+    };
+  }
+
+  if (routeFamily === "tradepartners") {
+    return {
+      intentStage: "evaluation",
+      audienceHint: "partners",
+      knowledgeHint: "Partner pages provide localized proof and route-aware opportunity context.",
+      actionHint: "Review partner county context and move into Scout workflow for action.",
+    };
+  }
+
+  return {
+    intentStage: "support",
+    audienceHint: "general",
+    knowledgeHint:
+      "TradeScout pages should explain trust rules, locality context, and authority flow.",
+    actionHint: "Use /how-it-works or Scout to continue with a guided next step.",
+  };
+}
+
+export function getLandingIntentContractForPath(pathValue?: string | null): LandingIntentContract {
+  const attribution = inferCrawlerAttribution(pathValue);
+  const routeContext = inferBotObservationRouteContext(pathValue, attribution);
+  return inferLandingIntentContract(routeContext);
+}
+
 function buildCanonicalUrl(req: Request, pathValue: string): string {
   const host = cleanText(req.get("Host"), 255) || "www.thetradescout.com";
   const proto = cleanText(req.get("X-Forwarded-Proto"), 12) || req.protocol || "https";
@@ -658,7 +750,11 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
           state varchar(2),
           trade varchar(160),
           entity_type varchar(64),
-          entity_slug varchar(255)
+          entity_slug varchar(255),
+          intent_stage varchar(32),
+          audience_hint varchar(128),
+          knowledge_hint varchar(255),
+          action_hint varchar(255)
         );
       `);
       await pool.query(`
@@ -712,6 +808,18 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
       await pool.query(
         `ALTER TABLE crawler_request_hourly_rollups ADD COLUMN IF NOT EXISTS category_slug varchar(160);`
       );
+      await pool.query(
+        `ALTER TABLE bot_observation_events ADD COLUMN IF NOT EXISTS intent_stage varchar(32);`
+      );
+      await pool.query(
+        `ALTER TABLE bot_observation_events ADD COLUMN IF NOT EXISTS audience_hint varchar(128);`
+      );
+      await pool.query(
+        `ALTER TABLE bot_observation_events ADD COLUMN IF NOT EXISTS knowledge_hint varchar(255);`
+      );
+      await pool.query(
+        `ALTER TABLE bot_observation_events ADD COLUMN IF NOT EXISTS action_hint varchar(255);`
+      );
 
       await pool.query(
         `CREATE INDEX IF NOT EXISTS crawler_request_events_bot_idx ON crawler_request_events (bot_name);`
@@ -760,6 +868,9 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
       );
       await pool.query(
         `CREATE INDEX IF NOT EXISTS bot_observation_events_trade_idx ON bot_observation_events (trade);`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS bot_observation_events_intent_stage_idx ON bot_observation_events (intent_stage);`
       );
       await pool.query(`
         CREATE UNIQUE INDEX IF NOT EXISTS bot_observation_daily_agg_unique
@@ -1158,6 +1269,7 @@ export async function recordCrawlerRequestEvent(
       countyFips: await resolveCountyFips(baseAttribution.stateCode, baseAttribution.countySlug),
     };
     const routeContext = inferBotObservationRouteContext(requestPath, baseAttribution);
+    const intentContract = inferLandingIntentContract(routeContext);
     const botName = cleanBotName(actor.botName);
     const observedAt = new Date();
     const canonicalUrl = buildCanonicalUrl(req, requestPath);
@@ -1241,10 +1353,14 @@ export async function recordCrawlerRequestEvent(
           state,
           trade,
           entity_type,
-          entity_slug
+          entity_slug,
+          intent_stage,
+          audience_hint,
+          knowledge_hint,
+          action_hint
         )
         values (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
         )
       `,
       [
@@ -1275,6 +1391,10 @@ export async function recordCrawlerRequestEvent(
         routeContext.trade,
         routeContext.entityType,
         routeContext.entitySlug,
+        cleanText(intentContract.intentStage, 32),
+        cleanText(intentContract.audienceHint, 128),
+        cleanLandingHint(intentContract.knowledgeHint),
+        cleanLandingHint(intentContract.actionHint),
       ]
     );
 
@@ -1633,6 +1753,93 @@ export async function getBotCrawlAggregateSignals(): Promise<BotCrawlAggregateSi
     }));
   } catch (error) {
     console.warn("[crawler-telemetry] degraded bot crawl aggregate signals:", error);
+    return [];
+  }
+}
+
+export type CrawlerIntentHistoryEntry = {
+  observedAt: string;
+  botName: string;
+  method: string;
+  path: string;
+  canonicalUrl: string | null;
+  statusCode: number;
+  routeFamily: string;
+  intentStage: string | null;
+  audienceHint: string | null;
+  knowledgeHint: string | null;
+  actionHint: string | null;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  responseTimeMs: number | null;
+  isRecrawl: boolean;
+};
+
+export async function getCrawlerIntentHistory(options?: {
+  limit?: number;
+  botName?: string;
+  routeFamily?: string;
+  intentStage?: string;
+}): Promise<CrawlerIntentHistoryEntry[]> {
+  try {
+    await ensureCrawlerRequestEventsTable();
+
+    const limitRequested = Number(options?.limit ?? 200) || 200;
+    const limit = Math.max(10, Math.min(1000, limitRequested));
+    const botName = cleanText(options?.botName, 120);
+    const routeFamily = cleanText(options?.routeFamily, 64);
+    const intentStage = cleanText(options?.intentStage, 32);
+
+    const result = await pool.query(
+      `
+        select
+          observed_at,
+          bot_family,
+          method,
+          path,
+          canonical_url,
+          status_code,
+          route_family,
+          intent_stage,
+          audience_hint,
+          knowledge_hint,
+          action_hint,
+          county,
+          state,
+          trade,
+          response_time_ms,
+          is_recrawl
+        from bot_observation_events
+        where ($1::text is null or bot_family = $1)
+          and ($2::text is null or route_family = $2)
+          and ($3::text is null or intent_stage = $3)
+        order by observed_at desc
+        limit $4
+      `,
+      [botName, routeFamily, intentStage, limit]
+    );
+
+    return (result.rows || []).map((row: any) => ({
+      observedAt: new Date(String(row.observed_at)).toISOString(),
+      botName: String(row.bot_family || "UnknownBot"),
+      method: String(row.method || "GET"),
+      path: String(row.path || "/"),
+      canonicalUrl: row.canonical_url ? String(row.canonical_url) : null,
+      statusCode: Number(row.status_code || 0),
+      routeFamily: String(row.route_family || "other"),
+      intentStage: row.intent_stage ? String(row.intent_stage) : null,
+      audienceHint: row.audience_hint ? String(row.audience_hint) : null,
+      knowledgeHint: row.knowledge_hint ? String(row.knowledge_hint) : null,
+      actionHint: row.action_hint ? String(row.action_hint) : null,
+      county: row.county ? String(row.county) : null,
+      state: row.state ? String(row.state) : null,
+      trade: row.trade ? String(row.trade) : null,
+      responseTimeMs: row.response_time_ms === null ? null : Number(row.response_time_ms || 0),
+      isRecrawl: Boolean(row.is_recrawl),
+    }));
+  } catch (error) {
+    console.warn("[crawler-telemetry] degraded intent history query:", error);
     return [];
   }
 }

@@ -35,7 +35,10 @@ import {
 } from "../observability/alerts";
 import { sendInternalServerError } from "../utils/httpErrors";
 import { getLisaFeed } from "../services/lisaRuntime";
-import { getCrawlerTelemetrySummary } from "../services/crawlerTelemetryService";
+import {
+  getCrawlerTelemetrySummary,
+  getCrawlerIntentHistory,
+} from "../services/crawlerTelemetryService";
 import {
   getLiveStreamSnapshot,
   getLiveStreamSnapshotHistory,
@@ -505,7 +508,8 @@ function isNoiseSurface(sourceSurface: unknown): boolean {
 
 function isContactIntent(event: LiveLaneEvent): boolean {
   const payload = event.payload || {};
-  const text = `${String(event.eventType || "")} ${String(payload.intent || "")} ${String(payload.outcome || "")}`.toLowerCase();
+  const text =
+    `${String(event.eventType || "")} ${String(payload.intent || "")} ${String(payload.outcome || "")}`.toLowerCase();
   return /(contact|connect|call|quote|book|message|schedule)/.test(text);
 }
 
@@ -526,7 +530,12 @@ function resolveActorType(event: LiveLaneEvent): "human" | "machine" {
   return event.source === "scout_interactions" ? "human" : "machine";
 }
 
-function clusterKey(args: { category: string; state: string; county: string; city: string | null }) {
+function clusterKey(args: {
+  category: string;
+  state: string;
+  county: string;
+  city: string | null;
+}) {
   return `${args.category}|${args.state}|${args.county}|${args.city || ""}`.toLowerCase();
 }
 
@@ -587,24 +596,23 @@ function buildEventNativeRecords(args: {
     if (!category || !state || !county) continue;
 
     const payload = event.payload || {};
-    const city = typeof payload.city === "string" && payload.city.trim() ? payload.city.trim() : null;
+    const city =
+      typeof payload.city === "string" && payload.city.trim() ? payload.city.trim() : null;
     const key = clusterKey({ category, state, county, city });
-    const existing =
-      currentClusters.get(key) ||
-      {
-        category,
-        state,
-        county,
-        city,
-        views: 0,
-        contactAttempts: 0,
-        repeatSessionsRaw: 0,
-        lane: new Set<string>(),
-        actorTypes: new Set<string>(),
-        eventFamilies: new Set<string>(),
-        eventIds: [],
-        newestMs: 0,
-      };
+    const existing = currentClusters.get(key) || {
+      category,
+      state,
+      county,
+      city,
+      views: 0,
+      contactAttempts: 0,
+      repeatSessionsRaw: 0,
+      lane: new Set<string>(),
+      actorTypes: new Set<string>(),
+      eventFamilies: new Set<string>(),
+      eventIds: [],
+      newestMs: 0,
+    };
 
     const family = resolveEventFamily(event);
     const actorType = resolveActorType(event);
@@ -640,7 +648,8 @@ function buildEventNativeRecords(args: {
     if (totalEvents < args.minEvents) continue;
 
     const priorTotal = priorTotals.get(key) || 0;
-    const velocityRatio = priorTotal > 0 ? (totalEvents - priorTotal) / priorTotal : totalEvents > 0 ? 1 : 0;
+    const velocityRatio =
+      priorTotal > 0 ? (totalEvents - priorTotal) / priorTotal : totalEvents > 0 ? 1 : 0;
     if (velocityRatio < args.minVelocityRatio) continue;
 
     const freshnessSeconds = Math.max(0, Math.floor((nowMs - cluster.newestMs) / 1000));
@@ -734,20 +743,26 @@ function buildEventNativeRecords(args: {
   });
 }
 
-function buildParitySummary(eventNative: DigitalDnaIntentRecord[], snapshotDerived: DigitalDnaIntentRecord[]) {
+function buildParitySummary(
+  eventNative: DigitalDnaIntentRecord[],
+  snapshotDerived: DigitalDnaIntentRecord[]
+) {
   const eventKeys = new Set(
-    eventNative.map((record) => `${record.category}|${record.geo.state}|${record.geo.county}`.toLowerCase())
+    eventNative.map((record) =>
+      `${record.category}|${record.geo.state}|${record.geo.county}`.toLowerCase()
+    )
   );
   const snapshotKeys = new Set(
-    snapshotDerived.map((record) => `${record.category}|${record.geo.state}|${record.geo.county}`.toLowerCase())
+    snapshotDerived.map((record) =>
+      `${record.category}|${record.geo.state}|${record.geo.county}`.toLowerCase()
+    )
   );
   const overlap = Array.from(eventKeys).filter((key) => snapshotKeys.has(key)).length;
   return {
     event_native_count: eventNative.length,
     snapshot_derived_count: snapshotDerived.length,
     overlap_count: overlap,
-    overlap_ratio:
-      eventKeys.size > 0 ? Number((overlap / eventKeys.size).toFixed(2)) : 0,
+    overlap_ratio: eventKeys.size > 0 ? Number((overlap / eventKeys.size).toFixed(2)) : 0,
   };
 }
 
@@ -783,7 +798,9 @@ function computeIntentParityStatus(args: {
   const sampleCount = scoped.length;
   const overlapAvg =
     sampleCount > 0
-      ? Number((scoped.reduce((sum, sample) => sum + sample.overlap_ratio, 0) / sampleCount).toFixed(3))
+      ? Number(
+          (scoped.reduce((sum, sample) => sum + sample.overlap_ratio, 0) / sampleCount).toFixed(3)
+        )
       : 0;
 
   const eventNativeAvg =
@@ -893,7 +910,10 @@ export async function runIntentAutomationTick(triggeredBy = "manual") {
   );
   const maxFreshnessSeconds = Math.max(
     30,
-    Math.min(3600, Number.parseInt(process.env.INTENT_AUTOMATION_MAX_FRESHNESS_SECONDS || "600", 10))
+    Math.min(
+      3600,
+      Number.parseInt(process.env.INTENT_AUTOMATION_MAX_FRESHNESS_SECONDS || "600", 10)
+    )
   );
   const cooldownMinutes = Math.max(
     1,
@@ -1000,7 +1020,11 @@ export async function runIntentAutomationTick(triggeredBy = "manual") {
   ) {
     cutoverNow = true;
     reason = "event_native_cutover_promoted";
-  } else if (wasCutover && config.allowRollback && paritySnapshot.status !== "ready_for_event_native_cutover") {
+  } else if (
+    wasCutover &&
+    config.allowRollback &&
+    paritySnapshot.status !== "ready_for_event_native_cutover"
+  ) {
     cutoverNow = false;
     reason = "event_native_cutover_rolled_back";
   }
@@ -1132,6 +1156,24 @@ observabilityRouter.get("/crawler-telemetry", async (_req, res) => {
   } catch (error) {
     console.error("Crawler telemetry query failed:", error);
     sendInternalServerError(res, "Failed to fetch crawler telemetry", { error: String(error) });
+  }
+});
+
+observabilityRouter.get("/crawler-telemetry/history", async (req, res) => {
+  try {
+    res.json(
+      await getCrawlerIntentHistory({
+        limit: Number.parseInt(String((req.query as any)?.limit || "200"), 10),
+        botName: String((req.query as any)?.botName || ""),
+        routeFamily: String((req.query as any)?.routeFamily || ""),
+        intentStage: String((req.query as any)?.intentStage || ""),
+      })
+    );
+  } catch (error) {
+    console.error("Crawler intent history query failed:", error);
+    sendInternalServerError(res, "Failed to fetch crawler intent history", {
+      error: String(error),
+    });
   }
 });
 
@@ -1373,7 +1415,10 @@ observabilityRouter.get("/live-stream/intent-stream", async (req, res) => {
       );
       const windowEventLimit = Math.max(
         100,
-        Math.min(2000, Number.parseInt(String((req.query as any)?.window_event_limit || "2000"), 10))
+        Math.min(
+          2000,
+          Number.parseInt(String((req.query as any)?.window_event_limit || "2000"), 10)
+        )
       );
       const minEvents = Math.max(
         1,
@@ -1389,7 +1434,10 @@ observabilityRouter.get("/live-stream/intent-stream", async (req, res) => {
       );
       const maxFreshnessSeconds = Math.max(
         30,
-        Math.min(3600, Number.parseInt(String((req.query as any)?.max_freshness_seconds || "600"), 10))
+        Math.min(
+          3600,
+          Number.parseInt(String((req.query as any)?.max_freshness_seconds || "600"), 10)
+        )
       );
       const cooldownMinutes = Math.max(
         1,
@@ -1455,7 +1503,9 @@ observabilityRouter.get("/live-stream/intent-stream", async (req, res) => {
           })
         : [];
 
-      const parityValidation = runParity ? buildParitySummary(records, snapshotDerivedRecords) : null;
+      const parityValidation = runParity
+        ? buildParitySummary(records, snapshotDerivedRecords)
+        : null;
       if (parityValidation) {
         recordIntentParitySample({
           timestamp_utc: nowIso,
@@ -1713,7 +1763,10 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       const limit = Number.parseInt(String((req.query as any)?.limit || "50"), 10);
       const windowEventLimit = Math.max(
         100,
-        Math.min(2000, Number.parseInt(String((req.query as any)?.window_event_limit || "2000"), 10))
+        Math.min(
+          2000,
+          Number.parseInt(String((req.query as any)?.window_event_limit || "2000"), 10)
+        )
       );
       const windowMinutes = Math.max(
         5,
