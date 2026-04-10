@@ -45,5 +45,8 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Sitemap integrity guard
+        run: npm run guard:sitemap-integrity
+
       - name: Tests (with test DB schema push)
         run: npm run test:run:db

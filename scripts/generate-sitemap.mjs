@@ -8,6 +8,7 @@
  */
 
 import { writeFileSync } from 'fs';
+import { readdirSync, readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -17,21 +18,7 @@ const __dirname = dirname(__filename);
 const PRODUCTION_URL = 'https://www.thetradescout.com';
 const OUTPUT_PATH = resolve(__dirname, '../client/public/sitemap.xml');
 const OUTPUT_INDEX_PATH = resolve(__dirname, '../client/public/sitemap-index.xml');
-
-const SITEMAP_INDEX_TARGETS = [
-  '/sitemap-core.xml',
-  '/sitemap-profiles.xml',
-  '/sitemap-homescout-counties.xml',
-  '/sitemap-homescout-listings.xml',
-  '/sitemap-tradepartners.xml',
-  '/sitemap-directory-counties.xml',
-  '/sitemap-directory-trade-navigation.xml',
-  '/sitemap-directory-trades.xml',
-  '/sitemap-directory-cities.xml',
-  '/sitemap-directory-trade-cities.xml',
-  '/sitemap-best-pages.xml',
-  '/sitemap-recent-activity.xml',
-];
+const PUBLIC_DIR = resolve(__dirname, '../client/public');
 
 // Canonical public routes only.
 // Keep this list focused on high-intent, index-worthy pages.
@@ -96,18 +83,48 @@ const PUBLIC_ROUTES = (() => {
   return merged;
 })();
 
+function extractExistingLastmodByLoc() {
+  if (!existsSync(OUTPUT_PATH)) return new Map();
+
+  const raw = readFileSync(OUTPUT_PATH, 'utf-8');
+  const map = new Map();
+  const urlEntryRegex = /<url>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<lastmod>([^<]+)<\/lastmod>[\s\S]*?<\/url>/g;
+  let match;
+
+  while ((match = urlEntryRegex.exec(raw)) !== null) {
+    const loc = String(match[1] || '').trim();
+    const lastmod = String(match[2] || '').trim();
+    if (!loc || !lastmod) continue;
+    map.set(loc, lastmod);
+  }
+
+  return map;
+}
+
+function getIndexTargets() {
+  const files = readdirSync(PUBLIC_DIR)
+    .filter((name) => name.startsWith('sitemap-') && name.endsWith('.xml'))
+    .filter((name) => name !== 'sitemap-index.xml')
+    .sort((a, b) => a.localeCompare(b, 'en'));
+
+  return files.map((name) => `/${name}`);
+}
+
 function generateSitemap() {
-  const now = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
+  const existingLastmodByLoc = extractExistingLastmodByLoc();
 
   const urls = PUBLIC_ROUTES.map((route) => {
-    return `  <url>\n    <loc>${PRODUCTION_URL}${route.path}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
+    const loc = `${PRODUCTION_URL}${route.path}`;
+    const lastmod = existingLastmodByLoc.get(loc) || today;
+    return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
   }).join('\n');
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>`;
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
-  const indexTargets = SITEMAP_INDEX_TARGETS.map(
-    (path) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${path}</loc>\n    <lastmod>${now}</lastmod>\n  </sitemap>`
+  const indexTargets = getIndexTargets().map(
+    (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`
   ).join('\n');
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;
   writeFileSync(OUTPUT_INDEX_PATH, sitemapIndex, 'utf-8');
