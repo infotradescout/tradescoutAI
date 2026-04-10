@@ -1808,8 +1808,8 @@ export default function AdminLiveStreamPage() {
           ? eventQueryString
           : (() => {
               const params = new URLSearchParams(queryString);
-              params.set("mode", "snapshot_full");
-              params.set("limit", "5000");
+              params.set("mode", "snapshot_24h_site");
+              params.set("limit", "200000");
               return params.toString();
             })();
       const response = await fetch(

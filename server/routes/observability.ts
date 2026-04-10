@@ -2020,6 +2020,179 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       return;
     }
 
+    if (mode === "snapshot_24h_site") {
+      const source = String((req.query as any)?.source || "");
+      const stateCode = String((req.query as any)?.stateCode || "");
+      const county = String((req.query as any)?.county || "");
+      const maxRows = Math.max(
+        100,
+        Math.min(250000, Number.parseInt(String((req.query as any)?.limit || "200000"), 10))
+      );
+
+      const now = new Date();
+      const sinceIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+      const eventRows: LiveLaneEvent[] = [];
+      const seenEventIds = new Set<string>();
+      let cursor: string | null = null;
+
+      while (eventRows.length < maxRows) {
+        const batch = await getLiveLaneEvents({
+          lane: "",
+          source,
+          stateCode,
+          county,
+          since: sinceIso,
+          cursor: cursor || "",
+          limit: 2000,
+        });
+
+        const events = Array.isArray(batch.events) ? batch.events : [];
+        for (const event of events) {
+          if (seenEventIds.has(event.id)) continue;
+          seenEventIds.add(event.id);
+          eventRows.push(event);
+          if (eventRows.length >= maxRows) break;
+        }
+
+        if (!batch.nextCursor || events.length === 0 || batch.nextCursor === cursor) {
+          break;
+        }
+        cursor = batch.nextCursor;
+      }
+
+      const snapshot = await buildLiveStreamSnapshot({
+        source,
+        stateCode,
+        county,
+        limit: 5000,
+        fullSignalCoverage: true,
+      });
+
+      const signalRows = (snapshot.stream || []).filter((entry) => {
+        const ts = new Date(String(entry.timestamp || ""));
+        return Number.isFinite(ts.getTime()) && ts.getTime() >= Date.parse(sinceIso);
+      });
+
+      const header = [
+        "generated_at",
+        "window_hours",
+        "record_type",
+        "source_filter",
+        "state_filter",
+        "county_filter",
+        "observed_at",
+        "source",
+        "kind",
+        "lane",
+        "state_code",
+        "county_name",
+        "entity_id",
+        "title",
+        "narrative",
+        "priority",
+        "truth_status",
+        "revenue_score",
+        "commercial_bucket",
+        "monetization_stage",
+        "payload_json",
+        "evidence_json",
+      ];
+
+      const escapeCsv = (value: unknown) => {
+        const normalized = String(value ?? "");
+        if (/[",\n]/.test(normalized)) {
+          return `"${normalized.replace(/"/g, '""')}"`;
+        }
+        return normalized;
+      };
+
+      const lines = [header.join(",")];
+
+      for (const event of eventRows) {
+        lines.push(
+          [
+            now.toISOString(),
+            24,
+            "event",
+            source || "",
+            stateCode || "",
+            county || "",
+            event.occurredAt,
+            event.source,
+            event.eventType,
+            event.lane,
+            event.stateCode || "",
+            event.countyName || "",
+            event.id,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            JSON.stringify(event.payload || {}),
+            "[]",
+          ]
+            .map(escapeCsv)
+            .join(",")
+        );
+      }
+
+      for (const item of signalRows) {
+        lines.push(
+          [
+            now.toISOString(),
+            24,
+            "signal",
+            source || "",
+            stateCode || "",
+            county || "",
+            item.timestamp,
+            item.source,
+            item.kind,
+            item.lane || "",
+            item.stateCode || "",
+            item.countyName || "",
+            item.id,
+            item.title,
+            item.narrative,
+            item.priority,
+            item.truthStatus || "",
+            typeof item.revenueScore === "number" ? item.revenueScore : "",
+            item.commercialBucket || "",
+            item.monetizationStage || "",
+            JSON.stringify({
+              targetMarket: item.targetMarket || null,
+              recommendedPlay: item.recommendedPlay || null,
+              salesAngle: item.salesAngle || null,
+              channelSuggestion: item.channelSuggestion || null,
+              assetSuggestion: item.assetSuggestion || null,
+              whyNow: item.whyNow || null,
+              category: item.category || null,
+            }),
+            JSON.stringify(item.evidence || []),
+          ]
+            .map(escapeCsv)
+            .join(",")
+        );
+      }
+
+      const suffix = [
+        "site-snapshot-24h",
+        toFileToken(source, "all-sources"),
+        toFileToken(stateCode, "all-states"),
+        toFileToken(county, "all-counties"),
+        new Date().toISOString().slice(0, 10),
+      ].join("-");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${suffix}.csv"`);
+      res.status(200).send(`\uFEFF${lines.join("\n")}`);
+      return;
+    }
+
     const source = String((req.query as any)?.source || "");
     const stateCode = String((req.query as any)?.stateCode || "");
     const county = String((req.query as any)?.county || "");
