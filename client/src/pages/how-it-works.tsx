@@ -44,29 +44,29 @@ function Reveal({
 const HowItWorksPage = memo(function HowItWorksPage() {
   const faqs = [
     {
-      question: "How does TradeScout match me with contractors?",
+      question: "How does TradeScout decide who appears for my request?",
       answer:
-        "You tell Scout what you need, and Scout looks for local pros who fit the job, serve your area, and have strong CVS. Paying more does not move someone ahead in the line.",
+        "Scout routes requests using local fit, trust signals, and current relevance. Exposure is governed by trust/CVS behavior, not paid placement.",
     },
     {
-      question: "What is the trust system?",
+      question: "What is CVS in plain language?",
       answer:
-        "Every pro has a Community Verification Score, or CVS. It is based on things like verified identity, license and insurance checks, work history, and community recommendations.",
+        "CVS is the trust score that reflects verified identity, licensing and insurance status, work reliability, and accountable local outcomes.",
     },
     {
-      question: "How is TradeScout different from Angi or HomeAdvisor?",
+      question: "Can businesses pay to jump the line?",
       answer:
-        "TradeScout does not sell leads and does not charge to connect. Payment never changes who shows up first or who gets matched.",
+        "No. TradeScout does not allow pay-to-play ranking or lead selling. Spend never overrides trust rules.",
     },
     {
-      question: "What is Scout?",
+      question: "What is Scout actually responsible for?",
       answer:
-        "Scout is the helper built into TradeScout. You can ask questions, look for help, and move through the platform from one conversation instead of hunting through menus.",
+        "Scout is the guided bridge from discovery to action. It answers, routes decisions, and attaches next actions so users do not end in dead-end screens.",
     },
     {
-      question: "How does Direct Connect work?",
+      question: "What happens in Direct Connect?",
       answer:
-        "When you send a request, TradeScout shares it with a small number of local pros who look like a good fit. That keeps replies focused instead of blasting everyone.",
+        "Direct Connect turns intent into controlled contact: request context, fit checks, and focused responses from relevant local providers.",
     },
   ];
 
@@ -188,8 +188,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
             >
-              Ask for help, get matched with local pros, and move forward without lead spam or
-              pay-to-play rankings.
+              Ask Scout, validate local context, and move through trust-gated steps into real action
+              without spam, shortcuts, or pay-to-play noise.
             </motion.p>
           </div>
         </section>
@@ -206,7 +206,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Four Steps to a Trusted Match
               </h2>
               <p className="text-sm text-white/60 max-w-xl mx-auto">
-                A simple path from asking for help to choosing who feels right.
+                A governed path from intent to decision so users keep momentum and trust.
               </p>
             </Reveal>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">

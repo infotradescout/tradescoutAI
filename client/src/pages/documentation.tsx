@@ -1,100 +1,135 @@
-import { memo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Search, FileText, Video, Download, ExternalLink, Lightbulb, Settings, Users } from 'lucide-react';
-import { HelpArticleWrapper } from '@/components/help/HelpArticleWrapper';
-import { getCategoryColorClass } from '@/lib/colors';
+import { memo, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  BookOpen,
+  Search,
+  FileText,
+  Video,
+  Download,
+  ExternalLink,
+  Lightbulb,
+  Settings,
+  Users,
+} from "lucide-react";
+import { HelpArticleWrapper } from "@/components/help/HelpArticleWrapper";
+import { getCategoryColorClass } from "@/lib/colors";
 
 const Documentation = memo(function Documentation() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const documentationSections = [
     {
-      id: 'getting-started',
-      title: 'Getting Started',
+      id: "getting-started",
+      title: "Getting Started",
       icon: Lightbulb,
-      description: 'Essential guides for new contractors',
+      description: "Essential guides for first-time TradeScout operators",
       articles: [
-        { title: 'Creating Your Profile', views: 1247, type: 'guide' },
-        { title: 'Verification Process', views: 892, type: 'guide' },
-        { title: 'Setting Up Your Services', views: 734, type: 'guide' },
-        { title: 'Understanding the Platform', views: 567, type: 'overview' }
-      ]
+        { title: "First 10 Minutes on TradeScout", views: 1247, type: "guide" },
+        { title: "Identity and Verification Basics", views: 892, type: "guide" },
+        { title: "Set Your Local Scope Correctly", views: 734, type: "guide" },
+        { title: "Scout + Direct Connect Fundamentals", views: 567, type: "overview" },
+      ],
     },
     {
-      id: 'lead-management',
-      title: 'Connection Management',
+      id: "lead-management",
+      title: "Request and Decision Management",
       icon: Users,
-      description: 'How to handle and convert leads',
+      description: "How to move requests from discovery to accountable action",
       articles: [
-        { title: 'Lead Response Best Practices', views: 1089, type: 'guide' },
-        { title: 'Quote Templates', views: 845, type: 'template' },
-        { title: 'Follow-up Strategies', views: 623, type: 'guide' },
-        { title: 'Lead Scoring System', views: 456, type: 'reference' }
-      ]
+        { title: "Direct Connect Response Playbook", views: 1089, type: "guide" },
+        { title: "Decision Card Conversation Templates", views: 845, type: "template" },
+        { title: "Follow-up Without Trust Erosion", views: 623, type: "guide" },
+        { title: "Request Prioritization Rules", views: 456, type: "reference" },
+      ],
     },
     {
-      id: 'features',
-      title: 'Platform Features',
+      id: "features",
+      title: "Platform Features",
       icon: Settings,
-      description: 'Detailed feature explanations',
+      description: "Detailed walkthroughs for high-impact platform tools",
       articles: [
-        { title: 'Daily Deals System', views: 967, type: 'guide' },
-        { title: 'Analytics Dashboard', views: 789, type: 'guide' },
-        { title: 'Payment Processing', views: 612, type: 'reference' },
-        { title: 'Mobile App Usage', views: 534, type: 'guide' }
-      ]
+        { title: "Telemetry Center Walkthrough", views: 967, type: "guide" },
+        { title: "Admin OS Navigation Map", views: 789, type: "guide" },
+        { title: "Payments and Records Controls", views: 612, type: "reference" },
+        { title: "Mobile Workflow Shortcuts", views: 534, type: "guide" },
+      ],
     },
     {
-      id: 'business',
-      title: 'Business Growth',
+      id: "business",
+      title: "Business Growth",
       icon: FileText,
-      description: 'Tips for growing your business',
+      description: "Operational playbooks for trust-first local growth",
       articles: [
-        { title: 'Building Customer Trust', views: 1156, type: 'guide' },
-        { title: 'Pricing Strategies', views: 923, type: 'guide' },
-        { title: 'Marketing Your Services', views: 678, type: 'guide' },
-        { title: 'Customer Retention', views: 445, type: 'tip' }
-      ]
-    }
+        { title: "Build Trust Through Delivery Signals", views: 1156, type: "guide" },
+        { title: "Pricing With Transparency", views: 923, type: "guide" },
+        { title: "Local Offer Positioning", views: 678, type: "guide" },
+        { title: "Retention Through Reliability", views: 445, type: "tip" },
+      ],
+    },
   ];
 
   const popularArticles = [
-    { title: 'How to Get More Leads', category: 'Business Growth', views: 2340, type: 'guide' },
-    { title: 'Verification Requirements', category: 'Getting Started', views: 1876, type: 'reference' },
-    { title: 'Payment Processing Guide', category: 'Features', views: 1654, type: 'guide' },
-    { title: 'Response Time Best Practices', category: 'Connection Management', views: 1432, type: 'guide' },
-    { title: 'Profile Optimization Tips', category: 'Getting Started', views: 1298, type: 'tip' }
+    {
+      title: "How to Route the Right Next Step",
+      category: "Business Growth",
+      views: 2340,
+      type: "guide",
+    },
+    {
+      title: "Verification Requirements",
+      category: "Getting Started",
+      views: 1876,
+      type: "reference",
+    },
+    {
+      title: "Payments and Records Guide",
+      category: "Platform Features",
+      views: 1654,
+      type: "guide",
+    },
+    {
+      title: "Response Time and Trust Signals",
+      category: "Request and Decision Management",
+      views: 1432,
+      type: "guide",
+    },
+    {
+      title: "Profile Credibility Checklist",
+      category: "Getting Started",
+      views: 1298,
+      type: "tip",
+    },
   ];
 
   const videoTutorials = [
     {
-      title: 'Platform Overview for New Contractors',
-      duration: '12:45',
+      title: "Platform Overview for New Operators",
+      duration: "12:45",
       views: 3456,
-      thumbnail: 'bg-gradient-to-br from-blue-600 to-purple-600'
+      thumbnail: "bg-gradient-to-br from-blue-600 to-purple-600",
     },
     {
-      title: 'Setting Up Your First Quote',
-      duration: '8:30',
+      title: "Running Your First Direct Connect Request",
+      duration: "8:30",
       views: 2789,
-      thumbnail: 'bg-gradient-to-br from-emerald-600 to-cyan-600'
+      thumbnail: "bg-gradient-to-br from-emerald-600 to-cyan-600",
     },
     {
-      title: 'Using the Mobile App Effectively',
-      duration: '15:20',
+      title: "Using TradeScout Mobile Workflows",
+      duration: "15:20",
       views: 2234,
-      thumbnail: 'bg-gradient-to-br from-orange-600 to-red-600'
+      thumbnail: "bg-gradient-to-br from-orange-600 to-red-600",
     },
     {
-      title: 'Analytics Dashboard Deep Dive',
-      duration: '18:15',
+      title: "Telemetry Center Deep Dive",
+      duration: "18:15",
       views: 1987,
-      thumbnail: 'bg-gradient-to-br from-purple-600 to-pink-600'
-    }
+      thumbnail: "bg-gradient-to-br from-purple-600 to-pink-600",
+    },
   ];
 
   const getTypeColor = (type: string) => {
@@ -109,7 +144,8 @@ const Documentation = memo(function Documentation() {
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white mb-4">Documentation Center</h1>
             <p className="text-xl text-white/70">
-              Comprehensive guides and resources to help you succeed on TradeScout
+              Practical guides that explain what to do, why it matters, and which action to take
+              next.
             </p>
           </div>
 
@@ -167,7 +203,9 @@ const Documentation = memo(function Documentation() {
                               <div className="flex items-center gap-3">
                                 <FileText className="w-4 h-4 text-white/60" />
                                 <div>
-                                  <h4 className="font-medium text-white text-sm">{article.title}</h4>
+                                  <h4 className="font-medium text-white text-sm">
+                                    {article.title}
+                                  </h4>
                                   <p className="text-xs text-white/60">{article.views} views</p>
                                 </div>
                               </div>
@@ -209,10 +247,7 @@ const Documentation = memo(function Documentation() {
                           <div>
                             <h3 className="font-semibold text-white mb-1">{article.title}</h3>
                             <div className="flex items-center gap-2">
-                              <Badge
-                                variant="outline"
-                                className="border-white/15 text-white/60"
-                              >
+                              <Badge variant="outline" className="border-white/15 text-white/60">
                                 {article.category}
                               </Badge>
                               <span className="text-white/60 text-sm">{article.views} views</span>
@@ -246,13 +281,8 @@ const Documentation = memo(function Documentation() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {videoTutorials.map((video, index) => (
-                      <div
-                        key={index}
-                        className="bg-white/10 rounded-lg overflow-hidden"
-                      >
-                        <div
-                          className={`h-40 ${video.thumbnail} flex items-center justify-center`}
-                        >
+                      <div key={index} className="bg-white/10 rounded-lg overflow-hidden">
+                        <div className={`h-40 ${video.thumbnail} flex items-center justify-center`}>
                           <div
                             className="w-16 h-16 rounded-full flex items-center justify-center backdrop-blur-sm"
                             style={{ backgroundColor: "var(--surface-frame)" }}
@@ -387,11 +417,14 @@ const Documentation = memo(function Documentation() {
             <CardContent className="p-6 text-center">
               <h3 className="text-xl font-semibold text-white mb-2">Need More Help?</h3>
               <p className="text-white/60 mb-4">
-                Can't find what you're looking for? Our support team is here to help.
+                If an article does not unblock you, route the issue through Scout with your exact
+                goal and blocker.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="outline">Contact Support</Button>
-                <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Schedule a Call</Button>
+                <Button variant="outline">Ask Scout</Button>
+                <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">
+                  Open Support Ticket
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -29,28 +29,28 @@ export default function Help() {
       <div className="w-full max-w-4xl mx-auto px-3 md:px-4 py-6 md:py-10">
         <SEOHelmet
           title="Help Center – Articles and Guides | TradeScout"
-          description="Browse help overviews for how TradeScout actually works. If you still don't see the answer, you can ask Scout from here for step-by-step help."
+          description="Use TradeScout Help to understand core flows, resolve blockers quickly, and move from discovery to action with Scout and Direct Connect."
           canonical="https://www.thetradescout.com/help"
           structuredData={createFAQStructuredData([
             {
-              question: "What is TradeScout?",
+              question: "What should I do first when I feel stuck on TradeScout?",
               answer:
-                "TradeScout is built around Connection Without Compromise and helps people find local help, compare options, and keep projects moving in one place.",
+                "Start with Scout and describe your goal in plain language. Scout routes you to the right page and tells you the next concrete step so you do not have to guess.",
             },
             {
-              question: "What is Scout on TradeScout?",
+              question: "When should I use Direct Connect instead of browsing pages?",
               answer:
-                "Scout is TradeScout's built-in guide. It helps people figure out what to do next, find or offer services, and use the site without getting lost.",
+                "Use Direct Connect when you are ready to request real local action. Discovery pages are for context; Direct Connect is the gated bridge into contact and execution.",
             },
             {
-              question: "Who is TradeScout for?",
+              question: "How does TradeScout decide what gets shown first?",
               answer:
-                "TradeScout is for anyone who participates locally—people getting projects done, offering services, managing properties or groups, buying and selling locally, or organizing communities.",
+                "TradeScout prioritizes trust, relevance, and local fit. Payment does not override trust/CVS behavior or authority constraints.",
             },
             {
-              question: "Do I need to be a contractor or homeowner to use TradeScout?",
+              question: "Where can I learn platform rules before taking action?",
               answer:
-                "No. TradeScout supports many ways of participating locally, including services, property management, community activity, buying and selling, and general tools.",
+                "Use How TradeScout Works and Trust Model pages to understand authority, contact gating, and what Scout can do before you commit to a workflow.",
             },
           ])}
         />
@@ -61,8 +61,8 @@ export default function Help() {
             TradeScout Help Home
           </h1>
           <p className="text-sm md:text-base text-white/70 max-w-2xl">
-            TradeScout is built around Connection Without Compromise. Start here to understand how
-            jobs, messaging, community, and Scout work together.
+            Start here when you need clear next steps. Each section below is tuned to a real
+            decision moment so you can move forward without menu hunting.
           </p>
         </div>
 
@@ -77,8 +77,8 @@ export default function Help() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <p>
-                TradeScout is built around Connection Without Compromise. Start here to understand
-                how requests, messaging, and the rest of TradeScout fit together.
+                Read this first if you want the shortest explanation of TradeScout rules, authority
+                boundaries, and why contact is gated through Scout and Direct Connect.
               </p>
               <Button
                 size="sm"
@@ -106,7 +106,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#direct-connect-workflow")}
                 >
-                  How jobs work
+                  Request to contact flow
                 </Button>
                 <Button
                   variant="outline"
@@ -114,7 +114,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#messaging-rules")}
                 >
-                  Why messaging is locked
+                  Why messaging is gated
                 </Button>
                 <Button
                   variant="outline"
@@ -122,7 +122,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#cancel-reopen")}
                 >
-                  Cancel &amp; reopen
+                  Pause and restart safely
                 </Button>
               </div>
             </CardContent>
@@ -144,7 +144,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#finances-invoicing")}
                 >
-                  Invoicing &amp; payments
+                  Records, invoices, and payouts
                 </Button>
               </div>
             </CardContent>
@@ -166,7 +166,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/community-feed")}
                 >
-                  Community feed basics
+                  Community feed priorities
                 </Button>
                 <Button
                   variant="outline"
@@ -174,7 +174,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#sharing-attribution")}
                 >
-                  Sharing &amp; attribution
+                  Sharing, attribution, and trust
                 </Button>
               </div>
             </CardContent>
@@ -198,7 +198,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/scout")}
                 >
-                  How Scout works
+                  Start with Scout
                 </Button>
                 <Button
                   variant="outline"
@@ -208,7 +208,7 @@ export default function Help() {
                     navigate("/help/how-tradescout-works#connection-without-compromise")
                   }
                 >
-                  What Scout can and can&apos;t do
+                  Scout authority boundaries
                 </Button>
                 <Button
                   variant="outline"
@@ -216,7 +216,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#direct-connect-workflow")}
                 >
-                  Why Scout suggests certain actions
+                  Why Scout recommends actions
                 </Button>
               </div>
             </CardContent>
