@@ -53,6 +53,7 @@ import {
 import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
+import { detectActorFromUserAgent } from "./utils/requestActor";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -62,6 +63,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicProfileTemplateCache = new Map<string, string>();
 const CANONICAL_WEB_HOST = "www.thetradescout.com";
+
+function shouldRetainSeoSummaryForRequest(req: Request): boolean {
+  const userAgent = String(req.headers["user-agent"] || "").trim();
+  const actor = detectActorFromUserAgent(userAgent);
+
+  // Keep pre-rendered root summaries for known bots/crawlers and social unfurl bots.
+  // Human browsers should get an empty root to avoid visible text flash before React mounts.
+  return actor.actorType === "bot";
+}
+
+function stripSeoRootSummaryForHumans(html: string): string {
+  return html.replace(
+    /<div id="root">\s*<main data-seo-[\s\S]*?<\/main>\s*<\/div>/i,
+    '<div id="root"></div>'
+  );
+}
 
 function getForwardedProto(req: Request): string {
   return String(req.headers["x-forwarded-proto"] || "")
@@ -146,6 +163,23 @@ app.use((req, res, next) => {
     typeof incoming === "string" && incoming.trim().length > 0 ? incoming.trim() : randomUUID();
   (req as any).requestId = requestId;
   res.setHeader("X-Request-Id", requestId);
+  next();
+});
+
+app.use((req, res, next) => {
+  const originalSend = res.send.bind(res);
+
+  res.send = ((body?: any) => {
+    if (
+      typeof body === "string" &&
+      body.includes("data-seo-") &&
+      !shouldRetainSeoSummaryForRequest(req)
+    ) {
+      return originalSend(stripSeoRootSummaryForHumans(body));
+    }
+    return originalSend(body);
+  }) as typeof res.send;
+
   next();
 });
 
