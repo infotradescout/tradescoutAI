@@ -1011,6 +1011,35 @@ function buildEvidenceHighlights(item: LiveStreamItem): string[] {
   return Array.from(new Set(highlights)).slice(0, 5);
 }
 
+function buildWhereLabel(item: LiveStreamItem): string {
+  return inferLocationLabel(item) || "No location captured";
+}
+
+function buildWhatLabel(item: LiveStreamItem): string {
+  const evidence = buildEvidenceMap(item.evidence);
+  const route =
+    evidence.top_path || evidence.path || evidence.broken_path || extractRouteTarget(item) || null;
+  const category = inferCategoryLabel(item);
+  if (route && category) return `${route} (${category})`;
+  if (route) return route;
+  if (category) return category;
+  return item.kind.replaceAll("_", " ");
+}
+
+function buildEvidenceLine(item: LiveStreamItem): string {
+  const evidence = buildEvidenceMap(item.evidence);
+  const parts = [
+    evidence.hits ? `${evidence.hits} hits` : null,
+    evidence.request_count ? `${evidence.request_count} requests` : null,
+    evidence.recrawls ? `${evidence.recrawls} recrawls` : null,
+    evidence.status_404_count ? `${evidence.status_404_count} 404s` : null,
+    evidence.bot_family ? `bot ${evidence.bot_family}` : null,
+    evidence.route_family ? `surface ${evidence.route_family.replace(/_/g, " ")}` : null,
+  ].filter(Boolean);
+
+  return parts.join(" | ") || "No structured evidence captured";
+}
+
 function hasConcreteOperatorTask(item: LiveStreamItem): boolean {
   const candidate = String(item.recommendedPlay || resolveEntryActionTask(item) || "").trim();
   if (!candidate) return false;
@@ -1096,6 +1125,18 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
   const concreteOperatorTask = hasConcreteOperatorTask(item)
     ? item.recommendedPlay || resolveEntryActionTask(item)
     : null;
+  const whereLabel = buildWhereLabel(item);
+  const whatLabel = buildWhatLabel(item);
+  const evidenceLine = buildEvidenceLine(item);
+  const hasExpandedDetails =
+    Boolean(concreteOperatorTask) ||
+    Boolean(item.targetMarket) ||
+    Boolean(item.salesAngle) ||
+    Boolean(item.channelSuggestion) ||
+    Boolean(item.assetSuggestion) ||
+    Boolean(item.inventorySummary) ||
+    Boolean(item.marketGapSummary) ||
+    Boolean(item.prospectSummary);
 
   return (
     <div className={cn("rounded-lg border border-white/10 bg-black/20", compact ? "p-3" : "p-3")}>
@@ -1111,46 +1152,33 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
             >
               {item.source.replaceAll("_", " ")}
             </Badge>
-            <Badge className={familyTone[signalFamily] || familyTone.intelligence}>
-              {signalFamily}
-            </Badge>
             {item.kind ? (
               <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
                 {item.kind.replaceAll("_", " ")}
               </span>
             ) : null}
+            {concreteOperatorTask ? (
+              <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
+                action available
+              </Badge>
+            ) : null}
           </div>
           <div className={cn("mt-2 font-semibold text-white", compact ? "text-xs" : "text-sm")}>
-            {item.title}
+            {observedFact}
           </div>
+          <div className="mt-1 text-xs text-white/55">Recorded as: {item.title}</div>
         </div>
         <div className="text-xs text-white/50">{new Date(item.timestamp).toLocaleString()}</div>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {typeof item.revenueScore === "number" ? (
-          <Badge className="border-emerald-300/20 bg-emerald-500/10 text-emerald-50">
-            score {item.revenueScore}
-          </Badge>
-        ) : null}
-        <Badge className={priorityTone[item.priority]}>{item.priority}</Badge>
-        <Badge className={urgencyTone[urgency]}>{urgency}</Badge>
-        <Badge className={truthTone[truthStatus]}>{truthStatus}</Badge>
-        <Badge className={durabilityTone[durabilityClass]}>{durabilityClass}</Badge>
-        <Badge className={ownerTone[owner] || ownerTone["sales watch"]}>{owner}</Badge>
-        {contextTokens.map((token) => (
-          <Badge
-            key={`${item.id}:${token}`}
-            variant="outline"
-            className="border-white/10 text-white/60"
-          >
-            {token}
-          </Badge>
-        ))}
-      </div>
-
-      <div className={cn("mt-2 text-white/85", compact ? "text-xs" : "text-sm")}>
-        {observedFact}
+      <div className="mt-3 grid gap-2 md:grid-cols-3">
+        <BriefTile label="What" value={whatLabel} />
+        <BriefTile label="Where" value={whereLabel} />
+        <BriefTile
+          label="Evidence"
+          value={evidenceLine}
+          detail={`status ${truthStatus} | ${durabilityClass}`}
+        />
       </div>
 
       {evidenceHighlights.length ? (
@@ -1167,17 +1195,13 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         </div>
       ) : null}
 
-      <div className="mt-2 text-xs text-white/60">
-        Evidence basis: {item.whyNow || item.narrative}
-      </div>
+      <div className="mt-2 text-xs text-white/60">Raw basis: {item.whyNow || item.narrative}</div>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-xs text-white/65">
-          {concreteOperatorTask
-            ? `Operator step: ${concreteOperatorTask}`
-            : actionHint
-              ? `Operational implication: ${actionHint}`
-              : "Monitoring only: no concrete operator step emitted"}
+          {hasExpandedDetails
+            ? "Expand for operator detail and downstream implication"
+            : "Monitoring record only"}
         </div>
         <Button
           type="button"
@@ -1190,15 +1214,7 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
         </Button>
       </div>
 
-      {expanded &&
-      (concreteOperatorTask ||
-        item.targetMarket ||
-        item.salesAngle ||
-        item.channelSuggestion ||
-        item.assetSuggestion ||
-        item.inventorySummary ||
-        item.marketGapSummary ||
-        item.prospectSummary) ? (
+      {expanded && hasExpandedDetails ? (
         <div className="mt-2 grid gap-2 md:grid-cols-2">
           {concreteOperatorTask ? (
             <div className="rounded-md border border-emerald-400/15 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-50">
@@ -1215,20 +1231,20 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
           {item.salesAngle ? (
             <div className="rounded-md border border-violet-400/15 bg-violet-500/10 px-3 py-2 text-xs text-violet-50">
               <div className="uppercase tracking-[0.18em] text-violet-100/60">
-                Operational implication
+                Why this could matter
               </div>
               <div className="mt-1">{item.salesAngle}</div>
             </div>
           ) : null}
           {item.channelSuggestion ? (
             <div className="rounded-md border border-cyan-400/15 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">
-              <div className="uppercase tracking-[0.18em] text-cyan-100/60">Channel</div>
+              <div className="uppercase tracking-[0.18em] text-cyan-100/60">Suggested surface</div>
               <div className="mt-1">{item.channelSuggestion}</div>
             </div>
           ) : null}
           {item.assetSuggestion ? (
             <div className="rounded-md border border-lime-400/15 bg-lime-500/10 px-3 py-2 text-xs text-lime-50">
-              <div className="uppercase tracking-[0.18em] text-lime-100/60">Asset</div>
+              <div className="uppercase tracking-[0.18em] text-lime-100/60">Needed asset</div>
               <div className="mt-1">{item.assetSuggestion}</div>
             </div>
           ) : null}
@@ -1246,7 +1262,9 @@ function StreamEntryCard({ item, compact = false }: { item: LiveStreamItem; comp
           ) : null}
           {item.prospectSummary ? (
             <div className="rounded-md border border-fuchsia-400/15 bg-fuchsia-500/10 px-3 py-2 text-xs text-fuchsia-50">
-              <div className="uppercase tracking-[0.18em] text-fuchsia-100/60">Buyer classes</div>
+              <div className="uppercase tracking-[0.18em] text-fuchsia-100/60">
+                Observed audience
+              </div>
               <div className="mt-1">{item.prospectSummary}</div>
             </div>
           ) : null}
