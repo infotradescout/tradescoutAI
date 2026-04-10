@@ -2085,6 +2085,7 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
         "source",
         "kind",
         "lane",
+        "lane_index",
         "state_code",
         "county_name",
         "entity_id",
@@ -2108,8 +2109,45 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       };
 
       const lines = [header.join(",")];
+      const laneCounts = new Map<string, number>();
+
+      const resolveSignalLane = (item: {
+        lane?: string | null;
+        kind?: string | null;
+        source?: string | null;
+      }): string => {
+        const lane = String(item.lane || "").trim();
+        if (lane) return lane;
+
+        const kind = String(item.kind || "").toLowerCase();
+        const source = String(item.source || "").toLowerCase();
+
+        if (kind === "truth_now" || source === "lisa") return "trust";
+        if (/lead|supply/.test(kind) || source === "directory" || source === "cumulus") {
+          return "action";
+        }
+        if (
+          /crawl|crawler|bot|demand|volume|finding/.test(kind) ||
+          source === "crawler" ||
+          source === "bot_crawl_signals" ||
+          source === "bot_visibility" ||
+          source === "homescout"
+        ) {
+          return "crawl_visibility";
+        }
+        return "action";
+      };
+
+      const nextLaneIndex = (lane: string): number => {
+        const prior = laneCounts.get(lane) || 0;
+        const next = prior + 1;
+        laneCounts.set(lane, next);
+        return next;
+      };
 
       for (const event of eventRows) {
+        const lane = String(event.lane || "unknown");
+        const laneIndex = nextLaneIndex(lane);
         lines.push(
           [
             now.toISOString(),
@@ -2121,7 +2159,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             event.occurredAt,
             event.source,
             event.eventType,
-            event.lane,
+            lane,
+            laneIndex,
             event.stateCode || "",
             event.countyName || "",
             event.id,
@@ -2141,6 +2180,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
       }
 
       for (const item of signalRows) {
+        const lane = resolveSignalLane(item);
+        const laneIndex = nextLaneIndex(lane);
         lines.push(
           [
             now.toISOString(),
@@ -2152,7 +2193,8 @@ observabilityRouter.get("/live-stream/export.csv", async (req, res) => {
             item.timestamp,
             item.source,
             item.kind,
-            item.lane || "",
+            lane,
+            laneIndex,
             item.stateCode || "",
             item.countyName || "",
             item.id,
