@@ -46,12 +46,12 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "How does TradeScout decide who appears for my request?",
       answer:
-        "Scout routes requests using local fit, trust signals, and current relevance. Exposure is governed by trust/CVS behavior, not paid placement.",
+        "Scout looks at your location, your request details, and provider reliability. Paid placement does not move someone ahead.",
     },
     {
-      question: "What is CVS in plain language?",
+      question: "What does CVS mean?",
       answer:
-        "CVS is the trust score that reflects verified identity, licensing and insurance status, work reliability, and accountable local outcomes.",
+        "CVS is a reliability score based on checks people can understand, like identity, licensing, insurance, and service history.",
     },
     {
       question: "Can businesses pay to jump the line?",
@@ -61,12 +61,12 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "What is Scout actually responsible for?",
       answer:
-        "Scout is the guided bridge from discovery to action. It answers, routes decisions, and attaches next actions so users do not end in dead-end screens.",
+        "Scout helps you figure out what to do next, takes you to the right page, and keeps progress moving.",
     },
     {
       question: "What happens in Direct Connect?",
       answer:
-        "Direct Connect turns intent into controlled contact: request context, fit checks, and focused responses from relevant local providers.",
+        "Direct Connect sends your request to a small set of relevant local providers so replies stay focused.",
     },
   ];
 
@@ -97,17 +97,17 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Search,
       title: "Good-fit matching",
-      desc: "Scout looks at the job, the location, timing, and trust signals to find people who actually fit.",
+      desc: "Scout looks at your job details, location, and timing to find people who actually fit.",
       bullets: [
         "Your request goes to a small set of local pros, not a giant blast list",
         "Job details, timing, and budget help people decide quickly",
-        "Trust checks matter more than who pays the most",
+        "Quality checks matter more than who pays the most",
       ],
     },
     {
       icon: Shield,
       title: "Community Verification Score",
-      desc: "Every pro has a CVS score built from real trust checks people can understand.",
+      desc: "Every pro has a reliability score built from checks people can understand.",
       bullets: [
         "Verified identity (real person, real business)",
         "Active license & insurance (state-verified)",
@@ -188,8 +188,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
             >
-              Ask Scout, validate local context, and move through trust-gated steps into real action
-              without spam, shortcuts, or pay-to-play noise.
+              Ask Scout, review your local options, and move into action without spam or pay-to-play
+              rankings.
             </motion.p>
           </div>
         </section>
@@ -206,7 +206,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Four Steps to a Trusted Match
               </h2>
               <p className="text-sm text-white/60 max-w-xl mx-auto">
-                A governed path from intent to decision so users keep momentum and trust.
+                A simple path from asking for help to choosing who to work with.
               </p>
             </Reveal>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">

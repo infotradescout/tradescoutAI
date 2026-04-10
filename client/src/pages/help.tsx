@@ -40,17 +40,17 @@ export default function Help() {
             {
               question: "When should I use Direct Connect instead of browsing pages?",
               answer:
-                "Use Direct Connect when you are ready to request real local action. Discovery pages are for context; Direct Connect is the gated bridge into contact and execution.",
+                "Use Direct Connect when you are ready to contact local providers. Browse pages first for context, then move to Direct Connect to start the request.",
             },
             {
               question: "How does TradeScout decide what gets shown first?",
               answer:
-                "TradeScout prioritizes trust, relevance, and local fit. Payment does not override trust/CVS behavior or authority constraints.",
+                "TradeScout prioritizes local fit, reliability, and relevance. Paying more does not move someone ahead in results.",
             },
             {
               question: "Where can I learn platform rules before taking action?",
               answer:
-                "Use How TradeScout Works and Trust Model pages to understand authority, contact gating, and what Scout can do before you commit to a workflow.",
+                "Use the How TradeScout Works and Trust Model pages for a quick plain-language walkthrough before you start a request.",
             },
           ])}
         />
@@ -77,8 +77,8 @@ export default function Help() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm md:text-base text-white/70">
               <p>
-                Read this first if you want the shortest explanation of TradeScout rules, authority
-                boundaries, and why contact is gated through Scout and Direct Connect.
+                Read this first for a short explanation of how requests, contact, and Scout fit
+                together.
               </p>
               <Button
                 size="sm"
@@ -114,7 +114,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#messaging-rules")}
                 >
-                  Why messaging is gated
+                  Why messaging has limits
                 </Button>
                 <Button
                   variant="outline"
@@ -208,7 +208,7 @@ export default function Help() {
                     navigate("/help/how-tradescout-works#connection-without-compromise")
                   }
                 >
-                  Scout authority boundaries
+                  What Scout can help with
                 </Button>
                 <Button
                   variant="outline"
@@ -216,7 +216,7 @@ export default function Help() {
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() => navigate("/help/how-tradescout-works#direct-connect-workflow")}
                 >
-                  Why Scout recommends actions
+                  Why Scout suggests these steps
                 </Button>
               </div>
             </CardContent>

@@ -75,8 +75,7 @@ const ResourceCenter = memo(function ResourceCenter() {
       title: "Licensing and Insurance Requirements by State",
       type: "document",
       category: "business",
-      description:
-        "Reference map for license/insurance readiness before entering high-trust workflows.",
+      description: "Simple reference map for license and insurance requirements by state.",
       author: "TradeScout Legal Team",
       rating: 4.7,
       views: 12350,
@@ -94,7 +93,7 @@ const ResourceCenter = memo(function ResourceCenter() {
       title: "Client Communication Under Decision Pressure",
       type: "guide",
       category: "business",
-      description: "Message patterns that maintain trust while keeping projects moving.",
+      description: "Simple message patterns that keep projects moving.",
       author: "Business Development Team",
       rating: 4.6,
       views: 9870,
@@ -172,8 +171,8 @@ const ResourceCenter = memo(function ResourceCenter() {
   return (
     <>
       <SEOHelmet
-        title="Resource Center | Trade Guides, Templates, and Playbooks"
-        description="Explore TradeScout's resource center for guides, templates, videos, and practical playbooks to improve local project execution."
+        title="Resource Center | Trade Guides, Templates, and Videos"
+        description="Explore TradeScout's resource center for guides, templates, and videos that help you plan and complete local projects."
         canonical="https://www.thetradescout.com/resource-center"
       />
       <Page>
@@ -184,7 +183,7 @@ const ResourceCenter = memo(function ResourceCenter() {
               Resource Center
             </span>
           }
-          subtitle="Action-oriented playbooks, templates, and field guides for trust-first local execution"
+          subtitle="Simple guides, templates, and videos to help you complete local projects"
         >
           {/* Search and Filters */}
           <Card className="bg-card border-border mb-8">

@@ -26,7 +26,7 @@ const Documentation = memo(function Documentation() {
       id: "getting-started",
       title: "Getting Started",
       icon: Lightbulb,
-      description: "Essential guides for first-time TradeScout operators",
+      description: "Essential guides for people new to TradeScout",
       articles: [
         { title: "First 10 Minutes on TradeScout", views: 1247, type: "guide" },
         { title: "Identity and Verification Basics", views: 892, type: "guide" },
@@ -36,13 +36,13 @@ const Documentation = memo(function Documentation() {
     },
     {
       id: "lead-management",
-      title: "Request and Decision Management",
+      title: "Requests and Follow-up",
       icon: Users,
-      description: "How to move requests from discovery to accountable action",
+      description: "How to handle requests and keep follow-up clear",
       articles: [
-        { title: "Direct Connect Response Playbook", views: 1089, type: "guide" },
-        { title: "Decision Card Conversation Templates", views: 845, type: "template" },
-        { title: "Follow-up Without Trust Erosion", views: 623, type: "guide" },
+        { title: "Direct Connect Response Guide", views: 1089, type: "guide" },
+        { title: "Conversation Templates", views: 845, type: "template" },
+        { title: "Follow-up Without Friction", views: 623, type: "guide" },
         { title: "Request Prioritization Rules", views: 456, type: "reference" },
       ],
     },
@@ -50,19 +50,19 @@ const Documentation = memo(function Documentation() {
       id: "features",
       title: "Platform Features",
       icon: Settings,
-      description: "Detailed walkthroughs for high-impact platform tools",
+      description: "Detailed walkthroughs for key platform tools",
       articles: [
-        { title: "Telemetry Center Walkthrough", views: 967, type: "guide" },
-        { title: "Admin OS Navigation Map", views: 789, type: "guide" },
+        { title: "Admin Overview Walkthrough", views: 967, type: "guide" },
+        { title: "Admin Navigation Map", views: 789, type: "guide" },
         { title: "Payments and Records Controls", views: 612, type: "reference" },
-        { title: "Mobile Workflow Shortcuts", views: 534, type: "guide" },
+        { title: "Mobile Shortcuts", views: 534, type: "guide" },
       ],
     },
     {
       id: "business",
       title: "Business Growth",
       icon: FileText,
-      description: "Operational playbooks for trust-first local growth",
+      description: "Practical guides for local business growth",
       articles: [
         { title: "Build Trust Through Delivery Signals", views: 1156, type: "guide" },
         { title: "Pricing With Transparency", views: 923, type: "guide" },
@@ -92,8 +92,8 @@ const Documentation = memo(function Documentation() {
       type: "guide",
     },
     {
-      title: "Response Time and Trust Signals",
-      category: "Request and Decision Management",
+      title: "Response Time and Reliability",
+      category: "Requests and Follow-up",
       views: 1432,
       type: "guide",
     },
@@ -107,7 +107,7 @@ const Documentation = memo(function Documentation() {
 
   const videoTutorials = [
     {
-      title: "Platform Overview for New Operators",
+      title: "Platform Overview for New Users",
       duration: "12:45",
       views: 3456,
       thumbnail: "bg-gradient-to-br from-blue-600 to-purple-600",
@@ -119,13 +119,13 @@ const Documentation = memo(function Documentation() {
       thumbnail: "bg-gradient-to-br from-emerald-600 to-cyan-600",
     },
     {
-      title: "Using TradeScout Mobile Workflows",
+      title: "Using TradeScout on Mobile",
       duration: "15:20",
       views: 2234,
       thumbnail: "bg-gradient-to-br from-orange-600 to-red-600",
     },
     {
-      title: "Telemetry Center Deep Dive",
+      title: "Admin Dashboard Deep Dive",
       duration: "18:15",
       views: 1987,
       thumbnail: "bg-gradient-to-br from-purple-600 to-pink-600",
@@ -144,8 +144,7 @@ const Documentation = memo(function Documentation() {
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white mb-4">Documentation Center</h1>
             <p className="text-xl text-white/70">
-              Practical guides that explain what to do, why it matters, and which action to take
-              next.
+              Practical guides that explain what to do next in clear, simple language.
             </p>
           </div>
 
