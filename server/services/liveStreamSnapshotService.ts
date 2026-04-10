@@ -392,9 +392,82 @@ function stripCountySuffix(value?: string | null): string {
 }
 
 function extractRouteTarget(text: string): string | null {
-  const match = text.match(/(\/[A-Za-z0-9._\-/%]+)/);
-  if (!match?.[1]) return null;
-  return match[1].replace(/[.,;:!?]+$/, "");
+  const matches = Array.from(text.matchAll(/(\/[A-Za-z0-9._\-/%]+)/g));
+  if (!matches.length) return null;
+
+  const cleaned = matches
+    .map((match) => String(match[1] || "").replace(/[.,;:!?]+$/, ""))
+    .filter((candidate) => candidate.length > 1);
+
+  const meaningful = cleaned.filter((candidate) => {
+    if (isNonCommercialRouteTarget(candidate)) return false;
+    if (isGenericRouteTarget(candidate)) return false;
+    return true;
+  });
+
+  if (meaningful.length > 0) {
+    return meaningful.sort((a, b) => {
+      const depthA = a.split("/").filter(Boolean).length;
+      const depthB = b.split("/").filter(Boolean).length;
+      if (depthB !== depthA) return depthB - depthA;
+      return b.length - a.length;
+    })[0];
+  }
+
+  return null;
+}
+
+function isGenericRouteTarget(routeTarget: string | null): boolean {
+  if (!routeTarget) return false;
+  const normalized = routeTarget.toLowerCase().replace(/\/+$/, "");
+  const generic = new Set([
+    "/",
+    "/category",
+    "/categories",
+    "/trade",
+    "/trades",
+    "/business",
+    "/businesses",
+    "/county",
+    "/state",
+    "/location",
+  ]);
+  return generic.has(normalized);
+}
+
+function normalizeCategoryLabel(category?: string | null): string | undefined {
+  const value = String(category || "").trim();
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  if (normalized === "category" || normalized === "trade" || normalized === "unknown") {
+    return undefined;
+  }
+  return value;
+}
+
+function extractNarrativeTag(entry: LiveStreamSnapshotEntry, key: string): string | undefined {
+  const pattern = new RegExp(`\\b${key}:\\s*([^|]+)`, "i");
+  const match = String(entry.narrative || "").match(pattern);
+  if (!match?.[1]) return undefined;
+  const value = match[1].trim();
+  return value || undefined;
+}
+
+function buildContextAnchor(entry: LiveStreamSnapshotEntry): string {
+  const countyState = formatCountyState(entry);
+  const category = normalizeCategoryLabel(entry.category) || extractNarrativeTag(entry, "trade");
+  const bot = extractNarrativeTag(entry, "bot");
+  const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
+  const pieces: string[] = [];
+
+  if (bot) pieces.push(`bot ${bot}`);
+  if (category && countyState) pieces.push(`${category} demand in ${countyState}`);
+  else if (category) pieces.push(`${category} demand`);
+  else if (countyState) pieces.push(`demand in ${countyState}`);
+  if (routeTarget) pieces.push(`route ${routeTarget}`);
+
+  if (pieces.length > 0) return pieces.join(" | ");
+  return "active demand context";
 }
 
 function isNonCommercialRouteTarget(routeTarget: string | null): boolean {
@@ -487,9 +560,10 @@ function buildTargetMarket(entry: LiveStreamSnapshotEntry): string | undefined {
   const placeLabel = stripCountySuffix(entry.county) || entry.county;
   const countyLabel =
     placeLabel && entry.state ? `${placeLabel}, ${entry.state}` : placeLabel || entry.state;
-  if (countyLabel && entry.category) return `${entry.category} in ${countyLabel}`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (countyLabel && category) return `${category} in ${countyLabel}`;
   if (countyLabel) return countyLabel;
-  if (entry.category) return entry.category;
+  if (category) return category;
   const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
   return routeTarget || undefined;
 }
@@ -650,62 +724,66 @@ function buildLeakAsset(entry: LiveStreamSnapshotEntry): string {
 
 function buildAdPlay(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
   const countyState = formatCountyState(entry);
-  if (entry.category && countyState) {
-    return `Launch a ${entry.category} county ad push in ${countyState} while attention is active.`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (category && countyState) {
+    return `Launch a ${category} county ad push in ${countyState} while attention is active.`;
   }
   if (countyState) return `Launch a county ad push in ${countyState} while attention is active.`;
   if (targetMarket) return `Open a county ad push around ${targetMarket}.`;
-  return "Open a county-level ad push while attention is present.";
+  return `Open a county-level ad push around ${buildContextAnchor(entry)}.`;
 }
 
 function buildAdChannel(entry: LiveStreamSnapshotEntry): string {
   const countyState = formatCountyState(entry);
-  if (entry.category && countyState) {
-    return `${entry.category} county-page ads, local search ads, and paid social in ${countyState}`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (category && countyState) {
+    return `${category} county-page ads, local search ads, and paid social in ${countyState}`;
   }
   if (countyState) return `county landing ads, local search ads, and paid social in ${countyState}`;
   const routeTarget = extractRouteTarget(`${entry.title} ${entry.narrative}`);
   if (routeTarget) return `search and retargeting traffic into ${routeTarget}`;
-  return "county landing ads, paid social, and local search coverage";
+  return `county landing ads, paid social, and local search coverage for ${buildContextAnchor(entry)}`;
 }
 
 function buildAdAsset(entry: LiveStreamSnapshotEntry): string {
   const countyState = formatCountyState(entry);
-  if (entry.category && countyState) {
-    return `${entry.category} ad package for ${countyState} and a county market one-sheet`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (category && countyState) {
+    return `${category} ad package for ${countyState} and a county market one-sheet`;
   }
   if (countyState) return `${countyState} county ad package and local market one-sheet`;
-  return "county ad package and local market one-sheet";
+  return `county ad package and local market one-sheet for ${buildContextAnchor(entry)}`;
 }
 
 function buildAdvertiserPlay(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
   const countyState = formatCountyState(entry);
-  if (entry.category && countyState) {
-    return `Pitch ${entry.category} advertisers serving ${countyState} while demand is visible.`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (category && countyState) {
+    return `Pitch ${category} advertisers serving ${countyState} while demand is visible.`;
   }
-  if (entry.category)
-    return `Pitch ${entry.category} advertisers around this active demand pocket.`;
+  if (category) return `Pitch ${category} advertisers around this active demand pocket.`;
   if (targetMarket) return `Pitch advertisers around ${targetMarket}.`;
-  return "Pitch advertisers around this active demand pocket.";
+  return `Pitch advertisers around ${buildContextAnchor(entry)}.`;
 }
 
 function buildAdvertiserChannel(entry: LiveStreamSnapshotEntry): string {
   const countyState = formatCountyState(entry);
-  if (entry.category && countyState) {
-    return `${entry.category} sponsor outreach in ${countyState}, outbound sales, and local package follow-up`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (category && countyState) {
+    return `${category} sponsor outreach in ${countyState}, outbound sales, and local package follow-up`;
   }
-  if (entry.category)
-    return `${entry.category} sponsor outreach, outbound sales, and category package pitch`;
-  return "sponsor outreach, outbound sales, and category package pitch";
+  if (category) return `${category} sponsor outreach, outbound sales, and category package pitch`;
+  return `sponsor outreach and outbound sales tied to ${buildContextAnchor(entry)}`;
 }
 
 function buildAdvertiserAsset(entry: LiveStreamSnapshotEntry): string {
   const countyState = formatCountyState(entry);
-  if (entry.category && countyState) {
-    return `${entry.category} advertiser deck for ${countyState} and sponsor package`;
+  const category = normalizeCategoryLabel(entry.category);
+  if (category && countyState) {
+    return `${category} advertiser deck for ${countyState} and sponsor package`;
   }
-  if (entry.category) return `${entry.category} advertiser deck and sponsor package`;
-  return "advertiser deck and sponsor package";
+  if (category) return `${category} advertiser deck and sponsor package`;
+  return `advertiser deck and sponsor package for ${buildContextAnchor(entry)}`;
 }
 
 function buildMarketMove(entry: LiveStreamSnapshotEntry, targetMarket?: string): string {
@@ -757,25 +835,27 @@ function buildSalesAngle(
   }
 
   if (bucket === "ad plays") {
-    if (entry.category && countyState && surface) {
-      return `${entry.category} attention is concentrating on the ${surface} in ${countyState}, which is usable for immediate paid reach.`;
+    const category = normalizeCategoryLabel(entry.category);
+    if (category && countyState && surface) {
+      return `${category} attention is concentrating on the ${surface} in ${countyState}, which is usable for immediate paid reach.`;
     }
-    if (entry.category && countyState) {
-      return `${entry.category} attention is concentrating in ${countyState}, which is usable for immediate paid reach.`;
+    if (category && countyState) {
+      return `${category} attention is concentrating in ${countyState}, which is usable for immediate paid reach.`;
     }
     if (targetMarket)
       return `${targetMarket} is showing live demand you can package into paid reach.`;
-    return "This is a live county demand pocket you can package into paid reach.";
+    return `This is a live demand pocket you can package into paid reach: ${buildContextAnchor(entry)}.`;
   }
 
   if (bucket === "advertiser pitches") {
-    if (entry.category && countyState) {
-      return `${entry.category} demand is visible in ${countyState}, which makes a direct advertiser or sponsor pitch credible right now.`;
+    const category = normalizeCategoryLabel(entry.category);
+    if (category && countyState) {
+      return `${category} demand is visible in ${countyState}, which makes a direct advertiser or sponsor pitch credible right now.`;
     }
-    if (entry.category) {
-      return `${entry.category} has active attention you can turn into a sponsor or advertiser story.`;
+    if (category) {
+      return `${category} has active attention you can turn into a sponsor or advertiser story.`;
     }
-    return "This demand pocket can support a sponsor or advertiser pitch.";
+    return `This demand pocket can support a sponsor or advertiser pitch: ${buildContextAnchor(entry)}.`;
   }
 
   if (bucket === "market moves") {
