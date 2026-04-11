@@ -1052,6 +1052,22 @@ function hasConcreteOperatorTask(item: LiveStreamItem): boolean {
   ].some((pattern) => pattern.test(candidate));
 }
 
+function isWeakOperatorTaskText(task: string): boolean {
+  const normalized = String(task || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return true;
+  return [
+    /^use this route pressure/,
+    /^keep this on watch/,
+    /^review this signal/,
+    /^open a county-level ad push/,
+    /^pitch advertisers around this active demand pocket/,
+    /^launch a county-level ad or sales move where demand is concentrating/,
+    /^monitoring only/,
+  ].some((pattern) => pattern.test(normalized));
+}
+
 function formatEventPayloadValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "n/a";
   if (typeof value === "string") return value;
@@ -2379,16 +2395,24 @@ export default function AdminLiveStreamPage() {
           urgency: string;
           status: "new" | "in progress" | "cleared";
           task: string;
+          observedFact: string;
+          whereLabel: string;
+          whatLabel: string;
+          evidenceLine: string;
           channelSuggestion?: string;
           assetSuggestion?: string;
           whyNow?: string;
         }>
       >((acc, item) => {
         const task = resolveEntryActionTask(item);
-        if (!task) return acc;
+        if (!task || isWeakOperatorTaskText(task)) return acc;
         const dedupeKey = task.toLowerCase();
         if (seen.has(dedupeKey)) return acc;
         seen.add(dedupeKey);
+        const observedFact = buildObservedFact(item);
+        const whereLabel = buildWhereLabel(item);
+        const whatLabel = buildWhatLabel(item);
+        const evidenceLine = buildEvidenceLine(item);
         acc.push({
           id: item.id,
           priority: item.priority,
@@ -2405,6 +2429,10 @@ export default function AdminLiveStreamPage() {
           urgency: resolveEntryUrgency(item),
           status: actionStatuses[item.id] || "new",
           task,
+          observedFact,
+          whereLabel,
+          whatLabel,
+          evidenceLine,
           channelSuggestion: item.channelSuggestion,
           assetSuggestion: item.assetSuggestion,
           whyNow: item.whyNow,
@@ -4093,8 +4121,8 @@ export default function AdminLiveStreamPage() {
 
                   {operatorQueue.length === 0 ? (
                     <div className="mt-3 rounded-md border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                      No direct revenue actions surfaced from the current feed. Refresh the stream
-                      or widen filters.
+                      No concrete operator actions passed quality gates. This view now withholds
+                      vague actions until source data includes clear what/where/evidence context.
                     </div>
                   ) : (
                     <div className="mt-3 space-y-3">
@@ -4126,13 +4154,35 @@ export default function AdminLiveStreamPage() {
                             </span>
                           </div>
                           <div className="mt-2 text-sm font-medium text-white">{item.task}</div>
-                          <div className="mt-1 text-xs text-white/55">{item.title}</div>
+                          <div className="mt-1 text-xs text-white/70">
+                            Observed: {item.observedFact}
+                          </div>
+                          <div className="mt-3 grid gap-2 md:grid-cols-3">
+                            <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-white/55">
+                                What
+                              </div>
+                              <div className="mt-1 text-xs text-white/90">{item.whatLabel}</div>
+                            </div>
+                            <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-white/55">
+                                Where
+                              </div>
+                              <div className="mt-1 text-xs text-white/90">{item.whereLabel}</div>
+                            </div>
+                            <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-white/55">
+                                Evidence
+                              </div>
+                              <div className="mt-1 text-xs text-white/90">{item.evidenceLine}</div>
+                            </div>
+                          </div>
                           {item.targetMarket || item.salesAngle ? (
                             <div className="mt-3 grid gap-2 md:grid-cols-2">
                               {item.targetMarket ? (
                                 <div className="rounded-md border border-fuchsia-300/15 bg-fuchsia-500/10 px-3 py-2">
                                   <div className="text-[10px] uppercase tracking-[0.18em] text-fuchsia-100/60">
-                                    Target
+                                    Scope
                                   </div>
                                   <div className="mt-1 text-xs text-fuchsia-50">
                                     {item.targetMarket}
@@ -4142,7 +4192,7 @@ export default function AdminLiveStreamPage() {
                               {item.salesAngle ? (
                                 <div className="rounded-md border border-violet-300/15 bg-violet-500/10 px-3 py-2">
                                   <div className="text-[10px] uppercase tracking-[0.18em] text-violet-100/60">
-                                    Pitch
+                                    Why This Matters
                                   </div>
                                   <div className="mt-1 text-xs text-violet-50">
                                     {item.salesAngle}
