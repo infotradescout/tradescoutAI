@@ -76,6 +76,7 @@ import { UnifiedScoutRouter, type UnifiedScoutUserContext } from "../services/un
 import { registerScoutAdminRoutes } from "../scout/scoutAdminRoutes";
 import { registerScoutOpsRoutes } from "../scout/scoutOpsRoutes";
 import {
+  buildWelcomeIntroDraft,
   buildCommunityPrefill,
   buildWelcomeIntroVariants,
   inferSourceConfidenceBand,
@@ -521,7 +522,7 @@ const DEFAULT_SUGGESTIONS = [
 let cachedAutoPrompt: {
   autoPrompt: string;
   suggestions: string[];
-  source: "static" | "gemini";
+  source: "fallback" | "gemini";
   timestamp: number;
 } | null = null;
 const AUTO_PROMPT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -772,7 +773,7 @@ async function synthesizeResponse(
   }
 
   try {
-    const tradeTopic = detectTradeTopic(userMessage);
+    const tradeTopic = inferTradeTopicHint(userMessage);
     const tradeHintBlock = `
 TRADE TOPIC HINT: ${tradeTopic ? tradeTopic.toUpperCase() : "NONE"}
 `;
@@ -1212,6 +1213,84 @@ function detectCommunityTopic(message: string): string | null {
   return null;
 }
 
+function inferTradeTopicHint(message: string): string | null {
+  const lower = message.toLowerCase();
+
+  if (
+    /(leak|clog|backup|sewer|drain|cleanout|p-trap|ptrap|trap arm|vent stack|sump pump|water heater|tankless|supply line|shutoff valve)/.test(
+      lower
+    )
+  ) {
+    return "plumbing";
+  }
+
+  if (
+    /(panel upgrade|service panel|breaker panel|subpanel|gfci|g.f.c.i|afci|arc-fault|receptacle|outlet|dedicated circuit|240v|240 v|220v|220 v|load calculation|lighting circuit)/.test(
+      lower
+    )
+  ) {
+    return "electrical";
+  }
+
+  if (
+    /(furnace|air handler|condenser|heat pump|mini split|hvac|ac not working|no cooling|no heat|refrigerant|freon)/.test(
+      lower
+    )
+  ) {
+    return "hvac";
+  }
+
+  if (
+    /(shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(
+      lower
+    )
+  ) {
+    return "roofing";
+  }
+
+  if (
+    /(foundation crack|settling|heaving|pier and beam|slab foundation|mudjacking|helical pier|concrete leveling|spalling)/.test(
+      lower
+    )
+  ) {
+    return "foundation";
+  }
+
+  if (
+    /(deck|decking|porch|patio|stairs|railing|guardrail|joist hanger|ledger board|composite deck|treated lumber)/.test(
+      lower
+    )
+  ) {
+    return "decking";
+  }
+
+  if (/(fence|fencing|gate post|privacy fence|chain link|wood fence|vinyl fence)/.test(lower)) {
+    return "fencing";
+  }
+
+  if (/(siding|hardie|fiber cement|lap siding|board and batten|soffit|fascia)/.test(lower)) {
+    return "siding";
+  }
+
+  if (
+    /(concrete patio|driveway pour|slab pour|rebar grid|control joints|expansion joint|stamped concrete)/.test(
+      lower
+    )
+  ) {
+    return "concrete";
+  }
+
+  if (
+    /(framing|load-bearing wall|header beam|lintel|rim joist|floor joist|wall stud|sister joist)/.test(
+      lower
+    )
+  ) {
+    return "framing";
+  }
+
+  return null;
+}
+
 async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
   // Return cached version if still fresh
   const now = Date.now();
@@ -1221,7 +1300,7 @@ async function generateAutoPrompt(gemini: GoogleGenerativeAI | null) {
 
   if (!gemini) {
     const result = {
-      source: "static" as const,
+      source: "fallback" as const,
       autoPrompt: DEFAULT_AUTO_PROMPT,
       suggestions: DEFAULT_SUGGESTIONS,
       timestamp: now,
@@ -1265,7 +1344,7 @@ Return JSON with keys autoPrompt (string) and suggestions (string array).`;
   }
 
   const fallback = {
-    source: "static" as const,
+    source: "fallback" as const,
     autoPrompt: DEFAULT_AUTO_PROMPT,
     suggestions: DEFAULT_SUGGESTIONS,
     timestamp: now,
@@ -1436,6 +1515,9 @@ export interface ScoutResponse {
     intent?: string;
     thought_flow?: string[];
     decision?: string;
+    scaffoldDecision?: string;
+    scaffoldReason?: string;
+    behaviorKey?: string;
     redirect?: string;
     sourceUsed?: string;
     attemptedSource?: string;
@@ -2255,7 +2337,7 @@ router.post("/", async (req: Request, res: Response) => {
   };
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
-    const message = rawBody.message;
+    const message = typeof rawBody.message === "string" ? rawBody.message : "";
     const normalizedRequest = normalizeScoutRequest({
       message: typeof rawBody.message === "string" ? rawBody.message : "",
       userId: (requestUser as any)?.id,

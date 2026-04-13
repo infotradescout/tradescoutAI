@@ -1226,7 +1226,7 @@ export default function ScoutOS() {
       if (isScriptedIntro) {
         setStatus("resolving_context");
         recordActivity({
-          type: "scout_bootstrap_start",
+          type: "intro_shown",
           ts: new Date().toISOString(),
           path: location,
           label: "profile_context_seed",

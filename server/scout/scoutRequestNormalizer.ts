@@ -17,10 +17,13 @@ export function normalizeScoutRequest(input: NormalizeInput): NormalizedScoutReq
   const history = Array.isArray(input.history)
     ? input.history
         .filter((item) => item && typeof item.content === "string")
-        .map((item) => ({
-          role: item.role === "assistant" ? "assistant" : "user",
-          content: String(item.content || "").trim(),
-        }))
+        .map((item) => {
+          const role: "user" | "assistant" = item.role === "assistant" ? "assistant" : "user";
+          return {
+            role,
+            content: String(item.content || "").trim(),
+          };
+        })
         .filter((item) => item.content.length > 0)
     : [];
 

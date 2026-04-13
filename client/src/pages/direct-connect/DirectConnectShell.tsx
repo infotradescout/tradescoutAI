@@ -776,13 +776,17 @@ function DirectConnectRequestComposer({
       const selectedCount = Array.isArray(variables?.targetContractorIds)
         ? variables.targetContractorIds.length
         : 0;
-      trackShellEvent("direct_connect_request_created", {
-        category: activeRequestMeta.category,
-        hasBudget: Boolean(budgetMin.trim() || budgetMax.trim()),
-        attachmentCount,
-        dispatchMode: variables?.dispatchMode || "auto_route",
-        dispatchCount: variables?.dispatchCount || null,
-        directTargets: selectedCount,
+      trackShellEvent({
+        type: "scout_query",
+        payload: {
+          event: "direct_connect_request_created",
+          category: activeRequestMeta.category,
+          hasBudget: Boolean(budgetMin.trim() || budgetMax.trim()),
+          attachmentCount,
+          dispatchMode: variables?.dispatchMode || "auto_route",
+          dispatchCount: variables?.dispatchCount || null,
+          directTargets: selectedCount,
+        },
       });
       toast({
         title: "Request sent",
@@ -1449,9 +1453,13 @@ function DirectConnectInbox() {
       return status === "suggested" && !id.startsWith("request-");
     });
     if (!firstQualified) return;
-    trackShellEvent("direct_connect_first_qualified_reply", {
-      assignmentId: String(firstQualified.assignment.id || ""),
-      requestId: String(firstQualified.assignment.workRequestId || ""),
+    trackShellEvent({
+      type: "scout_query",
+      payload: {
+        event: "direct_connect_first_qualified_reply",
+        assignmentId: String(firstQualified.assignment.id || ""),
+        requestId: String(firstQualified.assignment.workRequestId || ""),
+      },
     });
     firstQualifiedReplyTrackedRef.current = true;
   }, [items]);
@@ -1691,15 +1699,23 @@ function DirectConnectInbox() {
                         priceBand: priceBand as "budget" | "standard" | "premium" | "custom_quote",
                         scopeNote,
                       });
-                      trackShellEvent("direct_connect_reply_accepted", {
-                        assignmentId: assignment.id,
-                        requestId: assignment.workRequestId,
-                      });
-                      if (result?.conversationId) {
-                        trackShellEvent("direct_connect_moved_to_conversation", {
+                      trackShellEvent({
+                        type: "scout_query",
+                        payload: {
+                          event: "direct_connect_reply_accepted",
                           assignmentId: assignment.id,
                           requestId: assignment.workRequestId,
-                          conversationId: String(result.conversationId),
+                        },
+                      });
+                      if (result?.conversationId) {
+                        trackShellEvent({
+                          type: "scout_query",
+                          payload: {
+                            event: "direct_connect_moved_to_conversation",
+                            assignmentId: assignment.id,
+                            requestId: assignment.workRequestId,
+                            conversationId: String(result.conversationId),
+                          },
                         });
                       }
                       setStructuredReplyOpenId(null);

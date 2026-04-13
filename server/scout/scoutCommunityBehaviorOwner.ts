@@ -1,6 +1,7 @@
 type CommunityBehaviorAction = {
   type: string;
   label: string;
+  prompt?: string;
   to?: string;
   path?: string;
   subtitle?: string;
