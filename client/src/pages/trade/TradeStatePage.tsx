@@ -42,8 +42,8 @@ const TradeStatePage = memo(function TradeStatePage() {
     );
   }
 
-  const title = `${trade.name} in ${state.name} | Local Directory | TradeScout`;
-  const description = `Browse ${trade.name} in ${state.name} by local market. Start with the place you care about, then narrow to city or neighborhood.`;
+  const title = `${trade.name} Contractors in ${state.name} | TradeScout`;
+  const description = `Find ${trade.name} contractors in ${state.name}. Start with the local market you care about, then narrow to city or neighborhood.`;
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: "Trades", url: "/trade" },

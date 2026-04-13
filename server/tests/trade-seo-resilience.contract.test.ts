@@ -22,6 +22,22 @@ describe("trade seo resilience contracts", () => {
     expect(cityPage).toContain("noIndex={shouldNoIndex}");
   });
 
+  it("trade seo title conventions match acquisition templates", () => {
+    const statePage = read("client/src/pages/trade/TradeStatePage.tsx");
+    const countyPage = read("client/src/pages/trade/TradeCountyPage.tsx");
+    const cityPage = read("client/src/pages/trade/TradeCityPage.tsx");
+
+    expect(statePage).toContain(
+      "const title = `${trade.name} Contractors in ${state.name} | TradeScout`;"
+    );
+    expect(countyPage).toContain(
+      "const title = `Find ${trade.name} Contractors in ${marketLabel} | TradeScout`;"
+    );
+    expect(cityPage).toContain(
+      "const title = `${trade.name} in ${displayCity}, ${state} | TradeScout`;"
+    );
+  });
+
   it("sitemap routes fail open to xml fallback rather than 500", () => {
     const profilesRoutes = read("server/routes/profiles.ts");
     expect(profilesRoutes).toContain("function sendSitemapFallback");

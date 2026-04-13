@@ -136,8 +136,8 @@ const TradeCountyPage = memo(function TradeCountyPage() {
   }
 
   const marketLabel = toLocalMarketLabel(county.name, state.code);
-  const title = `${trade.name} in ${marketLabel} | TradeScout`;
-  const description = `Directory of ${trade.name} serving ${marketLabel}. Narrow by city to get closer to the neighborhood you care about.`;
+  const title = `Find ${trade.name} Contractors in ${marketLabel} | TradeScout`;
+  const description = `Find ${trade.name} contractors serving ${marketLabel}. Narrow by city to get closer to the neighborhood you care about.`;
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: "Trades", url: "/trade" },
