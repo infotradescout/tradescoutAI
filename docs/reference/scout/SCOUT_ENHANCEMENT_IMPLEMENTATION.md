@@ -19,7 +19,7 @@ This guide provides step-by-step instructions for integrating the enhanced Scout
    - Includes functions for parsing LLM output, executing tool calls, and building state acknowledgment
    - Provides endpoints for testing and debugging the enhanced capabilities
 
-3. **Enhancement Plan (`enhancement_plan.md`)**
+3. **Execution Roadmap (`docs/audits/EXECUTION_ROADMAP_2026Q2.md`)**
    - Documented the current architecture and identified improvement areas
    - Outlined a 4-phase implementation approach
    - Provided technical details for each enhancement area
@@ -224,7 +224,7 @@ If issues arise during deployment:
 For questions or issues related to Scout enhancements:
 
 1. Review this implementation guide
-2. Check the enhancement plan (`enhancement_plan.md`)
+2. Check the current execution roadmap (`docs/audits/EXECUTION_ROADMAP_2026Q2.md`)
 3. Review the enhanced system prompt (`system_prompt_enhanced.md`)
 4. Consult the scout-enhanced router code (`scout-enhanced.ts`)
 5. Open an issue in the repository with detailed information

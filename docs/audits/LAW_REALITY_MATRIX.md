@@ -33,7 +33,7 @@ Scope: TradeScout platform law reconciliation against current runtime behavior.
 | Scout is the only bridge from discovery to action | DRIFTED | `docs/ARCHITECTURE.md:17`, `server/social-features.ts:132`, `server/routes.ts:12497` | Architecture marks Scout as optional advisory; non-Scout direct action routes exist. |
 | AI + SEO ingestion precedes feature expansion | PARTIAL | `server/routes/admin.ts:2857`, `server/routes/admin.ts:3003`, `server/services/crawlerScheduler.ts:522` | Ingestion/snapshot jobs exist, but this precedence is process-level and not enforced as a runtime release gate. |
 | Never remove features; fix and harden | PARTIAL | `docs/INTERACTION_CONTRACT.md:36`, `server/routes.ts:19188` | Some old paths are intentionally disabled (good hardening), but "never remove" is not mechanically enforceable without policy exceptions. |
-| Repo is TradeScout-only (no MealScout/Trader's Corner import) | DRIFTED | `client/src/components/RevenueDisclosureSection.tsx:48`, `docs/MONA_LISA_MASTER_EXECUTION_PLAN.md:7` | Live copy and docs contain MealScout references. |
+| Repo is TradeScout-only (no MealScout/Trader's Corner import) | DRIFTED | `client/src/components/RevenueDisclosureSection.tsx:48` | Live copy still contains MealScout references and requires TradeScout-only rewrite. |
 
 ## Test Reality
 
