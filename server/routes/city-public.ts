@@ -48,9 +48,9 @@ function buildTradeWhereClause(tradeRaw: unknown) {
 // Public (read-only): city → counties facet. This preserves "counties are operational containers"
 // by returning links/containers instead of a cross-county business list with actions.
 router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
+  const stateCode = normalizeStateCode(req.params.stateCode);
+  const citySlug = normalizeCitySlug(req.params.citySlug);
   try {
-    const stateCode = normalizeStateCode(req.params.stateCode);
-    const citySlug = normalizeCitySlug(req.params.citySlug);
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
     if (!citySlug) return res.status(400).json({ message: "Invalid citySlug" });
 
@@ -94,16 +94,22 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
       counties: countiesOut,
     });
   } catch (error: any) {
-    console.error("Error building city facet:", error);
-    res.status(500).json({ message: "Failed to load city" });
+    console.warn("City facet degraded; returning empty result set", error);
+    res.json({
+      citySlug,
+      stateCode,
+      displayCity: titleizeCitySlug(citySlug),
+      counties: [],
+      degraded: true,
+    });
   }
 });
 
 router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (req, res) => {
+  const tradeSlug = coerceString(req.params.tradeSlug);
+  const stateCode = normalizeStateCode(req.params.stateCode);
+  const citySlug = normalizeCitySlug(req.params.citySlug);
   try {
-    const tradeSlug = coerceString(req.params.tradeSlug);
-    const stateCode = normalizeStateCode(req.params.stateCode);
-    const citySlug = normalizeCitySlug(req.params.citySlug);
     if (!tradeSlug) return res.status(400).json({ message: "Invalid tradeSlug" });
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
     if (!citySlug) return res.status(400).json({ message: "Invalid citySlug" });
@@ -153,8 +159,15 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
       counties: countiesOut,
     });
   } catch (error: any) {
-    console.error("Error building trade-city facet:", error);
-    res.status(500).json({ message: "Failed to load trade-city" });
+    console.warn("Trade-city facet degraded; returning empty result set", error);
+    res.json({
+      tradeSlug,
+      stateCode,
+      citySlug,
+      displayCity: titleizeCitySlug(citySlug),
+      counties: [],
+      degraded: true,
+    });
   }
 });
 

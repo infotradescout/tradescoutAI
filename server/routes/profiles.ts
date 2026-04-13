@@ -125,6 +125,17 @@ ${urlEntries
 </urlset>`;
 }
 
+function sendSitemapFallback(res: any, kind: "urlset" | "index" = "urlset") {
+  const payload =
+    kind === "index"
+      ? `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>`
+      : `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`;
+  res.type("application/xml");
+  res.status(200).send(payload);
+}
+
 function buildRuntimeCorePaths(): string[] {
   // Keep sitemap-core focused on canonical, intent-strong URLs.
   // Variant landing routes remain available, but are intentionally excluded from core sitemap
@@ -737,7 +748,7 @@ router.get("/sitemap.xml", async (req, res) => {
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -764,7 +775,7 @@ router.get("/sitemap-core.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating core sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -795,7 +806,7 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating profiles sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -828,7 +839,7 @@ router.get("/sitemap-u-profiles.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating user profiles sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -863,7 +874,7 @@ router.get("/sitemap-business-profiles.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating business profiles sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -899,7 +910,7 @@ ${Array.from({ length: pages })
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating directory businesses sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -939,7 +950,7 @@ router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => 
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating directory businesses sitemap page:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1017,7 +1028,7 @@ router.get("/sitemap-directory-counties.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating directory counties sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1072,7 +1083,7 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating trade navigation sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1105,7 +1116,7 @@ ${Array.from({ length: pages })
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating directory trades sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -1148,7 +1159,7 @@ router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating directory trades sitemap page:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1181,7 +1192,7 @@ ${Array.from({ length: pages })
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating directory cities sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -1226,7 +1237,7 @@ router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating directory cities sitemap page:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1259,7 +1270,7 @@ ${Array.from({ length: pages })
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating trade-cities sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -1302,7 +1313,7 @@ router.get("/sitemap-directory-trade-cities-:page(\\d+).xml", async (req, res) =
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating trade-cities sitemap page:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1327,7 +1338,7 @@ router.get("/sitemap-best-pages.xml", async (req, res) => {
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating best pages sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -1358,7 +1369,7 @@ ${Array.from({ length: pages })
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating best trade counties sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -1401,7 +1412,7 @@ router.get("/sitemap-best-trade-counties-:page(\\d+).xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating best trade counties sitemap page:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1432,7 +1443,7 @@ ${Array.from({ length: pages })
     res.send(xml);
   } catch (error: any) {
     console.error("Error generating best trade cities sitemap index:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res, "index");
   }
 });
 
@@ -1475,7 +1486,7 @@ router.get("/sitemap-best-trade-cities-:page(\\d+).xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating best trade cities sitemap page:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1586,7 +1597,7 @@ router.get("/sitemap-recent-activity.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating recent activity sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1620,7 +1631,7 @@ router.get("/sitemap-homescout-listings.xml", async (req, res) => {
     );
   } catch (error: any) {
     console.error("Error generating HomeScout listings sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1655,7 +1666,7 @@ router.get("/sitemap-homescout-counties.xml", async (req, res) => {
     );
   } catch (error: any) {
     console.error("Error generating HomeScout counties sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 
@@ -1708,7 +1719,7 @@ router.get("/sitemap-tradepartners.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating Trade Partner sitemap:", error);
-    res.status(500).send("Failed to generate sitemap");
+    sendSitemapFallback(res);
   }
 });
 

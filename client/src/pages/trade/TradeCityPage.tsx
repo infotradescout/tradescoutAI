@@ -57,24 +57,33 @@ const TradeCityPage = memo(function TradeCityPage() {
 
   if (!trade) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-6 text-center">
-            <h1 className="text-2xl font-bold text-red-900 mb-2">Trade Not Found</h1>
-            <p className="text-red-700 mb-4">The requested trade could not be resolved.</p>
-            <Link href="/trade">
-              <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Browse Trades
-              </a>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <SEOHelmet
+          title="Trade Directory | TradeScout"
+          description="Browse trade categories and local city coverage pages on TradeScout."
+          canonical="https://www.thetradescout.com/trade"
+          noIndex
+        />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6 text-center">
+              <h1 className="text-2xl font-bold text-red-900 mb-2">Trade Not Found</h1>
+              <p className="text-red-700 mb-4">The requested trade could not be resolved.</p>
+              <Link href="/trade">
+                <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
+                  Browse Trades
+                </a>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
   const displayCity = data?.displayCity || titleizeCitySlug(city);
   const counties = Array.isArray(data?.counties) ? data!.counties : [];
+  const shouldNoIndex = !isLoading && (isError || counties.length === 0);
 
   const title = `${trade.name} in ${displayCity}, ${state} | TradeScout`;
   const description = `Browse ${trade.name} in ${displayCity}, ${state}. Select a county to view county-contained directory listings.`;
@@ -95,6 +104,7 @@ const TradeCityPage = memo(function TradeCityPage() {
           trade.canonicalSlug
         )}/${encodeURIComponent(state.toLowerCase())}/city/${encodeURIComponent(city)}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
+        noIndex={shouldNoIndex}
       />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

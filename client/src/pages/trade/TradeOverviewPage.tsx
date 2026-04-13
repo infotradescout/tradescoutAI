@@ -11,19 +11,27 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
 
   if (!trade) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-6 text-center">
-            <h1 className="text-2xl font-bold text-red-900 mb-2">Trade Not Found</h1>
-            <p className="text-red-700 mb-4">The requested trade could not be resolved.</p>
-            <Link href="/county-directory">
-              <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Browse Counties
-              </a>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <SEOHelmet
+          title="Trade Directory | TradeScout"
+          description="Browse trade categories and local market pages on TradeScout."
+          canonical="https://www.thetradescout.com/trade"
+          noIndex
+        />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6 text-center">
+              <h1 className="text-2xl font-bold text-red-900 mb-2">Trade Not Found</h1>
+              <p className="text-red-700 mb-4">The requested trade could not be resolved.</p>
+              <Link href="/county-directory">
+                <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
+                  Browse Counties
+                </a>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
