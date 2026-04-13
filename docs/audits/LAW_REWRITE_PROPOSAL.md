@@ -72,12 +72,12 @@ Update these files in one lockstep PR:
 Use this block consistently in all law docs:
 
 > Platform law is authoritative only when tied to enforceable contracts.  
-> Every law line must be marked as one of: `enforced`, `policy target`, or `temporary exception`.  
+> Every law line must be marked as one of: `enforced`, `policy_target`, or `temporary_exception`.  
 > Temporary exceptions require owner, rationale, and removal date.
 
 ## Immediate Fixes Before Rewrite Merge
 
-1. Remove/rewrite MealScout reference in `client/src/components/RevenueDisclosureSection.tsx:48`.
+1. Add CI brand-scope guard to prevent future cross-product copy drift.
 2. Add explicit "transitional compute path" annotation to market-signal endpoints.
 3. Add bypass mode visibility to admin dashboards by default (already partly present via authority config routes).
 
@@ -86,4 +86,3 @@ Use this block consistently in all law docs:
 - No contradiction between law docs and runtime behavior in top-level claims.
 - Each law has at least one implementation anchor or an exception note.
 - CI includes at least one non-skipped gating contract suite in protected branches.
-

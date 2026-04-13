@@ -5,6 +5,17 @@ Ship a stable, crawlable, law-aligned TradeScout that grows both:
 - Demand side: people searching for local businesses/services.
 - Supply side: contractors and local businesses seeking qualified opportunities.
 
+## Progress Snapshot (2026-04-13)
+- Phase 0 TypeScript recovery: complete (`npx tsc -p tsconfig.json --noEmit` passes).
+- Phase 0 indexing blocker triage: in progress.
+  - Static sitemap contracts restored and validated (`server/tests/sitemap-contracts.test.ts` passing).
+  - Static sitemap reduced to conservative canonical route set to reduce crawl noise.
+- Law integrity doc normalization: in progress.
+  - `LAW_REALITY_MATRIX.md` rewritten to required classifications:
+    - `enforced`
+    - `policy_target`
+    - `temporary_exception`
+
 ## Phase 0 (48 hours): Stabilize the release floor
 1. TypeScript recovery sprint
 - Scope:

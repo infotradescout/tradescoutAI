@@ -78,7 +78,7 @@ Rule: no "temporary" exception without deadline.
 Before release:
 
 1. Law-critical tests pass and are not skipped.
-2. No unresolved `DRIFTED` items in `LAW_REALITY_MATRIX.md`.
+2. No unresolved `temporary_exception` items past removal date, and every `policy_target` has an owner and target date in `LAW_REALITY_MATRIX.md`.
 3. `LAW_EXCEPTIONS_LEDGER.md` reviewed; no overdue exceptions.
 4. Authority config snapshot reviewed:
    - `/api/admin/authority/config`
@@ -89,7 +89,7 @@ Before release:
 - Product Owner: law wording and exception approvals.
 - Engineering Owner: enforcement anchors and CI gates.
 - Ops Owner: production env and bypass toggle hygiene.
-- Review cadence: weekly until all current `DRIFTED` items are closed, then monthly.
+- Review cadence: weekly until all `policy_target` items are actively owned and no `temporary_exception` item is overdue, then monthly.
 
 ## First Execution Sprint (Suggested)
 
