@@ -192,8 +192,8 @@ export async function buildPublicTradeCityHtml(
   const canonicalPath = `/trade/${encodeURIComponent(canonicalTradeSlug)}/${encodeURIComponent(
     stateCode.toLowerCase()
   )}/city/${encodeURIComponent(citySlug)}`;
-  const title = `${match.trade.name} in ${displayCity}, ${stateCode} | TradeScout`;
-  const description = `Browse ${match.trade.name} in ${displayCity}, ${stateCode}. Choose a county to view county-contained directory listings. Contact remains protected through TradeScout Direct Connect.`;
+  const title = `${match.trade.name} in ${displayCity}, ${stateCode}`;
+  const description = `Find ${match.trade.name} contractors in ${displayCity}, ${stateCode}. Compare counties and local business availability on TradeScout.`;
 
   const meta = buildMeta({
     origin: opts.origin,

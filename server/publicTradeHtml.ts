@@ -184,8 +184,8 @@ export async function buildPublicTradeOverviewHtml(
   if (!match) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
-  const title = formatTradeScoutTitle(`${match.trade.name} by State | TradeScout`);
-  const description = `Browse ${match.trade.name} by state and county on TradeScout. Directory listings may be unclaimed; contact remains protected through Direct Connect.`;
+  const title = formatTradeScoutTitle(`Find ${match.trade.name} Contractors by State`);
+  const description = `Find ${match.trade.name} contractors by state and county. Compare local coverage and connect through TradeScout Direct Connect.`;
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath: `/trade/${encodeURIComponent(canonicalSlug)}`,
@@ -250,9 +250,9 @@ export async function buildPublicTradeDirectoryHtml(
     return trade ? { slug: trade.slug, name: trade.name } : null;
   }).filter(Boolean) as Array<{ slug: string; name: string }>;
 
-  const title = formatTradeScoutTitle("Trades Directory | TradeScout");
+  const title = formatTradeScoutTitle("Find Contractors by Trade");
   const description =
-    "Browse trades by category, then select a state and county to view local directory listings. Contact remains protected through TradeScout Direct Connect.";
+    "Browse contractor trades, then drill into states and counties to find local businesses on TradeScout.";
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath: `/trade`,
@@ -307,10 +307,8 @@ export async function buildPublicTradeStateHtml(
   if (!state) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
-  const title = formatTradeScoutTitle(
-    `${match.trade.name} in ${state.name} | County Directory | TradeScout`
-  );
-  const description = `Browse ${match.trade.name} in ${state.name} by county. Directory listings may be unclaimed; contact remains protected through Direct Connect.`;
+  const title = formatTradeScoutTitle(`${match.trade.name} Contractors in ${state.name}`);
+  const description = `Find ${match.trade.name} contractors in ${state.name}, then narrow by county to compare local options on TradeScout.`;
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath: `/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(stateCode.toLowerCase())}`,
@@ -389,10 +387,8 @@ export async function buildPublicTradeCountyHtml(
     stateCode.toLowerCase()
   )}/${encodeURIComponent(countySlug)}`;
 
-  const title = formatTradeScoutTitle(
-    `${match.trade.name} in ${county.name}, ${stateCode} | TradeScout`
-  );
-  const description = `Directory of ${match.trade.name} serving ${county.name}, ${stateCode}. Listings may be unclaimed; contact remains protected through Direct Connect.`;
+  const title = formatTradeScoutTitle(`${match.trade.name} in ${county.name}, ${stateCode}`);
+  const description = `Find ${match.trade.name} contractors serving ${county.name}, ${stateCode}. Review local businesses and connect through TradeScout Direct Connect.`;
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath,

@@ -90,6 +90,36 @@ export default function Help() {
             </CardContent>
           </Card>
 
+          {/* Audience Entry Points */}
+          <Card className="bg-tsCard/60 border-white/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-white text-lg md:text-xl">
+                <Target className="w-5 h-5 text-ts-orange" />
+                Audience Entry Points
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm md:text-base text-white/70">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
+                  onClick={() => navigate("/find-local-businesses")}
+                >
+                  Looking for a business?
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
+                  onClick={() => navigate("/for-businesses")}
+                >
+                  Running a business?
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Getting Work Done (Direct Connect) */}
           <Card className="bg-tsCard/60 border-white/10">
             <CardHeader className="pb-3">

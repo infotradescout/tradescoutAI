@@ -982,7 +982,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     });
   };
 
-  // Allow Scout to prefill the composer via /community?compose=1&prefill=...
+  // Allow Scout to prefill the composer via /community-feed?compose=1&prefill=...
   useEffect(() => {
     if (!route) return;
 
@@ -1446,7 +1446,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const handleSharePost = async (post: any) => {
     try {
       await share({
-        path: `/community?post=${encodeURIComponent(post.id)}`,
+        path: `/community-feed?post=${encodeURIComponent(post.id)}`,
         title: post.title || "TradeScout community post",
         text: (post.content || "").toString(),
         contextLabel: "Post link",
@@ -1588,7 +1588,7 @@ const CommunityFeed = memo(function CommunityFeed() {
         title="TradeScout Community | Local Updates, Questions, and Neighborhood Activity"
         description="Stay connected to local activity on TradeScout Community. Ask questions, share updates, follow neighborhood conversations, and keep up with what is happening nearby."
         keywords="tradescout community, local community feed, neighborhood activity, ask neighbors online, local updates"
-        canonical="https://www.thetradescout.com/community"
+        canonical="https://www.thetradescout.com/community-feed"
       />
       <div className="community-feed-page">
         <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>

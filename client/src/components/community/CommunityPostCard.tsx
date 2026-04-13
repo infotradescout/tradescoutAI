@@ -196,7 +196,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
   const handleShareClick = async () => {
     await share({
-      path: `/community?post=${encodeURIComponent(post.id)}`,
+      path: `/community-feed?post=${encodeURIComponent(post.id)}`,
       title: post.title || "TradeScout community post",
       text: (post.content || "").toString(),
       contextLabel: "Post link",
@@ -662,7 +662,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       <button
                         key={`${tag.key}-${idx}`}
                         type="button"
-                        onClick={() => navigate(`/community?tag=${encodeURIComponent(tag.key)}`)}
+                        onClick={() =>
+                          navigate(`/community-feed?tag=${encodeURIComponent(tag.key)}`)
+                        }
                         className="focus:outline-none"
                         aria-label={`View topic ${tag.label}`}
                         title={`View topic: ${tag.label}`}

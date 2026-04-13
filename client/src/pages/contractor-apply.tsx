@@ -37,7 +37,7 @@ import { SEOHelmet } from "@/components/SEOHelmet";
 export default function ContractorApply() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
-  const [route] = useLocation();
+  const [route, navigate] = useLocation();
   const [fromScoutReview, setFromScoutReview] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
@@ -157,6 +157,15 @@ export default function ContractorApply() {
         <p className="text-xl text-white/70 mb-6">
           Connect with qualified homeowners and grow your business
         </p>
+        <div className="mb-4">
+          <button
+            type="button"
+            className="text-sm text-ts-orange hover:text-ts-orange-light"
+            onClick={() => navigate("/for-businesses")}
+          >
+            Learn how TradeScout works for businesses
+          </button>
+        </div>
         {fromScoutReview && (
           <div className="mx-auto max-w-2xl mt-3 rounded-lg border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 flex items-start gap-2 text-left">
             <Shield className="h-4 w-4 mt-[2px] text-amber-300" />

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME, TRADESCOUT_TAGLINE } from "@shared/brand";
+import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME } from "@shared/brand";
 
 interface SEOHelmetProps {
   title?: string;
@@ -46,7 +46,7 @@ export function SEOHelmet({
     updateMetaTag("og:type", ogType, "property");
     updateMetaTag("og:url", finalCanonical, "property");
     updateMetaTag("og:image", ogImageUrl, "property");
-    updateMetaTag("og:site_name", `${TRADESCOUT_BRAND_NAME} - ${TRADESCOUT_TAGLINE}`, "property");
+    updateMetaTag("og:site_name", TRADESCOUT_BRAND_NAME, "property");
 
     // Twitter Card
     updateMetaTag("twitter:card", "summary_large_image", "name");
@@ -226,8 +226,8 @@ export const createOrganizationStructuredData = () => ({
   name: "TradeScout",
   description: "Platform connecting residents, pros, organizations, and verified local contractors",
   url: getCanonicalOrigin(),
-  logo: `${getCanonicalOrigin()}/tradescout-brand.png?v=9`,
-  image: `${getCanonicalOrigin()}/tradescout-brand.png?v=9`,
+  logo: `${getCanonicalOrigin()}/icon-512.png?v=10`,
+  image: `${getCanonicalOrigin()}/icon-512.png?v=10`,
   address: {
     "@type": "PostalAddress",
     addressCountry: "US",

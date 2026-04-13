@@ -366,6 +366,8 @@ const PrivacyRequest = React.lazy(() => import("./pages/privacy-request"));
 const About = React.lazy(() => import("./pages/about"));
 const Pricing = React.lazy(() => import("./pages/pricing"));
 const HowItWorks = React.lazy(() => import("./pages/how-it-works"));
+const ForBusinessesPage = React.lazy(() => import("./pages/for-businesses"));
+const FindLocalBusinessesPage = React.lazy(() => import("./pages/find-local-businesses"));
 const TrustModel = React.lazy(() => import("./pages/trust-model"));
 const DirectConnectInfo = React.lazy(() => import("./pages/direct-connect-info"));
 const CompareHub = React.lazy(() => import("./pages/compare"));
@@ -928,11 +930,9 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={HoaMaintenance} />
                 </ProtectedRoute>
               </Route>
-              {/* Community tab should show the rich Nextdoor-style feed */}
+              {/* Community canonical route is /community-feed; keep /community as a legacy alias */}
               <Route path="/community">
-                <CommunityPageShell>
-                  <LazyPage Component={CommunityFeed} />
-                </CommunityPageShell>
+                <RedirectTo to="/community-feed" />
               </Route>
               <Route path="/community-feed">
                 <CommunityPageShell>
@@ -1663,6 +1663,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/how-it-works">
                 <LazyPage Component={HowItWorks} />
+              </Route>
+              <Route path="/for-businesses">
+                <LazyPage Component={ForBusinessesPage} />
+              </Route>
+              <Route path="/find-local-businesses">
+                <LazyPage Component={FindLocalBusinessesPage} />
               </Route>
               <Route path="/trust-model">
                 <LazyPage Component={TrustModel} />

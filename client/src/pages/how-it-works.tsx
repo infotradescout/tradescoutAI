@@ -378,6 +378,18 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                   </a>
                 </Link>
               </div>
+              <div className="grid md:grid-cols-2 gap-3 mt-3">
+                <Link href="/find-local-businesses">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Find local businesses →
+                  </a>
+                </Link>
+                <Link href="/for-businesses">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    TradeScout for businesses →
+                  </a>
+                </Link>
+              </div>
             </nav>
           </Reveal>
         </div>

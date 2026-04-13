@@ -282,11 +282,11 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
 
   const canonicalPath = `/county/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(countySlug)}`;
   const title = formatTradeScoutTitle(
-    `${String((county as any).name || "County")}, ${stateCode} | TradeScout Directory`
+    `Find Contractors in ${String((county as any).name || "County")}, ${stateCode}`
   );
-  const description = `Browse recent, public TradeScout directory listings and trades serving ${String(
+  const description = `Find local contractors and service businesses in ${String(
     (county as any).name || ""
-  )}, ${stateCode}. Listings may be unclaimed; contact remains protected through Direct Connect.`;
+  )}, ${stateCode}. Browse trade categories and county activity, then connect through TradeScout Direct Connect.`;
 
   const meta = buildMeta({
     origin: opts.origin,
