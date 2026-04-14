@@ -6,6 +6,7 @@ import {
 } from "@/components/SEOHelmet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { BUSINESS_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
 
 const faqItems = [
   {
@@ -31,6 +32,11 @@ const faqItems = [
 ];
 
 export default function ForBusinessesPage() {
+  const pensacolaApplyHref = "/contractors/apply?state=FL&county=12033&source=pensacola-launch";
+  const pensacolaDemandHref =
+    "/direct-connect?county=12033&source=pensacola-launch&intent=provider_demand";
+  const topQueries = BUSINESS_POPULAR_QUERIES.slice(0, 16);
+
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -68,14 +74,37 @@ export default function ForBusinessesPage() {
           actively looking for help. Contact is gated by intent and trust, not bought rankings.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/contractors/apply">
+          <Link href={pensacolaApplyHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Join as a business
+              Claim Pensacola coverage
             </Button>
           </Link>
-          <Link href="/direct-connect">
+          <Link href={pensacolaDemandHref}>
             <Button variant="outline" className="border-white/20 text-white">
-              Open Direct Connect
+              View Pensacola demand flow
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
+          Launch Focus
+        </p>
+        <h2 className="text-2xl font-bold text-white">Pensacola, FL business launch</h2>
+        <p className="text-sm text-white/75 max-w-3xl">
+          We are concentrating supply onboarding in Escambia County first. Businesses that activate
+          now in Pensacola get first-mover visibility within trust and county rules.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={pensacolaApplyHref}>
+            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+              Start Pensacola onboarding
+            </Button>
+          </Link>
+          <Link href="/trade/hvac/fl">
+            <Button variant="outline" className="border-white/20 text-white">
+              Browse FL trade demand
             </Button>
           </Link>
         </div>
@@ -119,6 +148,23 @@ export default function ForBusinessesPage() {
           <li>Use Direct Connect to review and respond to local requests.</li>
           <li>Build trust through high-quality outcomes and consistency.</li>
         </ul>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-2xl font-semibold text-white">Business searches we are seeing</h2>
+        <p className="text-sm text-white/70 max-w-3xl">
+          These are high-intent terms appearing on TradeScout. Build pages and profile coverage
+          around these clusters to capture local demand before aggregators do.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {topQueries.map((item) => (
+            <Link key={item.query} href={item.href}>
+              <a className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:border-ts-orange/50 hover:text-white transition-colors">
+                {item.query}
+              </a>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="space-y-3">

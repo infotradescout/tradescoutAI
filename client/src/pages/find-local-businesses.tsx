@@ -6,6 +6,7 @@ import {
 } from "@/components/SEOHelmet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HOMEOWNER_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
 
 const faqItems = [
   {
@@ -31,6 +32,10 @@ const faqItems = [
 ];
 
 export default function FindLocalBusinessesPage() {
+  const pensacolaHref = "/direct-connect?county=12033&source=pensacola-launch&intent=local_search";
+  const pensacolaCountyHref = "/county/fl/escambia/recent";
+  const topQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 18);
+
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -68,14 +73,37 @@ export default function FindLocalBusinessesPage() {
           trade and county context, then connect through a trust-first flow.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/direct-connect">
+          <Link href={pensacolaHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Start in Direct Connect
+              Get my Pensacola shortlist
             </Button>
           </Link>
           <Link href="/trade">
             <Button variant="outline" className="border-white/20 text-white">
               Browse trades
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
+          Ground Zero Market
+        </p>
+        <h2 className="text-2xl font-bold text-white">Pensacola, FL first</h2>
+        <p className="text-sm text-white/75 max-w-3xl">
+          We are hyper-focused on Escambia County first so people in Pensacola get stronger local
+          match quality and faster response loops while we scale outward.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={pensacolaHref}>
+            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+              Start a Pensacola request
+            </Button>
+          </Link>
+          <Link href={pensacolaCountyHref}>
+            <Button variant="outline" className="border-white/20 text-white">
+              View Escambia activity
             </Button>
           </Link>
         </div>
@@ -108,6 +136,23 @@ export default function FindLocalBusinessesPage() {
             </p>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-2xl font-semibold text-white">Popular searches right now</h2>
+        <p className="text-sm text-white/70 max-w-3xl">
+          These are real searches people are using. Pick one to jump into a local path, then create
+          an account to save your shortlist and track replies.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {topQueries.map((item) => (
+            <Link key={item.query} href={item.href}>
+              <a className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:border-ts-orange/50 hover:text-white transition-colors">
+                {item.query}
+              </a>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="space-y-3">
