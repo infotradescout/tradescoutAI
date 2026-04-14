@@ -11,10 +11,11 @@ describe("pensacola focus contracts", () => {
   it("pensacola launch hub page exists with escambia-first conversion CTAs", () => {
     const source = read("client/src/pages/pensacola.tsx");
     expect(source).toContain("Pensacola first. Built local.");
-    expect(source).toContain('const PENSACOLA_COUNTY_CODE = "12033"');
+    expect(source).toContain("PENSACOLA_CLUSTERS, PENSACOLA_COUNTY_CODE");
     expect(source).toContain("county=${PENSACOLA_COUNTY_CODE}");
     expect(source).toContain("/create-account?source=pensacola-launch");
     expect(source).toContain("without lead reselling or pay-to-play");
+    expect(source).toContain("/pensacola/${cluster.slug}");
   });
 
   it("find local businesses page contains pensacola launch focus and query cluster", () => {
@@ -24,6 +25,7 @@ describe("pensacola focus contracts", () => {
     expect(source).toContain("county=12033");
     expect(source).toContain("HOMEOWNER_POPULAR_QUERIES");
     expect(source).toContain("/pensacola");
+    expect(source).toContain("/pensacola/hvac-repair");
   });
 
   it("for businesses page contains pensacola onboarding focus and query cluster", () => {
@@ -33,6 +35,7 @@ describe("pensacola focus contracts", () => {
     expect(source).toContain("county=12033");
     expect(source).toContain("BUSINESS_POPULAR_QUERIES");
     expect(source).toContain("/pensacola");
+    expect(source).toContain("/pensacola/electrical-contractors");
   });
 
   it("route and public pages link to the pensacola hub", () => {
@@ -42,9 +45,23 @@ describe("pensacola focus contracts", () => {
     const trustModel = read("client/src/pages/trust-model.tsx");
 
     expect(routes).toContain('const PensacolaPage = React.lazy(() => import("./pages/pensacola"))');
+    expect(routes).toContain(
+      'const PensacolaClusterPage = React.lazy(() => import("./pages/pensacola-cluster"))'
+    );
     expect(routes).toContain('<Route path="/pensacola">');
+    expect(routes).toContain('<Route path="/pensacola/:clusterSlug">');
     expect(landing).toContain("Pensacola launch hub");
     expect(howItWorks).toContain("Pensacola launch hub →");
     expect(trustModel).toContain("Pensacola launch hub →");
+  });
+
+  it("pensacola cluster page enforces canonical service routes and noindex fallback", () => {
+    const source = read("client/src/pages/pensacola-cluster.tsx");
+    expect(source).toContain('useRoute("/pensacola/:clusterSlug")');
+    expect(source).toContain(
+      "const canonicalUrl = `https://www.thetradescout.com/pensacola/${cluster.slug}`"
+    );
+    expect(source).toContain("noIndex");
+    expect(source).toContain("Other Pensacola service clusters");
   });
 });

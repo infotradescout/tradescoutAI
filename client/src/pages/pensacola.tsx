@@ -7,19 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BUSINESS_POPULAR_QUERIES, HOMEOWNER_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
-
-const PENSACOLA_COUNTY_CODE = "12033";
-
-const pensacolaDemandClusters = [
-  { label: "HVAC repair in Pensacola", href: "/trade/hvac/fl" },
-  { label: "Electricians in Pensacola", href: "/trade/electrical/fl" },
-  { label: "Drywall repair in Pensacola", href: "/trade/drywall-contractor/fl" },
-  { label: "Fence companies in Pensacola", href: "/trade/fence-contractor/fl" },
-  { label: "Garage door repair in Pensacola", href: "/trade/garage-door/fl" },
-  { label: "Handyman services in Pensacola", href: "/trade/handyman/fl" },
-  { label: "Gutter installation in Pensacola", href: "/trade/gutter-contractor/fl" },
-  { label: "Kitchen remodel in Pensacola", href: "/trade/kitchen-remodel/fl" },
-];
+import { PENSACOLA_CLUSTERS, PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 
 const faqItems = [
   {
@@ -151,10 +139,10 @@ export default function PensacolaPage() {
           These are the service lanes we are prioritizing first in Escambia County.
         </p>
         <div className="flex flex-wrap gap-2">
-          {pensacolaDemandClusters.map((cluster) => (
-            <Link key={cluster.label} href={cluster.href}>
+          {PENSACOLA_CLUSTERS.map((cluster) => (
+            <Link key={cluster.slug} href={`/pensacola/${cluster.slug}`}>
               <a className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:border-ts-orange/50 hover:text-white transition-colors">
-                {cluster.label}
+                {cluster.title}
               </a>
             </Link>
           ))}

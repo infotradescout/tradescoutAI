@@ -112,6 +112,11 @@ export default function ForBusinessesPage() {
               Browse FL trade demand
             </Button>
           </Link>
+          <Link href="/pensacola/electrical-contractors">
+            <Button variant="outline" className="border-white/20 text-white">
+              Pensacola electrical lane
+            </Button>
+          </Link>
         </div>
       </section>
 

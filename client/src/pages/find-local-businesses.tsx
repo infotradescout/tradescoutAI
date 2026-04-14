@@ -111,6 +111,11 @@ export default function FindLocalBusinessesPage() {
               View Escambia activity
             </Button>
           </Link>
+          <Link href="/pensacola/hvac-repair">
+            <Button variant="outline" className="border-white/20 text-white">
+              Pensacola HVAC demand
+            </Button>
+          </Link>
         </div>
       </section>
 
