@@ -24,6 +24,7 @@ import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { trackShellEvent } from "@/lib/analytics";
+import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
   SEOHelmet,
   createBreadcrumbStructuredData,
@@ -2638,6 +2639,11 @@ export default function DirectConnectShell() {
     };
   }, [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
+  const isPensacolaLaunchPath = defaultCountyFips === PENSACOLA_COUNTY_CODE;
+  const createPensacolaAccountHref = useMemo(() => {
+    const nextPath = encodeURIComponent(location || "/direct-connect");
+    return `/create-account?source=pensacola-direct-connect&county=${PENSACOLA_COUNTY_CODE}&next=${nextPath}`;
+  }, [location]);
 
   const navigateSection = (section: Section) => {
     navigate(buildHref(section));
@@ -2739,6 +2745,23 @@ export default function DirectConnectShell() {
               Post a request, get replies, and track updates in one place.
             </p>
           </div>
+          {!isAuthenticated && isPensacolaLaunchPath ? (
+            <div className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs md:text-sm text-[color:var(--text-primary)]">
+                  Pensacola launch flow: create your free account to save this request path and keep
+                  replies in one place.
+                </p>
+                <Button
+                  size="sm"
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90 w-fit"
+                  onClick={() => navigate(createPensacolaAccountHref)}
+                >
+                  Create account to continue
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           {/* Status Pills */}
           <div

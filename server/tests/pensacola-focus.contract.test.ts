@@ -64,4 +64,13 @@ describe("pensacola focus contracts", () => {
     expect(source).toContain("noIndex");
     expect(source).toContain("Other Pensacola service clusters");
   });
+
+  it("direct connect adds pensacola signup nudge for anonymous users", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(source).toContain("PENSACOLA_COUNTY_CODE");
+    expect(source).toContain("isPensacolaLaunchPath");
+    expect(source).toContain("createPensacolaAccountHref");
+    expect(source).toContain("Pensacola launch flow");
+    expect(source).toContain("source=pensacola-direct-connect");
+  });
 });
