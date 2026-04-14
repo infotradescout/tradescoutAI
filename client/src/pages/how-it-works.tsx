@@ -390,6 +390,13 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                   </a>
                 </Link>
               </div>
+              <div className="grid md:grid-cols-1 gap-3 mt-3">
+                <Link href="/pensacola">
+                  <a className="text-ts-orange hover:text-ts-orange-light text-sm transition-colors">
+                    Pensacola launch hub →
+                  </a>
+                </Link>
+              </div>
             </nav>
           </Reveal>
         </div>

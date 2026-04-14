@@ -1016,6 +1016,21 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                   Get started
                 </a>
               </li>
+              <li>
+                <a
+                  href="/pensacola"
+                  className="hover:text-ts-orange transition-colors"
+                  onClick={() =>
+                    void trackDemandEvent("cta_click", {
+                      placement: "footer_pensacola_hub",
+                      variant: variant.key,
+                      href: "/pensacola",
+                    })
+                  }
+                >
+                  Pensacola launch hub
+                </a>
+              </li>
             </ul>
           </div>
 

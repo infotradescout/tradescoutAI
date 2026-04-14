@@ -102,6 +102,11 @@ export default function ForBusinessesPage() {
               Start Pensacola onboarding
             </Button>
           </Link>
+          <Link href="/pensacola">
+            <Button variant="outline" className="border-white/20 text-white">
+              Open Pensacola hub
+            </Button>
+          </Link>
           <Link href="/trade/hvac/fl">
             <Button variant="outline" className="border-white/20 text-white">
               Browse FL trade demand

@@ -101,6 +101,11 @@ export default function FindLocalBusinessesPage() {
               Start a Pensacola request
             </Button>
           </Link>
+          <Link href="/pensacola">
+            <Button variant="outline" className="border-white/20 text-white">
+              Open Pensacola hub
+            </Button>
+          </Link>
           <Link href={pensacolaCountyHref}>
             <Button variant="outline" className="border-white/20 text-white">
               View Escambia activity
