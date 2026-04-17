@@ -42,9 +42,9 @@ export default function ForBusinessesPage() {
     "@graph": [
       {
         "@type": "WebPage",
-        name: "TradeScout for Contractors and Local Businesses",
+        name: "TradeScout for Small Local Service Businesses",
         description:
-          "Grow with local intent-driven demand on TradeScout. Join as a contractor or local business, build trust, and connect through Direct Connect.",
+          "TradeScout helps small local service businesses earn trusted local demand without pay-to-play lead selling. Build trust, respond to real requests, and grow county by county.",
         url: "https://www.thetradescout.com/for-businesses",
       },
       createBreadcrumbStructuredData([
@@ -58,9 +58,9 @@ export default function ForBusinessesPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <SEOHelmet
-        title="TradeScout for Contractors and Local Businesses"
-        description="Join TradeScout to win local work without pay-to-play lead selling. Build trust, respond to local requests, and grow county by county."
-        keywords="contractor leads, local business growth, contractor marketing, county contractor jobs, direct connect requests, trades business platform"
+        title="TradeScout for Small Local Service Businesses"
+        description="TradeScout helps small local service businesses win more trusted local work without pay-to-play lead selling. Build trust, respond to real requests, and grow county by county."
+        keywords="small business marketing for contractors, small local service business growth, local contractor leads, how to get more local jobs, direct connect requests, trades business platform"
         canonical="https://www.thetradescout.com/for-businesses"
         structuredData={structuredData}
       />
