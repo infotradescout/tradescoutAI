@@ -83,6 +83,24 @@ function resolveTimeWindow(query: Record<string, unknown>): { from: Date; to: Da
   return { from: new Date(to.getTime() - windowDays * 24 * 60 * 60 * 1000), to };
 }
 
+function resolveHoursWindow(
+  query: Record<string, unknown>,
+  fallbackHours: number
+): { from: Date; to: Date } {
+  const to = parseDateInput(query.to) ?? new Date();
+  const fromFromQuery = parseDateInput(query.from);
+
+  if (fromFromQuery) {
+    if (fromFromQuery >= to) {
+      return { from: new Date(to.getTime() - fallbackHours * 60 * 60 * 1000), to };
+    }
+    return { from: fromFromQuery, to };
+  }
+
+  const windowHours = parseBoundedInt(query.windowHours, fallbackHours, 1, 24 * 90);
+  return { from: new Date(to.getTime() - windowHours * 60 * 60 * 1000), to };
+}
+
 export function registerAnalyticsRoutes(app: Express) {
   // This endpoint is intentionally soft: it should never block UX.
   // Guests are allowed; userId is optional.
@@ -401,4 +419,115 @@ export function registerAnalyticsRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch demand analytics timeline" });
     }
   });
+
+  // Internal: progressive exposure shadow-mode distribution (read-only).
+  app.get(
+    "/api/analytics/progressive-exposure/summary",
+    isStaff,
+    async (req: Request, res: Response) => {
+      try {
+        const { from, to } = resolveHoursWindow(
+          (req.query || {}) as Record<string, unknown>,
+          24 * 7
+        );
+
+        const [tierResult, reasonResult, signalResult] = await Promise.all([
+          pool.query(
+            `
+            SELECT
+              COALESCE(NULLIF(data->>'tier', ''), 'unknown') AS tier,
+              COUNT(*)::int AS total
+            FROM events
+            WHERE event_type = 'progressive_exposure_shadow'
+              AND created_at >= $1
+              AND created_at < $2
+            GROUP BY 1
+            ORDER BY 1 ASC
+          `,
+            [from, to]
+          ),
+          pool.query(
+            `
+            SELECT
+              reason,
+              COUNT(*)::int AS total
+            FROM events e
+            CROSS JOIN LATERAL jsonb_array_elements_text(
+              CASE
+                WHEN jsonb_typeof(e.data->'reasons') = 'array' THEN e.data->'reasons'
+                ELSE '[]'::jsonb
+              END
+            ) reason(reason)
+            WHERE e.event_type = 'progressive_exposure_shadow'
+              AND e.created_at >= $1
+              AND e.created_at < $2
+            GROUP BY 1
+            ORDER BY total DESC, reason ASC
+            LIMIT 10
+          `,
+            [from, to]
+          ),
+          pool.query(
+            `
+            SELECT
+              AVG(CASE WHEN (data->>'accountAgeDays') ~ '^[0-9]+$' THEN (data->>'accountAgeDays')::int END) AS avg_account_age_days,
+              AVG(CASE WHEN (data->>'meaningfulActivityCount') ~ '^[0-9]+$' THEN (data->>'meaningfulActivityCount')::int END) AS avg_meaningful_activity_count,
+              COUNT(*) FILTER (WHERE (data->>'hasCompletedSetup') = 'true')::int AS setup_complete_count,
+              COUNT(*) FILTER (WHERE (data->>'hasVerifiedContact') = 'true')::int AS verified_contact_count,
+              COUNT(*)::int AS total
+            FROM events
+            WHERE event_type = 'progressive_exposure_shadow'
+              AND created_at >= $1
+              AND created_at < $2
+          `,
+            [from, to]
+          ),
+        ]);
+
+        const tiers = {
+          0: 0,
+          1: 0,
+          2: 0,
+          3: 0,
+          unknown: 0,
+        } as Record<"0" | "1" | "2" | "3" | "unknown", number>;
+
+        for (const row of tierResult.rows || []) {
+          const tier = String(row.tier || "unknown");
+          const total = toNumber(row.total);
+          if (tier === "0" || tier === "1" || tier === "2" || tier === "3") {
+            tiers[tier] = total;
+          } else {
+            tiers.unknown += total;
+          }
+        }
+
+        const signalRow = (signalResult.rows || [])[0] as any;
+        const totalEvents = toNumber(signalRow?.total);
+        const setupCompleteCount = toNumber(signalRow?.setup_complete_count);
+        const verifiedContactCount = toNumber(signalRow?.verified_contact_count);
+
+        res.json({
+          window: { from: from.toISOString(), to: to.toISOString() },
+          totalEvents,
+          tiers,
+          topReasons: (reasonResult.rows || []).map((row: any) => ({
+            reason: String(row.reason || "unknown"),
+            count: toNumber(row.total),
+          })),
+          signals: {
+            avgAccountAgeDays: Number(Number(signalRow?.avg_account_age_days || 0).toFixed(2)),
+            avgMeaningfulActivityCount: Number(
+              Number(signalRow?.avg_meaningful_activity_count || 0).toFixed(2)
+            ),
+            setupCompletionPct: pct(setupCompleteCount, totalEvents),
+            verifiedContactPct: pct(verifiedContactCount, totalEvents),
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching progressive exposure analytics summary", error);
+        res.status(500).json({ message: "Failed to fetch progressive exposure analytics summary" });
+      }
+    }
+  );
 }

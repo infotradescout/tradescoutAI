@@ -34,6 +34,31 @@ type EmailDiagnostics = {
   defaultFrom: string;
 };
 
+type ProgressiveExposureSummary = {
+  window: {
+    from: string;
+    to: string;
+  };
+  totalEvents: number;
+  tiers: {
+    0: number;
+    1: number;
+    2: number;
+    3: number;
+    unknown: number;
+  };
+  topReasons: Array<{
+    reason: string;
+    count: number;
+  }>;
+  signals: {
+    avgAccountAgeDays: number;
+    avgMeaningfulActivityCount: number;
+    setupCompletionPct: number;
+    verifiedContactPct: number;
+  };
+};
+
 export default function AdminControl() {
   const { user } = useAuth();
   const isSuperAdmin = !!user && isSuperAdminLike(user.role || "");
@@ -69,6 +94,14 @@ export default function AdminControl() {
     enabled: isSuperAdmin,
     retry: false,
   });
+
+  const { data: progressiveExposureSummary, isError: progressiveExposureFailed } =
+    useQuery<ProgressiveExposureSummary>({
+      queryKey: ["/api/analytics/progressive-exposure/summary"],
+      queryFn: async () => apiRequest("GET", "/api/analytics/progressive-exposure/summary"),
+      enabled: isSuperAdmin,
+      retry: false,
+    });
 
   const enabledFlags = useMemo(
     () => (Array.isArray(featureFlags) ? featureFlags.filter((f) => f?.enabled).length : 0),
@@ -192,6 +225,64 @@ export default function AdminControl() {
               from:{" "}
               {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.defaultFrom || "unknown"}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-tsCard border-white/10 md:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-violet-400" />
+              Progressive Exposure (Shadow)
+            </CardTitle>
+            <CardDescription className="text-xs text-white/60">
+              Read-only readiness distribution. No user-facing gating changes applied.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {progressiveExposureFailed || !progressiveExposureSummary ? (
+              <p className="text-xs text-white/60">Shadow analytics endpoint unavailable.</p>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">events: {progressiveExposureSummary.totalEvents}</Badge>
+                  <Badge variant="outline">tier0: {progressiveExposureSummary.tiers[0]}</Badge>
+                  <Badge variant="outline">tier1: {progressiveExposureSummary.tiers[1]}</Badge>
+                  <Badge variant="outline">tier2: {progressiveExposureSummary.tiers[2]}</Badge>
+                  <Badge variant="outline">tier3: {progressiveExposureSummary.tiers[3]}</Badge>
+                  {progressiveExposureSummary.tiers.unknown > 0 ? (
+                    <Badge variant="outline">
+                      unknown: {progressiveExposureSummary.tiers.unknown}
+                    </Badge>
+                  ) : null}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-white/70">
+                  <div>
+                    avg account age: {progressiveExposureSummary.signals.avgAccountAgeDays} days
+                  </div>
+                  <div>
+                    avg meaningful activity:{" "}
+                    {progressiveExposureSummary.signals.avgMeaningfulActivityCount}
+                  </div>
+                  <div>
+                    verified contact: {progressiveExposureSummary.signals.verifiedContactPct}%
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-white/50 mb-1">Top reasons</p>
+                  {progressiveExposureSummary.topReasons.length === 0 ? (
+                    <p className="text-xs text-white/60">No reasons logged in this window.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {progressiveExposureSummary.topReasons.map((item) => (
+                        <Badge key={item.reason} variant="outline">
+                          {item.reason}: {item.count}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
