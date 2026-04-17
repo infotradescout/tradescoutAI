@@ -59,6 +59,24 @@ type ProgressiveExposureSummary = {
   };
 };
 
+type ProgressiveExposureTimeline = {
+  window: {
+    from: string;
+    to: string;
+  };
+  points: Array<{
+    day: string;
+    tiers: {
+      0: number;
+      1: number;
+      2: number;
+      3: number;
+      unknown: number;
+    };
+    total: number;
+  }>;
+};
+
 export default function AdminControl() {
   const { user } = useAuth();
   const isSuperAdmin = !!user && isSuperAdminLike(user.role || "");
@@ -103,10 +121,30 @@ export default function AdminControl() {
       retry: false,
     });
 
+  const { data: progressiveExposureTimeline, isError: progressiveExposureTimelineFailed } =
+    useQuery<ProgressiveExposureTimeline>({
+      queryKey: ["/api/analytics/progressive-exposure/timeline"],
+      queryFn: async () => apiRequest("GET", "/api/analytics/progressive-exposure/timeline"),
+      enabled: isSuperAdmin,
+      retry: false,
+    });
+
   const enabledFlags = useMemo(
     () => (Array.isArray(featureFlags) ? featureFlags.filter((f) => f?.enabled).length : 0),
     [featureFlags]
   );
+
+  const progressiveExposureRecentPoints = useMemo(() => {
+    if (!progressiveExposureTimeline?.points?.length) return [];
+    return progressiveExposureTimeline.points.slice(-7);
+  }, [progressiveExposureTimeline]);
+
+  const progressiveExposureMaxDailyTotal = useMemo(() => {
+    return progressiveExposureRecentPoints.reduce(
+      (max, point) => Math.max(max, point.total || 0),
+      0
+    );
+  }, [progressiveExposureRecentPoints]);
 
   const authorityUnavailable = authorityMetricsFailed || authorityMetrics?.available === false;
   const authorityMessage = authorityMetricsFailed
@@ -278,6 +316,45 @@ export default function AdminControl() {
                           {item.reason}: {item.count}
                         </Badge>
                       ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
+                    Daily tier trend (last 7 days with events)
+                  </p>
+                  {progressiveExposureTimelineFailed ? (
+                    <p className="text-xs text-white/60">Timeline endpoint unavailable.</p>
+                  ) : progressiveExposureRecentPoints.length === 0 ? (
+                    <p className="text-xs text-white/60">
+                      No timeline events logged in this window.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {progressiveExposureRecentPoints.map((point) => {
+                        const max = progressiveExposureMaxDailyTotal || 1;
+                        const t0 = (point.tiers[0] / max) * 100;
+                        const t1 = (point.tiers[1] / max) * 100;
+                        const t2 = (point.tiers[2] / max) * 100;
+                        const t3 = (point.tiers[3] / max) * 100;
+                        const unknown = (point.tiers.unknown / max) * 100;
+
+                        return (
+                          <div key={point.day} className="text-xs text-white/70">
+                            <div className="flex items-center justify-between mb-1">
+                              <span>{point.day}</span>
+                              <span>total {point.total}</span>
+                            </div>
+                            <div className="h-2 w-full rounded bg-white/10 overflow-hidden flex">
+                              <div className="bg-blue-500" style={{ width: `${t0}%` }} />
+                              <div className="bg-emerald-500" style={{ width: `${t1}%` }} />
+                              <div className="bg-amber-500" style={{ width: `${t2}%` }} />
+                              <div className="bg-violet-500" style={{ width: `${t3}%` }} />
+                              <div className="bg-zinc-500" style={{ width: `${unknown}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

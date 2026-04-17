@@ -530,4 +530,74 @@ export function registerAnalyticsRoutes(app: Express) {
       }
     }
   );
+
+  // Internal: progressive exposure shadow-mode daily trend by tier (read-only).
+  app.get(
+    "/api/analytics/progressive-exposure/timeline",
+    isStaff,
+    async (req: Request, res: Response) => {
+      try {
+        const { from, to } = resolveHoursWindow(
+          (req.query || {}) as Record<string, unknown>,
+          24 * 14
+        );
+
+        const result = await pool.query(
+          `
+            SELECT
+              date_trunc('day', created_at) AS day_bucket,
+              COALESCE(NULLIF(data->>'tier', ''), 'unknown') AS tier,
+              COUNT(*)::int AS total
+            FROM events
+            WHERE event_type = 'progressive_exposure_shadow'
+              AND created_at >= $1
+              AND created_at < $2
+            GROUP BY 1, 2
+            ORDER BY 1 ASC, 2 ASC
+          `,
+          [from, to]
+        );
+
+        const byDay = new Map<string, Record<"0" | "1" | "2" | "3" | "unknown", number>>();
+
+        for (const row of result.rows || []) {
+          const dayKey = new Date(row.day_bucket).toISOString().slice(0, 10);
+          const tier = String(row.tier || "unknown");
+          const total = toNumber(row.total);
+
+          const dayTiers = byDay.get(dayKey) || { 0: 0, 1: 0, 2: 0, 3: 0, unknown: 0 };
+          if (tier === "0" || tier === "1" || tier === "2" || tier === "3") {
+            dayTiers[tier] = total;
+          } else {
+            dayTiers.unknown += total;
+          }
+
+          byDay.set(dayKey, dayTiers);
+        }
+
+        const points = Array.from(byDay.entries())
+          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+          .map(([day, tiers]) => ({
+            day,
+            tiers,
+            total:
+              toNumber(tiers["0"]) +
+              toNumber(tiers["1"]) +
+              toNumber(tiers["2"]) +
+              toNumber(tiers["3"]) +
+              toNumber(tiers.unknown),
+          }));
+
+        res.json({
+          window: { from: from.toISOString(), to: to.toISOString() },
+          points,
+        });
+      } catch (error) {
+        console.error("Error fetching progressive exposure analytics timeline", error);
+        res
+          .status(500)
+          .json({ message: "Failed to fetch progressive exposure analytics timeline" });
+      }
+    }
+  );
 }
