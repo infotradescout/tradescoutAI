@@ -474,6 +474,11 @@ export function registerAnalyticsRoutes(app: Express) {
               AVG(CASE WHEN (data->>'meaningfulActivityCount') ~ '^[0-9]+$' THEN (data->>'meaningfulActivityCount')::int END) AS avg_meaningful_activity_count,
               COUNT(*) FILTER (WHERE (data->>'hasCompletedSetup') = 'true')::int AS setup_complete_count,
               COUNT(*) FILTER (WHERE (data->>'hasVerifiedContact') = 'true')::int AS verified_contact_count,
+              COUNT(DISTINCT NULLIF(COALESCE(data->>'userId', ''), ''))::int AS unique_user_count,
+              COUNT(DISTINCT NULLIF(COALESCE(data->>'sessionKey', ''), ''))::int AS unique_session_count,
+              COUNT(*) FILTER (
+                WHERE COALESCE(NULLIF(data->>'sessionKey', ''), '') = ''
+              )::int AS missing_session_key_count,
               COUNT(*)::int AS total
             FROM events
             WHERE event_type = 'progressive_exposure_shadow'
@@ -506,6 +511,31 @@ export function registerAnalyticsRoutes(app: Express) {
         const totalEvents = toNumber(signalRow?.total);
         const setupCompleteCount = toNumber(signalRow?.setup_complete_count);
         const verifiedContactCount = toNumber(signalRow?.verified_contact_count);
+        const uniqueUsers = toNumber(signalRow?.unique_user_count);
+        const uniqueSessions = toNumber(signalRow?.unique_session_count);
+        const missingSessionKeyCount = toNumber(signalRow?.missing_session_key_count);
+        const unknownTierPct = pct(toNumber(tiers.unknown), totalEvents);
+
+        const thresholds = {
+          minTotalEvents: 100,
+          minUniqueUsers: 30,
+          maxUnknownTierPct: 5,
+          minVerifiedContactPct: 30,
+        };
+
+        const status = {
+          totalEventsOk: totalEvents >= thresholds.minTotalEvents,
+          uniqueUsersOk: uniqueUsers >= thresholds.minUniqueUsers,
+          unknownTierOk: unknownTierPct <= thresholds.maxUnknownTierPct,
+          verifiedContactOk:
+            pct(verifiedContactCount, totalEvents) >= thresholds.minVerifiedContactPct,
+        };
+
+        const isReady =
+          status.totalEventsOk &&
+          status.uniqueUsersOk &&
+          status.unknownTierOk &&
+          status.verifiedContactOk;
 
         res.json({
           window: { from: from.toISOString(), to: to.toISOString() },
@@ -522,6 +552,20 @@ export function registerAnalyticsRoutes(app: Express) {
             ),
             setupCompletionPct: pct(setupCompleteCount, totalEvents),
             verifiedContactPct: pct(verifiedContactCount, totalEvents),
+          },
+          quality: {
+            uniqueUsers,
+            uniqueSessions,
+            eventsPerUser: uniqueUsers > 0 ? Number((totalEvents / uniqueUsers).toFixed(2)) : 0,
+            eventsPerSession:
+              uniqueSessions > 0 ? Number((totalEvents / uniqueSessions).toFixed(2)) : 0,
+            missingSessionKeyPct: pct(missingSessionKeyCount, totalEvents),
+            unknownTierPct,
+          },
+          readiness: {
+            thresholds,
+            status,
+            isReady,
           },
         });
       } catch (error) {

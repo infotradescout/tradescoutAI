@@ -57,6 +57,29 @@ type ProgressiveExposureSummary = {
     setupCompletionPct: number;
     verifiedContactPct: number;
   };
+  quality: {
+    uniqueUsers: number;
+    uniqueSessions: number;
+    eventsPerUser: number;
+    eventsPerSession: number;
+    missingSessionKeyPct: number;
+    unknownTierPct: number;
+  };
+  readiness: {
+    thresholds: {
+      minTotalEvents: number;
+      minUniqueUsers: number;
+      maxUnknownTierPct: number;
+      minVerifiedContactPct: number;
+    };
+    status: {
+      totalEventsOk: boolean;
+      uniqueUsersOk: boolean;
+      unknownTierOk: boolean;
+      verifiedContactOk: boolean;
+    };
+    isReady: boolean;
+  };
 };
 
 type ProgressiveExposureTimeline = {
@@ -303,6 +326,72 @@ export default function AdminControl() {
                   </div>
                   <div>
                     verified contact: {progressiveExposureSummary.signals.verifiedContactPct}%
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-white/70">
+                  <div>unique users: {progressiveExposureSummary.quality.uniqueUsers}</div>
+                  <div>unique sessions: {progressiveExposureSummary.quality.uniqueSessions}</div>
+                  <div>events/user: {progressiveExposureSummary.quality.eventsPerUser}</div>
+                  <div>events/session: {progressiveExposureSummary.quality.eventsPerSession}</div>
+                  <div>
+                    missing session key: {progressiveExposureSummary.quality.missingSessionKeyPct}%
+                  </div>
+                  <div>unknown tier: {progressiveExposureSummary.quality.unknownTierPct}%</div>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
+                    Readiness thresholds (go/no-go)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge
+                      variant={progressiveExposureSummary.readiness.isReady ? "default" : "outline"}
+                    >
+                      ready: {progressiveExposureSummary.readiness.isReady ? "yes" : "no"}
+                    </Badge>
+                    <Badge
+                      variant={
+                        progressiveExposureSummary.readiness.status.totalEventsOk
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      events ≥ {progressiveExposureSummary.readiness.thresholds.minTotalEvents}:{" "}
+                      {progressiveExposureSummary.readiness.status.totalEventsOk ? "pass" : "fail"}
+                    </Badge>
+                    <Badge
+                      variant={
+                        progressiveExposureSummary.readiness.status.uniqueUsersOk
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      users ≥ {progressiveExposureSummary.readiness.thresholds.minUniqueUsers}:{" "}
+                      {progressiveExposureSummary.readiness.status.uniqueUsersOk ? "pass" : "fail"}
+                    </Badge>
+                    <Badge
+                      variant={
+                        progressiveExposureSummary.readiness.status.unknownTierOk
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      unknown ≤ {progressiveExposureSummary.readiness.thresholds.maxUnknownTierPct}
+                      %:{" "}
+                      {progressiveExposureSummary.readiness.status.unknownTierOk ? "pass" : "fail"}
+                    </Badge>
+                    <Badge
+                      variant={
+                        progressiveExposureSummary.readiness.status.verifiedContactOk
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      verified ≥{" "}
+                      {progressiveExposureSummary.readiness.thresholds.minVerifiedContactPct}%:{" "}
+                      {progressiveExposureSummary.readiness.status.verifiedContactOk
+                        ? "pass"
+                        : "fail"}
+                    </Badge>
                   </div>
                 </div>
                 <div>

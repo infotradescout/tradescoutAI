@@ -28,6 +28,21 @@ describe("progressive exposure analytics contracts", () => {
     expect(source).toContain("avgMeaningfulActivityCount");
     expect(source).toContain("setupCompletionPct");
     expect(source).toContain("verifiedContactPct");
+    expect(source).toContain("quality");
+    expect(source).toContain("uniqueUsers");
+    expect(source).toContain("uniqueSessions");
+    expect(source).toContain("eventsPerUser");
+    expect(source).toContain("eventsPerSession");
+    expect(source).toContain("missingSessionKeyPct");
+    expect(source).toContain("unknownTierPct");
+    expect(source).toContain("readiness");
+    expect(source).toContain("thresholds");
+    expect(source).toContain("status");
+    expect(source).toContain("isReady");
+    expect(source).toContain("minTotalEvents");
+    expect(source).toContain("minUniqueUsers");
+    expect(source).toContain("maxUnknownTierPct");
+    expect(source).toContain("minVerifiedContactPct");
   });
 
   it("keeps timeline payload contract fields stable", () => {
