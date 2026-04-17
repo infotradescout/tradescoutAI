@@ -3,6 +3,7 @@ import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { getTradeDisplay } from "./tradeSeoHelpers";
 
 type TradeCityCountyFacet = {
@@ -40,7 +41,7 @@ const TradeCityPage = memo(function TradeCityPage() {
   const state = String(stateCode || "").toUpperCase();
   const city = String(citySlug || "").toLowerCase();
 
-  const { data, isLoading, isError } = useQuery<TradeCityFacetResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<TradeCityFacetResponse>({
     queryKey: ["/api/public/trade-cities", trade?.canonicalSlug || "", state, city],
     enabled: Boolean(trade?.canonicalSlug && state && city),
     queryFn: async () => {
@@ -84,6 +85,12 @@ const TradeCityPage = memo(function TradeCityPage() {
   const displayCity = data?.displayCity || titleizeCitySlug(city);
   const counties = Array.isArray(data?.counties) ? data!.counties : [];
   const shouldNoIndex = !isLoading && (isError || counties.length === 0);
+  const stateRoute = `/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
+    state.toLowerCase()
+  )}`;
+  const scoutEstimateHref = `/scout?intent=estimate&source=trade_city_empty&trade=${encodeURIComponent(
+    trade.canonicalSlug
+  )}&state=${encodeURIComponent(state)}&city=${encodeURIComponent(displayCity)}`;
 
   const title = `${trade.name} in ${displayCity}, ${state} | TradeScout`;
   const description = `Browse ${trade.name} in ${displayCity}, ${state}. Select a county to view county-contained directory listings.`;
@@ -123,11 +130,46 @@ const TradeCityPage = memo(function TradeCityPage() {
           </Card>
         ) : isError ? (
           <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-6 text-red-700">Failed to load coverage.</CardContent>
+            <CardContent className="p-6 space-y-4">
+              <p className="text-red-700">Failed to load coverage.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => void refetch()}>
+                  Try again
+                </Button>
+                <Link href={stateRoute}>
+                  <a className="inline-flex items-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-50">
+                    Browse state markets
+                  </a>
+                </Link>
+              </div>
+            </CardContent>
           </Card>
         ) : counties.length === 0 ? (
           <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-6 text-white/70">No results found.</CardContent>
+            <CardContent className="p-6 space-y-4">
+              <p className="text-white/80">No county coverage matched this city page yet.</p>
+              <p className="text-sm text-white/60">
+                Keep moving: open the state market, browse county directory, or ask Scout to route
+                your request.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href={stateRoute}>
+                  <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
+                    Browse {state}
+                  </a>
+                </Link>
+                <Link href="/county-directory">
+                  <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
+                    Open county directory
+                  </a>
+                </Link>
+                <Link href={scoutEstimateHref}>
+                  <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
+                    Ask Scout for help
+                  </a>
+                </Link>
+              </div>
+            </CardContent>
           </Card>
         ) : (
           <Card className="bg-white/5 border-white/10">

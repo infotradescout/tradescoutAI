@@ -83,7 +83,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
     [county?.fipsCode, state?.code, trade?.canonicalSlug, q, city, limit, offset]
   );
 
-  const { data, isLoading, isError } = useQuery<PublicBusinessListResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<PublicBusinessListResponse>({
     queryKey,
     enabled: Boolean(county?.fipsCode && state?.code && trade?.canonicalSlug),
     queryFn: async () => {
@@ -148,6 +148,16 @@ const TradeCountyPage = memo(function TradeCountyPage() {
 
   const items = Array.isArray(data?.items) ? data!.items : [];
   const shouldNoIndex = !isLoading && (isError || items.length === 0);
+  const stateRoute = `/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
+    state.code.toLowerCase()
+  )}`;
+  const scoutEstimateHref = `/scout?intent=estimate&source=trade_county_empty&trade=${encodeURIComponent(
+    trade.canonicalSlug
+  )}&state=${encodeURIComponent(state.code)}&county=${encodeURIComponent(
+    county.name
+  )}&countyFips=${encodeURIComponent(county.fipsCode)}${
+    city.trim() ? `&city=${encodeURIComponent(city.trim())}` : ""
+  }`;
 
   return (
     <>
@@ -198,11 +208,54 @@ const TradeCountyPage = memo(function TradeCountyPage() {
           </Card>
         ) : isError ? (
           <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-6 text-red-700">Failed to load directory.</CardContent>
+            <CardContent className="p-6 space-y-4">
+              <p className="text-red-700">Failed to load directory.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => void refetch()}>
+                  Try again
+                </Button>
+                <Link href={stateRoute}>
+                  <a className="inline-flex items-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-50">
+                    Browse state markets
+                  </a>
+                </Link>
+              </div>
+            </CardContent>
           </Card>
         ) : items.length === 0 ? (
           <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-6 text-white/70">No results found.</CardContent>
+            <CardContent className="p-6 space-y-4">
+              <p className="text-white/80">
+                No {trade.name.toLowerCase()} listings matched this exact filter yet.
+              </p>
+              <p className="text-sm text-white/60">
+                Keep moving: expand to state markets, reset the city filter, or ask Scout to route
+                this request.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {city.trim() ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setCity("");
+                      setOffset(0);
+                    }}
+                  >
+                    Clear city filter
+                  </Button>
+                ) : null}
+                <Link href={stateRoute}>
+                  <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
+                    Browse {state.name}
+                  </a>
+                </Link>
+                <Link href={scoutEstimateHref}>
+                  <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
+                    Ask Scout for help
+                  </a>
+                </Link>
+              </div>
+            </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-3">
