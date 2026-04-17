@@ -40,6 +40,8 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/help', priority: 0.8, changefreq: 'weekly' },
   { path: '/help/how-tradescout-works', priority: 0.8, changefreq: 'weekly' },
   { path: '/how-it-works', priority: 0.9, changefreq: 'weekly' },
+  { path: '/for-businesses', priority: 0.9, changefreq: 'weekly' },
+  { path: '/find-local-businesses', priority: 0.9, changefreq: 'weekly' },
   { path: '/trust-model', priority: 0.9, changefreq: 'weekly' },
   { path: '/direct-connect-info', priority: 0.9, changefreq: 'weekly' },
   { path: '/compare', priority: 0.8, changefreq: 'weekly' },
