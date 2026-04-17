@@ -63,3 +63,48 @@ export const BUSINESS_POPULAR_QUERIES: PopularQuery[] = [
   { query: "plumbing contractors nj", href: "/trade/plumbing/nj" },
   { query: "network security services hawaii", href: "/trade" },
 ];
+
+type PopularTradeQueryOptions = {
+  tradeSlug?: string;
+  stateCode?: string;
+  limit?: number;
+};
+
+export function getPopularQueriesForTrade({
+  tradeSlug,
+  stateCode,
+  limit = 8,
+}: PopularTradeQueryOptions): PopularQuery[] {
+  const normalizedTrade = String(tradeSlug || "")
+    .trim()
+    .toLowerCase();
+  const normalizedState = String(stateCode || "")
+    .trim()
+    .toLowerCase();
+
+  const all = [...HOMEOWNER_POPULAR_QUERIES, ...BUSINESS_POPULAR_QUERIES].filter((item) =>
+    item.href.startsWith("/trade")
+  );
+
+  const tradeMatched = normalizedTrade
+    ? all.filter((item) => item.href.startsWith(`/trade/${normalizedTrade}`))
+    : all;
+
+  const stateMatched = normalizedState
+    ? tradeMatched.filter((item) => item.href.toLowerCase().includes(`/${normalizedState}`))
+    : [];
+
+  const combined = [...stateMatched, ...tradeMatched, ...all];
+  const seen = new Set<string>();
+  const selected: PopularQuery[] = [];
+
+  for (const item of combined) {
+    const key = item.query.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    selected.push(item);
+    if (selected.length >= limit) break;
+  }
+
+  return selected;
+}
