@@ -13,8 +13,11 @@ import {
   FEATURE_HOLD_TO_EXPLAIN,
   FEATURE_HOLD_INTRO_TUTORIAL,
   FEATURE_EDUCATION_REPLACEMENT,
+  FEATURE_PROGRESSIVE_EXPOSURE_SHADOW,
 } from "@shared/governanceFlags";
 import { registerStarterActionDescriptors } from "./lib/actionDescriptorSeeds";
+import { getRecentActivity } from "./agent/activity";
+import { evaluateProgressiveExposure } from "./lib/progressiveExposure";
 import TradeScoutBackground from "./components/TradeScoutBackground";
 
 // Only load essential components eagerly
@@ -155,6 +158,36 @@ const AppLayout = memo(function AppLayout() {
 
     sessionStorage.setItem(flagKey, "1");
   }, [location, isLoading, user, isAuthenticated]);
+
+  // Shadow-mode progressive exposure evaluation. Observe readiness only.
+  useEffect(() => {
+    if (!FEATURE_PROGRESSIVE_EXPOSURE_SHADOW) return;
+    if (typeof window === "undefined") return;
+    if (isLoading) return;
+
+    const userKey = user?.id ? String(user.id) : "guest";
+    const sessionKey = `ts_progressive_exposure_shadow_logged:${userKey}`;
+    if (sessionStorage.getItem(sessionKey) === "1") return;
+
+    const snapshot = evaluateProgressiveExposure({
+      user,
+      recentActivity: getRecentActivity(),
+    });
+
+    trackShellEvent({
+      type: "progressive_exposure_shadow",
+      tier: snapshot.tier,
+      reasons: snapshot.reasons,
+      accountAgeDays: snapshot.signals.accountAgeDays,
+      meaningfulActivityCount: snapshot.signals.meaningfulActivityCount,
+      hasCompletedSetup: snapshot.signals.hasCompletedSetup,
+      hasVerifiedContact: snapshot.signals.hasVerifiedContact,
+      path: location || window.location.pathname,
+      ts: new Date().toISOString(),
+    });
+
+    sessionStorage.setItem(sessionKey, "1");
+  }, [isLoading, user, location]);
 
   // Do not hard-redirect users into pre-scout setup from normal navigation.
   // Setup is still available explicitly and can be enforced per-action server-side.

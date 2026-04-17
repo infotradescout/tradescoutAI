@@ -12,23 +12,56 @@ const flagFromEnvWithDefault = (value: string | undefined, defaultValue: boolean
 };
 
 // Day 1 defaults (can be rolled back via env = "false")
-export const FEATURE_HOLD_TO_EXPLAIN = flagFromEnvWithDefault((env as any).FEATURE_HOLD_TO_EXPLAIN, true);
-export const FEATURE_HOLD_INTRO_TUTORIAL = flagFromEnvWithDefault((env as any).FEATURE_HOLD_INTRO_TUTORIAL, true);
+export const FEATURE_HOLD_TO_EXPLAIN = flagFromEnvWithDefault(
+  (env as any).FEATURE_HOLD_TO_EXPLAIN,
+  true
+);
+export const FEATURE_HOLD_INTRO_TUTORIAL = flagFromEnvWithDefault(
+  (env as any).FEATURE_HOLD_INTRO_TUTORIAL,
+  true
+);
 
 // Day 2: Education replacement default on (can be rolled back via env)
-export const FEATURE_EDUCATION_REPLACEMENT = flagFromEnvWithDefault((env as any).FEATURE_EDUCATION_REPLACEMENT, true);
+export const FEATURE_EDUCATION_REPLACEMENT = flagFromEnvWithDefault(
+  (env as any).FEATURE_EDUCATION_REPLACEMENT,
+  true
+);
 
 // Governance visibility/enforcement
-export const FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT = flagFromEnvWithDefault((env as any).FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT, false);
+export const FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT = flagFromEnvWithDefault(
+  (env as any).FEATURE_ACTION_DESCRIPTOR_ENFORCEMENT,
+  false
+);
 
 // Day 3 visibility (no blocking)
-export const FEATURE_CUSTOMER_IMPACT = flagFromEnvWithDefault((env as any).FEATURE_CUSTOMER_IMPACT, true);
-export const FEATURE_RISK_SENTINEL = flagFromEnvWithDefault((env as any).FEATURE_RISK_SENTINEL, true);
-export const FEATURE_CHIEF_OF_STAFF = flagFromEnvWithDefault((env as any).FEATURE_CHIEF_OF_STAFF, true);
-export const FEATURE_SCOPE_GOVERNOR = flagFromEnvWithDefault((env as any).FEATURE_SCOPE_GOVERNOR, true);
+export const FEATURE_CUSTOMER_IMPACT = flagFromEnvWithDefault(
+  (env as any).FEATURE_CUSTOMER_IMPACT,
+  true
+);
+export const FEATURE_RISK_SENTINEL = flagFromEnvWithDefault(
+  (env as any).FEATURE_RISK_SENTINEL,
+  true
+);
+export const FEATURE_CHIEF_OF_STAFF = flagFromEnvWithDefault(
+  (env as any).FEATURE_CHIEF_OF_STAFF,
+  true
+);
+export const FEATURE_SCOPE_GOVERNOR = flagFromEnvWithDefault(
+  (env as any).FEATURE_SCOPE_GOVERNOR,
+  true
+);
 
 // Day 7 enforcement (remains off)
-export const FEATURE_SCOPE_GOVERNOR_ENFORCED = flagFromEnvWithDefault((env as any).FEATURE_SCOPE_GOVERNOR_ENFORCED, false);
+export const FEATURE_SCOPE_GOVERNOR_ENFORCED = flagFromEnvWithDefault(
+  (env as any).FEATURE_SCOPE_GOVERNOR_ENFORCED,
+  false
+);
+
+// Progressive exposure rollout starts in shadow mode (observe only, no UX gating).
+export const FEATURE_PROGRESSIVE_EXPOSURE_SHADOW = flagFromEnvWithDefault(
+  (env as any).FEATURE_PROGRESSIVE_EXPOSURE_SHADOW,
+  true
+);
 
 export function describeGovernanceFlags() {
   return {
@@ -38,6 +71,7 @@ export function describeGovernanceFlags() {
     FEATURE_EDUCATION_REPLACEMENT,
     FEATURE_SCOPE_GOVERNOR,
     FEATURE_SCOPE_GOVERNOR_ENFORCED,
+    FEATURE_PROGRESSIVE_EXPOSURE_SHADOW,
     FEATURE_CUSTOMER_IMPACT,
     FEATURE_RISK_SENTINEL,
     FEATURE_CHIEF_OF_STAFF,

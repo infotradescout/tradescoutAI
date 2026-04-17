@@ -91,6 +91,17 @@ export type ShellEvent =
       stack?: string | null;
       path: string;
       ts: string;
+    }
+  | {
+      type: "progressive_exposure_shadow";
+      tier: 0 | 1 | 2 | 3;
+      reasons: string[];
+      accountAgeDays: number;
+      meaningfulActivityCount: number;
+      hasCompletedSetup: boolean;
+      hasVerifiedContact: boolean;
+      path: string;
+      ts: string;
     };
 
 export function getDeviceType(): DeviceType {
