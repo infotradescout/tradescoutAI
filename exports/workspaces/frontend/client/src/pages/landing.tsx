@@ -425,23 +425,18 @@ function HowItWorksSection() {
   const steps = [
     {
       icon: MessageSquare,
-      title: "Ask Scout",
-      desc: "Say what you need in everyday words so TradeScout starts from your real goal.",
-    },
-    {
-      icon: Search,
-      title: "Scout figures out the path",
-      desc: "Scout narrows your options to relevant local providers so you can decide faster.",
-    },
-    {
-      icon: CheckCircle,
-      title: "You get the next move",
-      desc: "That could be a match, a quick choice screen, or a short confirmation step.",
+      title: "Scout",
+      desc: "Use Scout for automatic guidance so you know the best next step before taking action.",
     },
     {
       icon: Handshake,
-      title: "Contact opens at the right time",
-      desc: "You choose when to open contact, so your inbox and phone stay under control.",
+      title: "Direct Connect",
+      desc: "Make requests and view the local directory to compare providers and move your project forward.",
+    },
+    {
+      icon: Users,
+      title: "Community",
+      desc: "Ask neighbors questions, discuss local experiences, and make decisions with community input.",
     },
   ];
 
@@ -464,7 +459,7 @@ function HowItWorksSection() {
           </p>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-3">
           {steps.map((step) => {
             const Icon = step.icon;
             return (
