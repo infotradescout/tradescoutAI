@@ -63,7 +63,7 @@ const config: CompareCategoryConfig = {
     {
       feature: "User Journey",
       category: "Awareness first, then external follow-up",
-      tradeScout: "Scout guides users from awareness to decision",
+      tradeScout: "Scout moves users from awareness to decision",
       tradeScoutPositive: true,
     },
     {

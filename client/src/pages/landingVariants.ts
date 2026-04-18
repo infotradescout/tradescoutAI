@@ -113,7 +113,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
       sectionLabel: "For Homeowners",
       sectionTitle: "Less Noise. Better Decisions.",
       sectionDesc:
-        "You get clear steps and trust-backed options before contact is shared. Your inbox and phone stay under control.",
+        "You get 100% community-driven direction and trust-backed options before contact is shared. Your inbox and phone stay under control.",
       cards: [
         { title: "Fewer Calls", desc: "No selling your info to 10-20 contractors." },
         { title: "Clear Choice", desc: "Compare trust and fit before you decide." },
