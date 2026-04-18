@@ -85,7 +85,7 @@ async function loadNotificationCounts(): Promise<NotificationCounts> {
         query: `
         select count(*)::int as count
         from address_verifications
-        where status in ('pending', 'under_review')
+        where status::text in ('pending', 'submitted', 'under_review', 'in_review')
       `,
       },
       {
@@ -107,7 +107,7 @@ async function loadNotificationCounts(): Promise<NotificationCounts> {
         query: `
         select count(*)::int as count
         from realtor_profiles
-        where coalesce(verification_status, 'pending') in ('pending', 'under_review', 'in_review')
+        where coalesce(verification_status::text, 'pending') in ('pending', 'under_review', 'in_review')
       `,
       },
       {
@@ -122,7 +122,7 @@ async function loadNotificationCounts(): Promise<NotificationCounts> {
         query: `
         select count(*)::int as count
         from car_salesman_profiles
-        where coalesce(verification_status, 'pending') in ('pending', 'under_review', 'in_review')
+        where coalesce(verification_status::text, 'pending') in ('pending', 'under_review', 'in_review')
       `,
       },
       {
