@@ -160,6 +160,114 @@ function normalizeForRepetitionCheck(input: string): string {
     .trim();
 }
 
+function normalizeActionKey(input: string): string {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function dedupeScoutActions(actions?: ScoutAction[]): ScoutAction[] {
+  if (!Array.isArray(actions) || actions.length === 0) return [];
+
+  const seen = new Set<string>();
+  const deduped: ScoutAction[] = [];
+
+  for (const action of actions) {
+    const target =
+      action.type === "NAVIGATE"
+        ? String(action.to || action.path || "")
+        : action.type === "ASK_SCOUT"
+          ? String(action.prompt || "")
+          : String(action.type || "");
+    const key = `${action.type}::${normalizeActionKey(action.label || "")}::${normalizeActionKey(target)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(action);
+  }
+
+  return deduped;
+}
+
+function collectActionLanguageFromClusters(clusters: ScoutCluster[]): Set<string> {
+  const seen = new Set<string>();
+
+  for (const cluster of clusters) {
+    if (cluster.title) {
+      seen.add(normalizeActionKey(cluster.title));
+    }
+    if (cluster.primaryAction?.label) {
+      seen.add(normalizeActionKey(cluster.primaryAction.label));
+    }
+    if (Array.isArray(cluster.actions)) {
+      for (const action of cluster.actions) {
+        if (action.label) {
+          seen.add(normalizeActionKey(action.label));
+        }
+      }
+    }
+  }
+
+  return seen;
+}
+
+function filterDuplicateSuggestions(
+  suggestions: string[],
+  clusters: ScoutCluster[],
+  actions?: ScoutAction[]
+): string[] {
+  const actionLanguage = collectActionLanguageFromClusters(clusters);
+
+  for (const action of actions || []) {
+    if (action.label) {
+      actionLanguage.add(normalizeActionKey(action.label));
+    }
+  }
+
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+
+  for (const suggestion of suggestions) {
+    const key = normalizeActionKey(suggestion);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    if (actionLanguage.has(key)) continue;
+    seen.add(key);
+    deduped.push(suggestion);
+  }
+
+  return deduped;
+}
+
+const DOCTRINE_SENTENCE_PATTERNS = [
+  /these trust signals come from people in your community/i,
+  /they.?re visible and accountable,? not anonymous reviews/i,
+  /visibility does not equal access/i,
+  /awareness\s*[!=]+\s*authority/i,
+  /no pay[-\s]?to[-\s]?play/i,
+  /without lead spam or pay[-\s]?to[-\s]?play ranking/i,
+];
+
+function stripDoctrineSpeak(input: string): string {
+  const sentences = input
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!sentences.length) return input;
+
+  const filtered = sentences.filter(
+    (sentence) => !DOCTRINE_SENTENCE_PATTERNS.some((pattern) => pattern.test(sentence))
+  );
+
+  if (!filtered.length) {
+    return "Here is the fastest next step I can run for you right now.";
+  }
+
+  return filtered.join(" ");
+}
+
 function tokenOverlapScore(query: string, candidate: string): number {
   const q = normalizeForMatch(query);
   const c = normalizeForMatch(candidate);
@@ -333,7 +441,8 @@ function sanitizeScoutMessage(raw: unknown): string {
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 
-  return withoutInternal || fallback;
+  const withoutDoctrine = stripDoctrineSpeak(withoutInternal);
+  return withoutDoctrine || fallback;
 }
 
 function enforceShortIntentDiscipline(
@@ -658,6 +767,12 @@ export default function ScoutOS() {
     (to: string | null | undefined, label?: string) => {
       const raw = typeof to === "string" ? to : "";
       if (!raw.startsWith("/")) return false;
+
+      // The pros directory should open as a full route so users can see
+      // searchable listings immediately, not inside the Scout work-area sheet.
+      if (raw.startsWith("/direct-connect/pros")) {
+        return false;
+      }
 
       // Tight allowlist: only embed pages that behave correctly without a full route swap.
       const safePrefixes = [
@@ -1658,6 +1773,8 @@ export default function ScoutOS() {
           contextRoles,
         });
 
+        const dedupedServerActions = dedupeScoutActions(res.actions);
+
         let clusters: ScoutCluster[] = [];
 
         // Sponsored/affiliate guardrails:
@@ -1769,7 +1886,7 @@ export default function ScoutOS() {
         }
 
         // Attach server-returned actions as explicit user-clickable chips.
-        if (res.actions && res.actions.length > 0) {
+        if (dedupedServerActions.length > 0) {
           // If the server already gave actions, avoid adding extra "first answer" blocks
           // that repeat the same navigation intent.
           clusters = clusters.filter(
@@ -1779,7 +1896,7 @@ export default function ScoutOS() {
             id: `server-actions-${Date.now()}`,
             title: "Actions",
             kind: "generic",
-            actions: res.actions.map((a) => ({
+            actions: dedupedServerActions.map((a) => ({
               ...a,
               label: a.label || (typeof a.type === "string" ? a.type.replace(/_/g, " ") : "Action"),
             })),
@@ -1818,9 +1935,14 @@ export default function ScoutOS() {
             ? finalContent
             : "I'm here and ready. Choose an action below or ask me for the next step.";
 
+        const filteredSuggestions = filterDuplicateSuggestions(
+          smartSuggestions,
+          clusters,
+          dedupedServerActions
+        );
+
         const hasActionOptions =
-          (Array.isArray(res.actions) && res.actions.length > 0) ||
-          (Array.isArray(clusters) && clusters.length > 0);
+          dedupedServerActions.length > 0 || (Array.isArray(clusters) && clusters.length > 0);
 
         const resolvedContent = enforceResponseQualityContract({
           userMessage: value,
@@ -1889,14 +2011,14 @@ export default function ScoutOS() {
           role: "assistant",
           content: resolvedContent,
           timestamp: res.timestamp || new Date().toISOString(),
-          suggestedActions: smartSuggestions,
+          suggestedActions: filteredSuggestions,
           overrideOption: res.overrideOption,
           clusters: clusters.length ? clusters : undefined,
           frame: res.frame,
           contextRoles: getContextRoles(value),
-          navTarget: Array.isArray(res.actions)
+          navTarget: dedupedServerActions.length
             ? (() => {
-                const nav = res.actions.find(
+                const nav = dedupedServerActions.find(
                   (a) =>
                     a &&
                     a.type === "NAVIGATE" &&
@@ -1908,7 +2030,7 @@ export default function ScoutOS() {
           provenance: buildScoutProvenance(res),
         };
 
-        applyServerResponse(msg, res.actions);
+        applyServerResponse(msg, dedupedServerActions);
 
         if (showEvolutionSurfaces) {
           try {
@@ -1969,8 +2091,8 @@ export default function ScoutOS() {
         // single-click "continue in Scout" affordance without the user having to
         // hunt for the last thread.
         if (user) {
-          const nav = Array.isArray(res.actions)
-            ? res.actions.find(
+          const nav = dedupedServerActions.length
+            ? dedupedServerActions.find(
                 (a) =>
                   a &&
                   a.type === "NAVIGATE" &&
@@ -2000,15 +2122,28 @@ export default function ScoutOS() {
         }
 
         // Auto-route: only when Scout provides a NAVIGATE action with high confidence.
-        if (Array.isArray(res.actions)) {
-          const nav = res.actions.find(
+        if (dedupedServerActions.length > 0) {
+          const nav = dedupedServerActions.find(
             (a) =>
               a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
           );
           const navTo = (nav?.to as string) || (nav?.path as string) || null;
           const confidence = confidenceLabelToScore(res.metadata?.resolvedContext?.confidence) || 0;
+          const isDeterministicDirectoryRoute =
+            typeof navTo === "string" &&
+            navTo.startsWith("/direct-connect/pros") &&
+            (res.metadata?.behaviorKey === "home_project_routing" ||
+              String(res.metadata?.sourceUsed || "").includes("home_project") ||
+              res.llmProvider === "deterministic");
 
-          if (navTo && confidence >= AUTO_ROUTE_MIN_CONFIDENCE) {
+          if (isDeterministicDirectoryRoute && navTo) {
+            queueAutoRoute({
+              to: navTo,
+              label: nav?.label || "Open local pros",
+              confidence: 1,
+              why: "Opening local directory for your request",
+            });
+          } else if (navTo && confidence >= AUTO_ROUTE_MIN_CONFIDENCE) {
             queueAutoRoute({
               to: navTo,
               label: nav?.label || "Next step",

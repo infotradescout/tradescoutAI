@@ -19,6 +19,25 @@ export type HomeProjectRouteResult = {
   };
 };
 
+function buildProsPath(tradeTopic: string, countyCode?: string, stateCode?: string): string {
+  const params = new URLSearchParams();
+
+  if (tradeTopic) {
+    params.set("trade", tradeTopic);
+  }
+
+  if (typeof countyCode === "string" && countyCode.trim().length > 0) {
+    params.set("county", countyCode.trim());
+  }
+
+  if (typeof stateCode === "string" && stateCode.trim().length > 0) {
+    params.set("state", stateCode.trim().toUpperCase());
+  }
+
+  const query = params.toString();
+  return query ? `/direct-connect/pros?${query}` : "/direct-connect/pros";
+}
+
 function detectTradeTopic(message: string): string | null {
   const lower = message.toLowerCase();
 
@@ -47,7 +66,7 @@ function detectTradeTopic(message: string): string | null {
   }
 
   if (
-    /(shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(
+    /(roofing|roofer|roof\b|shingle|roof deck|underlayment|flashing|ridge vent|soffit vent|drip edge|hail damage|wind damage|roof leak)/.test(
       lower
     )
   ) {
@@ -140,41 +159,21 @@ export function maybeHandleHomeProjectRouting(args: {
     primary: true,
   };
 
+  const prosPath = buildProsPath(tradeTopic, normalizedCounty, normalizedState);
+
   if (tradeTopic === "decking") {
     return {
       intent: "home_project_decking",
-      message: `Got it. For a deck project${localityFragment}, start with:\n- Scope (size, layout, materials)\n- Budget range\n- Timing and permit checks\n\nOnce that is set, I can open deck builders, rental equipment, and local project signals. Want me to run that now?`,
-      suggestedActions: [
-        "Start or plan this project",
-        "Find deck builders near me",
-        "Browse rental equipment for this project",
-        "Check local deck project signals",
-      ],
+      message: `Got it. I can show deck builders${localityFragment} right now without requiring an account. You'll only be asked to sign in when you choose to open contact with a specific pro.`,
+      suggestedActions: ["Show deck builders in my area"],
       actions: [
-        planningAction,
         {
           type: "NAVIGATE",
-          label: "Find deck builders",
-          to: "/direct-connect/pros",
-          path: "/direct-connect/pros",
-          subtitle: "Open local pros",
-          why: "Use this once the scope is clear and you want real builders",
-        },
-        {
-          type: "NAVIGATE",
-          label: "Browse rental equipment",
-          to: "/exchange/rental-equipment",
-          path: "/exchange/rental-equipment",
-          subtitle: "Compare tools and machinery",
-          why: "Useful if you are pricing DIY, hybrid, or contractor-supported work",
-        },
-        {
-          type: "NAVIGATE",
-          label: "Check local deck project signals",
-          to: "/community",
-          path: "/community",
-          subtitle: "See local project chatter",
-          why: "Check what neighbors and local operators are seeing before you hire",
+          label: "Show deck builders",
+          to: prosPath,
+          path: prosPath,
+          subtitle: "Open directory",
+          primary: true,
         },
       ],
       metadata: {
@@ -187,38 +186,16 @@ export function maybeHandleHomeProjectRouting(args: {
 
   return {
     intent: `home_project_${tradeTopic}`,
-    message: `Got it. For this ${tradeTopic} project${localityFragment}, start with:\n- Scope and requirements\n- Budget range\n- Timeline\n\nAfter that, I can route you into trusted local pros, Exchange options, and local project signals. Want me to run that now?`,
-    suggestedActions: [
-      "Start or plan this project",
-      `Find ${tradeTopic} pros near me`,
-      "Browse relevant Exchange options",
-      "Check local project signals before I hire",
-    ],
+    message: `Got it. I can show ${tradeTopic} pros${localityFragment} right now without requiring an account. You'll only be asked to sign in when you choose to open contact with a specific pro.`,
+    suggestedActions: [`Show ${tradeTopic} pros in my area`],
     actions: [
-      planningAction,
       {
         type: "NAVIGATE",
-        label: "Find trusted local pros",
-        to: "/direct-connect/pros",
-        path: "/direct-connect/pros",
-        subtitle: "Open local pros",
-        why: `Use this once you want real providers for the ${tradeTopic} work`,
-      },
-      {
-        type: "NAVIGATE",
-        label: "Open Exchange",
-        to: "/exchange",
-        path: "/exchange",
-        subtitle: "Compare items, rentals, and listings",
-        why: "Useful for materials, rentals, and adjacent project needs",
-      },
-      {
-        type: "NAVIGATE",
-        label: "Open community signals",
-        to: "/community",
-        path: "/community",
-        subtitle: "See local project chatter",
-        why: "Check local signals before you hire or buy",
+        label: `Show ${tradeTopic} pros`,
+        to: prosPath,
+        path: prosPath,
+        subtitle: "Open directory",
+        primary: true,
       },
     ],
     metadata: {

@@ -232,6 +232,20 @@ function normalizeScoutRole(role?: string | null): InsertScoutInteraction["userR
   return "homeowner";
 }
 
+function isGuestDirectoryBrowsingIntent(message: string): boolean {
+  const lower = String(message || "").toLowerCase();
+  const hasTradeNeed =
+    /\b(roofer|roofing|plumber|plumbing|electrician|electrical|hvac|contractor|painter|handyman)\b/.test(
+      lower
+    );
+  const hasLookupLanguage =
+    /\b(need|find|looking for|show|compare|browse|in my area|near me|this week|available)\b/.test(
+      lower
+    );
+  const isContactAction = /\b(contact|message|call|hire now|book now)\b/.test(lower);
+  return hasTradeNeed && hasLookupLanguage && !isContactAction;
+}
+
 function buildUnifiedRouterContext(
   req: Request,
   incoming?: Partial<UnifiedScoutUserContext> | null
@@ -2726,6 +2740,60 @@ router.post("/", async (req: Request, res: Response) => {
     // Load system prompt (with version) once so promptVersion is available
     const { content: systemPrompt, version: promptVersion } = loadSystemPrompt();
 
+    // Guest browsing must stay open for contractor discovery. Only gate at contact.
+    if (!userId && isGuestDirectoryBrowsingIntent(message)) {
+      const homeProjectRoute = maybeHandleHomeProjectRouting({
+        message,
+        countyCode,
+        stateCode,
+      });
+
+      if (homeProjectRoute) {
+        const aiResponse: ScoutResponse = {
+          message: prependLocalIntro(homeProjectRoute.message, {
+            countyCode,
+            stateCode,
+            historyLength: history.length,
+            communityPostCount: 0,
+            contractorCount: 0,
+          }),
+          suggestedActions: homeProjectRoute.suggestedActions,
+          actions: shapeActionsByConfidence(homeProjectRoute.actions as any, {
+            confidence: "high",
+            hasLocality: Boolean(countyCode || stateCode),
+            communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+          }),
+          sponsored: null,
+          metadata: {
+            intent: homeProjectRoute.intent,
+            sourceUsed: "guest_directory_preflight",
+            scaffoldDecision: "deterministic_route",
+            behaviorKey: "home_project_routing",
+            fallbackUsed: false,
+            decision: "Guest contractor browsing stays open; contact remains gated.",
+          },
+        };
+
+        await syncObjectiveBestEffort({ intent: homeProjectRoute.intent });
+        scoutTurnTelemetry.provider = "deterministic";
+        scoutTurnTelemetry.sourceUsed = "guest_directory_preflight";
+        scoutTurnTelemetry.intent = homeProjectRoute.intent;
+        scoutTurnTelemetry.fallbackUsed = false;
+
+        return res.json({
+          ...aiResponse,
+          knowledge: {
+            layer: 0,
+            sources: ["Guest directory preflight"],
+            confidence: "high",
+          },
+          llmProvider: "deterministic",
+          promptVersion,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
     // ==========================================================================
     // GOVERNOR MODE: Situation-driven intelligence
     // ==========================================================================
@@ -3644,12 +3712,6 @@ router.post("/", async (req: Request, res: Response) => {
             formatUsd,
           }),
       });
-
-      if (contractorCount > 0) {
-        aiResponse.message = trimResponseToScreenFit(
-          `${aiResponse.message}\n\nThese trust signals come from people in your community — they’re ${COMMUNITY_TONE.accountability} reviews.`
-        );
-      }
 
       actions = applyProviderBehaviorOwnership({
         actions,

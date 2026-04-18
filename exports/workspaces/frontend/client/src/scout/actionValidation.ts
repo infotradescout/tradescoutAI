@@ -29,6 +29,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/marketplace",
   "/notes",
   "/direct-connect",
+  "/direct-connect/pros",
   "/trade-deals",
   "/projects",
   "/request-quote",

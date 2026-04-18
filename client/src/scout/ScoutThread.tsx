@@ -71,6 +71,14 @@ function humanizeToken(value: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function normalizeActionText(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function buildEvidenceChips(msg: ScoutMessage): string[] {
   const provenance = msg.provenance;
   if (!provenance) return [];
@@ -173,7 +181,6 @@ function MessageExtras({
   const hasActionChips = Boolean(msg.frame?.actionChips && msg.frame.actionChips.length > 0);
   const hasClusters = Boolean(msg.clusters && msg.clusters.length > 0);
   const hasOverride = Boolean(msg.overrideOption);
-  const hasSuggestions = Boolean(msg.suggestedActions && msg.suggestedActions.length > 0);
   const hasOnboardingPrompt = Boolean(
     msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage)
   );
@@ -205,6 +212,49 @@ function MessageExtras({
     if (controllerShowAll) return clusters;
     return clusters.slice(0, 2);
   }, [controllerShowAll, msg.clusters]);
+
+  const dedupedSuggestions = React.useMemo(() => {
+    const suggestions = Array.isArray(msg.suggestedActions) ? msg.suggestedActions : [];
+    if (!suggestions.length) return [];
+
+    const taken = new Set<string>();
+
+    for (const chip of msg.frame?.actionChips || []) {
+      if (chip.label) {
+        taken.add(normalizeActionText(chip.label));
+      }
+    }
+
+    for (const cluster of msg.clusters || []) {
+      if (cluster.title) {
+        taken.add(normalizeActionText(cluster.title));
+      }
+      if (cluster.primaryAction?.label) {
+        taken.add(normalizeActionText(cluster.primaryAction.label));
+      }
+      for (const action of cluster.actions || []) {
+        if (action.label) {
+          taken.add(normalizeActionText(action.label));
+        }
+      }
+    }
+
+    const seen = new Set<string>();
+    const filtered: string[] = [];
+    for (const suggestion of suggestions) {
+      const key = normalizeActionText(suggestion);
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      if (taken.has(key)) continue;
+      seen.add(key);
+      filtered.push(suggestion);
+    }
+
+    return filtered;
+  }, [msg.suggestedActions, msg.frame?.actionChips, msg.clusters]);
+
+  const hasSuggestions = dedupedSuggestions.length > 0;
+  const shouldShowSuggestions = hasSuggestions && !hasActionChips && !hasClusters;
 
   const hasAnything =
     hasActionChips || hasClusters || hasOverride || hasSuggestions || hasOnboardingPrompt;
@@ -356,7 +406,7 @@ function MessageExtras({
         </div>
       )}
 
-      {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+      {shouldShowSuggestions && (
         <div
           className="rounded-lg border p-2"
           style={{
@@ -379,13 +429,13 @@ function MessageExtras({
               onClick={() => setSuggestionsOpen((v) => !v)}
               aria-expanded={suggestionsOpen}
             >
-              {suggestionsOpen ? "Hide" : `Show (${msg.suggestedActions.length})`}
+              {suggestionsOpen ? "Hide" : `Show (${dedupedSuggestions.length})`}
             </button>
           </div>
 
           {suggestionsOpen && (
             <div className="flex flex-wrap gap-2">
-              {msg.suggestedActions.map((act) => (
+              {dedupedSuggestions.map((act) => (
                 <button
                   key={act}
                   type="button"

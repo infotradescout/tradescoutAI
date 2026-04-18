@@ -43,12 +43,32 @@ type DirectoryResponse = {
 
 export default function DirectConnectPros() {
   const location = useLocationContext();
-  const [stateCode, setStateCode] = useState(location.stateCode || "");
-  const [countyFips, setCountyFips] = useState(location.countyFips || "");
-  const [tradeSlug, setTradeSlug] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const countyCommitted = hasCountyContext(location) || Boolean(countyFips);
+  const routePrefill = useMemo(() => {
+    if (typeof window === "undefined") {
+      return { stateCode: "", countyFips: "", tradeSlug: "", searchQuery: "" };
+    }
+    const params = new URLSearchParams(window.location.search || "");
+    const rawState = (params.get("state") || "").trim().toUpperCase();
+    const stateCode = /^[A-Z]{2}$/.test(rawState) ? rawState : "";
+    const countyFips = (params.get("county") || params.get("countyFips") || "").trim();
+    const tradeSlug = (params.get("trade") || "").trim().toLowerCase();
+    const searchQuery = (params.get("q") || params.get("query") || params.get("city") || "").trim();
+    return { stateCode, countyFips, tradeSlug, searchQuery };
+  }, []);
+
+  const [stateCode, setStateCode] = useState(routePrefill.stateCode || location.stateCode || "");
+  const [countyFips, setCountyFips] = useState(
+    routePrefill.countyFips || location.countyFips || ""
+  );
+  const [tradeSlug, setTradeSlug] = useState(routePrefill.tradeSlug || "");
+  const [searchQuery, setSearchQuery] = useState(routePrefill.searchQuery || "");
+
+  const effectiveStateCode = String(stateCode || location.stateCode || "").toUpperCase();
+  const effectiveCountyFips = String(countyFips || location.countyFips || "").trim();
+
+  const countyCommitted = hasCountyContext(location) || Boolean(effectiveCountyFips);
+  const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
 
   const { data: trades = [] } = useQuery<TradeOption[]>({
     queryKey: ["/api/trades"],
@@ -72,13 +92,22 @@ export default function DirectConnectPros() {
   }, [tradeSlug, searchQuery, trades]);
 
   const effectiveTradeSlug = tradeSlug || inferredTradeSlug;
+  const hasDirectoryIntent = Boolean((effectiveTradeSlug || "").trim() || searchQuery.trim());
+  const canQueryDirectory = countyCommitted || (hasStateContext && hasDirectoryIntent);
 
   const { data: contractors = [], isLoading } = useQuery({
-    queryKey: ["/api/contractors/search", countyFips, effectiveTradeSlug, searchQuery],
-    enabled: countyCommitted,
+    queryKey: [
+      "/api/contractors/search",
+      effectiveCountyFips,
+      effectiveStateCode,
+      effectiveTradeSlug,
+      searchQuery,
+    ],
+    enabled: canQueryDirectory,
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (countyFips) params.set("county", countyFips);
+      if (effectiveCountyFips) params.set("county", effectiveCountyFips);
+      if (!effectiveCountyFips && hasStateContext) params.set("state", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
       if (searchQuery) params.set("query", searchQuery.trim());
       params.set("limit", "40");
@@ -87,7 +116,7 @@ export default function DirectConnectPros() {
   });
 
   const hasResults = (contractors as any[])?.length > 0;
-  const showEmptyState = countyCommitted && !isLoading && !hasResults;
+  const showEmptyState = canQueryDirectory && !isLoading && !hasResults;
 
   const { data: directoryFallback = [], isLoading: directoryFallbackLoading } = useQuery<
     DirectoryBusinessFallback[]
@@ -95,20 +124,20 @@ export default function DirectConnectPros() {
     queryKey: [
       "/api/businesses",
       "public-directory-fallback",
-      countyFips,
-      stateCode,
+      effectiveCountyFips,
+      effectiveStateCode,
       effectiveTradeSlug,
       searchQuery,
     ],
-    enabled: showEmptyState,
+    enabled: showEmptyState && (Boolean(effectiveCountyFips) || hasStateContext),
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("public", "1");
       params.set("claimed", "any");
       params.set("limit", "12");
       params.set("offset", "0");
-      if (countyFips) params.set("countyFips", countyFips);
-      if (stateCode) params.set("stateCode", stateCode);
+      if (effectiveCountyFips) params.set("countyFips", effectiveCountyFips);
+      if (hasStateContext) params.set("stateCode", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
       if (searchQuery.trim()) params.set("q", searchQuery.trim());
 
@@ -124,12 +153,17 @@ export default function DirectConnectPros() {
     showEmptyState &&
     !directoryFallbackLoading &&
     directoryFallback.length === 0 &&
-    /^[A-Z]{2}$/.test(String(stateCode || "").toUpperCase());
+    hasStateContext;
 
   const { data: stateDirectoryFallback = [], isLoading: stateDirectoryFallbackLoading } = useQuery<
     DirectoryBusinessFallback[]
   >({
-    queryKey: ["/api/businesses", "public-directory-state-fallback", stateCode, effectiveTradeSlug],
+    queryKey: [
+      "/api/businesses",
+      "public-directory-state-fallback",
+      effectiveStateCode,
+      effectiveTradeSlug,
+    ],
     enabled: showStateDirectoryFallback,
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -137,7 +171,7 @@ export default function DirectConnectPros() {
       params.set("claimed", "any");
       params.set("limit", "12");
       params.set("offset", "0");
-      params.set("stateCode", String(stateCode || "").toUpperCase());
+      params.set("stateCode", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
       if (searchQuery.trim()) params.set("q", searchQuery.trim());
 
