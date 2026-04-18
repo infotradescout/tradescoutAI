@@ -41,7 +41,13 @@ function validateStartupEnv(): void {
       STRIPE_WEBHOOK_SECRET: z.string().trim().optional(),
       SENTRY_DSN: z.string().trim().optional(),
       GOOGLE_MAPS_API_KEY: z.string().trim().optional(),
+      GOOGLE_SOLAR_API_KEY: z.string().trim().optional(),
       PRINTFUL_API_KEY: z.string().trim().optional(),
+
+      FEATURE_SOLAR_V1: z.string().trim().optional(),
+      FEATURE_SOLAR_GOOGLE_PROVIDER: z.string().trim().optional(),
+      SOLAR_DEFAULT_COST_PER_WATT_USD: z.string().trim().optional(),
+      SOLAR_DEFAULT_ELECTRIC_RATE_USD: z.string().trim().optional(),
 
       VAPID_PUBLIC_KEY: z.string().trim().optional(),
       VAPID_PRIVATE_KEY: z.string().trim().optional(),

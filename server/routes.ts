@@ -94,6 +94,11 @@ import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import {
+  buildPublicSolarPriceInsight,
+  buildSolarProviderEstimate,
+  isSolarV1Enabled,
+} from "./services/solarInsightsService";
+import {
   actorHasPrivilegedCapability,
   auditPrivilegedAction,
   normalizeImmutableTargetId,
@@ -27436,6 +27441,59 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     ).trim();
 
     res.json({ googleMapsApiKey });
+  });
+
+  // Solar v1: provider workbench estimate endpoint (contractor-auth only).
+  app.post("/api/solar/provider/estimate", isAuthenticated, isContractor, (req: any, res: any) => {
+    try {
+      if (!isSolarV1Enabled()) {
+        return res.status(404).json({ message: "Solar v1 is disabled", code: "FEATURE_DISABLED" });
+      }
+
+      const lat = Number(req.body?.lat);
+      const lng = Number(req.body?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return res.status(400).json({ message: "lat and lng are required numeric fields" });
+      }
+
+      const estimate = buildSolarProviderEstimate({
+        lat,
+        lng,
+        monthlyBillUsd: req.body?.monthlyBillUsd,
+        countyFips: req.body?.countyFips,
+        stateCode: req.body?.stateCode,
+      });
+
+      return res.status(200).json({
+        estimate,
+        mode: "provider_workbench_v1",
+      });
+    } catch (error: any) {
+      console.error("Error building provider solar estimate:", error);
+      return res.status(500).json({ message: "Failed to build provider solar estimate" });
+    }
+  });
+
+  // Solar v1: public read-only price range endpoint (no contact/action authority).
+  app.get("/api/public/solar/price-range", (req: Request, res: Response) => {
+    try {
+      if (!isSolarV1Enabled()) {
+        return res.status(404).json({ message: "Solar v1 is disabled", code: "FEATURE_DISABLED" });
+      }
+
+      const countyFips =
+        typeof req.query.countyFips === "string" ? req.query.countyFips.trim() : undefined;
+      const stateCode =
+        typeof req.query.stateCode === "string" ? req.query.stateCode.trim() : undefined;
+
+      const insight = buildPublicSolarPriceInsight({ countyFips, stateCode });
+
+      res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=300");
+      return res.status(200).json({ insight });
+    } catch (error: any) {
+      console.error("Error building public solar price range:", error);
+      return res.status(500).json({ message: "Failed to build solar price range" });
+    }
   });
 
   // 2. MESSAGING API

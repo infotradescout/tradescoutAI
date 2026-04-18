@@ -74,3 +74,25 @@ Production hardening checklist (TradeScout)
 - Maps frontend build env:
   - Set `VITE_GOOGLE_MAPS_WEB_API_KEY`.
   - Optional: set `VITE_GOOGLE_MAPS_MAP_ID` when using Advanced Markers/custom styling.
+
+Solar v1 (Provider Workbench First)
+- Intended belief:
+  - Providers trust TradeScout estimates as transparent pre-quote guidance, not opaque lead spam.
+- Intended behavior:
+  - Providers use `/api/solar/provider/estimate` for scoped project triage.
+  - Public users receive non-binding local ranges via `/api/public/solar/price-range` and are routed back through Scout for next steps.
+- Psychological principles used:
+  - Explainability (show assumptions and confidence), authority gating (role + feature flag), trust-preserving restraint (no direct contact unlock).
+- Risks prevented:
+  - Authority bypass, false precision claims, and accidental discovery-to-contact leakage.
+
+- Required env for Solar v1:
+  - `FEATURE_SOLAR_V1=true` to enable endpoints.
+  - `FEATURE_SOLAR_GOOGLE_PROVIDER=true` only when you are ready to stage external provider integration.
+  - `GOOGLE_SOLAR_API_KEY` (server-only secret, never expose in client env).
+  - Optional assumptions: `SOLAR_DEFAULT_COST_PER_WATT_USD`, `SOLAR_DEFAULT_ELECTRIC_RATE_USD`.
+
+- What this does not change:
+  - No change to claims-first signup.
+  - No change to Trust/CVS exposure logic.
+  - No change to Discovery -> Scout -> Intent -> Decision Card -> Contact gating.
