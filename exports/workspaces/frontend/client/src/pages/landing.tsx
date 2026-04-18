@@ -291,7 +291,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-[1.03] tracking-tight mb-2"
+            className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-white leading-[1.08] tracking-tight mb-2"
           >
             {variant.headlineLines.map((line, index) => {
               const isAccent = index === 1 || (variant.headlineLines.length === 1 && index === 0);
