@@ -114,9 +114,10 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
     pathname.startsWith("/homescout/new")
   ) {
     return {
-      title: "Asset Desk",
-      summary: "Manage property, vehicles, and asset operations in one dashboard.",
-      actionLabel: "Open Asset Desk",
+      title: "Asset Management",
+      summary:
+        "Track inspections, maintenance, upgrades, and project history across assets with a home-first focus.",
+      actionLabel: "Open Asset Management",
       actionHref: "/homes",
     };
   }
@@ -225,10 +226,10 @@ const buildFeatureNav = (opts?: {
       description: "Browse and post marketplace listings.",
     },
     {
-      label: "Asset Desk",
+      label: "Asset Management",
       href: "/homes",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Manage property, vehicles, and assets.",
+      description: "Home-first inspections, maintenance, and upgrade history.",
     },
     {
       label: "Maps",
