@@ -395,9 +395,9 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
 // ---- Stats Bar ----
 function StatsBar() {
   const stats = [
-    { value: 3, suffix: "", label: "Top matches to review" },
-    { value: 0, suffix: "", label: "Unwanted call blasts" },
-    { value: 0, suffix: "", label: "Cost to start", display: "$0" },
+    { value: 100, suffix: "%", label: "Community-Driven" },
+    { value: 0, suffix: "", label: "Lead spam", display: "Zero" },
+    { value: 0, suffix: "", label: "Paid placement", display: "No" },
   ];
 
   return (
