@@ -314,18 +314,6 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="mb-3 rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-2"
-          >
-            <p className="text-xs sm:text-sm text-white/85 leading-relaxed">
-              Start with Scout when you want the clearest local path. It helps you figure out what
-              you need, what happens next, and when contact should open.
-            </p>
-          </motion.div>
-
-          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
@@ -409,14 +397,13 @@ function StatsBar() {
   const stats = [
     { value: 100, suffix: "%", label: "Community-Driven" },
     { value: 0, suffix: "", label: "Lead spam", display: "Zero" },
-    { value: 0, suffix: "", label: "Hidden agenda", display: "No" },
     { value: 0, suffix: "", label: "Paid placement", display: "No" },
   ];
 
   return (
     <section className="relative z-10 bg-transparent border-y border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 lg:py-3">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
           {stats.map((stat, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <div className="text-center">
