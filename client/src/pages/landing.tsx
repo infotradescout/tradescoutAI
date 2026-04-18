@@ -510,9 +510,9 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
                 Trust, Not Payment
               </h2>
               <p className="text-sm text-white/60 mb-3">
-                Every pro has a Trust Score based on verified identity, active credentials, work
-                history, community recommendations, and dispute resolution. You can quickly see why
-                someone is a strong fit before you reach out.
+                Every business has a Trust Score based on verified identity, active credentials,
+                work history, community recommendations, and dispute resolution. You can quickly see
+                why someone is a strong fit before you reach out.
               </p>
               <div className="space-y-2.5">
                 {layers.map((layer, i) => {
@@ -579,7 +579,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
           <Reveal delay={0.2}>
             <img
               src={variant.images.craft}
-              alt="Get matched with local pros"
+              alt="Get matched with local businesses"
               className="w-full h-[150px] sm:h-[200px] lg:h-[260px] rounded-xl shadow-2xl shadow-black/30 object-cover"
             />
           </Reveal>
@@ -732,12 +732,12 @@ function FAQSection() {
       a: "The Trust Score gives you a quick read on identity, active credentials, work history, community recommendations, and dispute history, so you can understand why Scout matched you with someone.",
     },
     {
-      q: "Can pros pay to change their ranking?",
+      q: "Can businesses pay to change their ranking?",
       a: "No. Ranking is based on trust and fit, and payment does not move someone ahead.",
     },
     {
       q: "How does Direct Connect work?",
-      a: "Scout routes your request to a small set of relevant local pros. You review options and open contact when you are ready.",
+      a: "Scout routes your request to a small set of relevant local businesses. You review options and open contact when you are ready.",
     },
     {
       q: "What if I don't like the matches Scout sent me?",

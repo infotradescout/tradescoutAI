@@ -73,7 +73,7 @@ const DEFAULT_VARIANT: LandingVariant = {
         desc: "Clear next steps, better local matches, and less outreach chaos.",
       },
       {
-        title: "For Pros & Providers",
+        title: "For Businesses & Providers",
         desc: "Earn visibility through trust, verified work, and local relevance, not spend.",
       },
     ],
@@ -95,7 +95,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Trusted Work Pipeline",
     headlineLines: ["Operate Inside", "The Trusted", "Local Work System"],
     subhead:
-      "TradeScout helps serious pros get better local opportunities without bidding chaos or lead reselling.",
+      "TradeScout helps serious businesses get better local opportunities without bidding chaos or lead reselling.",
     audience: {
       sectionLabel: "For Contractors",
       sectionTitle: "Get Better Jobs, Not Bigger Spam Lists",
@@ -129,7 +129,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Local Network, On Demand",
     headlineLines: ["Run Deal-Critical", "Local Work", "Through Scout"],
     subhead:
-      "Scout helps you line up reliable local pros for showings, repairs, and timeline-sensitive work.",
+      "Scout helps you line up reliable local businesses for showings, repairs, and timeline-sensitive work.",
     audience: {
       sectionLabel: "For Realtors",
       sectionTitle: "Make The Work Part Easy",
@@ -169,7 +169,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
       sectionDesc:
         "Standardize how requests are handled across units and properties while keeping trust and accountability visible.",
       cards: [
-        { title: "Faster Turnover", desc: "Route urgent jobs quickly to available pros." },
+        { title: "Faster Turnover", desc: "Route urgent jobs quickly to available businesses." },
         { title: "Audit Trail", desc: "Keep decision quality consistent across sites." },
       ],
     } as LandingVariant["audience"],
@@ -470,7 +470,7 @@ function buildTradePatch(trade: Trade): Partial<LandingVariant> {
   const tradeLabel = cleanTradeLabel(trade.name);
   const tradeLower = tradeLabel.toLowerCase();
   const badge = TRADE_CATEGORY_BADGE[trade.category] || "Trade Match";
-  const ctaTarget = tradeLabel.length > 28 ? "a Local Pro" : tradeLabel;
+  const ctaTarget = tradeLabel.length > 28 ? "a Local Business" : tradeLabel;
 
   return {
     displayName: trade.name,
@@ -492,7 +492,7 @@ function buildTradePatch(trade: Trade): Partial<LandingVariant> {
           desc: `Get 1-3 relevant ${tradeLower} matches with clear trust signals before contact is shared.`,
         },
         {
-          title: `Are You a ${tradeLabel} Pro?`,
+          title: `Are You a ${tradeLabel} Business?`,
           desc: "Earn visibility through trust and completed work, not ad spend or price pressure.",
         },
       ],
@@ -514,27 +514,27 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
   const tradeLabel = cleanTradeLabel(trade.name);
   const tradeLower = tradeLabel.toLowerCase();
   const audienceTradeName = `${audienceLabel} • ${trade.name}`;
-  const ctaTarget = tradeLabel.length > 28 ? "a Local Pro" : tradeLabel;
+  const ctaTarget = tradeLabel.length > 28 ? "a Local Business" : tradeLabel;
 
   if (baseKey === "contractor") {
     return {
       displayName: audienceTradeName,
-      badgeText: `${trade.name} • Pro Growth`,
+      badgeText: `${trade.name} • Business Growth`,
       headlineLines: ["Win Better", tradeLabel, "Work Locally"],
-      subhead: `Scout routes relevant ${tradeLower} demand to trusted pros. No lead reselling and no pay-to-play ranking.`,
+      subhead: `Scout routes relevant ${tradeLower} demand to trusted businesses. No lead reselling and no pay-to-play ranking.`,
       primaryCta: {
         label: `Grow ${tradeLabel} Pipeline`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
       },
       audience: {
-        sectionLabel: `For ${trade.name} Pros`,
+        sectionLabel: `For ${trade.name} Businesses`,
         sectionTitle: `Turn ${tradeLabel} Skill Into Better Jobs`,
         sectionDesc:
           "Exposure follows trust and delivery signals, so serious operators can stand out.",
         cards: [
           {
             title: `Qualified ${tradeLabel} Requests`,
-            desc: "Get routed demand with context instead of cold leads sold to dozens of pros.",
+            desc: "Get routed demand with context instead of cold leads sold to dozens of businesses.",
           },
           {
             title: "Compete On Trust, Not Spend",
@@ -543,7 +543,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
         ],
       },
       cta: {
-        label: `${trade.name} Pro Access`,
+        label: `${trade.name} Business Access`,
         titleLines: ["Ready for Better", tradeLabel, "Opportunities?"],
         desc: `Set up your ${tradeLower} profile and grow with trust-first local demand.`,
         primaryLabel: `Start ${tradeLabel} Profile`,
@@ -569,7 +569,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
         cards: [
           {
             title: `Need ${tradeLabel} Work Done?`,
-            desc: `Scout narrows your search to 1-3 relevant ${tradeLower} pros.`,
+            desc: `Scout narrows your search to 1-3 relevant ${tradeLower} businesses.`,
           },
           {
             title: "Keep Control Of Contact",
@@ -594,7 +594,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       headlineLines: ["Close Faster With", tradeLabel, "Support"],
       subhead: `Scout helps Realtors source trusted local ${tradeLower} providers for timeline-sensitive property work.`,
       primaryCta: {
-        label: `Find ${tradeLabel} Pros`,
+        label: `Find ${tradeLabel} Businesses`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
       },
       audience: {
@@ -678,10 +678,10 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
     return {
       displayName: audienceTradeName,
       badgeText: `${trade.name} • Supplier Reach`,
-      headlineLines: ["Reach", tradeLabel, "Pros Locally"],
+      headlineLines: ["Reach", tradeLabel, "Businesses Locally"],
       subhead: `Scout helps suppliers connect offers to relevant ${tradeLower} audiences through trust-shaped local flows.`,
       primaryCta: {
-        label: `Reach ${tradeLabel} Pros`,
+        label: `Reach ${tradeLabel} Businesses`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
       },
       audience: {
@@ -696,7 +696,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
           },
           {
             title: "Higher Fit Visibility",
-            desc: "Get in front of the right pros for the right project stage.",
+            desc: "Get in front of the right businesses for the right project stage.",
           },
         ],
       },
