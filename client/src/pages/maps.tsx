@@ -42,6 +42,7 @@ const MAPS_V1_ENABLED =
   String(import.meta.env.VITE_FEATURE_MAPS_V1 ?? "true")
     .trim()
     .toLowerCase() !== "false";
+const GOOGLE_MAPS_MAP_ID = String(import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "").trim();
 
 const SCRIPT_ID = "ts-google-maps-v1-script";
 const GOOGLE_MAPS_AUTH_FAILURE_EVENT = "ts:google-maps-auth-failure";
@@ -201,7 +202,9 @@ export default function MapsPage() {
   };
 
   useEffect(() => {
-    const fromVite = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
+    const fromVite = String(
+      import.meta.env.VITE_GOOGLE_MAPS_WEB_API_KEY || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""
+    ).trim();
     if (fromVite) {
       setMapsApiKey(fromVite);
       setMapsConfigResolved(true);
@@ -300,6 +303,7 @@ export default function MapsPage() {
       fullscreenControl: false,
       clickableIcons: false,
       gestureHandling: "greedy",
+      ...(GOOGLE_MAPS_MAP_ID ? { mapId: GOOGLE_MAPS_MAP_ID } : {}),
     });
     mapRef.current = map;
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { getApiBaseUrl } from "@/lib/apiBaseUrl";
 
 interface Message {
   id: string;
@@ -44,7 +45,10 @@ export function useMessaging(userId: string) {
     // In Vite, env vars are exposed via import.meta.env
     const devPort = (import.meta.env.VITE_SERVER_PORT as string) || "5000";
 
-    const socketUrl = import.meta.env.PROD ? window.location.origin : `http://localhost:${devPort}`;
+    const apiBaseUrl = getApiBaseUrl();
+    const socketUrl = import.meta.env.PROD
+      ? apiBaseUrl || window.location.origin
+      : `http://localhost:${devPort}`;
 
     const newSocket: Socket = io(socketUrl, {
       withCredentials: true,

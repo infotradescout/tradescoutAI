@@ -25,7 +25,9 @@ Set these in your environment:
 ```bash
 FEATURE_MAPS_V1=true
 VITE_FEATURE_MAPS_V1=true
+VITE_GOOGLE_MAPS_WEB_API_KEY=your_browser_key
 VITE_GOOGLE_MAPS_API_KEY=your_browser_key
+VITE_GOOGLE_MAPS_MAP_ID=your_optional_map_id
 ```
 
 ## API Contract

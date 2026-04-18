@@ -131,7 +131,11 @@ export default function CreateAccountPortal() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const apiBaseUrl = (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    ""
+  ).replace(/\/$/, "");
 
   // Wizard state
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1); // 1: basic info, 2: intent, 3: biz type, 4: specialty, 5: add another, 6: review

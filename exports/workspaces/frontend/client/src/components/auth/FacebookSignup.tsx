@@ -12,7 +12,11 @@ interface FacebookSignupProps {
 
 export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSignupProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const apiBaseUrl = (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    ""
+  ).replace(/\/$/, "");
 
   const handleFacebookSignup = async () => {
     setIsLoading(true);

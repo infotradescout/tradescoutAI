@@ -1,5 +1,6 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useAuth } from './useAuth';
+import { useEffect, useRef, useCallback, useState } from "react";
+import { useAuth } from "./useAuth";
+import { getApiBaseUrl } from "@/lib/apiBaseUrl";
 
 interface WebSocketMessage {
   type: string;
@@ -16,28 +17,31 @@ export function useWebSocket() {
   const connect = useCallback(() => {
     try {
       // Completely disable WebSocket in development and Replit environments
-      if (process.env.NODE_ENV === 'development' || 
-          window.location.hostname.includes('.replit.')) {
-        console.log('WebSocket disabled in development/Replit environment');
+      if (process.env.NODE_ENV === "development" || window.location.hostname.includes(".replit.")) {
+        console.log("WebSocket disabled in development/Replit environment");
         return;
       }
 
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      
+      const apiBaseUrl = getApiBaseUrl() || window.location.origin;
+      const apiOrigin = new URL(apiBaseUrl, window.location.origin);
+      const protocol = apiOrigin.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${apiOrigin.host}/ws`;
+
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
         setIsConnected(true);
         setError(null);
-        
+
         // Authenticate if user is logged in
         if (user) {
-          ws.current?.send(JSON.stringify({
-            type: 'authenticate',
-            userId: user.id,
-            sessionId: Date.now().toString()
-          }));
+          ws.current?.send(
+            JSON.stringify({
+              type: "authenticate",
+              userId: user.id,
+              sessionId: Date.now().toString(),
+            })
+          );
         }
       };
 
@@ -49,7 +53,7 @@ export function useWebSocket() {
             handler(message);
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error("Error parsing WebSocket message:", error);
         }
       };
 
@@ -58,13 +62,12 @@ export function useWebSocket() {
       };
 
       ws.current.onerror = (error) => {
-        setError('WebSocket connection failed');
+        setError("WebSocket connection failed");
         setIsConnected(false);
       };
-
     } catch (error) {
-      setError('Failed to create WebSocket connection');
-      console.error('WebSocket connection error:', error);
+      setError("Failed to create WebSocket connection");
+      console.error("WebSocket connection error:", error);
     }
   }, [user]);
 
@@ -91,7 +94,7 @@ export function useWebSocket() {
 
   useEffect(() => {
     // Auto-connect is optional in development, required in production
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       connect();
     }
 
@@ -106,6 +109,6 @@ export function useWebSocket() {
     sendMessage,
     subscribe,
     connect,
-    disconnect
+    disconnect,
   };
 }

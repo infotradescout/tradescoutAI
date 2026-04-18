@@ -36,7 +36,11 @@ export function AuthModal({
     google: false,
     facebook: false,
   });
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const apiBaseUrl = (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    ""
+  ).replace(/\/$/, "");
   const oauthHref = (provider: "google" | "facebook", mode: "create" | "signin" = "create") => {
     const next = encodeURIComponent(`/pre-scout-setup?mode=${mode}`);
     return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;

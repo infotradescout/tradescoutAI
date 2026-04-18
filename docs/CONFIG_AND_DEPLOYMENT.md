@@ -29,6 +29,9 @@ Required environment variables (observed in code)
   - `PUBLIC_WEB_URL` / `APP_URL` / `APP_BASE_URL` - used to build public links (`server/routes.ts`).
   - `UPLOAD_DIR` - directory for uploaded files (server uses `./public/uploads` by default).
   - `CORS_ALLOWED_ORIGINS` - optional CORS override.
+  - `VITE_API_BASE_URL` - preferred explicit frontend API origin (falls back to `VITE_API_URL`).
+  - `VITE_GOOGLE_MAPS_WEB_API_KEY` - preferred frontend browser Maps key (fallback to `VITE_GOOGLE_MAPS_API_KEY`).
+  - `VITE_GOOGLE_MAPS_MAP_ID` - optional Google Maps map style ID.
   - `SCHEDULER_ENABLED` - set `true` to enable background scheduler (`server/index.ts`).
   - `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD`, `MASTER_ADMIN_FIRST_NAME`, `MASTER_ADMIN_LAST_NAME` - bootstrap master admin on startup (`server/index.ts`).
   - Replit OIDC auth variables were removed with the legacy `server/replitAuth.ts` module. Use `server/auth.ts` providers (local/Facebook/Google) instead.
@@ -47,3 +50,27 @@ Common failure points you can spot
 - If `dist/public` is missing in production, the server will run in API-only mode - missing client assets will lead to 404 for app pages (see `server/index.ts`).
 - Migrations out-of-date: server calls `runSchemaPreflight()` on startup (non-fatal), but schema drift can cause runtime query errors; ensure `npm run db:push` is executed before migrating production DB.
 - OAuth callback URLs not configured (e.g., `FACEBOOK_CALLBACK_URL`) will throw when registering providers (see `server/auth.ts`).
+
+Production hardening checklist (TradeScout)
+- Frontend API origin:
+  - Set `VITE_API_BASE_URL` explicitly in frontend build/deploy env.
+  - If using shared API infra, point it to the API origin you actually host in production.
+- Credentialed auth/session calls:
+  - TradeScout API helpers send `credentials: "include"`; preserve this on direct `fetch` calls for auth/session paths.
+- OAuth provider console settings (Google/Facebook):
+  - Authorized JavaScript origins should include both:
+    - `https://www.thetradescout.com`
+    - `https://thetradescout.com`
+  - Redirect/callback URLs should include the domain variants you support for auth callbacks (for example):
+    - `https://www.thetradescout.com/api/auth/google/callback`
+    - `https://thetradescout.com/api/auth/google/callback`
+    - `https://www.thetradescout.com/api/auth/facebook/callback`
+    - `https://thetradescout.com/api/auth/facebook/callback`
+- CORS allowlist behavior:
+  - Defaults already include both TradeScout domains.
+  - Only set `CORS_ALLOWED_ORIGINS` if you need to extend or replace defaults; if you set a restrictive custom list, include both TradeScout domains.
+- Websocket origin in production:
+  - Client websocket initialization should target the same resolved API origin as HTTP API traffic in production.
+- Maps frontend build env:
+  - Set `VITE_GOOGLE_MAPS_WEB_API_KEY`.
+  - Optional: set `VITE_GOOGLE_MAPS_MAP_ID` when using Advanced Markers/custom styling.

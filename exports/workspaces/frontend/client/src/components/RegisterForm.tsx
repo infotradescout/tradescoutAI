@@ -68,7 +68,11 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  const apiBaseUrl = (
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    ""
+  ).replace(/\/$/, "");
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),

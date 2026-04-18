@@ -36,6 +36,7 @@ describe("maps config and auth-failure contracts", () => {
     expect(routesSource).toContain('app.get("/api/public-config"');
     expect(routesSource).toContain("process.env.GOOGLE_MAPS_API_KEY ||");
     expect(routesSource).toContain("process.env.PUBLIC_GOOGLE_MAPS_API_KEY ||");
+    expect(routesSource).toContain("process.env.VITE_GOOGLE_MAPS_WEB_API_KEY ||");
     expect(routesSource).toContain("process.env.VITE_GOOGLE_MAPS_API_KEY ||");
     expect(routesSource).toContain("res.json({ googleMapsApiKey });");
   });
