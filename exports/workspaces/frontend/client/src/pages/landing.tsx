@@ -38,7 +38,6 @@ import {
   Ban,
   DollarSign,
   Briefcase,
-  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -548,22 +547,6 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             />
           </Reveal>
         </div>
-
-        {/* Key Principle */}
-        <Reveal className="mt-4 lg:mt-6 bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-3">
-          <div className="flex gap-3">
-            <AlertCircle className="w-5 h-5 text-ts-orange flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-display text-base font-bold text-white mb-1">
-                Money does not buy placement
-              </h3>
-              <p className="text-sm text-white/70">
-                A lower-trust pro cannot pay to outrank a stronger one. Ranking is based on fit and
-                trust, not spend.
-              </p>
-            </div>
-          </div>
-        </Reveal>
       </div>
     </section>
   );
