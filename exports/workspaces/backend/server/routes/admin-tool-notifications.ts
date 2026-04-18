@@ -13,6 +13,10 @@ type NotificationCounts = {
   contractorVerificationDocsPending: number;
 };
 
+const NOTIFICATION_COUNTS_CACHE_TTL_MS = 30_000;
+let notificationCountsCache: { counts: NotificationCounts; expiresAt: number } | null = null;
+let notificationCountsInFlight: Promise<NotificationCounts> | null = null;
+
 function getPgErrorCode(error: unknown): string {
   const code =
     typeof error === "object" && error && "code" in error
@@ -165,6 +169,31 @@ async function loadNotificationCounts(): Promise<NotificationCounts> {
   };
 }
 
+async function getNotificationCountsCached(): Promise<NotificationCounts> {
+  const now = Date.now();
+  if (notificationCountsCache && notificationCountsCache.expiresAt > now) {
+    return notificationCountsCache.counts;
+  }
+
+  if (notificationCountsInFlight) {
+    return notificationCountsInFlight;
+  }
+
+  notificationCountsInFlight = loadNotificationCounts()
+    .then((counts) => {
+      notificationCountsCache = {
+        counts,
+        expiresAt: Date.now() + NOTIFICATION_COUNTS_CACHE_TTL_MS,
+      };
+      return counts;
+    })
+    .finally(() => {
+      notificationCountsInFlight = null;
+    });
+
+  return notificationCountsInFlight;
+}
+
 router.get("/", async (_req: Request, res: Response) => {
   try {
     const req = _req as any;
@@ -193,7 +222,7 @@ router.get("/", async (_req: Request, res: Response) => {
       return res.status(403).json({ message: "Admin access required" });
     }
 
-    const counts = await loadNotificationCounts();
+    const counts = await getNotificationCountsCached();
 
     const byTool: Record<string, number> = {
       "tradepartner-rsvps": counts.tradepartnerRsvpsPending,
