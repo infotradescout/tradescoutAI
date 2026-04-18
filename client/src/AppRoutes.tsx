@@ -5,8 +5,15 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
-import { isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
+import { hasAdminUiAccess, isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { getRecentActivity } from "@/agent/activity";
+import {
+  evaluateFeatureUnlocks,
+  isFeatureUnlocked,
+  type AdvancedFeatureId,
+} from "@/lib/progressiveFeatureUnlocks";
+import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
@@ -143,6 +150,35 @@ const LandingAccessGate = memo(function LandingAccessGate({
 
   const target = getPostLandingRoute(user);
   return <RedirectTo to={target} />;
+});
+
+const ProgressiveFeatureGate = memo(function ProgressiveFeatureGate({
+  featureId,
+  children,
+}: {
+  featureId: AdvancedFeatureId;
+  children: React.ReactNode;
+}) {
+  const { user } = useAuth();
+
+  if (!FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING) {
+    return <>{children}</>;
+  }
+
+  if (hasAdminUiAccess(user)) {
+    return <>{children}</>;
+  }
+
+  const snapshot = evaluateFeatureUnlocks({
+    user,
+    recentActivity: getRecentActivity(),
+  });
+
+  if (isFeatureUnlocked(snapshot, featureId)) {
+    return <>{children}</>;
+  }
+
+  return <RedirectTo to={`/scout?unlock=${encodeURIComponent(featureId)}`} />;
 });
 
 // Root landing router: send non-authenticated users to create account, authenticated users to appropriate dashboard
@@ -762,7 +798,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/direct-connect" />
               </Route>
               <Route path="/trade-deals">
-                <LazyPage Component={TradeDealsPage} />
+                <ProgressiveFeatureGate featureId="trade_deals">
+                  <LazyPage Component={TradeDealsPage} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/daily-deals/:rest*">
                 <LazyPage Component={DailyDeals} />
@@ -862,7 +900,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={VehicleMarketplace} />
               </Route>
               <Route path="/homescout-listings">
-                <LazyPage Component={RealEstateMarketplace} />
+                <ProgressiveFeatureGate featureId="home_scout_listings">
+                  <LazyPage Component={RealEstateMarketplace} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/real-estate-marketplace">
                 <RedirectTo to="/homescout-listings" />
@@ -895,16 +935,24 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={HandmadeMarketplace} />
               </Route>
               <Route path="/exchange/metals">
-                <LazyPage Component={MetalsExchange} />
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={MetalsExchange} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/exchange/rental-property">
-                <LazyPage Component={ExchangeRentalProperty} />
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeRentalProperty} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/exchange/rental-equipment">
-                <LazyPage Component={ExchangeRentalEquipment} />
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeRentalEquipment} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/exchange">
-                <LazyPage Component={Exchange} />
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={Exchange} />
+                </ProgressiveFeatureGate>
               </Route>
               {/* Groups routes */}
               <Route path="/groups">
@@ -1161,10 +1209,14 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/affiliate">
-                <LazyPage Component={Affiliate} />
+                <ProgressiveFeatureGate featureId="share">
+                  <LazyPage Component={Affiliate} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/share">
-                <LazyPage Component={Affiliate} />
+                <ProgressiveFeatureGate featureId="share">
+                  <LazyPage Component={Affiliate} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/notifications">
                 <ProtectedRoute>
@@ -1387,13 +1439,19 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={CountyHub} />
               </Route>
               <Route path="/maps">
-                <LazyPage Component={MapsPage} />
+                <ProgressiveFeatureGate featureId="maps">
+                  <LazyPage Component={MapsPage} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/leaderboard">
-                <LazyPage Component={Leaderboard} />
+                <ProgressiveFeatureGate featureId="leaderboard">
+                  <LazyPage Component={Leaderboard} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/foundation">
-                <Foundation />
+                <ProgressiveFeatureGate featureId="foundation">
+                  <Foundation />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/tradepartners">
                 <LazyPage Component={TradePartnersHub} />

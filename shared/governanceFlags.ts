@@ -63,6 +63,13 @@ export const FEATURE_PROGRESSIVE_EXPOSURE_SHADOW = flagFromEnvWithDefault(
   true
 );
 
+// Progressive exposure Phase A: keep 4 core nav features always visible and
+// unlock advanced destinations only after action-based triggers.
+export const FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING = flagFromEnvWithDefault(
+  (env as any).FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING,
+  true
+);
+
 export function describeGovernanceFlags() {
   return {
     FEATURE_HOLD_TO_EXPLAIN,
@@ -72,6 +79,7 @@ export function describeGovernanceFlags() {
     FEATURE_SCOPE_GOVERNOR,
     FEATURE_SCOPE_GOVERNOR_ENFORCED,
     FEATURE_PROGRESSIVE_EXPOSURE_SHADOW,
+    FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING,
     FEATURE_CUSTOMER_IMPACT,
     FEATURE_RISK_SENTINEL,
     FEATURE_CHIEF_OF_STAFF,

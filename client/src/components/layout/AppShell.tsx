@@ -37,6 +37,9 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useIsStandalone } from "@/hooks/useIsStandalone";
 import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
+import { getRecentActivity } from "@/agent/activity";
+import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progressiveFeatureUnlocks";
+import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 
 export type NavItem = {
   label: string;
@@ -152,8 +155,11 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
 // SITE FEATURES ONLY – this is the scrollable bottom bar
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
-  const baseNav: NavItem[] = [
+const buildFeatureNav = (opts?: {
+  includeAdmin?: boolean;
+  includeAdvancedHrefs?: Set<string> | null;
+}): NavItem[] => {
+  const coreNav: NavItem[] = [
     {
       label: "Scout",
       href: "/scout",
@@ -174,6 +180,9 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       href: ROUTES.COMMUNITY ?? "/community",
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
+  ];
+
+  const advancedNav: NavItem[] = [
     {
       label: "TradeDeals",
       href: "/trade-deals",
@@ -210,6 +219,13 @@ const buildFeatureNav = (opts?: { includeAdmin?: boolean }): NavItem[] => {
       icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
     },
   ];
+
+  const includedAdvanced =
+    opts?.includeAdvancedHrefs == null
+      ? advancedNav
+      : advancedNav.filter((item) => opts.includeAdvancedHrefs?.has(item.href));
+
+  const baseNav: NavItem[] = [...coreNav, ...includedAdvanced];
 
   baseNav.push({
     label: "Help",
@@ -298,6 +314,20 @@ export function AppShell({ children, footer }: AppShellProps) {
   const hasAdminAliasBypass =
     verificationBypass?.active === true && verificationBypass?.reason === "email_alias";
   const shouldShowAdminNav = hasAdminAccess || isSuperAdmin || hasAdminAliasBypass;
+  const unlockSnapshot = useMemo(
+    () =>
+      evaluateFeatureUnlocks({
+        user,
+        recentActivity: getRecentActivity(),
+      }),
+    [user, location]
+  );
+  const unlockedAdvancedHrefs = useMemo(
+    () => getUnlockedAdvancedHrefs(unlockSnapshot),
+    [unlockSnapshot]
+  );
+  const shouldGateAdvancedNav =
+    FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING && !shouldShowAdminNav && !isAuthOrSetupSurface;
   const incomingRequestsQuery = useQuery<{ requests: any[] }>({
     queryKey: ["/api/social/conversations/requests/incoming"],
     enabled: Boolean(isAuthenticated) && !isAuthSurface && !isSetupSurface,
@@ -310,7 +340,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobileSimplified =
     mobileSimplificationEnabled && isMobile && !isAuthOrSetupSurface && !isAdminSurface;
 
-  const featureNav = buildFeatureNav({ includeAdmin: shouldShowAdminNav });
+  const featureNav = buildFeatureNav({
+    includeAdmin: shouldShowAdminNav,
+    includeAdvancedHrefs: shouldGateAdvancedNav ? unlockedAdvancedHrefs : null,
+  });
   const mobileNav = useMemo(() => {
     if (!isMobileSimplified) {
       return {
