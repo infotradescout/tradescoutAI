@@ -5,6 +5,7 @@ import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { COMPREHENSIVE_TRADES } from "@shared/trades-data";
 
 type MapEntityType =
   | "provider"
@@ -169,6 +170,33 @@ function pointPriorityScore(point: MapEntityPoint): number {
 function formatTypeLabel(type: MapEntityType): string {
   return LAYER_META[type]?.label || type.replace(/_/g, " ");
 }
+
+function normalizeTradeOptions(payload: unknown): TradeOption[] {
+  const candidates = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as any)?.trades)
+      ? (payload as any).trades
+      : [];
+
+  return candidates
+    .map((item: any) => ({
+      id: String(item?.id ?? item?.slug ?? "").trim(),
+      name: String(item?.name ?? item?.slug ?? "").trim(),
+      slug: String(item?.slug ?? item?.id ?? "").trim(),
+    }))
+    .filter((item) => item.slug.length > 0 && item.name.length > 0);
+}
+
+const FALLBACK_TRADE_OPTIONS: TradeOption[] = COMPREHENSIVE_TRADES.filter(
+  (trade) => !trade.parentId
+)
+  .map((trade) => ({
+    id: String(trade.id || trade.slug),
+    name: String(trade.name || trade.slug),
+    slug: String(trade.slug || trade.id),
+  }))
+  .filter((trade) => trade.slug.length > 0 && trade.name.length > 0)
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 function buildPublicConfigCandidates(): string[] {
   const cacheBust = `?_=${Date.now()}`;
@@ -496,13 +524,18 @@ export default function MapsPage() {
     return sorted;
   }, [points, searchText, sortMode]);
 
-  const trades = useMemo(
-    () =>
-      (Array.isArray(tradesData) ? tradesData : [])
-        .filter((item) => typeof item?.slug === "string" && item.slug.trim().length > 0)
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [tradesData]
-  );
+  const trades = useMemo(() => {
+    const normalized = normalizeTradeOptions(tradesData)
+      .filter((item) => typeof item.slug === "string" && item.slug.trim().length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return normalized.length > 0 ? normalized : FALLBACK_TRADE_OPTIONS;
+  }, [tradesData]);
+
+  useEffect(() => {
+    if (!trade) return;
+    if (trades.some((item) => item.slug === trade)) return;
+    setTrade("");
+  }, [trade, trades]);
 
   useEffect(() => {
     if (!scriptReady || !mapRef.current) return;
@@ -718,13 +751,13 @@ export default function MapsPage() {
 
           <div className="space-y-3">
             <label className="block text-xs text-white/70">
-              Trade focus
+              Service focus
               <select
                 className="mt-1 w-full rounded-lg border border-white/10 bg-tsBg px-3 py-2 text-sm text-white"
                 value={trade}
                 onChange={(event) => setTrade(event.target.value)}
               >
-                <option value="">All trades</option>
+                <option value="">All service domains</option>
                 {trades.map((item) => (
                   <option key={item.id} value={item.slug}>
                     {item.name}
