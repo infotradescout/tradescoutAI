@@ -407,9 +407,9 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
 // ---- Stats Bar ----
 function StatsBar() {
   const stats = [
-    { value: 1, suffix: "", label: "Scout guide" },
+    { value: 100, suffix: "%", label: "Community-Driven" },
     { value: 0, suffix: "", label: "Lead spam", display: "Zero" },
-    { value: 5, suffix: "", label: "Clear steps", display: "Five" },
+    { value: 0, suffix: "", label: "Hidden agenda", display: "No" },
     { value: 0, suffix: "", label: "Pay-to-Play", display: "No" },
   ];
 
