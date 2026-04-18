@@ -901,12 +901,15 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={VehicleMarketplace} />
               </Route>
               <Route path="/homescout-listings">
-                <ProgressiveFeatureGate featureId="home_scout_listings">
-                  <LazyPage Component={RealEstateMarketplace} />
-                </ProgressiveFeatureGate>
+                <RedirectTo to="/exchange/real-estate" />
               </Route>
               <Route path="/real-estate-marketplace">
-                <RedirectTo to="/homescout-listings" />
+                <RedirectTo to="/exchange/real-estate" />
+              </Route>
+              <Route path="/exchange/real-estate">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={RealEstateMarketplace} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/homescout/listings/:id">
                 <LazyPage Component={HomeScoutListing} />

@@ -16,7 +16,7 @@ export const ADVANCED_FEATURE_HREFS: Record<AdvancedFeatureId, string> = {
   trade_deals: "/trade-deals",
   exchange: "/exchange",
   share: "/share",
-  home_scout_listings: "/homescout-listings",
+  home_scout_listings: "/homes",
   maps: "/maps",
   leaderboard: "/leaderboard",
   foundation: "/foundation",

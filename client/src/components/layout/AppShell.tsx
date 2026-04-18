@@ -94,12 +94,30 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
       actionHref: "/marketplace-listing",
     };
   }
-  if (pathname.startsWith("/homescout")) {
+  if (
+    pathname.startsWith("/homescout-listings") ||
+    pathname.startsWith("/homescout/listings") ||
+    pathname.startsWith("/homescout/")
+  ) {
     return {
-      title: "HomeScout",
-      summary: "Manage property details, listings, and updates in one place.",
-      actionLabel: "View HomeScout listings",
-      actionHref: "/homescout-listings",
+      title: "Exchange Real Estate",
+      summary: "Home listings live inside Exchange and follow Exchange discovery flow.",
+      actionLabel: "Open Exchange",
+      actionHref: "/exchange",
+    };
+  }
+  if (
+    pathname === "/homes" ||
+    pathname.startsWith("/homes/") ||
+    pathname === "/vehicles" ||
+    pathname.startsWith("/vehicles/") ||
+    pathname.startsWith("/homescout/new")
+  ) {
+    return {
+      title: "Asset Desk",
+      summary: "Manage property, vehicles, and asset operations in one dashboard.",
+      actionLabel: "Open Asset Desk",
+      actionHref: "/homes",
     };
   }
   if (pathname.startsWith("/community")) {
@@ -207,10 +225,10 @@ const buildFeatureNav = (opts?: {
       description: "Browse and post marketplace listings.",
     },
     {
-      label: "HomeScout Listings",
-      href: "/homescout-listings",
+      label: "Asset Desk",
+      href: "/homes",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Review and manage property listings.",
+      description: "Manage property, vehicles, and assets.",
     },
     {
       label: "Maps",
@@ -376,7 +394,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     const unlockableHrefs = new Set<string>([
       "/trade-deals",
       ROUTES.EXCHANGE ?? "/exchange",
-      "/homescout-listings",
+      "/homes",
       "/maps",
       "/leaderboard",
       "/foundation",
