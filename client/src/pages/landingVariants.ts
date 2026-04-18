@@ -60,7 +60,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   images: {
     logo: "/tradescout-logo-circle.png",
     trust: "/landing/hero.jpg",
-    craft: "/landing/craft.jpg",
+    craft: "/landing/community.jpg",
   },
   audience: {
     sectionLabel: "Who It's For",
