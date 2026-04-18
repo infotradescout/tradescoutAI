@@ -5,11 +5,11 @@
  * oversized typography (Sora display + Work Sans body), forge stamp badges.
  *
  * KEY TRUTHS:
- * - No lead sales; no pay-to-play visibility
- * - Trust-first matching (CVS-based, not pay-to-play)
- * - 1-3 matches per request (contact stays intent-gated)
+ * - No lead reselling; fair visibility rules
+ * - Quality-first matching built on verified local trust signals
+ * - Usually 1-3 strong matches per request, with contact shared when you are ready
  * - Community-owned reinvestment model
- * - Payment CANNOT override trust tiers
+ * - Money never jumps the line
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -407,10 +407,10 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
 // ---- Stats Bar ----
 function StatsBar() {
   const stats = [
-    { value: 1, suffix: "", label: "Scout Control Plane" },
-    { value: 0, suffix: "", label: "Lead Spam", display: "Zero" },
-    { value: 5, suffix: "", label: "Governed Stages", display: "Five" },
-    { value: 0, suffix: "", label: "Pay-to-Play", display: "No" },
+    { value: 100, suffix: "%", label: "Community-Driven" },
+    { value: 0, suffix: "", label: "Lead spam", display: "Zero" },
+    { value: 0, suffix: "", label: "Hidden agenda", display: "No" },
+    { value: 0, suffix: "", label: "Paid placement", display: "No" },
   ];
 
   return (
@@ -439,22 +439,22 @@ function HowItWorksSection() {
     {
       icon: MessageSquare,
       title: "Ask Scout",
-      desc: "Say what you need in plain language so TradeScout starts from your real intent.",
+      desc: "Say what you need in everyday words so TradeScout starts from your real goal.",
     },
     {
       icon: Search,
       title: "Scout figures out the path",
-      desc: "Scout uses location, trade fit, and trust context to narrow the right local route.",
+      desc: "Scout uses location, service fit, and trust signals to narrow the right local path.",
     },
     {
       icon: CheckCircle,
       title: "You get the next move",
-      desc: "That might be a match, a Decision Card, or a short hold while details get sorted out.",
+      desc: "That could be a match, a quick choice screen, or a short confirmation step.",
     },
     {
       icon: Handshake,
       title: "Contact opens at the right time",
-      desc: "A pro accepts before contact opens, so you stay in control without losing privacy or context.",
+      desc: "A pro accepts before contact opens, so you stay in control without losing context.",
     },
   ];
 
@@ -473,8 +473,8 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            TradeScout is not a lead funnel. You start with Scout, and it helps you move toward the
-            right local next step.
+            TradeScout helps cut through the noise. Start with Scout and get a clear next local
+            step.
           </p>
         </Reveal>
 
@@ -524,15 +524,15 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             <div>
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
                 <Shield className="w-4 h-4 text-ts-orange" />
-                <span className="text-sm font-medium text-ts-orange">CVS</span>
+                <span className="text-sm font-medium text-ts-orange">Trust Score</span>
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 Trust, Not Payment
               </h2>
               <p className="text-sm text-white/60 mb-3">
-                Every pro has a CVS view based on verified identity, active credentials, work
+                Every pro has a Trust Score based on verified identity, active credentials, work
                 history, community recommendations, and dispute resolution. You can quickly see why
-                someone looks solid before you reach out.
+                someone is a strong fit before you reach out.
               </p>
               <div className="space-y-2.5">
                 {layers.map((layer, i) => {
@@ -560,7 +560,7 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
           <Reveal delay={0.2}>
             <img
               src={variant.images.trust}
-              alt="Trust Model"
+              alt="Trust and safety overview"
               className="w-full h-[150px] sm:h-[200px] lg:h-[260px] rounded-xl shadow-2xl shadow-ts-orange/20 object-cover object-[35%_center]"
               loading="lazy"
               decoding="async"
@@ -574,11 +574,11 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
             <AlertCircle className="w-5 h-5 text-ts-orange flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="font-display text-base font-bold text-white mb-1">
-                Payment Cannot Override Trust
+                Money does not buy placement
               </h3>
               <p className="text-sm text-white/70">
-                A lower-trust pro cannot pay to outrank a stronger one. Money is excluded from
-                ranking logic, so trust stays first.
+                A lower-trust pro cannot pay to outrank a stronger one. Ranking is based on fit and
+                trust, not spend.
               </p>
             </div>
           </div>
@@ -611,7 +611,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
           <Reveal delay={0.2}>
             <img
               src={variant.images.craft}
-              alt="Direct Connect"
+              alt="Get matched with local pros"
               className="w-full h-[150px] sm:h-[200px] lg:h-[260px] rounded-xl shadow-2xl shadow-black/30 object-cover"
             />
           </Reveal>
@@ -623,13 +623,13 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 <span className="text-sm font-medium text-ts-orange">Direct Connection</span>
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
-                No Spam.
+                Less noise.
                 <br />
-                No Bidding Wars.
+                Better matches.
               </h2>
               <p className="text-sm text-white/60 mb-3">
-                Scout sends your request to 1-3 qualified pros. They accept or decline upfront. No
-                wasted time, no spam calls.
+                Scout sends your request to 1-3 qualified pros. They accept or decline first, so you
+                avoid random calls and wasted time.
               </p>
               <div className="space-y-2.5">
                 {features.map((feature, i) => {
@@ -700,19 +700,19 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
 function PricingSection() {
   const features = [
     "Unlimited directory search",
-    "Direct Connect matching",
-    "Community intel & playbooks",
+    "Guided local matching",
+    "Community tips and guides",
     "Scout assistant",
     "Local checklists",
     "Role-specific dashboards",
   ];
 
   const sponsorFeatures = [
-    "$0 access for features, connections, and information",
-    "No lead sales and no pay-to-play visibility",
-    "Payment-blind trust and ranking systems",
-    "No paywalls and no access tiers",
-    "No paid ranking and no paid lead routing",
+    "$0 access to features, connections, and information",
+    "No lead reselling",
+    "Businesses cannot pay to jump the line",
+    "No paywalls or locked access tiers",
+    "No paid placement in rankings",
   ];
 
   return (
@@ -729,8 +729,8 @@ function PricingSection() {
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">For you. For free. Forever.</p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
-            We make money, just not from you reading this. No paywalls. No lead sales. No
-            pay-to-play.
+            We make money without charging you for access. No paywalls. No lead reselling. No paid
+            placement.
           </p>
         </Reveal>
 
@@ -803,15 +803,15 @@ function FAQSection() {
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
-      a: "The big pain point is lead reselling: one homeowner request gets sold to many contractors, and the homeowner gets flooded. TradeScout does not resell your request. Scout sends your request to 1-3 relevant matches, and CVS determines ranking, not payment.",
+      a: "On many platforms, one request can go to many contractors and trigger a flood of calls. TradeScout does not resell your request. Scout usually sends it to 1-3 relevant matches, and ranking is based on fit and trust, not payment.",
     },
     {
-      q: "What is CVS?",
-      a: "CVS is the Community Verification Score. It gives you a quick read on identity, active credentials, work history, community recommendations, and dispute history so you can see why Scout matched you with someone.",
+      q: "What is the Trust Score?",
+      a: "The Trust Score gives you a quick read on identity, active credentials, work history, community recommendations, and dispute history, so you can understand why Scout matched you with someone.",
     },
     {
       q: "Can pros pay to change their ranking?",
-      a: "No. Ranking is trust-and-context based, and financial activity is excluded from ranking logic.",
+      a: "No. Ranking is based on trust and fit, and payment does not move someone ahead.",
     },
     {
       q: "How does Direct Connect work?",
@@ -915,7 +915,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ) : null}
           </div>
 
-          <p className="text-xs text-white/30 mt-3">No lead sales. No pay-to-play.</p>
+          <p className="text-xs text-white/30 mt-3">No lead reselling. No paid placement.</p>
         </Reveal>
       </div>
     </section>
@@ -960,7 +960,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                   }
                   className="hover:text-ts-orange transition-colors"
                 >
-                  Trust Model
+                  Trust & Safety
                 </button>
               </li>
               <li>
@@ -972,7 +972,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                   }
                   className="hover:text-ts-orange transition-colors"
                 >
-                  Direct Connect
+                  Get Connected
                 </button>
               </li>
               <li>
@@ -1014,6 +1014,21 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
                   }
                 >
                   Get started
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/pensacola"
+                  className="hover:text-ts-orange transition-colors"
+                  onClick={() =>
+                    void trackDemandEvent("cta_click", {
+                      placement: "footer_pensacola_hub",
+                      variant: variant.key,
+                      href: "/pensacola",
+                    })
+                  }
+                >
+                  Pensacola launch hub
                 </a>
               </li>
             </ul>
