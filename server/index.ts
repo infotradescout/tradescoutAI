@@ -502,7 +502,17 @@ app.use(landingContractHeaders);
 
 (async () => {
   try {
-    await assertStartupInvariants();
+    try {
+      await assertStartupInvariants();
+    } catch (err) {
+      if (process.env.NODE_ENV === "production") {
+        throw err;
+      }
+      console.warn(
+        "[DEV] startup invariants failed; continuing with reduced capability:",
+        (err as Error)?.message
+      );
+    }
 
     try {
       await ensureProfilesTable();

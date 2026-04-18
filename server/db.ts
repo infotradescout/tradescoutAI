@@ -1,5 +1,7 @@
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool as NodePgPool } from "pg";
+import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import ws from "ws";
 import * as schema from "@shared/schema";
 import { emitPoolMetrics } from "./observability/metrics";
@@ -10,11 +12,13 @@ neonConfig.webSocketConstructor = ws;
 const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
 
 const connectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
+const useLocalNodePg =
+  Boolean(connectionString) &&
+  /^(postgres|postgresql):\/\//i.test(connectionString) &&
+  /(localhost|127\.0\.0\.1)/i.test(connectionString);
 
-type DbType = ReturnType<typeof drizzle<typeof schema>>;
-
-let pool: Pool;
-let db: DbType;
+let pool: Pool | NodePgPool;
+let db: any;
 
 if (!connectionString) {
   // In test mode, we intentionally do NOT fall back to DATABASE_URL.
@@ -37,13 +41,25 @@ if (!connectionString) {
   pool = disabled as unknown as Pool;
   db = disabled as unknown as DbType;
 } else {
-  pool = new Pool({
-    connectionString,
-    max: Number(process.env.PG_POOL_MAX || 20),
-    idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
-    connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
-  });
-  db = drizzle({ client: pool, schema });
+  if (useLocalNodePg) {
+    const localPool = new NodePgPool({
+      connectionString,
+      max: Number(process.env.PG_POOL_MAX || 20),
+      idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
+      connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
+    });
+    pool = localPool;
+    db = drizzleNodePg({ client: localPool, schema });
+  } else {
+    const neonPool = new Pool({
+      connectionString,
+      max: Number(process.env.PG_POOL_MAX || 20),
+      idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
+      connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
+    });
+    pool = neonPool;
+    db = drizzle({ client: neonPool, schema });
+  }
 
   // Emit DB pool metrics every 60 seconds
   const poolMetricsTimer = setInterval(() => {
