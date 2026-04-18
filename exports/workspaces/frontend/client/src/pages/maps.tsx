@@ -171,6 +171,47 @@ function formatTypeLabel(type: MapEntityType): string {
   return LAYER_META[type]?.label || type.replace(/_/g, " ");
 }
 
+function buildScoutMapHref(point: MapEntityPoint, trade: string): string {
+  const params = new URLSearchParams();
+  params.set("intent", "map_recommendation_review");
+  params.set("source", "maps");
+  params.set("entityId", point.id);
+  params.set("entityType", point.type);
+  if (trade) params.set("trade", trade);
+  return `/scout?${params.toString()}`;
+}
+
+function buildRecommendationReasons(
+  point: MapEntityPoint,
+  options: {
+    tradeName?: string;
+    verificationState: ReturnType<typeof inferVerificationState>;
+    layerEnabled: boolean;
+  }
+): string[] {
+  const reasons: string[] = [];
+
+  if (options.verificationState === "verified") {
+    reasons.push("Verified operational signal");
+  } else if (options.verificationState === "unverified") {
+    reasons.push("Visible but not yet verified");
+  } else if (options.verificationState === "directory") {
+    reasons.push("Directory-listed local signal");
+  } else {
+    reasons.push("Unclassified awareness signal");
+  }
+
+  if (options.tradeName) {
+    reasons.push(`Aligned to service focus: ${options.tradeName}`);
+  }
+
+  if (options.layerEnabled) {
+    reasons.push(`Layer enabled: ${formatTypeLabel(point.type)}`);
+  }
+
+  return reasons;
+}
+
 function normalizeTradeOptions(payload: unknown): TradeOption[] {
   const candidates = Array.isArray(payload)
     ? payload
@@ -490,6 +531,17 @@ export default function MapsPage() {
     () => points.filter((point) => inferVerificationState(point) === "verified").length,
     [points]
   );
+
+  const tradeNameBySlug = useMemo(() => {
+    const index = new Map<string, string>();
+    for (const item of trades) {
+      const slug = String(item.slug || "").trim();
+      const name = String(item.name || "").trim();
+      if (!slug || !name) continue;
+      index.set(slug, name);
+    }
+    return index;
+  }, [trades]);
 
   const searchablePoints = useMemo(() => {
     const query = searchText.trim().toLowerCase();
@@ -853,46 +905,83 @@ export default function MapsPage() {
 
           {selectedPoint && (
             <section className="rounded-2xl border border-white/10 bg-tsCard p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-base font-semibold text-white">{selectedPoint.title}</div>
-                  <div className="mt-1 text-xs text-white/60">
-                    {selectedPoint.subtitle || formatTypeLabel(selectedPoint.type)}
-                  </div>
-                  <div className="mt-2 inline-flex items-center gap-2 text-xs">
-                    <span className="text-white/50">Trust state:</span>
-                    <span className="rounded-full border border-white/15 bg-tsBg px-2 py-0.5 text-white">
-                      {inferVerificationState(selectedPoint)}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPoint(null)}
-                  className="rounded-md border border-white/10 bg-tsBg px-2 py-1 text-xs text-white"
-                >
-                  Close
-                </button>
-              </div>
+              {(() => {
+                const verificationState = inferVerificationState(selectedPoint);
+                const recommendationReasons = buildRecommendationReasons(selectedPoint, {
+                  tradeName: trade ? tradeNameBySlug.get(trade) : undefined,
+                  verificationState,
+                  layerEnabled: Boolean(layers[selectedPoint.type]),
+                });
 
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {selectedPoint.href ? (
-                  <a
-                    href={selectedPoint.href}
-                    className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white"
-                  >
-                    Open profile
-                  </a>
-                ) : null}
-                {selectedPoint.type === "provider" ? (
-                  <Link
-                    href={`/request-quote?providerId=${encodeURIComponent(selectedPoint.id)}`}
-                    className="inline-flex items-center rounded-md bg-ts-orange px-3 py-2 text-sm font-semibold text-black"
-                  >
-                    Start decision-ready quote
-                  </Link>
-                ) : null}
-              </div>
+                return (
+                  <>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-base font-semibold text-white">
+                          {selectedPoint.title}
+                        </div>
+                        <div className="mt-1 text-xs text-white/60">
+                          {selectedPoint.subtitle || formatTypeLabel(selectedPoint.type)}
+                        </div>
+                        <div className="mt-2 inline-flex items-center gap-2 text-xs">
+                          <span className="text-white/50">Trust state:</span>
+                          <span className="rounded-full border border-white/15 bg-tsBg px-2 py-0.5 text-white">
+                            {verificationState}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPoint(null)}
+                        className="rounded-md border border-white/10 bg-tsBg px-2 py-1 text-xs text-white"
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-white/10 bg-tsBg px-3 py-2">
+                      <div className="text-[11px] uppercase tracking-wide text-white/50">
+                        Scout recommendation context
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {recommendationReasons.map((reason) => (
+                          <span
+                            key={reason}
+                            className="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-2 py-1 text-[11px] text-white/80"
+                          >
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Link
+                        href={buildScoutMapHref(selectedPoint, trade)}
+                        className="inline-flex items-center rounded-md border border-sky-400/30 bg-sky-500/15 px-3 py-2 text-sm font-semibold text-sky-100"
+                      >
+                        Ask Scout for next step
+                      </Link>
+                      {selectedPoint.href ? (
+                        <a
+                          href={selectedPoint.href}
+                          className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white"
+                        >
+                          Open profile
+                        </a>
+                      ) : null}
+                      {selectedPoint.type === "provider" ? (
+                        <Link
+                          href={`/request-quote?providerId=${encodeURIComponent(selectedPoint.id)}`}
+                          className="inline-flex items-center rounded-md bg-ts-orange px-3 py-2 text-sm font-semibold text-black"
+                        >
+                          Start decision-ready quote
+                        </Link>
+                      ) : null}
+                    </div>
+                  </>
+                );
+              })()}
             </section>
           )}
 
@@ -917,6 +1006,12 @@ export default function MapsPage() {
               ) : (
                 searchablePoints.slice(0, 60).map((point) => {
                   const selected = selectedPoint?.id === point.id;
+                  const verificationState = inferVerificationState(point);
+                  const recommendationReason = buildRecommendationReasons(point, {
+                    tradeName: trade ? tradeNameBySlug.get(trade) : undefined,
+                    verificationState,
+                    layerEnabled: Boolean(layers[point.type]),
+                  })[0];
                   return (
                     <button
                       key={`${point.type}-${point.id}`}
@@ -934,6 +1029,9 @@ export default function MapsPage() {
                           <div className="mt-0.5 text-xs text-white/60">
                             {point.subtitle || LAYER_META[point.type].subtitle}
                           </div>
+                          <div className="mt-1 text-[11px] text-white/45">
+                            Why recommended: {recommendationReason}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span
@@ -942,7 +1040,7 @@ export default function MapsPage() {
                             {LAYER_META[point.type].label}
                           </span>
                           <span className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-[11px] text-white/75">
-                            {inferVerificationState(point)}
+                            {verificationState}
                           </span>
                         </div>
                       </div>
