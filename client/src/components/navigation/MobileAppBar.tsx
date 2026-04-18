@@ -62,10 +62,10 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
       className="relative w-full pb-[env(safe-area-inset-bottom)]"
       style={{
         backgroundColor: "var(--surface-frame)",
-        borderTop: "1px solid color-mix(in oklab, var(--surface-frame-border) 80%, transparent)",
+        borderTop: "1px solid color-mix(in oklab, var(--surface-frame-border) 65%, transparent)",
       }}
     >
-      <div className="h-[58px] w-full px-1">
+      <div className="h-[56px] w-full px-1">
         <div className="flex h-full items-stretch justify-between">
           {primaryItems.map((item) => {
             const active = isItemActive(item);
@@ -76,24 +76,16 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                 href={item.href}
                 className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.65rem] font-medium leading-none transition-colors"
                 style={{
-                  color: active ? "var(--theme-accent-primary)" : "var(--theme-text-secondary)",
+                  color: active ? "var(--text-primary)" : "var(--theme-text-secondary)",
                 }}
               >
-                {/* Active indicator bar */}
-                {active && (
-                  <span
-                    className="absolute top-0 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full"
-                    style={{ backgroundColor: "var(--theme-accent-primary)" }}
-                  />
-                )}
-
                 {/* Icon */}
                 {item.icon && (
                   <span
                     className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md transition-colors"
                     style={{
                       backgroundColor: active
-                        ? "color-mix(in oklab, var(--theme-accent-primary) 14%, transparent)"
+                        ? "color-mix(in oklab, var(--surface-card) 85%, transparent)"
                         : "transparent",
                     }}
                   >
@@ -147,11 +139,11 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                     className="text-sm font-semibold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    More destinations
+                    More features
                   </SheetTitle>
                 </SheetHeader>
 
-                <div className="grid grid-cols-2 gap-2 pb-4">
+                <div className="grid grid-cols-1 gap-2 pb-4">
                   {overflowItems.map((item) => {
                     const active = isItemActive(item);
                     return (
@@ -159,23 +151,34 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                         key={`overflow-${item.href}`}
                         href={item.href}
                         onClick={() => setIsMoreOpen(false)}
-                        className="flex h-12 w-full items-center gap-2.5 rounded-xl border px-3 text-sm font-medium transition-colors"
+                        className="flex w-full items-start gap-2.5 rounded-xl border px-3 py-3 text-sm transition-colors"
                         style={{
                           borderColor: active
-                            ? "color-mix(in oklab, var(--theme-accent-primary) 60%, transparent)"
+                            ? "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)"
                             : "color-mix(in oklab, var(--border-primary) 80%, transparent)",
                           backgroundColor: active
-                            ? "color-mix(in oklab, var(--theme-accent-primary) 10%, var(--surface-card))"
-                            : "color-mix(in oklab, var(--surface-card) 80%, transparent)",
-                          color: active ? "var(--theme-accent-primary)" : "var(--text-primary)",
+                            ? "color-mix(in oklab, var(--surface-intermediate) 90%, var(--surface-card))"
+                            : "color-mix(in oklab, var(--surface-card) 84%, transparent)",
+                          color: "var(--text-primary)",
                         }}
                       >
                         {item.icon && (
-                          <span className="inline-flex h-5 w-5 shrink-0 items-center">
+                          <span
+                            className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center"
+                            style={{ opacity: 0.9 }}
+                          >
                             {item.icon}
                           </span>
                         )}
-                        <span className="truncate">{item.label}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{item.label}</span>
+                          <span
+                            className="mt-0.5 block text-xs leading-relaxed"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {item.description ?? "Open feature"}
+                          </span>
+                        </span>
                       </Link>
                     );
                   })}

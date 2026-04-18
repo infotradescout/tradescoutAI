@@ -46,6 +46,7 @@ export type NavItem = {
   href: string;
   icon?: ReactNode;
   badge?: string;
+  description?: string;
 };
 
 type AppShellProps = {
@@ -164,21 +165,31 @@ const buildFeatureNav = (opts?: {
       label: "Scout",
       href: "/scout",
       icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Ask Scout for the next action.",
     },
     {
       label: "Direct Connect",
       href: "/direct-connect",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Post requests and track replies.",
     },
     {
       label: "Commercial",
       href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Find local business lanes.",
     },
     {
       label: "Community",
       href: ROUTES.COMMUNITY ?? "/community",
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "See nearby posts and updates.",
+    },
+    {
+      label: "Share",
+      href: "/share",
+      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Copy and publish your best links.",
     },
   ];
 
@@ -187,36 +198,37 @@ const buildFeatureNav = (opts?: {
       label: "TradeDeals",
       href: "/trade-deals",
       icon: <Sparkles className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Check partner offers and campaigns.",
     },
     {
       label: "Exchange",
       href: ROUTES.EXCHANGE ?? "/exchange",
       icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    },
-    {
-      label: "Share",
-      href: "/share",
-      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Browse and post marketplace listings.",
     },
     {
       label: "HomeScout Listings",
       href: "/homescout-listings",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Review and manage property listings.",
     },
     {
       label: "Maps",
       href: "/maps",
       icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Explore county and service coverage.",
     },
     {
       label: "Leaderboard",
       href: "/leaderboard",
       icon: <Trophy className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Track local trust momentum.",
     },
     {
       label: "Community Builders",
       href: "/foundation",
       icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "See local funding and impact.",
     },
   ];
 
@@ -231,6 +243,7 @@ const buildFeatureNav = (opts?: {
     label: "Help",
     href: ROUTES.HELP ?? "/help",
     icon: <CircleHelp className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+    description: "Get support and how-to guidance.",
   });
 
   if (opts?.includeAdmin) {
@@ -358,6 +371,19 @@ export function AppShell({ children, footer }: AppShellProps) {
     const primaryHrefs = new Set(mobileNav.primary.map((item) => item.href));
     return mobileNav.ordered.filter((item) => !primaryHrefs.has(item.href));
   }, [mobileNav]);
+
+  const topRightUnlockableItems = useMemo(() => {
+    const unlockableHrefs = new Set<string>([
+      "/trade-deals",
+      ROUTES.EXCHANGE ?? "/exchange",
+      "/homescout-listings",
+      "/maps",
+      "/leaderboard",
+      "/foundation",
+    ]);
+
+    return featureNav.filter((item) => unlockableHrefs.has(item.href));
+  }, [featureNav]);
 
   const mobileSurfaceCardStyle = {
     border: "1px solid color-mix(in oklab, var(--border-primary) 82%, transparent)",
@@ -950,7 +976,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
           <MobileAppBar
             items={isMobileSimplified ? mobileNav.ordered : featureNav}
-            primaryLimit={isMobileSimplified ? 3 : 4}
+            primaryLimit={5}
           />
         </div>
       )}
@@ -1142,19 +1168,19 @@ export function AppShell({ children, footer }: AppShellProps) {
               </div>
             )}
 
-            {mobileOverflowNav.length > 0 && (
+            {topRightUnlockableItems.length > 0 && (
               <>
                 <h3
                   className="mt-5 mb-2 text-xs font-semibold uppercase tracking-[0.18em]"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  More destinations
+                  Unlockable features
                 </h3>
                 <div
                   className="grid grid-cols-1 gap-2 rounded-2xl p-3"
                   style={mobileSurfaceCardStyle}
                 >
-                  {mobileOverflowNav.map((item) => (
+                  {topRightUnlockableItems.map((item) => (
                     <button
                       key={`mobile-overflow-${item.href}`}
                       type="button"
