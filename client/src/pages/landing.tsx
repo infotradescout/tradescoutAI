@@ -395,9 +395,9 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
 // ---- Stats Bar ----
 function StatsBar() {
   const stats = [
-    { value: 100, suffix: "%", label: "Community-Driven" },
-    { value: 0, suffix: "", label: "Lead spam", display: "Zero" },
-    { value: 0, suffix: "", label: "Paid placement", display: "No" },
+    { value: 3, suffix: "", label: "Top matches to review" },
+    { value: 0, suffix: "", label: "Unwanted call blasts" },
+    { value: 0, suffix: "", label: "Cost to start", display: "$0" },
   ];
 
   return (
@@ -431,7 +431,7 @@ function HowItWorksSection() {
     {
       icon: Search,
       title: "Scout figures out the path",
-      desc: "Scout uses location, service fit, and trust signals to narrow the right local path.",
+      desc: "Scout narrows your options to relevant local providers so you can decide faster.",
     },
     {
       icon: CheckCircle,
@@ -441,7 +441,7 @@ function HowItWorksSection() {
     {
       icon: Handshake,
       title: "Contact opens at the right time",
-      desc: "A pro accepts before contact opens, so you stay in control without losing context.",
+      desc: "You choose when to open contact, so your inbox and phone stay under control.",
     },
   ];
 
@@ -460,8 +460,7 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            TradeScout helps cut through the noise. Start with Scout and get a clear next local
-            step.
+            Tell Scout what you need and get a clear next step without digging through directories.
           </p>
         </Reveal>
 
@@ -578,13 +577,17 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
 // ---- Direct Connect Section ----
 function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   const features = [
-    { icon: Ban, title: "No Lead Spam", desc: "1-3 matches per request, not 20+" },
-    { icon: TrendingUp, title: "Quality Over Quantity", desc: "Trust-ranked, not price-ranked" },
+    {
+      icon: Ban,
+      title: "Calmer Inbox",
+      desc: "Your request is not blasted to dozens of providers",
+    },
+    { icon: TrendingUp, title: "Better Fit", desc: "See the most relevant local options first" },
     { icon: Lock, title: "Privacy Protected", desc: "Your info stays private until you decide" },
     {
       icon: DollarSign,
       title: "$0 Core Access",
-      desc: "No charge to connect; information is free; unlabeled payment asks are scams",
+      desc: "You can browse and compare options before deciding whether to contact",
     },
   ];
 
@@ -615,8 +618,8 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 Better matches.
               </h2>
               <p className="text-sm text-white/60 mb-3">
-                Scout sends your request to 1-3 qualified pros. They accept or decline first, so you
-                avoid random calls and wasted time.
+                Scout helps you review focused local options first, then open contact only when you
+                are ready.
               </p>
               <div className="space-y-2.5">
                 {features.map((feature, i) => {
@@ -706,12 +709,10 @@ function PricingSection() {
             Faster path. Less noise.
           </h2>
           <p className="text-sm text-white/60 max-w-2xl mx-auto">
-            Start here if you want to understand how TradeScout helps you make a clean local
-            decision without spam.
+            Start here if you want a simple local decision flow from question to contact.
           </p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
-            We make money without charging you for access. No paywalls. No lead reselling. No paid
-            placement.
+            Start free, compare options clearly, and move forward when the fit looks right.
           </p>
         </Reveal>
 
@@ -746,7 +747,7 @@ function FAQSection() {
     },
     {
       q: "How is TradeScout different from Angi or HomeAdvisor?",
-      a: "On many platforms, one request can go to many contractors and trigger a flood of calls. TradeScout does not resell your request. Scout usually sends it to 1-3 relevant matches, and ranking is based on fit and trust, not payment.",
+      a: "Many platforms trigger a flood of calls after one request. TradeScout keeps routing focused so you can review fewer, better-fit options first.",
     },
     {
       q: "What is the Trust Score?",
@@ -758,7 +759,7 @@ function FAQSection() {
     },
     {
       q: "How does Direct Connect work?",
-      a: "Scout sends your request to 1-3 pre-matched pros. They review your details and choose to accept or decline before contacting you. No spam, no pressure.",
+      a: "Scout routes your request to a small set of relevant local pros. You review options and open contact when you are ready.",
     },
     {
       q: "What if I don't like the matches Scout sent me?",
@@ -861,7 +862,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ) : null}
           </div>
 
-          <p className="text-xs text-white/30 mt-3">No lead reselling. No paid placement.</p>
+          <p className="text-xs text-white/30 mt-3">Clear choices first. Contact on your terms.</p>
         </Reveal>
       </div>
     </section>
@@ -882,7 +883,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
               </span>
             </div>
             <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-              Find help, compare options, and keep local decisions moving with Scout.
+              Ask one question, see your best local options, and move forward with less friction.
             </p>
           </div>
 
@@ -1099,7 +1100,7 @@ export default function Home() {
       <SEOHelmet
         title={
           canonicalLandingPath === "/landing"
-            ? "TradeScout | The Local Operating System for Community Interaction"
+            ? "TradeScout | Find Trusted Local Help Faster"
             : `${variant.displayName} | TradeScout`
         }
         description={variant.subhead}

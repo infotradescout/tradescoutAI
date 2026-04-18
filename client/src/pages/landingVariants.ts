@@ -37,13 +37,13 @@ export type LandingVariant = {
 const DEFAULT_VARIANT: LandingVariant = {
   key: "default",
   displayName: "Default",
-  badgeText: "Local Operating System",
+  badgeText: "Start Here",
   showBadge: false,
   headlineMode: "inline",
   headlineNoBreakAfterIndices: [2],
-  headlineLines: ["The Local", "Operating System", "for Community Interaction"],
+  headlineLines: ["Find the Right", "Local Help", "Without the Runaround"],
   subhead:
-    "Start with Scout to figure out what you need, see the right local path, and move forward without lead spam or pay-to-play ranking.",
+    "Tell Scout what you need, review focused local options, and open contact only when you're ready.",
   primaryCta: { label: "Ask Scout", href: "/scout" },
   secondaryCta: { label: "Create Account", href: "/pre-scout-setup?mode=create" },
   navLinks: [
@@ -54,7 +54,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     { label: "Pricing", href: "#pricing" },
   ],
   images: {
-    logo: "/tradescout-brand.png",
+    logo: "/tradescout-logo-circle.png",
     trust: "/landing/hero.jpg",
     craft: "/landing/craft.jpg",
   },
@@ -62,7 +62,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     sectionLabel: "Who It's For",
     sectionTitle: "Built To Run Local Decisions Clearly",
     sectionDesc:
-      "TradeScout works across roles because Scout does more than show listings. It helps people understand what to do next and move forward without getting lost.",
+      "Scout helps people move from uncertainty to action with clearer next steps and less back-and-forth.",
     cards: [
       {
         title: "For People Hiring",

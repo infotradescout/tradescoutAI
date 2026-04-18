@@ -17,21 +17,27 @@ const sizeClasses = {
 
 // Central logo asset path – stored under client/public so it is served
 // as a public static asset by Vite and the production server.
-// Canonical default avatar/logo file: client/public/tradescout-brand.png
-const BRAND_LOGO_URL = "/tradescout-brand.png?v=8";
+// Use a square-safe mark for icon containers to prevent crop/clip artifacts.
+const BRAND_LOGO_URL = "/tradescout-logo-circle.png?v=1";
+const FALLBACK_LOGO_URL = "/tradescout-brand.png?v=8";
 
 export function TradeScoutLogo({ className = "", size = "md" }: IconProps) {
   const sizeClass = sizeClasses[size];
+  const [logoSrc, setLogoSrc] = React.useState(BRAND_LOGO_URL);
 
   return (
     <span
       className={`${sizeClass} ${className} inline-flex items-center justify-center rounded-full overflow-hidden bg-black/20 ring-1 ring-white/10`}
     >
       <img
-        src={BRAND_LOGO_URL}
+        src={logoSrc}
         alt="TradeScout logo"
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         loading="lazy"
+        decoding="async"
+        onError={() => {
+          if (logoSrc !== FALLBACK_LOGO_URL) setLogoSrc(FALLBACK_LOGO_URL);
+        }}
       />
     </span>
   );
