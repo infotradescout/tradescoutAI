@@ -104,6 +104,9 @@ type Advertisement = {
   linkUrl?: string;
   placement: string;
   targetAudience: string;
+  targetLocation: string;
+  priority: number;
+  communityScore: number;
   isActive: boolean;
   startDate?: string;
   endDate?: string;
@@ -497,6 +500,7 @@ export default function AdminPanel() {
                           </Badge>
                           <Badge variant="outline">{ad.placement}</Badge>
                           <Badge variant="outline">{ad.targetAudience}</Badge>
+                          <Badge variant="outline">{ad.targetLocation || "national"}</Badge>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -522,6 +526,8 @@ export default function AdminPanel() {
                   <CardContent>
                     <p className="text-white/70 text-sm mb-3">{ad.content}</p>
                     <div className="flex justify-between text-xs text-white/60">
+                      <span>Priority: {ad.priority ?? 0}</span>
+                      <span>Community: {ad.communityScore ?? 50}</span>
                       <span>Views: {ad.viewCount}</span>
                       <span>Clicks: {ad.clickCount}</span>
                       <span>
@@ -1353,6 +1359,7 @@ function AdminItemForm({
                 <SelectItem value="sidebar">Sidebar</SelectItem>
                 <SelectItem value="popup">Popup</SelectItem>
                 <SelectItem value="footer">Footer</SelectItem>
+                <SelectItem value="site_visit">Site visit</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1371,6 +1378,43 @@ function AdminItemForm({
                 <SelectItem value="contractors">Contractors</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="targetLocation">Target Location</Label>
+            <Input
+              id="targetLocation"
+              value={formData.targetLocation || "national"}
+              onChange={(e) => updateField("targetLocation", e.target.value)}
+              placeholder="national | state:LA | county:22071"
+            />
+            <p className="mt-1 text-[11px] text-white/60">
+              Strategic placement filter used by ad targeting.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="priority">Priority</Label>
+            <Input
+              id="priority"
+              type="number"
+              min="0"
+              max="999"
+              value={formData.priority ?? 0}
+              onChange={(e) => updateField("priority", Number(e.target.value || 0))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="communityScore">Community Score</Label>
+            <Input
+              id="communityScore"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.communityScore ?? 50}
+              onChange={(e) => updateField("communityScore", Number(e.target.value || 0))}
+            />
           </div>
         </div>
 

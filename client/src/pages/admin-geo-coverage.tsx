@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { AlertCircle } from "lucide-react";
@@ -130,7 +130,70 @@ interface AdminUserSummary {
   roles?: string[] | null;
 }
 
+declare global {
+  interface Window {
+    google?: any;
+    gm_authFailure?: () => void;
+  }
+}
+
+const GEO_ADMIN_SCRIPT_ID = "ts-google-maps-admin-geo-script";
+
+function normalizeCoverageMarkerIcon(status: CountyCoverageStatus): string {
+  if (status === "full") return "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
+  if (status === "partial") return "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png";
+  return "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
+}
+
+async function fetchAdminGoogleMapsKey(): Promise<string> {
+  const response = await fetch(`/api/public-config?_=${Date.now()}`, {
+    method: "GET",
+    credentials: "omit",
+    headers: { Accept: "application/json", "Cache-Control": "no-cache" },
+    cache: "no-store",
+  });
+  if (!response.ok) return "";
+  const payload = (await response.json()) as any;
+  return String(payload?.googleMapsApiKey || "").trim();
+}
+
+async function loadAdminGoogleMapsScript(apiKey: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (window.google?.maps) return;
+
+  const existing = document.getElementById(GEO_ADMIN_SCRIPT_ID) as HTMLScriptElement | null;
+  if (existing) {
+    await new Promise<void>((resolve, reject) => {
+      if (window.google?.maps) {
+        resolve();
+        return;
+      }
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Failed to load Google Maps")), {
+        once: true,
+      });
+    });
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.id = GEO_ADMIN_SCRIPT_ID;
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google Maps"));
+    document.head.appendChild(script);
+  });
+}
+
 export default function AdminGeoCoverageConsole() {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerByFipsRef = useRef<Record<string, any>>({});
+  const geocoderRef = useRef<any>(null);
+
   const [location, navigate] = useLocation();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [stateFilter, setStateFilter] = useState<string | "all">("all");
@@ -147,6 +210,11 @@ export default function AdminGeoCoverageConsole() {
   const [affiliateSearch, setAffiliateSearch] = useState("");
   const [selectedAffiliateUserId, setSelectedAffiliateUserId] = useState<string>("");
   const [affiliateEntityType, setAffiliateEntityType] = useState<AffiliateEntityType>("affiliate");
+  const [mapsReady, setMapsReady] = useState(false);
+  const [mapsError, setMapsError] = useState("");
+  const [countyCentersByFips, setCountyCentersByFips] = useState<
+    Record<string, { lat: number; lng: number }>
+  >({});
 
   const queryClient = useQueryClient() || globalQueryClient;
   const { toast } = useToast();
@@ -239,6 +307,135 @@ export default function AdminGeoCoverageConsole() {
     () => filteredRows.find((row) => row.countyFips === selectedCountyFips) || null,
     [filteredRows, selectedCountyFips]
   );
+
+  useEffect(() => {
+    if (viewMode !== "map") return;
+    let cancelled = false;
+
+    fetchAdminGoogleMapsKey()
+      .then(async (key) => {
+        if (!key) throw new Error("Missing Google Maps API key");
+        await loadAdminGoogleMapsScript(key);
+        if (cancelled) return;
+        setMapsReady(true);
+        setMapsError("");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : "Failed to initialize Google Maps";
+        setMapsError(message);
+        setMapsReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "map" || !mapsReady || !mapContainerRef.current) return;
+    if (mapRef.current) return;
+
+    mapRef.current = new window.google.maps.Map(mapContainerRef.current, {
+      center: { lat: 39.8283, lng: -98.5795 },
+      zoom: 4,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      clickableIcons: false,
+      gestureHandling: "greedy",
+    });
+    geocoderRef.current = new window.google.maps.Geocoder();
+  }, [mapsReady, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "map" || !mapsReady || !geocoderRef.current) return;
+
+    const missing = filteredRows
+      .slice(0, 180)
+      .filter((row) => !countyCentersByFips[row.countyFips])
+      .slice(0, 24);
+
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+
+    const geocodeCounty = async (row: CountyCoverageRow) => {
+      return await new Promise<{ fips: string; lat: number; lng: number } | null>((resolve) => {
+        const query = `${row.countyName} County, ${row.stateCode}, USA`;
+        geocoderRef.current.geocode({ address: query }, (results: any[], status: string) => {
+          if (status !== "OK" || !Array.isArray(results) || !results[0]?.geometry?.location) {
+            resolve(null);
+            return;
+          }
+          const location = results[0].geometry.location;
+          resolve({
+            fips: row.countyFips,
+            lat: Number(location.lat?.()),
+            lng: Number(location.lng?.()),
+          });
+        });
+      });
+    };
+
+    (async () => {
+      const resolved = await Promise.all(missing.map((row) => geocodeCounty(row)));
+      if (cancelled) return;
+
+      const next: Record<string, { lat: number; lng: number }> = {};
+      for (const item of resolved) {
+        if (!item) continue;
+        if (!Number.isFinite(item.lat) || !Number.isFinite(item.lng)) continue;
+        next[item.fips] = { lat: item.lat, lng: item.lng };
+      }
+
+      if (Object.keys(next).length === 0) return;
+      setCountyCentersByFips((prev) => ({ ...prev, ...next }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [countyCentersByFips, filteredRows, mapsReady, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "map" || !mapsReady || !mapRef.current) return;
+
+    Object.values(markerByFipsRef.current).forEach((marker) => marker.setMap(null));
+    markerByFipsRef.current = {};
+
+    const bounds = new window.google.maps.LatLngBounds();
+
+    for (const row of filteredRows.slice(0, 180)) {
+      const center = countyCentersByFips[row.countyFips];
+      if (!center) continue;
+
+      const marker = new window.google.maps.Marker({
+        map: mapRef.current,
+        position: center,
+        title: `${row.countyName}, ${row.stateCode}`,
+        icon: normalizeCoverageMarkerIcon(row.coverageStatus),
+      });
+
+      marker.addListener("click", () => setSelectedCountyFips(row.countyFips));
+      markerByFipsRef.current[row.countyFips] = marker;
+      bounds.extend(center);
+    }
+
+    if (!bounds.isEmpty()) {
+      mapRef.current.fitBounds(bounds, 36);
+    }
+  }, [countyCentersByFips, filteredRows, mapsReady, viewMode]);
+
+  useEffect(() => {
+    if (!mapsReady || !mapRef.current || !selectedCountyFips) return;
+    const center = countyCentersByFips[selectedCountyFips];
+    if (!center) return;
+    mapRef.current.panTo(center);
+    if (typeof mapRef.current.getZoom === "function" && mapRef.current.getZoom() < 7) {
+      mapRef.current.setZoom(7);
+    }
+  }, [countyCentersByFips, mapsReady, selectedCountyFips]);
 
   const { data: countyFolder, isLoading: countyFolderLoading } = useQuery<CountyFolderResponse>({
     queryKey: ["/api/admin/geo/counties/folder", selectedCountyFips],
@@ -845,6 +1042,22 @@ export default function AdminGeoCoverageConsole() {
               </div>
 
               <div className="border border-white/10 rounded-md bg-black/30 p-3 md:h-[560px] max-h-[70vh] md:max-h-none overflow-auto space-y-3 min-w-0">
+                <div className="rounded border border-white/10 bg-black/20 p-2">
+                  <div className="mb-2 text-[11px] text-white/60">
+                    Google Maps county coverage view
+                  </div>
+                  {mapsError ? (
+                    <div className="rounded border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs text-red-200">
+                      {mapsError}
+                    </div>
+                  ) : (
+                    <div
+                      ref={mapContainerRef}
+                      className="h-[260px] w-full rounded border border-white/10"
+                    />
+                  )}
+                </div>
+
                 {!selectedCounty ? (
                   <div className="text-xs text-white/60">Choose a county to open its folder.</div>
                 ) : countyFolderLoading ? (
