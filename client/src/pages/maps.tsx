@@ -31,6 +31,8 @@ type TradeOption = {
   slug: string;
 };
 
+type SortMode = "priority" | "alpha" | "verified";
+
 declare global {
   interface Window {
     google?: any;
@@ -47,6 +49,53 @@ const GOOGLE_MAPS_MAP_ID = String(import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "")
 const SCRIPT_ID = "ts-google-maps-v1-script";
 const GOOGLE_MAPS_AUTH_FAILURE_EVENT = "ts:google-maps-auth-failure";
 const GOOGLE_MAPS_BILLING_FAILURE_EVENT = "ts:google-maps-billing-failure";
+
+const LAYER_META: Record<
+  MapEntityType,
+  {
+    label: string;
+    subtitle: string;
+    colorClass: string;
+    badgeClass: string;
+  }
+> = {
+  provider: {
+    label: "Provider",
+    subtitle: "Operational businesses",
+    colorClass: "bg-orange-400",
+    badgeClass: "border-orange-400/30 bg-orange-500/15 text-orange-100",
+  },
+  public_profile: {
+    label: "Public Profile",
+    subtitle: "Opt-in profile pages",
+    colorClass: "bg-sky-400",
+    badgeClass: "border-sky-400/30 bg-sky-500/15 text-sky-100",
+  },
+  business: {
+    label: "Business",
+    subtitle: "Directory businesses",
+    colorClass: "bg-fuchsia-400",
+    badgeClass: "border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-100",
+  },
+  trade_deal: {
+    label: "Trade Deal",
+    subtitle: "Market deal signals",
+    colorClass: "bg-emerald-400",
+    badgeClass: "border-emerald-400/30 bg-emerald-500/15 text-emerald-100",
+  },
+  food_truck: {
+    label: "Food Truck",
+    subtitle: "Local mobility listings",
+    colorClass: "bg-rose-400",
+    badgeClass: "border-rose-400/30 bg-rose-500/15 text-rose-100",
+  },
+  parking_pass: {
+    label: "Parking Pass",
+    subtitle: "Permit availability",
+    colorClass: "bg-amber-300",
+    badgeClass: "border-amber-400/30 bg-amber-500/15 text-amber-100",
+  },
+};
 
 function isGoogleMapsBillingErrorMessage(message: string): boolean {
   const value = String(message || "").toLowerCase();
@@ -74,9 +123,6 @@ function buildNormalizedBbox(bounds: any): string | null {
   let minLng = swLng;
   let maxLng = neLng;
 
-  // Google Maps can report wrapped bounds where west > east when the viewport
-  // crosses the antimeridian or briefly initializes in a wrapped state.
-  // The API expects minLng < maxLng, so widen to the full world span instead.
   if (minLng >= maxLng) {
     minLng = -180;
     maxLng = 180;
@@ -85,6 +131,43 @@ function buildNormalizedBbox(bounds: any): string | null {
   if (minLng < -180 || maxLng > 180 || minLng >= maxLng) return null;
 
   return [minLng, swLat, maxLng, neLat].map((value) => value.toFixed(6)).join(",");
+}
+
+function inferVerificationState(
+  point: MapEntityPoint
+): "verified" | "unverified" | "directory" | "unknown" {
+  const status = String((point.meta as any)?.verifiedStatus || "")
+    .trim()
+    .toLowerCase();
+  if (status === "verified") return "verified";
+  if (status === "unverified") return "unverified";
+  if (status === "directory") return "directory";
+  return "unknown";
+}
+
+function pointPriorityScore(point: MapEntityPoint): number {
+  const verification = inferVerificationState(point);
+  const verificationScore =
+    verification === "verified"
+      ? 100
+      : verification === "unverified"
+        ? 60
+        : verification === "directory"
+          ? 40
+          : 10;
+  const typeScore: Record<MapEntityType, number> = {
+    provider: 50,
+    business: 35,
+    public_profile: 30,
+    trade_deal: 25,
+    food_truck: 20,
+    parking_pass: 15,
+  };
+  return verificationScore + (typeScore[point.type] || 0);
+}
+
+function formatTypeLabel(type: MapEntityType): string {
+  return LAYER_META[type]?.label || type.replace(/_/g, " ");
 }
 
 function buildPublicConfigCandidates(): string[] {
@@ -149,8 +232,6 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
   }
 
   await new Promise<void>((resolve, reject) => {
-    // Google Maps calls `window.gm_authFailure()` when the key is blocked by restrictions
-    // (commonly HTTP referrer restrictions / RefererNotAllowedMapError).
     window.gm_authFailure = () => {
       window.dispatchEvent(new CustomEvent(GOOGLE_MAPS_AUTH_FAILURE_EVENT));
       reject(new Error("Google Maps auth failed (check HTTP referrer restrictions)"));
@@ -170,6 +251,7 @@ async function loadGoogleMapsScript(apiKey: string): Promise<void> {
 export default function MapsPage() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const markerByIdRef = useRef<Record<string, any>>({});
   const markersRef = useRef<any[]>([]);
   const clustererRef = useRef<MarkerClusterer | null>(null);
 
@@ -190,10 +272,13 @@ export default function MapsPage() {
     parking_pass: true,
   });
   const [selectedPoint, setSelectedPoint] = useState<MapEntityPoint | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("priority");
 
   const clearMapArtifacts = () => {
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
+    markerByIdRef.current = {};
     if (clustererRef.current) {
       clustererRef.current.clearMarkers();
       clustererRef.current = null;
@@ -236,7 +321,6 @@ export default function MapsPage() {
       return;
     }
 
-    // Key is available now; clear any earlier "missing key" error.
     setScriptError("");
 
     let cancelled = false;
@@ -358,6 +442,60 @@ export default function MapsPage() {
   });
 
   const points = useMemo(() => entitiesData?.points || [], [entitiesData?.points]);
+
+  const pointCountsByType = useMemo(() => {
+    const counts: Record<MapEntityType, number> = {
+      provider: 0,
+      public_profile: 0,
+      business: 0,
+      trade_deal: 0,
+      food_truck: 0,
+      parking_pass: 0,
+    };
+    for (const point of points) {
+      counts[point.type] = (counts[point.type] || 0) + 1;
+    }
+    return counts;
+  }, [points]);
+
+  const verifiedCount = useMemo(
+    () => points.filter((point) => inferVerificationState(point) === "verified").length,
+    [points]
+  );
+
+  const searchablePoints = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    let next = points;
+
+    if (query) {
+      next = next.filter((point) => {
+        const haystack =
+          `${point.title || ""} ${point.subtitle || ""} ${formatTypeLabel(point.type)}`.toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    const sorted = [...next];
+    if (sortMode === "alpha") {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortMode === "verified") {
+      sorted.sort((a, b) => {
+        const va = inferVerificationState(a) === "verified" ? 1 : 0;
+        const vb = inferVerificationState(b) === "verified" ? 1 : 0;
+        if (va !== vb) return vb - va;
+        return a.title.localeCompare(b.title);
+      });
+    } else {
+      sorted.sort((a, b) => {
+        const score = pointPriorityScore(b) - pointPriorityScore(a);
+        if (score !== 0) return score;
+        return a.title.localeCompare(b.title);
+      });
+    }
+
+    return sorted;
+  }, [points, searchText, sortMode]);
+
   const trades = useMemo(
     () =>
       (Array.isArray(tradesData) ? tradesData : [])
@@ -369,11 +507,16 @@ export default function MapsPage() {
   useEffect(() => {
     if (!scriptReady || !mapRef.current) return;
 
-    clearMapArtifacts();
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+    markerByIdRef.current = {};
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+      clustererRef.current = null;
+    }
 
     const iconForPoint = (point: MapEntityPoint) => {
       const verifiedStatus = String((point.meta as any)?.verifiedStatus || "").toLowerCase();
-      // Verified entities should stand out. Anything not verified (including directory shells) is grey.
       if (verifiedStatus === "verified") {
         return "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
       }
@@ -393,7 +536,7 @@ export default function MapsPage() {
       return `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
     };
 
-    const markers = points.map((point) => {
+    const markers = searchablePoints.map((point) => {
       const marker = new window.google.maps.Marker({
         position: { lat: point.lat, lng: point.lng },
         title: point.title,
@@ -402,6 +545,7 @@ export default function MapsPage() {
       marker.addListener("click", () => {
         setSelectedPoint(point);
       });
+      markerByIdRef.current[point.id] = marker;
       return marker;
     });
 
@@ -410,7 +554,21 @@ export default function MapsPage() {
       map: mapRef.current,
       markers,
     });
-  }, [points, scriptReady]);
+  }, [searchablePoints, scriptReady]);
+
+  const focusPoint = (point: MapEntityPoint) => {
+    setSelectedPoint(point);
+    const map = mapRef.current;
+    if (!map) return;
+    map.panTo({ lat: point.lat, lng: point.lng });
+    if (typeof map.getZoom === "function" && map.getZoom() < 12) {
+      map.setZoom(12);
+    }
+    const marker = markerByIdRef.current[point.id];
+    if (marker && typeof window.google?.maps?.event?.trigger === "function") {
+      window.google.maps.event.trigger(marker, "click");
+    }
+  };
 
   if (!MAPS_V1_ENABLED) {
     return (
@@ -434,7 +592,7 @@ export default function MapsPage() {
       lower.includes("not allowed");
 
     return (
-      <div className="mx-auto max-w-4xl p-4 md:p-6">
+      <div className="mx-auto max-w-5xl p-4 md:p-6">
         <div className="rounded-xl border border-red-500/40 bg-red-950/30 p-4">
           <h1 className="text-lg font-semibold text-white">Map unavailable</h1>
           <p className="mt-1 text-sm text-red-200">{scriptError}</p>
@@ -493,106 +651,276 @@ export default function MapsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-3 md:p-4 space-y-3">
+    <div className="mx-auto max-w-[1400px] p-3 md:p-5 space-y-4">
       <SEOHelmet
         title="TradeScout Local Map | County-Aware Profiles, Deals, and Activity"
         description="Explore the TradeScout local awareness map with county-scoped profiles, trade deals, and public local activity overlays."
         canonical="https://www.thetradescout.com/maps"
       />
-      <header className="rounded-xl border border-white/10 bg-tsCard p-3 md:p-4">
-        <h1 className="text-base md:text-lg font-semibold text-white">Local Map</h1>
-        <p className="text-xs md:text-sm text-white/60 mt-1">
-          Awareness map with opt-in profiles, deals, and external feeds.
-        </p>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
-          <label className="text-xs text-white/60">
-            Trade
-            <select
-              className="mt-1 w-full rounded-md border border-white/10 bg-tsBg px-2 py-2 text-sm text-white"
-              value={trade}
-              onChange={(event) => setTrade(event.target.value)}
+
+      <header className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-slate-950 via-[#08111f] to-[#091b13] p-4 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ts-orange">
+              TradeScout Associate Intelligence Surface
+            </p>
+            <h1 className="mt-2 text-xl md:text-2xl font-semibold text-white">
+              Local Map, rebuilt for decision-grade routing and trust-first discovery
+            </h1>
+            <p className="mt-2 text-sm md:text-base text-white/70">
+              Use this awareness surface to audit local signal density, verified presence, and
+              next-step readiness before Scout escalates toward intent and decision cards.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/directory"
+              className="rounded-lg border border-ts-orange/50 bg-ts-orange/10 px-4 py-2 text-sm font-semibold text-ts-orange hover:bg-ts-orange/20"
             >
-              <option value="">All trades</option>
-              {trades.map((item) => (
-                <option key={item.id} value={item.slug}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-end gap-2 rounded-md border border-white/10 bg-tsBg px-3 py-2">
-            <input
-              type="checkbox"
-              checked={verifiedOnly}
-              onChange={(event) => setVerifiedOnly(event.target.checked)}
-            />
-            <span className="text-sm text-white">Verified only</span>
-          </label>
-          <div className="rounded-md border border-white/10 bg-tsBg px-3 py-2">
-            <div className="text-xs uppercase tracking-wide text-white/60">Layers</div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(Object.keys(layers) as MapEntityType[]).map((key) => (
-                <label key={key} className="flex items-center gap-2 text-xs text-white">
+              View county directory
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <div className="text-[11px] uppercase tracking-wide text-white/60">Active pins</div>
+            <div className="mt-1 text-xl font-semibold text-white">{searchablePoints.length}</div>
+            <div className="text-xs text-white/60">
+              {isFetching ? "Refreshing bounds..." : "Live viewport"}
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <div className="text-[11px] uppercase tracking-wide text-white/60">Verified share</div>
+            <div className="mt-1 text-xl font-semibold text-white">
+              {points.length > 0 ? Math.round((verifiedCount / points.length) * 100) : 0}%
+            </div>
+            <div className="text-xs text-white/60">{verifiedCount} verified points in view</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <div className="text-[11px] uppercase tracking-wide text-white/60">Awareness state</div>
+            <div className="mt-1 text-xl font-semibold text-white">
+              {verifiedOnly ? "Verification-focused" : "Mixed visibility"}
+            </div>
+            <div className="text-xs text-white/60">Contact remains gated through Scout flow</div>
+          </div>
+        </div>
+      </header>
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <aside className="rounded-2xl border border-white/10 bg-tsCard/90 p-4 space-y-4">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Control Deck</h2>
+            <p className="mt-1 text-xs text-white/60">
+              Tune surface evidence for associate routing and Scout handoff confidence.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs text-white/70">
+              Trade focus
+              <select
+                className="mt-1 w-full rounded-lg border border-white/10 bg-tsBg px-3 py-2 text-sm text-white"
+                value={trade}
+                onChange={(event) => setTrade(event.target.value)}
+              >
+                <option value="">All trades</option>
+                {trades.map((item) => (
+                  <option key={item.id} value={item.slug}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block text-xs text-white/70">
+              Search points
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="Name, subtitle, or type"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-tsBg px-3 py-2 text-sm text-white placeholder:text-white/30"
+              />
+            </label>
+
+            <label className="block text-xs text-white/70">
+              Sort by
+              <select
+                className="mt-1 w-full rounded-lg border border-white/10 bg-tsBg px-3 py-2 text-sm text-white"
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as SortMode)}
+              >
+                <option value="priority">Trust priority</option>
+                <option value="verified">Verified first</option>
+                <option value="alpha">Alphabetical</option>
+              </select>
+            </label>
+
+            <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-tsBg px-3 py-2 text-sm text-white">
+              <input
+                type="checkbox"
+                checked={verifiedOnly}
+                onChange={(event) => setVerifiedOnly(event.target.checked)}
+              />
+              Verified only
+            </label>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[11px] uppercase tracking-wide text-white/60">
+              Layer Visibility
+            </div>
+            {(Object.keys(layers) as MapEntityType[]).map((key) => (
+              <label
+                key={key}
+                className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-tsBg px-3 py-2"
+              >
+                <div className="flex items-start gap-2">
                   <input
                     type="checkbox"
                     checked={layers[key]}
                     onChange={(event) =>
                       setLayers((prev) => ({ ...prev, [key]: event.target.checked }))
                     }
+                    className="mt-0.5"
                   />
-                  <span className="capitalize">{key.replace(/_/g, " ")}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-md border border-white/10 bg-tsBg px-3 py-2">
-            <div className="text-xs uppercase tracking-wide text-white/60">Pins</div>
-            <div className="text-sm text-white">{points.length}</div>
-            <div className="text-xs text-white/60">
-              {isFetching ? "Updating..." : "Live bounds"}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <section className="relative overflow-hidden rounded-xl border border-white/10 bg-black">
-        <div ref={mapContainerRef} className="h-[62vh] min-h-[420px] w-full" />
-      </section>
-
-      {selectedPoint && (
-        <section className="rounded-xl border border-white/10 bg-tsCard p-3 md:p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-white">{selectedPoint.title}</div>
-              {selectedPoint.subtitle ? (
-                <div className="mt-1 text-xs text-white/60">{selectedPoint.subtitle}</div>
-              ) : (
-                <div className="mt-1 text-xs text-white/60 capitalize">
-                  {selectedPoint.type.replace(/_/g, " ")}
+                  <div>
+                    <div className="text-sm text-white">{LAYER_META[key].label}</div>
+                    <div className="text-[11px] text-white/50">{LAYER_META[key].subtitle}</div>
+                  </div>
                 </div>
+                <div className="text-xs text-white/70">{pointCountsByType[key] || 0}</div>
+              </label>
+            ))}
+          </div>
+        </aside>
+
+        <div className="space-y-4">
+          <section className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-950/90 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {(Object.keys(layers) as MapEntityType[])
+                  .filter((type) => layers[type])
+                  .map((type) => (
+                    <span
+                      key={type}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] ${LAYER_META[type].badgeClass}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${LAYER_META[type].colorClass}`} />
+                      {LAYER_META[type].label}
+                    </span>
+                  ))}
+              </div>
+              <div className="text-xs text-white/60">
+                {isFetching ? "Updating map..." : `Viewport pins: ${searchablePoints.length}`}
+              </div>
+            </div>
+            <div ref={mapContainerRef} className="h-[64vh] min-h-[420px] w-full" />
+          </section>
+
+          {selectedPoint && (
+            <section className="rounded-2xl border border-white/10 bg-tsCard p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-base font-semibold text-white">{selectedPoint.title}</div>
+                  <div className="mt-1 text-xs text-white/60">
+                    {selectedPoint.subtitle || formatTypeLabel(selectedPoint.type)}
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-2 text-xs">
+                    <span className="text-white/50">Trust state:</span>
+                    <span className="rounded-full border border-white/15 bg-tsBg px-2 py-0.5 text-white">
+                      {inferVerificationState(selectedPoint)}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPoint(null)}
+                  className="rounded-md border border-white/10 bg-tsBg px-2 py-1 text-xs text-white"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {selectedPoint.href ? (
+                  <a
+                    href={selectedPoint.href}
+                    className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-white"
+                  >
+                    Open profile
+                  </a>
+                ) : null}
+                {selectedPoint.type === "provider" ? (
+                  <Link
+                    href={`/request-quote?providerId=${encodeURIComponent(selectedPoint.id)}`}
+                    className="inline-flex items-center rounded-md bg-ts-orange px-3 py-2 text-sm font-semibold text-black"
+                  >
+                    Start decision-ready quote
+                  </Link>
+                ) : null}
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-2xl border border-white/10 bg-tsCard p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-white">Signal Stream</h2>
+                <p className="text-xs text-white/60">
+                  Ranked points for associates to evaluate before escalation.
+                </p>
+              </div>
+              <div className="text-xs text-white/60">
+                Showing {Math.min(searchablePoints.length, 60)} entries
+              </div>
+            </div>
+
+            <div className="mt-3 max-h-[340px] overflow-auto space-y-2 pr-1">
+              {searchablePoints.length === 0 ? (
+                <div className="rounded-lg border border-white/10 bg-tsBg px-3 py-4 text-sm text-white/60">
+                  No points match this control set.
+                </div>
+              ) : (
+                searchablePoints.slice(0, 60).map((point) => {
+                  const selected = selectedPoint?.id === point.id;
+                  return (
+                    <button
+                      key={`${point.type}-${point.id}`}
+                      type="button"
+                      onClick={() => focusPoint(point)}
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition ${
+                        selected
+                          ? "border-ts-orange/60 bg-ts-orange/10"
+                          : "border-white/10 bg-tsBg hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-white">{point.title}</div>
+                          <div className="mt-0.5 text-xs text-white/60">
+                            {point.subtitle || LAYER_META[point.type].subtitle}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] ${LAYER_META[point.type].badgeClass}`}
+                          >
+                            {LAYER_META[point.type].label}
+                          </span>
+                          <span className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-[11px] text-white/75">
+                            {inferVerificationState(point)}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedPoint(null)}
-              className="rounded-md border border-white/10 bg-tsBg px-2 py-1 text-xs text-white"
-            >
-              Close
-            </button>
-          </div>
-
-          {selectedPoint.type === "provider" && (
-            <div className="mt-3">
-              <Link
-                href={`/request-quote?providerId=${encodeURIComponent(selectedPoint.id)}`}
-                className="inline-flex items-center rounded-md bg-ts-orange px-3 py-2 text-sm font-semibold text-black"
-              >
-                Request Quote
-              </Link>
-            </div>
-          )}
-        </section>
-      )}
+          </section>
+        </div>
+      </section>
     </div>
   );
 }
