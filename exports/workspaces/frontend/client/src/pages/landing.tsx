@@ -685,21 +685,10 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
 
 // ---- Pricing Section ----
 function PricingSection() {
-  const features = [
-    "Unlimited directory search",
-    "Guided local matching",
-    "Community tips and guides",
-    "Scout assistant",
-    "Local checklists",
-    "Role-specific dashboards",
-  ];
-
-  const sponsorFeatures = [
-    "$0 access to features, connections, and information",
-    "No lead reselling",
-    "Businesses cannot pay to jump the line",
-    "No paywalls or locked access tiers",
-    "No paid placement in rankings",
+  const quickStart = [
+    "Tell Scout your exact project and timeline",
+    "Review 1-3 trust-ranked matches before contact opens",
+    "Approve contact only when the fit looks right",
   ];
 
   return (
@@ -711,64 +700,31 @@ function PricingSection() {
         <Reveal className="text-center mb-3">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Sparkles className="w-4 h-4 text-ts-orange" />
-            <span className="text-sm font-medium text-ts-orange">Simple Pricing</span>
+            <span className="text-sm font-medium text-ts-orange">What To Expect</span>
           </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">$0</h2>
-          <p className="text-sm text-white/60 max-w-2xl mx-auto">For you. For free. Forever.</p>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+            Faster path. Less noise.
+          </h2>
+          <p className="text-sm text-white/60 max-w-2xl mx-auto">
+            Start here if you want to understand how TradeScout helps you make a clean local
+            decision without spam.
+          </p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
             We make money without charging you for access. No paywalls. No lead reselling. No paid
             placement.
           </p>
         </Reveal>
 
-        <div className="grid lg:grid-cols-2 gap-3 mb-3">
-          <Reveal>
-            <div className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
-              <h3 className="font-display text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-ts-orange" />
-                What You Get
-              </h3>
-              <ul className="space-y-1.5">
-                {features.map((feature, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-white/80">
-                    <CheckCircle className="w-4 h-4 text-ts-orange flex-shrink-0 mt-0.5" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
-              <h3 className="font-display text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-ts-orange" />
-                How We Keep It $0
-              </h3>
-              <ul className="space-y-1.5">
-                {sponsorFeatures.map((feature, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-white/80">
-                    <CheckCircle className="w-4 h-4 text-ts-orange flex-shrink-0 mt-0.5" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-        </div>
-
-        <Reveal className="bg-gradient-to-r from-ts-orange/20 via-ts-orange/10 to-transparent border border-ts-orange/30 rounded-xl p-3 text-center">
-          <h3 className="font-display text-lg font-bold text-white mb-1.5">
-            Community Builders & Local Reinvestment
-          </h3>
-          <p className="text-sm text-white/70 mb-2">
-            Community Builders help direct community vault support back to their counties with
-            transparency-first reporting.
-          </p>
-          <p className="text-xs text-white/60">
-            Community Builders earn badges that let them send and vote on causes funded from the
-            community vault.
-          </p>
+        <Reveal className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 shadow-[0_18px_52px_rgba(0,0,0,0.36)] mb-3">
+          <h3 className="font-display text-lg font-bold text-white mb-2.5">Before You Start</h3>
+          <ul className="space-y-1.5">
+            {quickStart.map((step, i) => (
+              <li key={i} className="flex gap-2 text-sm text-white/80">
+                <CheckCircle className="w-4 h-4 text-ts-orange flex-shrink-0 mt-0.5" />
+                {step}
+              </li>
+            ))}
+          </ul>
         </Reveal>
 
         <div className="mt-3">
@@ -811,13 +767,16 @@ function FAQSection() {
   ];
 
   return (
-    <section className="relative py-4 md:py-6 bg-transparent">
+    <section id="faq" className="relative py-4 md:py-6 bg-transparent">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center mb-3">
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
             Frequently Asked Questions
           </h2>
-          <p className="text-sm text-white/60">Everything you need to know about TradeScout</p>
+          <p className="text-sm text-white/60">
+            Quick answers on cost, matching, trust score, and what to do if your first matches are
+            off.
+          </p>
         </Reveal>
 
         <Reveal>
@@ -981,11 +940,11 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
               <li>
                 <button
                   onClick={() =>
-                    document.getElementById("audience")?.scrollIntoView({ behavior: "smooth" })
+                    document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })
                   }
                   className="hover:text-ts-orange transition-colors"
                 >
-                  Who it's for
+                  Quick answers
                 </button>
               </li>
               <li>
@@ -1154,7 +1113,6 @@ export default function Home() {
         <HowItWorksSection />
         <TrustSection variant={trackedVariant} />
         <DirectConnectSection variant={trackedVariant} />
-        <AudienceSection variant={trackedVariant} />
         <PricingSection />
         <FAQSection />
         <CTASection variant={trackedVariant} />
