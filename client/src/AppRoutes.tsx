@@ -406,6 +406,7 @@ const ForBusinessesPage = React.lazy(() => import("./pages/for-businesses"));
 const FindLocalBusinessesPage = React.lazy(() => import("./pages/find-local-businesses"));
 const PensacolaPage = React.lazy(() => import("./pages/pensacola"));
 const PensacolaClusterPage = React.lazy(() => import("./pages/pensacola-cluster"));
+const TangipahoaPage = React.lazy(() => import("./pages/tangipahoa"));
 const TrustModel = React.lazy(() => import("./pages/trust-model"));
 const DirectConnectInfo = React.lazy(() => import("./pages/direct-connect-info"));
 const CompareHub = React.lazy(() => import("./pages/compare"));
@@ -1735,6 +1736,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/pensacola/:clusterSlug">
                 <LazyPage Component={PensacolaClusterPage} />
+              </Route>
+              <Route path="/tangipahoa">
+                <LazyPage Component={TangipahoaPage} />
               </Route>
               <Route path="/trust-model">
                 <LazyPage Component={TrustModel} />

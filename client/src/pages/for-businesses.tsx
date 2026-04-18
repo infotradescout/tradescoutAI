@@ -32,9 +32,9 @@ const faqItems = [
 ];
 
 export default function ForBusinessesPage() {
-  const pensacolaApplyHref = "/contractors/apply?state=FL&county=12033&source=pensacola-launch";
-  const pensacolaDemandHref =
-    "/direct-connect?county=12033&source=pensacola-launch&intent=provider_demand";
+  const tangipahoaApplyHref = "/contractors/apply?state=LA&county=22105&source=tangipahoa-launch";
+  const tangipahoaDemandHref =
+    "/direct-connect?county=22105&source=tangipahoa-launch&intent=provider_demand";
   const topQueries = BUSINESS_POPULAR_QUERIES.slice(0, 16);
 
   const structuredData = {
@@ -74,14 +74,14 @@ export default function ForBusinessesPage() {
           actively looking for help. Contact is gated by intent and trust, not bought rankings.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href={pensacolaApplyHref}>
+          <Link href={tangipahoaApplyHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Claim Pensacola coverage
+              Claim Tangipahoa coverage
             </Button>
           </Link>
-          <Link href={pensacolaDemandHref}>
+          <Link href={tangipahoaDemandHref}>
             <Button variant="outline" className="border-white/20 text-white">
-              View Pensacola demand flow
+              View Tangipahoa demand flow
             </Button>
           </Link>
         </div>
@@ -111,30 +111,30 @@ export default function ForBusinessesPage() {
         <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
           Launch Focus
         </p>
-        <h2 className="text-2xl font-bold text-white">Pensacola, FL business launch</h2>
+        <h2 className="text-2xl font-bold text-white">Tangipahoa Parish, LA business launch</h2>
         <p className="text-sm text-white/75 max-w-3xl">
-          We are concentrating supply onboarding in Escambia County first. Businesses that activate
-          now in Pensacola get first-mover visibility within trust and county rules.
+          We are concentrating onboarding in Tangipahoa Parish first. Businesses that activate now
+          get early local visibility with county-level demand coverage.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link href={pensacolaApplyHref}>
+          <Link href={tangipahoaApplyHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Start Pensacola onboarding
+              Start Tangipahoa onboarding
             </Button>
           </Link>
-          <Link href="/pensacola">
+          <Link href="/tangipahoa">
             <Button variant="outline" className="border-white/20 text-white">
-              Open Pensacola hub
+              Open Tangipahoa hub
             </Button>
           </Link>
-          <Link href="/trade/hvac/fl">
+          <Link href="/trade/hvac/la">
             <Button variant="outline" className="border-white/20 text-white">
-              Browse FL trade demand
+              Browse LA trade demand
             </Button>
           </Link>
-          <Link href="/pensacola/electrical-contractors">
+          <Link href="/trade/electrical/la">
             <Button variant="outline" className="border-white/20 text-white">
-              Pensacola electrical lane
+              Louisiana electrical lane
             </Button>
           </Link>
         </div>

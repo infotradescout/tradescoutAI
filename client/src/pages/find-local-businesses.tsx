@@ -32,8 +32,9 @@ const faqItems = [
 ];
 
 export default function FindLocalBusinessesPage() {
-  const pensacolaHref = "/direct-connect?county=12033&source=pensacola-launch&intent=local_search";
-  const pensacolaCountyHref = "/county/fl/escambia/recent";
+  const tangipahoaHref =
+    "/direct-connect?county=22105&source=tangipahoa-launch&intent=local_search";
+  const tangipahoaCountyHref = "/county/la/tangipahoa/recent";
   const topQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 18);
 
   const structuredData = {
@@ -73,9 +74,9 @@ export default function FindLocalBusinessesPage() {
           trade and county context, then connect through a trust-first flow.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href={pensacolaHref}>
+          <Link href={tangipahoaHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Get my Pensacola shortlist
+              Get my Tangipahoa shortlist
             </Button>
           </Link>
           <Link href="/trade">
@@ -90,30 +91,30 @@ export default function FindLocalBusinessesPage() {
         <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
           Ground Zero Market
         </p>
-        <h2 className="text-2xl font-bold text-white">Pensacola, FL first</h2>
+        <h2 className="text-2xl font-bold text-white">Tangipahoa Parish, LA first</h2>
         <p className="text-sm text-white/75 max-w-3xl">
-          We are hyper-focused on Escambia County first so people in Pensacola get stronger local
-          match quality and faster response loops while we scale outward.
+          We are hyper-focused on Tangipahoa Parish first so local users get stronger match quality
+          and faster response loops while we scale outward.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link href={pensacolaHref}>
+          <Link href={tangipahoaHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Start a Pensacola request
+              Start a Tangipahoa request
             </Button>
           </Link>
-          <Link href="/pensacola">
+          <Link href="/tangipahoa">
             <Button variant="outline" className="border-white/20 text-white">
-              Open Pensacola hub
+              Open Tangipahoa hub
             </Button>
           </Link>
-          <Link href={pensacolaCountyHref}>
+          <Link href={tangipahoaCountyHref}>
             <Button variant="outline" className="border-white/20 text-white">
-              View Escambia activity
+              View Tangipahoa activity
             </Button>
           </Link>
-          <Link href="/pensacola/hvac-repair">
+          <Link href="/trade/hvac/la">
             <Button variant="outline" className="border-white/20 text-white">
-              Pensacola HVAC demand
+              Louisiana HVAC demand
             </Button>
           </Link>
         </div>

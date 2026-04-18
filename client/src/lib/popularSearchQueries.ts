@@ -4,6 +4,10 @@ export type PopularQuery = {
 };
 
 export const HOMEOWNER_POPULAR_QUERIES: PopularQuery[] = [
+  { query: "contractors in tangipahoa parish", href: "/tangipahoa" },
+  { query: "hammond la hvac repair", href: "/trade/hvac/la" },
+  { query: "ponchatoula electrician", href: "/trade/electrical/la" },
+  { query: "roofing contractor tangipahoa parish", href: "/trade/roofing/la" },
   { query: "drywall repair houston", href: "/trade/drywall-contractor/tx" },
   { query: "handyman montgomery county maryland", href: "/trade/handyman/md" },
   { query: "hvac contractors ri", href: "/trade/hvac/ri" },
@@ -38,6 +42,10 @@ export const HOMEOWNER_POPULAR_QUERIES: PopularQuery[] = [
 ];
 
 export const BUSINESS_POPULAR_QUERIES: PopularQuery[] = [
+  { query: "tangipahoa parish business marketing", href: "/tangipahoa" },
+  { query: "how to get local jobs in hammond la", href: "/tangipahoa" },
+  { query: "contractor leads tangipahoa parish", href: "/tangipahoa" },
+  { query: "louisiana local service business growth", href: "/for-businesses" },
   { query: "trade scout", href: "/for-businesses" },
   { query: "tradescout", href: "/for-businesses" },
   { query: "trade scouts", href: "/for-businesses" },
