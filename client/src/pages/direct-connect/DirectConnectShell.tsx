@@ -450,6 +450,7 @@ type DraftAttachment = {
 type DirectoryCandidate = {
   id: string;
   companyName?: string | null;
+  name?: string | null;
   serviceAreas?: string[] | null;
   trustScore?: number | string | null;
   cvsScore?: number | string | null;
@@ -458,6 +459,10 @@ type DirectoryCandidate = {
   city?: string | null;
   state?: string | null;
   responseTimeSla?: number | string | null;
+  providerType?: "contractor" | "business" | "worker" | null;
+  businessId?: string | null;
+  slug?: string | null;
+  roleContext?: string | null;
 };
 
 type DispatchMode = "top_count" | "direct_pick";
@@ -1187,7 +1192,8 @@ function DirectConnectRequestComposer({
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1">
                             <p className="text-xs font-semibold text-[color:var(--text-primary)]">
-                              {index + 1}. {candidate.companyName || "Local company"}
+                              {index + 1}.{" "}
+                              {candidate.companyName || candidate.name || "Local company"}
                             </p>
                             <p className="text-[11px] text-[color:var(--text-secondary)]">
                               {distance !== null
@@ -2652,7 +2658,8 @@ function MyDirectConnectRequests() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-1">
                           <p className="text-xs font-semibold text-[color:var(--text-primary)]">
-                            {index + 1}. {candidate.companyName || "Local business"}
+                            {index + 1}.{" "}
+                            {candidate.companyName || candidate.name || "Local business"}
                           </p>
                           <p className="text-[11px] text-[color:var(--text-secondary)]">
                             {distance !== null

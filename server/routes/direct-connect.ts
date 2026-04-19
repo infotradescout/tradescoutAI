@@ -1074,12 +1074,35 @@ export function registerDirectConnectRoutes(app: Express) {
         });
 
         if (isDirectToProviders) {
+          // Resolve contractor IDs (legacy path) and business IDs (universal provider path).
+          // IDs from /api/providers/search may be contractor IDs or business IDs; we try both.
           const invitedContractors = await db
             .select()
             .from(contractors)
             .where(inArray(contractors.id, requestedTargetIds));
 
-          if (!invitedContractors.length) {
+          const invitedContractorIds = new Set(
+            invitedContractors.map((c) => String(c.id || "").trim()).filter(Boolean)
+          );
+
+          // Any IDs not resolved as contractors are treated as potential business IDs.
+          const potentialBusinessIds = requestedTargetIds.filter(
+            (id) => !invitedContractorIds.has(id)
+          );
+          const invitedBusinesses =
+            potentialBusinessIds.length > 0
+              ? await db
+                  .select()
+                  .from(businesses)
+                  .where(
+                    and(
+                      inArray(businesses.id, potentialBusinessIds),
+                      eq(businesses.status, "active" as any)
+                    )
+                  )
+              : [];
+
+          if (!invitedContractors.length && !invitedBusinesses.length) {
             return res.status(200).json({ assignments: [], routed: false });
           }
 
@@ -1089,23 +1112,26 @@ export function registerDirectConnectRoutes(app: Express) {
           );
           const eligibleContractors = eligibility.eligible;
 
-          const existingAssignments = await db
-            .select({ contractorId: workRequestAssignments.contractorId })
-            .from(workRequestAssignments)
-            .where(
-              and(
-                eq(workRequestAssignments.workRequestId, requestId),
-                inArray(
-                  workRequestAssignments.contractorId,
-                  eligibleContractors
-                    .map((contractor) => String(contractor.id || "").trim())
-                    .filter(Boolean)
-                )
-              )
-            );
+          const existingContractorAssignments =
+            eligibleContractors.length > 0
+              ? await db
+                  .select({ contractorId: workRequestAssignments.contractorId })
+                  .from(workRequestAssignments)
+                  .where(
+                    and(
+                      eq(workRequestAssignments.workRequestId, requestId),
+                      inArray(
+                        workRequestAssignments.contractorId,
+                        eligibleContractors
+                          .map((contractor) => String(contractor.id || "").trim())
+                          .filter(Boolean)
+                      )
+                    )
+                  )
+              : [];
 
           const existingContractorIds = new Set(
-            existingAssignments
+            existingContractorAssignments
               .map((assignment) => String(assignment.contractorId || "").trim())
               .filter(Boolean)
           );
@@ -1114,7 +1140,25 @@ export function registerDirectConnectRoutes(app: Express) {
             (contractor) => !existingContractorIds.has(String(contractor.id || "").trim())
           );
 
-          if (!contractorsToAssign.length) {
+          // For businesses: check existing responderUserId assignments to avoid duplicates.
+          const existingBizAssignments =
+            invitedBusinesses.length > 0
+              ? await db
+                  .select({ responderUserId: (workRequestAssignments as any).responderUserId })
+                  .from(workRequestAssignments)
+                  .where(eq(workRequestAssignments.workRequestId, requestId))
+              : [];
+          const existingResponderUserIds = new Set(
+            existingBizAssignments
+              .map((a: any) => String(a.responderUserId || "").trim())
+              .filter(Boolean)
+          );
+          const businessesToAssign = invitedBusinesses.filter(
+            (biz) =>
+              biz.ownerUserId && !existingResponderUserIds.has(String(biz.ownerUserId || "").trim())
+          );
+
+          if (!contractorsToAssign.length && !businessesToAssign.length) {
             return res.status(200).json({
               assignments: [],
               routed: false,
@@ -1124,17 +1168,28 @@ export function registerDirectConnectRoutes(app: Express) {
           }
 
           const now = new Date();
-          const assignmentsPayload = contractorsToAssign.map((contractor) => ({
+          const contractorAssignmentsPayload = contractorsToAssign.map((contractor) => ({
             workRequestId: requestId,
             contractorId: contractor.id,
             status: "invited" as const,
             createdAt: now,
             updatedAt: now,
           }));
-
+          const businessAssignmentsPayload = businessesToAssign.map((biz) => ({
+            workRequestId: requestId,
+            contractorId: null as any,
+            responderUserId: biz.ownerUserId!,
+            status: "invited" as const,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const allAssignmentsPayload = [
+            ...contractorAssignmentsPayload,
+            ...businessAssignmentsPayload,
+          ];
           const assignments = await db
             .insert(workRequestAssignments)
-            .values(assignmentsPayload)
+            .values(allAssignmentsPayload)
             .returning();
 
           await db
@@ -1143,29 +1198,44 @@ export function registerDirectConnectRoutes(app: Express) {
             .where(eq(workRequests.id, requestId));
 
           try {
-            await db.insert(workRequestEvents).values(
-              contractorsToAssign.map((contractor) => ({
-                workRequestId: requestId,
-                type: "provider_invited" as const,
-                actorUserId: String(userId),
-                metadata: {
-                  contractorId: contractor.id,
-                  contractorUserId: contractor.userId ?? null,
-                  source: "direct_connect",
-                  routeMode: "owner_direct",
-                },
-              }))
-            );
+            const contractorEvents = contractorsToAssign.map((contractor) => ({
+              workRequestId: requestId,
+              type: "provider_invited" as const,
+              actorUserId: String(userId),
+              metadata: {
+                contractorId: contractor.id,
+                contractorUserId: contractor.userId ?? null,
+                source: "direct_connect",
+                routeMode: "owner_direct",
+              },
+            }));
+            const businessEvents = businessesToAssign.map((biz) => ({
+              workRequestId: requestId,
+              type: "provider_invited" as const,
+              actorUserId: String(userId),
+              metadata: {
+                businessId: biz.id,
+                responderUserId: biz.ownerUserId ?? null,
+                source: "direct_connect",
+                routeMode: "owner_direct",
+              },
+            }));
+            if (contractorEvents.length || businessEvents.length) {
+              await db.insert(workRequestEvents).values([...contractorEvents, ...businessEvents]);
+            }
           } catch (error) {
             console.warn("[direct-connect] Failed to record direct provider_invited events", error);
           }
 
           try {
+            const notifyUserIds: string[] = [
+              ...(contractorsToAssign.map((c) => c.userId).filter(Boolean) as string[]),
+              ...(businessesToAssign.map((b) => b.ownerUserId).filter(Boolean) as string[]),
+            ];
             await Promise.all(
-              contractorsToAssign.map(async (contractor) => {
-                if (!contractor.userId) return;
+              notifyUserIds.map(async (notifyUserId) => {
                 await notificationService.createNotification({
-                  userId: contractor.userId,
+                  userId: notifyUserId,
                   type: "new_project_request",
                   title: "New Direct Connect request",
                   message: `You have a new Direct Connect request: ${requestRow.title}`,
@@ -1178,7 +1248,7 @@ export function registerDirectConnectRoutes(app: Express) {
               })
             );
           } catch (error) {
-            console.error("[direct-connect] Failed to notify directly invited contractors", error);
+            console.error("[direct-connect] Failed to notify directly invited providers", error);
           }
 
           return res.status(200).json({
@@ -2148,11 +2218,9 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const allowedStatuses = ["in_progress", "pending_outcome"];
         if (!allowedStatuses.includes(requestRow.status as string)) {
-          return res
-            .status(400)
-            .json({
-              message: "Only in-progress or pending-outcome requests can be marked complete",
-            });
+          return res.status(400).json({
+            message: "Only in-progress or pending-outcome requests can be marked complete",
+          });
         }
 
         const fromStatus = requestRow.status;
@@ -2344,57 +2412,97 @@ export function registerDirectConnectRoutes(app: Express) {
         if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
           try {
             const requestedIds = Array.from(new Set(body.targetContractorIds));
+            // Resolve contractor IDs and business IDs from the universal provider search.
             const invitedContractors = await db
               .select()
               .from(contractors)
               .where(inArray(contractors.id, requestedIds));
-
+            const invitedContractorIds = new Set(
+              invitedContractors.map((c) => String(c.id || "").trim()).filter(Boolean)
+            );
+            const potentialBusinessIds = requestedIds.filter((id) => !invitedContractorIds.has(id));
+            const invitedBusinesses =
+              potentialBusinessIds.length > 0
+                ? await db
+                    .select()
+                    .from(businesses)
+                    .where(
+                      and(
+                        inArray(businesses.id, potentialBusinessIds),
+                        eq(businesses.status, "active" as any)
+                      )
+                    )
+                : [];
             const eligibility = await filterEligibleContractorsByTradeRequirements(
               invitedContractors,
               created.tradeId ? String(created.tradeId) : null
             );
             const eligibleContractors = eligibility.eligible;
-
-            if (eligibleContractors.length > 0) {
-              const now = new Date();
-              const assignments = eligibleContractors.map((contractor) => ({
+            const now = new Date();
+            const contractorAssignments = eligibleContractors.map((contractor) => ({
+              workRequestId: created.id,
+              contractorId: contractor.id,
+              status: "invited" as const,
+              createdAt: now,
+              updatedAt: now,
+            }));
+            const businessAssignments = invitedBusinesses
+              .filter((biz) => biz.ownerUserId)
+              .map((biz) => ({
                 workRequestId: created.id,
-                contractorId: contractor.id,
+                contractorId: null as any,
+                responderUserId: biz.ownerUserId!,
                 status: "invited" as const,
                 createdAt: now,
                 updatedAt: now,
               }));
-
-              await db.insert(workRequestAssignments).values(assignments);
-
+            const allAssignments = [...contractorAssignments, ...businessAssignments];
+            if (allAssignments.length > 0) {
+              await db.insert(workRequestAssignments).values(allAssignments);
               await db
                 .update(workRequests)
                 .set({ status: "routed", updatedAt: now })
                 .where(eq(workRequests.id, created.id));
-
               try {
-                await db.insert(workRequestEvents).values(
-                  eligibleContractors.map((contractor) => ({
+                const contractorEvents = eligibleContractors.map((contractor) => ({
+                  workRequestId: created.id,
+                  type: "provider_invited" as const,
+                  actorUserId: String(userId),
+                  metadata: {
+                    contractorId: contractor.id,
+                    contractorUserId: contractor.userId ?? null,
+                    source: "direct_connect",
+                  },
+                }));
+                const businessEvents = invitedBusinesses
+                  .filter((biz) => biz.ownerUserId)
+                  .map((biz) => ({
                     workRequestId: created.id,
                     type: "provider_invited" as const,
                     actorUserId: String(userId),
                     metadata: {
-                      contractorId: contractor.id,
-                      contractorUserId: contractor.userId ?? null,
+                      businessId: biz.id,
+                      responderUserId: biz.ownerUserId ?? null,
                       source: "direct_connect",
                     },
-                  }))
-                );
+                  }));
+                if (contractorEvents.length || businessEvents.length) {
+                  await db
+                    .insert(workRequestEvents)
+                    .values([...contractorEvents, ...businessEvents]);
+                }
               } catch (e) {
                 console.warn("[direct-connect] Failed to record provider_invited events", e);
               }
-
               try {
+                const notifyUserIds: string[] = [
+                  ...(eligibleContractors.map((c) => c.userId).filter(Boolean) as string[]),
+                  ...(invitedBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
+                ];
                 await Promise.all(
-                  eligibleContractors.map(async (contractor) => {
-                    if (!contractor.userId) return;
+                  notifyUserIds.map(async (notifyUserId) => {
                     await notificationService.createNotification({
-                      userId: contractor.userId,
+                      userId: notifyUserId,
                       type: "new_project_request",
                       title: "New Direct Connect request",
                       message: `You have a new Direct Connect request: ${created.title}`,
@@ -2407,11 +2515,11 @@ export function registerDirectConnectRoutes(app: Express) {
                   })
                 );
               } catch (e) {
-                console.error("[direct-connect] Failed to notify invited contractors", e);
+                console.error("[direct-connect] Failed to notify invited providers", e);
               }
             }
           } catch (e) {
-            console.error("[direct-connect] Failed to invite target contractors", e);
+            console.error("[direct-connect] Failed to invite target providers", e);
           }
         }
 
@@ -2749,61 +2857,99 @@ export function registerDirectConnectRoutes(app: Express) {
         if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
           try {
             const requestedIds = Array.from(new Set(body.targetContractorIds));
+            // Resolve contractor IDs and business IDs from the universal provider search.
             const invitedContractors = await db
               .select()
               .from(contractors)
               .where(inArray(contractors.id, requestedIds));
-
+            const invitedContractorIds = new Set(
+              invitedContractors.map((c) => String(c.id || "").trim()).filter(Boolean)
+            );
+            const potentialBusinessIds = requestedIds.filter((id) => !invitedContractorIds.has(id));
+            const invitedBusinesses =
+              potentialBusinessIds.length > 0
+                ? await db
+                    .select()
+                    .from(businesses)
+                    .where(
+                      and(
+                        inArray(businesses.id, potentialBusinessIds),
+                        eq(businesses.status, "active" as any)
+                      )
+                    )
+                : [];
             const eligibility = await filterEligibleContractorsByTradeRequirements(
               invitedContractors,
               created.tradeId ? String(created.tradeId) : null
             );
             const eligibleContractors = eligibility.eligible;
-
-            if (eligibleContractors.length > 0) {
-              const now = new Date();
-              const assignments = eligibleContractors.map((contractor) => ({
+            const now = new Date();
+            const contractorAssignments = eligibleContractors.map((contractor) => ({
+              workRequestId: created.id,
+              contractorId: contractor.id,
+              status: "invited" as const,
+              createdAt: now,
+              updatedAt: now,
+            }));
+            const businessAssignments = invitedBusinesses
+              .filter((biz) => biz.ownerUserId)
+              .map((biz) => ({
                 workRequestId: created.id,
-                contractorId: contractor.id,
+                contractorId: null as any,
+                responderUserId: biz.ownerUserId!,
                 status: "invited" as const,
                 createdAt: now,
                 updatedAt: now,
               }));
-
-              await db.insert(workRequestAssignments).values(assignments);
-
+            const allAssignments = [...contractorAssignments, ...businessAssignments];
+            if (allAssignments.length > 0) {
+              await db.insert(workRequestAssignments).values(allAssignments);
               await db
                 .update(workRequests)
                 .set({ status: "routed", updatedAt: now })
                 .where(eq(workRequests.id, created.id));
-
               try {
-                await db.insert(workRequestEvents).values(
-                  eligibleContractors.map((contractor) => ({
+                const contractorEvents = eligibleContractors.map((contractor) => ({
+                  workRequestId: created.id,
+                  type: "provider_invited" as const,
+                  actorUserId: String(actorUserId),
+                  metadata: {
+                    contractorId: contractor.id,
+                    contractorUserId: contractor.userId ?? null,
+                    source: "direct_connect_admin",
+                    createdForUserId: resolvedTargetUserId,
+                  },
+                }));
+                const businessEvents = invitedBusinesses
+                  .filter((biz) => biz.ownerUserId)
+                  .map((biz) => ({
                     workRequestId: created.id,
                     type: "provider_invited" as const,
                     actorUserId: String(actorUserId),
                     metadata: {
-                      contractorId: contractor.id,
-                      contractorUserId: contractor.userId ?? null,
+                      businessId: biz.id,
+                      responderUserId: biz.ownerUserId ?? null,
                       source: "direct_connect_admin",
                       createdForUserId: resolvedTargetUserId,
                     },
-                  }))
-                );
+                  }));
+                if (contractorEvents.length || businessEvents.length) {
+                  await db
+                    .insert(workRequestEvents)
+                    .values([...contractorEvents, ...businessEvents]);
+                }
               } catch (e) {
-                console.warn(
-                  "[direct-connect] Failed to record provider_invited events for admin-created request",
-                  e
-                );
+                console.warn("[direct-connect] Failed to record provider_invited events", e);
               }
-
               try {
+                const notifyUserIds: string[] = [
+                  ...(eligibleContractors.map((c) => c.userId).filter(Boolean) as string[]),
+                  ...(invitedBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
+                ];
                 await Promise.all(
-                  eligibleContractors.map(async (contractor) => {
-                    if (!contractor.userId) return;
+                  notifyUserIds.map(async (notifyUserId) => {
                     await notificationService.createNotification({
-                      userId: contractor.userId,
+                      userId: notifyUserId,
                       type: "new_project_request",
                       title: "New Direct Connect request",
                       message: `You have a new Direct Connect request: ${created.title}`,
@@ -2816,17 +2962,11 @@ export function registerDirectConnectRoutes(app: Express) {
                   })
                 );
               } catch (e) {
-                console.error(
-                  "[direct-connect] Failed to notify invited contractors for admin-created request",
-                  e
-                );
+                console.error("[direct-connect] Failed to notify invited providers", e);
               }
             }
           } catch (e) {
-            console.error(
-              "[direct-connect] Failed to invite target contractors for admin-created request",
-              e
-            );
+            console.error("[direct-connect] Failed to invite target providers", e);
           }
         }
 

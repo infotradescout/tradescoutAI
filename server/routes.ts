@@ -7253,7 +7253,8 @@ export async function registerRoutes(app: any) {
             .map((b: any) => ({
               id: b.businessId,
               businessId: b.businessId,
-              name: b.name,
+              companyName: b.name || null,
+              name: b.name || null,
               roleContext: b.roleContext || null,
               slug: b.slug || null,
               providerType: "business" as const,
