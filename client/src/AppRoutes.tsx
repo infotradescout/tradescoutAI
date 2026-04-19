@@ -273,6 +273,7 @@ const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 const BusinessDirectoryPage = React.lazy(() => import("./pages/business-directory"));
 
 // Contractor Features
+const OfferServices = React.lazy(() => import("./pages/offer-services"));
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
@@ -878,7 +879,7 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/offer-services">
                 <ProtectedRoute>
-                  <LazyPage Component={ContractorApply} />
+                  <LazyPage Component={OfferServices} />
                 </ProtectedRoute>
               </Route>
               <Route path="/business-listing">

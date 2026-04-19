@@ -89,8 +89,77 @@ Structured setup from pre-Scout gate (may be null):
 ${draftSummary}`;
 }
 
+// ─── Timeout constant ────────────────────────────────────────────────────────
+/** Maximum milliseconds to wait for the LLM inference API before falling back. */
+const INFERENCE_TIMEOUT_MS = 5_000;
+
+// ─── Deterministic keyword fallback ──────────────────────────────────────────
 /**
- * Call OpenAI to infer claims from userIntent
+ * Fast, zero-latency fallback that maps strong keyword signals in the user's
+ * intent text to claim suggestions without hitting the LLM.
+ *
+ * This runs when the LLM times out, returns an error, or produces unparseable
+ * output. It covers the most common intent patterns so the Scout onboarding
+ * flow never stalls on third-party API latency.
+ */
+function keywordFallbackInference(
+  text: string,
+  provisionalUserTypes: string[] = []
+): ClaimInferenceOutput {
+  const lower = text.toLowerCase();
+  const suggestions: ClaimInferenceOutput["suggestions"] = [];
+
+  // Offer / provide services
+  if (/\b(i (do|offer|provide|run|own)|my (service|business|company|shop|trade)|contractor|plumber|electrician|roofer|hvac|painter|landscap|handyman)\b/.test(lower)) {
+    suggestions.push({ claimType: "offer_services" as ClaimType, confidence: 0.82, evidence: "keyword: service/trade provider signal" });
+  }
+
+  // Represent / promote business
+  if (/\b(my business|promote|marketing|customers|leads|visibility|website|brand)\b/.test(lower)) {
+    suggestions.push({ claimType: "represent_business" as ClaimType, confidence: 0.78, evidence: "keyword: business promotion signal" });
+  }
+
+  // Find / hire help
+  if (/\b(need|hire|looking for|find|want someone|help with|fix|repair|install|replace)\b/.test(lower)) {
+    suggestions.push({ claimType: "find_help" as ClaimType, confidence: 0.80, evidence: "keyword: seeking help signal" });
+  }
+
+  // Buy / sell locally
+  if (/\b(buy|sell|deal|discount|specials|marketplace|listing|for sale|trade)\b/.test(lower)) {
+    suggestions.push({ claimType: "buy_sell_locally" as ClaimType, confidence: 0.72, evidence: "keyword: buy/sell signal" });
+  }
+
+  // Community
+  if (/\b(community|neighborhood|local|connect|network|events|meet|group)\b/.test(lower)) {
+    suggestions.push({ claimType: "community_participation" as ClaimType, confidence: 0.70, evidence: "keyword: community signal" });
+  }
+
+  // Provisional userTypes can add a vertical hint
+  if (provisionalUserTypes.includes("contractor") || provisionalUserTypes.includes("service_provider")) {
+    if (!suggestions.some((s) => s.claimType === "offer_services")) {
+      suggestions.push({ claimType: "offer_services" as ClaimType, confidence: 0.65, evidence: "provisional userType: contractor/service_provider" });
+    }
+  }
+
+  // Default fallback when no keywords matched
+  if (suggestions.length === 0) {
+    suggestions.push({ claimType: "exploring" as ClaimType, confidence: 0.55, evidence: "no strong keyword signals detected" });
+  }
+
+  // Cap at 5, sort by confidence desc
+  const sorted = suggestions.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+
+  return {
+    suggestions: sorted,
+    summary: `Keyword-based inference (LLM unavailable): ${sorted[0].claimType.replace(/_/g, " ")}.`,
+    followups: sorted[0].confidence < 0.70 ? ["What would you like to do on TradeScout?"] : [],
+  };
+}
+
+/**
+ * Call OpenAI to infer claims from userIntent.
+ * Falls back to deterministic keyword matching if the LLM times out (5 s)
+ * or returns an unusable response.
  */
 export async function inferClaimsFromIntent(
   userIntentText: string,
@@ -98,6 +167,10 @@ export async function inferClaimsFromIntent(
   countyName: string | null = null,
   profileDraft?: ProfileDraft
 ): Promise<ClaimInferenceOutput> {
+  // ── Abort controller for timeout ──────────────────────────────────────────
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), INFERENCE_TIMEOUT_MS);
+
   try {
     const userPrompt = buildUserPrompt(
       userIntentText,
@@ -110,6 +183,7 @@ export async function inferClaimsFromIntent(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
+      signal: controller.signal,
       body: JSON.stringify({
         systemPrompt: SCOUT_INFERENCE_SYSTEM_PROMPT,
         userPrompt,
@@ -117,6 +191,8 @@ export async function inferClaimsFromIntent(
         maxTokens: 500,
       }),
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Inference API failed: ${response.status}`);
@@ -129,13 +205,14 @@ export async function inferClaimsFromIntent(
     try {
       inference = typeof result.content === "string" ? JSON.parse(result.content) : result.content;
     } catch (parseError) {
-      console.error("[CLAIM_INFERENCE] Failed to parse LLM output:", result.content);
-      throw new Error("Invalid JSON from inference");
+      console.warn("[CLAIM_INFERENCE] Failed to parse LLM output — using keyword fallback:", result.content);
+      return keywordFallbackInference(userIntentText, provisionalUserTypes);
     }
 
     // Validate structure
     if (!inference.suggestions || !Array.isArray(inference.suggestions)) {
-      throw new Error("Invalid inference output: missing suggestions array");
+      console.warn("[CLAIM_INFERENCE] Invalid inference output — using keyword fallback");
+      return keywordFallbackInference(userIntentText, provisionalUserTypes);
     }
 
     // Cap at 5 suggestions
@@ -150,20 +227,20 @@ export async function inferClaimsFromIntent(
 
     return inference;
   } catch (error) {
-    console.error("[CLAIM_INFERENCE] Error during inference:", error);
+    clearTimeout(timeoutId);
 
-    // Fallback: return safe "exploring" suggestion
-    return {
-      suggestions: [
-        {
-          claimType: "exploring" as ClaimType,
-          confidence: 0.6,
-          evidence: "Unable to parse intent; defaulting to exploring",
-        },
-      ],
-      summary: "Unable to determine specific intent from provided text.",
-      followups: ["What would you like to do on TradeScout?"],
-    };
+    const isTimeout =
+      error instanceof Error &&
+      (error.name === "AbortError" || error.message.includes("aborted"));
+
+    if (isTimeout) {
+      console.warn(`[CLAIM_INFERENCE] LLM timed out after ${INFERENCE_TIMEOUT_MS}ms — using keyword fallback`);
+    } else {
+      console.error("[CLAIM_INFERENCE] Error during inference — using keyword fallback:", error);
+    }
+
+    // Always use keyword fallback so the user is never blocked
+    return keywordFallbackInference(userIntentText, provisionalUserTypes);
   }
 }
 

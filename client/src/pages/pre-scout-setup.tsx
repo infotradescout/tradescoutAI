@@ -10,6 +10,10 @@ import {
   GooglePlacesLocationInput,
   type PlaceResult,
 } from "@/components/GooglePlacesLocationInput";
+import {
+  GooglePlacesBusinessInput,
+  type BusinessPlaceResult,
+} from "@/components/GooglePlacesBusinessInput";
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -219,6 +223,54 @@ export default function PreScoutSetup() {
     } catch {
       setCountyInferenceStatus("error");
       setCountyInferenceNote("Could not resolve county. Select it manually below.");
+    }
+  }, []);
+
+  /**
+   * Called when the user selects a business from the Google Places Business
+   * autocomplete. Pre-fills business name, city, state, and triggers county
+   * resolution — the same pipeline as the location input.
+   */
+  const handleBusinessSelected = useCallback(async (result: BusinessPlaceResult) => {
+    if (result.businessName) setBusinessName(result.businessName);
+    const newCity = result.city || "";
+    const newState = result.stateCode || "";
+    const newCountyName = result.countyName || "";
+
+    if (newCity) setCity(newCity);
+    if (newState) setStateCode(newState);
+    if (newCity || newState) setLocationSource("places");
+
+    // Trigger county resolution if we have enough data
+    if (newState && (newCity || newCountyName)) {
+      setCountyFips("");
+      setCountyName(newCountyName || undefined);
+      setCountyInferenceStatus("loading");
+      setCountyInferenceNote("Resolving county…");
+      try {
+        const inferred = await inferCountyForCityState({
+          city: newCountyName || newCity,
+          stateCode: newState,
+        });
+        if (inferred?.inferred?.countyFips) {
+          setCountyFips(inferred.inferred.countyFips);
+          setCountyName(inferred.inferred.countyName || newCountyName || undefined);
+          setCountyInferenceStatus("inferred");
+          setCountyInferenceNote(
+            `Confirmed: ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}`
+          );
+        } else {
+          setCountyInferenceStatus("ambiguous");
+          setCountyInferenceNote(
+            newCountyName
+              ? `Found "${newCountyName}" — confirm your county below.`
+              : "Select your county below to confirm."
+          );
+        }
+      } catch {
+        setCountyInferenceStatus("error");
+        setCountyInferenceNote("Could not resolve county. Select it manually below.");
+      }
     }
   }, []);
 
@@ -1201,13 +1253,19 @@ export default function PreScoutSetup() {
                     <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                       Business name
                     </Label>
-                    <Input
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder="Business name"
-                      className="h-10 border-white/10 bg-black/30 text-white placeholder:text-white/60 focus-visible:ring-ts-orange/70"
-                      required
+                    <GooglePlacesBusinessInput
+                      defaultValue={businessName}
+                      placeholder="Search for your business"
+                      onBusinessSelected={handleBusinessSelected}
+                      className="h-10"
+                      data-testid="business-name-input"
                     />
+                    {/* Fallback: let user type freely if they don't find their business */}
+                    {businessName && (
+                      <p className="text-[10px] text-white/40 mt-0.5">
+                        Can't find it? Just type your business name above.
+                      </p>
+                    )}
                   </div>
                 )}
 
