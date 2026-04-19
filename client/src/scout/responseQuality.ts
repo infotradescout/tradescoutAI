@@ -64,7 +64,7 @@ function isRecoveryCopy(input: string): boolean {
 }
 
 function hasActionableLanguage(input: string): boolean {
-  return /\b(next|choose|open|start|use|tap|click|go to|continue)\b/i.test(input);
+  return /\b(next|choose|open|opening|start|use|tap|click|go to|continue|ready)\b/i.test(input);
 }
 
 function hasBlockedCopy(input: string): boolean {
@@ -105,10 +105,15 @@ function appendFollowUpQuestion(input: string, hasActionOptions: boolean): strin
   const trimmed = collapseWhitespace(input);
   if (!trimmed)
     return hasActionOptions
-      ? "Start a request below."
+      ? "Ready to open it — shall I?"
       : "I can still move this forward with a direct next step.";
   if (trimmed.includes("?")) return trimmed;
-  return hasActionOptions ? trimmed : `${trimmed} I can still move this forward.`;
+  // Only append a follow-up question for bare navigation phrases (e.g. "Got it - opening X.")
+  // Substantive answers (e.g. "I found strong options in your area.") are returned unchanged
+  const isBareNavPhrase = /^got it/i.test(trimmed) && trimmed.length < 80;
+  if (hasActionOptions && isBareNavPhrase) return `${trimmed} Ready to go?`;
+  if (!hasActionOptions) return `${trimmed} Want me to move this forward?`;
+  return trimmed;
 }
 
 function forceConciseAnswer(userMessage: string, content: string): string {
@@ -149,6 +154,8 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   }
 
   if (hasActionOptions && !hasActionableLanguage(output)) {
+    // Still append a follow-up question even when actionable language is missing
+    output = appendFollowUpQuestion(output, hasActionOptions);
     return collapseWhitespace(output);
   }
 

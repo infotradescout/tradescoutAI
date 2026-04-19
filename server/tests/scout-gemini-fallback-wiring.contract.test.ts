@@ -8,11 +8,17 @@ function read(filePath: string): string {
 
 describe("scout gemini fallback wiring contract", () => {
   it("exposes gemini fallback runtime state on admin system status", () => {
-    const source = read("server/routes/scout.ts");
-    expect(source).toContain("getGeminiFallbackRuntimeState");
-    expect(source).toContain("geminiFallback: getGeminiFallbackRuntimeState()");
-    expect(source).toContain("getLlmProviderFailoverRuntimeState");
-    expect(source).toContain("llmFailover: getLlmProviderFailoverRuntimeState()");
+    // The admin status response is assembled in scoutAdminRoutes.ts and registered
+    // into the router via registerScoutAdminRoutes in scout.ts
+    const adminRoutes = read("server/scout/scoutAdminRoutes.ts");
+    const route = read("server/routes/scout.ts");
+    expect(adminRoutes).toContain("getGeminiFallbackRuntimeState");
+    expect(adminRoutes).toContain("geminiFallback: getGeminiFallbackRuntimeState()");
+    expect(adminRoutes).toContain("getLlmProviderFailoverRuntimeState");
+    expect(adminRoutes).toContain("llmFailover: getLlmProviderFailoverRuntimeState()");
+    // scout.ts must import and pass these functions into the admin routes module
+    expect(route).toContain("getGeminiFallbackRuntimeState");
+    expect(route).toContain("getLlmProviderFailoverRuntimeState");
   });
 
   it("records fallback reasons for degraded synthesis paths", () => {
@@ -36,11 +42,17 @@ describe("scout gemini fallback wiring contract", () => {
   });
 
   it("routes homeowner project asks into planning before generic fallback", () => {
-    const source = read("server/routes/scout.ts");
-    expect(source).toContain("function maybeHandleHomeProjectRouting");
-    expect(source).toContain('label: "Start or plan this project"');
-    expect(source).toContain('to: "/project-tracker"');
-    expect(source).toContain('intent: "home_project_decking"');
-    expect(source).toContain('sourceUsed: "deterministic_home_project_router"');
+    // maybeHandleHomeProjectRouting is defined in scoutHomeProjectRouting.ts and
+    // imported + called in scout.ts — the function definition lives in the module file
+    const homeProjectRouting = read("server/scout/scoutHomeProjectRouting.ts");
+    const route = read("server/routes/scout.ts");
+    expect(homeProjectRouting).toContain("export function maybeHandleHomeProjectRouting");
+    expect(homeProjectRouting).toContain('label: "Start or plan this project"');
+    expect(homeProjectRouting).toContain('to: "/project-tracker"');
+    expect(homeProjectRouting).toContain('intent: "home_project_decking"');
+    // scout.ts imports and calls the function; uses decision_pipeline_home_project_router as sourceUsed
+    expect(route).toContain('from "../scout/scoutHomeProjectRouting"');
+    expect(route).toContain("maybeHandleHomeProjectRouting");
+    expect(route).toContain("decision_pipeline_home_project_router");
   });
 });

@@ -140,6 +140,32 @@ export default function ForBusinessesPage() {
         </div>
       </section>
 
+      {/* Pensacola, FL business launch — expanding market */}
+      <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
+          Launch Focus
+        </p>
+        <h2 className="text-2xl font-bold text-white">Pensacola, FL business launch</h2>
+        <p className="text-sm text-white/75 max-w-3xl">
+          TradeScout is expanding into Pensacola, FL. Businesses in Escambia and Santa Rosa County
+          can activate now to get early local visibility and county-level demand coverage.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/contractors/apply?state=FL&county=12033&source=pensacola-launch`}>
+            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">Start Pensacola onboarding</Button>
+          </Link>
+          <Link href="/pensacola">
+            <Button variant="outline" className="border-white/20 text-white">Pensacola hub</Button>
+          </Link>
+          <Link href="/pensacola/electrical-contractors">
+            <Button variant="outline" className="border-white/20 text-white">Electrical contractors</Button>
+          </Link>
+          <Link href="/pensacola/hvac-repair">
+            <Button variant="outline" className="border-white/20 text-white">HVAC repair</Button>
+          </Link>
+        </div>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3">
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-5 space-y-2">

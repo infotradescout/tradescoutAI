@@ -182,8 +182,8 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                     TradeScout (Trust Model)
                   </h3>
                   <p className="text-xs text-white/60 leading-relaxed">
-                    No lead sales. No paying for a better spot. Incentive: better matches over more
-                    noise.
+                    TradeScout does not sell leads and does not charge to connect. No paying for a
+                    better spot. Incentive: better matches over more noise.
                   </p>
                 </div>
               </div>

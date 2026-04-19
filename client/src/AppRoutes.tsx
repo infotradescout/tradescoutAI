@@ -919,7 +919,9 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProgressiveFeatureGate>
               </Route>
               <Route path="/homescout/listings/:id">
-                <LazyPage Component={HomeScoutListing} />
+                <ProgressiveFeatureGate featureId="home_scout_listings">
+                  <LazyPage Component={HomeScoutListing} />
+                </ProgressiveFeatureGate>
               </Route>
               <Route path="/homescout/:stateCode/:countyFips">
                 <LazyPage Component={HomeScoutCounty} />

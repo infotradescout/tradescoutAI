@@ -242,6 +242,25 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
       ],
     } as LandingVariant["audience"],
   },
+  "local-operating-system": {
+    displayName: "Local Operating System",
+    badgeText: "Local Operating System",
+    showBadge: true,
+    headlineMode: "stacked",
+    headlineLines: ["The Local", "Operating System", "for Community Interaction"],
+    subhead:
+      "Scout coordinates discovery, trust, intent, decision, and contact so local interaction works the way it should.",
+    audience: {
+      sectionLabel: "How Scout Works",
+      sectionTitle: "The Full Local Interaction Stack",
+      sectionDesc:
+        "From first search to governed contact, Scout runs the local operating flow from discovery to governed action.",
+      cards: [
+        { title: "Discovery", desc: "Find the right local options without noise or lead selling." },
+        { title: "Trust", desc: "Verify and compare before committing to contact." },
+      ],
+    } as LandingVariant["audience"],
+  },
 };
 
 const BASE_ALIASES: Record<string, string> = {

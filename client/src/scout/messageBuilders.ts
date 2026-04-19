@@ -209,7 +209,7 @@ export function buildConnectionFallback(
       ? "Got it. For a deck project, start by planning the scope, budget, and timing. Then compare local builders or check rental equipment and local project signals. Which path should we open first?"
       : homeProjectSignals
         ? "Got it. Start by planning the scope, budget, and timing for this project. Then compare trusted local pros and nearby options. Which path should we open first?"
-        : "Scout had a connection issue. You can keep moving with trusted, recent options and take action now.",
+        : "Scout had a connection issue. You can keep moving — choose a trusted option below and take action now. Which path looks right?",
     timestamp: new Date().toISOString(),
     clusters: [
       {

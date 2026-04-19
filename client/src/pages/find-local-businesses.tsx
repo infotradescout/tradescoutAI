@@ -166,6 +166,31 @@ export default function FindLocalBusinessesPage() {
         </div>
       </section>
 
+      {/* Pensacola, FL first — launch market focus */}
+      <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">
+        <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
+          Ground Zero Market
+        </p>
+        <h2 className="text-2xl font-bold text-white">Pensacola, FL first</h2>
+        <p className="text-sm text-white/75 max-w-3xl">
+          TradeScout is expanding into Pensacola, FL. If you're in Escambia or Santa Rosa County,
+          explore local service clusters and get matched with verified local businesses.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/direct-connect?county=12033&source=pensacola-launch&intent=local_search`}>
+            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">Start a Pensacola request</Button>
+          </Link>
+          <Link href="/pensacola">
+            <Button variant="outline" className="border-white/20 text-white">Pensacola hub</Button>
+          </Link>
+          <Link href="/pensacola/hvac-repair">
+            <Button variant="outline" className="border-white/20 text-white">HVAC repair</Button>
+          </Link>
+          <Link href="/pensacola/plumbing">
+            <Button variant="outline" className="border-white/20 text-white">Plumbing</Button>
+          </Link>
+        </div>
+      </section>
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold text-white">Next steps</h2>
         <div className="flex flex-wrap gap-2">

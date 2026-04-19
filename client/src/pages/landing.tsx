@@ -567,6 +567,12 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
       title: "$0 Core Access",
       desc: "You can browse and compare options before deciding whether to contact",
     },
+    {
+      icon: Ban,
+      // No lead sales — TradeScout does not sell your request to contractors
+      title: "No lead sales",
+      desc: "TradeScout does not sell your request. Claiming to unlock access, ranking, or visibility is a scam.",
+    },
   ];
 
   return (
@@ -1011,9 +1017,16 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
           </div>
         </div>
 
-        <div className="border-t border-white/5 pt-5">
+        <div className="border-t border-white/5 pt-5 space-y-1">
+          {/* Scout is the operating layer for local interaction */}
+          <p className="text-xs text-white/20 text-center">
+            The local operating system for community interaction. Trust-first local action powered by Scout.
+          </p>
+          <p className="text-xs text-white/15 text-center">
+            TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to governed action.
+          </p>
           <p className="text-xs text-white/30 text-center">
-            (c) 2026 TradeScout. All rights reserved. Trusted local action powered by Scout.
+            &copy; 2026 TradeScout. All rights reserved.
           </p>
         </div>
       </div>
@@ -1075,11 +1088,14 @@ export default function Home() {
 
   return (
     <div className="flex flex-col bg-transparent text-white font-body">
+      {/* Scout is the operating layer for local interaction */}
       <SEOHelmet
         title={
-          canonicalLandingPath === "/landing"
-            ? "TradeScout | Find Trusted Local Help Faster"
-            : `${variant.displayName} | TradeScout`
+          variant.key === "local-operating-system"
+            ? "TradeScout | The Local Operating System for Community Interaction"
+            : canonicalLandingPath === "/landing"
+              ? "TradeScout | Find Trusted Local Help Faster"
+              : `${variant.displayName} | TradeScout`
         }
         description={variant.subhead}
         canonical={canonicalLandingUrl}

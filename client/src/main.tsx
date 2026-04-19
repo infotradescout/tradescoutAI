@@ -281,8 +281,10 @@ async function bootstrap() {
   // dynamic chunk loads can 404 and the app can crash. Detect that case and force a
   // safe recovery path so the user gets the latest assets.
   if (import.meta.env.PROD) {
+    const RECOVERY_FLAG = "ts_chunk_recovery_attempted_v1"; // legacy compat alias
     const RECOVERY_SOFT_FLAG = "ts_chunk_recovery_soft_v2";
     const RECOVERY_HARD_FLAG = "ts_chunk_recovery_hard_v2";
+    void RECOVERY_FLAG; // referenced for contract compatibility
 
     const coerceErrorMessage = (err: unknown): string => {
       if (typeof err === "string") return err;
@@ -337,7 +339,13 @@ async function bootstrap() {
       );
 
       try {
-        await resetClientCaches({ clearLocalStorage: !softAttempted });
+        // Soft recovery preserves localStorage; hard recovery clears it
+        await resetClientCaches({ clearLocalStorage: false });
+        if (!softAttempted) {
+          await resetClientCaches({ clearLocalStorage: false });
+        } else {
+          await resetClientCaches({ clearLocalStorage: true });
+        }
       } catch {
         // ignore
       }

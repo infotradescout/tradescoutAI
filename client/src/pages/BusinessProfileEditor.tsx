@@ -1153,8 +1153,7 @@ export default function BusinessProfileEditor() {
                       <CardContent className="space-y-3">
                         <div className="space-y-2">
                           <Label>Type</Label>
-                          <Select
-                            value={block.type || "text"}
+                          <Select value={block.type || "text"}
                             onValueChange={(value) => updateContentBlock(block.id, "type", value)}
                           >
                             <SelectTrigger>

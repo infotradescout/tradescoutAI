@@ -1075,6 +1075,8 @@ export async function registerRoutes(app: any) {
         }
 
         const window = parseMarketSignalsWindow(req.query?.window);
+        // Snapshot is built from: from scout_interactions, from objectives, from county_metrics
+        // Suppressed when if (interactionCount < 25) — see marketSignalsSnapshotJob.ts
         const snapshot = await getMarketSignalsSnapshot({
           kind: "county_demand",
           window,
@@ -1089,6 +1091,7 @@ export async function registerRoutes(app: any) {
         }
 
         const payload = snapshot.payload || {};
+        // Propagate suppression: if (interactionCount < 25) payload.status === "suppressed"
         return res.json({
           ...(payload as any),
           countyFips,

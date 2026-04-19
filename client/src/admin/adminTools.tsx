@@ -691,12 +691,20 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       }),
       tool({
         id: "scout-resilience",
-        label: "Scout Resilience (Legacy)",
+        label: "Scout Resilience",
         path: "/admin/scout-resilience",
         icon: Bot,
         visibleIf: { roles: ["super_admin"] },
-        navHidden: true,
-        render: () => <RedirectTool to="/admin/live-stream" />,
+        render: () => {
+          const AdminScoutResilience = React.lazy(
+            () => import("../pages/admin-scout-resilience")
+          );
+          return (
+            <React.Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading...</div>}>
+              <AdminScoutResilience />
+            </React.Suspense>
+          );
+        },
       }),
       tool({
         id: "tool-discovery",
