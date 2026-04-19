@@ -392,6 +392,7 @@ import {
   type CountyNote,
   type InsertCountyNote,
   employmentPostApplications,
+  workers,
 } from "@shared/schema";
 import { db, pool as neonPool } from "./db";
 import { UserSecurityRepository } from "./repositories/userSecurityRepository";
@@ -614,8 +615,26 @@ export interface IStorage {
   >;
   /** Get the active business for a user (by activeBusinessId or first owned business). */
   getActiveBusinessForUser(userId: string): Promise<Business | undefined>;
-
-  // Profile operations (public website pages)
+  /**
+   * Find active, available workers (helpers) whose home county matches the given FIPS code.
+   * Optionally filter by required skills (any overlap is sufficient).
+   */
+  getWorkersByCountyAndSkills(args: {
+    countyFips: string;
+    skills?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      workerId: string;
+      userId: string;
+      firstName: string;
+      lastName: string;
+      skills: string[];
+      hourlyRate: string | null;
+      isAvailable: boolean;
+    }>
+  >;
+  // Profile operations (public website pages))
   listProfilesByOwner(ownerUserId: string): Promise<Profile[]>;
   getProfileByIdForOwner(ownerUserId: string, profileId: string): Promise<Profile | undefined>;
   /** Return the owner user id for a given profile id, or null if missing. */
@@ -1856,6 +1875,65 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(businesses.createdAt))
       .limit(1);
     return biz as Business | undefined;
+  }
+
+  async getWorkersByCountyAndSkills(args: {
+    countyFips: string;
+    skills?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      workerId: string;
+      userId: string;
+      firstName: string;
+      lastName: string;
+      skills: string[];
+      hourlyRate: string | null;
+      isAvailable: boolean;
+    }>
+  > {
+    const { countyFips, skills, limit = 10 } = args;
+    // Join workers with users to filter by the user's home countyFips
+    const rows = await db
+      .select({
+        workerId: workers.id,
+        userId: workers.userId,
+        firstName: workers.firstName,
+        lastName: workers.lastName,
+        skills: workers.skills,
+        hourlyRate: workers.hourlyRate,
+        isAvailable: workers.isAvailable,
+      })
+      .from(workers)
+      .innerJoin(users, eq(workers.userId, users.id))
+      .where(
+        and(
+          eq(workers.isActive, true),
+          eq(workers.isAvailable, true),
+          eq((users as any).countyFips, countyFips)
+        )
+      )
+      .limit(limit * 3); // over-fetch so we can filter by skills
+
+    if (!skills || skills.length === 0) {
+      return rows.slice(0, limit).map((r) => ({
+        ...r,
+        skills: (r.skills as string[]) ?? [],
+        hourlyRate: r.hourlyRate ? String(r.hourlyRate) : null,
+      }));
+    }
+
+    // Filter to workers who have at least one matching skill
+    const lowerSkills = skills.map((s) => s.toLowerCase());
+    const matched = rows.filter((r) => {
+      const wSkills = ((r.skills as string[]) ?? []).map((s) => s.toLowerCase());
+      return wSkills.some((s) => lowerSkills.includes(s));
+    });
+    return matched.slice(0, limit).map((r) => ({
+      ...r,
+      skills: (r.skills as string[]) ?? [],
+      hourlyRate: r.hourlyRate ? String(r.hourlyRate) : null,
+    }));
   }
 
   private async replaceBusinessCounties(businessId: string, countyIds: string[]): Promise<void> {

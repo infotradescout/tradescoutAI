@@ -12735,6 +12735,37 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Public helper profile by worker id
+  app.get("/api/workers/:workerId/public", async (req: any, res: any) => {
+    try {
+      const workerId = String(req.params.workerId || "").trim();
+      if (!workerId) return res.status(400).json({ message: "workerId is required" });
+      const [worker] = await db
+        .select()
+        .from(workers)
+        .where(and(eq(workers.id, workerId), eq(workers.isActive, true)))
+        .limit(1);
+      if (!worker) return res.status(404).json({ message: "Helper not found" });
+      // Strip PII — only expose public fields
+      const {
+        phone: _phone,
+        email: _email,
+        verificationDocuments: _docs,
+        totalEarnings: _earnings,
+        userId: _userId,
+        ...publicFields
+      } = worker as any;
+      res.json({
+        ...publicFields,
+        hourlyRate: worker.hourlyRate != null ? String(worker.hourlyRate) : null,
+        averageRating: worker.averageRating != null ? Number(worker.averageRating) : null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching public worker profile:", error);
+      res.status(500).json({ message: "Failed to fetch helper profile" });
+    }
+  });
+
   app.get("/api/tasks", async (req: any, res: any) => {
     try {
       const categoryIdRaw = typeof req.query?.category === "string" ? req.query.category : "";
@@ -13376,6 +13407,27 @@ export async function registerRoutes(app: any) {
     } catch (error: any) {
       console.error("Error fetching helper profile:", error);
       res.status(500).json({ message: "Failed to fetch helper profile" });
+    }
+  });
+
+  app.patch("/api/workers/profile/availability", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const isAvailable = req.body?.isAvailable;
+      if (typeof isAvailable !== "boolean") {
+        return res.status(400).json({ message: "isAvailable must be a boolean" });
+      }
+      const [updated] = await db
+        .update(workers)
+        .set({ isAvailable, updatedAt: new Date() })
+        .where(eq(workers.userId, userId))
+        .returning();
+      if (!updated) return res.status(404).json({ message: "Worker profile not found" });
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating worker availability:", error);
+      res.status(500).json({ message: "Failed to update availability" });
     }
   });
 

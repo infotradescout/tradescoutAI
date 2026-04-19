@@ -14,6 +14,7 @@ import {
   counties,
   businesses,
   businessCounties,
+  workers,
 } from "@shared/schema";
 import { and, asc, desc, eq, exists, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -665,8 +666,33 @@ export function registerDirectConnectRoutes(app: Express) {
       }
     }
 
-    // For open-category requests with no contractor candidates, fall back to businesses only.
-    if (!baseContractors.length && !businessCandidates.length) {
+    // Worker (helper) routing: for open-category requests, also query available workers in the county.
+    let workerCandidates: Array<{
+      workerId: string;
+      userId: string;
+      firstName: string;
+      lastName: string;
+      skills: string[];
+      hourlyRate: string | null;
+      isWorkerProvider: true;
+    }> = [];
+    if (isOpenCategory && countyFips) {
+      try {
+        const wRows = await storage.getWorkersByCountyAndSkills({
+          countyFips,
+          limit: expandReach ? 10 : 5,
+        });
+        workerCandidates = wRows.map((w) => ({
+          ...w,
+          isWorkerProvider: true as const,
+        }));
+      } catch (e) {
+        console.warn("[direct-connect] Failed to fetch worker candidates for routing", e);
+      }
+    }
+
+    // For open-category requests with no contractor candidates, fall back to businesses/workers only.
+    if (!baseContractors.length && !businessCandidates.length && !workerCandidates.length) {
       return { assignments: [], routed: false };
     }
 
@@ -781,6 +807,29 @@ export function registerDirectConnectRoutes(app: Express) {
       if (biz.userId) seenUserIds.add(biz.userId);
     }
 
+    // Merge worker (helper) candidates — always local tier, dedup by userId.
+    for (const worker of workerCandidates) {
+      if (seenUserIds.has(worker.userId)) continue;
+      const stats = await storage.getUserCredibilityStats(worker.userId).catch(() => ({
+        jobsCompleted: 0,
+        peopleHelped: 0,
+        activeWeeks: 0,
+      }));
+      const localCredibilityScore =
+        (stats.jobsCompleted ?? 0) * 3 + (stats.peopleHelped ?? 0) * 2 + (stats.activeWeeks ?? 0);
+      ranked.push({
+        id: worker.workerId, // use workerId as the assignment key for workers
+        userId: worker.userId,
+        companyName: `${worker.firstName} ${worker.lastName}`,
+        positiveRecommendations: 0,
+        totalRecommendations: 0,
+        reachTier: "local",
+        localCredibilityScore,
+        isWorkerProvider: true,
+      } as any);
+      seenUserIds.add(worker.userId);
+    }
+
     const tierRank: Record<"local" | "regional" | "wide", number> = {
       local: 0,
       regional: 1,
@@ -854,12 +903,15 @@ export function registerDirectConnectRoutes(app: Express) {
       };
 
       const isBusinessProvider = Boolean((candidate as any).isBusinessProvider);
+      const isWorkerProvider = Boolean((candidate as any).isWorkerProvider);
       newAssignmentsPayload.push({
         workRequestId: requestId,
         // For contractor-profile candidates, set contractorId.
-        // For business/helper providers, set responderUserId (contractorId stays null).
-        contractorId: isBusinessProvider ? null : candidate.id,
-        responderUserId: isBusinessProvider ? (candidate.userId ?? null) : null,
+        // For business providers, set responderUserId.
+        // For worker/helper providers, set both workerId and responderUserId.
+        contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
+        responderUserId: isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
+        workerId: isWorkerProvider ? candidate.id : null,
         status: "suggested" as const,
         scoreSnapshot,
         createdAt: now,
@@ -871,10 +923,16 @@ export function registerDirectConnectRoutes(app: Express) {
         type: "provider_suggested" as const,
         actorUserId: String(actorUserId),
         metadata: {
-          contractorId: isBusinessProvider ? null : candidate.id,
+          contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
           contractorUserId: candidate.userId ?? null,
-          responderUserId: isBusinessProvider ? (candidate.userId ?? null) : null,
-          providerType: isBusinessProvider ? "business" : "contractor",
+          responderUserId:
+            isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
+          workerId: isWorkerProvider ? candidate.id : null,
+          providerType: isWorkerProvider
+            ? "worker"
+            : isBusinessProvider
+              ? "business"
+              : "contractor",
           source: "direct_connect",
           scoreSnapshot,
         },
@@ -2827,6 +2885,36 @@ export function registerDirectConnectRoutes(app: Express) {
           // responderUserId column may not exist in older DB instances — fail soft
           console.warn("[direct-connect] Failed to fetch business provider inbox items", e);
         }
+        // Worker/helper inbox: fetch assignments routed to this user as a worker profile.
+        // Workers use responderUserId (same as business providers) but also have a workerId FK.
+        // The responderUserId query above already covers these; this block is a no-op guard
+        // that ensures worker-specific assignments are not missed if workerId-only rows exist.
+        try {
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, String(userId)))
+            .limit(1);
+          if (workerProfile.length) {
+            const workerAssignments = await db
+              .select()
+              .from(workRequestAssignments)
+              .where(
+                and(
+                  eq((workRequestAssignments as any).workerId, String(workerProfile[0].id)),
+                  // Exclude rows already fetched via responderUserId to avoid duplicates
+                  eq((workRequestAssignments as any).responderUserId, null as any)
+                )
+              )
+              .orderBy(desc(workRequestAssignments.createdAt));
+            if (workerAssignments.length) {
+              const workerItems = await buildProviderInboxItems(workerAssignments);
+              inboxItems.push(...workerItems);
+            }
+          }
+        } catch (e) {
+          console.warn("[direct-connect] Failed to fetch worker inbox items", e);
+        }
 
         const ownRequests = await db
           .select()
@@ -2953,11 +3041,30 @@ export function registerDirectConnectRoutes(app: Express) {
             .from(workRequestAssignments)
             .where(eq(workRequestAssignments.id, req.params.id));
 
-          // Authorization: the calling user must be the contractor OR the responderUserId
+          // Authorization: the calling user must be the contractor, the responderUserId,
+          // or the worker whose workerId is on the assignment.
           const isContractorAssignment = contractor && assignment?.contractorId === contractor.id;
           const isBusinessAssignment =
             assignment && (assignment as any).responderUserId === String(userId);
-          if (!assignment || (!isContractorAssignment && !isBusinessAssignment)) {
+          // Worker assignment: check if this user owns the worker profile linked to the assignment
+          let isWorkerAssignment = false;
+          if (!isContractorAssignment && !isBusinessAssignment && assignment?.workerId) {
+            const [wp] = await tx
+              .select({ id: (workers as any).id })
+              .from(workers as any)
+              .where(
+                and(
+                  eq((workers as any).id, String(assignment.workerId)),
+                  eq((workers as any).userId, String(userId))
+                )
+              )
+              .limit(1);
+            isWorkerAssignment = Boolean(wp);
+          }
+          if (
+            !assignment ||
+            (!isContractorAssignment && !isBusinessAssignment && !isWorkerAssignment)
+          ) {
             return { status: 404 as const, body: { message: "Assignment not found" } };
           }
 
@@ -3029,7 +3136,8 @@ export function registerDirectConnectRoutes(app: Express) {
 
             try {
               // Ensure there is exactly one conversation between requester and provider for this engagement.
-              // For contractor-profile providers, use contractor.id; for business providers, use userId.
+              // For contractor-profile providers, use contractor.id;
+              // for business/worker providers, use userId as the contractorId key.
               const homeownerId = String(requestRow.createdByUserId);
               const providerContractorId = isContractorAssignment ? contractor!.id : String(userId);
 

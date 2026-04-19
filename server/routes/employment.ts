@@ -348,6 +348,41 @@ export function registerEmploymentRoutes(app: Express) {
     }
   );
 
+  // Applicant: list all their own employment applications with post details
+  app.get("/api/employment/my-applications", isAuthenticated, async (req: AuthedRequest, res) => {
+    try {
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const rows = await db
+        .select({
+          id: employmentPostApplications.id,
+          postId: employmentPostApplications.postId,
+          status: employmentPostApplications.status,
+          coverLetter: employmentPostApplications.coverLetter,
+          createdAt: employmentPostApplications.createdAt,
+          updatedAt: employmentPostApplications.updatedAt,
+          post: {
+            title: employmentPosts.title,
+            description: employmentPosts.description,
+            location: employmentPosts.location,
+            payRate: employmentPosts.payRate,
+            businessName: employmentPosts.businessName,
+            status: employmentPosts.status,
+          },
+        })
+        .from(employmentPostApplications)
+        .leftJoin(employmentPosts, eq(employmentPostApplications.postId, employmentPosts.id))
+        .where(eq(employmentPostApplications.applicantUserId, userId))
+        .orderBy(desc(employmentPostApplications.createdAt));
+
+      res.json(rows);
+    } catch (error: any) {
+      console.error("Error fetching my applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
   // Post owner: update application status (shortlist, reject, etc.)
   app.patch(
     "/api/employment/applications/:id",

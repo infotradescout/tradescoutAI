@@ -617,6 +617,13 @@
       "when": 1776700000000,
       "tag": "0084_dc_universal_provider",
       "breakpoints": false
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1776800000000,
+      "tag": "0085_dc_worker_assignments",
+      "breakpoints": false
     }
   ]
 }

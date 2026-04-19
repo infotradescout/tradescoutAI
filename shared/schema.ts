@@ -3793,7 +3793,10 @@ export const workRequestAssignments = pgTable("work_request_assignments", {
   responderUserId: varchar("responder_user_id").references(() => users.id, {
     onDelete: "set null",
   }),
-
+  // Helper/worker profile FK — set when a worker profile is the responder
+  workerId: varchar("worker_id").references(() => workers.id, {
+    onDelete: "set null",
+  }),
   status: varchar("status", {
     enum: ["suggested", "invited", "accepted", "declined", "completed", "withdrawn"],
   }).default("suggested"),

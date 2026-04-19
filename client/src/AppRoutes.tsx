@@ -392,6 +392,7 @@ const StoryGeneratorPage = React.lazy(() => import("./pages/StoryGeneratorPage")
 // const DealerDashboard = React.lazy(() => import('./pages/dealer-dashboard'));
 const CarSalesmanDashboard = React.lazy(() => import("./pages/car-salesman-dashboard"));
 const HelperDashboard = React.lazy(() => import("./pages/helper-dashboard"));
+const HelperPublicProfile = React.lazy(() => import("./pages/HelperPublicProfile"));
 // Role-specific KPI dashboards (insurance/property/mortgage) deprecated
 // const InsuranceAgentDashboard = React.lazy(() => import('./pages/insurance-agent-dashboard'));
 // const PropertyManagerDashboard = React.lazy(() => import('./pages/property-manager-dashboard'));
@@ -802,6 +803,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
 
               {/* Helpers + Direct Connect */}
+              <Route path="/helpers/:id">
+                <LazyPage Component={HelperPublicProfile} />
+              </Route>
               <Route path="/helpers">
                 <RedirectTo to="/direct-connect" />
               </Route>
