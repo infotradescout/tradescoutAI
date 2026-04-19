@@ -115,8 +115,8 @@ async function buildCountyDemandSnapshots(window: WindowKey, interval: string, g
           county_fips,
           count(*)::int as interaction_count,
           round(avg(scout_confidence))::int as avg_confidence,
-          count(*) filter (where outcome = 'success')::int as success_count,
-          count(*) filter (where outcome = 'partial_success')::int as partial_success_count
+          count(*) filter (where outcome = 'completed')::int as success_count,
+          count(*) filter (where outcome = 'handed_off')::int as partial_success_count
         FROM scout_interactions
         WHERE county_fips IS NOT NULL
           AND county_fips <> ''
