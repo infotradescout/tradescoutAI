@@ -247,15 +247,20 @@ export default function ProfilePage() {
         proceedUnverified: true,
       })) as { profileSlug?: string | null };
 
-      if (result?.profileSlug) {
-        setProfileSlug(String(result.profileSlug));
+      const newSlug = result?.profileSlug ? String(result.profileSlug) : null;
+      if (newSlug) {
+        setProfileSlug(newSlug);
       }
 
       await refetch();
       toast({
         title: "Profile is now public",
-        description: "Your public profile has been activated and is now discoverable.",
+        description: "Your public profile is live. Customize it to make it yours.",
       });
+      // Navigate to the profile editor so the user can customize their new public page
+      if (newSlug) {
+        setLocation(`/u/${newSlug}/edit`);
+      }
     } catch (error) {
       toast({
         title: "Could not make profile public",

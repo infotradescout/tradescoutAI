@@ -625,6 +625,7 @@ export default function BusinessProfileView() {
               <Button
                 variant="outline"
                 size="sm"
+                data-testid="bp-edit"
                 onClick={() => setLocation(`/business/${slug}/edit`)}
               >
                 <Edit className="h-4 w-4 mr-2" />
@@ -667,8 +668,8 @@ export default function BusinessProfileView() {
         <CardContent>
           {/* Description */}
           {hasDescription ? (
-            <p className="text-base leading-relaxed" data-testid="bp-mission">
-              {profile.description}
+            <p className="text-base leading-relaxed" data-testid="bp-mission" data-description={profile.description}>
+              <span data-testid="bp-description">{profile.description}</span>
             </p>
           ) : (
             <div className="rounded-lg border bg-background/40 p-5 text-sm text-muted-foreground">
