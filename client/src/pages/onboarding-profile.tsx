@@ -19,6 +19,7 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { storeOnboardingNext, isSafeNextPath } from "@/lib/postOnboardingRoute";
+import { trackShellEvent } from "@/lib/analytics";
 
 function sanitizeNext(next: string) {
   if (!next.startsWith("/")) return "";
@@ -244,6 +245,17 @@ export default function OnboardingProfile() {
       toast({
         title: "Profile updated",
         description: "Profile saved. One more step so Scout can finish setting things up.",
+      });
+      // Funnel event: profile step completed
+      void trackShellEvent({
+        type: "onboarding_profile_completed",
+        presenceType:
+          ((user as any)?.preferences?.provisional?.profileDraft?.presenceType as
+            | "personal"
+            | "represent_business"
+            | null) ?? null,
+        profileVersion: CURRENT_PROFILE_VERSION,
+        ts: new Date().toISOString(),
       });
       navigate(buildIntentRoute(postProfileNext));
     },

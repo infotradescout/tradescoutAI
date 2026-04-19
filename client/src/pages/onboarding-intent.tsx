@@ -14,6 +14,7 @@ import {
   consumeOnboardingNext,
   isBusinessUser,
 } from "@/lib/postOnboardingRoute";
+import { trackShellEvent } from "@/lib/analytics";
 
 type StartIntent = "community" | "services" | "business" | "tools";
 
@@ -61,7 +62,25 @@ export default function OnboardingIntent() {
     },
     onSuccess: (_data, intent) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      navigate(resolveDestination(intent));
+      const destination = resolveDestination(intent);
+      // Funnel events: intent chosen + onboarding completed
+      void trackShellEvent({
+        type: "onboarding_intent_chosen",
+        intent: intent!,
+        presenceType: userIsBusiness ? "represent_business" : "personal",
+        destination,
+        ts: new Date().toISOString(),
+      });
+      void trackShellEvent({
+        type: "onboarding_completed",
+        presenceType: userIsBusiness ? "represent_business" : "personal",
+        draftPromoted: Boolean(
+          (user as any)?.preferences?.provisional?.promotedAt
+        ),
+        destination,
+        ts: new Date().toISOString(),
+      });
+      navigate(destination);
     },
     onError: (error: any) => {
       toast({
@@ -87,11 +106,28 @@ export default function OnboardingIntent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      const destination = resolveDestination(null);
+      // Funnel events: intent skipped + onboarding completed
+      void trackShellEvent({
+        type: "onboarding_intent_skipped",
+        presenceType: userIsBusiness ? "represent_business" : "personal",
+        destination,
+        ts: new Date().toISOString(),
+      });
+      void trackShellEvent({
+        type: "onboarding_completed",
+        presenceType: userIsBusiness ? "represent_business" : "personal",
+        draftPromoted: Boolean(
+          (user as any)?.preferences?.provisional?.promotedAt
+        ),
+        destination,
+        ts: new Date().toISOString(),
+      });
       toast({
         title: "All set",
         description: "You can update your preferences anytime in Settings.",
       });
-      navigate(resolveDestination(null));
+      navigate(destination);
     },
     onError: () => {
       // Fail-soft: never trap the user in the onboarding funnel

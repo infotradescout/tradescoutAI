@@ -102,6 +102,53 @@ export type ShellEvent =
       hasVerifiedContact: boolean;
       path: string;
       ts: string;
+    }
+  // ── Onboarding funnel events ─────────────────────────────────────────────
+  | {
+      /** User landed on pre-scout-setup (the very first step) */
+      type: "onboarding_funnel_started";
+      presenceType: "personal" | "represent_business" | null;
+      mode: "create" | "login" | string;
+      ts: string;
+    }
+  | {
+      /** User submitted the pre-scout-setup form and moved to onboarding/profile */
+      type: "onboarding_profile_submitted";
+      presenceType: "personal" | "represent_business" | null;
+      hasBusinessName: boolean;
+      hasCountyFips: boolean;
+      locationSource: "places" | "manual" | null;
+      ts: string;
+    }
+  | {
+      /** User completed the onboarding/profile step and moved to onboarding/intent */
+      type: "onboarding_profile_completed";
+      presenceType: "personal" | "represent_business" | null;
+      profileVersion: number;
+      ts: string;
+    }
+  | {
+      /** User chose an intent on the onboarding/intent step */
+      type: "onboarding_intent_chosen";
+      intent: "community" | "services" | "business" | "tools";
+      presenceType: "personal" | "represent_business" | null;
+      destination: string;
+      ts: string;
+    }
+  | {
+      /** User skipped the intent step */
+      type: "onboarding_intent_skipped";
+      presenceType: "personal" | "represent_business" | null;
+      destination: string;
+      ts: string;
+    }
+  | {
+      /** Onboarding fully completed (complete-onboarding API call succeeded) */
+      type: "onboarding_completed";
+      presenceType: "personal" | "represent_business" | null;
+      draftPromoted: boolean;
+      destination: string;
+      ts: string;
     };
 
 export function getDeviceType(): DeviceType {

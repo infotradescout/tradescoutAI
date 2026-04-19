@@ -1909,6 +1909,20 @@ export async function registerRoutes(app: any) {
       profileImageUrl: normalizeProfileImageUrl((user as any)?.profileImageUrl),
       profileVersion:
         typeof (user as any).profileVersion === "number" ? (user as any).profileVersion : 0,
+      // Expose license and insurance verification status from the trust snapshot
+      // so the offer-services hub and other client surfaces can read them without
+      // an extra API call. Source of truth is contractors.verified_licensed /
+      // verified_insured, surfaced here via the trust_snapshots enrichment.
+      licenseVerified:
+        (user as any)?.trustSnapshot?.licenseStatus === "verified" ||
+        (user as any)?.licenseVerified === true ||
+        (user as any)?.license_verified === true,
+      insuranceVerified:
+        (user as any)?.trustSnapshot?.insuranceStatus === "verified" ||
+        (user as any)?.insuranceVerified === true ||
+        (user as any)?.insurance_verified === true,
+      // Pass through the full trust snapshot so clients can read raw status strings
+      trustSnapshot: (user as any)?.trustSnapshot ?? undefined,
       password: undefined,
     };
   };
@@ -5089,16 +5103,76 @@ export async function registerRoutes(app: any) {
     isAuthenticated,
     async (req: Request, res: Response) => {
       try {
-        const user = await storage.updateUser(
-          (req.user as any)?.id || (req.user as any)?.claims?.sub,
-          {
-            onboardingCompleted: true,
-            // Any explicit onboarding completion should also advance
-            // the profile version so that profile gates remain consistent.
-            profileVersion: CURRENT_PROFILE_VERSION,
-            updatedAt: new Date(),
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+
+        // ── Promote provisional draft fields to canonical user record ────────
+        // The pre-scout-setup form stores captured data in
+        // preferences.provisional.profileDraft. On completion we promote the
+        // business-identity fields so they are available as first-class user
+        // columns and not buried in JSONB preferences.
+        const currentUser = await storage.getUser(userId);
+        const provisional = (currentUser as any)?.preferences?.provisional;
+        const draft = provisional?.profileDraft;
+
+        const promotionPatch: Record<string, unknown> = {
+          onboardingCompleted: true,
+          profileVersion: CURRENT_PROFILE_VERSION,
+          updatedAt: new Date(),
+        };
+
+        if (draft && typeof draft === "object") {
+          // Location fields (already promoted by /api/user/preferences PATCH,
+          // but re-apply here as a safety net for any path that skips that step)
+          if (typeof draft.stateCode === "string" && draft.stateCode.trim().length === 2) {
+            promotionPatch.stateCode = draft.stateCode.trim().toUpperCase();
           }
-        );
+          if (typeof draft.countyFips === "string" && /^\d{5}$/.test(draft.countyFips.trim())) {
+            promotionPatch.countyFips = draft.countyFips.trim();
+            promotionPatch.locationCommitted = true;
+          }
+          if (typeof draft.countyName === "string" && draft.countyName.trim()) {
+            promotionPatch.countyName = draft.countyName.trim();
+          }
+          if (typeof draft.city === "string" && draft.city.trim()) {
+            promotionPatch.city = draft.city.trim();
+          }
+
+          // Business identity fields — only promote when presenceType is business
+          if (draft.presenceType === "represent_business") {
+            if (typeof draft.businessName === "string" && draft.businessName.trim()) {
+              promotionPatch.businessName = draft.businessName.trim();
+            }
+            // Promote role to contractor if not already a privileged role
+            const currentRole = String((currentUser as any)?.role || "");
+            const privilegedRoles = ["admin", "super_admin", "moderator", "support"];
+            if (!privilegedRoles.some((r) => currentRole.includes(r))) {
+              const currentRoles: string[] = Array.isArray((currentUser as any)?.roles)
+                ? (currentUser as any).roles
+                : [];
+              if (!currentRoles.includes("contractor")) {
+                promotionPatch.roles = [...new Set([...currentRoles, "contractor"])];
+                if (!currentRole || currentRole === "homeowner") {
+                  promotionPatch.role = "contractor";
+                  promotionPatch.activeRole = "contractor";
+                }
+              }
+            }
+          }
+
+          // Clear the provisional draft now that it has been promoted
+          const existingPrefs = (currentUser as any)?.preferences || {};
+          const existingProvisional = existingPrefs?.provisional || {};
+          promotionPatch.preferences = {
+            ...existingPrefs,
+            provisional: {
+              ...existingProvisional,
+              profileDraft: undefined,
+              promotedAt: new Date().toISOString(),
+            },
+          };
+        }
+
+        const user = await storage.updateUser(userId, promotionPatch as any);
         res.json(sanitizeUserForResponse(user));
       } catch (error: any) {
         console.error("Error completing onboarding:", error);

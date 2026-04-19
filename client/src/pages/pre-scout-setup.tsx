@@ -23,6 +23,7 @@ import { inferCountyForCityState } from "@/lib/countyInference";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine";
+import { trackShellEvent } from "@/lib/analytics";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -339,6 +340,13 @@ export default function PreScoutSetup() {
     if (isAuthenticated) return;
     bootstrapDemandAttribution();
     void trackDemandEvent("auth_view", { mode: authMode });
+    // Funnel event: user arrived at the very first onboarding step
+    void trackShellEvent({
+      type: "onboarding_funnel_started",
+      presenceType: null,
+      mode: authMode ?? "unknown",
+      ts: new Date().toISOString(),
+    });
   }, [authMode, isAuthenticated]);
 
   // Admin should not be blocked by local setup. If auth returns to setup with an admin destination,
@@ -711,6 +719,15 @@ export default function PreScoutSetup() {
         presenceType,
         stateCode,
         countyFips,
+      });
+      // Funnel event: pre-scout-setup form submitted successfully
+      void trackShellEvent({
+        type: "onboarding_profile_submitted",
+        presenceType: (presenceType as "personal" | "represent_business") ?? null,
+        hasBusinessName: Boolean(businessName?.trim()),
+        hasCountyFips: Boolean(countyFips?.trim()),
+        locationSource: locationSource ?? null,
+        ts: new Date().toISOString(),
       });
 
       if (isAdminDestination) {

@@ -39,6 +39,13 @@ type VerificationStep = {
 type IdentityStatusResponse = { isVerified: boolean; verification: unknown | null };
 type AddressStatusResponse = { isVerified: boolean; requiresVerification: boolean };
 
+type TrustSnapshot = {
+  licenseStatus?: string | null;
+  insuranceStatus?: string | null;
+  verificationStatus?: string | null;
+  cvsScore?: number | null;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function stepStatusIcon(status: VerificationStep["status"]) {
@@ -112,6 +119,27 @@ export default function OfferServicesPage() {
       identityQuery.data?.verification !== null &&
       identityQuery.data?.verification !== undefined;
 
+    // License and insurance: read from user object (populated by sanitizeUserForResponse
+    // via trust snapshot enrichment) with graceful fallback to trustSnapshot directly.
+    const trustSnapshot = (user as any)?.trustSnapshot as TrustSnapshot | undefined;
+    const licenseStatus = trustSnapshot?.licenseStatus ?? null;
+    const insuranceStatus = trustSnapshot?.insuranceStatus ?? null;
+    const licenseDone =
+      (user as any)?.licenseVerified === true || licenseStatus === "verified";
+    const licensePending =
+      !licenseDone && (licenseStatus === "submitted" || licenseStatus === "pending_review");
+    const insuranceDone =
+      (user as any)?.insuranceVerified === true || insuranceStatus === "verified";
+    const insurancePending =
+      !insuranceDone &&
+      (insuranceStatus === "submitted" || insuranceStatus === "pending_review");
+
+    // Public profile: consider done if user has a profileImageUrl or a bio/description
+    const profileDone =
+      Boolean((user as any)?.profileImageUrl) ||
+      Boolean((user as any)?.bio) ||
+      Boolean((user as any)?.about);
+
     return [
       {
         id: "email",
@@ -156,7 +184,7 @@ export default function OfferServicesPage() {
         description:
           "Licensed contractors get a verified badge and rank higher in search results.",
         icon: FileText,
-        status: "not_started",
+        status: licenseDone ? "complete" : licensePending ? "pending" : "not_started",
         href: "/license-verification",
         priority: "recommended",
       },
@@ -166,7 +194,7 @@ export default function OfferServicesPage() {
         description:
           "Clients require proof of general liability before hiring. Upload yours here.",
         icon: Briefcase,
-        status: "not_started",
+        status: insuranceDone ? "complete" : insurancePending ? "pending" : "not_started",
         href: "/insurance-verification",
         priority: "recommended",
       },
@@ -176,7 +204,7 @@ export default function OfferServicesPage() {
         description:
           "Add a photo, bio, and service tags so clients can find and trust you.",
         icon: Star,
-        status: "not_started",
+        status: profileDone ? "complete" : "not_started",
         href: "/profile",
         priority: "optional",
       },
