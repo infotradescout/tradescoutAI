@@ -97,7 +97,7 @@ export default function DirectConnectPros() {
 
   const { data: contractors = [], isLoading } = useQuery({
     queryKey: [
-      "/api/contractors/search",
+      "/api/providers/search",
       effectiveCountyFips,
       effectiveStateCode,
       effectiveTradeSlug,
@@ -111,7 +111,7 @@ export default function DirectConnectPros() {
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
       if (searchQuery) params.set("query", searchQuery.trim());
       params.set("limit", "40");
-      return apiRequest("GET", `/api/contractors/search?${params.toString()}`);
+      return apiRequest("GET", `/api/providers/search?${params.toString()}`);
     },
   });
 

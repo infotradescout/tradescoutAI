@@ -122,10 +122,13 @@ function buildStructuredPrefillRoute(action: ScoutAction): string | null {
     if (scope) {
       params.set("title", jobType ? `${jobType} request` : "Service request");
       params.set("description", scope);
+    } else if (jobType) {
+      params.set("title", `${jobType} request`);
     }
     if (urgency) params.set("urgency", urgency);
+    params.set("source", "scout");
 
-    const base = routeCandidate.includes("/post") ? routeCandidate : "/direct-connect/post";
+    const base = "/direct-connect";
     const query = params.toString();
     return query ? `${base}?${query}` : base;
   }

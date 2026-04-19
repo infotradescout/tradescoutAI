@@ -58,12 +58,13 @@ describe("ScoutActionRouter structured prefill routing", () => {
     expect(navigate).toHaveBeenCalledTimes(1);
 
     const routedTo = String(navigate.mock.calls[0][0]);
-    expect(routedTo.startsWith("/direct-connect/post?")).toBe(true);
+    expect(routedTo.startsWith("/direct-connect?")).toBe(true);
 
     const params = new URLSearchParams(routedTo.split("?")[1] || "");
     expect(params.get("title")).toBe("roofing request");
     expect(params.get("description")).toBe("Need roof leak repair");
     expect(params.get("urgency")).toBe("high");
+    expect(params.get("source")).toBe("scout");
   });
 
   it("routes exchange structured prefill to sell tab URL", async () => {

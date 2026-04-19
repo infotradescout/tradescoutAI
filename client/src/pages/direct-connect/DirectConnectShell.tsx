@@ -250,6 +250,7 @@ type RequestWorkflowStage =
   | "ready_to_send"
   | "waiting_on_pros"
   | "active_conversation"
+  | "pending_outcome"
   | "completed"
   | "cancelled";
 
@@ -266,6 +267,7 @@ function getRequestWorkflowStage(request: DirectConnectRequest): RequestWorkflow
   const status = String(request.status || "open").toLowerCase();
   if (status === "cancelled") return "cancelled";
   if (status === "completed") return "completed";
+  if (status === "pending_outcome") return "pending_outcome";
   if (status === "in_progress" || Boolean(request.dcConversationThreadId)) {
     return "active_conversation";
   }
@@ -322,6 +324,8 @@ function getRequestStageLabel(stage: RequestWorkflowStage): string {
       return "Waiting on pros";
     case "active_conversation":
       return "In conversation";
+    case "pending_outcome":
+      return "Pending outcome";
     case "completed":
       return "Completed";
     case "cancelled":
@@ -337,6 +341,8 @@ function getRequestStageSummary(stage: RequestWorkflowStage): string {
       return "TradeScout has already sent this request out. You're waiting to see who responds.";
     case "active_conversation":
       return "A pro has engaged with this request, so your next step is to continue the conversation.";
+    case "pending_outcome":
+      return "Work is wrapping up. Confirm the outcome with your provider to close this request.";
     case "completed":
       return "This request is done. You can review the details or reopen it only by creating a new request.";
     case "cancelled":
@@ -348,31 +354,38 @@ function RequestLifecycleRail({ stage }: { stage: RequestWorkflowStage }) {
   const steps: Array<{ key: RequestWorkflowStage; label: string }> = [
     { key: "ready_to_send", label: "Open" },
     { key: "waiting_on_pros", label: "Routed" },
-    { key: "active_conversation", label: "In Conversation" },
+    { key: "active_conversation", label: "In Discussion" },
+    { key: "pending_outcome", label: "Pending Outcome" },
     { key: "completed", label: "Completed" },
   ];
-  const currentIndex = steps.findIndex((step) => step.key === stage);
+  const isCancelled = stage === "cancelled";
+  const currentIndex = isCancelled ? -1 : steps.findIndex((step) => step.key === stage);
   return (
     <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 px-3 py-2">
       <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-        Request lifecycle
+        {isCancelled ? "Request cancelled" : "Request lifecycle"}
       </p>
-      <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+      <div className="mt-1.5 grid grid-cols-5 gap-1">
         {steps.map((step, index) => {
-          const complete = currentIndex > -1 && index <= currentIndex;
+          const complete = !isCancelled && currentIndex > -1 && index <= currentIndex;
+          const isCurrent = !isCancelled && index === currentIndex;
           return (
             <div key={step.key} className="space-y-1">
               <div
                 className={cn(
-                  "h-1.5 rounded-full",
-                  complete
-                    ? "bg-[color:var(--theme-accent-primary)]"
-                    : "bg-[color:var(--border-subtle)]"
+                  "h-1.5 rounded-full transition-colors",
+                  isCancelled
+                    ? "bg-[color:var(--border-subtle)]"
+                    : complete
+                      ? isCurrent
+                        ? "bg-[color:var(--theme-accent-primary)] ring-1 ring-[color:var(--theme-accent-primary)]/40"
+                        : "bg-[color:var(--theme-accent-primary)]"
+                      : "bg-[color:var(--border-subtle)]"
                 )}
               />
               <p
                 className={cn(
-                  "text-[10px]",
+                  "text-[9px] leading-tight",
                   complete
                     ? "text-[color:var(--text-primary)]"
                     : "text-[color:var(--text-secondary)]"
@@ -393,7 +406,8 @@ function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilt
   if (filter === "all") return stage !== "cancelled";
   if (filter === "open") return stage === "ready_to_send";
   if (filter === "routed") return stage === "waiting_on_pros";
-  if (filter === "in_progress") return stage === "active_conversation";
+  if (filter === "in_progress")
+    return stage === "active_conversation" || stage === "pending_outcome";
   if (filter === "completed") return stage === "completed";
   return stage === "cancelled";
 }
@@ -688,7 +702,7 @@ function DirectConnectRequestComposer({
     DirectoryCandidate[]
   >({
     queryKey: [
-      "/api/contractors/search",
+      "/api/providers/search",
       "direct-connect-send-selector",
       defaultCountyFips,
       directorySearch,
@@ -704,7 +718,7 @@ function DirectConnectRequestComposer({
       const fallbackQuery = title.trim().length >= 2 ? title.trim() : "";
       const query = directorySearch.trim().length > 0 ? directorySearch.trim() : fallbackQuery;
       if (query) params.set("query", query);
-      const payload = await apiRequest("GET", `/api/contractors/search?${params.toString()}`);
+      const payload = await apiRequest("GET", `/api/providers/search?${params.toString()}`);
       return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
     },
   });
@@ -1818,7 +1832,7 @@ function MyDirectConnectRequests() {
     DirectoryCandidate[]
   >({
     queryKey: [
-      "/api/contractors/search",
+      "/api/providers/search",
       "direct-connect-reroute-selector",
       activeRouteRequest?.id || null,
       activeRouteRequest?.countyFips || null,
@@ -1835,7 +1849,7 @@ function MyDirectConnectRequests() {
       if (activeRouteRequest?.tradeId) params.set("trade", String(activeRouteRequest.tradeId));
       const query = routeDirectorySearch.trim();
       if (query) params.set("query", query);
-      const payload = await apiRequest("GET", `/api/contractors/search?${params.toString()}`);
+      const payload = await apiRequest("GET", `/api/providers/search?${params.toString()}`);
       return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
     },
   });
@@ -1926,6 +1940,31 @@ function MyDirectConnectRequests() {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       toast({ title: "Request reopened" });
+    },
+  });
+
+  const markPendingOutcomeMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/mark-pending-outcome`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
+      toast({
+        title: "Marked as pending outcome",
+        description: "Confirm with your provider to close this request.",
+      });
+    },
+  });
+
+  const markCompleteMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/complete`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
+      toast({ title: "Request completed", description: "Great work! This request is now closed." });
     },
   });
 
@@ -2076,6 +2115,8 @@ function MyDirectConnectRequests() {
           stage === "ready_to_send" ||
           stage === "waiting_on_pros" ||
           stage === "active_conversation";
+        const canMarkPendingOutcome = stage === "active_conversation";
+        const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation";
         const canReopen = stage === "cancelled";
         const canShare = stage !== "cancelled" && stage !== "completed";
         const isExpanded = expandedRequestId === r.id;
@@ -2275,6 +2316,30 @@ function MyDirectConnectRequests() {
                           Route to more pros
                         </Button>
                       )}
+                      {canMarkPendingOutcome && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                          data-testid="dc-mark-pending-outcome-btn"
+                          disabled={markPendingOutcomeMutation.isPending}
+                          onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                        >
+                          Mark pending outcome
+                        </Button>
+                      )}
+                      {canMarkComplete && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                          data-testid="dc-mark-complete-btn"
+                          disabled={markCompleteMutation.isPending}
+                          onClick={() => markCompleteMutation.mutate(r.id)}
+                        >
+                          Mark complete
+                        </Button>
+                      )}
                       {canCancel && (
                         <Button
                           size="sm"
@@ -2339,6 +2404,30 @@ function MyDirectConnectRequests() {
                     Open messages
                   </Button>
                 )}
+                {canMarkPendingOutcome && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                    data-testid="dc-mark-pending-outcome-btn"
+                    disabled={markPendingOutcomeMutation.isPending}
+                    onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                  >
+                    Mark pending outcome
+                  </Button>
+                )}
+                {canMarkComplete && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                    data-testid="dc-mark-complete-btn"
+                    disabled={markCompleteMutation.isPending}
+                    onClick={() => markCompleteMutation.mutate(r.id)}
+                  >
+                    Mark complete
+                  </Button>
+                )}
                 {canReopen && (
                   <Button
                     size="sm"
@@ -2388,6 +2477,30 @@ function MyDirectConnectRequests() {
                     >
                       <MessageCircle className="mr-1 h-3.5 w-3.5" />
                       Open messages
+                    </Button>
+                  )}
+                  {canMarkPendingOutcome && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                      data-testid="dc-mark-pending-outcome-btn"
+                      disabled={markPendingOutcomeMutation.isPending}
+                      onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                    >
+                      Mark pending outcome
+                    </Button>
+                  )}
+                  {canMarkComplete && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                      data-testid="dc-mark-complete-btn"
+                      disabled={markCompleteMutation.isPending}
+                      onClick={() => markCompleteMutation.mutate(r.id)}
+                    >
+                      Mark complete
                     </Button>
                   )}
                   {canReopen && (

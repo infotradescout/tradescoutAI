@@ -2047,6 +2047,145 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
+  // Requester-facing: mark a request as pending outcome
+  app.post(
+    "/api/direct-connect/requests/:id/mark-pending-outcome",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const requestId = String(req.params.id);
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only update your own requests" });
+        }
+
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res
+            .status(400)
+            .json({ message: "Only Direct Connect requests can be updated here" });
+        }
+
+        if (requestRow.status !== "in_progress") {
+          return res
+            .status(400)
+            .json({ message: "Only in-progress requests can be marked as pending outcome" });
+        }
+
+        const now = new Date();
+
+        await db.transaction(async (tx) => {
+          await tx
+            .update(workRequests)
+            .set({ status: "pending_outcome", updatedAt: now })
+            .where(eq(workRequests.id, requestId));
+
+          try {
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestId,
+              type: "status_changed",
+              actorUserId: String(userId),
+              fromStatus: "in_progress",
+              toStatus: "pending_outcome",
+              metadata: { source: "direct_connect", reason: "mark_pending_outcome" },
+            });
+          } catch (e) {
+            console.warn(
+              "[direct-connect] Failed to record status_changed event on mark-pending-outcome",
+              e
+            );
+          }
+        });
+
+        res.status(200).json({ status: "pending_outcome" });
+      } catch (error: any) {
+        console.error("Error marking direct connect request as pending outcome:", error);
+        res.status(500).json({ message: "Failed to mark request as pending outcome" });
+      }
+    }
+  );
+
+  // Requester-facing: mark a request as complete
+  app.post(
+    "/api/direct-connect/requests/:id/complete",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const requestId = String(req.params.id);
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only complete your own requests" });
+        }
+
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res
+            .status(400)
+            .json({ message: "Only Direct Connect requests can be completed here" });
+        }
+
+        const allowedStatuses = ["in_progress", "pending_outcome"];
+        if (!allowedStatuses.includes(requestRow.status as string)) {
+          return res
+            .status(400)
+            .json({
+              message: "Only in-progress or pending-outcome requests can be marked complete",
+            });
+        }
+
+        const fromStatus = requestRow.status;
+        const now = new Date();
+
+        await db.transaction(async (tx) => {
+          await tx
+            .update(workRequests)
+            .set({ status: "completed", updatedAt: now })
+            .where(eq(workRequests.id, requestId));
+
+          try {
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestId,
+              type: "status_changed",
+              actorUserId: String(userId),
+              fromStatus: fromStatus as string,
+              toStatus: "completed",
+              metadata: { source: "direct_connect", reason: "mark_complete" },
+            });
+          } catch (e) {
+            console.warn("[direct-connect] Failed to record status_changed event on complete", e);
+          }
+        });
+
+        res.status(200).json({ status: "completed" });
+      } catch (error: any) {
+        console.error("Error completing direct connect request:", error);
+        res.status(500).json({ message: "Failed to complete request" });
+      }
+    }
+  );
+
   // Requester-facing: create a new Direct Connect request
   app.post(
     "/api/direct-connect/requests",
