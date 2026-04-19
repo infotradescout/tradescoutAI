@@ -8,6 +8,7 @@ import { PageLoadingSpinner } from "./components/LoadingSpinner";
 import { hasAdminUiAccess, isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { getRecentActivity } from "@/agent/activity";
+import { storeOnboardingNext, isSafeNextPath } from "@/lib/postOnboardingRoute";
 import {
   evaluateFeatureUnlocks,
   isFeatureUnlocked,
@@ -128,7 +129,12 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
     const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
     if (isOnboardingExemptPath(pathOnly)) return;
 
-    const next = encodeURIComponent(raw.startsWith("/") ? raw : `/${raw}`);
+    const fullPath = raw.startsWith("/") ? raw : `/${raw}`;
+    // Persist the deep-link in sessionStorage so it survives the multi-step funnel
+    if (isSafeNextPath(fullPath)) {
+      storeOnboardingNext(fullPath);
+    }
+    const next = encodeURIComponent(fullPath);
     const target = `/onboarding/profile?next=${next}`;
     if (raw !== target) {
       navigate(target);

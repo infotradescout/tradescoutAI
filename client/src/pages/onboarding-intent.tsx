@@ -7,17 +7,15 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { apiRequest } from "@/lib/queryClient";
-import { MessageCircle, Users, Briefcase, SlidersHorizontal } from "lucide-react";
+import { Users, Briefcase, SlidersHorizontal, Zap } from "lucide-react";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  resolvePostOnboardingRoute,
+  consumeOnboardingNext,
+  isBusinessUser,
+} from "@/lib/postOnboardingRoute";
 
 type StartIntent = "community" | "services" | "business" | "tools";
-
-const INTENT_ROUTES: Record<StartIntent, string> = {
-  community: "/community-feed",
-  services: "/contractors",
-  business: "/offer-services",
-  tools: "/scout",
-} as const;
 
 export default function OnboardingIntent() {
   const { user, isAuthenticated } = useAuth();
@@ -25,30 +23,45 @@ export default function OnboardingIntent() {
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
 
+  // Read ?next= from the URL (set by AppRoutes when gating a protected route)
   const search = useMemo(() => {
     const raw = String(location || "");
     const query = raw.includes("?") ? raw.split("?", 2)[1] : "";
     return new URLSearchParams(query);
   }, [location]);
-  const nextParam = (search.get("next") || "").trim();
-  const postIntentNext = nextParam.startsWith("/") ? nextParam : routeForIntentFallback();
 
+  const urlNextParam = (search.get("next") || "").trim();
+
+  /**
+   * Compute the final destination after onboarding.
+   * Priority: ?next= URL param > sessionStorage backup > role-based default.
+   */
+  const resolveDestination = (chosenIntent?: StartIntent | null): string => {
+    const storedNext = consumeOnboardingNext();
+    const nextParam = urlNextParam || storedNext || null;
+    return resolvePostOnboardingRoute({
+      nextParam,
+      user: user as any,
+      presenceType: null, // presenceType already committed to the user record by this step
+      chosenIntent: chosenIntent ?? null,
+    });
+  };
+
+  // ── Save intent + complete onboarding ──────────────────────────────────────
   const saveIntent = useMutation({
     mutationFn: async (intent: StartIntent | null) => {
       const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
-      const mergedPreferences = {
-        ...existingPrefs,
-        startIntent: intent || undefined,
-      };
-
       await apiRequest("PUT", "/api/user/profile", {
-        preferences: mergedPreferences,
+        preferences: {
+          ...existingPrefs,
+          startIntent: intent || undefined,
+        },
       });
       return apiRequest("POST", "/api/user/complete-onboarding", {});
     },
     onSuccess: (_data, intent) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      navigate(postIntentNext || routeForIntent(intent));
+      navigate(resolveDestination(intent));
     },
     onError: (error: any) => {
       toast({
@@ -59,51 +72,53 @@ export default function OnboardingIntent() {
     },
   });
 
-  const routeForIntent = (intent: StartIntent | null): string => {
-    if (!intent) return INTENT_ROUTES.community;
-    return INTENT_ROUTES[intent];
-  };
-
-  function routeForIntentFallback(): string {
-    return INTENT_ROUTES.community;
-  }
-
-  const handleChoose = (intent: StartIntent | null) => {
-    if (!isAuthenticated) {
-      navigate("/pre-scout-setup?mode=create");
-      return;
-    }
-
-    saveIntent.mutate(intent);
-  };
-
-  const handleSkipForNow = async () => {
-    if (!isAuthenticated) {
-      navigate("/pre-scout-setup?mode=create");
-      return;
-    }
-
-    try {
+  // ── Skip: mark complete and route to smart default ─────────────────────────
+  const skipMutation = useMutation({
+    mutationFn: async () => {
       const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
       await apiRequest("PUT", "/api/user/profile", {
         preferences: {
           ...existingPrefs,
-          onboardingDeferredAt: new Date().toISOString(),
-          onboardingDeferredFrom: "onboarding_intent",
+          onboardingSkippedAt: new Date().toISOString(),
+          onboardingSkippedFrom: "onboarding_intent",
         },
       });
+      return apiRequest("POST", "/api/user/complete-onboarding", {});
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
-        title: "Setup paused",
-        description:
-          "You can continue now. Finish onboarding soon so Scout can route and rank next steps correctly.",
+        title: "All set",
+        description: "You can update your preferences anytime in Settings.",
       });
-    } catch {
-      // fail-soft: never trap users on skip
-    }
+      navigate(resolveDestination(null));
+    },
+    onError: () => {
+      // Fail-soft: never trap the user in the onboarding funnel
+      navigate(resolveDestination(null));
+    },
+  });
 
-    navigate(postIntentNext || routeForIntentFallback());
+  const handleChoose = (intent: StartIntent) => {
+    if (!isAuthenticated) {
+      navigate("/pre-scout-setup?mode=create");
+      return;
+    }
+    saveIntent.mutate(intent);
   };
+
+  const handleSkipForNow = () => {
+    if (!isAuthenticated) {
+      navigate("/pre-scout-setup?mode=create");
+      return;
+    }
+    skipMutation.mutate();
+  };
+
+  const isBusy = saveIntent.isPending || skipMutation.isPending;
+
+  // Detect if this is a business/service-provider user so we can highlight the right default
+  const userIsBusiness = isBusinessUser(user as any, null);
 
   return (
     <div className="flex justify-center px-3 py-6 text-white">
@@ -112,9 +127,10 @@ export default function OnboardingIntent() {
           <Button
             variant="ghost"
             onClick={handleSkipForNow}
+            disabled={isBusy}
             className="px-0 text-white/60 hover:text-white hover:bg-transparent"
           >
-            Skip for now
+            {skipMutation.isPending ? "Saving…" : "Skip for now"}
           </Button>
           <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">Step 2/2</div>
         </div>
@@ -134,15 +150,65 @@ export default function OnboardingIntent() {
 
           <CardContent>
             <p className="mb-3 text-xs text-white/70">
-              This helps Scout show better next steps right away. You can skip for now, but matches
-              may be less accurate until setup is finished.
+              {userIsBusiness
+                ? "We'll take you to your profile & verification setup by default — or pick another surface below."
+                : "We'll take you to Direct Connect by default — or pick a different surface below."}
             </p>
-            <p className="mb-3 text-xs text-white/55">You can change this later in settings.</p>
+
             <div className="grid grid-cols-2 gap-2">
+              {/* Direct Connect — default for personal users */}
+              <button
+                type="button"
+                onClick={() => handleChoose("services")}
+                disabled={isBusy}
+                className={`relative text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70 disabled:opacity-50 ${
+                  !userIsBusiness
+                    ? "border-ts-orange/60 bg-ts-orange/10 hover:bg-ts-orange/20"
+                    : "border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-ts-orange" />
+                  <span className="font-medium text-white">Direct Connect</span>
+                  {!userIsBusiness && (
+                    <span className="ml-auto text-[10px] text-ts-orange font-semibold uppercase tracking-wide">
+                      Default
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-white/65">Post a job or find a pro instantly.</p>
+              </button>
+
+              {/* Offer Services — default for business users */}
+              <button
+                type="button"
+                onClick={() => handleChoose("business")}
+                disabled={isBusy}
+                className={`relative text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70 disabled:opacity-50 ${
+                  userIsBusiness
+                    ? "border-ts-orange/60 bg-ts-orange/10 hover:bg-ts-orange/20"
+                    : "border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-ts-orange" />
+                  <span className="font-medium text-white">Offer Services</span>
+                  {userIsBusiness && (
+                    <span className="ml-auto text-[10px] text-ts-orange font-semibold uppercase tracking-wide">
+                      Default
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-white/65">
+                  Set up your profile &amp; verification.
+                </p>
+              </button>
+
               <button
                 type="button"
                 onClick={() => handleChoose("community")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
+                disabled={isBusy}
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40 disabled:opacity-50"
               >
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-ts-orange" />
@@ -153,32 +219,9 @@ export default function OnboardingIntent() {
 
               <button
                 type="button"
-                onClick={() => handleChoose("services")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
-              >
-                <div className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Local Directory</span>
-                </div>
-                <p className="mt-1 text-xs text-white/65">Find and compare local businesses.</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleChoose("business")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
-              >
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Offer services</span>
-                </div>
-                <p className="mt-1 text-xs text-white/65">Set up your business presence.</p>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => handleChoose("tools")}
-                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
+                disabled={isBusy}
+                className="text-left rounded-xl border px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 focus:ring-ts-orange/70 border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40 disabled:opacity-50"
               >
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="h-4 w-4 text-ts-orange" />
@@ -192,9 +235,10 @@ export default function OnboardingIntent() {
               <button
                 type="button"
                 onClick={handleSkipForNow}
-                className="text-xs text-white/60 underline-offset-2 hover:underline text-left"
+                disabled={isBusy}
+                className="text-xs text-white/60 underline-offset-2 hover:underline text-left disabled:opacity-50"
               >
-                Skip and choose later
+                {skipMutation.isPending ? "Saving…" : "Skip and choose later"}
               </button>
             </div>
           </CardContent>

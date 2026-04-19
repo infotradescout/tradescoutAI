@@ -108,6 +108,7 @@ import scoutNormalizeRouter from "./scout-normalize";
 import {
   initializeOnboardingSession,
   getOnboardingSession,
+  saveOnboardingSession,
   getNextQuestion,
   recordAnswer,
   recordSkip,
@@ -2646,14 +2647,14 @@ router.post("/", async (req: Request, res: Response) => {
       }
     };
 
-    // D2-1: Detect and initialize onboarding session
+    // D2-1: Detect and initialize onboarding session (DB-backed)
     const userId = (req as any).user?.id;
     const clientSessionId = sessionId || `${userId || "guest"}_${Date.now()}`;
-    let onboardingSession: OnboardingSession | undefined = getOnboardingSession(clientSessionId);
+    let onboardingSession: OnboardingSession | undefined = await getOnboardingSession(clientSessionId);
 
     if (onboarding && !onboardingSession) {
       // D2-1: Initialize onboarding session on first request
-      onboardingSession = initializeOnboardingSession(clientSessionId);
+      onboardingSession = await initializeOnboardingSession(clientSessionId, userId);
     }
 
     // D2-2: Process onboarding answer if provided
@@ -2663,6 +2664,8 @@ router.post("/", async (req: Request, res: Response) => {
       } else {
         recordAnswer(onboardingSession, onboardingQuestionKey, onboardingAnswer);
       }
+      // Persist the updated session immediately after recording the answer
+      await saveOnboardingSession(clientSessionId, onboardingSession);
     }
 
     // D2-4: Check auto-expiration conditions
@@ -2670,6 +2673,7 @@ router.post("/", async (req: Request, res: Response) => {
       const expirationReason = checkAutoExpiration(onboardingSession);
       if (expirationReason) {
         expireOnboarding(onboardingSession, expirationReason);
+        await saveOnboardingSession(clientSessionId, onboardingSession);
       }
     }
 

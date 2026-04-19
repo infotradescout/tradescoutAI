@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StateCountySelector } from "@/components/state-county-selector";
+import {
+  GooglePlacesLocationInput,
+  type PlaceResult,
+} from "@/components/GooglePlacesLocationInput";
+import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -103,6 +108,8 @@ export default function PreScoutSetup() {
   const [city, setCity] = useState(existingDraft?.city || "");
   const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
   const [countyInferenceNote, setCountyInferenceNote] = useState("");
+  // Track whether location was resolved via Google Places (vs. manual typing)
+  const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
   const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
   const [submitting, setSubmitting] = useState(false);
 
@@ -162,7 +169,63 @@ export default function PreScoutSetup() {
     setBusinessName(existingDraft.businessName || "");
   }, [existingDraft]);
 
+  // handlePlaceSelected: called when user picks a result from Google Places Autocomplete
+  const handlePlaceSelected = useCallback(async (result: PlaceResult) => {
+    const newCity = result.city || "";
+    const newState = result.stateCode || "";
+    const newCountyName = result.countyName || "";
+
+    setCity(newCity);
+    if (newState) setStateCode(newState);
+    setLocationSource("places");
+
+    // Reset county while we resolve FIPS
+    setCountyFips("");
+    setCountyName(newCountyName || undefined);
+    setCountyInferenceStatus("loading");
+    setCountyInferenceNote("Resolving county…");
+
+    if (!newState || (!newCity && !newCountyName)) {
+      setCountyInferenceStatus("idle");
+      setCountyInferenceNote("");
+      return;
+    }
+
+    try {
+      const inferCity = newCountyName || newCity;
+      const inferred = await inferCountyForCityState({
+        city: inferCity,
+        stateCode: newState,
+      });
+
+      if (inferred?.inferred?.countyFips) {
+        setCountyFips(inferred.inferred.countyFips);
+        setCountyName(inferred.inferred.countyName || newCountyName || undefined);
+        setCountyInferenceStatus("inferred");
+        setCountyInferenceNote(
+          `Confirmed: ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}`
+        );
+      } else if (inferred?.ambiguous) {
+        setCountyInferenceStatus("ambiguous");
+        setCountyInferenceNote("Multiple counties match — select yours below.");
+      } else {
+        setCountyInferenceStatus("ambiguous");
+        setCountyInferenceNote(
+          newCountyName
+            ? `Found "${newCountyName}" — confirm your county below.`
+            : "Select your county below to confirm."
+        );
+      }
+    } catch {
+      setCountyInferenceStatus("error");
+      setCountyInferenceNote("Could not resolve county. Select it manually below.");
+    }
+  }, []);
+
   useEffect(() => {
+    // Skip inference when location came from Google Places — already resolved
+    if (locationSource === "places") return;
+
     const normalizedCity = city.trim();
     if (!/^[A-Z]{2}$/.test(stateCode) || normalizedCity.length < 2) {
       setCountyInferenceStatus("idle");
@@ -194,17 +257,15 @@ export default function PreScoutSetup() {
         }
         if (inferred?.ambiguous) {
           setCountyInferenceStatus("ambiguous");
-          setCountyInferenceNote("Multiple counties match this city. Select your county manually.");
+          setCountyInferenceNote("Multiple counties match — select yours below.");
           return;
         }
         setCountyInferenceStatus("error");
-        setCountyInferenceNote(
-          "Could not infer county from city and state. Select county manually."
-        );
+        setCountyInferenceNote("Could not infer county. Select it manually below.");
       } catch (error: any) {
         if (cancelled || error?.name === "AbortError") return;
         setCountyInferenceStatus("error");
-        setCountyInferenceNote("Could not infer county right now. Select county manually.");
+        setCountyInferenceNote("Could not infer county right now. Select it manually below.");
       }
     }, 350);
 
@@ -213,7 +274,7 @@ export default function PreScoutSetup() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [city, countyFips, stateCode]);
+  }, [city, countyFips, stateCode, locationSource]);
 
   useEffect(() => {
     setAuthMode(requestedAuthMode);
@@ -1078,22 +1139,17 @@ export default function PreScoutSetup() {
 
                 <div className="space-y-2">
                   <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                    City
+                    City or area (optional)
                   </Label>
-                  <Input
-                    value={city}
-                    onChange={(e) => {
-                      setCity(e.target.value);
-                      if (countyInferenceStatus === "inferred" && countyFips) {
-                        setCountyFips("");
-                        setCountyName(undefined);
-                      }
-                    }}
-                    placeholder="Enter city"
-                    className="h-10 border-white/10 bg-black/30 text-white placeholder:text-white/60 focus-visible:ring-ts-orange/70"
+                  <GooglePlacesLocationInput
+                    placeholder="Search your city or neighborhood"
+                    defaultValue={city}
+                    onPlaceSelected={handlePlaceSelected}
+                    className="w-full"
+                    data-testid="places-city-input"
                   />
-                  <p className="text-[11px] text-white/50">
-                    Add your city if you want TradeScout to try finding the county for you.
+                  <p className="text-[10px] text-white/40">
+                    Start typing to search — we'll fill in your county automatically.
                   </p>
                 </div>
 
@@ -1112,19 +1168,31 @@ export default function PreScoutSetup() {
                     }}
                   />
                   {countyInferenceStatus !== "idle" && countyInferenceNote && (
-                    <p
-                      className={`text-[11px] ${
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] mt-1 ${
                         countyInferenceStatus === "inferred"
-                          ? "text-emerald-300"
+                          ? "text-emerald-400"
                           : countyInferenceStatus === "loading"
                             ? "text-white/60"
-                            : "text-amber-300"
+                            : "text-amber-400"
                       }`}
                     >
-                      {countyInferenceStatus === "loading"
-                        ? "Detecting county from city..."
-                        : countyInferenceNote}
-                    </p>
+                      {countyInferenceStatus === "loading" && (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      )}
+                      {countyInferenceStatus === "inferred" && (
+                        <CheckCircle2 className="h-3 w-3" />
+                      )}
+                      {(countyInferenceStatus === "ambiguous" ||
+                        countyInferenceStatus === "error") && (
+                        <AlertTriangle className="h-3 w-3" />
+                      )}
+                      <span>
+                        {countyInferenceStatus === "loading"
+                          ? "Detecting county…"
+                          : countyInferenceNote}
+                      </span>
+                    </div>
                   )}
                 </div>
 

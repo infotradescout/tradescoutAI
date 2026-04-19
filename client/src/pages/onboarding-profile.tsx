@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,25 +9,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { StateCountySelector } from "@/components/state-county-selector";
+import {
+  GooglePlacesLocationInput,
+  type PlaceResult,
+} from "@/components/GooglePlacesLocationInput";
 import { apiRequest } from "@/lib/queryClient";
 import { inferCountyForCityState } from "@/lib/countyInference";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { storeOnboardingNext, isSafeNextPath } from "@/lib/postOnboardingRoute";
 
 function sanitizeNext(next: string) {
-  if (!next.startsWith("/")) return "/scout";
+  if (!next.startsWith("/")) return "";
   if (
     next.startsWith("/pre-scout-setup") ||
     next.startsWith("/login") ||
-    next.startsWith("/register")
+    next.startsWith("/register") ||
+    next.startsWith("/onboarding")
   ) {
-    return "/scout";
+    return "";
   }
-  return next;
+  return isSafeNextPath(next) ? next : "";
 }
 
 function buildIntentRoute(next: string) {
-  return `/onboarding/intent?next=${encodeURIComponent(next)}`;
+  // Persist the deep-link so it survives the intent step
+  if (next) storeOnboardingNext(next);
+  return next
+    ? `/onboarding/intent?next=${encodeURIComponent(next)}`
+    : "/onboarding/intent";
 }
 
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
@@ -43,6 +54,7 @@ export default function OnboardingProfile() {
     const query = raw.includes("?") ? raw.split("?", 2)[1] : "";
     return new URLSearchParams(query);
   }, [location]);
+
   const nextParam = (search.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postProfileNext = sanitizeNext(safeNext);
@@ -53,18 +65,19 @@ export default function OnboardingProfile() {
   const [countyFips, setCountyFips] = useState("");
   const [countyName, setCountyName] = useState<string | undefined>(undefined);
   const [city, setCity] = useState("");
-  const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
+  const [countyInferenceStatus, setCountyInferenceStatus] =
+    useState<CountyInferenceStatus>("idle");
   const [countyInferenceNote, setCountyInferenceNote] = useState("");
+  // Track whether the location was resolved via Google Places (vs. manual typing)
+  const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
 
+  // Hydrate from user record on mount
   useEffect(() => {
     if (!user || !isAuthenticated) return;
-
     const anyUser: any = user;
     const profileVersion: number =
       typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
-    // If profile normalization is already complete, continue into intent confirmation
-    // unless onboarding itself has been explicitly completed.
     if (profileVersion >= CURRENT_PROFILE_VERSION) {
       if ((anyUser.onboardingCompleted as boolean | undefined) === true) {
         navigate(postProfileNext);
@@ -82,7 +95,11 @@ export default function OnboardingProfile() {
     setCity(anyUser.city || "");
   }, [user, isAuthenticated, navigate, postProfileNext]);
 
+  // Auto-infer county from city + state when user types manually (debounced, 350 ms)
   useEffect(() => {
+    // Skip inference when location came from Google Places — already resolved
+    if (locationSource === "places") return;
+
     const normalizedCity = city.trim();
     if (!/^[A-Z]{2}$/.test(stateCode) || normalizedCity.length < 2) {
       setCountyInferenceStatus("idle");
@@ -114,17 +131,15 @@ export default function OnboardingProfile() {
         }
         if (inferred?.ambiguous) {
           setCountyInferenceStatus("ambiguous");
-          setCountyInferenceNote("Multiple counties match this city. Select your county manually.");
+          setCountyInferenceNote("Multiple counties match — select yours below.");
           return;
         }
         setCountyInferenceStatus("error");
-        setCountyInferenceNote(
-          "Could not infer county from city and state. Select county manually."
-        );
+        setCountyInferenceNote("Could not infer county. Select it manually below.");
       } catch (error: any) {
         if (cancelled || error?.name === "AbortError") return;
         setCountyInferenceStatus("error");
-        setCountyInferenceNote("Could not infer county right now. Select county manually.");
+        setCountyInferenceNote("Could not infer county right now. Select it manually below.");
       }
     }, 350);
 
@@ -133,7 +148,7 @@ export default function OnboardingProfile() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [city, countyFips, stateCode]);
+  }, [city, countyFips, stateCode, locationSource]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -141,6 +156,64 @@ export default function OnboardingProfile() {
       navigate("/pre-scout-setup?mode=create");
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  /**
+   * Handle a place selected from Google Places Autocomplete.
+   * Places API gives us city, state, and county name but NOT the FIPS code.
+   * We resolve FIPS via the existing county-inference service.
+   */
+  const handlePlaceSelected = useCallback(async (result: PlaceResult) => {
+    const newCity = result.city || "";
+    const newState = result.stateCode || "";
+    const newCountyName = result.countyName || "";
+
+    setCity(newCity);
+    if (newState) setStateCode(newState);
+    setLocationSource("places");
+
+    // Reset county while we resolve FIPS
+    setCountyFips("");
+    setCountyName(newCountyName || undefined);
+    setCountyInferenceStatus("loading");
+    setCountyInferenceNote("Resolving county…");
+
+    if (!newState || (!newCity && !newCountyName)) {
+      setCountyInferenceStatus("idle");
+      setCountyInferenceNote("");
+      return;
+    }
+
+    try {
+      // Prefer county name for inference when available (more precise than city)
+      const inferCity = newCountyName || newCity;
+      const inferred = await inferCountyForCityState({
+        city: inferCity,
+        stateCode: newState,
+      });
+
+      if (inferred?.inferred?.countyFips) {
+        setCountyFips(inferred.inferred.countyFips);
+        setCountyName(inferred.inferred.countyName || newCountyName || undefined);
+        setCountyInferenceStatus("inferred");
+        setCountyInferenceNote(
+          `Confirmed: ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}`
+        );
+      } else if (inferred?.ambiguous) {
+        setCountyInferenceStatus("ambiguous");
+        setCountyInferenceNote("Multiple counties match — select yours below.");
+      } else {
+        setCountyInferenceStatus("ambiguous");
+        setCountyInferenceNote(
+          newCountyName
+            ? `Found "${newCountyName}" — confirm your county below.`
+            : "Select your county below to confirm."
+        );
+      }
+    } catch {
+      setCountyInferenceStatus("error");
+      setCountyInferenceNote("Could not resolve county. Select it manually below.");
+    }
+  }, []);
 
   const updateProfile = useMutation({
     mutationFn: async () => {
@@ -150,9 +223,7 @@ export default function OnboardingProfile() {
       if (!stateCode || !countyFips) {
         throw new Error("Please choose where you're active locally.");
       }
-
       const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
-
       return apiRequest("PUT", "/api/user/profile", {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -160,7 +231,6 @@ export default function OnboardingProfile() {
         stateCode,
         countyFips,
         countyName,
-        // Preserve existing preferences while allowing future profile-related hints.
         preferences: existingPrefs,
       });
     },
@@ -194,6 +264,34 @@ export default function OnboardingProfile() {
 
   const canContinue = !!firstName.trim() && !!lastName.trim() && !!stateCode && !!countyFips;
 
+  // Inline county inference status indicator with icons
+  const CountyInferenceIndicator = () => {
+    if (countyInferenceStatus === "idle") return null;
+    if (countyInferenceStatus === "loading") {
+      return (
+        <div className="flex items-center gap-1.5 text-[11px] text-white/60 mt-1">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Detecting county…</span>
+        </div>
+      );
+    }
+    if (countyInferenceStatus === "inferred") {
+      return (
+        <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-1">
+          <CheckCircle2 className="h-3 w-3" />
+          <span>{countyInferenceNote}</span>
+        </div>
+      );
+    }
+    // ambiguous or error
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] text-amber-400 mt-1">
+        <AlertTriangle className="h-3 w-3" />
+        <span>{countyInferenceNote}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex justify-center px-3 py-6 text-white">
       <div className="w-full max-w-2xl space-y-2.5">
@@ -224,6 +322,7 @@ export default function OnboardingProfile() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
@@ -233,6 +332,7 @@ export default function OnboardingProfile() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="mt-1"
+                    autoComplete="given-name"
                   />
                 </div>
                 <div>
@@ -243,28 +343,29 @@ export default function OnboardingProfile() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className="mt-1"
+                    autoComplete="family-name"
                   />
                 </div>
               </div>
 
+              {/* Google Places city / area search */}
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                  City (optional)
+                  City or area (optional)
                 </Label>
-                <Input
-                  value={city}
-                  onChange={(e) => {
-                    setCity(e.target.value);
-                    if (countyInferenceStatus === "inferred" && countyFips) {
-                      setCountyFips("");
-                      setCountyName(undefined);
-                    }
-                  }}
-                  placeholder="Type your city"
-                  className="mt-1"
+                <GooglePlacesLocationInput
+                  placeholder="Search your city or neighborhood"
+                  defaultValue={city}
+                  onPlaceSelected={handlePlaceSelected}
+                  className="mt-1 w-full"
+                  data-testid="places-city-input"
                 />
+                <p className="text-[10px] text-white/40">
+                  Start typing to search — we'll fill in your county automatically.
+                </p>
               </div>
 
+              {/* County selector with enhanced inference feedback */}
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
                   Main county
@@ -272,26 +373,31 @@ export default function OnboardingProfile() {
                 <StateCountySelector
                   selectedState={stateCode}
                   selectedCounty={countyFips}
-                  onStateChange={setStateCode}
-                  onCountyChange={setCountyFips}
+                  onStateChange={(code) => {
+                    setStateCode(code);
+                    // Reset inference when state changes manually
+                    if (locationSource === "places") setLocationSource("manual");
+                    setCountyFips("");
+                    setCountyName(undefined);
+                    setCountyInferenceStatus("idle");
+                    setCountyInferenceNote("");
+                  }}
+                  onCountyChange={(fips) => {
+                    setCountyFips(fips);
+                    // Manual selection clears inference indicators
+                    setCountyInferenceStatus("idle");
+                    setCountyInferenceNote("");
+                  }}
                   className="gap-2"
-                  onCountySelected={(county) => setCountyName(county?.name)}
+                  onCountySelected={(county) => {
+                    setCountyName(county?.name);
+                    if (county) {
+                      setCountyInferenceStatus("inferred");
+                      setCountyInferenceNote(`Selected: ${county.name}, ${stateCode}`);
+                    }
+                  }}
                 />
-                {countyInferenceStatus !== "idle" && countyInferenceNote && (
-                  <p
-                    className={`text-[11px] ${
-                      countyInferenceStatus === "inferred"
-                        ? "text-emerald-300"
-                        : countyInferenceStatus === "loading"
-                          ? "text-white/60"
-                          : "text-amber-300"
-                    }`}
-                  >
-                    {countyInferenceStatus === "loading"
-                      ? "Detecting county from city..."
-                      : countyInferenceNote}
-                  </p>
-                )}
+                <CountyInferenceIndicator />
               </div>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -299,7 +405,7 @@ export default function OnboardingProfile() {
                   {canContinue ? "Looks good." : "Add your name and main county to continue."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
-                  {updateProfile.isPending ? "Saving..." : "Continue"}
+                  {updateProfile.isPending ? "Saving…" : "Continue"}
                 </Button>
               </div>
             </form>
