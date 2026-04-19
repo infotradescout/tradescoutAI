@@ -391,6 +391,7 @@ import {
   countyNotes,
   type CountyNote,
   type InsertCountyNote,
+  employmentPostApplications,
 } from "@shared/schema";
 import { db, pool as neonPool } from "./db";
 import { UserSecurityRepository } from "./repositories/userSecurityRepository";
@@ -593,6 +594,26 @@ export interface IStorage {
   softDeleteBusinessForOwner(ownerUserId: string, businessId: string): Promise<Business>;
   setUserActiveBusiness(userId: string, businessId: string | null): Promise<User>;
   getBusinessCountyIds(businessId: string): Promise<string[]>;
+  /**
+   * Universal provider lookup for Direct Connect routing.
+   * Returns active businesses in the given county, optionally filtered by roleContext.
+   * Used to route requests to any business type, not just contractors.
+   */
+  getProvidersByCountyAndCategory(args: {
+    countyId: string;
+    roleContexts?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>
+  >;
+  /** Get the active business for a user (by activeBusinessId or first owned business). */
+  getActiveBusinessForUser(userId: string): Promise<Business | undefined>;
 
   // Profile operations (public website pages)
   listProfilesByOwner(ownerUserId: string): Promise<Profile[]>;
@@ -1757,6 +1778,84 @@ export class DatabaseStorage implements IStorage {
       .from(businessCounties)
       .where(eq(businessCounties.businessId, businessId));
     return rows.map((r) => r.countyId);
+  }
+
+  async getProvidersByCountyAndCategory(args: {
+    countyId: string;
+    roleContexts?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>
+  > {
+    const limit = Math.min(50, Math.max(1, Number(args.limit ?? 15) || 15));
+    const predicates: any[] = [
+      eq(businesses.status, "active" as any),
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(businessCounties)
+          .where(
+            and(
+              eq(businessCounties.businessId, businesses.id),
+              eq(businessCounties.countyId, args.countyId)
+            )
+          )
+          .limit(1)
+      ),
+    ];
+    if (args.roleContexts?.length) {
+      predicates.push(inArray(businesses.roleContext as any, args.roleContexts as any));
+    }
+    const rows = await db
+      .select({
+        businessId: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        name: businesses.name,
+        roleContext: businesses.roleContext,
+        slug: businesses.slug,
+      })
+      .from(businesses)
+      .where(and(...predicates))
+      .limit(limit);
+    return rows as Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>;
+  }
+
+  async getActiveBusinessForUser(userId: string): Promise<Business | undefined> {
+    // First try the user's activeBusinessId
+    const user = await this.getUser(userId);
+    if ((user as any)?.activeBusinessId) {
+      const [biz] = await db
+        .select()
+        .from(businesses)
+        .where(
+          and(
+            eq(businesses.id, String((user as any).activeBusinessId)),
+            eq(businesses.ownerUserId, userId)
+          )
+        )
+        .limit(1);
+      if (biz) return biz as Business;
+    }
+    // Fallback: first active business owned by this user
+    const [biz] = await db
+      .select()
+      .from(businesses)
+      .where(and(eq(businesses.ownerUserId, userId), eq(businesses.status, "active" as any)))
+      .orderBy(asc(businesses.createdAt))
+      .limit(1);
+    return biz as Business | undefined;
   }
 
   private async replaceBusinessCounties(businessId: string, countyIds: string[]): Promise<void> {

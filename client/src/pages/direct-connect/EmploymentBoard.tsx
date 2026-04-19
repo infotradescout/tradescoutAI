@@ -20,7 +20,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { BriefcaseBusiness, UserRoundSearch, Sparkles, X } from "lucide-react";
+import { BriefcaseBusiness, UserRoundSearch, Sparkles, X, Users } from "lucide-react";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { StateCountySelector } from "@/components/state-county-selector";
 
@@ -44,6 +44,18 @@ type EmploymentPost = {
   posterVerified?: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
+};
+
+type Application = {
+  id: string;
+  postId: string;
+  applicantUserId?: string;
+  message?: string | null;
+  status: "pending" | "shortlisted" | "rejected" | "withdrawn";
+  createdAt?: string | null;
+  // Owner-view extras
+  applicantName?: string | null;
+  applicantEmail?: string | null;
 };
 
 function formatPay(post: EmploymentPost): string | null {
@@ -103,6 +115,13 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   const [payMax, setPayMax] = useState("");
   const [payUnit, setPayUnit] = useState<"hour" | "year" | "month" | "project">("hour");
 
+  // Apply dialog state
+  const [applyPost, setApplyPost] = useState<EmploymentPost | null>(null);
+  const [applyMessage, setApplyMessage] = useState("");
+
+  // Applicants dialog state
+  const [viewApplicantsPost, setViewApplicantsPost] = useState<EmploymentPost | null>(null);
+
   const searchParams = useMemo(() => {
     const parts = String(typeof window !== "undefined" ? window.location.search : "").replace(
       /^\?/,
@@ -147,6 +166,49 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     },
   });
 
+  // Fetch own application status for all visible posts
+  const { data: myApplications = [] } = useQuery<Application[]>({
+    queryKey: ["/api/employment/my-applications", posts.map((p) => p.id).join(",")],
+    queryFn: async () => {
+      if (!isAuthenticated || !posts.length) return [];
+      const results = await Promise.all(
+        posts
+          .filter((p) => !p.isOwner)
+          .map(async (p) => {
+            try {
+              const res = await fetch(`/api/employment/posts/${p.id}/applications`);
+              if (!res.ok) return [];
+              return res.json();
+            } catch {
+              return [];
+            }
+          })
+      );
+      return results.flat();
+    },
+    enabled: isAuthenticated && posts.length > 0,
+  });
+
+  const myApplicationByPostId = useMemo(() => {
+    const map = new Map<string, Application>();
+    for (const app of myApplications) {
+      map.set(app.postId, app);
+    }
+    return map;
+  }, [myApplications]);
+
+  // Fetch applicants for owner-viewed post
+  const { data: applicants = [], isLoading: applicantsLoading } = useQuery<Application[]>({
+    queryKey: ["/api/employment/posts", viewApplicantsPost?.id, "applications"],
+    queryFn: async () => {
+      if (!viewApplicantsPost) return [];
+      const res = await fetch(`/api/employment/posts/${viewApplicantsPost.id}/applications`);
+      if (!res.ok) throw new Error("Failed to fetch applicants");
+      return res.json();
+    },
+    enabled: Boolean(viewApplicantsPost),
+  });
+
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!isAuthenticated) throw new Error("Sign in to post.");
@@ -172,7 +234,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     onSuccess: () => {
       toast({
         title: active === "job" ? "Job posted" : "Resume posted",
-        description: "People can read it, but replies still go through Scout.",
+        description: "Your post is now visible on the board.",
       });
       setPostOpen(false);
       setTitle("");
@@ -195,6 +257,49 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     mutationFn: async (id: string) => apiRequest("POST", `/api/employment/posts/${id}/close`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employment/posts"] });
+    },
+  });
+
+  const applyMutation = useMutation({
+    mutationFn: async ({ postId, message }: { postId: string; message: string }) =>
+      apiRequest("POST", `/api/employment/posts/${postId}/apply`, {
+        message: message || undefined,
+      }),
+    onSuccess: () => {
+      toast({ title: "Application sent", description: "The poster will be notified." });
+      setApplyPost(null);
+      setApplyMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/employment/my-applications"] });
+    },
+    onError: (err: any) => {
+      const msg = String((err as any)?.message || "");
+      if (msg.toLowerCase().includes("already applied")) {
+        toast({ title: "Already applied", description: "You have already applied to this post." });
+        setApplyPost(null);
+        return;
+      }
+      toast({
+        title: "Couldn't apply",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateApplicationMutation = useMutation({
+    mutationFn: async ({ appId, status }: { appId: string; status: string }) =>
+      apiRequest("PATCH", `/api/employment/applications/${appId}`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/employment/posts", viewApplicantsPost?.id, "applications"],
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Couldn't update",
+        description: formatUserFacingErrorMessage(err, "Please try again."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -225,8 +330,8 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
 
   const headerCopy =
     active === "job"
-      ? "Post jobs, browse openings, and talk through Scout."
-      : "Post resumes, browse candidates, and talk through Scout.";
+      ? "Post jobs, browse openings, and apply directly."
+      : "Post resumes, browse candidates, and reach out through Scout.";
 
   return (
     <div className="space-y-4">
@@ -351,8 +456,20 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               posts={posts}
               onAskScout={openScout}
               onClose={(id) => closeMutation.mutate(id)}
+              onApply={(post) => {
+                if (!isAuthenticated) {
+                  navigate(
+                    `/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect/employment")}`
+                  );
+                  return;
+                }
+                setApplyPost(post);
+              }}
+              onViewApplicants={(post) => setViewApplicantsPost(post)}
               canClose={Boolean(isAuthenticated)}
               viewerVerified={viewerVerified}
+              isAuthenticated={Boolean(isAuthenticated)}
+              myApplicationByPostId={myApplicationByPostId}
             />
           )}
         </TabsContent>
@@ -369,13 +486,26 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
               posts={posts}
               onAskScout={openScout}
               onClose={(id) => closeMutation.mutate(id)}
+              onApply={(post) => {
+                if (!isAuthenticated) {
+                  navigate(
+                    `/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect/employment")}`
+                  );
+                  return;
+                }
+                setApplyPost(post);
+              }}
+              onViewApplicants={(post) => setViewApplicantsPost(post)}
               canClose={Boolean(isAuthenticated)}
               viewerVerified={viewerVerified}
+              isAuthenticated={Boolean(isAuthenticated)}
+              myApplicationByPostId={myApplicationByPostId}
             />
           )}
         </TabsContent>
       </Tabs>
 
+      {/* Post creation dialog */}
       <Dialog open={postOpen} onOpenChange={setPostOpen}>
         <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
@@ -407,7 +537,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 placeholder={
                   active === "job"
                     ? "Describe responsibilities, requirements, schedule, and what good looks like."
-                    : "Describe what you do, what you’re looking for, and availability."
+                    : "Describe what you do, what you're looking for, and availability."
                 }
               />
               <div className="text-xs text-[color:var(--text-muted)]">
@@ -461,6 +591,157 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
         </DialogContent>
       </Dialog>
 
+      {/* Apply dialog */}
+      <Dialog
+        open={Boolean(applyPost)}
+        onOpenChange={(open) => {
+          if (!open) setApplyPost(null);
+        }}
+      >
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {applyPost?.postType === "job" ? "Apply for this job" : "Express interest"}
+            </DialogTitle>
+          </DialogHeader>
+          {applyPost && (
+            <div className="grid gap-3">
+              <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
+                <div className="font-semibold text-[color:var(--text-primary)]">
+                  {applyPost.title}
+                </div>
+                <div className="mt-1 text-xs text-[color:var(--text-muted)]">
+                  {formatCountyLabel(applyPost.countyFips, applyPost.stateCode)}
+                  {applyPost.city ? ` • ${applyPost.city}` : ""}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Message (optional)</Label>
+                <Textarea
+                  value={applyMessage}
+                  onChange={(e) => setApplyMessage(e.target.value)}
+                  className="min-h-[100px]"
+                  placeholder="Briefly introduce yourself and why you're a good fit…"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button variant="outline" onClick={() => setApplyPost(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  disabled={applyMutation.isPending}
+                  onClick={() =>
+                    applyMutation.mutate({ postId: applyPost.id, message: applyMessage })
+                  }
+                >
+                  {applyMutation.isPending ? "Sending…" : "Send application"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Applicants management dialog (owner only) */}
+      <Dialog
+        open={Boolean(viewApplicantsPost)}
+        onOpenChange={(open) => {
+          if (!open) setViewApplicantsPost(null);
+        }}
+      >
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Applicants — {viewApplicantsPost?.title}</DialogTitle>
+          </DialogHeader>
+          {applicantsLoading ? (
+            <div className="py-6 text-center text-sm text-[color:var(--text-secondary)]">
+              Loading applicants…
+            </div>
+          ) : applicants.length === 0 ? (
+            <div className="py-6 text-center text-sm text-[color:var(--text-secondary)]">
+              No applications yet.
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {applicants.map((app) => (
+                <Card
+                  key={app.id}
+                  className="border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+                >
+                  <CardContent className="p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm text-[color:var(--text-primary)]">
+                          {app.applicantName || "Applicant"}
+                        </div>
+                        {app.applicantEmail && (
+                          <div className="text-xs text-[color:var(--text-muted)]">
+                            {app.applicantEmail}
+                          </div>
+                        )}
+                        {app.message && (
+                          <p className="mt-1 text-xs text-[color:var(--text-secondary)] whitespace-pre-line">
+                            {app.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <ApplicationStatusBadge status={app.status} />
+                        {app.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                updateApplicationMutation.mutate({
+                                  appId: app.id,
+                                  status: "shortlisted",
+                                })
+                              }
+                            >
+                              Shortlist
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs text-red-400 hover:text-red-300"
+                              onClick={() =>
+                                updateApplicationMutation.mutate({
+                                  appId: app.id,
+                                  status: "rejected",
+                                })
+                              }
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {app.status === "shortlisted" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-red-400 hover:text-red-300"
+                            onClick={() =>
+                              updateApplicationMutation.mutate({
+                                appId: app.id,
+                                status: "rejected",
+                              })
+                            }
+                          >
+                            Reject
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showCountySelector} onOpenChange={setShowCountySelector}>
         <DialogContent className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <DialogHeader>
@@ -500,18 +781,41 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   );
 }
 
+function ApplicationStatusBadge({ status }: { status: string }) {
+  if (status === "shortlisted")
+    return (
+      <Badge className="bg-green-600/20 text-green-300 border-green-600/30">Shortlisted</Badge>
+    );
+  if (status === "rejected")
+    return (
+      <Badge variant="destructive" className="opacity-70">
+        Rejected
+      </Badge>
+    );
+  if (status === "withdrawn") return <Badge variant="secondary">Withdrawn</Badge>;
+  return <Badge variant="secondary">Pending</Badge>;
+}
+
 function PostList({
   posts,
   onAskScout,
   onClose,
+  onApply,
+  onViewApplicants,
   canClose,
   viewerVerified,
+  isAuthenticated,
+  myApplicationByPostId,
 }: {
   posts: EmploymentPost[];
   onAskScout: (post: EmploymentPost) => void;
   onClose: (id: string) => void;
+  onApply: (post: EmploymentPost) => void;
+  onViewApplicants: (post: EmploymentPost) => void;
   canClose: boolean;
   viewerVerified: boolean;
+  isAuthenticated: boolean;
+  myApplicationByPostId: Map<string, Application>;
 }) {
   if (!posts.length) {
     return (
@@ -528,6 +832,7 @@ function PostList({
       {posts.map((post) => {
         const pay = formatPay(post);
         const closed = String(post.status || "").toLowerCase() === "closed";
+        const myApp = myApplicationByPostId.get(post.id);
 
         return (
           <Card
@@ -548,26 +853,52 @@ function PostList({
                     {post.posterVerified === true && <Badge variant="outline">Verified</Badge>}
                     {post.tradeId && <Badge variant="outline">{post.tradeId}</Badge>}
                     {pay && <Badge variant="outline">{pay}</Badge>}
+                    {myApp && <ApplicationStatusBadge status={myApp.status} />}
                   </div>
                   <div className="mt-1 text-xs text-[color:var(--text-muted)]">
                     County: {formatCountyLabel(post.countyFips, post.stateCode)}
                     {post.city ? ` • ${post.city}` : ""}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!viewerVerified}
-                    onClick={() => onAskScout(post)}
-                    title={
-                      viewerVerified
-                        ? "Reply in Scout"
-                        : "Verify your address before you can reply."
-                    }
-                  >
-                    Reply in Scout
-                  </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Owner: view applicants button */}
+                  {post.isOwner && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => onViewApplicants(post)}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      Applicants
+                    </Button>
+                  )}
+                  {/* Non-owner job post: Apply button */}
+                  {!post.isOwner && post.postType === "job" && !closed && !myApp && (
+                    <Button
+                      size="sm"
+                      onClick={() => onApply(post)}
+                      data-testid="employment-apply-btn"
+                    >
+                      Apply
+                    </Button>
+                  )}
+                  {/* Non-owner resume post: Reply in Scout */}
+                  {!post.isOwner && post.postType === "resume" && !closed && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!viewerVerified}
+                      onClick={() => onAskScout(post)}
+                      title={
+                        viewerVerified
+                          ? "Reply in Scout"
+                          : "Verify your address before you can reply."
+                      }
+                    >
+                      Reply in Scout
+                    </Button>
+                  )}
                   {canClose && post.isOwner && !closed && (
                     <Button size="sm" variant="ghost" onClick={() => onClose(post.id)}>
                       Close

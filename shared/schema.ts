@@ -3459,6 +3459,32 @@ export const employmentPosts = pgTable("employment_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Applications to employment posts (job or resume posts)
+export const employmentPostApplications = pgTable(
+  "employment_post_applications",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    postId: varchar("post_id")
+      .notNull()
+      .references(() => employmentPosts.id, { onDelete: "cascade" }),
+    applicantUserId: varchar("applicant_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    message: text("message"),
+    // 'pending' | 'shortlisted' | 'rejected' | 'withdrawn'
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_epa_post_applicant").on(table.postId, table.applicantUserId),
+    index("idx_epa_post_id").on(table.postId),
+    index("idx_epa_applicant").on(table.applicantUserId),
+  ]
+);
+
 export const taskApplications = pgTable("task_applications", {
   id: varchar("id")
     .primaryKey()
@@ -3761,8 +3787,12 @@ export const workRequestAssignments = pgTable("work_request_assignments", {
     .default(sql`gen_random_uuid()`),
   workRequestId: varchar("work_request_id").notNull(),
 
-  // Linked provider (contractor profile today)
+  // Linked provider: contractor profile ID (legacy, kept for backward compat)
   contractorId: varchar("contractor_id"),
+  // Universal provider: any user can be a responder (business owner, helper, handyman, etc.)
+  responderUserId: varchar("responder_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
 
   status: varchar("status", {
     enum: ["suggested", "invited", "accepted", "declined", "completed", "withdrawn"],

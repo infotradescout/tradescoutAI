@@ -3,7 +3,13 @@ import { z } from "zod";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
-import { counties, employmentPosts, identityVerifications, users } from "@shared/schema";
+import {
+  counties,
+  employmentPosts,
+  employmentPostApplications,
+  identityVerifications,
+  users,
+} from "@shared/schema";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -215,4 +221,197 @@ export function registerEmploymentRoutes(app: Express) {
       res.status(500).json({ message: "Failed to close post" });
     }
   });
+
+  // Apply to a job post (or express interest in a resume post)
+  app.post("/api/employment/posts/:id/apply", isAuthenticated, async (req: AuthedRequest, res) => {
+    try {
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const postId = String(req.params.id || "").trim();
+      if (!postId) return res.status(400).json({ message: "Missing post id" });
+
+      const message = typeof req.body?.message === "string" ? req.body.message.trim() : null;
+
+      const [post] = await db
+        .select({
+          id: employmentPosts.id,
+          createdByUserId: employmentPosts.createdByUserId,
+          status: employmentPosts.status,
+        })
+        .from(employmentPosts)
+        .where(eq(employmentPosts.id, postId))
+        .limit(1);
+
+      if (!post) return res.status(404).json({ message: "Post not found" });
+      if (post.status !== "open")
+        return res.status(409).json({ message: "This post is no longer accepting applications" });
+      if (post.createdByUserId === userId)
+        return res.status(400).json({ message: "You cannot apply to your own post" });
+
+      // Upsert: if already applied, return existing application
+      const [existing] = await db
+        .select()
+        .from(employmentPostApplications)
+        .where(
+          and(
+            eq(employmentPostApplications.postId, postId),
+            eq(employmentPostApplications.applicantUserId, userId)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        return res
+          .status(409)
+          .json({ message: "You have already applied to this post", application: existing });
+      }
+
+      const [created] = await db
+        .insert(employmentPostApplications)
+        .values({
+          postId,
+          applicantUserId: userId,
+          message: message || null,
+          status: "pending",
+          updatedAt: new Date(),
+        } as any)
+        .returning();
+
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error applying to employment post:", error);
+      res.status(500).json({ message: "Failed to apply" });
+    }
+  });
+
+  // List applications for a post (owner only) or own applications (any user)
+  app.get(
+    "/api/employment/posts/:id/applications",
+    isAuthenticated,
+    async (req: AuthedRequest, res) => {
+      try {
+        const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const postId = String(req.params.id || "").trim();
+        if (!postId) return res.status(400).json({ message: "Missing post id" });
+
+        const [post] = await db
+          .select({ id: employmentPosts.id, createdByUserId: employmentPosts.createdByUserId })
+          .from(employmentPosts)
+          .where(eq(employmentPosts.id, postId))
+          .limit(1);
+
+        if (!post) return res.status(404).json({ message: "Post not found" });
+
+        const isOwner = post.createdByUserId === userId;
+
+        if (isOwner) {
+          // Owner sees all applicants with their profile info
+          const applications = await db
+            .select({
+              id: employmentPostApplications.id,
+              postId: employmentPostApplications.postId,
+              applicantUserId: employmentPostApplications.applicantUserId,
+              message: employmentPostApplications.message,
+              status: employmentPostApplications.status,
+              createdAt: employmentPostApplications.createdAt,
+              updatedAt: employmentPostApplications.updatedAt,
+              applicantName: users.fullName,
+              applicantEmail: users.email,
+            })
+            .from(employmentPostApplications)
+            .leftJoin(users, eq(employmentPostApplications.applicantUserId, users.id))
+            .where(eq(employmentPostApplications.postId, postId))
+            .orderBy(desc(employmentPostApplications.createdAt));
+          return res.json(applications);
+        }
+
+        // Non-owner: return only their own application status
+        const [own] = await db
+          .select()
+          .from(employmentPostApplications)
+          .where(
+            and(
+              eq(employmentPostApplications.postId, postId),
+              eq(employmentPostApplications.applicantUserId, userId)
+            )
+          )
+          .limit(1);
+
+        res.json(own ? [own] : []);
+      } catch (error: any) {
+        console.error("Error fetching applications:", error);
+        res.status(500).json({ message: "Failed to fetch applications" });
+      }
+    }
+  );
+
+  // Post owner: update application status (shortlist, reject, etc.)
+  app.patch(
+    "/api/employment/applications/:id",
+    isAuthenticated,
+    async (req: AuthedRequest, res) => {
+      try {
+        const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const appId = String(req.params.id || "").trim();
+        if (!appId) return res.status(400).json({ message: "Missing application id" });
+
+        const newStatus = typeof req.body?.status === "string" ? req.body.status.trim() : "";
+        const validStatuses = ["pending", "shortlisted", "rejected", "withdrawn"];
+        if (!validStatuses.includes(newStatus)) {
+          return res
+            .status(400)
+            .json({ message: `status must be one of: ${validStatuses.join(", ")}` });
+        }
+
+        const [application] = await db
+          .select({
+            id: employmentPostApplications.id,
+            postId: employmentPostApplications.postId,
+            applicantUserId: employmentPostApplications.applicantUserId,
+            status: employmentPostApplications.status,
+          })
+          .from(employmentPostApplications)
+          .where(eq(employmentPostApplications.id, appId))
+          .limit(1);
+
+        if (!application) return res.status(404).json({ message: "Application not found" });
+
+        // Applicant can withdraw their own application; post owner can shortlist/reject
+        const isApplicant = application.applicantUserId === userId;
+        if (isApplicant) {
+          if (newStatus !== "withdrawn") {
+            return res
+              .status(403)
+              .json({ message: "Applicants can only withdraw their own application" });
+          }
+        } else {
+          // Verify caller is the post owner
+          const [post] = await db
+            .select({ createdByUserId: employmentPosts.createdByUserId })
+            .from(employmentPosts)
+            .where(eq(employmentPosts.id, application.postId))
+            .limit(1);
+          if (!post || post.createdByUserId !== userId) {
+            return res.status(403).json({ message: "Forbidden" });
+          }
+        }
+
+        const [updated] = await db
+          .update(employmentPostApplications)
+          .set({ status: newStatus, updatedAt: new Date() } as any)
+          .where(eq(employmentPostApplications.id, appId))
+          .returning();
+
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error updating application status:", error);
+        res.status(500).json({ message: "Failed to update application" });
+      }
+    }
+  );
 }

@@ -7203,6 +7203,82 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  // Universal provider search — returns contractors + active businesses in a county.
+  // Used by the Direct Connect pros section so any business type is discoverable.
+  app.get("/api/providers/search", contractorSearchLimiter, async (req: any, res: any) => {
+    try {
+      const { county, trade, query, limit = 30, offset = 0 } = req.query;
+      const parsedLimit = Math.min(parseInt(String(limit)) || 30, 100);
+      const parsedOffset = parseInt(String(offset)) || 0;
+
+      let countyRecord: any = null;
+      if (county) {
+        countyRecord = await storage.findCountyByNameOrFips({ query: String(county) });
+        if (!countyRecord) return res.json([]);
+      }
+
+      // 1. Contractors (existing path)
+      const contractorFilters: any = { limit: parsedLimit, offset: parsedOffset };
+      if (countyRecord) contractorFilters.countyId = countyRecord.id;
+      if (trade) {
+        const tradeRecord = await storage.getTradeBySlug(trade as string);
+        if (tradeRecord) contractorFilters.tradeIds = [tradeRecord.id];
+      }
+      if (query && typeof query === "string" && query.trim()) {
+        contractorFilters.query = query.trim();
+      }
+      const contractors = await storage.getContractors(contractorFilters);
+      const contractorResults = contractors.map((c: any) => ({
+        ...sanitizeContractorPublic(c),
+        providerType: "contractor" as const,
+      }));
+
+      // 2. Active businesses in the same county
+      let businessResults: any[] = [];
+      if (countyRecord) {
+        const countyId = String(countyRecord.id || "").trim();
+        if (countyId) {
+          const biz = await storage.getProvidersByCountyAndCategory({
+            countyId,
+            limit: parsedLimit,
+          });
+          const q = typeof query === "string" ? query.trim().toLowerCase() : "";
+          businessResults = biz
+            .filter((b: any) => {
+              if (!q) return true;
+              const name = String(b.name || "").toLowerCase();
+              return name.includes(q);
+            })
+            .slice(parsedOffset, parsedOffset + parsedLimit)
+            .map((b: any) => ({
+              id: b.businessId,
+              businessId: b.businessId,
+              name: b.name,
+              roleContext: b.roleContext || null,
+              slug: b.slug || null,
+              providerType: "business" as const,
+            }));
+        }
+      }
+
+      // Merge: contractors first, then businesses (dedup by id)
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const r of [...contractorResults, ...businessResults]) {
+        const key = String(r.id || "");
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          merged.push(r);
+        }
+      }
+
+      res.json(merged.slice(0, parsedLimit));
+    } catch (error: any) {
+      console.error("Error searching providers:", error);
+      res.status(500).json({ message: "Failed to search providers" });
+    }
+  });
+
   // Get top contractors in area (for lead assignment)
   app.get("/api/contractors/top", async (req: any, res: any) => {
     try {
