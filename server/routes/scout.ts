@@ -975,21 +975,17 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
         parsed = JSON.parse(jsonMatch[0]);
       }
 
-      // Validate schema
-      if (
-        !parsed.intent ||
-        !parsed.thought_flow ||
-        !parsed.decision ||
-        !parsed.message ||
-        !parsed.suggestedActions
-      ) {
-        console.warn("[Scout] LLM response missing required schema fields, using fallback");
+      // Validate schema — only message is a hard requirement.
+      // intent / thought_flow / decision are soft-required: auto-fill if missing
+      // rather than hard-failing to a generic fallback message.
+      if (!parsed.message) {
+        console.warn("[Scout] LLM response missing required 'message' field, using fallback");
         recordFallback("schema_violation");
         return {
           intent: "unknown",
           thought_flow: [
             "Schema validation failed",
-            "LLM did not follow contract",
+            "LLM response had no message field",
             "Returning contextual fallback",
           ],
           decision: "Schema violation fallback",
@@ -999,6 +995,12 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
           degradationReason: "schema_violation",
         };
       }
+      // Auto-fill optional reasoning fields so downstream telemetry never crashes
+      if (!parsed.intent) parsed.intent = "general";
+      if (!Array.isArray(parsed.thought_flow) || parsed.thought_flow.length === 0) {
+        parsed.thought_flow = ["Response received", "Delivering to user"];
+      }
+      if (!parsed.decision) parsed.decision = "Responding to user message";
 
       // Enforce length limit on message
       parsed.message = trimResponseToScreenFit(parsed.message);
@@ -2481,13 +2483,17 @@ router.post("/", async (req: Request, res: Response) => {
       onboardingQuestionKey,
     } = rawBody as ScoutRequest;
 
+    // Code-level defaults: enhanced v4 pipeline is ON unless explicitly disabled.
+    // Override with env vars: SCOUT_ENHANCED_ENABLED=false or SCOUT_DEFAULT_ENGINE=classic
     const defaultEngine =
       typeof process.env.SCOUT_DEFAULT_ENGINE === "string" &&
       process.env.SCOUT_DEFAULT_ENGINE.trim().length > 0
         ? process.env.SCOUT_DEFAULT_ENGINE.trim().toLowerCase()
-        : "classic";
+        : "v4"; // Default: v4 pipeline
     const scoutEnhancedEnabled =
-      String(process.env.SCOUT_ENHANCED_ENABLED || "").toLowerCase() === "true";
+      process.env.SCOUT_ENHANCED_ENABLED === undefined
+        ? true // Default: enabled
+        : String(process.env.SCOUT_ENHANCED_ENABLED).toLowerCase() !== "false";
 
     const wantsEnhancedV4 =
       scoutEnhancedEnabled &&
@@ -2650,7 +2656,8 @@ router.post("/", async (req: Request, res: Response) => {
     // D2-1: Detect and initialize onboarding session (DB-backed)
     const userId = (req as any).user?.id;
     const clientSessionId = sessionId || `${userId || "guest"}_${Date.now()}`;
-    let onboardingSession: OnboardingSession | undefined = await getOnboardingSession(clientSessionId);
+    let onboardingSession: OnboardingSession | undefined =
+      await getOnboardingSession(clientSessionId);
 
     if (onboarding && !onboardingSession) {
       // D2-1: Initialize onboarding session on first request

@@ -63,6 +63,7 @@ import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
+import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
 import ToneAwareMessage from "./ToneAwareMessage";
@@ -1051,6 +1052,9 @@ export default function ScoutOS() {
     publishedProfileSlug: (user as any)?.businessSlug || undefined,
   });
 
+  // Local intent handlers — encapsulates the 4 early-return branches in handleSend
+  const { resolveSyncIntent, checkProfileLookup } = useScoutLocalHandlers();
+
   // Enforce pre-Scout gate completion before running onboarding
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1367,124 +1371,47 @@ export default function ScoutOS() {
 
       try {
         // ==================================================================
-        // INTENT DETECTION: Check for onboarding, contractor, marketplace, or
-        // support flows before falling back to the generic Scout endpoint.
+        // INTENT DETECTION: Check for local intent patterns before falling
+        // back to the generic Scout server endpoint.
+        // Sync branches (explicit nav, routing explainer, messaging locked)
+        // are handled by useScoutLocalHandlers.
         // ==================================================================
         const lowerMsg = value.toLowerCase();
         const normalized = lowerMsg.replace(/[^a-z0-9\s]/gi, " ");
 
         // ------------------------------------------------------------------
-        // EXPLICIT NAV INTENT (high confidence; user asked to be routed)
+        // SYNC LOCAL INTENTS (explicit nav, routing explainer, messaging locked)
         // ------------------------------------------------------------------
-        const explicitNav = resolveExplicitNavigationIntent(value);
-        if (explicitNav) {
+        const syncResult = resolveSyncIntent(value, contextRoles);
+        if (syncResult.kind !== "no_match") {
           setStatus("ready");
-
-          const msg = buildExplicitNavigationMessage(
-            { to: explicitNav.to, label: explicitNav.label },
-            { contextRoles }
-          );
-
-          applyServerResponse(msg, []);
-          queueAutoRoute({
-            to: explicitNav.to,
-            label: explicitNav.label,
-            confidence: explicitNav.confidence,
-            why: "Explicit request",
-          });
+          applyServerResponse(syncResult.message, []);
+          if (syncResult.kind === "explicit_nav") {
+            queueAutoRoute(syncResult.autoRoute);
+          }
+          if (
+            syncResult.kind === "routing_explainer" ||
+            syncResult.kind === "messaging_locked_explainer"
+          ) {
+            const latencyMs = performance.now() - start;
+            logScoutInsight({ message: value, mode, locality, success: true, latencyMs });
+          }
           setStatus("idle");
           return;
         }
 
         // ------------------------------------------------------------------
-        // EXPLICIT PROFILE LOOKUP (route to the exact public profile when possible)
+        // ASYNC LOCAL INTENT: Profile lookup
         // ------------------------------------------------------------------
-        const normalizedExplicit = normalizeForMatch(value);
-        const wantsProfileLookup =
-          /^(go to|take me to|open|show me|navigate to)\b/.test(normalizedExplicit) &&
-          /\bprofile\b/.test(normalizedExplicit) &&
-          !/\bprofile settings\b/.test(normalizedExplicit);
-
-        if (wantsProfileLookup) {
-          const afterProfile = normalizedExplicit.split("profile")[1]?.trim() || "";
-          const query = afterProfile.replace(/^(for|of)\s+/i, "").trim();
-
-          if (query.length >= 3) {
-            try {
-              setStatus("executing_action");
-              const res = await fetch(
-                `/api/profiles/public-search?query=${encodeURIComponent(query)}&limit=6`,
-                { credentials: "include" }
-              );
-              const list = res.ok ? ((await res.json()) as any[]) : [];
-              const results = Array.isArray(list) ? list : [];
-
-              const scored = results
-                .map((p) => ({
-                  id: String(p.id || ""),
-                  slug: String(p.slug || ""),
-                  displayName: String(p.displayName || ""),
-                  score: tokenOverlapScore(query, String(p.displayName || p.slug || "")),
-                }))
-                .filter((r) => r.slug && r.displayName)
-                .sort((a, b) => b.score - a.score);
-
-              const best = scored[0];
-              const second = scored[1];
-              const confident =
-                best && best.score >= 0.9 && (!second || best.score - second.score >= 0.08);
-
-              const fallbackToSearch = "/community";
-
-              const targetTo = best?.slug
-                ? `/u/${encodeURIComponent(best.slug)}`
-                : fallbackToSearch;
-
-              const msg: ScoutMessage = {
-                id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                role: "assistant",
-                content: best?.displayName
-                  ? `I found ${best.displayName}.`
-                  : "I couldn't find a public profile match for that yet.",
-                timestamp: new Date().toISOString(),
-                clusters: [
-                  {
-                    id: "profile-lookup",
-                    title: best?.displayName ? best.displayName : "Browse community",
-                    kind: "generic",
-                    body: best?.displayName
-                      ? "Open their public profile."
-                      : "Try browsing community activity first.",
-                    primaryAction: {
-                      type: "NAVIGATE",
-                      label: "Open",
-                      to: targetTo,
-                    },
-                  },
-                ],
-                navTarget: targetTo,
-                memoryDelta: { lastIntent: "profile_lookup" },
-                contextRoles,
-              };
-
-              applyServerResponse(msg, []);
-
-              if (best?.slug) {
-                queueAutoRoute({
-                  to: targetTo,
-                  label: best.displayName,
-                  confidence: confident ? best.score : Math.min(0.84, best.score),
-                  why: "Profile match",
-                });
-              }
-
-              setStatus("idle");
-              return;
-            } catch {
-              setStatus("idle");
-              // fall through to normal flow
-            }
+        const profileResult = await checkProfileLookup(value, contextRoles);
+        if (profileResult.kind === "profile_lookup") {
+          setStatus("executing_action");
+          applyServerResponse(profileResult.message, []);
+          if (profileResult.autoRoute) {
+            queueAutoRoute(profileResult.autoRoute);
           }
+          setStatus("idle");
+          return;
         }
 
         if (!hasLoggedConfusionRef.current) {
@@ -1502,148 +1429,6 @@ export default function ScoutOS() {
             });
             hasLoggedConfusionRef.current = true;
           }
-        }
-
-        // ------------------------------------------------------------------
-        // EXPLANATION: "Why isn't this moving yet?"
-        // Pure explanation + navigation. Does not change workflow behavior.
-        // ------------------------------------------------------------------
-        const mentionsRoute = /\b(route|routing|routed)\b/.test(normalized);
-        const mentionsOpen = /\bopen request\b/.test(normalized);
-        const mentionsNotRouted = /not routed yet/.test(normalized);
-        const asksWhyRoute = /\bwhy\b/.test(normalized);
-
-        const looksRoutingQuestion =
-          (mentionsRoute || mentionsNotRouted || mentionsOpen) && asksWhyRoute;
-
-        if (looksRoutingQuestion) {
-          setStatus("ready");
-
-          const helpLink = getHelpLink("directConnect");
-
-          const bodyLines: string[] = [
-            "Direct Connect only shares requests when the core details are complete so local pros get clear, serious work posts.",
-            "",
-            "Your request is currently saved as a draft and has not been shared yet.",
-            "",
-            "What to do next:",
-            "- Open My requests and finish the basics (job type, location, budget).",
-            "- If sharing is blocked, add a trade and county so Scout can find local matches.",
-            "- If you no longer need it, cancel it and reopen later when ready.",
-          ];
-
-          const routingClusters: ScoutCluster[] = [
-            {
-              id: "direct-connect-routing-explainer",
-              title: "Why your request is still in draft",
-              kind: "generic",
-              body: bodyLines.join("\n"),
-              primaryAction: {
-                type: "NAVIGATE",
-                label: "Open Direct Connect guide",
-                to: helpLink,
-              },
-            },
-          ];
-
-          const msg: ScoutMessage = {
-            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-            role: "assistant",
-            content:
-              "Your request will be shared once the key details are complete so the right local providers can respond.",
-            timestamp: new Date().toISOString(),
-            clusters: routingClusters,
-            navTarget: helpLink,
-            memoryDelta: {
-              lastIntent: "direct_connect_routing_explainer",
-            },
-            contextRoles,
-          };
-
-          applyServerResponse(msg, []);
-          setStatus("idle");
-
-          const latencyMs = performance.now() - start;
-          logScoutInsight({
-            message: value,
-            mode,
-            locality,
-            success: true,
-            latencyMs,
-          });
-          return;
-        }
-
-        // ------------------------------------------------------------------
-        // EXPLANATION: "Why can't I message yet?"
-        // This is a pure explanation + navigation branch. It does not
-        // change any Direct Connect or messaging behavior; it only
-        // explains the rule and links to the canonical guide.
-        // ------------------------------------------------------------------
-        const mentionsMessage = /\b(message|messaging)\b/.test(normalized);
-        const hasCant = /\b(can't|cant|cannot)\b/.test(normalized);
-        const mentionsLocked = /\b(locked|disabled|closed)\b/.test(normalized);
-        const asksWhy = /\bwhy\b/.test(normalized);
-
-        const looksMessagingLockedQuestion =
-          mentionsMessage && (asksWhy || mentionsLocked || hasCant) && (hasCant || mentionsLocked);
-
-        if (looksMessagingLockedQuestion) {
-          setStatus("ready");
-
-          const helpLink = getHelpLink("messaging");
-
-          const bodyLines: string[] = [
-            "TradeScout keeps messaging locked until a provider accepts the request. This prevents spam and keeps communication tied to a real match.",
-            "",
-            "Right now no provider has accepted this request yet, so messaging stays closed.",
-            "",
-            "What to do next:",
-            "- Wait for a provider acceptance. Messaging opens automatically on that request.",
-            "- Improve request details if responses are slow or off-target.",
-            "- Cancel and replace the request if your needs changed.",
-          ];
-
-          const messagingClusters: ScoutCluster[] = [
-            {
-              id: "messaging-rules-explainer",
-              title: "Why messaging is locked",
-              kind: "generic",
-              body: bodyLines.join("\n"),
-              primaryAction: {
-                type: "NAVIGATE",
-                label: "Why messaging is locked",
-                to: helpLink,
-              },
-            },
-          ];
-
-          const msg: ScoutMessage = {
-            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-            role: "assistant",
-            content:
-              "Messaging opens after a provider accepts your Direct Connect request. Until then, it stays locked to prevent spam and misalignment.",
-            timestamp: new Date().toISOString(),
-            clusters: messagingClusters,
-            navTarget: helpLink,
-            memoryDelta: {
-              lastIntent: "messaging_locked_explainer",
-            },
-            contextRoles,
-          };
-
-          applyServerResponse(msg, []);
-          setStatus("idle");
-
-          const latencyMs = performance.now() - start;
-          logScoutInsight({
-            message: value,
-            mode,
-            locality,
-            success: true,
-            latencyMs,
-          });
-          return;
         }
 
         // ==================================================================
