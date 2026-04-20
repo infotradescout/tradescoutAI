@@ -659,6 +659,13 @@
       "when": 1745100060000,
       "tag": "0090_work_request_assignments_response_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1745200000000,
+      "tag": "0091_dc_notification_types_and_self_select",
+      "breakpoints": true
     }
   ]
 }

@@ -3761,6 +3761,7 @@ export const workRequestEvents = pgTable("work_request_events", {
       "exposure_mode_changed",
       "provider_suggested",
       "provider_invited",
+      "provider_self_selected",
       "provider_accepted",
       "provider_declined",
       "provider_completed",
@@ -3808,6 +3809,7 @@ export const workRequestAssignments = pgTable("work_request_assignments", {
     tradeMatch?: boolean;
     recommendationCount?: number;
     responseRate?: number;
+    routingMode?: string;
   }>(),
 
   // Structured accept response stored at accept time for requester visibility
@@ -10282,6 +10284,11 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "mention",
   "community_invitation",
 
+  // Direct Connect notifications
+  "dc_provider_accepted",
+  "dc_provider_declined",
+  "dc_provider_interested",
+  "dc_request_completed",
   // Marketing notifications
   "promotional",
   "feature_announcement",

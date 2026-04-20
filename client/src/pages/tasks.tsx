@@ -327,6 +327,33 @@ export default function TasksHub({
     enabled: isAuthenticated && !!selectedCountyFips && !!resolvedTradeSlug,
   });
 
+  // Provider self-select: express interest in an open board request
+  const expressInterestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return apiRequest(
+        "POST",
+        `/api/direct-connect/requests/${encodeURIComponent(requestId)}/express-interest`,
+        {}
+      );
+    },
+    onSuccess: (data: any, requestId: string) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
+      toast({
+        title: data?.alreadyAssigned ? "Already in your inbox" : "Interest sent!",
+        description: data?.alreadyAssigned
+          ? "You already expressed interest in this request. Check your inbox to respond."
+          : "The requester has been notified. Check your inbox to accept or decline.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not express interest",
+        description: formatUserFacingErrorMessage(error),
+        variant: "destructive",
+      });
+    },
+  });
+
   const createTaskMutation = useMutation({
     mutationFn: async () => {
       if (postIntent === "job_listing") {
@@ -722,6 +749,21 @@ export default function TasksHub({
                           </span>
                         </div>
                       </button>
+                      {isAuthenticated && isMultiCountyProvider && (
+                        <div className="mt-2 border-t border-white/10 pt-2">
+                          <Button
+                            size="sm"
+                            className="w-full bg-ts-orange text-text-black hover:bg-ts-orange/90 text-xs h-8"
+                            disabled={expressInterestMutation.isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              expressInterestMutation.mutate(String((request as any).id));
+                            }}
+                          >
+                            {expressInterestMutation.isPending ? "Sending..." : "Express Interest"}
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

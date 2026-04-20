@@ -148,8 +148,8 @@ describe("DC server — complete endpoint", () => {
 
   it("returns status completed on success", () => {
     const routeStart = DC_ROUTES.indexOf('"/api/direct-connect/requests/:id/complete"');
-    // Window extended to 3000 chars to accommodate the outcome event block added in session 2
-    const routeBody = DC_ROUTES.slice(routeStart, routeStart + 3000);
+    // Window extended to 5000 chars to accommodate the completion notification block added in Apr 2026
+    const routeBody = DC_ROUTES.slice(routeStart, routeStart + 5000);
     expect(routeBody).toContain('"completed"');
     expect(routeBody).toContain("status(200)");
   });

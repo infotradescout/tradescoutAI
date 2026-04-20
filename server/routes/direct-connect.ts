@@ -2286,6 +2286,51 @@ export function registerDirectConnectRoutes(app: Express) {
         } catch (e) {
           console.warn("[direct-connect] Failed to record outcome event for completion", e);
         }
+        // Notify the accepted provider(s) that the requester marked the job complete.
+        try {
+          const acceptedAssignments = await db
+            .select()
+            .from(workRequestAssignments)
+            .where(
+              and(
+                eq(workRequestAssignments.workRequestId, requestId),
+                eq(workRequestAssignments.status, "accepted" as any)
+              )
+            );
+          const providerUserIds = new Set<string>();
+          for (const a of acceptedAssignments as any[]) {
+            if (a.responderUserId) providerUserIds.add(String(a.responderUserId));
+            if (a.contractorId) {
+              const [c] = await db
+                .select({ userId: contractors.userId })
+                .from(contractors)
+                .where(eq(contractors.id, String(a.contractorId)))
+                .limit(1);
+              if (c?.userId) providerUserIds.add(String(c.userId));
+            }
+          }
+          await Promise.all(
+            Array.from(providerUserIds).map(async (providerUserId) => {
+              try {
+                await notificationService.createNotification({
+                  userId: providerUserId,
+                  type: "dc_request_completed",
+                  title: "Job marked complete",
+                  message: `The requester marked "${String(requestRow.title || "your request")}" as complete.`,
+                  actionUrl: "/direct-connect/inbox",
+                  actionText: "View in inbox",
+                  iconName: "check-circle",
+                  iconColor: "green",
+                  deliveryMethods: ["in_app", "push"],
+                });
+              } catch (notifErr) {
+                console.warn("[direct-connect] Failed to notify provider of completion", notifErr);
+              }
+            })
+          );
+        } catch (e) {
+          console.warn("[direct-connect] Failed to send completion notifications to providers", e);
+        }
         res.status(200).json({ status: "completed" });
       } catch (error: any) {
         console.error("Error completing direct connect request:", error);
@@ -3632,6 +3677,137 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error responding to direct connect assignment:", error);
         res.status(500).json({
           message: "Failed to respond to assignment",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  // Provider-facing: self-select on an open board request the provider was not directly invited to.
+  // This creates a "suggested" assignment for the provider and notifies the requester.
+  app.post(
+    "/api/direct-connect/requests/:id/express-interest",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id);
+        // Resolve provider identity: contractor profile or business/worker (responderUserId)
+        const contractor = await storage.getContractorByUserId(String(userId));
+        const business = await storage.getActiveBusinessForUser(String(userId));
+        if (!contractor && !business) {
+          return res.status(403).json({
+            message: "Only registered providers (contractors or businesses) can express interest.",
+          });
+        }
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res.status(400).json({ message: "Only Direct Connect requests support this." });
+        }
+        const openStatuses = ["open", "routed"];
+        if (!openStatuses.includes(String(requestRow.status || ""))) {
+          return res.status(409).json({
+            message: "This request is no longer accepting new responses.",
+          });
+        }
+        // Prevent the requester from expressing interest in their own request
+        if (String(requestRow.createdByUserId) === String(userId)) {
+          return res.status(400).json({ message: "You cannot respond to your own request." });
+        }
+        const now = new Date();
+        // Idempotency: if the provider already has an assignment for this request, return it
+        const isContractorProvider = Boolean(contractor?.id);
+        const existingQuery = isContractorProvider
+          ? db
+              .select()
+              .from(workRequestAssignments)
+              .where(
+                and(
+                  eq(workRequestAssignments.workRequestId, requestId),
+                  eq(workRequestAssignments.contractorId, String(contractor!.id))
+                )
+              )
+              .limit(1)
+          : db
+              .select()
+              .from(workRequestAssignments)
+              .where(
+                and(
+                  eq(workRequestAssignments.workRequestId, requestId),
+                  eq((workRequestAssignments as any).responderUserId, String(userId))
+                )
+              )
+              .limit(1);
+        const [existing] = await existingQuery;
+        if (existing) {
+          // Already has an assignment — return it as-is (idempotent)
+          return res.status(200).json({ assignment: existing, alreadyAssigned: true });
+        }
+        // Create a new "suggested" assignment for the self-selecting provider
+        const [newAssignment] = await db
+          .insert(workRequestAssignments)
+          .values({
+            workRequestId: requestId,
+            contractorId: isContractorProvider ? String(contractor!.id) : null,
+            responderUserId: isContractorProvider ? null : String(userId),
+            workerId: null,
+            status: "suggested" as const,
+            scoreSnapshot: {
+              score: 0,
+              reasons: ["Provider expressed interest from board"],
+              routingMode: "self_selected",
+            },
+            createdAt: now,
+            updatedAt: now,
+          })
+          .returning();
+        // Log the event
+        try {
+          await db.insert(workRequestEvents).values({
+            workRequestId: requestId,
+            type: "provider_self_selected" as const,
+            actorUserId: String(userId),
+            metadata: {
+              contractorId: isContractorProvider ? contractor!.id : null,
+              responderUserId: isContractorProvider ? null : String(userId),
+              source: "self_selected",
+              businessId: business?.id ?? null,
+            },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to record self-select event", e);
+        }
+        // Notify the requester that a provider has expressed interest
+        try {
+          const providerName = isContractorProvider
+            ? String((contractor as any).companyName || (contractor as any).name || "A provider")
+            : String((business as any)?.name || "A provider");
+          await notificationService.createNotification({
+            userId: String(requestRow.createdByUserId),
+            type: "dc_provider_interested",
+            title: "A provider is interested",
+            message: `${providerName} expressed interest in your request: ${String(requestRow.title || "")}`,
+            actionUrl: "/direct-connect/engagements",
+            actionText: "View request",
+            iconName: "user-check",
+            iconColor: "blue",
+            deliveryMethods: ["in_app", "push"],
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to notify requester of provider interest", e);
+        }
+        res.status(201).json({ assignment: newAssignment, alreadyAssigned: false });
+      } catch (error: any) {
+        console.error("Error expressing interest in direct connect request:", error);
+        res.status(500).json({
+          message: "Failed to express interest",
           requestId: (req as any).requestId || null,
         });
       }

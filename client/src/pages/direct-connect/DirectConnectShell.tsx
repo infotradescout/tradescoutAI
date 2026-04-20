@@ -1427,12 +1427,15 @@ function DirectConnectInbox() {
         scopeNote: payload.scopeNote,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: any, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
+      // After accepting, navigate to the conversation thread so both parties can communicate
+      if (variables?.decision === "accept" && data?.conversationId) {
+        window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
+      }
     },
   });
-
   const handleRespond = async (
     assignmentId: string,
     decision: "accept" | "decline",
@@ -2193,7 +2196,9 @@ function MyDirectConnectRequests() {
             const threadId = r.dcConversationThreadId;
             window.location.href = threadId
               ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-              : "/messages";
+              : r.id
+                ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                : "/messages";
             return;
           }
           setExpandedRequestId((current) => (current === r.id ? null : r.id));
@@ -2477,7 +2482,9 @@ function MyDirectConnectRequests() {
                       const threadId = r.dcConversationThreadId;
                       window.location.href = threadId
                         ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                        : "/messages";
+                        : r.id
+                          ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                          : "/messages";
                     }}
                   >
                     Open messages
@@ -2551,7 +2558,9 @@ function MyDirectConnectRequests() {
                         const threadId = r.dcConversationThreadId;
                         window.location.href = threadId
                           ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                          : "/messages";
+                          : r.id
+                            ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                            : "/messages";
                       }}
                     >
                       <MessageCircle className="mr-1 h-3.5 w-3.5" />
