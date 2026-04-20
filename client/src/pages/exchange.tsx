@@ -1021,6 +1021,17 @@ export default function Exchange() {
               <Badge variant="outline" className="border-white/10 text-white/70" title={scopeLabel}>
                 {scopeLabel}
               </Badge>
+              {isAuthenticated && (
+                <Link href="/exchange/seller-dashboard">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/20 text-white/80 hover:text-white hover:bg-white/10"
+                  >
+                    My Listings
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

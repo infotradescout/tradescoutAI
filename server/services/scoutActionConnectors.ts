@@ -33,33 +33,77 @@ export class CarSalesConnector {
     error?: string;
   }> {
     try {
-      // In a real implementation, this would call the VIN lookup service
-      // For now, we're providing the interface structure
-
-      // Validate VIN format (17 characters)
-      if (!vin || vin.length !== 17) {
+      // Validate VIN format (17 alphanumeric characters, no I/O/Q per ISO 3779)
+      const vinClean = (vin || "").trim().toUpperCase();
+      if (!vinClean || vinClean.length !== 17 || /[IOQ]/.test(vinClean)) {
         return {
           success: false,
           vehicle: null,
-          error: "Invalid VIN format. VINs must be 17 characters.",
+          error: "Invalid VIN format. VINs must be 17 characters and cannot contain I, O, or Q.",
         };
       }
 
-      // Mock VIN lookup response
+      // NHTSA vPIC API — free, no API key required
+      const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vinClean}?format=json`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) {
+        throw new Error(`NHTSA API returned HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      const result = data?.Results?.[0];
+
+      // ErrorCode "6" means VIN not found; other non-zero codes may still have partial data
+      if (!result || result.ErrorCode === "6") {
+        return { success: false, vehicle: null, error: "VIN not found in NHTSA database." };
+      }
+
+      const year = parseInt(result.ModelYear || "0", 10) || null;
+      const make = (result.Make || "").trim() || null;
+      const model = (result.Model || "").trim() || null;
+      const bodyType = (result.BodyClass || result.VehicleType || "").trim() || null;
+      const engineCylinders = result.EngineCylinders ? `${result.EngineCylinders}-Cylinder` : null;
+      const engineDisplacement = result.DisplacementL
+        ? `${parseFloat(result.DisplacementL).toFixed(1)}L`
+        : null;
+      const engineStr =
+        engineDisplacement && engineCylinders
+          ? `${engineDisplacement} ${engineCylinders}`
+          : engineDisplacement || engineCylinders || (result.EngineModel || "").trim() || null;
+      const transmission = (result.TransmissionStyle || "").trim() || null;
+      const driveType = (result.DriveType || "").trim() || null;
+      const fuelType = (result.FuelTypePrimary || "").trim() || null;
+
+      if (!year || !make || !model) {
+        return {
+          success: false,
+          vehicle: null,
+          error: "NHTSA returned incomplete vehicle data for this VIN.",
+        };
+      }
+
       return {
         success: true,
         vehicle: {
-          vin,
-          year: 2020,
-          make: "Toyota",
-          model: "Camry",
-          body_type: "Sedan",
-          engine: "2.5L 4-Cylinder",
-          transmission: "8-Speed Automatic",
-          mileage: 45000,
-          condition: "excellent",
-          market_value: 24500,
-        },
+          vin: vinClean,
+          year,
+          make,
+          model,
+          body_type: bodyType ?? "Unknown",
+          engine: engineStr ?? "Unknown",
+          transmission: transmission ?? "Unknown",
+          // mileage and market_value are not available from NHTSA
+          mileage: undefined,
+          condition: undefined,
+          market_value: undefined,
+          // Extra context fields for Scout
+          ...(driveType ? { drive_type: driveType } : {}),
+          ...(fuelType ? { fuel_type: fuelType } : {}),
+          ...((result.Series || "").trim() ? { series: result.Series.trim() } : {}),
+          ...((result.Trim || "").trim() ? { trim: result.Trim.trim() } : {}),
+          ...((result.PlantCountry || "").trim()
+            ? { plant_country: result.PlantCountry.trim() }
+            : {}),
+        } as any,
       };
     } catch (error) {
       return {

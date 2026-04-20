@@ -19573,10 +19573,36 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  // Mark a listing as sold (seller-only)
+  app.post(
+    "/api/marketplace/listings/:id/mark-sold",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const user = req.user as any;
+        const sellerId: string = user?.id || user?.claims?.sub;
+        const { id } = req.params;
+        const listing = await storage.getMarketplaceListing(id);
+        if (!listing) {
+          return res.status(404).json({ message: "Listing not found" });
+        }
+        if (String(listing.sellerId) !== String(sellerId)) {
+          return res.status(403).json({ message: "Not authorized to update this listing" });
+        }
+        const updated = await storage.updateMarketplaceListing(id, { status: "sold" });
+        res.json(updated);
+      } catch (error: any) {
+        console.error("Error marking listing as sold:", error);
+        res.status(500).json({ message: "Failed to mark listing as sold" });
+      }
+    }
+  );
+
   // Inquiries
   app.post("/api/marketplace/inquiries", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
+      const buyerId: string = user?.id || user?.claims?.sub;
       const parsedInquiry = insertMarketplaceInquirySchema.safeParse(req.body);
       if (!parsedInquiry.success) {
         return res.status(400).json({
@@ -19592,15 +19618,104 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (!listing) {
         return res.status(404).json({ message: "Listing not found" });
       }
+      const sellerId = String(listing.sellerId || "");
 
       const inquiry = await storage.createMarketplaceInquiry({
         ...validatedData,
         buyerPhone: null,
         buyerEmail: null,
         preferredContactMethod: "message",
-        buyerId: user?.id,
-        sellerId: listing.sellerId,
+        buyerId,
+        sellerId,
       });
+
+      // ── Wire inquiry into the marketplace conversation thread ──────────────
+      // Reuse an existing conversation for this listing+buyer+seller pair, or
+      // create a new one so the seller can reply from their inbox.
+      try {
+        const inquiryMessage =
+          (validatedData as any).message || `I'm interested in your listing "${listing.title}".`;
+        const offerPrice = (validatedData as any).offerPrice;
+        const messageContent = offerPrice
+          ? `${inquiryMessage}\n\nOffer: $${Number(offerPrice).toLocaleString()}`
+          : inquiryMessage;
+
+        let conversation = await storage.getMarketplaceConversationByParticipants(
+          validatedData.listingId,
+          buyerId,
+          sellerId
+        );
+        if (!conversation) {
+          conversation = await storage.createMarketplaceConversation({
+            listingId: validatedData.listingId,
+            buyerId,
+            sellerId,
+            status: "active",
+            intent: "hire",
+            authorityGate: "scout_recommendation",
+            decisionScope: `marketplace_listing:${validatedData.listingId}`,
+          } as any);
+        }
+        await storage.createMarketplaceMessage({
+          conversationId: conversation.id,
+          senderId: buyerId,
+          senderType: "buyer",
+          content: messageContent,
+          messageType: offerPrice ? "offer" : "text",
+          metadata: offerPrice ? { offerPrice: Number(offerPrice) } : undefined,
+        });
+
+        // ── Notify the seller ───────────────────────────────────────────────
+        const buyerUser = await storage.getUser(buyerId);
+        const buyerName = buyerUser?.firstName ? buyerUser.firstName : "Someone";
+        const notifTitle = offerPrice
+          ? `New offer on "${listing.title}"`
+          : `New inquiry on "${listing.title}"`;
+        const notifMsg = offerPrice
+          ? `${buyerName} made an offer of $${Number(offerPrice).toLocaleString()} on your listing.`
+          : `${buyerName} sent you a message about your listing.`;
+
+        // In-app notification (fire-and-forget)
+        void notificationService
+          .createNotification({
+            userId: sellerId,
+            type: "new_message",
+            priority: "high",
+            title: notifTitle,
+            message: notifMsg,
+            actionUrl: `/messages?thread=${conversation.id}&type=marketplace`,
+            actionText: "View message",
+            iconName: "MessageCircle",
+            iconColor: "orange",
+            deliveryMethods: ["in_app", "push"],
+            metadata: {
+              conversationId: conversation.id,
+              listingId: validatedData.listingId,
+              inquiryId: inquiry.id,
+            },
+          })
+          .catch((e: any) => console.error("[inquiries] seller in-app notification failed:", e));
+
+        // Email notification (best-effort)
+        if (emailService.isConfigured()) {
+          const sellerUser = await storage.getUser(sellerId);
+          if (sellerUser?.email) {
+            void emailService
+              .sendEmail({
+                to: sellerUser.email,
+                subject: notifTitle,
+                html: `<p>${notifMsg}</p><p><a href="https://www.thetradescout.com/messages?thread=${conversation.id}&type=marketplace">Reply in TradeScout</a></p>`,
+                text: `${notifMsg}\n\nReply at: https://www.thetradescout.com/messages?thread=${conversation.id}&type=marketplace`,
+                purpose: "marketplace_inquiry",
+              })
+              .catch((e: any) => console.error("[inquiries] seller email notification failed:", e));
+          }
+        }
+      } catch (threadErr: any) {
+        // Thread/notification failure must never block the inquiry response
+        console.error("[inquiries] conversation thread setup failed:", threadErr);
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       res.status(201).json(inquiry);
     } catch (error: any) {
