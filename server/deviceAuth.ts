@@ -116,13 +116,14 @@ export class DeviceAuthService {
     return record.user;
   }
 
-  // Register a new device for approval (requires admin approval for super_admin users)
+  // Register a new device for approval (requires admin approval for super_admin users).
+  // Returns sessionToken when the device is auto-approved; null when pending approval.
   static async registerDevice(
     userId: string,
     req: Request,
     clientData?: Partial<DeviceFingerprint>,
     autoApprove: boolean = false
-  ): Promise<{ deviceId: string; needsApproval: boolean }> {
+  ): Promise<{ deviceId: string; needsApproval: boolean; sessionToken: string | null }> {
     const deviceFingerprint = this.generateFingerprint(req, clientData);
     const deviceName = this.getDeviceName(req.headers["user-agent"] || "");
 
@@ -140,9 +141,13 @@ export class DeviceAuthService {
 
     if (existingDevice) {
       if (existingDevice.status === "approved") {
-        return { deviceId: existingDevice.id, needsApproval: false };
+        return {
+          deviceId: existingDevice.id,
+          needsApproval: false,
+          sessionToken: existingDevice.sessionToken,
+        };
       }
-      return { deviceId: existingDevice.id, needsApproval: true };
+      return { deviceId: existingDevice.id, needsApproval: true, sessionToken: null };
     }
 
     // Create new device registration
@@ -165,6 +170,8 @@ export class DeviceAuthService {
     return {
       deviceId: newDevice.id,
       needsApproval: !autoApprove,
+      // Only return session token when auto-approved; pending devices must wait for admin approval.
+      sessionToken: autoApprove ? sessionToken : null,
     };
   }
 

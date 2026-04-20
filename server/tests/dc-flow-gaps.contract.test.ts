@@ -126,21 +126,25 @@ describe("Inbox UI — provider type badge", () => {
   });
 
   it("inbox card renders a Worker badge when workerId is set", () => {
-    expect(DC_SHELL).toContain(">Worker</Badge>");
+    // Badge text is on its own line (multi-line JSX)
+    expect(DC_SHELL).toMatch(/Badge[^>]*>[\s\S]*?Worker[\s\S]*?<\/Badge>/);
   });
 
   it("inbox card renders a Business badge when responderUserId is set without contractorId", () => {
-    expect(DC_SHELL).toContain(">Business</Badge>");
+    expect(DC_SHELL).toMatch(/Badge[^>]*>[\s\S]*?Business[\s\S]*?<\/Badge>/);
   });
 
   it("inbox card renders a Contractor badge when contractorId is set", () => {
-    expect(DC_SHELL).toContain(">Contractor</Badge>");
+    expect(DC_SHELL).toMatch(/Badge[^>]*>[\s\S]*?Contractor[\s\S]*?<\/Badge>/);
   });
 
   it("provider badge logic checks workerId first (highest specificity)", () => {
-    // workerId check must appear before responderUserId check in the badge IIFE
-    const workerIdx = DC_SHELL.indexOf(">Worker</Badge>");
-    const businessIdx = DC_SHELL.indexOf(">Business</Badge>");
+    // workerId check must appear before responderUserId check in the badge block
+    // Both badge labels are preceded by spaces (multi-line JSX indentation)
+    const workerIdx = DC_SHELL.indexOf("Worker");
+    const businessIdx = DC_SHELL.search(/Business[\s\S]{0,100}<\/Badge>/);
+    expect(workerIdx).toBeGreaterThan(-1);
+    expect(businessIdx).toBeGreaterThan(-1);
     expect(workerIdx).toBeLessThan(businessIdx);
   });
 });

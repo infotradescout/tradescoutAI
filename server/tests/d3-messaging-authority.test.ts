@@ -19,10 +19,10 @@ import { eq } from "drizzle-orm";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
 // Test utilities
-const describeIntegration =
-  process.env.TEST_DATABASE_URL && process.env.RUN_INTEGRATION_TESTS === "true"
-    ? describe
-    : describe.skip;
+// Uses the same guard as all other integration tests in this project:
+// set TEST_DATABASE_URL to a local Postgres URL to enable these tests.
+const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const describeIntegration = hasTestDb ? describe : describe.skip;
 let currentAgent: any = null;
 
 async function createTestUser(overrides = {}) {

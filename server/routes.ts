@@ -108,7 +108,7 @@ import {
 } from "./utils/privilegedActions";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
-import { checkTrustedDevice } from "./deviceAuth";
+import { checkTrustedDevice, DeviceAuthService } from "./deviceAuth";
 import { registerAdminDeviceSecurityRoutes } from "./routes/admin-device-security";
 import {
   addPropertyLifecycleEvent,
@@ -360,14 +360,7 @@ type AuthedRequest = Request & {
 type ExpressHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
 import { eq, ne, desc, and, or, sql, gt, gte, lte, asc, inArray, isNull } from "drizzle-orm";
 // Removed duplicate User import
-// Stubs for undeclared globals
-const DeviceAuthService = {
-  registerTrustedDevice: async () => "token",
-  getUserDevices: async () => [],
-  getPendingDevices: async () => [],
-  approveDevice: async () => true,
-  revokeDevice: async () => true,
-};
+// DeviceAuthService imported from ./deviceAuth above
 const objectStorageService = new ObjectStorageService();
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
@@ -3852,7 +3845,10 @@ export async function registerRoutes(app: any) {
       const masterAdmin = await storage.createMasterAdmin(email, password, firstName, lastName);
 
       // Register trusted device for secure session persistence
-      const sessionToken = await DeviceAuthService.registerTrustedDevice(); // stubbed: no args
+      // Register the master admin's device as trusted (auto-approved on first setup)
+      const { DeviceAuthService: _DAS } = await import("./deviceAuth");
+      const deviceReg = await _DAS.registerDevice(masterAdmin.id, req, undefined, true);
+      const sessionToken = deviceReg.sessionToken || "";
 
       // Set secure cookie for trusted session
       res.cookie("trusted_session", sessionToken, {
@@ -10471,10 +10467,36 @@ export async function registerRoutes(app: any) {
     "/api/pro/analytics/sources",
     isAuthenticated,
     isContractor,
-    async (_req: any, res: any) => {
+    async (req: any, res: any) => {
       try {
-        // Source-level breakdowns are not yet tracked; return an empty dataset with clear semantics.
-        res.json({ sources: [] });
+        const userId = req.user?.id || req.user?.claims?.sub;
+        // Resolve contractor profile for this user
+        const [contractorRow] = await db
+          .select({ id: contractors.id })
+          .from(contractors)
+          .where(eq(contractors.userId, userId))
+          .limit(1);
+        if (!contractorRow) {
+          return res.json({ sources: [] });
+        }
+        // Count assignments grouped by the originating work request source
+        // Sources: 'tasks' | 'community' | 'scout' (from workRequests.source enum)
+        const rows = await db
+          .select({
+            source: workRequests.source,
+            count: sql<number>`cast(count(*) as int)`,
+          })
+          .from(workRequestAssignments)
+          .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
+          .where(eq(workRequestAssignments.contractorId, contractorRow.id))
+          .groupBy(workRequests.source);
+        const total = rows.reduce((sum, r) => sum + (r.count || 0), 0);
+        const sources = rows.map((r) => ({
+          source: r.source || "tasks",
+          count: r.count || 0,
+          percentage: total > 0 ? Math.round(((r.count || 0) / total) * 100) : 0,
+        }));
+        res.json({ sources });
       } catch (error: any) {
         console.error("Error fetching pro analytics sources:", error);
         res.status(500).json({ message: "Failed to fetch analytics sources" });

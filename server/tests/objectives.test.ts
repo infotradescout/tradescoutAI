@@ -755,10 +755,156 @@ describeWithDb("Objectives Layer - Phase 1", () => {
 });
 
 /**
- * PHASE 2 Tests (Not yet implemented, placeholder)
+ * PHASE 2 Tests — Promotion to community posts, marketplace listings, and browse routing
  */
-describe("Objectives Layer - Phase 2 (Promotion to other object types)", () => {
-  test.todo("promotes community_post intent to draft post");
-  test.todo("promotes marketplace_sell intent to draft listing");
-  test.todo("marketplace_buy intent creates search or browse routing");
+const describePhase2 = hasTestDb ? describe : describe.skip;
+describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", () => {
+  const P2_USER = "test-user-phase2-" + Date.now();
+  let dbRef!: (typeof import("../db"))["db"];
+
+  beforeAll(async () => {
+    process.env.OBJECTIVES_ENABLED ??= "true";
+    ({ db: dbRef } = await import("../db"));
+  });
+
+  afterAll(async () => {
+    await dbRef.delete(objectives).where(like(objectives.userId, `${P2_USER}%`));
+  });
+
+  test("promotes community_post intent to draft post", async () => {
+    const { communityPosts } = await import("../../shared/schema");
+    const [obj] = await dbRef
+      .insert(objectives)
+      .values({
+        userId: P2_USER,
+        title: "Looking for contractor recommendations",
+        summary: "Anyone know a good roofer in the area?",
+        intentClass: "community_post",
+        confidence: "0.8",
+        contextJson: { countyFips: TEST_COUNTY_FIPS, stateCode: TEST_STATE_CODE },
+        status: "active",
+      })
+      .returning();
+    expect(obj.id).toBeTruthy();
+
+    const { createApp } = await import("../app");
+    const request = (await import("supertest")).default;
+    const app = await createApp();
+    const res = await (request(app) as any)
+      .post(`/api/objectives/${obj.id}/promote`)
+      .set("x-test-user-id", P2_USER)
+      .send({
+        targetObjectType: "communityPost",
+        countyFips: TEST_COUNTY_FIPS,
+        stateCode: TEST_STATE_CODE,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.communityPostId).toBeTruthy();
+
+    const updated = await dbRef
+      .select()
+      .from(objectives)
+      .where(eq(objectives.id, obj.id))
+      .then((r) => r[0]);
+    expect(updated.linkedObjectType).toBe("communityPost");
+    expect(updated.linkedObjectId).toBe(res.body.communityPostId);
+
+    // Verify the draft post exists and is unpublished
+    const [post] = await dbRef
+      .select()
+      .from(communityPosts)
+      .where(eq(communityPosts.id, res.body.communityPostId));
+    expect(post.isPublished).toBe(false);
+    expect(post.authorId).toBe(P2_USER);
+  });
+
+  test("promotes marketplace_sell intent to draft listing", async () => {
+    const { marketplaceListings } = await import("../../shared/schema");
+    const [obj] = await dbRef
+      .insert(objectives)
+      .values({
+        userId: P2_USER,
+        title: "Selling my old ladder",
+        summary: "8ft fibreglass ladder, good condition",
+        intentClass: "marketplace_sell",
+        confidence: "0.85",
+        contextJson: { county: "Orange County", stateCode: "FL" },
+        status: "active",
+      })
+      .returning();
+    expect(obj.id).toBeTruthy();
+
+    const { createApp } = await import("../app");
+    const request = (await import("supertest")).default;
+    const app = await createApp();
+    const res = await (request(app) as any)
+      .post(`/api/objectives/${obj.id}/promote`)
+      .set("x-test-user-id", P2_USER)
+      .send({
+        targetObjectType: "marketplaceListing",
+        price: 75,
+        condition: "good",
+        county: "Orange County",
+        state: "FL",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.marketplaceListingId).toBeTruthy();
+
+    const updated = await dbRef
+      .select()
+      .from(objectives)
+      .where(eq(objectives.id, obj.id))
+      .then((r) => r[0]);
+    expect(updated.linkedObjectType).toBe("marketplaceListing");
+    expect(updated.linkedObjectId).toBe(res.body.marketplaceListingId);
+
+    // Verify the draft listing exists with status=draft
+    const [listing] = await dbRef
+      .select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.id, res.body.marketplaceListingId));
+    expect(listing.status).toBe("draft");
+    expect(listing.sellerId).toBe(P2_USER);
+  });
+
+  test("marketplace_buy intent creates browse routing URL", async () => {
+    const [obj] = await dbRef
+      .insert(objectives)
+      .values({
+        userId: P2_USER,
+        title: "Looking for a used truck",
+        summary: "Need a reliable pickup truck under $15k",
+        intentClass: "marketplace_buy",
+        confidence: "0.9",
+        contextJson: { county: "Orange County", stateCode: "FL" },
+        status: "active",
+      })
+      .returning();
+    expect(obj.id).toBeTruthy();
+
+    const { createApp } = await import("../app");
+    const request = (await import("supertest")).default;
+    const app = await createApp();
+    const res = await (request(app) as any)
+      .post(`/api/objectives/${obj.id}/promote`)
+      .set("x-test-user-id", P2_USER)
+      .send({ targetObjectType: "none" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.browseUrl).toContain("/marketplace");
+    expect(res.body.browseUrl).toContain(encodeURIComponent("Looking for a used truck"));
+
+    // Objective should be marked completed
+    const updated = await dbRef
+      .select()
+      .from(objectives)
+      .where(eq(objectives.id, obj.id))
+      .then((r) => r[0]);
+    expect(updated.status).toBe("completed");
+  });
 });

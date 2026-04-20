@@ -3533,7 +3533,41 @@ export function registerDirectConnectRoutes(app: Express) {
         if (result.status !== 200) {
           return res.status(result.status).json(result.body);
         }
-
+        // Notify the requester that a provider has accepted or declined their request.
+        // This runs outside the transaction so a notification failure never blocks the response.
+        try {
+          const { assignment: updatedAssignment, conversationId: convId } = result.body as any;
+          // Re-fetch the requester userId from the work request (already committed by the tx above).
+          const [reqRow] = await db
+            .select({ createdByUserId: workRequests.createdByUserId, title: workRequests.title })
+            .from(workRequests)
+            .where(eq(workRequests.id, updatedAssignment.workRequestId))
+            .limit(1);
+          if (reqRow?.createdByUserId) {
+            const isAccept = updatedAssignment.status === "accepted";
+            await notificationService.createNotification({
+              userId: String(reqRow.createdByUserId),
+              type: isAccept ? "dc_provider_accepted" : "dc_provider_declined",
+              title: isAccept
+                ? "A provider accepted your request"
+                : "A provider declined your request",
+              message: isAccept
+                ? `A provider accepted your Direct Connect request: ${reqRow.title}`
+                : `A provider declined your Direct Connect request: ${reqRow.title}`,
+              actionUrl:
+                isAccept && convId ? `/direct-connect?conversation=${convId}` : "/direct-connect",
+              actionText: isAccept ? "Open conversation" : "View request",
+              iconName: isAccept ? "check-circle" : "x-circle",
+              iconColor: isAccept ? "green" : "gray",
+              deliveryMethods: ["in_app", "push"],
+            });
+          }
+        } catch (notifErr) {
+          console.warn(
+            "[direct-connect] Failed to notify requester of provider response",
+            notifErr
+          );
+        }
         res.json(result.body);
       } catch (error: any) {
         console.error("Error responding to direct connect assignment:", error);
