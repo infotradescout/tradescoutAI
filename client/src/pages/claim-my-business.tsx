@@ -155,8 +155,8 @@ export default function ClaimMyBusinessPage() {
         name,
         stateCode,
         countyFips,
-        type: "contractor",
-        roleContext: "contractor",
+        type: "other",
+        roleContext: "business_owner",
       });
       const biz = result?.business as ClaimSearchItem | undefined;
       if (!biz?.id) throw new Error("Failed to create business shell");

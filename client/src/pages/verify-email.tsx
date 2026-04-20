@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,12 @@ export default function VerifyEmail() {
         setState("success");
         setMessage(resp?.message || "Email verified.");
         setVerifiedEmail(typeof resp?.email === "string" ? resp.email : "");
+        // If the server auto-logged us in, refresh the auth cache so isAuthenticated
+        // reflects the new session before the redirect effect fires.
+        if (resp?.autoLoggedIn) {
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+          queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+        }
         toast({
           title: "Email verified",
           description: "Verified. Routing now...",

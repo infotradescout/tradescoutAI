@@ -3255,10 +3255,26 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Auto-login: establish a session immediately after verification so the user
+      // lands in the app without a second sign-in step (mirrors OAuth flow behavior).
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.login(updated as any, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } catch (loginErr) {
+        // Non-fatal: verification succeeded; session establishment failed.
+        // The client will fall back to the normal sign-in path.
+        console.warn("[email-verification] Auto-login after verification failed:", loginErr);
+      }
+
       return res.json({
         message: "Email verified successfully",
         email: (updated as any)?.email || null,
         userId: (updated as any)?.id || userId,
+        autoLoggedIn: !req.isUnauthenticated?.(),
       });
     } catch (error: any) {
       console.error("[email-verification] Verification failed:", error);

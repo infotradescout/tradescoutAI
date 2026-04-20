@@ -865,6 +865,9 @@ export function registerDirectConnectRoutes(app: Express) {
         .map((a: any) => a.responderUserId)
         .filter((id: any): id is string => Boolean(id))
     );
+    const existingByWorker = new Set(
+      existingAssignments.map((a: any) => a.workerId).filter((id: any): id is string => Boolean(id))
+    );
 
     const now = new Date();
     const newAssignmentsPayload: any[] = [];
@@ -872,8 +875,11 @@ export function registerDirectConnectRoutes(app: Express) {
 
     for (const candidate of topRanked) {
       if (!candidate.id) continue;
-      // Skip if already assigned (by contractorId for contractors, by responderUserId for businesses)
-      if ((candidate as any).isBusinessProvider) {
+      // Skip if already assigned (by contractorId for contractors, by responderUserId for businesses/workers, by workerId for workers)
+      if ((candidate as any).isWorkerProvider) {
+        if (existingByWorker.has(candidate.id)) continue;
+        if (candidate.userId && existingByResponderUser.has(candidate.userId)) continue;
+      } else if ((candidate as any).isBusinessProvider) {
         if (candidate.userId && existingByResponderUser.has(candidate.userId)) continue;
       } else {
         if (existingByContractor.has(candidate.id)) continue;
